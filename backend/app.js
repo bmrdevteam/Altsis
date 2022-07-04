@@ -3,10 +3,13 @@ var cookieParser = require('cookie-parser');;
 var mongoose=require('mongoose')
 var cors = require('cors')
 
+var config=require('./config/config.js')
+
+var passport=require('passport')
+const passportConfig=require('./passport')
+
 var testRouter = require('./routes/test');
 var userRouter = require('./routes/user');
-
-var config=require('./config/config.js')
 
 var app = express();
 
@@ -18,6 +21,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors())
+
+app.use(passport.initialize()); 
+passportConfig();
 
 app.use('/api/user', userRouter);
 app.use('/api/test', testRouter);
