@@ -1,6 +1,6 @@
 # school-information-system
 
-1.[Hello world](#Hello-world)
+1.[Hello world](#hello-world)
 
 
 
