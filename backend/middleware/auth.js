@@ -1,7 +1,7 @@
 const{User}=require('../models/User')
 const moment = require("moment");
 
-let auth=(req,res,next)=>{
+let isLoggedIn=(req,res,next)=>{
     let token=req.cookies.w_auth;
     let tokenExp=req.cookies.w_authExp;
     if(moment().valueOf()>tokenExp){
@@ -16,4 +16,12 @@ let auth=(req,res,next)=>{
     })
 }
 
-module.exports = { auth };
+
+let isLoggedOut=(req,res,next)=>{
+   let token=req.cookies.w_auth;
+   let tokenExp=req.cookies.w_authExp;
+   // token이 expired되면 loggedOut? token=='' and tokenExp==''이면 loggedOut?
+   next();
+}
+
+module.exports = { isLoggedIn,isLoggedOut };
