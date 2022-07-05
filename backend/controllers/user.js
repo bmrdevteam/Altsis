@@ -1,7 +1,7 @@
 var passport = require('passport')
 
 const { User } = require("../models/User");
-const { body,checkSchema,validationResult } = require("express-validator")
+const { checkSchema,validationResult } = require("express-validator")
 
 const passwordRegExp = /[!@#$%^&*()]+/;
 
@@ -67,6 +67,7 @@ exports.logout = (req, res) => {
     req.logout((err)=>{
         if(err) return res.status(500).send({ err });
         req.session.destroy();
+        console.log("you are logged out!")
         return res.status(200).send({success:true})
     });
 }
