@@ -1,62 +1,72 @@
-const express = require('express');
 var passport = require('passport')
 
 const { User } = require("../models/User");
-const { body, validationResult } = require("express-validator")
+const { body,checkSchema,validationResult } = require("express-validator")
 
-exports.validate = [
-    body("userId").trim().isLength({ min: 5 }),
-    body("pw").trim().isLength({ min: 5 })
-]
+const passwordRegExp = /[!@#$%^&*()]+/;
+
+const schema={
+    userId:{
+        in:"body",
+        trim:true,
+        isLength:{
+            errorMessage:"ID length error",
+            options:{min:4,max:20}
+        },
+        isAlphanumeric:{
+            errorMessage:"ID must be alphanumeric"
+        }
+    },
+    password:{
+        in:"body",
+        trim:true,
+        isLength:{
+            errorMessage:"Password length error",
+            options:{min:8,max:20}
+        },
+        matches:{
+            errorMessage:"Password must contain one special character",
+            options:passwordRegExp
+        }
+    }
+}
+
+exports.validate = checkSchema(schema);
 
 exports.register = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-    User.findOne({ userId: req.body.userId }, (err, _user) => {
-        if (err) return res.status(500).send({ err });
-        if (_user) return res.status(409).send({
-            success: false,
-            message: "User already exists with such id"
-        });
+    try{
+        const _user=await User.findOne({userId:req.body.userId});
+        if(_user) return res.status(409).send({message: "User already exists with such id" });
         const user = new User(req.body);
-        user.save((err, doc) => {
-            if (err) return res.status(500).send({ err });
-            res.status(200).send({
-                success: true
-            });
-        })
-    })
+        const doc = await user.save()
+        return res.status(200).send({success: true});
+    }
+    catch(err){
+        if (err) return res.status(500).send({ err });
+    }
 }
 
 exports.login = (req, res, next) => {
     passport.authenticate('local', (authError, user, message) => {
         if (authError) return res.status(500).send({ authError });
         if (!user) return res.status(409).send(message);
-        req.login(user, { session: false }, loginError => {
+        req.login(user, loginError => {
             if (loginError) return res.status(500).send({ loginError });
-            user.generateToken((err, user) => {
-                if (err) return res.status(500).send({ err });
-                res.cookie("w_authExp", user.tokenExp);
-                res.cookie("w_auth", user.token);
-                res.status(200).send({
-                    success: true, user
-                });
-            })
+            res.status(200).send({
+                success: true, user
+            });
         });
     })(req, res, next)
 }
 
 exports.logout = (req, res) => {
-    User.findOneAndUpdate({ _id: req.user._id },
-        { token: "", tokenExp: "" }, (err, doc) => {
-            if (err) return res.status(500).send({ err });
-            res.cookie("w_authExp", '');
-            res.cookie("w_auth", '');
-            res.status(200).send({
-                success: true
-            });
-        })
-    
+    req.logout((err)=>{
+        if(err) return res.status(500).send({ err });
+        req.session.destroy();
+        return res.status(200).send({success:true})
+    });
 }
