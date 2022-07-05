@@ -12,8 +12,8 @@ const userSchema=mongoose.Schema({
     password:String,
     auth:Array,
     school:Array,
-    // token:String,
-    // tokenExp:Number
+    snsId:String,
+    provider:String
 });
 
 userSchema.pre('save',function(next){

@@ -10,6 +10,18 @@ const {isLoggedIn,isNotLoggedIn}=require("../middleware/auth");
 
 router.post("/register",isNotLoggedIn,user.validate, user.register);
 router.post('/login',isNotLoggedIn,user.login);
-router.post("/logout", isLoggedIn,user.logout);
+router.get("/logout", isLoggedIn,user.logout);
+
+/* google login */
+router.get('/google', isNotLoggedIn,
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+); 
+ 
+/* after google login */
+router.get('/google/callback',
+   passport.authenticate('google', 
+   { failureRedirect: '/' }), 
+   (req, res) => { res.status(200).send({success: true});},
+);
 
 module.exports = router;
