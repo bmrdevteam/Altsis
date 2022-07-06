@@ -14,25 +14,17 @@ module.exports = () => {
          },
          async (accessToken, refreshToken, profile, done) => {
             try {
-                console.log("entered to googleStrategy")
                const exUser = await User.findOne({ snsId: profile.id, provider: 'google' });
-               // 이미 가입된 구글 프로필인 경우 로그인 인증 완료
-               if (exUser) {
-                console.log('You have account! Now you are logged in.')
+               if (exUser) { //이미 가입된 유저
                   done(null, exUser); 
                } 
-               // 가입되지 않은 유저인 경우 회원가입+로그인
-               else {
-                console.log('You should register first.')
-                  const _user = new User({
-                     email: profile?.emails[0].value,
+               else { //가입되지 않은 유저
+                  done(null, null,{ message: 'You should register first.',profile:{
                      name: profile.displayName,
+                     email: profile?.emails[0].value,
                      snsId: profile.id,
                      provider: 'google',
-                  });
-                  // register and done
-                  const doc = await _user.save()
-                  done(null, _user);
+                  } });
                }
             } catch (err) {
                done(err);
