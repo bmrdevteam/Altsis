@@ -13,7 +13,12 @@ const userSchema=mongoose.Schema({
     auth:Array,
     school:Array,
     snsId:String,
-    provider:String
+    provider:String,
+    timestamps:{
+        type:String,
+        default:Date.now
+    },
+    userImg:String
 });
 
 userSchema.pre('save',function(next){

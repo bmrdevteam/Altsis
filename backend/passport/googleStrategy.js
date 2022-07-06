@@ -23,6 +23,7 @@ module.exports = () => {
                      name: profile.displayName,
                      email: profile?.emails[0].value,
                      snsId: profile.id,
+                     userImg:profile?.photos[0].value,
                      provider: 'google',
                   } });
                }
