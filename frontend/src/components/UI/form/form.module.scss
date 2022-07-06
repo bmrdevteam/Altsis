@@ -1,0 +1,24 @@
+.form_container {
+
+    .form_row {
+
+        .form_input_lable {
+            font-size: 0.875rem;
+        }
+
+        .required.form_input_lable::after {
+            content: " *";
+            color: var(--alert-c1)
+        }
+
+        .form_input {
+            padding-left: 16px;
+            height: 48px;
+            width: 100%;
+            outline: none;
+            border: none;
+        }
+
+
+    }
+}
