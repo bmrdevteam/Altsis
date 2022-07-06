@@ -19,7 +19,12 @@ module.exports = () => {
                     if (!isMatch) {
                         done(null, false, { message: 'Password is incorrect' });
                     }
-                    done(null, _user);
+                    done(null, {
+                        _id:_user._id,
+                        userId:_user.userId,
+                        auth:_user.auth,
+                        school:_user.school
+                    });
                 }
                 catch(err){
                     done(err)

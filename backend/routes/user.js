@@ -13,15 +13,8 @@ router.post('/login',isNotLoggedIn,user.login);
 router.get("/logout", isLoggedIn,user.logout);
 
 /* google login */
-router.get('/google', isNotLoggedIn,
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-); 
- 
-/* after google login */
-router.get('/google/callback',
-   passport.authenticate('google', 
-   { failureRedirect: '/' }), 
-   (req, res) => { res.status(200).send({success: true});},
-);
+router.get('/google/login', isNotLoggedIn,user.googleAuth); 
+router.get('/google/callback',user.googleLogin);
+router.post('/google/register',user.googleValidate,user.googleRegister);
 
 module.exports = router;
