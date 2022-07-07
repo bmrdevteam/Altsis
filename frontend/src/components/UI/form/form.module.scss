@@ -37,8 +37,14 @@
             outline: none;
             border: none;
         }
+    }
 
-        .form_submit {}
+    .form_submit {
+        cursor: pointer;
+        border: none;
+        background: black;
+        color: white;
+        padding: 14px;
     }
 
 

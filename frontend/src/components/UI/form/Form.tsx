@@ -26,18 +26,20 @@ const FormInput = ({
   useRef,
   required,
   handleChange,
+  valueType,
 }: {
   placeholder?: string;
   name?: string;
   required?: boolean;
   useRef?: React.MutableRefObject<any>;
+  valueType?: string;
   handleChange?: any;
 }) => {
   return (
     <div className={style.form_input_container}>
       {name && (
         <label
-          className={`${style.form_input_lable} ${style.required}`}
+          className={`${style.form_input_lable} ${required && style.required}`}
           htmlFor={name}
         >
           {name}
@@ -47,6 +49,7 @@ const FormInput = ({
         onChange={(e: React.FormEvent<HTMLInputElement>) => {
           handleChange && handleChange(e);
         }}
+        type={valueType}
         ref={useRef}
         className={style.form_input}
         placeholder={placeholder}
@@ -72,7 +75,9 @@ const FormSelect = ({ children }: { children: JSX.Element }) => {
   return <div>{children}</div>;
 };
 const FormSubmit = ({ placeholder }: { placeholder?: string }) => {
-  return <input type="submit" value={placeholder} />;
+  return (
+    <input className={style.form_submit} type="submit" value={placeholder} />
+  );
 };
 
 export default Form;
