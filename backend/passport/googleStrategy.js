@@ -20,7 +20,7 @@ module.exports = () => {
                } 
                else { //가입되지 않은 유저
                   done(null, null,{ message: 'You should register first.',profile:{
-                     name: profile.displayName,
+                     userId: profile.displayName,
                      email: profile?.emails[0].value,
                      snsId: profile.id,
                      userImg:profile?.photos[0].value,

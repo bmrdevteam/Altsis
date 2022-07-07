@@ -15,7 +15,6 @@ router.get("/logout", isLoggedIn,user.logout);
 /* google login */
 router.get('/google/login', isNotLoggedIn,user.googleAuth); 
 router.get('/google/callback',isNotLoggedIn,user.googleLogin);
-router.get('/google/cancel',profileExists,user.googleCancle);
-router.get('/google/register',profileExists,user.googleValidate,user.googleRegister);
+router.get('/google/profile',user.getProfile);
 
 module.exports = router;
