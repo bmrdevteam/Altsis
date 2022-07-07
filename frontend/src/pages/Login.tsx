@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import Form, {
   FormColumn,
   FormInput,
@@ -6,11 +6,34 @@ import Form, {
   FormSubmit,
 } from "../components/UI/form/Form";
 import style from "../style/pages/login.module.scss";
+import axios from "axios";
 
 const Login = () => {
   const usernameRef = useRef<{ value: any }>();
 
-  console.log(usernameRef);
+  //later hooks
+
+  useEffect(() => {
+    return () => {
+      fetch("/api/test/test1")
+        .then((response) => response.json())
+        .then((data) => console.log(data));
+    };
+  }, []);
+
+  // axios
+  //   .post("/api/test/test1", {
+  //     username: "",
+  //     password: "",
+  //   })
+  //   .then(function (response) {
+  //     console.log(response);
+  //   })
+  //   .catch(function (error) {
+  //     console.log(error);
+  //   });
+
+
   return (
     <div className={style.section}>
       <div className={style.container}>
@@ -31,11 +54,21 @@ const Login = () => {
               useRef={usernameRef}
               required={true}
             />
-            <FormInput name="이름" placeholder="name" />
+            <FormInput name="이름" placeholder="name" required />
           </FormColumn>
           <FormColumn>
-            <FormInput name="이메일" placeholder="email" />
-            <FormInput name="sdf" placeholder="password" />
+            <FormInput
+              name="이메일"
+              placeholder="email"
+              valueType="email"
+              required
+            />
+            <FormInput
+              name="패스워드"
+              placeholder="password"
+              valueType="password"
+              required
+            />
           </FormColumn>
           <FormSubmit placeholder="로그인" />
         </Form>
