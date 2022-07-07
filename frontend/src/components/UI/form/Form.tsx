@@ -34,10 +34,13 @@ const FormInput = ({
   handleChange?: any;
 }) => {
   return (
-    <div className={style.form_row}>
+    <div className={style.form_input_container}>
       {name && (
-        <label className={`${style.form_input_lable} ${style.required}`} htmlFor={name}>
-          {name} 
+        <label
+          className={`${style.form_input_lable} ${style.required}`}
+          htmlFor={name}
+        >
+          {name}
         </label>
       )}
       <input
@@ -54,6 +57,17 @@ const FormInput = ({
   );
 };
 
+const FormRow = ({ children }: { children?: JSX.Element[] | JSX.Element }) => {
+  return <div className={style.form_row}>{children}</div>;
+};
+const FormColumn = ({
+  children,
+}: {
+  children?: JSX.Element[] | JSX.Element;
+}) => {
+  return <div className={style.form_column}>{children}</div>;
+};
+
 const FormSelect = ({ children }: { children: JSX.Element }) => {
   return <div>{children}</div>;
 };
@@ -62,4 +76,4 @@ const FormSubmit = ({ placeholder }: { placeholder?: string }) => {
 };
 
 export default Form;
-export { FormInput, FormSelect, FormSubmit };
+export { FormInput, FormSelect, FormSubmit, FormRow, FormColumn };
