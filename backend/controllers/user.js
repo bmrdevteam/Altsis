@@ -95,7 +95,7 @@ exports.googleAuth=(req,res,next)=>{
 }
 exports.googleLogin = (req, res, next) => {
     passport.authenticate('google', (authError, user, message) => {
-        if (authError) return res.redirect('/');
+        if (authError) return res.redirect('/'); //클라이언트 주소로 바꿔주세요!
         if (!user){
             console.log('googleLogin: no user. redirect to google/register!')
             req.session.profile=message.profile;
@@ -104,10 +104,8 @@ exports.googleLogin = (req, res, next) => {
             });
         } 
         req.login(user, loginError => {
-            if (loginError) return res.status(500).send({ loginError });
-            return res.status(200).send({
-                success: true, user
-            });
+            if (loginError) return res.redirect('/') //클라이언트 주소로 바꿔주세요!
+            return res.redirect('/')
         });
     })(req, res, next)
 }
