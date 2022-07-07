@@ -83,7 +83,7 @@ exports.login = (req, res, next) => {
         if (!user) return res.status(409).send(message);
         req.login(user, loginError => {
             if (loginError) return res.status(500).send({ loginError });
-            res.status(200).send({
+            return res.status(200).send({
                 success: true, user
             });
         });
@@ -95,28 +95,42 @@ exports.googleAuth=(req,res,next)=>{
 }
 exports.googleLogin = (req, res, next) => {
     passport.authenticate('google', (authError, user, message) => {
-        if (authError) return res.status(500).send({ authError });
-        if (!user) return res.status(409).send(message);
+        if (authError) return res.redirect('/');
+        if (!user){
+            console.log('googleLogin: no user. redirect to google/register!')
+            req.session.profile=message.profile;
+            return req.session.save(()=>{                   
+                res.redirect('/api/test/test1') //클라이언트 주소로 바꿔주세요!
+            });
+        } 
         req.login(user, loginError => {
             if (loginError) return res.status(500).send({ loginError });
-            res.status(200).send({
+            return res.status(200).send({
                 success: true, user
             });
         });
     })(req, res, next)
 }
 
+exports.googleCancle= (req, res) => {
+    const profile=req.session.profile;
+    req.session.proifle=null;
+    return res.status(200).send({success: true});
+}
+
 exports.googleRegister =  async (req, res) => {
-    const errors = validationResult(req);
+    const profile=req.session.profile;
+    req.session.proifle=null;
+    const errors = validationResult(profile);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
     try{
-        const exUser=await User.findOne({ snsId: req.body.snsId, provider: 'google'})
+        const exUser=await User.findOne({ snsId: profile.snsId, provider: 'google'})
         if(exUser) {
             return res.status(409).send({message: "User already exists with such snsId" })
         }
-        const newUser=new User(req.body);
+        const newUser=new User(profile);
         const doc=await newUser.save()
         return res.status(200).send({success: true,newUser});
     }
