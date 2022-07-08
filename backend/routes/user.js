@@ -8,7 +8,7 @@ const {isLoggedIn,isNotLoggedIn,profileExists: profileExists}=require("../middle
 //             User
 //=================================
 
-router.post("/register",isNotLoggedIn,user.validate, user.register);
+router.post("/register",isNotLoggedIn,user.localValidate, user.register);
 router.post('/login',isNotLoggedIn,user.login);
 router.get("/logout", isLoggedIn,user.logout);
 
@@ -16,5 +16,6 @@ router.get("/logout", isLoggedIn,user.logout);
 router.get('/google/login', isNotLoggedIn,user.googleAuth); 
 router.get('/google/callback',isNotLoggedIn,user.googleLogin);
 router.get('/google/profile',user.getProfile);
+router.post('/google/register', isNotLoggedIn,user.googleValidate,user.googleRegister); 
 
 module.exports = router;
