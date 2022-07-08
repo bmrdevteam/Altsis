@@ -5,7 +5,7 @@ const { checkSchema,validationResult } = require("express-validator")
 
 const specialRegExp = /[!@#$%^&*()]+/;
 
-const schema={
+const localSchema={
     userId:{
         in:"body",
         trim:true,
@@ -17,20 +17,16 @@ const schema={
             errorMessage:"ID must be alphanumeric"
         }
     },
-    
     password:{
         in:"body",
         trim:true,
-        custom:{
-            options: (value) => {
-                if(!value||
-                    (value.length>=4&&value.length<=20
-                        &&value.match(specialRegExp))){
-                    return true
-                }
-                return false
-              },
-              errorMessage:"Password length error || Password must contain one special character"
+        isLength:{
+            errorMessage:"Password length error",
+            options:{min:8,max:20}
+        },
+        matches:{
+            errorMessage:"Password must contain one special character",
+            options:specialRegExp
         }
     },
     email:{
@@ -41,10 +37,32 @@ const schema={
         }
     }
 }
+const googleSchema={
+    email:{
+        in:"body",
+        trim:true,
+        isEmail:{
+            errorMessage:"invalid email"
+        }
+    },
+    name:{
+        in:"body",
+        trim:true
+    },
+    snsId:{
+        in:"body"
+    },
+    provider:{
+        in:"body",
+        matches:{
+            errorMessage:"provider should be google",
+            options:/^google$/
+        }
+    }
+}
 
-
-
-exports.validate = checkSchema(schema);
+exports.localValidate = checkSchema(localSchema);
+exports.googleValidate = checkSchema(googleSchema);
 
 exports.register = async (req, res) => {
     const errors = validationResult(req);
@@ -88,6 +106,7 @@ exports.logout = (req, res) => {
 exports.googleAuth=(req,res,next)=>{
     passport.authenticate('google', { scope: ['profile', 'email'] })(req,res,next)
 }
+
 exports.googleLogin = (req, res, next) => {
     passport.authenticate('google', (authError, user, message) => {
         if (authError) return res.redirect('/'); //클라이언트 주소로 바꿔주세요!
@@ -110,4 +129,21 @@ exports.getProfile=(req,res)=>{
         return res.status(200).send(req.session.profile)
     }
     return res.status(404).send({message:"no profile in session!"})
+}
+
+exports.googleRegister = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    try{
+        const exUser=await User.findOne({ snsId: req.body.snsId, provider: 'google' });
+        if(exUser) return res.status(409).send({message: "User already exists with such id" });
+        const newUser = new User(req.body);
+        const doc = await newUser.save()
+        return res.status(200).send({success: true});
+    }
+    catch(err){
+        if (err) return res.status(500).send({ err });
+    }
 }
