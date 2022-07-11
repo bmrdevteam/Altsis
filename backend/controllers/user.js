@@ -74,7 +74,12 @@ exports.register = async (req, res) => {
         if(exUser) return res.status(409).send({message: "User already exists with such id" });
         const newUser = new User(req.body);
         const doc = await newUser.save()
-        return res.status(200).send({success: true});
+        req.login(newUser, loginError => {
+            if (loginError) return res.status(500).send({ loginError });
+            return res.status(200).send({
+                success: true, newUser
+            });
+        });
     }
     catch(err){
         if (err) return res.status(500).send({ err });
@@ -141,7 +146,12 @@ exports.googleRegister = async (req, res) => {
         if(exUser) return res.status(409).send({message: "User already exists with such id" });
         const newUser = new User(req.body);
         const doc = await newUser.save()
-        return res.status(200).send({success: true});
+        req.login(newUser, loginError => {
+            if (loginError) return res.status(500).send({ loginError });
+            return res.status(200).send({
+                success: true, newUser
+            });
+        });
     }
     catch(err){
         if (err) return res.status(500).send({ err });
