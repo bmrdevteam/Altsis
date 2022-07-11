@@ -1,7 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 // import { useAuth } from "./contexts/authContext";
-import Home from "./pages";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Register from './pages/Register'
 // import Http404 from "./pages/error/404";
 
 function RouterPage() {
@@ -23,6 +24,7 @@ function RouterPage() {
             }
           ></Route>
           <Route path="login" element={<Login />}></Route>
+          <Route path="Register" element={<Register />}></Route>
         </Route>
       </Routes>
     </BrowserRouter>
