@@ -1,48 +1,23 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
+import style from "../style/pages/login.module.scss";
 import Form, {
   FormColumn,
   FormInput,
   FormRow,
   FormSubmit,
 } from "../components/UI/form/Form";
-import style from "../style/pages/login.module.scss";
 import axios from "axios";
 import Button from "../components/UI/button/Button";
-import { useNavigate } from "react-router-dom";
 
-const Login = () => {
+type Props = {};
+
+const Register = (props: Props) => {
   const usernameRef = useRef<{ value: any }>();
+  const emailRef = useRef<{ value: any }>();
   const passwordRef = useRef<{ value: any }>();
+  const passwordCheckRef = useRef<{ value: any }>();
+
   const [errorMessage, setErrorMessage] = useState<string>("");
-
-  //later hooks
-
-  //hooks
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    return () => {
-      axios
-        .get("http://localhost:3000/api/test/test1")
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {})
-        .then(function () {});
-    };
-  }, []);
-
-  // axios
-  //   .post("/api/test/test1", {
-  //     username: "",
-  //     password: "",
-  //   })
-  //   .then(function (response) {
-  //     console.log(response);
-  //   })
-  //   .catch(function (error) {
-  //     console.log(error);
-  //   });
 
   const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,17 +63,16 @@ const Login = () => {
         }
       });
   };
-
   return (
     <div className={style.section}>
       <div className={style.container}>
-        <h1 className={style.title}>로그인</h1>
+        <h1 className={style.title}>회원가입</h1>
         <p className={style.error}>{errorMessage}</p>
         <Form handleSubmit={onLoginSubmit}>
           <FormColumn>
             <FormInput
               name="username"
-              placeholder="username or email"
+              placeholder="username"
               handleChange={(e: React.FormEvent<HTMLInputElement>) => {
                 console.log(usernameRef.current?.value);
               }}
@@ -106,25 +80,33 @@ const Login = () => {
               required={true}
             />
             <FormInput
-              name="password"
-              placeholder="password"
-              valueType="password"
+              name="이메일"
+              placeholder="name"
+              valueType="email"
+              useRef={emailRef}
               required
             />
           </FormColumn>
-
-          <FormSubmit placeholder="로그인" />
+          <FormColumn>
+            <FormInput
+              name="패스워드"
+              placeholder="password"
+              valueType="password"
+              required
+              useRef={passwordRef}
+            />
+            <FormInput
+              name="패스워드 확인"
+              placeholder="passwordcheck"
+              valueType="password"
+              required
+              useRef={passwordCheckRef}
+            />
+          </FormColumn>
+          <FormSubmit placeholder="회원가입" />
         </Form>
-        <div style={{ height: "4px" }}></div>
+        <div style={{height:'4px'}}></div>
         <Button
-          type="ghost"
-          handleClick={() => {
-            navigate("/register", { replace: true });
-          }}
-        >
-          회원가입
-        </Button>
-        {/* <Button
           type="ghost"
           handleClick={() => {
             window.open(
@@ -135,27 +117,10 @@ const Login = () => {
           }}
         >
           google 로 로그인
-        </Button> */}
-        <div style={{ height: "4px" }}></div>
-
-        <div
-          id="g_id_onload"
-          data-client_id="628425542095-4l9d49h85pd0oapq5596964os4ongkei.apps.googleusercontent.com"
-          data-login_uri=""
-          data-auto_prompt="false"
-        ></div>
-        <div
-          className="g_id_signin"
-          data-type="standard"
-          data-size="large"
-          data-theme="outline"
-          data-text="sign_in_with"
-          data-shape="rectangular"
-          data-logo_alignment="left"
-        ></div>
+        </Button>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Register;
