@@ -1,0 +1,61 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+
+:root {
+
+    overflow-wrap: break-word;
+    word-break: break-word;
+
+
+    // Mobile tap color
+    -webkit-tap-highlight-color: transparent;
+    // Mobile text size adjust
+    -webkit-text-size-adjust: 100%;
+
+}
+
+body {
+
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+        Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+a {
+    text-decoration: none;
+    color: inherit
+}
+
+a:visited {
+    color: inherit;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0
+}
+
+
+
+//navbar setup
+.main {
+    display: flex;
+    width: 100%;
+}
+
+.content {
+    flex: 1 1 0;
+}
