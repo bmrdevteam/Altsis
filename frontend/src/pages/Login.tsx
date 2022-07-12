@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import Form, {
-  FormColumn,
+import AuthForm, {
   FormInput,
-  FormRow,
   FormSubmit,
-} from "../components/UI/form/Form";
+} from "../components/UI/authForm/AuthForm";
 import style from "../style/pages/login.module.scss";
 import axios from "axios";
 import Button from "../components/UI/button/Button";
 import { useNavigate } from "react-router-dom";
+
+import useGoogleLogin from "../hooks/useGoogleLogin";
 
 const Login = () => {
   const usernameRef = useRef<{ value: any }>();
@@ -19,6 +19,8 @@ const Login = () => {
 
   //hooks
   const navigate = useNavigate();
+  const status = useGoogleLogin();
+  console.log(status);
 
   useEffect(() => {
     return () => {
@@ -90,12 +92,12 @@ const Login = () => {
   };
 
   return (
-    <div className={style.section}>
-      <div className={style.container}>
-        <h1 className={style.title}>로그인</h1>
-        <p className={style.error}>{errorMessage}</p>
-        <Form handleSubmit={onLoginSubmit}>
-          <FormColumn>
+    <>
+      <div className={style.section}>
+        <div className={style.container}>
+          <h1 className={style.title}>로그인</h1>
+          <p className={style.error}>{errorMessage}</p>
+          <AuthForm handleSubmit={onLoginSubmit}>
             <FormInput
               name="username"
               placeholder="username or email"
@@ -111,20 +113,19 @@ const Login = () => {
               valueType="password"
               required
             />
-          </FormColumn>
 
-          <FormSubmit placeholder="로그인" />
-        </Form>
-        <div style={{ height: "4px" }}></div>
-        <Button
-          type="ghost"
-          handleClick={() => {
-            navigate("/register", { replace: true });
-          }}
-        >
-          회원가입
-        </Button>
-        {/* <Button
+            <FormSubmit placeholder="로그인" />
+          </AuthForm>
+          <div style={{ height: "4px" }}></div>
+          <Button
+            type="ghost"
+            handleClick={() => {
+              navigate("/register", { replace: true });
+            }}
+          >
+            회원가입
+          </Button>
+          {/* <Button
           type="ghost"
           handleClick={() => {
             window.open(
@@ -136,25 +137,30 @@ const Login = () => {
         >
           google 로 로그인
         </Button> */}
-        <div style={{ height: "4px" }}></div>
 
-        <div
-          id="g_id_onload"
-          data-client_id="628425542095-4l9d49h85pd0oapq5596964os4ongkei.apps.googleusercontent.com"
-          data-login_uri=""
-          data-auto_prompt="false"
-        ></div>
-        <div
-          className="g_id_signin"
-          data-type="standard"
-          data-size="large"
-          data-theme="outline"
-          data-text="sign_in_with"
-          data-shape="rectangular"
-          data-logo_alignment="left"
-        ></div>
+          <div style={{ height: "4px" }}></div>
+          {!status && (
+            <>
+              <div
+                id="g_id_onload"
+                data-client_id="665087754874-oavhcdb53mlmsvt1r4rasarl7pbin48j.apps.googleusercontent.com"
+                data-login_uri="http://localhost:3001/login"
+              ></div>
+              <div
+                style={{ display: "flex", justifyContent: "center" }}
+                className="g_id_signin"
+                data-type="standard"
+                data-size="large"
+                data-theme="outline"
+                data-text="sign_in_with"
+                data-shape="rectangular"
+                data-logo_alignment="center"
+              ></div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
