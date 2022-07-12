@@ -13,12 +13,3 @@ exports.isLoggedIn = (req, res, next) => {
         res.status(403).send({message:"You are already logged in."});
     }
  };
-
- exports.profileExists=(req, res, next) => {
-   if(req.session.profile){
-      next();
-   }
-   else {
-       res.status(403).send({message:"Invalid request"});
-   }
-};
