@@ -11,7 +11,7 @@ const NavLogo = ({ children }: { children?: JSX.Element[] | JSX.Element }) => {
   return <div className={style.nav_logo}>{children}</div>;
 };
 
-const Search = ({setSearchRef}:{setSearchRef?:ReactElement}) => {
+const Search = ({ setSearchRef }: { setSearchRef?: ReactElement }) => {
   return (
     <div className={style.search_container}>
       <div className={style.search}>
@@ -20,7 +20,6 @@ const Search = ({setSearchRef}:{setSearchRef?:ReactElement}) => {
           onKeyDown={(e) => {
             e.key === "Enter" && console.log("sunbimasdf");
           }}
-          
           className={style.search_input}
           placeholder="검색"
         />
@@ -38,15 +37,19 @@ const NavLink = ({
   icon,
   active,
   subLink,
+  name,
+  handleClick,
 }: {
   children?: string;
   icon?: JSX.Element;
   active?: boolean;
   subLink?: JSX.Element[] | JSX.Element;
+  name?: string;
+  handleClick?: any;
 }) => {
   return (
     <div className={`${style.nav_link_container} ${active && style.active}`}>
-      <div className={style.nav_link}>
+      <div className={style.nav_link} onClick={handleClick}>
         <span className={style.icon}>{icon}</span>
         <span className={style.name}>{children}</span>
       </div>
@@ -54,18 +57,8 @@ const NavLink = ({
     </div>
   );
 };
-const SubLinks = ({
-  children,
-  active,
-}: {
-  children: JSX.Element[] | JSX.Element;
-  active?: boolean;
-}) => {
-  return (
-    <div className={`${style.sub_links} ${active && style.active}`}>
-      {children}
-    </div>
-  );
+const SubLinks = ({ children }: { children: JSX.Element[] | JSX.Element }) => {
+  return <div className={`${style.sub_links}`}>{children}</div>;
 };
 
 const SubLink = ({

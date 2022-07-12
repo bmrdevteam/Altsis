@@ -1,4 +1,8 @@
+@import '../../../style/animation.scss';
+
+
 .nav_container {
+
     background-color: rgb(255, 255, 255);
     display: flex;
     flex-direction: column;
@@ -58,6 +62,7 @@
         .nav_link_container {
             display: flex;
             flex-direction: column;
+
             .nav_link {
                 display: flex;
                 margin: 8px;
@@ -88,41 +93,52 @@
                     color: rgb(150, 150, 150);
                 }
             }
-            .sub_link{
 
-                display: flex;
-                margin: 4px 14px;
-                padding: 6px 0;
-                flex: 1 1 0;
-                gap: 16px;
-                align-items: center;
-                cursor: pointer;
+            .sub_links {
+                max-height: 0;
+            }
 
-                border-radius: 8px;
 
-                .icon {
-                    margin-left: 16px;
+            .sub_link_container {
+                opacity: 0;
+
+                .sub_link {
+
                     display: flex;
+                    margin: 4px 14px;
+                    padding: 6px 0;
+                    flex: 1 1 0;
+                    gap: 16px;
+                    align-items: center;
+                    cursor: pointer;
 
-                    svg {
+                    border-radius: 8px;
 
-                        fill: rgb(150, 150, 150);
+                    .icon {
+                        margin-left: 16px;
+                        display: flex;
+
+                        svg {
+
+                            fill: rgb(150, 150, 150);
+
+                        }
 
                     }
 
-                }
+                    .name {
+                        font-weight: 400;
+                        font-size: 14px;
+                        flex: 1 1 0;
+                        color: rgb(150, 150, 150);
+                    }
 
-                .name {
-                    font-weight: 400;
-                    font-size: 14px;
-                    flex: 1 1 0;
-                    color: rgb(150, 150, 150);
                 }
-
             }
         }
 
-        .nav_link_container~.active {
+        // when active
+        .nav_link_container.active {
             .nav_link {
                 .icon {
                     svg {
@@ -134,11 +150,33 @@
                     color: var(--primary-color);
                 }
             }
+
+
+            .sub_links {
+                max-height: 100vh;
+                transition: max-height 1s linear;
+
+                .sub_link_container {
+
+                    animation-name: sidebar_sub_link-openAnimation ;
+                    opacity: 1;
+
+                }
+            }
+
+            @for $i from 1 through 10 {
+                .sub_links .sub_link_container:nth-child(#{$i}n) {
+                    animation-duration: #{$i * 0.7}s;
+
+                }
+            }
+
+
         }
     }
 
     .nav_profile_container {
-        border-top: 1px solid  rgb(200, 200, 200);
+        border-top: 1px solid rgb(200, 200, 200);
         flex-basis: 80px;
         display: flex;
 
@@ -162,18 +200,20 @@
 
             .profile_info {
                 flex: 1 1 0;
-                .username{
-                    
-                }
-                .role{
+
+                .username {}
+
+                .role {
                     font-size: 12px;
                     font-weight: 500;
                     color: rgb(150, 150, 150);
                 }
             }
-            .logout{
+
+            .logout {
                 cursor: pointer;
-                svg{
+
+                svg {
 
                     fill: rgb(100, 100, 100);
                 }

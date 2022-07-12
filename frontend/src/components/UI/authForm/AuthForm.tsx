@@ -1,7 +1,7 @@
 import React from "react";
-import style from "./form.module.scss";
+import style from "./authForm.module.scss";
 
-const Form = ({
+const AuthForm = ({
   children,
   handleSubmit,
 }: {
@@ -71,14 +71,11 @@ const FormColumn = ({
   return <div className={style.form_column}>{children}</div>;
 };
 
-const FormSelect = ({ children }: { children: JSX.Element }) => {
-  return <div>{children}</div>;
-};
 const FormSubmit = ({ placeholder }: { placeholder?: string }) => {
   return (
     <input className={style.form_submit} type="submit" value={placeholder} />
   );
 };
 
-export default Form;
-export { FormInput, FormSelect, FormSubmit, FormRow, FormColumn };
+export default AuthForm;
+export { FormInput, FormSubmit, FormRow, FormColumn };
