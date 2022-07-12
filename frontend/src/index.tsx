@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import "./style/commons.scss";
+import "./style/global.scss";
 import "./style/variables.scss"
 import "./style/fonts.scss"
 import RouterPage from "./RouterPage";
