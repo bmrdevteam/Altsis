@@ -38,6 +38,7 @@ const Svg = ({ type, width, height }: Props) => {
         <path d="M20 3h-9c-1.103 0-2 .897-2 2v4h2V5h9v14h-9v-4H9v4c0 1.103.897 2 2 2h9c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2z"></path>
       </>
     ),
+    menu: <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"></path>,
   };
 
   return (

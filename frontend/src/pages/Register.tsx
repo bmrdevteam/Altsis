@@ -1,11 +1,11 @@
 import React, { useRef, useState } from "react";
 import style from "../style/pages/login.module.scss";
-import Form, {
+import AuthForm, {
   FormColumn,
   FormInput,
-  FormRow,
+
   FormSubmit,
-} from "../components/UI/form/Form";
+} from "../components/UI/authForm/AuthForm";
 import axios from "axios";
 import Button from "../components/UI/button/Button";
 
@@ -25,6 +25,7 @@ const Register = (props: Props) => {
       .post("http://localhost:3000/api/user/register", {
         userId: usernameRef.current?.value,
         password: passwordRef.current?.value,
+        email: emailRef.current?.value
       })
       .then(function (response) {
         console.log(response);
@@ -68,7 +69,7 @@ const Register = (props: Props) => {
       <div className={style.container}>
         <h1 className={style.title}>회원가입</h1>
         <p className={style.error}>{errorMessage}</p>
-        <Form handleSubmit={onLoginSubmit}>
+        <AuthForm handleSubmit={onLoginSubmit}>
           <FormColumn>
             <FormInput
               name="username"
@@ -104,7 +105,7 @@ const Register = (props: Props) => {
             />
           </FormColumn>
           <FormSubmit placeholder="회원가입" />
-        </Form>
+        </AuthForm>
         <div style={{height:'4px'}}></div>
         <Button
           type="ghost"
