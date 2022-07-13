@@ -4,4 +4,6 @@ declare module "*.scss" {
 }
 declare module "*.jpeg";
 
-
+interface Window {
+  handleGoogleLogin: any;
+}
