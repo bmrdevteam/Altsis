@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Svg from "../../../assets/svg/Svg";
+import { useAuth } from "../../../contexts/authContext";
 
 import Nav, {
   NavLogo,
@@ -18,7 +19,12 @@ const Sidebar = (props: Props) => {
   const [activeNavLink, setActiveNavLink] = useState<string>();
 
   const navigate = useNavigate();
+  const {currentUser} = useAuth();
 
+
+  
+  console.log(currentUser);
+  
   function NavLinkClicked(name: string) {
     setActiveNavLink((prev: string | undefined) => {
       // return prev !== name ? name : "";
