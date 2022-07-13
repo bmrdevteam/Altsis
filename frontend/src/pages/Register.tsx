@@ -3,11 +3,11 @@ import style from "../style/pages/login.module.scss";
 import AuthForm, {
   FormColumn,
   FormInput,
-
   FormSubmit,
 } from "../components/UI/authForm/AuthForm";
 import axios from "axios";
 import Button from "../components/UI/button/Button";
+import useGoogleLogin from "../hooks/useGoogleLogin";
 
 type Props = {};
 
@@ -19,13 +19,15 @@ const Register = (props: Props) => {
 
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  const status = useGoogleLogin();
+
   const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     axios
       .post("http://localhost:3000/api/user/register", {
         userId: usernameRef.current?.value,
         password: passwordRef.current?.value,
-        email: emailRef.current?.value
+        email: emailRef.current?.value,
       })
       .then(function (response) {
         console.log(response);
@@ -72,8 +74,8 @@ const Register = (props: Props) => {
         <AuthForm handleSubmit={onLoginSubmit}>
           <FormColumn>
             <FormInput
-              name="username"
-              placeholder="username"
+              name="아이디"
+              placeholder="아이디 입력"
               handleChange={(e: React.FormEvent<HTMLInputElement>) => {
                 console.log(usernameRef.current?.value);
               }}
@@ -82,7 +84,7 @@ const Register = (props: Props) => {
             />
             <FormInput
               name="이메일"
-              placeholder="name"
+              placeholder="이메일 입력"
               valueType="email"
               useRef={emailRef}
               required
@@ -91,14 +93,14 @@ const Register = (props: Props) => {
           <FormColumn>
             <FormInput
               name="패스워드"
-              placeholder="password"
+              placeholder="패스워드 입력"
               valueType="password"
               required
               useRef={passwordRef}
             />
             <FormInput
               name="패스워드 확인"
-              placeholder="passwordcheck"
+              placeholder="패스워드 제 입력"
               valueType="password"
               required
               useRef={passwordCheckRef}
@@ -106,19 +108,28 @@ const Register = (props: Props) => {
           </FormColumn>
           <FormSubmit placeholder="회원가입" />
         </AuthForm>
-        <div style={{height:'4px'}}></div>
-        <Button
-          type="ghost"
-          handleClick={() => {
-            window.open(
-              "http://localhost:3000/api/user/google/login",
-              "google로 로그인",
-              "width=430,height=500,location=no,status=no,scrollbars=yes"
-            );
-          }}
-        >
-          google 로 로그인
-        </Button>
+        <div style={{ height: "4px" }}></div>
+        {!status && (
+          <>
+            <div
+              id="g_id_onload"
+              data-client_id="665087754874-oavhcdb53mlmsvt1r4rasarl7pbin48j.apps.googleusercontent.com"
+              // data-login_uri="http://localhost:3000/user/google/oauth"
+
+              data-auto_prompt={false}
+            ></div>
+            <div
+              style={{ display: "flex", justifyContent: "center" }}
+              className="g_id_signin"
+              data-type="standard"
+              data-size="large"
+              data-theme="outline"
+              data-text="sign_in_with"
+              data-shape="rectangular"
+              data-logo_alignment="center"
+            ></div>
+          </>
+        )}
       </div>
     </div>
   );
