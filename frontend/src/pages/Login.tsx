@@ -26,7 +26,7 @@ const Login = () => {
   const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     axios
-      .post("http://localhost:3000/api/user/register", {
+      .post("http://localhost:3000/api/user/login", {
         userId: usernameRef.current?.value,
         password: passwordRef.current?.value,
       })
@@ -88,6 +88,7 @@ const Login = () => {
               name="패스워드"
               placeholder="패스워드 입력"
               valueType="password"
+              useRef={passwordRef}
               required
             />
 
