@@ -3,3 +3,5 @@ declare module "*.scss" {
   export = content;
 }
 declare module "*.jpeg";
+
+
