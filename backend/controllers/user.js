@@ -118,9 +118,12 @@ exports.googleAuth=async (req,res)=>{
             audience: clientID,
         });
 
-        const payload = ticket.getPayload();
-        const exUser=await User.findOne({email:payload["email"]});
-        if(!exUser) return res.status(409).send({message: "User doesn't exists with such email" })
+        const payload = ticket.getPayload();    
+        const exUser=await User.findOne({email:payload["email"],provider:"google"});
+        if(!exUser) return res.status(409).send({message: "User doesn't exists with such email",user:{
+            email:payload["email"],
+            name:payload["name"]
+        } })
  
          /* login */
          req.login(exUser, loginError => {
