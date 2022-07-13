@@ -101,6 +101,7 @@
 
             .sub_link_container {
                 opacity: 0;
+                height: 0;
 
                 .sub_link {
 
@@ -157,8 +158,8 @@
                 transition: max-height 1s linear;
 
                 .sub_link_container {
-
-                    animation-name: sidebar_sub_link-openAnimation ;
+                    height: auto;
+                    animation-name: sidebar_sub_link-openAnimation;
                     opacity: 1;
 
                 }
