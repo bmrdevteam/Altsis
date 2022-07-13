@@ -8,7 +8,7 @@ import axios from "axios";
 import Button from "../components/UI/button/Button";
 import { useNavigate } from "react-router-dom";
 
-import useGoogleLogin from "../hooks/useGoogleLogin";
+import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
 
 const Login = () => {
   const usernameRef = useRef<{ value: any }>();
@@ -20,31 +20,8 @@ const Login = () => {
   //hooks
   const navigate = useNavigate();
   const status = useGoogleLogin();
-  console.log(status);
 
-  useEffect(() => {
-    return () => {
-      axios
-        .get("http://localhost:3000/api/test/test1")
-        .then(function (response) {
-          console.log(response);
-        })
-        .catch(function (error) {})
-        .then(function () {});
-    };
-  }, []);
-
-  // axios
-  //   .post("/api/test/test1", {
-  //     username: "",
-  //     password: "",
-  //   })
-  //   .then(function (response) {
-  //     console.log(response);
-  //   })
-  //   .catch(function (error) {
-  //     console.log(error);
-  //   });
+  
 
   const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -99,8 +76,8 @@ const Login = () => {
           <p className={style.error}>{errorMessage}</p>
           <AuthForm handleSubmit={onLoginSubmit}>
             <FormInput
-              name="username"
-              placeholder="username or email"
+              name="아이디"
+              placeholder="아이디 입력"
               handleChange={(e: React.FormEvent<HTMLInputElement>) => {
                 console.log(usernameRef.current?.value);
               }}
@@ -108,8 +85,8 @@ const Login = () => {
               required={true}
             />
             <FormInput
-              name="password"
-              placeholder="password"
+              name="패스워드"
+              placeholder="패스워드 입력"
               valueType="password"
               required
             />
@@ -125,39 +102,9 @@ const Login = () => {
           >
             회원가입
           </Button>
-          {/* <Button
-          type="ghost"
-          handleClick={() => {
-            window.open(
-              "http://localhost:3000/api/user/google/login",
-              "google로 로그인",
-              "width=430,height=500,location=no,status=no,scrollbars=yes"
-            );
-          }}
-        >
-          google 로 로그인
-        </Button> */}
 
           <div style={{ height: "4px" }}></div>
-          {!status && (
-            <>
-              <div
-                id="g_id_onload"
-                data-client_id="665087754874-oavhcdb53mlmsvt1r4rasarl7pbin48j.apps.googleusercontent.com"
-                data-login_uri="http://localhost:3001/login"
-              ></div>
-              <div
-                style={{ display: "flex", justifyContent: "center" }}
-                className="g_id_signin"
-                data-type="standard"
-                data-size="large"
-                data-theme="outline"
-                data-text="sign_in_with"
-                data-shape="rectangular"
-                data-logo_alignment="center"
-              ></div>
-            </>
-          )}
+          {!status && <GoogleLoginBtn/>}
         </div>
       </div>
     </>
