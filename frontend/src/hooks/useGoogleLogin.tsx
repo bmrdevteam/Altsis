@@ -27,7 +27,7 @@ export default function useGoogleLogin() {
         credential: response.credential,
       })
       .then((res) => {
-        setCurrentUser(res);
+        setCurrentUser(res.data.exUser);
       });
   };
 
