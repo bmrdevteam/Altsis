@@ -126,7 +126,7 @@ exports.googleAuth=async (req,res)=>{
          req.login(exUser, loginError => {
              if (loginError) return res.status(500).send({ loginError });
              return res.status(200).send({
-                 success: true, exUser
+                 success: true, user:exUser
              });
          });
     }
