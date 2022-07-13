@@ -19,9 +19,10 @@ const Sidebar = (props: Props) => {
 
   const navigate = useNavigate();
 
-  function openSublinkClicked(name: string) {
+  function NavLinkClicked(name: string) {
     setActiveNavLink((prev: string | undefined) => {
-      return prev !== name ? name : "";
+      // return prev !== name ? name : "";
+      return name;
     });
   }
 
@@ -33,9 +34,21 @@ const Sidebar = (props: Props) => {
       <NavLinks>
         <Search />
         <NavLink
+          name="timetable"
+          icon={<Svg type="calender" />}
+          active={activeNavLink === "timetable"}
+          handleClick={() => {
+            NavLinkClicked("timetable");
+            navigate("timetable", { replace: true });
+          }}
+        >
+          시간표
+        </NavLink>
+
+        <NavLink
           name="Dashboard"
           handleClick={() => {
-            openSublinkClicked("Dashboard");
+            NavLinkClicked("Dashboard");
           }}
           active={activeNavLink === "Dashboard"}
           icon={<Svg type="analyze" />}
@@ -49,12 +62,11 @@ const Sidebar = (props: Props) => {
         >
           대시보드
         </NavLink>
-        <NavLink icon={<Svg type="calender" />}>수업관리</NavLink>
         <NavLink icon={<Svg type="file" />}>수강신청</NavLink>
         <NavLink
           name="settings"
           handleClick={() => {
-            openSublinkClicked("settings");
+            NavLinkClicked("settings");
             navigate("settings", { replace: true });
           }}
           active={activeNavLink === "settings"}
