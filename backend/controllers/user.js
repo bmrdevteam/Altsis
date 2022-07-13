@@ -51,13 +51,6 @@ const googleSchema={
         isAlphanumeric:{
             errorMessage:"ID must be alphanumeric"
         }
-    },
-    email:{
-        in:"body",
-        trim:true,
-        isEmail:{
-            errorMessage:"invalid email"
-        }
     }
 }
 
@@ -87,10 +80,8 @@ exports.register = async  (req, res, next) => {
 
     try{
         /* check redundancy */
-        const exUser1=await User.findOne({userId:req.body.userId});
-        if(exUser1) return res.status(409).send({message: "User already exists with such id" });
-        const exUser2=await User.findOne({email:req.body.email});
-        if(exUser2) return res.status(409).send({message: "User already exists with such email" })
+        const exUser=await User.findOne({userId:req.body.userId});
+        if(exUser) return res.status(409).send({message: "User already exists with such id" });
 
         /* register */
         const newUser = new User(req.body);
@@ -100,7 +91,7 @@ exports.register = async  (req, res, next) => {
         req.login(newUser, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             return res.status(200).send({
-                success: true, newUser
+                success: true, user:newUser
             });
         });
     }
@@ -109,6 +100,7 @@ exports.register = async  (req, res, next) => {
     }
 }
 
+// google auth + login
 exports.googleAuth=async (req,res)=>{
     try{
         const client = new OAuth2Client(clientID);
@@ -120,11 +112,11 @@ exports.googleAuth=async (req,res)=>{
 
         const payload = ticket.getPayload();    
         const exUser=await User.findOne({email:payload["email"],provider:"google"});
-        if(!exUser) return res.status(409).send({message: "User doesn't exists with such email",user:{
+        if(!exUser) return res.status(409).send({message: "User doesn't exists with such google account",user:{
             email:payload["email"],
             name:payload["name"]
         } })
- 
+        
          /* login */
          req.login(exUser, loginError => {
              if (loginError) return res.status(500).send({ loginError });
@@ -137,6 +129,53 @@ exports.googleAuth=async (req,res)=>{
         if (err) return res.status(500).send({ err:err.message });
     }
 }
+
+// google auth + register
+exports.googleRegister=async (req,res)=>{
+    /* validation */
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try{
+        const client = new OAuth2Client(clientID);
+
+        const ticket = await client.verifyIdToken({
+            idToken: req.body.credential,
+            audience: clientID,
+        });
+
+        const payload = ticket.getPayload();  
+        
+        /* check redundancy */
+        const exUser1=await User.findOne({userId:req.body.userId});
+        if(exUser1) return res.status(409).send({message: "User already exists with such id" });
+        const exUser2=await User.findOne({email:payload["email"],provider:"google"});
+        if(exUser2) return res.status(409).send({message:"User already exists with such google account"});
+
+        /* register */
+        const newUser = new User({
+            email:payload["email"],
+            name:payload["name"],
+            userId:req.body.userId,
+            provider:"google"
+        });
+        const doc = await newUser.save()
+
+        /* login */
+        req.login(newUser, loginError => {
+            if (loginError) return res.status(500).send({ loginError });
+            return res.status(200).send({
+                success: true, user:newUser
+            });
+        });
+    }
+    catch(err){
+        if (err) return res.status(500).send({ err:err.message });
+    }
+}
+
 
 
 exports.logout = (req, res) => {

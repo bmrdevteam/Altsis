@@ -7,7 +7,10 @@ var config=require('../config/config.js')
 
 const userSchema=mongoose.Schema({
     name:String,
-    userId:String,
+    userId:{
+        type:String,
+        unique:true
+    },
     email:String,
     password:String,
     auth:Array,

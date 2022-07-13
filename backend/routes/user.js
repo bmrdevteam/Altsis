@@ -13,7 +13,7 @@ router.post("/register",isNotLoggedIn,user.localValidate, user.register);
 
 /* google login & register */
 router.post('/google/auth',isNotLoggedIn,user.googleAuth); 
-router.post('/google/register', isNotLoggedIn,user.googleValidate,user.register); 
+router.post('/google/register', isNotLoggedIn,user.googleValidate,user.googleRegister); 
 
 /* local & google logout */
 router.get("/logout", isLoggedIn,user.logout);
