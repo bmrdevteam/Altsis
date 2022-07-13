@@ -78,7 +78,7 @@ const SubLink = ({
   );
 };
 
-const NavProfile = () => {
+const NavProfile = (props:{}) => {
   return (
     <div className={style.nav_profile_container}>
       <div className={style.nav_profile}>
@@ -86,7 +86,7 @@ const NavProfile = () => {
           <img src={dummmyProfilePic} alt="profile" />
         </div>
         <div className={style.profile_info}>
-          <div className={style.username}>Goind asdin</div>
+          <div className={style.username}></div>
           <div className={style.role}>관리자</div>
         </div>
         <div className={style.logout}>
