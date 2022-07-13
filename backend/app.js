@@ -3,6 +3,7 @@ const cookieParser = require('cookie-parser');;
 const mongoose=require('mongoose')
 const cors = require('cors')
 const session=require('express-session')
+const FileStore = require('session-file-store')(session)
 const passport=require('passport')
 
 const config=require('./config/config.js')
@@ -32,6 +33,7 @@ app.use(
         httpOnly: true, // 브라우저에서 쿠키값에 대한 접근을 하지 못하게 막는다.
         secure: false, // HTTPS 통신 외에서는 쿠키를 전달하지 않는다.
      },
+     store : new FileStore()
   }),
 );
 app.use(passport.initialize()); 
