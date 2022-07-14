@@ -1,61 +1,61 @@
 var passport = require('passport')
 
 const { User } = require("../models/User");
-const { checkSchema,validationResult } = require("express-validator")
-const {OAuth2Client} = require('google-auth-library');
-const clientID=require('../config/config')["GOOGLE-ID"]
+const { checkSchema, validationResult } = require("express-validator")
+const { OAuth2Client } = require('google-auth-library');
+const clientID = require('../config/config')["GOOGLE-ID"]
 
 const specialRegExp = /[!@#$%^&*()]+/;
 
-const localSchema={
-    userId:{
-        in:"body",
-        trim:true,
-        isLength:{
-            errorMessage:"ID length error",
-            options:{min:4,max:20}
+const localSchema = {
+    userId: {
+        in: "body",
+        trim: true,
+        isLength: {
+            errorMessage: "ID length error",
+            options: { min: 4, max: 20 }
         },
-        isAlphanumeric:{
-            errorMessage:"ID must be alphanumeric"
+        isAlphanumeric: {
+            errorMessage: "ID must be alphanumeric"
         }
     },
-    password:{
-        in:"body",
-        trim:true,
-        isLength:{
-            errorMessage:"Password length error",
-            options:{min:8,max:20}
+    password: {
+        in: "body",
+        trim: true,
+        isLength: {
+            errorMessage: "Password length error",
+            options: { min: 8, max: 20 }
         },
-        matches:{
-            errorMessage:"Password must contain one special character",
-            options:specialRegExp
+        matches: {
+            errorMessage: "Password must contain one special character",
+            options: specialRegExp
         }
     },
-    email:{
-        in:"body",
-        trim:true,
-        isEmail:{
-            errorMessage:"invalid email"
+    email: {
+        in: "body",
+        trim: true,
+        isEmail: {
+            errorMessage: "invalid email"
         }
     }
 }
 
-const googleSchema={
-    userId:{
-        in:"body",
-        trim:true,
-        isLength:{
-            errorMessage:"ID length error",
-            options:{min:4,max:20}
+const googleSchema = {
+    userId: {
+        in: "body",
+        trim: true,
+        isLength: {
+            errorMessage: "ID length error",
+            options: { min: 4, max: 20 }
         },
-        isAlphanumeric:{
-            errorMessage:"ID must be alphanumeric"
+        isAlphanumeric: {
+            errorMessage: "ID must be alphanumeric"
         }
     }
 }
 
 exports.localValidate = checkSchema(localSchema);
-exports.googleValidate=checkSchema(googleSchema);
+exports.googleValidate = checkSchema(googleSchema);
 
 exports.login = (req, res, next) => {
     passport.authenticate('local', (authError, user, message) => {
@@ -70,7 +70,7 @@ exports.login = (req, res, next) => {
     })(req, res, next)
 }
 
-exports.register = async  (req, res, next) => {
+exports.register = async (req, res, next) => {
 
     /* validation */
     const errors = validationResult(req);
@@ -78,10 +78,10 @@ exports.register = async  (req, res, next) => {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    try{
+    try {
         /* check redundancy */
-        const exUser=await User.findOne({userId:req.body.userId});
-        if(exUser) return res.status(409).send({message: "User already exists with such id" });
+        const exUser = await User.findOne({ userId: req.body.userId });
+        if (exUser) return res.status(409).send({ message: "User already exists with such id" });
 
         /* register */
         const newUser = new User(req.body);
@@ -91,75 +91,80 @@ exports.register = async  (req, res, next) => {
         req.login(newUser, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             return res.status(200).send({
-                success: true, user:newUser
+                success: true, user: newUser
             });
         });
     }
-    catch(err){
+    catch (err) {
         if (err) return res.status(500).send({ err });
     }
 }
 
-// google auth + login
-exports.googleAuth=async (req,res)=>{
-    try{
+const getProfile = async (credential) => {
+    try {
         const client = new OAuth2Client(clientID);
 
         const ticket = await client.verifyIdToken({
-            idToken: req.body.credential,
+            idToken: credential,
             audience: clientID,
         });
 
-        const payload = ticket.getPayload();    
-        const exUser=await User.findOne({email:payload["email"],provider:"google"});
-        if(!exUser) return res.status(409).send({message: "User doesn't exists with such google account",user:{
-            email:payload["email"],
-            name:payload["name"]
-        } })
-        
-         /* login */
-         req.login(exUser, loginError => {
-             if (loginError) return res.status(500).send({ loginError });
-             return res.status(200).send({
-                 success: true, user:exUser
-             });
-         });
+        const payload = ticket.getPayload();
+        return payload;
     }
-    catch(err){
-        if (err) return res.status(500).send({ err:err.message });
+    catch (err) {
+        throw(err)
+    }
+}
+
+// google auth + login
+exports.googleAuth = async (req, res) => {
+    try {
+        const payload = await getProfile(req.body.credential)
+        const exUser = await User.findOne({ email: payload["email"], provider: "google" });
+        if (!exUser) return res.status(409).send({
+            message: "User doesn't exists with such google account", user: {
+                email: payload["email"],
+                name: payload["name"]
+            }
+        })
+
+        /* login */
+        req.login(exUser, loginError => {
+            if (loginError) return res.status(500).send({ loginError });
+            return res.status(200).send({
+                success: true, user: exUser
+            });
+        });
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
     }
 }
 
 // google auth + register
-exports.googleRegister=async (req,res)=>{
+exports.googleRegister = async (req, res) => {
     /* validation */
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    try{
-        const client = new OAuth2Client(clientID);
+    try {
+        const payload = await getProfile(req.body.credential)
 
-        const ticket = await client.verifyIdToken({
-            idToken: req.body.credential,
-            audience: clientID,
-        });
-
-        const payload = ticket.getPayload();  
-        
         /* check redundancy */
-        const exUser1=await User.findOne({userId:req.body.userId});
-        if(exUser1) return res.status(409).send({message: "User already exists with such id" });
-        const exUser2=await User.findOne({email:payload["email"],provider:"google"});
-        if(exUser2) return res.status(409).send({message:"User already exists with such google account"});
+        const exUser1 = await User.findOne({ userId: req.body.userId });
+        if (exUser1) return res.status(409).send({ message: "User already exists with such id" });
+        const exUser2 = await User.findOne({ email: payload["email"], provider: "google" });
+        if (exUser2) return res.status(409).send({ message: "User already exists with such google account" });
 
         /* register */
         const newUser = new User({
-            email:payload["email"],
-            name:payload["name"],
-            userId:req.body.userId,
-            provider:"google"
+            email: payload["email"],
+            name: payload["name"],
+            userId: req.body.userId,
+            provider: "google"
         });
         const doc = await newUser.save()
 
@@ -167,31 +172,31 @@ exports.googleRegister=async (req,res)=>{
         req.login(newUser, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             return res.status(200).send({
-                success: true, user:newUser
+                success: true, user: newUser
             });
         });
     }
-    catch(err){
-        if (err) return res.status(500).send({ err:err.message });
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
     }
 }
 
 
 
 exports.logout = (req, res) => {
-    req.logout((err)=>{
-        if(err) return res.status(500).send({ err });
-        req.session.destroy();  
+    req.logout((err) => {
+        if (err) return res.status(500).send({ err });
+        req.session.destroy();
         console.log("you are logged out!")
-        return res.status(200).send({success:true})
+        return res.status(200).send({ success: true })
     });
 }
 
-exports.info =async (req,res)=>{
-    const _id=req.session.passport.user;
-    const _user=await User.findOne({_id:_id})
-    if(!_user){
-        return res.status(409).send({message: "User doesn't exists with such _id" })
+exports.info = async (req, res) => {
+    const _id = req.session.passport.user;
+    const _user = await User.findOne({ _id: _id })
+    if (!_user) {
+        return res.status(409).send({ message: "User doesn't exists with such _id" })
     }
 
     return res.status(200).send({

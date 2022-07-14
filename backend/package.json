@@ -22,6 +22,7 @@
     "moment": "^2.29.3",
     "mongoose": "^6.4.2",
     "passport": "^0.6.0",
+    "passport-custom": "^1.1.1",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
