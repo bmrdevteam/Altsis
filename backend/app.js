@@ -1,6 +1,5 @@
 const express = require('express');
-const cookieParser = require('cookie-parser');;
-const mongoose=require('mongoose')
+const cookieParser = require('cookie-parser');
 const cors = require('cors')
 const session=require('express-session')
 const FileStore = require('session-file-store')(session)
@@ -13,11 +12,8 @@ const testRouter = require('./routes/test');
 const userRouter = require('./routes/user');
 
 const app = express();
-passportConfig();
 
-mongoose.connect(config["url"])
-.then(() => console.log('MongoDB connection is made.'))
-.catch(err => console.log(err));
+passportConfig();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

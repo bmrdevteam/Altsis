@@ -6,6 +6,7 @@ module.exports = {
             exec_mode: 'cluster',
             instances: 1, // 단일 쓰레드
             watch: true,
+            ignore_watch:"sessions/*",
             env: {
                 PORT: 3000,
                 "NODE_ENV": "development" // development mode

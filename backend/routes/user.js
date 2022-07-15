@@ -7,15 +7,11 @@ const {isLoggedIn,isNotLoggedIn}=require("../middleware/auth");
 //             User
 //=================================
 
-/* local login & register */
-router.post('/login',isNotLoggedIn,user.login);
-router.post("/register",isNotLoggedIn,user.localValidate, user.register);
+/* local & google login */
+router.post('/login/local',isNotLoggedIn,user.localLogin);
+router.post("/login/google",isNotLoggedIn,user.googleLogin);
 
-/* google login & register */
-router.post('/google/auth',isNotLoggedIn,user.googleAuth); 
-router.post('/google/register', isNotLoggedIn,user.googleValidate,user.googleRegister); 
-
-/* local & google logout */
+/* logout */
 router.get("/logout", isLoggedIn,user.logout);
 
 /* get logged in user info */

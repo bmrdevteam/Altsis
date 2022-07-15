@@ -1,9 +1,8 @@
 const mongoose=require('mongoose')
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const moment = require("moment");
 var config=require('../config/config.js')
 
+const conn=require('../databases/connection')   
 
 const userSchema=mongoose.Schema({
     name:String,
@@ -13,15 +12,14 @@ const userSchema=mongoose.Schema({
     },
     email:String,
     password:String,
-    auth:Array,
+    auth:String,
     school:Array,
-    snsId:String,
     provider:String,
+    userImg:String,
     timestamps:{
         type:String,
         default:Date.now
-    },
-    userImg:String
+    }
 });
 
 userSchema.pre('save',function(next){
@@ -51,28 +49,6 @@ userSchema.methods.comparePassword=async function(plainPassword){
     }
 }
 
-// userSchema.methods.generateToken=function(next){
-//     var user=this;
-//     var token=jwt.sign(user._id.toHexString(),config.token_key);
-//     var oneHour=moment().add(1,'hour').valueOf();
-
-//     user.tokenExp=oneHour;
-//     user.token=token;
-//     user.save(function(err,user){
-//         if(err) return next(err);
-//         next(null,user);
-//     })
-// }
-
-// userSchema.statics.findByToken=function(token,next){
-//     var user=this;
-//     jwt.verify(token,config.token_key,function(err,decode){
-//         user.findOne({"_id":decode,"token":token},function(err,user){
-//             if(err) return next(err);
-//             next(null,user);
-//         })
-//     })
-// }
-
-const User=mongoose.model('User',userSchema);
-module.exports={User};
+module.exports=(dbName)=>{
+    return conn[dbName].model('User',userSchema);
+}
