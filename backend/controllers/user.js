@@ -1,139 +1,52 @@
-var passport = require('passport')
-
-const { User } = require("../models/User");
-const { checkSchema, validationResult } = require("express-validator")
+const User = require("../models/User");
 const { OAuth2Client } = require('google-auth-library');
 const clientID = require('../config/config')["GOOGLE-ID"]
 
-const specialRegExp = /[!@#$%^&*()]+/;
-
-const localSchema = {
-    userId: {
-        in: "body",
-        trim: true,
-        isLength: {
-            errorMessage: "ID length error",
-            options: { min: 4, max: 20 }
-        },
-        isAlphanumeric: {
-            errorMessage: "ID must be alphanumeric"
-        }
-    },
-    password: {
-        in: "body",
-        trim: true,
-        isLength: {
-            errorMessage: "Password length error",
-            options: { min: 8, max: 20 }
-        },
-        matches: {
-            errorMessage: "Password must contain one special character",
-            options: specialRegExp
-        }
-    },
-    email: {
-        in: "body",
-        trim: true,
-        isEmail: {
-            errorMessage: "invalid email"
-        }
-    }
-}
-
-const googleSchema = {
-    userId: {
-        in: "body",
-        trim: true,
-        isLength: {
-            errorMessage: "ID length error",
-            options: { min: 4, max: 20 }
-        },
-        isAlphanumeric: {
-            errorMessage: "ID must be alphanumeric"
-        }
-    }
-}
-
-exports.localValidate = checkSchema(localSchema);
-exports.googleValidate = checkSchema(googleSchema);
-
-exports.login = (req, res, next) => {
-    passport.authenticate('local', (authError, user, message) => {
-        if (authError) return res.status(500).send({ authError });
-        if (!user) return res.status(409).send(message);
-        req.login(user, loginError => {
-            if (loginError) return res.status(500).send({ loginError });
-            return res.status(200).send({
-                success: true, user
-            });
-        });
-    })(req, res, next)
-}
-
-exports.register = async (req, res, next) => {
-
-    /* validation */
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
+exports.localLogin = async(req, res) => {
     try {
-        /* check redundancy */
-        const exUser = await User.findOne({ userId: req.body.userId });
-        if (exUser) return res.status(409).send({ message: "User already exists with such id" });
+        /* authentication */
+        const user = await User(req.body.academy).findOne({userId:req.body.userId});
+        if (!user){    
+            return res.status(409).send({ message: 'No user with such ID' });
+        }
+        const isMatch = await user.comparePassword(req.body.password)
+        if (!isMatch) {
+            return res.status(409).send({ message: 'Password is incorrect'});
+        }
 
-        /* register */
-        const newUser = new User(req.body);
-        const doc = await newUser.save()
-
-        /* login */
-        req.login(newUser, loginError => {
+       /* login */
+       req.login({user,academy:req.body.academy}, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             return res.status(200).send({
-                success: true, user: newUser
+                success: true,owner: user
             });
         });
     }
     catch (err) {
-        if (err) return res.status(500).send({ err });
+        res.status(500).send(err)
     }
 }
 
-const getProfile = async (credential) => {
+exports.googleLogin = async (req, res) => {
     try {
         const client = new OAuth2Client(clientID);
 
         const ticket = await client.verifyIdToken({
-            idToken: credential,
+            idToken: req.body.credential,
             audience: clientID,
         });
 
-        const payload = ticket.getPayload();
-        return payload;
-    }
-    catch (err) {
-        throw(err)
-    }
-}
-
-// google auth + login
-exports.googleAuth = async (req, res) => {
-    try {
-        const payload = await getProfile(req.body.credential)
-        const exUser = await User.findOne({ email: payload["email"], provider: "google" });
-        if (!exUser) return res.status(409).send({
-            message: "User doesn't exists with such google account", user: {
-                email: payload["email"],
-                name: payload["name"]
-            }
+        const payload =  ticket.getPayload();
+        const user = await User(req.body.academy).findOne({ email: payload["email"], provider: "google" });
+        if (!user) return res.status(409).send({
+            message: "User doesn't exists with such google account"
         })
 
         /* login */
-        req.login(exUser, loginError => {
-            if (loginError) return res.status(500).send({ loginError });
+        req.login({user,academy:req.body.academy}, loginError => {
+            if (loginError) return res.status(500).send({ loginError: loginError.message });
             return res.status(200).send({
-                success: true, user: exUser
+                success: true, user
             });
         });
     }
@@ -141,66 +54,25 @@ exports.googleAuth = async (req, res) => {
         if (err) return res.status(500).send({ err: err.message });
     }
 }
-
-// google auth + register
-exports.googleRegister = async (req, res) => {
-    /* validation */
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-        const payload = await getProfile(req.body.credential)
-
-        /* check redundancy */
-        const exUser1 = await User.findOne({ userId: req.body.userId });
-        if (exUser1) return res.status(409).send({ message: "User already exists with such id" });
-        const exUser2 = await User.findOne({ email: payload["email"], provider: "google" });
-        if (exUser2) return res.status(409).send({ message: "User already exists with such google account" });
-
-        /* register */
-        const newUser = new User({
-            email: payload["email"],
-            name: payload["name"],
-            userId: req.body.userId,
-            provider: "google"
-        });
-        const doc = await newUser.save()
-
-        /* login */
-        req.login(newUser, loginError => {
-            if (loginError) return res.status(500).send({ loginError });
-            return res.status(200).send({
-                success: true, user: newUser
-            });
-        });
-    }
-    catch (err) {
-        if (err) return res.status(500).send({ err: err.message });
-    }
-}
-
-
 
 exports.logout = (req, res) => {
     req.logout((err) => {
         if (err) return res.status(500).send({ err });
         req.session.destroy();
-        console.log("you are logged out!")
         return res.status(200).send({ success: true })
     });
 }
 
 exports.info = async (req, res) => {
-    const _id = req.session.passport.user;
-    const _user = await User.findOne({ _id: _id })
-    if (!_user) {
-        return res.status(409).send({ message: "User doesn't exists with such _id" })
-    }
+    const academy = req.session.passport.user["academy"];
+    const _id=req.session.passport.user["_id"];
 
+    const user = await User(academy).findOne({ _id:_id})
+    if (!user) {
+        return res.status(409).send({ message: "User doesn't exists with such _id&academy" })
+    }
     return res.status(200).send({
         success: true,
-        _user
+        _user: user
     });
 }
