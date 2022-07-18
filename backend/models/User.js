@@ -5,21 +5,24 @@ var config=require('../config/config.js')
 const conn=require('../databases/connection')   
 
 const userSchema=mongoose.Schema({
-    name:String,
+    auth:String,
     userId:{
         type:String,
         unique:true
     },
-    email:String,
     password:String,
-    auth:String,
-    school:Array,
-    provider:String,
+    name:String,
+    email:String,
     userImg:String,
     timestamps:{
         type:String,
         default:Date.now
-    }
+    },
+    isAuthorized:{
+        type:Boolean,
+        default:false
+    },
+    school:Array
 });
 
 userSchema.pre('save',function(next){
