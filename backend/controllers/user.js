@@ -2,6 +2,8 @@ const User = require("../models/User");
 const { OAuth2Client } = require('google-auth-library');
 const { checkSchema, validationResult } = require("express-validator");
 const clientID = require('../config/config')["GOOGLE-ID"]
+const saltRounds=require('../config/config')["saltRounds"]
+const bcrypt=require('bcrypt')
 
 const specialRegExp = /[!@#$%^&*()]+/;
 const schema = {
@@ -36,6 +38,18 @@ const schema = {
 }
 exports.validate = checkSchema(schema);
 
+const generateHash=async(password)=>{
+    try{
+        console.log('generating...')
+        const salt = await bcrypt.genSalt(saltRounds);
+        const hash = await bcrypt.hash(password,salt);
+        return hash;
+    }
+    catch(err){
+        throw err;
+    }
+}
+
 exports.localLogin = async (req, res) => {
     try {
         /* authentication */
@@ -52,7 +66,12 @@ exports.localLogin = async (req, res) => {
         req.login({ user, academy: req.body.academy }, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             return res.status(200).send({
-                success: true, owner: user
+                success: true, user:{
+                    _id:user._id,
+                    userId:user.userId,
+                    auth:user.auth,
+                    school:user.school
+                }
             });
         });
     }
@@ -80,7 +99,12 @@ exports.googleLogin = async (req, res) => {
         req.login({ user, academy: req.body.academy }, loginError => {
             if (loginError) return res.status(500).send({ loginError: loginError.message });
             return res.status(200).send({
-                success: true, user
+                success: true, user:{
+                    _id:user._id,
+                    userId:user.userId,
+                    auth:user.auth,
+                    school:user.school
+                }
             });
         });
     }
@@ -124,12 +148,13 @@ exports.create = async (req, res) => {
             user.auth = (req.body.auth);
             return user;
         });
-        await User(academy).insertMany(users)
+        const newUsers  = await User(academy).insertMany(users)
+        return res.status(200).send({ newUsers});
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
     }
-    return res.status(200).send({ sucess: true });
+    
 }
 
 
@@ -144,12 +169,36 @@ exports.read = async (req, res) => {
         delete dbQuery.academy;
         const user = await User(academy).find(dbQuery);
         if (user.length == 0) return res.status(404).send({ message: "no user!" })
-        return res.status(200).send(user)
+        return res.status(200).send({user})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
     }
 }
+
+exports.update = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.body.hasOwnProperty("academy")) {
+        return res.status(409).send({ message: "academy is needed" });
+    }
+    try {
+        const academy = req.body.academy;
+        const user=req.body.user[0];
+        if(user.password){
+            user.password=await generateHash(user.password)
+        }
+        const updatedUser = await User(academy).findByIdAndUpdate(user._id, user,{ returnDocument: 'after' });
+        return res.status(200).send({ user: updatedUser })
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
 
 exports.delete = async (req, res) => {
     const academy = req.query.academy;
@@ -157,26 +206,12 @@ exports.delete = async (req, res) => {
         return res.status(409).send({ message: "academy info is needed" });
     }
     try {
-        const doc = await User(academy).findOneAndDelete({ userId: req.query.userId });
-        return res.status(200).send({ doc })
+        const doc = await User(academy).findByIdAndDelete(req.query._id);
+        return res.status(200).send({success:(!!doc)})
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
     }
 }
 
-exports.update = async (req, res) => {
-    if (!req.body.hasOwnProperty("academy")) {
-        return res.status(409).send({ message: "academy is needed" });
-    }
-    try {
-        const academy = req.body.academy;
-        const user=req.body.user[0];
-        const doc = await User(academy).updateOne({ userId: user.userId}, user);
-        return res.status(200).send({ doc })
-    }
-    catch (err) {
-        if (err) return res.status(500).send({ err: err.message });
-    }
-}
 

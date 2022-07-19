@@ -25,7 +25,7 @@ const userSchema=mongoose.Schema({
     school:Array
 });
 
-userSchema.pre('save',function(next){
+userSchema.pre(['save','validate'],function(next){
     var user=this;
     if(user.isModified('password')){ //비밀번호가 바뀔때만 암호화
         bcrypt.genSalt(config.saltRounds,function(err,salt){
