@@ -30,7 +30,8 @@ exports.isLoggedIn = (req, res, next) => {
 exports.isAdmin = (req, res, next) => {
    if (req.isAuthenticated()) {
       if(req.session.passport.user.auth=='admin'
-      &&req.session.passport.user.academy==req.body.academy){
+      &&(req.session.passport.user.academy==req.body.academy
+         ||req.session.passport.user.academy==req.query.academy)){
          next();
       }
       else{
