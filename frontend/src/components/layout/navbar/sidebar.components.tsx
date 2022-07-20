@@ -2,13 +2,37 @@ import React, { ReactElement } from "react";
 import Svg from "../../../assets/svg/Svg";
 import style from "./sidebar.module.scss";
 import dummmyProfilePic from "../../../assets/img/sponge.jpeg";
+import { useNavigate } from "react-router-dom";
 
-const Nav = ({ children }: { children?: JSX.Element[] | JSX.Element }) => {
-  return <nav className={style.nav_container}>{children}</nav>;
+const Nav = ({
+  children,
+  close,
+}: {
+  children?: JSX.Element[] | JSX.Element;
+  close: boolean;
+}) => {
+  return (
+    <nav className={`${style.nav_container} ${close && style.close}`}>
+      {children}
+    </nav>
+  );
 };
 
-const NavLogo = ({ children }: { children?: JSX.Element[] | JSX.Element }) => {
-  return <div className={style.nav_logo}>{children}</div>;
+const NavLogo = ({
+  children,
+  handleClick,
+}: {
+  children?: JSX.Element[] | JSX.Element;
+  handleClick: any;
+}) => {
+  return (
+    <div className={style.nav_logo}>
+      <span className={style.icon} onClick={handleClick}>
+        {<Svg type="menu" width="24px" height="24px" />}
+      </span>
+      <div className={style.logo}>{children}</div>
+    </div>
+  );
 };
 
 const Search = ({ setSearchRef }: { setSearchRef?: ReactElement }) => {
@@ -16,13 +40,15 @@ const Search = ({ setSearchRef }: { setSearchRef?: ReactElement }) => {
     <div className={style.search_container}>
       <div className={style.search}>
         <span className={style.icon}>{<Svg type="search" />}</span>
-        <input
-          onKeyDown={(e) => {
-            e.key === "Enter" && console.log("sunbimasdf");
-          }}
-          className={style.search_input}
-          placeholder="검색"
-        />
+
+          <input
+            onKeyDown={(e) => {
+              e.key === "Enter" && console.log("검색");
+            }}
+            className={style.search_input}
+            placeholder="검색"
+          />
+
       </div>
     </div>
   );
@@ -37,19 +63,27 @@ const NavLink = ({
   icon,
   active,
   subLink,
-  name,
   handleClick,
+  path,
 }: {
   children?: string;
   icon?: JSX.Element;
   active?: boolean;
   subLink?: JSX.Element[] | JSX.Element;
-  name?: string;
   handleClick?: any;
+  path?: string;
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className={`${style.nav_link_container} ${active && style.active}`}>
-      <div className={style.nav_link} onClick={handleClick}>
+      <div
+        className={style.nav_link}
+        onClick={() => {
+          handleClick();
+          path && navigate(path, { replace: true });
+        }}
+      >
         <span className={style.icon}>{icon}</span>
         <span className={style.name}>{children}</span>
       </div>
@@ -78,7 +112,7 @@ const SubLink = ({
   );
 };
 
-const NavProfile = (props:{}) => {
+const NavProfile = ({ user }: { user: any }) => {
   return (
     <div className={style.nav_profile_container}>
       <div className={style.nav_profile}>
@@ -86,7 +120,7 @@ const NavProfile = (props:{}) => {
           <img src={dummmyProfilePic} alt="profile" />
         </div>
         <div className={style.profile_info}>
-          <div className={style.username}></div>
+          <div className={style.username}>{user?.userId ?? "로그인"}</div>
           <div className={style.role}>관리자</div>
         </div>
         <div className={style.logout}>
