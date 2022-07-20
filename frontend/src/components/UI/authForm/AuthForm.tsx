@@ -27,6 +27,7 @@ const FormInput = ({
   required,
   handleChange,
   valueType,
+  isValid,
 }: {
   placeholder?: string;
   name?: string;
@@ -34,6 +35,7 @@ const FormInput = ({
   useRef?: React.MutableRefObject<any>;
   valueType?: string;
   handleChange?: any;
+  isValid?:boolean;
 }) => {
   return (
     <div className={style.form_input_container}>
@@ -56,6 +58,7 @@ const FormInput = ({
         name={name}
         required={required}
       />
+      {isValid && <p>hello sths wrong</p>}
     </div>
   );
 };
