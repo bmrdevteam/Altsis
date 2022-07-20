@@ -3,6 +3,7 @@ declare module "*.scss" {
   export = content;
 }
 declare module "*.jpeg";
+declare module "*.data.tsx";
 
 interface Window {
   handleGoogleLogin: any;
