@@ -16,6 +16,7 @@ const schema = {
         isAlphanumeric: {
             errorMessage: "ID must be alphanumeric"
         }
+        
     },
     "user.*.password": {
         in: "body",
@@ -36,11 +37,45 @@ const schema = {
         }
     }
 }
+const optionalSchema = {
+    "user.*.userId": {
+        in: "body",
+        optional:true,
+        isLength: {
+            errorMessage: "ID length error",
+            options: { min: 4, max: 20 }
+        },
+        isAlphanumeric: {
+            errorMessage: "ID must be alphanumeric"
+        }
+        
+    },
+    "user.*.password": {
+        in: "body",
+        optional:true,
+        isLength: {
+            errorMessage: "Password length error",
+            options: { min: 8, max: 20 }
+        },
+        matches: {
+            errorMessage: "Password must contain one special character",
+            options: specialRegExp
+        }
+    },
+    "user.*.email": {
+        in: "body",
+        optional:true,
+        trim: true,
+        isEmail: {
+            errorMessage: "invalid email"
+        }
+    }
+}
 exports.validate = checkSchema(schema);
+exports.optionalValidate = checkSchema(optionalSchema);
 
 const generateHash=async(password)=>{
     try{
-        console.log('generating...')
         const salt = await bcrypt.genSalt(saltRounds);
         const hash = await bcrypt.hash(password,salt);
         return hash;
@@ -136,20 +171,18 @@ exports.info = async (req, res) => {
     });
 }
 
-
 exports.create = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        const academy = req.body.academy;
         const users = req.body.user.map(user => {
-            user.auth = (req.body.auth);
+            user.auth = req.auth;
             return user;
         });
-        const newUsers  = await User(academy).insertMany(users)
-        return res.status(200).send({ newUsers});
+        const newUser  = await User(req.academy).insertMany(users)
+        return res.status(200).send({ user:newUser});
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
@@ -160,15 +193,7 @@ exports.create = async (req, res) => {
 
 exports.read = async (req, res) => {
     try {
-        const academy = req.query.academy;
-        if (!academy) {
-            return res.status(409).send({ message: "academy info is needed" });
-        }
-
-        let dbQuery = req.query;
-        delete dbQuery.academy;
-        const user = await User(academy).find(dbQuery);
-        if (user.length == 0) return res.status(404).send({ message: "no user!" })
+        const user = await User(req.academy).find(req.query);
         return res.status(200).send({user})
     }
     catch (err) {
@@ -181,17 +206,12 @@ exports.update = async (req, res) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
-
-    if (!req.body.hasOwnProperty("academy")) {
-        return res.status(409).send({ message: "academy is needed" });
-    }
     try {
-        const academy = req.body.academy;
         const user=req.body.user[0];
         if(user.password){
             user.password=await generateHash(user.password)
         }
-        const updatedUser = await User(academy).findByIdAndUpdate(user._id, user,{ returnDocument: 'after' });
+        const updatedUser = await User(req.academy).findByIdAndUpdate(user._id, user,{ returnDocument: 'after' });
         return res.status(200).send({ user: updatedUser })
     }
     catch (err) {
@@ -201,12 +221,8 @@ exports.update = async (req, res) => {
 
 
 exports.delete = async (req, res) => {
-    const academy = req.query.academy;
-    if (!academy) {
-        return res.status(409).send({ message: "academy info is needed" });
-    }
     try {
-        const doc = await User(academy).findByIdAndDelete(req.query._id);
+        const doc = await User(req.academy).findByIdAndDelete(req.query._id);
         return res.status(200).send({success:(!!doc)})
     }
     catch (err) {
