@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const user = require("../controllers/user");
-const {isLoggedIn,isNotLoggedIn}=require("../middleware/auth");
+const {isLoggedIn,isNotLoggedIn,authorize}=require("../middleware/auth");
 
 //=================================
 //             User
@@ -15,12 +15,12 @@ router.post("/login/google",isNotLoggedIn,user.googleLogin);
 router.get("/logout", isLoggedIn,user.logout);
 
 /* get logged in user info */
-router.get('/info',isLoggedIn,user.info);
+router.get('/info',isLoggedIn,user.info); //necessary?
 
 //CRUD - 나중에 권한 설정 할 것
-router.post('/create',user.validate,user.create);
-router.get('/read',user.read);
-router.patch('/update',user.validate,user.update)
-router.delete('/delete',user.delete);
+router.post('/',authorize,user.validate,user.create);
+router.get('/',authorize,user.read);
+router.patch('/',authorize,user.optionalValidate,user.update);
+router.delete('/',authorize,user.delete);
 
 module.exports = router;
