@@ -29,9 +29,8 @@ exports.isLoggedIn = (req, res, next) => {
 
 exports.isAdmin = (req, res, next) => {
    if (req.isAuthenticated()) {
-      if(req.session.passport.user.auth=='admin'
-      &&(req.session.passport.user.academy==req.body.academy
-         ||req.session.passport.user.academy==req.query.academy)){
+      if(req.session.passport.user.auth=='admin'){
+         req.academy=req.session.passport.user.academy;
          next();
       }
       else{
@@ -41,22 +40,6 @@ exports.isAdmin = (req, res, next) => {
       res.status(403).send({message:"You are not logged in."});
    }
 };
-
-// exports.authorize = (req, res, next) => {
-//    if (req.isAuthenticated()) {
-//       if(req.session.passport.user.auth=='owner'&&(req.body.auth=='admin'||req.body.auth=='member')){
-//          next();
-//       }
-//       else if(req.session.passport.user.auth=='admin'&&req.body.auth=='member'){
-//          next();
-//       }
-//       else{
-//          res.status(401).send({message:"You are not authorized."});
-//       }
-//    } else {
-//       res.status(403).send({message:"You are not logged in."});
-//    }
-// };
 
 exports.authorize = (req, res, next) => {
    if (req.isAuthenticated()) {
