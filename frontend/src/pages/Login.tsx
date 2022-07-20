@@ -9,6 +9,7 @@ import Button from "../components/UI/button/Button";
 import { useNavigate } from "react-router-dom";
 
 import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
+// import useFormValidation from "../hooks/useFormValidation";
 
 const Login = () => {
   const usernameRef = useRef<{ value: any }>();
@@ -21,22 +22,27 @@ const Login = () => {
   const navigate = useNavigate();
   const status = useGoogleLogin();
 
-  
+
+
 
   const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     axios
-      .post("http://localhost:3000/api/user/login", {
-        userId: usernameRef.current?.value,
-        password: passwordRef.current?.value,
-      })
+      .post(
+        "http://localhost:3000/api/user/login",
+        {
+          userId: usernameRef.current?.value,
+          password: passwordRef.current?.value,
+        },
+        { withCredentials: true }
+      )
       .then(function (response) {
-        console.log(response);
+        response.status === 200 && window.location.replace("/");
       })
       .catch(function (error) {
         const errorMsg = error.response.data.errors;
 
-        for (let i = 0; i < errorMsg.length; i++) {
+        for (let i = 0; i < errorMsg?.length; i++) {
           console.log(errorMsg[i]?.msg);
           console.log(errorMsg[i]?.param);
           setErrorMessage(errorMsg[i]?.msg);
@@ -105,7 +111,7 @@ const Login = () => {
           </Button>
 
           <div style={{ height: "4px" }}></div>
-          {!status && <GoogleLoginBtn/>}
+          <GoogleLoginBtn />
         </div>
       </div>
     </>
