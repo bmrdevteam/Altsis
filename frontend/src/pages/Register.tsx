@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import style from "../style/pages/login.module.scss";
 import AuthForm, {
   FormColumn,
@@ -7,7 +7,7 @@ import AuthForm, {
 } from "../components/UI/authForm/AuthForm";
 import axios from "axios";
 import Button from "../components/UI/button/Button";
-import useGoogleLogin from "../hooks/useGoogleLogin";
+import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
 
 type Props = {};
 
@@ -18,10 +18,17 @@ const Register = (props: Props) => {
   const passwordCheckRef = useRef<{ value: any }>();
 
   const [errorMessage, setErrorMessage] = useState<string>("");
-
   const status = useGoogleLogin();
 
-  const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    console.log("first");
+
+    return () => {
+      console.log(status);
+    };
+  }, []);
+
+  const onRegisterFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     axios
       .post("http://localhost:3000/api/user/register", {
@@ -71,7 +78,7 @@ const Register = (props: Props) => {
       <div className={style.container}>
         <h1 className={style.title}>회원가입</h1>
         <p className={style.error}>{errorMessage}</p>
-        <AuthForm handleSubmit={onLoginSubmit}>
+        <AuthForm handleSubmit={onRegisterFormSubmit}>
           <FormColumn>
             <FormInput
               name="아이디"
@@ -109,27 +116,8 @@ const Register = (props: Props) => {
           <FormSubmit placeholder="회원가입" />
         </AuthForm>
         <div style={{ height: "4px" }}></div>
-        {!status && (
-          <>
-            <div
-              id="g_id_onload"
-              data-client_id="665087754874-oavhcdb53mlmsvt1r4rasarl7pbin48j.apps.googleusercontent.com"
-              // data-login_uri="http://localhost:3000/user/google/oauth"
 
-              data-auto_prompt={false}
-            ></div>
-            <div
-              style={{ display: "flex", justifyContent: "center" }}
-              className="g_id_signin"
-              data-type="standard"
-              data-size="large"
-              data-theme="outline"
-              data-text="sign_in_with"
-              data-shape="rectangular"
-              data-logo_alignment="center"
-            ></div>
-          </>
-        )}
+        <GoogleLoginBtn />
       </div>
     </div>
   );
