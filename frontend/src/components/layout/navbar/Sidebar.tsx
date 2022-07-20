@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Svg from "../../../assets/svg/Svg";
+
 import { useAuth } from "../../../contexts/authContext";
 
 import Nav, {
@@ -12,76 +11,74 @@ import Nav, {
   SubLink,
   SubLinks,
 } from "./sidebar.components";
+import { INavLink, SidebarData } from "../../../dummyData/SidebarData";
 
 type Props = {};
 
 const Sidebar = (props: Props) => {
-  const [activeNavLink, setActiveNavLink] = useState<string>();
+  const [activeNavLink, setActiveNavLink] = useState<string>(
+    SidebarData[0]?.title
+  );
+  const [sidebarClose, setSidebarClose] = useState<boolean>(false);
 
-  const navigate = useNavigate();
-  const {currentUser} = useAuth();
+  const { currentUser } = useAuth();
 
-
-  
   console.log(currentUser);
-  
+
   function NavLinkClicked(name: string) {
     setActiveNavLink((prev: string | undefined) => {
       // return prev !== name ? name : "";
+      
       return name;
     });
+    // path && navigate(path, { replace: true });
+
+    
   }
 
   return (
-    <Nav>
-      <NavLogo>
+    <Nav close={sidebarClose}>
+      <NavLogo
+        handleClick={() => {
+          setSidebarClose((prev: boolean) => {
+            return !prev;
+          });
+        }}
+      >
         <h1>.Rename</h1>
       </NavLogo>
       <NavLinks>
         <Search />
-        <NavLink
-          name="timetable"
-          icon={<Svg type="calender" />}
-          active={activeNavLink === "timetable"}
-          handleClick={() => {
-            NavLinkClicked("timetable");
-            navigate("timetable", { replace: true });
-          }}
-        >
-          시간표
-        </NavLink>
-
-        <NavLink
-          name="Dashboard"
-          handleClick={() => {
-            NavLinkClicked("Dashboard");
-          }}
-          active={activeNavLink === "Dashboard"}
-          icon={<Svg type="analyze" />}
-          subLink={
-            <SubLinks>
-              <SubLink icon={<Svg type="file" />}>학생 관리</SubLink>
-              <SubLink icon={<Svg type="calender" />}>학생 선택</SubLink>
-              <SubLink icon={<Svg type="calender" />}>학생 추가</SubLink>
-            </SubLinks>
-          }
-        >
-          대시보드
-        </NavLink>
-        <NavLink icon={<Svg type="file" />}>수강신청</NavLink>
-        <NavLink
-          name="settings"
-          handleClick={() => {
-            NavLinkClicked("settings");
-            navigate("settings", { replace: true });
-          }}
-          active={activeNavLink === "settings"}
-          icon={<Svg type="school" />}
-        >
-          설정
-        </NavLink>
+        {SidebarData.map((data: INavLink, index: number) => {
+          return (
+            <NavLink
+              key={index}
+              path={data.path}
+              icon={data.icon}
+              active={data.title === activeNavLink}
+              handleClick={() => {
+                NavLinkClicked(data.title);
+              }}
+              subLink={
+                data.subLink && (
+                  <SubLinks>
+                    {data.subLink.map((data, index) => {
+                      return (
+                        <SubLink key={index} icon={data.icon}>
+                          {data.name}
+                        </SubLink>
+                      );
+                    })}
+                  </SubLinks>
+                )
+              }
+            >
+              {data.name}
+            </NavLink>
+          );
+        })}
       </NavLinks>
-      <NavProfile />
+      <NavProfile user={currentUser} />
     </Nav>
   );
 };
