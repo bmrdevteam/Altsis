@@ -4,6 +4,7 @@ const config=require('../config/config')
 module.exports ={
     "owner":mongoose.createConnection(config["newUrl"]("owner-db")),
     "bmr":mongoose.createConnection(config["newUrl"]("bmr-db")),
+    "hog":mongoose.createConnection(config["newUrl"]("hog-db")),
 }
 // exports.owner={
 //     "owner-db":mongoose.createConnection(config["newUrl"]("owner-db")),

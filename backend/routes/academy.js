@@ -7,9 +7,9 @@ const {isOwner}=require('../middleware/auth')
 //             Academy
 //=================================
 
-router.post('/create',isOwner,academy.create);
-router.get('/read',isOwner,academy.read);
-router.patch('/update',isOwner,academy.update)
-router.delete('/delete',isOwner,academy.delete);
+router.post('/',isOwner,academy.create);
+router.get('/',isOwner,academy.read);
+router.patch('/',isOwner,academy.update)
+router.delete('/',isOwner,academy.delete);
 
 module.exports = router;
