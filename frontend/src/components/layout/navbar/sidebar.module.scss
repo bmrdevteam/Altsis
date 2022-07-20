@@ -6,19 +6,33 @@
     background-color: rgb(255, 255, 255);
     display: flex;
     flex-direction: column;
-    width: 240px;
+    max-width: 240px;
+    width: 100%;
+    overflow-y: hidden;
+    transition: max-width 0.3s;
     height: 100vh;
 
     .nav_logo {
         display: flex;
+        align-items: center;
         height: 56px;
         line-height: 56px;
+        margin: 8px;
         margin-bottom: 24px;
+        word-break: keep-all;
 
-        h1 {
+        .icon {
+            min-width: 24px;
             cursor: pointer;
-            margin-left: 24px;
+            margin: 0 8px;
+
         }
+
+        .logo {
+            flex: 1 1 0;
+            cursor: pointer;
+        }
+
     }
 
     .search_container {
@@ -32,10 +46,11 @@
             margin: 8px;
             display: flex;
             flex: 1 1 0;
-            gap: 16px;
+
             align-items: center;
 
             .search_input {
+                width: 100%;
                 background-color: transparent;
                 flex: 1 1 0;
                 border: none;
@@ -44,9 +59,15 @@
             }
 
             .icon {
-                margin-left: 16px;
+                height: 24px;
+                min-height: 24px;
+                width: 24px;
+                min-width: 24px;
                 display: flex;
+                justify-content: center;
                 align-items: center;
+                margin: 0 8px;
+
 
                 svg {
                     fill: rgb(150, 150, 150);
@@ -67,16 +88,20 @@
                 display: flex;
                 margin: 8px;
                 padding: 6px 0;
-                flex: 1 1 0;
-                gap: 16px;
                 align-items: center;
                 cursor: pointer;
 
                 border-radius: 8px;
 
                 .icon {
-                    margin-left: 16px;
+                    min-height: 24px;
+                    height: 24px;
+                    min-width: 24px;
+                    width: 24px;
+                    margin: 0 8px;
                     display: flex;
+                    justify-content: center;
+                    align-items: center;
 
                     svg {
 
@@ -87,6 +112,9 @@
                 }
 
                 .name {
+                    word-break: keep-all;
+                    white-space: nowrap;
+                    width: 100%;
                     font-weight: 400;
                     font-size: 14px;
                     flex: 1 1 0;
@@ -96,6 +124,7 @@
 
             .sub_links {
                 max-height: 0;
+                display: none;
             }
 
 
@@ -116,8 +145,15 @@
                     border-radius: 8px;
 
                     .icon {
-                        margin-left: 16px;
                         display: flex;
+                        min-height: 24px;
+                        height: 24px;
+                        min-width: 24px;
+                        width: 24px;
+                        margin: 0 0 0 16px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
 
                         svg {
 
@@ -128,6 +164,8 @@
                     }
 
                     .name {
+                        word-break: keep-all;
+                        white-space: nowrap;
                         font-weight: 400;
                         font-size: 14px;
                         flex: 1 1 0;
@@ -155,6 +193,7 @@
 
             .sub_links {
                 max-height: 100vh;
+                display: block;
                 transition: max-height 1s linear;
 
                 .sub_link_container {
@@ -178,12 +217,11 @@
 
     .nav_profile_container {
         border-top: 1px solid rgb(200, 200, 200);
-        flex-basis: 80px;
         display: flex;
 
         .nav_profile {
             flex: 1 1 0;
-            margin: 16px;
+            margin: 8px;
             display: flex;
             gap: 14px;
             align-items: center;
@@ -191,16 +229,20 @@
             .profile_img {
                 img {
                     border-radius: 24px;
-
-                    width: 48px;
-                    height: 48px;
+                    max-width: 40px;
+                    width: 40px;
+                    max-height: 40px;
+                    height: 40px;
                     object-fit: cover;
+                    cursor: pointer;
                 }
 
             }
 
             .profile_info {
                 flex: 1 1 0;
+                word-break: keep-all;
+                white-space: nowrap;
 
                 .username {}
 
@@ -224,4 +266,60 @@
     }
 
 
+}
+
+
+.nav_container.close {
+    max-width: 56px;
+    transition: max-width 0.3s;
+
+    .nav_logo {
+
+        display: flex;
+
+        .logo {
+            display: none;
+        }
+    }
+
+    .search_container {
+
+        .search {
+            .search_input {
+                display: none;
+            }
+        }
+    }
+
+    .nav_link_container {
+        .nav_link {
+            gap: 0;
+
+
+            .name {
+                display: none;
+            }
+
+            .icon {}
+        }
+
+        .sub_links {
+            display: none;
+            height: 0px;
+            opacity: 0;
+            .sub_link_container{
+                display: none;
+            }
+        }
+    }
+
+    .nav_profile {
+        .profile_info {
+            display: none;
+        }
+
+        .logout {
+            display: none;
+        }
+    }
 }
