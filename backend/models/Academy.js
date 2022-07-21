@@ -1,4 +1,5 @@
 const mongoose=require('mongoose')
+const moment=require('moment')
 const conn=require('../databases/owner')   
 
 const academySchema=mongoose.Schema({
@@ -15,7 +16,7 @@ const academySchema=mongoose.Schema({
     tel:String,
     timestamps:{
         type:String,
-        default:Date.now
+        default:moment().format('YYYY-MM-DD HH:mm:ss')
     }
 });
 
