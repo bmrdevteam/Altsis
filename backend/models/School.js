@@ -1,5 +1,5 @@
 const mongoose=require('mongoose')
-const conn=require('../databases/connection')   
+const {conn}=require('../databases/connection')   
 
 const schoolSchema=mongoose.Schema({
     adminId:String,

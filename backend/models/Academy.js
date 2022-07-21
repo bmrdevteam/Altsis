@@ -1,5 +1,5 @@
 const mongoose=require('mongoose')
-const conn=require('../databases/connection')   
+const conn=require('../databases/owner')   
 
 const academySchema=mongoose.Schema({
     academyName:{
@@ -19,4 +19,4 @@ const academySchema=mongoose.Schema({
     }
 });
 
-module.exports=conn['owner'].model('Academy',academySchema);
+module.exports=conn.model('Academy',academySchema);
