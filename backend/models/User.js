@@ -1,5 +1,7 @@
 const mongoose=require('mongoose')
 const bcrypt = require('bcrypt');
+const moment=require('moment');
+
 var config=require('../config/config.js')
 
 const {conn}=require('../databases/connection')   
@@ -14,15 +16,15 @@ const userSchema=mongoose.Schema({
     name:String,
     email:String,
     userImg:String,
-    timestamps:{
-        type:String,
-        default:Date.now
-    },
     isAuthorized:{
         type:Boolean,
         default:false
     },
-    school:Array
+    school:Array,
+    timestamps:{
+        type:String,
+        default:moment().format('YYYY-MM-DD HH:mm:ss')
+    }
 });
 
 userSchema.pre('save',function(next){
