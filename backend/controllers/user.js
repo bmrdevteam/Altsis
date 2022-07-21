@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const SchoolUser=require("../models/SchoolUser");
 const { OAuth2Client } = require('google-auth-library');
 const { checkSchema, validationResult } = require("express-validator");
 const clientID = require('../config/config')["GOOGLE-ID"]
@@ -181,8 +182,22 @@ exports.create = async (req, res) => {
             user.auth = req.auth;
             return user;
         });
-        const newUser  = await User(req.academy).insertMany(users)
-        return res.status(200).send({ user:newUser});
+        const newUsers  = await User(req.academy).insertMany(users);
+        if(req.auth=='member'){
+            const schoolUsers= newUsers.reduce((acc, user) => {
+                user.school.forEach(school => {
+                    acc.push({
+                        schoolId:school,
+                        userId:user.userId,
+                        userName:user.name,
+                        userEmail: user.email
+                    });
+                });
+                return acc;
+              }, []);
+            const newSchoolUsers  = await SchoolUser(req.academy).insertMany(schoolUsers);
+        }
+        return res.status(200).send({ user:newUsers});
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
