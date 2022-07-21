@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 
+// const {data,add}=require('../databases/connection')   
+// router.post('/test2', (req, res) => {
+//     add({key:req.body.key,val:req.body.val});
+//     res.status(200).json({
+//         data
+//     })
+// })
 router.get('/test1', (req, res) => {
     res.status(200).json({
         success:true,

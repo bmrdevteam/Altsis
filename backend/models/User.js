@@ -2,7 +2,7 @@ const mongoose=require('mongoose')
 const bcrypt = require('bcrypt');
 var config=require('../config/config.js')
 
-const conn=require('../databases/connection')   
+const {conn}=require('../databases/connection')   
 
 const userSchema=mongoose.Schema({
     auth:String,
@@ -25,7 +25,7 @@ const userSchema=mongoose.Schema({
     school:Array
 });
 
-userSchema.pre(['save','validate'],function(next){
+userSchema.pre('save',function(next){
     var user=this;
     if(user.isModified('password')){ //비밀번호가 바뀔때만 암호화
         bcrypt.genSalt(config.saltRounds,function(err,salt){
