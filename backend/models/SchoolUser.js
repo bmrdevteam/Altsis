@@ -11,19 +11,7 @@ const schoolUserSchema = mongoose.Schema({
     userName: String,
     userEmail: String,
     role: String,
-    info: {
-        type: String,
-        get: function (data) {
-            try {
-                return JSON.parse(data);
-            } catch (error) {
-                return data;
-            }
-        },
-        set: function (data) {
-            return JSON.stringify(data);
-        }
-    },
+    info: Object,
     parents: Array,
     season: Array,
     timestamps: {

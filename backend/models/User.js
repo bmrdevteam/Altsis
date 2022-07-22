@@ -16,10 +16,7 @@ const userSchema=mongoose.Schema({
     name:String,
     email:String,
     userImg:String,
-    isAuthorized:{
-        type:Boolean,
-        default:false
-    },
+    snsId:Object,
     school:Array,
     timestamps:{
         type:String,

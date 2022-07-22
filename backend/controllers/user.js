@@ -126,7 +126,7 @@ exports.googleLogin = async (req, res) => {
         });
 
         const payload = ticket.getPayload();
-        const user = await User(req.body.academy).findOne({ email: payload["email"], isAuthorized: true });
+        const user = await User(req.body.academy).findOne({ snsId:{'google':payload['email']}});
         if (!user) return res.status(409).send({
             message: "User doesn't exists with such google account"
         })
