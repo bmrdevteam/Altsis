@@ -86,7 +86,7 @@ const generateHash=async(password)=>{
     }
 }
 
-exports.localLogin = async (req, res) => {
+exports.loginLocal = async (req, res) => {
     try {
         /* authentication */
         const user = await User(req.body.academy).findOne({ userId: req.body.userId });
@@ -116,7 +116,7 @@ exports.localLogin = async (req, res) => {
     }
 }
 
-exports.googleLogin = async (req, res) => {
+exports.loginGoogle = async (req, res) => {
     try {
         const client = new OAuth2Client(clientID);
 
@@ -149,6 +149,42 @@ exports.googleLogin = async (req, res) => {
     }
 }
 
+exports.connectGoogle=async (req, res) => {
+    try {
+        const client = new OAuth2Client(clientID);
+
+        const ticket = await client.verifyIdToken({
+            idToken: req.body.credential,
+            audience: clientID,
+        });
+
+        const payload = ticket.getPayload();
+
+        const _user=req.session.passport.user;
+
+        const user=User(_user.academy).findById(_user._id);
+        const snsId=(user["snsId"]||{});
+        snsId['google']=payload['email'];
+        await user.updateOne({snsId});
+        
+        return res.status(200).send({success:true})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.disconnectGoogle=async(req,res)=>{
+    const _user=req.session.passport.user;
+
+    const user=await User(_user.academy).findById(_user._id);
+    const snsId=user["snsId"];
+    delete snsId["google"];
+    await user.updateOne({snsId})
+
+    return res.status(200).send({success:true})
+}
+
 exports.logout = (req, res) => {
     req.logout((err) => {
         if (err) return res.status(500).send({ err });
@@ -157,6 +193,9 @@ exports.logout = (req, res) => {
         return res.status(200).send({ success: true })
     });
 }
+
+
+
 
 exports.info = async (req, res) => {
     const academy = req.session.passport.user["academy"];

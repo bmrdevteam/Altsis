@@ -8,8 +8,12 @@ const {isLoggedIn,isNotLoggedIn,authorize}=require("../middleware/auth");
 //=================================
 
 /* local & google login */
-router.post('/login/local',isNotLoggedIn,user.localLogin);
-router.post("/login/google",isNotLoggedIn,user.googleLogin);
+router.post('/login/local',isNotLoggedIn,user.loginLocal);
+router.post("/login/google",isNotLoggedIn,user.loginGoogle);
+
+/* connect to social account */
+router.post('/google',isLoggedIn,user.connectGoogle);
+router.delete('/google',isLoggedIn,user.disconnectGoogle);
 
 /* logout */
 router.get("/logout", isLoggedIn,user.logout);
