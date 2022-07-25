@@ -12,6 +12,7 @@ import Nav, {
   SubLinks,
 } from "./sidebar.components";
 import { INavLink, SidebarData } from "../../../dummyData/SidebarData";
+import { useSidebar } from "../../../contexts/sidebarContext";
 
 type Props = {};
 
@@ -19,7 +20,8 @@ const Sidebar = (props: Props) => {
   const [activeNavLink, setActiveNavLink] = useState<string>(
     SidebarData[0]?.title
   );
-  const [sidebarClose, setSidebarClose] = useState<boolean>(false);
+
+  const { sidebarClose, setSidebarClose } = useSidebar();
 
   const { currentUser } = useAuth();
 
@@ -28,12 +30,10 @@ const Sidebar = (props: Props) => {
   function NavLinkClicked(name: string) {
     setActiveNavLink((prev: string | undefined) => {
       // return prev !== name ? name : "";
-      
+
       return name;
     });
     // path && navigate(path, { replace: true });
-
-    
   }
 
   return (
