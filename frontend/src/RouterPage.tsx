@@ -7,9 +7,13 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import TableExample from "./pages/examples/TableExample";
 import Academy from "./pages/Academy";
+import { useEffect, useState } from "react";
+import { useSidebar } from "./contexts/sidebarContext";
 // import Http404 from "./pages/error/404";
 
 function RouterPage() {
+  const { sidebarClose } = useSidebar();
+
   const RequireAuth = ({ children }: { children: JSX.Element }) => {
     const { currentUser } = useAuth();
 
@@ -19,7 +23,10 @@ function RouterPage() {
     <div className="main" id="main">
       <BrowserRouter>
         <Sidebar />
-        <div className="content">
+        <div
+          className="content"
+          style={{ maxWidth: `calc(100vw - ${sidebarClose ? 56 : 240}px)` }}
+        >
           <Routes>
             <Route path="/">
               <Route
@@ -34,7 +41,7 @@ function RouterPage() {
               <Route path="login" element={<Login />}></Route>
               <Route path="Register" element={<Register />}></Route>
               <Route path="examples">
-                <Route path="table" element={<TableExample/>}></Route>
+                <Route path="table" element={<TableExample />}></Route>
               </Route>
             </Route>
             {/* 마지막에 404 페이지 */}
