@@ -12,7 +12,7 @@ const Nav = ({
   close: boolean;
 }) => {
   return (
-    <nav className={`${style.nav_container} ${close && style.close}`}>
+    <nav id="Sidebar" className={`${style.nav_container} ${close && style.close}`}>
       {children}
     </nav>
   );
