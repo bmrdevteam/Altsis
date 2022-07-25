@@ -8,6 +8,7 @@ export const editorData = {
     {
       type: "text",
       content: "",
+      export:{}
     },
     {
       type: "table",
@@ -48,6 +49,23 @@ export const editorData = {
           rowspan: 3,
           content: "hello this is a test2",
         },
+      ],
+    },
+    {
+      type: "input",
+      content: "",
+      placeholder: "",
+    },
+    {
+      type: "select",
+      options: [],
+    },
+    {
+      type: "table/timetable",
+      header: {},
+      data: [
+
+        //timetable data
       ],
     },
   ],
