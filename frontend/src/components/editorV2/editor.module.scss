@@ -1,0 +1,43 @@
+.editor {
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    max-width: 1000px;
+}
+
+.block {
+    width: 100%;
+    margin: 2px 0;
+
+    .heading {
+        outline: none;
+        border: none;
+    }
+
+    .paragraph {
+        outline: none;
+        border: none;
+    }
+
+    .divider {
+        height: 2px;
+        background-color: rgb(225, 225, 225);
+    }
+}
+
+.appearance_menu {
+    background-color: #fff;
+
+    box-shadow: 0 3px 15px -3px rgb(13 20 33 / 13%);
+    position: absolute;
+    z-index: 2024;
+
+    .menu_items {
+        display: flex;
+
+        .menu_item {
+            cursor: pointer;
+            margin: 4px;
+        }
+    }
+}
