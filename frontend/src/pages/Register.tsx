@@ -4,9 +4,8 @@ import AuthForm, {
   FormColumn,
   FormInput,
   FormSubmit,
-} from "../components/UI/authForm/AuthForm";
+} from "../components/authForm/AuthForm";
 import axios from "axios";
-import Button from "../components/UI/button/Button";
 import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
 
 type Props = {};
@@ -116,7 +115,6 @@ const Register = (props: Props) => {
           <FormSubmit placeholder="회원가입" />
         </AuthForm>
         <div style={{ height: "4px" }}></div>
-
         <GoogleLoginBtn />
       </div>
     </div>

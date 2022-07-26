@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import AuthForm, {
   FormInput,
   FormSubmit,
-} from "../components/UI/authForm/AuthForm";
+} from "../components/authForm/AuthForm";
 import style from "../style/pages/login.module.scss";
 import axios from "axios";
-import Button from "../components/UI/button/Button";
+import Button from "../components/button/Button";
 import { useNavigate } from "react-router-dom";
 
 import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";

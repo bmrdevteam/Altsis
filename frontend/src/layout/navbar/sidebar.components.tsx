@@ -1,7 +1,7 @@
 import React, { ReactElement } from "react";
-import Svg from "../../../assets/svg/Svg";
+import Svg from "../../assets/svg/Svg";
 import style from "./sidebar.module.scss";
-import dummmyProfilePic from "../../../assets/img/sponge.jpeg";
+import dummmyProfilePic from "../../assets/img/sponge.jpeg";
 import { useNavigate } from "react-router-dom";
 
 const Nav = ({

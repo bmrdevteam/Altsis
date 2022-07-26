@@ -1,0 +1,31 @@
+.editor_container {
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+    padding: 0 24px;
+    max-width: 800px;
+}
+
+.editor_block {
+    margin: 2px 0;
+    padding: 4px 4px;
+    position: relative;
+
+    .dots {
+        cursor: pointer;
+        display: none;
+        position: absolute;
+        top: -12px;
+        background-color: #fff;
+        left: 50%;
+    }
+
+}
+
+.editor_block:hover {
+    outline: 1px solid;
+
+    .dots {
+        display: block;
+    }
+}

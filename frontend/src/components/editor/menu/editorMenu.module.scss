@@ -3,6 +3,7 @@
     background-color: rgb(255, 255, 255);
     position: absolute;
     width: 200px;
+    display: none;
 
 
     .menu_items {
@@ -11,6 +12,7 @@
         margin: 4px 6px;
 
         .menu_item {
+            cursor: pointer;
             border-radius: 4px;
             width: 100%;
             padding: 4px 6px;

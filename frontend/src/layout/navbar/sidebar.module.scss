@@ -1,5 +1,17 @@
-@import '../../../style/animation.scss';
+@keyframes sidebar_sub_link-openAnimation {
+    0% {
 
+        opacity: 0;
+
+    }
+
+    100% {
+
+        opacity: 1;
+
+
+    }
+}
 
 .nav_container {
 
@@ -311,7 +323,8 @@
             display: none;
             height: 0px;
             opacity: 0;
-            .sub_link_container{
+
+            .sub_link_container {
                 display: none;
             }
         }
