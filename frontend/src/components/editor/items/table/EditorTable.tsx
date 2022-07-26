@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { editorData } from "../../../../../dummyData/editorData";
+import { editorData } from "../../../../dummyData/editorData";
 import style from "./editorTable.module.scss";
 import TableCell from "./TableCell";
 

@@ -9,7 +9,7 @@ type Props = {};
 
 const Editor = (props: Props) => {
   return (
-    <div className={style.editor_container} style={{ margin: "24px" }}
+    <div className={style.editor_container}
 
     >
       <EditorBlock>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { useAuth } from "../../../contexts/authContext";
+import { useAuth } from "../../contexts/authContext";
 
 import Nav, {
   NavLogo,
@@ -11,8 +11,8 @@ import Nav, {
   SubLink,
   SubLinks,
 } from "./sidebar.components";
-import { INavLink, SidebarData } from "../../../dummyData/SidebarData";
-import { useSidebar } from "../../../contexts/sidebarContext";
+import { INavLink, SidebarData } from "../../dummyData/SidebarData";
+import { useSidebar } from "../../contexts/sidebarContext";
 
 type Props = {};
 
@@ -29,11 +29,8 @@ const Sidebar = (props: Props) => {
 
   function NavLinkClicked(name: string) {
     setActiveNavLink((prev: string | undefined) => {
-      // return prev !== name ? name : "";
-
       return name;
     });
-    // path && navigate(path, { replace: true });
   }
 
   return (
