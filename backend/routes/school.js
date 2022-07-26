@@ -4,7 +4,7 @@ const school = require("../controllers/school");
 const {isAdmin}=require('../middleware/auth')
 
 //=================================
-//             Academy
+//             School
 //=================================
 
 router.post('/',isAdmin,school.create);

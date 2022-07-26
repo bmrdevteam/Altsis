@@ -7,11 +7,7 @@ const passport=require('passport')
 
 const config=require('./config/config.js')
 const passportConfig=require('./passport')
-
-const testRouter = require('./routes/test');
-const userRouter = require('./routes/user');
-const academyRouter = require('./routes/academy');
-const schoolRouter=require('./routes/school');
+const routers=require('./routes/index');
 
 const app = express();
 
@@ -40,10 +36,9 @@ app.use(
 app.use(passport.initialize()); 
 app.use(passport.session()); //반드시 app.use(session(...)) 아래에 있어야 함
 
-app.use('/api/user', userRouter);
-app.use('/api/test', testRouter);
-app.use('/api/academy',academyRouter);
-app.use('/api/school',schoolRouter);
+routers.forEach(router => {
+  app.use('/api/'+router,require('./routes/'+router));
+});
 
 module.exports = app;
 
