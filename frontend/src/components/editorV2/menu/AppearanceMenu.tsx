@@ -1,11 +1,13 @@
-import useSelectionPosition from "../hooks/useSelectionPosition";
 import style from "../editor.module.scss";
 import { IAppearanceMenuItem } from "../types/dataTypes";
 import Svg from "../assets/Svg";
-type Props = {};
+import { RefObject } from "react";
+import { useSelectionPosition } from "../hooks/useEditor";
+type Props = { containerRef: RefObject<HTMLDivElement> };
 
-const AppearanceMenu = (props: Props) => {
-  const { isSelecting, selectionX, selectionY } = useSelectionPosition();
+const AppearanceMenu = ({ containerRef }: Props) => {
+  const { isSelecting, selectionX, selectionY } =
+    useSelectionPosition(containerRef);
   const menuData: IAppearanceMenuItem[] = [
     { icon: <Svg width="20px" height="20px" type="bold" /> },
     { icon: <Svg width="20px" height="20px" type="text" /> },
@@ -18,8 +20,12 @@ const AppearanceMenu = (props: Props) => {
       <div
         className={style.menu_item}
         onClick={(e) => {
-            window.getSelection()?.getRangeAt(0).surroundContents(document.createElement("span"))
-          console.log("s");
+          console.log(window.getSelection()?.toString());
+
+
+          console.log(
+            window.getSelection()?.getRangeAt(0).commonAncestorContainer.parentElement?.innerHTML
+          );
         }}
       >
         {icon}
@@ -30,7 +36,8 @@ const AppearanceMenu = (props: Props) => {
   const MenuContainer = () => {
     return (
       <div
-        onMouseDown={(e) => {e.preventDefault()
+        onMouseDown={(e) => {
+          e.preventDefault();
         }}
         className={style.appearance_menu}
         style={{
@@ -39,7 +46,7 @@ const AppearanceMenu = (props: Props) => {
               ? 0
               : selectionY && selectionY - 48
           }px`,
-          left: `${selectionX && selectionX - 48}px`,
+          left: `${selectionX && selectionX - 0}px`,
         }}
       >
         <div className={style.menu_items}>

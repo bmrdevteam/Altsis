@@ -3,15 +3,39 @@ import Paragraphblock from "./blocks/Paragraphblock";
 import { IBlock, IParagraphBlock, IHeadingBlock } from "./types/dataTypes";
 import style from "./editor.module.scss";
 import HeadingBlock from "./blocks/HeadingBlock";
+import TableBlock from "./blocks/TableBlock";
+import { useEffect } from "react";
 
-const Block = ({ data, editorId }: { data: IBlock; editorId: string }) => {
+const Block = ({
+  data,
+  editorId,
+  editor,
+}: {
+  data: IBlock;
+  editorId: string;
+  editor: {
+    editorData: IBlock[];
+    addBlock: (insertAfter?: number | undefined) => void;
+    deleteBlock: (blockId: string) => void;
+  };
+}) => {
   const Wrapper = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
     return (
-      <div id={`${editorId}-${data.id}`} className={style.block}>
+      <div
+        id={`${editorId}-${data.id}`}
+        className={style.block}
+        onDoubleClick={() => {
+          editor.deleteBlock(data.id);
+        }}
+      >
         {children}
       </div>
     );
   };
+  useEffect(() => {
+    console.log(data);
+    return () => {};
+  }, []);
 
   switch (data.type) {
     case "heading":
@@ -31,6 +55,12 @@ const Block = ({ data, editorId }: { data: IBlock; editorId: string }) => {
       return (
         <Wrapper>
           <DividerBlock />
+        </Wrapper>
+      );
+    case "table":
+      return (
+        <Wrapper>
+          <TableBlock />
         </Wrapper>
       );
 

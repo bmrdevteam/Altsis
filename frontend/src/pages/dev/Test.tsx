@@ -1,5 +1,5 @@
 import React from "react";
-import Editor from "../components/editorV2/Editor";
+import Editor from "../../components/editorV2/Editor";
 
 type Props = {};
 

@@ -1,12 +1,18 @@
 import { IParagraphBlock } from "../types/dataTypes";
 import style from "../editor.module.scss";
 
+
 const Paragraphblock = ({ block }: { block: IParagraphBlock }) => {
+  
+
   return (
     <div
       className={style.paragraph}
       contentEditable={true}
       suppressContentEditableWarning={true}
+      onClick={()=>{
+        
+      }}
       // onSelect={(e) => {
       //   console.log(
       //     window.getSelection()?.toString() !== ""
