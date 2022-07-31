@@ -1,6 +1,9 @@
 export interface IBlock {
   id: string;
-  type: "heading" | "paragraph" | "table" | "divider";
+  type: "heading" | "paragraph" | "table" | "divider" ;
+  data?: {
+    text: string;
+  };
 }
 export interface IParagraphBlock extends IBlock {
   data: {
@@ -17,6 +20,4 @@ export interface IMenuItem {
   text: string;
 }
 
-export interface IAppearanceMenuItem extends Omit<IMenuItem, "text"> {
-
-}
+export interface IAppearanceMenuItem extends Omit<IMenuItem, "text"> {}

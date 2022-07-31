@@ -3,6 +3,7 @@
     flex-direction: column;
     margin: auto;
     max-width: 1000px;
+    position: relative;
 }
 
 .block {
@@ -23,6 +24,35 @@
         height: 2px;
         background-color: rgb(225, 225, 225);
     }
+
+    .table {
+        display: table;
+        border-collapse: collapse;
+
+        .cell {
+            position: relative;
+            display: table-cell;
+            width: 120px;
+            border: 1px solid rgb(225, 225, 225);
+
+            .text {
+                outline: none;
+                padding: 7px 9px;
+                font-size: 14px;
+
+            }
+
+            .col_resize {
+                cursor: col-resize;
+                z-index: 1;
+                position: absolute;
+                height: 100%;
+                width: 4px;
+                right: -2.5px;
+                top: 0;
+            }
+        }
+    }
 }
 
 .appearance_menu {
@@ -34,10 +64,23 @@
 
     .menu_items {
         display: flex;
+        align-items: center;
 
         .menu_item {
             cursor: pointer;
-            margin: 4px;
+            margin: 6px;
+            padding: 2px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+        }
+
+        .menu_item:hover {
+            background-color: rgb(225, 225, 225);
         }
     }
+}
+
+.bold {
+    font-weight: 600;
 }
