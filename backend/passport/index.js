@@ -4,17 +4,18 @@ const google=require('./googleStrategy');
 const User = require("../models/User");
 
 module.exports = () => {
-    passport.serializeUser(({user,academy}, done) => {
-        done(null, {_id:user._id,auth:user.auth,academy});
+    passport.serializeUser(({user,dbName}, done) => {
+        done(null, {_id:user._id,dbName});
     });
 
-    passport.deserializeUser(({_id,auth,academy}, done) => {
-        User(academy).findOne({_id:_id}, (err, _user) => {
+    passport.deserializeUser(({_id,dbName}, done) => {
+        User(dbName).findOne({_id:_id}, (err, user) => {
             if(err) done(err)
-            done(null,_user)
+            user['dbName']=dbName;
+            done(null,user)
         })
      });
 
      local();
-     google();
+    //  google();
 };

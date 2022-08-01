@@ -3,20 +3,20 @@ const moment=require('moment')
 const {conn}=require('../databases/connection')   
 
 const schoolSchema=mongoose.Schema({
-    adminId:String,
-    schoolName:{
-        type:String,
-        unique:true
-    },
     schoolId:{
         type:String,
         unique:true
     },
-    schoolLogo:String,
+    schoolName:String,
+    logo:String,
     head:String,
     tel:String,
+    email:String,
     address:String,
     homepage:String,
+    classrooms:Array,
+    subjects:Array,
+    seasons:Array,
     timestamps:{
         type:String,
         default:moment().format('YYYY-MM-DD HH:mm:ss')

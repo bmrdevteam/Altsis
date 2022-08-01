@@ -7,9 +7,9 @@ const formSchema = mongoose.Schema(
         userId: String,
         userName: String,
         schoolId: String,
-        form: String,
-        header: Object,
-        data: Array,
+        type:String,
+        title:String,
+        data: Object,
         timestamps: {
             type: String,
             default: moment().format('YYYY-MM-DD HH:mm:ss')
