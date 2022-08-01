@@ -56,9 +56,17 @@ function useEditor(data: object) {
         return value.id !== blockId;
       });
     });
-  }
 
-  return { editorData , addBlock, deleteBlock };
+    function exportEditor(){
+      let exportObj = {}
+      editorData.filter((value)=>{
+        value.type === "input" ||
+        value.type === "table" ||
+        value.type === "select" ||
+      })
+    }
+
+  return { editorData , addBlock, deleteBlock , exportEditor };
 }
 
 function useAutoSave() {
@@ -70,7 +78,7 @@ function useSave(data: object) {
 
   return;
 }
-function useExport() {}
+
 
 function useSelectionPosition(editorContainerRef: RefObject<HTMLDivElement>) {
   const [selectionX, setSelectionX] = useState<number>();
