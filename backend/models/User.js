@@ -7,24 +7,25 @@ var config=require('../config/config.js')
 const {conn}=require('../databases/connection')   
 
 const userSchema=mongoose.Schema({
-    auth:String,
+    
     userId:{
         type:String,
         unique:true
     },
+    userName:String,
     password:String,
-    name:String,
+    auth:String,
     email:String,
-    userImg:String,
-    snsId:Object,
-    school:Array,
+    tel:String,
+    snsId:Array,
+    schools:Array,
     timestamps:{
         type:String,
         default:moment().format('YYYY-MM-DD HH:mm:ss')
     }
 });
 
-userSchema.pre(['save','validate'],function(next){
+userSchema.pre('save',function(next){
     var user=this;
     if(user.isModified('password')){ //비밀번호가 바뀔때만 암호화
         bcrypt.genSalt(config.saltRounds,function(err,salt){

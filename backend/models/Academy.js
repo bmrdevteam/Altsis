@@ -1,19 +1,17 @@
 const mongoose=require('mongoose')
 const moment=require('moment')
-const conn=require('../databases/owner')   
+const conn=require('../databases/root')   
 
 const academySchema=mongoose.Schema({
-    academyName:{
-        type:String,
-        unique:true
-    },
     academyId:{
         type:String,
         unique:true
     },
-    manager:String,
+    academyName:String,
     email:String,
     tel:String,
+    adminId:String,
+    adminName:String,
     timestamps:{
         type:String,
         default:moment().format('YYYY-MM-DD HH:mm:ss')

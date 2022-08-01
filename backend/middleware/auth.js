@@ -16,7 +16,7 @@ exports.isLoggedIn = (req, res, next) => {
 
  exports.isOwner = (req, res, next) => {
    if (req.isAuthenticated()) {
-      if(req.session.passport.user.auth=='owner'){
+      if(req.user.auth=='owner'){
          next();
       }
       else{
@@ -29,8 +29,20 @@ exports.isLoggedIn = (req, res, next) => {
 
 exports.isAdmin = (req, res, next) => {
    if (req.isAuthenticated()) {
-      if(req.session.passport.user.auth=='admin'){
-         req.academy=req.session.passport.user.academy;
+      if(req.user.auth=='admin'){
+         next();
+      }
+      else{
+         res.status(401).send({message:"You are not authorized."});
+      }
+   } else {
+      res.status(403).send({message:"You are not logged in."});
+   }
+};
+ // isAdmin + isManager
+exports.isAdManager = (req, res, next) => {
+   if (req.isAuthenticated()) {
+      if(req.user.auth=='admin'||req.user.auth=='manager'){
          next();
       }
       else{
@@ -41,32 +53,16 @@ exports.isAdmin = (req, res, next) => {
    }
 };
 
-exports.authorize = (req, res, next) => {
+
+exports.isOwnerOrAdmin = (req, res, next) => {
    if (req.isAuthenticated()) {
-      if(req.session.passport.user.auth=='owner'){
-         req.auth='admin'; //owner can CRUD admins
-         if(req.body.academy){
-            req.academy=req.body.academy;
-            next();
-         }
-         else if(req.query.academy){
-            req.academy=req.query.academy;
-            delete req.query.academy;
-            next();
-         }
-         else{
-            return res.status(409).send({message:"academy info is needed"});
-         }
-      }
-      else if(req.session.passport.user.auth=='admin'){
-         req.auth='member'; //admin can CRUD members
-         req.academy=req.session.passport.user.academy;
+      if(req.user.auth=='owner'||req.user.auth=='admin'){
          next();
       }
       else{
-         return res.status(401).send({message:"You are not authorized."});
+         res.status(401).send({message:"You are not authorized."});
       }
    } else {
-      return res.status(403).send({message:"You are not logged in."});
+      res.status(403).send({message:"You are not logged in."});
    }
 };

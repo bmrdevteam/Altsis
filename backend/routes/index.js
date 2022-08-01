@@ -1,3 +1,3 @@
 module.exports=[
-    'academy','classroom','form','registration','school','season','subject','syllabus','user','test'
+    'users','academies','schools','forms','registration','syllabuses','test'
 ];

@@ -7,8 +7,8 @@ const saltRounds=require('../config/config')["saltRounds"]
 const bcrypt=require('bcrypt')
 
 const specialRegExp = /[!@#$%^&*()]+/;
-const schema = {
-    "user.*.userId": {
+const schemaOwner ={
+    "userId": {
         in: "body",
         isLength: {
             errorMessage: "ID length error",
@@ -19,18 +19,14 @@ const schema = {
         }
         
     },
-    "user.*.password": {
+    "userName": {
         in: "body",
         isLength: {
-            errorMessage: "Password length error",
-            options: { min: 8, max: 20 }
-        },
-        matches: {
-            errorMessage: "Password must contain one special character",
-            options: specialRegExp
+            errorMessage: "userName length error",
+            options: { min: 2, max: 20 }
         }
     },
-    "user.*.email": {
+    "email": {
         in: "body",
         trim: true,
         isEmail: {
@@ -38,10 +34,9 @@ const schema = {
         }
     }
 }
-const optionalSchema = {
-    "user.*.userId": {
+const schemaMembers = {
+    "users.*.userId": {
         in: "body",
-        optional:true,
         isLength: {
             errorMessage: "ID length error",
             options: { min: 4, max: 20 }
@@ -51,9 +46,15 @@ const optionalSchema = {
         }
         
     },
-    "user.*.password": {
+    "users.*.userName": {
         in: "body",
-        optional:true,
+        isLength: {
+            errorMessage: "userName length error",
+            options: { min: 2, max: 20 }
+        }
+    },
+    "users.*.password": {
+        in: "body",
         isLength: {
             errorMessage: "Password length error",
             options: { min: 8, max: 20 }
@@ -63,17 +64,41 @@ const optionalSchema = {
             options: specialRegExp
         }
     },
-    "user.*.email": {
+    "users.*.email": {
         in: "body",
-        optional:true,
         trim: true,
+        optional:true,
         isEmail: {
             errorMessage: "invalid email"
         }
     }
 }
-exports.validate = checkSchema(schema);
-exports.optionalValidate = checkSchema(optionalSchema);
+const schemaUpdate={
+    "password": {
+        in: "body",
+        isLength: {
+            errorMessage: "Password length error",
+            options: { min: 8, max: 20 }
+        },
+        matches: {
+            errorMessage: "Password must contain one special character",
+            options: specialRegExp
+        },
+        optional:true,
+    },
+    "email": {
+        in: "body",
+        trim: true,
+        isEmail: {
+            errorMessage: "invalid email"
+        },
+        optional:true
+    }
+}
+
+exports.validateOwner=checkSchema(schemaOwner);
+exports.validateMembers = checkSchema(schemaMembers);
+exports.validateUpdate = checkSchema(schemaUpdate);
 
 const generateHash=async(password)=>{
     try{
@@ -89,24 +114,30 @@ const generateHash=async(password)=>{
 exports.loginLocal = async (req, res) => {
     try {
         /* authentication */
-        const user = await User(req.body.academy).findOne({ userId: req.body.userId });
+        let dbName='root'
+        if(req.body.academyId){
+            dbName=req.body.academyId+'-db';
+        }
+
+        const user = await User(dbName).findOne({ userId: req.body.userId });
         if (!user) {
             return res.status(409).send({ message: 'No user with such ID' });
         }
+ 
         const isMatch = await user.comparePassword(req.body.password)
         if (!isMatch) {
             return res.status(409).send({ message: 'Password is incorrect' });
         }
 
         /* login */
-        req.login({ user, academy: req.body.academy }, loginError => {
+        req.login({ user, dbName }, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             return res.status(200).send({
                 success: true, user:{
                     _id:user._id,
                     userId:user.userId,
-                    auth:user.auth,
-                    school:user.school
+                    userName:user.userName,
+                    auth:user.auth
                 }
             });
         });
@@ -118,6 +149,11 @@ exports.loginLocal = async (req, res) => {
 
 exports.loginGoogle = async (req, res) => {
     try {
+        let dbName='root'
+        if(req.body.academyId){
+            dbName=req.body.academyId+'-db';
+        }
+
         const client = new OAuth2Client(clientID);
 
         const ticket = await client.verifyIdToken({
@@ -126,20 +162,20 @@ exports.loginGoogle = async (req, res) => {
         });
 
         const payload = ticket.getPayload();
-        const user = await User(req.body.academy).findOne({ snsId:{'google':payload['email']}});
+        const user = await User(dbName).findOne({ "snsId.provider":'google',"snsId.email":payload['email']});
         if (!user) return res.status(409).send({
             message: "User doesn't exists with such google account"
         })
 
         /* login */
-        req.login({ user, academy: req.body.academy }, loginError => {
+        req.login({ user,dbName }, loginError => {
             if (loginError) return res.status(500).send({ loginError: loginError.message });
             return res.status(200).send({
                 success: true, user:{
                     _id:user._id,
                     userId:user.userId,
                     auth:user.auth,
-                    school:user.school
+                    schools:user.schools
                 }
             });
         });
@@ -151,7 +187,7 @@ exports.loginGoogle = async (req, res) => {
 
 exports.connectGoogle=async (req, res) => {
     try {
-        const client = new OAuth2Client(clientID);
+       const client = new OAuth2Client(clientID);
 
         const ticket = await client.verifyIdToken({
             idToken: req.body.credential,
@@ -160,29 +196,59 @@ exports.connectGoogle=async (req, res) => {
 
         const payload = ticket.getPayload();
 
-        const _user=req.session.passport.user;
+        let dbName='root'
+        if(req.body.academyId){
+            dbName=req.body.academyId+'-db';
+        }
+        const user = await User(dbName).findOne({ "snsId.provider":'google',"snsId.email":payload['email']});
+        if (user) return res.status(409).send({
+            message: "User already exists with such google account"
+        })
 
-        const user=User(_user.academy).findById(_user._id);
-        const snsId=(user["snsId"]||{});
-        snsId['google']=payload['email'];
-        await user.updateOne({snsId});
-        
-        return res.status(200).send({success:true})
+        const snsId=req.user["snsId"];
+        const idx = snsId.findIndex(obj => obj.provider === 'google');
+        if(idx==-1){
+            snsId.push({provider:'google', email:payload['email']});
+        }
+        else{
+            snsId[idx].email=payload['email'];
+        }
+        await req.user.updateOne({snsId});
+        return res.status(200).send({user:{
+            userId:req.user.userId,
+            userName:req.user.userName,
+            snsId:req.user.snsId
+        }})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
     }
 }
 
-exports.disconnectGoogle=async(req,res)=>{
-    const _user=req.session.passport.user;
+exports.disconnectGoogle=async (req, res) => {
+    try {
 
-    const user=await User(_user.academy).findById(_user._id);
-    const snsId=user["snsId"];
-    delete snsId["google"];
-    await user.updateOne({snsId})
+        let dbName='root'
+        if(req.body.academyId){
+            dbName=req.body.academyId+'-db';
+        }
 
-    return res.status(200).send({success:true})
+        const snsId=req.user["snsId"];
+        const idx = snsId.findIndex(obj => obj.provider === 'google');
+        if(idx==-1){
+            return res.status(409).send({message:"no google account connected to this account"})
+        }
+        req.user["snsId"].splice(idx, 1);
+        await req.user.updateOne({snsId});
+        return res.status(200).send({user:{
+            userId:req.user.userId,
+            userName:req.user.userName,
+            snsId:req.user.snsId
+        }})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
 }
 
 exports.logout = (req, res) => {
@@ -194,49 +260,40 @@ exports.logout = (req, res) => {
     });
 }
 
-
-
-
-exports.info = async (req, res) => {
-    const academy = req.session.passport.user["academy"];
-    const _id = req.session.passport.user["_id"];
-
-    const user = await User(academy).findOne({ _id: _id })
-    if (!user) {
-        return res.status(409).send({ message: "User doesn't exists with such _id&academy" })
-    }
-    return res.status(200).send({
-        success: true,
-        _user: user
-    });
-}
-
-exports.create = async (req, res) => {
+exports.createOwner = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        const users = req.body.user.map(user => {
-            user.auth = req.auth;
-            return user;
+        const _User=User('root');
+        const exUser=await _User.findOne({userId:req.body.userId});
+        if (exUser) return res.status(409).send({
+            message: `userId '${req.body.userId}' is already in use`
+        })
+
+         // generate random password
+         var chars = "0123456789abcdefghijklmnopqrstuvwxyz!@#$%^&*()ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+         let password=''
+         for (var i = 0; i < 12; i++) {
+             var randomNumber = Math.floor(Math.random() * chars.length);
+             password += chars[randomNumber];
+         }
+        
+        const user=new _User(req.body);
+        user.auth='owner';
+        user.password=password;
+       
+        await user.save();
+        return res.status(200).send({
+            success: true, user:{
+                _id:user._id,
+                userId:user.userId,
+                userName:user.userName,
+                password:password,
+                auth:user.auth
+            }
         });
-        const newUsers  = await User(req.academy).insertMany(users);
-        if(req.auth=='member'){
-            const schoolUsers= newUsers.reduce((acc, user) => {
-                user.school.forEach(school => {
-                    acc.push({
-                        schoolId:school,
-                        userId:user.userId,
-                        userName:user.name,
-                        userEmail: user.email
-                    });
-                });
-                return acc;
-              }, []);
-            const newSchoolUsers  = await SchoolUser(req.academy).insertMany(schoolUsers);
-        }
-        return res.status(200).send({ user:newUsers});
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
@@ -244,10 +301,169 @@ exports.create = async (req, res) => {
     
 }
 
+exports.createMembers = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    try {
+        // 중복 검사를 여기서 매번 해야 하는가?
+
+        const users = await Promise.all(req.body.users.map(async (user) => {
+            user.auth = 'member';
+            //insertMany를 할 때는 여기서 해쉬를 생성해야 한다.
+            user.password=await generateHash(user.password); 
+            return user;
+        }));
+
+        const newUsers=await User(req.user.dbName).insertMany(users);
+        return res.status(200).send({users:newUsers.map(user=>{
+            return {
+                _id:user._id,
+                userId:user.userId,
+                userName:user.userName,
+                email:user.email
+            }
+        })});
+    }
+    catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
+    
+}
+
+exports.appointManager= async (req, res) => {
+
+    try {
+        const user=await User(req.user.dbName).findOne({_id:req.params._id});
+        if(!user){
+            return res.status(409).send({message:"no such user!"});
+        }
+        if(user.auth!='member'){
+            return res.status(401).send({message:"you can't appoint user as manager"});
+        }
+
+        user.auth='manager';
+        await user.save();
+
+        return res.status(200).send({
+            success: true, user:{
+                _id:user._id,
+                userId:user.userId,
+                userName:user.userName,
+                auth:user.auth
+            }
+        });
+    }
+    catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
+    
+}
+
+exports.cancelManager= async (req, res) => {
+
+    try {
+        const user=await User(req.user.dbName).findOne({_id:req.params._id});
+        if(!user){
+            return res.status(409).send({message:"no such user!"});
+        }
+        if(user.auth!='manager'){
+            return res.status(401).send({message:"you can't appoint user as member"});
+        }
+
+        user.auth='member';
+        await user.save();
+
+        return res.status(200).send({
+            success: true, user:{
+                _id:user._id,
+                userId:user.userId,
+                userName:user.userName,
+                auth:user.auth
+            }
+        });
+    }
+    catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
+    
+}
+
+exports.readUsers = async (req, res) => {
+    try {
+        const users = await User(req.user.dbName).find({});
+        return res.status(200).send({users:users.map(user=>{
+            user.password=undefined;
+            return user;
+        })})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.updateAdmin = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+        const user = await User('root').find({_id:req.params._id,auth:"admin"});
+        if(!user){
+            return res.status(409).send({message:'no user with such _id'});
+        }
+        const fields=['password','email','tel']
+        if(fields.includes(req.params.field)){
+            user[req.params.field]=req.body[req.params.field];
+        }
+        else{
+            return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+        }
+        await user.save();
+        return res.status(200).send({ user})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.updateMember = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+        const user = await User(req.user.dbName).findById(req.params._id);
+        if(!user){
+            return res.status(409).send({message:'no user with such _id'});
+        }
+        if(user.auth!='member'){
+            return res.status(401).send({message:'you cannot update this user'});
+        }
+
+        const fields=['password','email','tel']
+        if(fields.includes(req.params.field)){
+            user[req.params.field]=req.body[req.params.field];
+        }
+        else{
+            return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+        }
+        await user.save();
+        user.password=undefined;
+        return res.status(200).send({user})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
 
 exports.read = async (req, res) => {
     try {
-        const user = await User(req.academy).find(req.query);
+        const user=req.user;
         return res.status(200).send({user})
     }
     catch (err) {
@@ -260,28 +476,36 @@ exports.update = async (req, res) => {
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
+
     try {
-        const user=req.body.user[0];
-        if(user.password){
-            user.password=await generateHash(user.password)
+        const user=req.user;
+        const fields=['password','email','tel']
+        if(fields.includes(req.params.field)){
+            user[req.params.field]=req.body[req.params.field];
         }
-        const updatedUser = await User(req.academy).findByIdAndUpdate(user._id, user,{ returnDocument: 'after' });
-        return res.status(200).send({ user: updatedUser })
+        else{
+            return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+        }
+        await user.save();
+        return res.status(200).send({ user:{
+            userId:user.userId,
+            userName:user.userName,
+            email:user.email,
+            tel:user.tel
+        }})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
     }
 }
 
-
-exports.delete = async (req, res) => {
+exports.deleteMember = async (req, res) => {
     try {
-        const doc = await User(req.academy).findByIdAndDelete(req.query._id);
+        const doc = await User(req.user.dbName).findByIdAndDelete({_id:req.params._id,auth:'member'});
         return res.status(200).send({success:(!!doc)})
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
     }
 }
-
 

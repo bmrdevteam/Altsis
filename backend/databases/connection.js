@@ -1,19 +1,21 @@
 const mongoose=require('mongoose')
 const config=require('../config/config')
-const owner=require('./owner')
+const root=require('./root')
 const Academy=require('../models/Academy')
 
-const conn={"owner":owner};
+const conn={"root":root};
 
 Academy.find({},(err,academies)=>{
     academies.forEach(academy => {
-        conn[academy["academyId"]]=mongoose.createConnection(config["newUrl"](academy["academyId"]))
+        const dbName=academy["academyId"]+'-db'
+        conn[dbName]=mongoose.createConnection(config["newUrl"](dbName))
     });
+    console.log(Object.keys(conn))
 })
 
-exports.addConnection=({academyId,newConn})=>{
-    conn[academyId]=newConn;
-    console.log('coonection is added');
+exports.addConnection=({dbName,newConn})=>{
+    conn[dbName]=newConn;
+    console.log(`coonection to [${dbName}]is added`);
 }
 
 exports.deleteConnection=(academyId)=>{
