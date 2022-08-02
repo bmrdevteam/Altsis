@@ -3,7 +3,7 @@ const Form = require("../models/Form");
 exports.create = async(req,res)=>{
     try {
         const _Form=Form(req.user.dbName);
-        const form=new _Form(req.body.form);
+        const form=new _Form(req.body);
         form["userId"]=req.user.userId;
         form["userName"]=req.user.userName;
         await form.save();
@@ -44,7 +44,7 @@ exports.read = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const updatedForm = await Form(req.user.dbName).findByIdAndUpdate(req.params._id, req.body.form,{ returnDocument: 'after' });
+        const updatedForm = await Form(req.user.dbName).findByIdAndUpdate(req.params._id, req.body,{ returnDocument: 'after' });
         return res.status(200).send({ form: updatedForm })
     }
     catch (err) {

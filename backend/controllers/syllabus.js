@@ -2,14 +2,11 @@ const User=require('../models/User')
 const Syllabus = require("../models/Syllabus");
 
 exports.create = async(req,res)=>{
-    // userId, userName은 자동으로 넣자
     try {
-        const _user=req.session.passport.user;
-        const user=await User(_user.academy).findById(_user._id);
-        const _Syllabus=Syllabus(_user.academy);
-        const syllabus = new _Syllabus(req.body.syllabus);
-        syllabus.userId=user.userId;
-        syllabus.userName=user.name;
+        const _Syllabus=Syllabus(req.user.dbName);
+        const syllabus = new _Syllabus(req.body);
+        syllabus.userId=req.user.userId;
+        syllabus.userName=req.user.name;
         await syllabus.save();
         return res.status(200).send({syllabus})
     }
@@ -18,9 +15,24 @@ exports.create = async(req,res)=>{
     }
 }
 
+exports.list = async (req, res) => {
+    try {
+        const query={schoolId:req.query.schoolId};
+        if(req.query.userId){
+            query['userId']=req.query.userId;
+        }
+
+        const syllabuses = await Syllabus(req.user.dbName).find(query);
+        return res.status(200).send({syllabuses})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
 exports.read = async (req, res) => {
     try {
-        const syllabus = await Syllabus(req.session.passport.user.academy).find(req.query);
+        const syllabus = await Syllabus(req.user.dbName).findOne({_id:req.params._id});
         return res.status(200).send({syllabus})
     }
     catch (err) {
@@ -30,9 +42,24 @@ exports.read = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const syllabus=req.body.syllabus;
-        const updatedSyllabus = await Syllabus(req.session.passport.user.academy).findByIdAndUpdate(syllabus._id, syllabus,{ returnDocument: 'after' });
-        return res.status(200).send({ syllabus: updatedSyllabus })
+        // authentication
+        const syllabus=await Syllabus(req.user.dbName).findOne({_id:req.params._id});
+        if(req.user.userId!=syllabus.userId){
+            return res.status(403).send({message:"you cannot update this syllabus"})
+        };
+
+        // 수정이 가능한 시즌인지도 확인해야 함. confirm인가?
+        // 어떤게 수정 가능한 필드지?
+        const fields=['classTitle','confirm','time','point','classroom','subject','teachers','description']
+        for(let field of fields){
+            if(req.body[field]){
+                syllabus[field]=req.body[field];
+            }
+            
+        }
+        await syllabus.save();
+
+        return res.status(200).send({ syllabus})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
@@ -42,7 +69,7 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
     try {
-        const doc = await Syllabus(req.session.passport.user.academy).findByIdAndDelete(req.query._id);
+        const doc = await Syllabus(req.user.dbName).findByIdAndDelete(req.params._id);
         return res.status(200).send({success:(!!doc)})
     }
     catch (err) {

@@ -8,8 +8,9 @@ const {isAdmin, isLoggedIn}=require('../middleware/auth')
 //=================================
 
 router.post('/',isLoggedIn,syllabus.create);
-router.get('/',isLoggedIn,syllabus.read);
-router.patch('/',isLoggedIn,syllabus.update)
-router.delete('/',isLoggedIn,syllabus.delete);
+router.get('/list',isLoggedIn,syllabus.list);
+router.get('/:_id',isLoggedIn,syllabus.read);
+router.put('/:_id',isLoggedIn,syllabus.update)
+router.delete('/:_id',isLoggedIn,syllabus.delete);
 
 module.exports = router;

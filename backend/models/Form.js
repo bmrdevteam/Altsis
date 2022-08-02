@@ -6,10 +6,9 @@ const formSchema = mongoose.Schema(
     {
         userId: String,
         userName: String,
-        schoolId: String,
         type:String,
         title:String,
-        data: Object,
+        data: Array,
         timestamps: {
             type: String,
             default: moment().format('YYYY-MM-DD HH:mm:ss')
