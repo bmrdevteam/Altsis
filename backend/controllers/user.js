@@ -308,23 +308,45 @@ exports.createMembers = async (req, res) => {
     }
     try {
         // 중복 검사를 여기서 매번 해야 하는가?
-
-        const users = await Promise.all(req.body.users.map(async (user) => {
-            user.auth = 'member';
-            //insertMany를 할 때는 여기서 해쉬를 생성해야 한다.
-            user.password=await generateHash(user.password); 
-            return user;
-        }));
-
-        const newUsers=await User(req.user.dbName).insertMany(users);
-        return res.status(200).send({users:newUsers.map(user=>{
-            return {
-                _id:user._id,
-                userId:user.userId,
-                userName:user.userName,
-                email:user.email
+        const users=[];
+        const schoolUsers=[];
+        for(let _user of req.body.users){
+            const user={
+                userId:_user.userId,
+                userName:_user.userName,
+                password:await generateHash(_user.password),        
+                auth: 'member',
+                email:_user.email,
+                tel:_user.tel,
             }
-        })});
+            if(!_user.schoolId){
+                users.push(user);
+                continue;
+            }
+
+            user["schools"]=[{
+                schoolId:_user.schoolId,
+                schoolName:_user.schoolName
+            }];
+            users.push(user);
+
+            const schoolUser={
+                schoolId:_user.schoolId,
+                schoolName:_user.schoolName,
+                userId:_user.userId,
+                userName:_user.userName,
+                role:_user.role,
+                info:_user.info
+            };
+            schoolUsers.push(schoolUser);
+            
+
+        }
+
+        const [newUsers,newSchoolUsers]=await Promise.all([User(req.user.dbName).insertMany(users),
+            SchoolUser(req.user.dbName).insertMany(schoolUsers)
+        ])
+        return res.status(200).send({users:newUsers,schoolUsers:newSchoolUsers});
     }
     catch (err) {
         return res.status(500).send({ err: err.message });

@@ -7,13 +7,13 @@ const { conn } = require('../databases/connection')
 
 const schoolUserSchema = mongoose.Schema({
     schoolId: String,
+    schoolName:String,
     userId: String,
     userName: String,
-    userEmail: String,
+    profile:String,
     role: String,
     info: Object,
-    parents: Array,
-    season: Array,
+    registrations: Array,
     timestamps: {
         type: String,
         default: moment().format('YYYY-MM-DD HH:mm:ss')

@@ -2,10 +2,10 @@ const mongoose = require('mongoose')
 const moment = require('moment');
 const { conn } = require('../databases/connection')
 
-const registrationSchema = mongoose.Schema({
+const enrollmentSchema = mongoose.Schema({
     userId: String,
     userName:String,
-    syllabus:Object,
+    syllabus:String,
     evaluation:Object,
     timestamps: {
         type: String,
@@ -14,5 +14,5 @@ const registrationSchema = mongoose.Schema({
 });
 
 module.exports = (dbName) => {
-    return conn[dbName].model('Registration', registrationSchema);
+    return conn[dbName].model('Enrollment', enrollmentSchema);
 }

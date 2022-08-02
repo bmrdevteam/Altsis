@@ -1,3 +1,3 @@
 module.exports=[
-    'users','academies','schools','forms','registration','syllabuses','test'
+    'users','academies','schools','forms','enrollments','syllabuses','test'
 ];
