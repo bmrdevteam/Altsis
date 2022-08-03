@@ -1,5 +1,5 @@
 import { AcademyList } from "../../dummyData/AcademyList";
-import style from "../../style/pages/academy.module.scss";
+import style from "../../style/pages/admin/academy.module.scss";
 
 type Props = {};
 
