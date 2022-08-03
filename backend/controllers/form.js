@@ -2,6 +2,10 @@ const Form = require("../models/Form");
 
 exports.create = async(req,res)=>{
     try {
+        const exForm=await Form(req.user.dbName).findOne({title:req.body.title});
+        if(exForm){
+            res.status(409).send({message:"already existing form title"})
+        }
         const _Form=Form(req.user.dbName);
         const form=new _Form(req.body);
         form["userId"]=req.user.userId;
