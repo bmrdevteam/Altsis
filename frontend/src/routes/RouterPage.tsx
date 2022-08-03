@@ -3,9 +3,11 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 //admin pages
 import Academy from "../pages/admin/Academy";
 
-//academy admin pages
+//academy pages
+import Users from "../pages/academey/Users";
+import User from "../pages/academey/User";
 import Schools from "../pages/academey/Schools";
-import School from "../pages/academey/school/School";
+import School from "../pages/academey/School";
 
 //dev pages
 import Test from "../pages/dev/Test";
@@ -64,8 +66,15 @@ function RouterPage() {
               {/* academy admin routes */}
               <Route path="academy">
                 {/* [!make!] an hook to identify the number of */}
+                <Route path="" element={<School />}></Route>
+
+                <Route path="users" element={<Users />}></Route>
+                <Route path="users/add" element={<Schools />}></Route>
+                <Route path="user/:pid" element={<User />}></Route>
+
                 <Route path="schools" element={<Schools />}></Route>
                 <Route path="school/:pid" element={<School />}></Route>
+              
               </Route>
 
               {/* ----------------------------------------------------- */}
