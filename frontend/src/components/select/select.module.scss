@@ -1,0 +1,27 @@
+.select {
+    cursor: pointer;
+    font-size: 16px;
+    position: relative;
+    min-width: 120px;
+    .selected{
+        padding: 8.5px 14px;
+        
+        
+    }
+    .options{
+        z-index: 2022;
+        position: absolute;
+        width: 100%;
+        top: 0;
+        left: 0;
+
+        background-color: #fff;
+        .option{
+            padding: 8.5px 14px;
+
+        }
+        .option:hover{
+            background-color: rgb(225, 225, 225);
+        }
+    }
+}

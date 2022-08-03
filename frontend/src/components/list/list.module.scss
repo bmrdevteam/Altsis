@@ -1,0 +1,19 @@
+.list {
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+
+    .list_header {
+        padding: 24px;
+        display: flex;
+
+        
+    }
+    .list_header:hover{
+        background-color:rgb(225, 225, 225)
+    }
+    .list_item{
+        padding: 24px 24px;
+        display: flex;
+    }
+}
