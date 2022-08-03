@@ -1,12 +1,13 @@
 import React from "react";
-import Editor from "../../components/editorV2/Editor";
+import Table from "../../components/table/Table";
+
 
 type Props = {};
 
 const Test = (props: Props) => {
   return (
-    <div style={{height:"100vh",overflowY:"scroll"}}>
-      <Editor />;
+    <div >
+      <Table/>
     </div>
   );
 };
