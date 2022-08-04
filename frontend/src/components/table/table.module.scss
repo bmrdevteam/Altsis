@@ -1,0 +1,198 @@
+.table_container {
+    margin: 24px;
+    border: 1px solid rgb(224, 224, 224);
+    border-radius: 4px;
+    height: 100%;
+
+
+    .table_header {
+        display: flex;
+        height: 48px;
+        width: 100%;
+        display: flex;
+        -webkit-box-align: center;
+        align-items: center;
+        box-sizing: border-box;
+
+        .table_header_index {
+            cursor: pointer;
+            flex: 0 1 100px;
+            display: flex;
+            -webkit-box-align: center;
+            align-items: center;
+            box-sizing: border-box;
+            vertical-align: inherit;
+            border-bottom: 1px solid rgb(224, 224, 224);
+            text-align: right;
+            height: 48px;
+            padding: 16px;
+            overflow: hidden;
+            font-weight: 500;
+            font-size: 0.875rem;
+            line-height: 1.5rem;
+            letter-spacing: 0.01071em;
+            flex-direction: row;
+        }
+
+        .table_header_item {
+            cursor: pointer;
+            flex: 1 1 0;
+            display: flex;
+            -webkit-box-align: center;
+            align-items: center;
+            box-sizing: border-box;
+            vertical-align: inherit;
+            border-bottom: 1px solid rgb(224, 224, 224);
+
+            text-align: right;
+            height: 48px;
+            padding: 16px;
+            overflow: hidden;
+            font-weight: 500;
+            font-size: 0.875rem;
+            line-height: 1.5rem;
+            letter-spacing: 0.01071em;
+            flex-direction: row-reverse;
+
+            //-------
+            -webkit-touch-callout: none;
+            /* iOS Safari */
+            -webkit-user-select: none;
+            /* Safari */
+            -khtml-user-select: none;
+            /* Konqueror HTML */
+            -moz-user-select: none;
+            /* Old versions of Firefox */
+            -ms-user-select: none;
+            /* Internet Explorer/Edge */
+            user-select: none;
+            /* Non-prefixed version, currently */
+
+            position: relative;
+        }
+
+        .table_header_item:hover {
+            background-color: rgb(240, 240, 240);
+
+        }
+
+        .table_header_item:not(:last-child):after {
+            content: '';
+            height: 30%;
+            width: 2px;
+            position: absolute;
+            top: 35%;
+            right: 0;
+            background-color: rgb(224, 224, 224);
+        }
+
+        .table_item_string {
+            flex-direction: row;
+        }
+
+        .table_item_index {
+            flex-direction: row;
+            flex: 0 1 50px;
+        }
+    }
+
+    .table_body {
+        overflow: auto scroll;
+        height: 800px;
+
+        .table_row {
+            display: flex;
+            height: 48px;
+            width: 100%;
+            display: flex;
+            -webkit-box-align: center;
+            align-items: center;
+            box-sizing: border-box;
+
+            .table_item {
+                cursor: pointer;
+                flex: 1 1 0;
+                display: flex;
+                -webkit-box-align: center;
+                align-items: center;
+                box-sizing: border-box;
+                vertical-align: inherit;
+                border-bottom: 1px solid rgb(224, 224, 224);
+                text-align: right;
+                height: 48px;
+                padding: 16px;
+                overflow: hidden;
+                color: rgba(0, 0, 0, 0.87);
+                font-weight: 400;
+                font-size: 0.875rem;
+                line-height: 1.5rem;
+                letter-spacing: 0.01071em;
+                flex-direction: row-reverse;
+
+                //-------
+                -webkit-touch-callout: none;
+                /* iOS Safari */
+                -webkit-user-select: none;
+                /* Safari */
+                -khtml-user-select: none;
+                /* Konqueror HTML */
+                -moz-user-select: none;
+                /* Old versions of Firefox */
+                -ms-user-select: none;
+                /* Internet Explorer/Edge */
+                user-select: none;
+                /* Non-prefixed version, currently */
+
+                white-space: nowrap;
+            }
+
+            .table_item_string {
+                flex-direction: row;
+            }
+
+            .table_item_index {
+                flex-direction: row;
+                flex: 0 1 50px;
+            }
+
+            .table_item_select {
+                span {
+                    padding: 0 8px;
+                    font-size: 0.75rem;
+                    border: 1px solid;
+                }
+
+                .red {
+                    color: rgb(255, 111, 111);
+                }
+
+                .blue {
+                    color: rgb(111, 173, 255);
+                }
+
+                .green {
+                    color: rgb(51, 200, 113);
+                }
+
+                .dark_blue {
+                    color: rgb(46, 57, 180);
+                }
+            }
+
+            .table_item:hover {
+                background-color: rgb(245, 245, 245);
+
+            }
+            .table_item ~ .edit{
+                background-color: #fff;
+                outline: none;
+                border-top: none;
+                border-right: none;
+                border-left: none;
+                border-bottom: 1px solid rgb(224, 224, 224);
+
+            }
+        }
+    }
+
+}
