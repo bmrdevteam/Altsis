@@ -54,8 +54,12 @@ exports.students = async (req, res) => {
         if(!syllabus){
             return res.status(404).send({message:"no syllabus!"});
         }
-        const students=await Enrollments(req.user.dbName).find({syllabus:syllabus._id});
-        return res.status(200).send({students})
+        const students=await Enrollments(req.user.dbName).find({"syllabus._id":syllabus._id});
+        return res.status(200).send({students:students.map((student)=>{
+            return {
+                userId:student.userId,
+                userName:student.userName
+            }})});
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });

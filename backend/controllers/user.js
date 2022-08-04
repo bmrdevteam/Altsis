@@ -307,10 +307,16 @@ exports.createMembers = async (req, res) => {
         return res.status(400).json({ errors: errors.array() });
     }
     try {
-        // 중복 검사를 여기서 매번 해야 하는가?
+        // db의 userId 목록
+        const _userIds=(await User(req.user.dbName).find({})).map(_user=>_user.userId);
         const users=[];
         const schoolUsers=[];
+
         for(let _user of req.body.users){
+            // userId 중복 검사
+            if(_userIds.includes(_user.userId)){
+                return res.status(409).send({message:"duplicate userId "+_user.userId});
+            }
             const user={
                 userId:_user.userId,
                 userName:_user.userName,
@@ -340,7 +346,6 @@ exports.createMembers = async (req, res) => {
             };
             schoolUsers.push(schoolUser);
             
-
         }
 
         const [newUsers,newSchoolUsers]=await Promise.all([User(req.user.dbName).insertMany(users),

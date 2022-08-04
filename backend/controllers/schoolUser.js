@@ -1,8 +1,13 @@
 const SchoolUser = require("../models/SchoolUser");
+const lodash=require('lodash');
+const mongoose=require('mongoose');
 
 exports.register= async (req,res) => {
     try {
-        const schoolUser = await SchoolUser(req.user.dbName).findById(req.body._id);
+        const schoolUser = await SchoolUser(req.user.dbName).findById(mongoose.Types.ObjectId(req.body._id));
+        if(!schoolUser){
+            res.status(404).send({message:"no schoolUser!"});
+        }
         const idx = schoolUser["registrations"].findIndex(obj => obj.year.year === req.body.year.year);
         if(idx==-1){
             schoolUser["registrations"].push({
@@ -20,6 +25,43 @@ exports.register= async (req,res) => {
         return res.status(200).send({schoolUser})
     }
     catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.registerBulk= async (req,res) => {
+    try {
+        let newSchoolUsers=[]
+        await Promise.all(
+            req.body.schoolUsers.map(async _schoolUser => {
+                const schoolUser = await SchoolUser(req.user.dbName).findById(mongoose.Types.ObjectId(_schoolUser._id));
+                if(!schoolUser){
+                    throw new Error("no schooluser with _id "+_schoolUser._id);
+                }
+                console.log('debug: schoolUser.userId: ',schoolUser.userId);
+                const idx = schoolUser["registrations"].findIndex(obj => obj.year.year === _schoolUser.year.year);
+                if(idx==-1){
+                    schoolUser["registrations"].push({
+                        year: _schoolUser.year,
+                        terms:[
+                            _schoolUser.term
+                        ]
+                    })
+                }
+                else{
+                    schoolUser["registrations"][idx]['terms'].push(_schoolUser.term);
+                    schoolUser.markModified('registrations');
+                } 
+                await schoolUser.save();
+                newSchoolUsers.push(schoolUser);
+                console.log(`debug: schoolUser.userId(${schoolUser.userId}) is saved`);
+            })
+        );
+        
+        return res.status(200).send({schoolUsers:newSchoolUsers})
+    }
+    catch (err) {
+        console.log('catched?');
         return res.status(500).send({ err: err.message });
     }
 }

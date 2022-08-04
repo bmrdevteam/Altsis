@@ -7,7 +7,9 @@ const {isAdmin, isLoggedIn}=require('../middleware/auth')
 //             Enrollment
 //=================================
 
-router.post('/:syllabus_id',isLoggedIn,enrollment.create);
+router.post('/',isLoggedIn,enrollment.create);
+router.post('/bulk',isLoggedIn,enrollment.createBulk);
+
 router.get('/list',isLoggedIn,enrollment.list);
 router.put('/:_id/evaluation',isLoggedIn,enrollment.updateEvaluation)
 router.delete('/:_id',isLoggedIn,enrollment.delete);
