@@ -1,13 +1,16 @@
 const Enrollment = require("../models/Enrollment");
+const Syllabus = require('../models/Syllabus');
 
 exports.create = async(req,res)=>{
     try {
+        const syllabus=await Syllabus(req.user.dbName).findById(req.params.syllabus_id);
         const _Enrollment=Enrollment(req.user.dbName);
         const enrollment=new _Enrollment({
             syllabus:req.params.syllabus_id
         })
         enrollment.userId=req.user.userId;
         enrollment.userName=req.user.userName;
+
         await enrollment.save();
 
         return res.status(200).send({enrollment})
@@ -19,7 +22,7 @@ exports.create = async(req,res)=>{
 
 exports.list = async (req, res) => {
     try {
-        const enrollments = await Enrollment(req.user.dbName).find({userId:req.user.userId});
+        const enrollments = await Enrollment(req.user.dbName).find({userId:req.query.userId});
         return res.status(200).send({enrollments})
     }
     catch (err) {
