@@ -5,6 +5,8 @@ const {isLoggedIn,isAdManager}=require("../middleware/auth");
 
 // register schoolUser (not common register!)
 router.post('/register',isAdManager,schoolUser.register);
+router.post('/register/bulk',isAdManager,schoolUser.registerBulk);
+
 router.put('/:_id/:field',isAdManager,schoolUser.update);
 router.delete('/:_id/registration',isAdManager,schoolUser.deleteRegistration);
 

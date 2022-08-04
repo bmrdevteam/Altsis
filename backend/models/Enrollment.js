@@ -5,7 +5,10 @@ const { conn } = require('../databases/connection')
 const enrollmentSchema = mongoose.Schema({
     userId: String,
     userName:String,
-    syllabus:String,
+    schoolId:String,
+    year:String,
+    term:String,
+    syllabus:Object,
     evaluation:Object,
     timestamps: {
         type: String,
