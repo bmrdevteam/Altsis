@@ -1,5 +1,6 @@
 const User=require('../models/User')
 const Syllabus = require("../models/Syllabus");
+const Enrollments=require('../models/Enrollment');
 
 exports.create = async(req,res)=>{
     try {
@@ -17,9 +18,16 @@ exports.create = async(req,res)=>{
 
 exports.list = async (req, res) => {
     try {
-        const query={schoolId:req.query.schoolId};
+        const query={
+            schoolId:req.query.schoolId,
+            year:req.query.year,
+            term:req.query.term
+        };
         if(req.query.userId){
             query['userId']=req.query.userId;
+        }
+        if(req.query.teacherId){
+            query['teachers.userId']=req.query.teacherId;
         }
 
         const syllabuses = await Syllabus(req.user.dbName).find(query);
@@ -34,6 +42,20 @@ exports.read = async (req, res) => {
     try {
         const syllabus = await Syllabus(req.user.dbName).findOne({_id:req.params._id});
         return res.status(200).send({syllabus})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.students = async (req, res) => {
+    try {
+        const syllabus = await Syllabus(req.user.dbName).findOne({_id:req.params._id});
+        if(!syllabus){
+            return res.status(404).send({message:"no syllabus!"});
+        }
+        const students=await Enrollments(req.user.dbName).find({syllabus:syllabus._id});
+        return res.status(200).send({students})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
