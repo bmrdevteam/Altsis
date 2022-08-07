@@ -1,13 +1,14 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-//admin pages
-import Academy from "../pages/admin/Academy";
+//owner pages
+import Academies from "../pages/owner/Academies";
 
-//academy pages
-import Users from "../pages/academey/Users";
-import User from "../pages/academey/User";
-import Schools from "../pages/academey/Schools";
-import School from "../pages/academey/School";
+//admin pages
+import Users from "../pages/admin/Users";
+import User from "../pages/admin/User";
+import Schools from "../pages/admin/schools/Index";
+import School from "../pages/admin/schools/Pid";
+import SchoolAdd from "../pages/admin/schools/Add";
 
 //dev pages
 import Test from "../pages/dev/Test";
@@ -26,6 +27,7 @@ import Sidebar from "../layout/navbar/Sidebar";
 //hooks
 import { useAuth } from "../contexts/authContext";
 import { useSidebar } from "../contexts/sidebarContext";
+import Academy from "../pages/admin/Index";
 
 // import Http404 from "./pages/error/404";
 
@@ -58,7 +60,7 @@ function RouterPage() {
               {/* admin routes */}
               <Route path="admin">
                 {/* <Route index element={<>}></Route>  */}
-                <Route path="academy" element={<Academy />}></Route>
+                <Route path="academy" element={<Academies />}></Route>
               </Route>
 
               {/* ----------------------------------------------------- */}
@@ -66,15 +68,15 @@ function RouterPage() {
               {/* academy admin routes */}
               <Route path="academy">
                 {/* [!make!] an hook to identify the number of */}
-                <Route path="" element={<School />}></Route>
+                <Route path="" element={<Academy />}></Route>
 
                 <Route path="users" element={<Users />}></Route>
                 <Route path="users/add" element={<Schools />}></Route>
                 <Route path="user/:pid" element={<User />}></Route>
 
                 <Route path="schools" element={<Schools />}></Route>
-                <Route path="school/:pid" element={<School />}></Route>
-              
+                <Route path="schools/add" element={<SchoolAdd />}></Route>
+                <Route path="schools/:pid" element={<School />}></Route>
               </Route>
 
               {/* ----------------------------------------------------- */}
