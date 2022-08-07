@@ -12,7 +12,10 @@ const Nav = ({
   close: boolean;
 }) => {
   return (
-    <nav id="Sidebar" className={`${style.nav_container} ${close && style.close}`}>
+    <nav
+      id="Sidebar"
+      className={`${style.nav_container} ${close && style.close}`}
+    >
       {children}
     </nav>
   );
@@ -41,14 +44,13 @@ const Search = ({ setSearchRef }: { setSearchRef?: ReactElement }) => {
       <div className={style.search}>
         <span className={style.icon}>{<Svg type="search" />}</span>
 
-          <input
-            onKeyDown={(e) => {
-              e.key === "Enter" && console.log("검색");
-            }}
-            className={style.search_input}
-            placeholder="검색"
-          />
-
+        <input
+          onKeyDown={(e) => {
+            e.key === "Enter" && console.log("검색");
+          }}
+          className={style.search_input}
+          placeholder="검색"
+        />
       </div>
     </div>
   );
@@ -98,13 +100,25 @@ const SubLinks = ({ children }: { children: JSX.Element[] | JSX.Element }) => {
 const SubLink = ({
   children,
   icon,
+  handleClick,
+  path,
 }: {
   children?: string;
   icon?: JSX.Element;
+  handleClick?: any;
+  path?: string;
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className={style.sub_link_container}>
-      <div className={style.sub_link}>
+      <div
+        className={style.sub_link}
+        onClick={() => {
+          handleClick && handleClick();
+          path && navigate(path, { replace: true });
+        }}
+      >
         <div className={style.icon}>{icon}</div>
         <div className={style.name}>{children}</div>
       </div>
