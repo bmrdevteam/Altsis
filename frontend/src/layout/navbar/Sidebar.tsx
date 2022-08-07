@@ -61,7 +61,7 @@ const Sidebar = (props: Props) => {
                   <SubLinks>
                     {data.subLink.map((data, index) => {
                       return (
-                        <SubLink key={index} icon={data.icon}>
+                        <SubLink key={index} icon={data.icon} path={data.path}>
                           {data.name}
                         </SubLink>
                       );
