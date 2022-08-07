@@ -16,24 +16,44 @@ interface INavSubLink {
 }
 export const SidebarData: any = [
   {
-    title: "timeTable1",
-    name: "시간표",
-    path: "/timetable1",
+    title: "admin",
+    name: "관리자",
+    path: "/academy",
     icon: <Svg type="calender" />,
     subLink: [
       {
-        title: "sublink1",
-        name: "서브 링크",
-        path: "/timetable1/sublink",
+        title: "schools",
+        name: "학교 관리",
+        path: "/academy/schools",
+        icon: <Svg type="file" />,
+      },
+      {
+        title: "users",
+        name: "사용자",
+        path: "/academy/users",
         icon: <Svg type="file" />,
       },
     ],
   },
   {
-    title: "timeTabkjle2",
-    name: "시간표2",
-    path: "/timetable2",
+    title: "school",
+    name: "학교 관리",
+    path: `/school/${"as"}`,
     icon: <Svg type="calender" />,
+    subLink: [
+      {
+        title: "schools",
+        name: "학교 관리",
+        path: "/academy/schools",
+        icon: <Svg type="file" />,
+      },
+      {
+        title: "users",
+        name: "사용자",
+        path: "/academy/users",
+        icon: <Svg type="file" />,
+      },
+    ],
   },
   {
     title: "setting",
