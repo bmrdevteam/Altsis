@@ -4,8 +4,11 @@
 
     background-color: var(--btn-color-1);
     text-align: center;
+    display: flex;
     height: 42px;
-    line-height: 42px;
+    justify-content: center;
+    align-items: center;
+
     font-size: 0.875rem;
 
     //un selectable
@@ -25,15 +28,20 @@
 
 }
 
+
 .round {
     border-radius: 40px;
 }
 
 
 .ghost{
-    border: 1px solid var(--btn-color-1);
+    border: var(--border-default);
     background-color: transparent;
     color:  var(--btn-color-1);
+}
+.ghost:hover{
+    background-color: rgb(244, 244, 244);
+
 }
 
 .smooth{
