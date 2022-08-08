@@ -198,7 +198,7 @@ exports.createSeason = async (req, res) => {
         }
         school["seasons"].push(req.body.season);
         await school.save();
-        return res.status(200).send({seasons: school["seasons"]})
+        return res.status(200).send({seasons: school["seasons"][school["seasons"].length-1]})
     }
     catch (err) {
         return res.status(500).send({ err: err.message });

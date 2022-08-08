@@ -12,7 +12,7 @@ const schoolUserSchema = mongoose.Schema({
     userName: String,
     profile:String,
     role: String,
-    info: Object,
+    archive: Object,
     registrations: Array,
     timestamps: {
         type: String,
