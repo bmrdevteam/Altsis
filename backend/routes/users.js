@@ -36,6 +36,7 @@ router.put('/:_id/:field',isAdManager,user.validateUpdate,user.updateMember);
 router.get('/',isLoggedIn,user.read);
 router.put('/:field',isLoggedIn,user.update);
 
+
 // admin&manager delete member
 router.delete('/members/:_id',isAdManager,user.deleteMember);
 

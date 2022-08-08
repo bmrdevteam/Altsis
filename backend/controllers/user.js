@@ -473,7 +473,7 @@ exports.updateMember = async (req, res) => {
 
         const fields=['password','email','tel']
         if(fields.includes(req.params.field)){
-            user[req.params.field]=req.body[req.params.field];
+            user[req.params.field]=req.body.new;
         }
         else{
             return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
@@ -508,7 +508,7 @@ exports.update = async (req, res) => {
         const user=req.user;
         const fields=['password','email','tel']
         if(fields.includes(req.params.field)){
-            user[req.params.field]=req.body[req.params.field];
+            user[req.params.field]=req.body.new;
         }
         else{
             return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
