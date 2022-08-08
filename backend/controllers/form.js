@@ -48,8 +48,19 @@ exports.read = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const updatedForm = await Form(req.user.dbName).findByIdAndUpdate(req.params._id, req.body,{ returnDocument: 'after' });
-        return res.status(200).send({ form: updatedForm })
+        const form=await Form(req.user.dbName).findById(req.params._id);
+        if(!form){
+            return res.status(404).send({message:'no form'});
+        }
+            const fields=['title','data']
+            if(fields.includes(req.params.field)){
+                form[req.params.field]=req.body.new;
+            }
+            else{
+                return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+            }
+            await form.save();
+            return res.status(200).send({ form})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });

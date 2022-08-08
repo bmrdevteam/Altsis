@@ -116,6 +116,7 @@ exports.update = async (req, res) => {
         // 수정이 가능한 시즌인지도 확인해야 함. confirm인가?
         // 어떤게 수정 가능한 필드지?
         const fields=['classTitle','confirm','time','point','classroom','subject','teachers','description']
+        //    classTitle:String, time:String, point:String,subject:Array
         for(let field of fields){
             if(req.body[field]){
                 syllabus[field]=req.body[field];
