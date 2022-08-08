@@ -1,13 +1,52 @@
 const User=require('../models/User')
 const Syllabus = require("../models/Syllabus");
 const Enrollments=require('../models/Enrollment');
+const School=require('../models/School');
+const SchoolUser = require('../models/SchoolUser');
+const { user } = require('../databases/root');
 
 exports.create = async(req,res)=>{
     try {
+        // 1. find school
+        const school=await School(req.user.dbName).findOne({schoolId:req.body.schoolId});
+        if(!school){
+            return res.status(404).send({message:"not existing school..."});
+        }
+
+        // 2. check if season is activated
+        const idx= school["seasons"].findIndex(obj=>(obj.year===req.body.year)&&(obj.term===req.body.term));
+        if(idx==-1){
+            return res.status(404).send({message:"not existing season..."});
+        }
+        if(school["seasons"][idx]["activated"]=='N'){
+            return res.status(409).send({message:"season is not activated..."});
+        }
+
+        // 3. check if user is registered in requrested season
+        const schoolUser=await SchoolUser(req.user.dbName).findOne({userId:req.user.userId});
+        const idxYear=schoolUser["registrations"].findIndex(obj=>(obj.year.year===req.body.year));
+        if(idxYear==-1){
+            return res.status(409).send({message:"you are not registered in this year"});
+        }
+        const idxTerm=schoolUser["registrations"][idxYear]["terms"].findIndex(obj=>(obj.term===req.body.term));
+        if(idxTerm==-1){
+            return res.status(409).send({message:"you are not registered in this term"});
+        }
+
+        // 4. check if user's role has permission
+        const permission=school["seasons"][idx]["permissions"]["syllabus"];
+        if((permission[schoolUser.role]=='Y'
+            &&permission["blocklist"].some(e=>e.userId===req.user.userId))
+            ||
+            (permission[schoolUser.role]=='N'
+            &&!permission["allowlist"].some(e=>e.userId===req.user.userId))){
+            return res.status(200).send({message:'you have no permission!'});
+        }
+
         const _Syllabus=Syllabus(req.user.dbName);
         const syllabus = new _Syllabus(req.body);
         syllabus.userId=req.user.userId;
-        syllabus.userName=req.user.name;
+        syllabus.userName=req.user.userName;
         await syllabus.save();
         return res.status(200).send({syllabus})
     }

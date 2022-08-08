@@ -3,6 +3,12 @@ const Syllabus=require('../models/Syllabus');
 
 exports.create = async(req,res)=>{
     try {
+        const _Enrollment=Enrollment(req.user.dbName);
+        const _enrollment=await _Enrollment.findOne({userId:req.user.userId,"syllabus._id":req.body.syllabus});
+        if(_enrollment){
+            return res.status(409).send({message:"you already enrolled in this syllabus"})
+        }
+
         const _syllabus=await Syllabus(req.user.dbName).findById(req.body.syllabus);
         if(!_syllabus){
             return res.status(404).send({message:"invalid syllabus!"});
@@ -10,7 +16,8 @@ exports.create = async(req,res)=>{
         if(_syllabus['confirm']!='Y'){
             return res.status(409).send({message:"This course is not enrollable at the moment"});
         }
-        const _Enrollment=Enrollment(req.user.dbName);
+
+
         const enrollment=new _Enrollment({
             userId:req.user.userId,
             userName:req.user.userName,
@@ -55,15 +62,20 @@ exports.createBulk = async(req,res)=>{
             point:_syllabus.point,
             subject:_syllabus.subject
         }
+        const userIds=(await Enrollment(req.user.dbName).find({"syllabus._id":syllabus._id})).map(enrollment=>enrollment.userId); //해당 수업을 듣는 학생들의 userId 리스트
 
-        const enrollments=req.body.students.map((student)=>{
-            return{
+
+        const enrollments=[];
+        for(let student of req.body.students){
+            if(userIds.includes(student.userId)){
+                return res.status(409).send({message:`${student.userName}(${student.userId}) is already enrolled in this syllabus!`});
+            }
+            enrollments.push({
                 userId:student.userId,
                 userName:student.userName,
                 syllabus
-            }
-        })
-
+            });
+        }
         const newEnrollments=await Enrollment(req.user.dbName).insertMany(enrollments);
         return res.status(200).send({enrollment:newEnrollments});
     }

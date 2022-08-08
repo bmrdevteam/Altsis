@@ -80,6 +80,9 @@ exports.delete = async (req, res) => {
 exports.createClassroom = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
         school["classrooms"].push(req.body.classroom);
         await school.save();
         return res.status(200).send({classrooms:school["classrooms"]})
@@ -92,6 +95,9 @@ exports.createClassroom = async (req, res) => {
 exports.updateClassroom = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
         if(school["classrooms"].length<=req.params.idx){
             return res.status(404).send({message:"index out of range"})
         }
@@ -108,7 +114,9 @@ exports.updateClassroom = async (req, res) => {
 exports.deleteClassroom = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
-  
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
         if(school["classrooms"].length<=req.params.idx){
             return res.status(404).send({message:"index out of range"})
         }
@@ -127,6 +135,9 @@ exports.deleteClassroom = async (req, res) => {
 exports.createSubject = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
         school["subjects"].push(req.body.subject);
         await school.save();
         return res.status(200).send({subjects:school["subjects"]})
@@ -139,6 +150,9 @@ exports.createSubject = async (req, res) => {
 exports.updateSubject = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
         if(school["subjects"].length<=req.params.idx){
             return res.status(404).send({message:"index out of range"})
         }
@@ -155,7 +169,9 @@ exports.updateSubject = async (req, res) => {
 exports.deleteSubject = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
-  
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
         if(school["subjects"].length<=req.params.idx){
             return res.status(404).send({message:"index out of range"})
         }
@@ -173,6 +189,13 @@ exports.deleteSubject = async (req, res) => {
 exports.createSeason = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
+        for(let key in req.body.season.permissions){
+            req.body.season.permissions[key]["allowlist"]=[];
+            req.body.season.permissions[key]["blocklist"]=[]
+        }
         school["seasons"].push(req.body.season);
         await school.save();
         return res.status(200).send({seasons: school["seasons"]})
@@ -185,6 +208,9 @@ exports.createSeason = async (req, res) => {
 exports.updateSeason = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"})
+        }
         if(school["seasons"].length<=req.params.idx){
             return res.status(404).send({message:"index out of range"})
         }
@@ -201,7 +227,9 @@ exports.updateSeason = async (req, res) => {
 exports.deleteSeason = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
-  
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
         if(school["seasons"].length<=req.params.idx){
             return res.status(404).send({message:"index out of range"})
         }

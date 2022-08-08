@@ -31,9 +31,9 @@ exports.register= async (req,res) => {
 
 exports.registerBulk= async (req,res) => {
     try {
-        let newSchoolUsers=[]
-        await Promise.all(
-            req.body.schoolUsers.map(async _schoolUser => {
+
+        const schoolUsers=await Promise.all(
+            req.body.schoolUsers.map(async _schoolUser=>{
                 const schoolUser = await SchoolUser(req.user.dbName).findById(mongoose.Types.ObjectId(_schoolUser._id));
                 if(!schoolUser){
                     throw new Error("no schooluser with _id "+_schoolUser._id);
@@ -52,13 +52,16 @@ exports.registerBulk= async (req,res) => {
                     schoolUser["registrations"][idx]['terms'].push(_schoolUser.term);
                     schoolUser.markModified('registrations');
                 } 
-                await schoolUser.save();
-                newSchoolUsers.push(schoolUser);
-                console.log(`debug: schoolUser.userId(${schoolUser.userId}) is saved`);
+                return schoolUser;
             })
         );
-        
-        return res.status(200).send({schoolUsers:newSchoolUsers})
+       await Promise.all(
+            schoolUsers.map(async schoolUser=>{
+                await schoolUser.save();
+                console.log(`debug: schoolUser.userId(${schoolUser.userId}) is saved`);
+            })
+       )
+        return res.status(200).send(schoolUsers);
     }
     catch (err) {
         console.log('catched?');
