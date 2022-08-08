@@ -17,8 +17,18 @@ const userSchema=mongoose.Schema({
     auth:String,
     email:String,
     tel:String,
-    snsId:Array,
-    schools:Array,
+    snsId:[
+        mongoose.Schema({
+            provider:String,
+            email:String
+        },{_id:false})
+    ],
+    schools:[
+        mongoose.Schema({
+            schoolId:String,
+            schoolName:String
+        },{_id:false})
+    ],
     timestamps:{
         type:String,
         default:moment().format('YYYY-MM-DD HH:mm:ss')
