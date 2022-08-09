@@ -7,7 +7,9 @@ type Props = {
 };
 
 const Autofill = (props: Props) => {
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [inputValue, setInputValue] = useState<string>(
+    props.defaultValue ? props.defaultValue : ""
+  );
   const [active, setActive] = useState<boolean>(false);
   const inputRef = useRef(null);
 
@@ -23,16 +25,13 @@ const Autofill = (props: Props) => {
     >
       <input
         type="text"
-        defaultValue={props.defaultValue}
         ref={inputRef}
+        value={inputValue}
         onChange={(e) => {
-          setSearchTerm(e.target.value);
+          setInputValue(e.target.value);
         }}
         onFocus={() => {
           setActive(true);
-        }}
-        onBlur={() => {
-          setActive(false);
         }}
         style={{
           fontSize: "14px",
@@ -51,9 +50,9 @@ const Autofill = (props: Props) => {
         <div className={style.options}>
           {props.options
             .filter((val: string) => {
-              if (searchTerm === "") {
+              if (inputValue === "") {
                 return val;
-              } else if (val.toLowerCase().includes(searchTerm.toLowerCase())) {
+              } else if (val.toLowerCase().includes(inputValue.toLowerCase())) {
                 return val;
               }
             })
@@ -62,7 +61,8 @@ const Autofill = (props: Props) => {
                 <div
                   key={index}
                   onClick={() => {
-                    console.log(inputRef.current);
+                    setInputValue(value);
+                    setActive(false);
                   }}
                   className={style.option}
                 >
