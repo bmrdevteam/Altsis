@@ -89,7 +89,6 @@ const Class = (props: Props) => {
                     과목: {classData.subject[0]}
                   </span>
                 </div>
-                
               </>
             );
           })}
@@ -120,7 +119,6 @@ const Class = (props: Props) => {
     <div className={style.section}>
       <NavigationLinks />
       <div className={style.title}>{classData.classTitle}</div>
-      <Divider />
       <div className={style.categories_container}>
         <div className={style.categories}>
           <div className={style.category}>교과: {classData.subject[0]}</div>
@@ -131,6 +129,8 @@ const Class = (props: Props) => {
           <div className={style.category}>강의실: {classData.classroom}</div>
         </div>
       </div>
+      <Divider />
+
       <ClassInfo />
       <div className={style.tab}>
         <Tab
