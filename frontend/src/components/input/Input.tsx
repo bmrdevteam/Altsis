@@ -1,35 +1,25 @@
 import React from "react";
-
+import style from "./input.module.scss";
 type Props = {
   defaultValue?: string;
+  placeholder?: string;
   label?: string;
 };
 
 const Input = (props: Props) => {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column-reverse",
-        marginTop:"24px",
-        flex: "1 1 0",
-      }}
-    >
+    <div className={style.input_container}>
       <input
         type="text"
+        className={style.input}
         defaultValue={props.defaultValue}
-        style={{
-          fontSize: "14px",
-          padding: "8px",
-          outline: "none",
-          border: "1px solid rgb(225,225,225)",
-          width:"100%"
-        }}
+        placeholder={props.placeholder}
       />
-      <label style={{ fontSize: "12px", paddingBottom: "6px" }}>{props.label}</label>
+      <label style={{ fontSize: "12px", paddingBottom: "6px" }}>
+        {props.label}
+      </label>
     </div>
   );
 };
-
 
 export default Input;
