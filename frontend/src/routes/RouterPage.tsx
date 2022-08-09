@@ -4,8 +4,9 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Academies from "../pages/owner/Academies";
 
 //admin pages
-import Users from "../pages/admin/Users";
-import User from "../pages/admin/User";
+import Academy from "../pages/admin/Index";
+import Users from "../pages/admin/users/Index";
+import User from "../pages/admin/users/Pid";
 import Schools from "../pages/admin/schools/Index";
 import School from "../pages/admin/schools/Pid";
 import SchoolAdd from "../pages/admin/schools/Add";
@@ -18,6 +19,11 @@ import Home from "../pages/Home";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 
+//ummm naming,,??
+import Enrollment from "../pages/enrollment/Index";
+import Classes from "../pages/classes/Index";
+import Class from "../pages/classes/Pid";
+
 //error pages
 import Http404 from "../pages/error/404";
 
@@ -27,7 +33,6 @@ import Sidebar from "../layout/navbar/Sidebar";
 //hooks
 import { useAuth } from "../contexts/authContext";
 import { useSidebar } from "../contexts/sidebarContext";
-import Academy from "../pages/admin/Index";
 
 // import Http404 from "./pages/error/404";
 
@@ -83,7 +88,14 @@ function RouterPage() {
 
               {/* basic routes */}
               <Route path="login" element={<Login />}></Route>
-              <Route path="Register" element={<Register />}></Route>
+              <Route path="register" element={<Register />}></Route>
+
+              {/* ----------------------------------------------------- */}
+
+              {/* idk(some kInd of school function routes) routes */}
+              <Route path="enrollment" element={<Enrollment />}></Route>
+              <Route path="classes" element={<Classes />}></Route>
+              <Route path="classes/:pid" element={<Class />}></Route>
 
               {/* ----------------------------------------------------- */}
 
