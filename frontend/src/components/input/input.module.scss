@@ -1,22 +1,41 @@
-.options{
-    border: var(--border-default );
+.input_container {
+
+    display: flex;
+    flex-direction: column-reverse;
+    margin-top: 24px;
+    flex: 1 1 0;
+
+    .input {
+        padding: 8.5px 14px;
+        font-size: 14px;
+
+        height: 40px;
+        outline: none;
+        border: var(--border-default);
+        width: 100%;
+    }
+}
+
+
+.options {
+    border: var(--border-default);
     top: 57px;
     position: absolute;
     display: flex;
     flex-direction: column;
-    height: fit-content ;
+    height: fit-content;
     width: 100%;
-    
-    .option{
+
+    .option {
         cursor: pointer;
         height: 32px;
         display: flex;
         align-items: center;
-        padding: 8px;
         font-size: 14px;
         line-height: 14px;
     }
-    .option:hover{
+
+    .option:hover {
         background-color: rgb(225, 225, 225);
     }
 }
