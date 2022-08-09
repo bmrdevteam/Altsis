@@ -1,26 +1,43 @@
 .select {
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     position: relative;
-    min-width: 120px;
-    .selected{
+    width: fit-content;
+    display: flex;
+    
+    
+    
+    .selected {
+        border: var(--border-default);
+        height: 40px;
+        display: flex;
         padding: 8.5px 14px;
-        
-        
+        align-items: center;
+        .text {
+            flex: 1 1 0;
+            padding-right: 8.5px;
+        }
+
+
     }
-    .options{
+
+    .options {
+        border: var(--border-default);
+        width: 100%;
         z-index: 2022;
         position: absolute;
-        width: 100%;
-        top: 0;
+
+        top: 40px;
         left: 0;
 
         background-color: #fff;
-        .option{
+
+        .option {
             padding: 8.5px 14px;
 
         }
-        .option:hover{
+
+        .option:hover {
             background-color: rgb(225, 225, 225);
         }
     }
