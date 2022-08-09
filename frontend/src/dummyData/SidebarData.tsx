@@ -16,6 +16,12 @@ interface INavSubLink {
 }
 export const SidebarData: any = [
   {
+    title: "enrollment",
+    name: "수강신청",
+    path: "/enrollment",
+    icon: <Svg type="school" />,
+  },
+  {
     title: "admin",
     name: "관리자",
     path: "/academy",
@@ -60,11 +66,5 @@ export const SidebarData: any = [
     name: "설정",
     path: "/setting",
     icon: <Svg type="gear" />,
-  },
-  {
-    title: "tableExample",
-    name: "Example",
-    path: "/examples/table",
-    icon: <Svg type="school" />,
   },
 ];
