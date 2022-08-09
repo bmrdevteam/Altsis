@@ -2,8 +2,9 @@
     margin: 24px;
 
     .title {
-        font-size: 18px;
+        font-size: 24px;
         font-weight: 600;
+        margin-bottom: 24px;
 
     }
 
@@ -21,6 +22,7 @@
 
     .categories {
         display: flex;
+        gap: 4px;
 
         .category {
             cursor: pointer;
