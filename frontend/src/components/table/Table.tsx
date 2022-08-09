@@ -24,6 +24,7 @@ type Props = {
   style?: {
     border?: string;
     backgroundColor?: string;
+    rowHeight?:string
   };
 };
 
@@ -57,7 +58,9 @@ const Table = (props: Props) => {
         <div className={style.table_body_container}>
           {props.data.map((data: any, dataIndex: number) => {
             return (
-              <div key={dataIndex} className={style.table_row}>
+              <div key={dataIndex} className={style.table_row}
+              style={{height:props.style?.rowHeight}}
+              >
                 {props.header.map((value, index) => {
                   return (
                     <TableItem
