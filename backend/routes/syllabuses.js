@@ -13,7 +13,7 @@ router.get('/list',isLoggedIn,syllabus.list);
 router.get('/:_id',isLoggedIn,syllabus.read);
 router.get('/:_id/students',isLoggedIn,syllabus.students);
 
-router.put('/:_id',isLoggedIn,syllabus.update)
+router.put('/:_id/:field?',isLoggedIn,syllabus.update);
 router.delete('/:_id',isLoggedIn,syllabus.delete);
 
 module.exports = router;

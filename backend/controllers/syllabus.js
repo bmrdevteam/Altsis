@@ -1,6 +1,6 @@
 const User=require('../models/User')
 const Syllabus = require("../models/Syllabus");
-const Enrollments=require('../models/Enrollment');
+const Enrollment=require('../models/Enrollment');
 const School=require('../models/School');
 const SchoolUser = require('../models/SchoolUser');
 const { user } = require('../databases/root');
@@ -93,7 +93,7 @@ exports.students = async (req, res) => {
         if(!syllabus){
             return res.status(404).send({message:"no syllabus!"});
         }
-        const students=await Enrollments(req.user.dbName).find({"syllabus._id":syllabus._id});
+        const students=await Enrollment(req.user.dbName).find({"syllabus._id":syllabus._id});
         return res.status(200).send({students:students.map((student)=>{
             return {
                 userId:student.userId,
@@ -115,17 +115,44 @@ exports.update = async (req, res) => {
 
         // 수정이 가능한 시즌인지도 확인해야 함. confirm인가?
         // 어떤게 수정 가능한 필드지?
-        const fields=['classTitle','confirm','time','point','classroom','subject','teachers','description']
-        //    classTitle:String, time:String, point:String,subject:Array
-        for(let field of fields){
-            if(req.body[field]){
-                syllabus[field]=req.body[field];
+        const fields=['classTitle', 'confirm', 'time', 'point', 'classroom', 'subject', 'teachers', 'info'];
+
+        if(req.params.field){
+            if(fields.includes(req.params.field)){
+                syllabus[req.params.field]=req.body.new;
             }
-            
+            else{
+                return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+            }
         }
+        else{
+            fields.forEach(field => {
+                syllabus[field]=req.body.new[field];
+            });
+        }
+           
         await syllabus.save();
 
-        return res.status(200).send({ syllabus})
+        // update enrollments cascade
+        const enrollments = await Enrollment(req.user.dbName).find({'syllabus._id':syllabus._id});
+        const subSyllabus={
+            _id:syllabus._id,
+            schoolId:syllabus.schoolId,
+            schoolName:syllabus.schoolName,
+            year:syllabus.year,
+            term:syllabus.term,
+            classTitle:syllabus.classTitle,
+            time:syllabus.time,
+            point:syllabus.point,
+            subject:syllabus.subject
+        }
+        await Promise.all(
+            enrollments.map(async (enrollment) => {
+              enrollment['syllabus']=subSyllabus;
+              enrollment.save();
+            }),
+          )
+        return res.status(200).send({ syllabus,enrollments})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });

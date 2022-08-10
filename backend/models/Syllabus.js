@@ -39,13 +39,10 @@ const syllabusSchema = mongoose.Schema({
         type:String,
         required:true
     },
-    classroom:{
-        type:String,
-        required:true
-    },
+    classroom:String,
     point:{
         type:String,
-        required:true
+        default:'0'
     },
     subject:{
         type:Array,
@@ -63,9 +60,10 @@ const syllabusSchema = mongoose.Schema({
                     required:true
                 }
             },{_id:false})],
-            validate: v => Array.isArray(v) && v.length > 0,
+        validate: v => Array.isArray(v) && v.length > 0,
+        required:true
         },
-    description: Object,
+    info: Object,
     timestamps: {
         type: String,
         default: moment().format('YYYY-MM-DD HH:mm:ss')

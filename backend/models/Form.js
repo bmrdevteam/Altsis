@@ -47,12 +47,19 @@ const formSchema = mongoose.Schema(
     {
         userId: String,
         userName: String,
-        type:String,
+        type:{
+            type:String,
+            required:true
+        },
         title:{
             type:String,
-            unique:true
+            unique:true,
+            required:true
         },
-        data: dataSchema,
+        data: {
+            type:dataSchema,
+            required:true
+        },
         timestamps: {
             type: String,
             default: moment().format('YYYY-MM-DD HH:mm:ss')
