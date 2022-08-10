@@ -28,12 +28,8 @@ const schoolUserSchema = mongoose.Schema({
     role: String,
     photo:String,
     archive: Object,
-    registrations: [registrationSchema],
-    timestamps: {
-        type: String,
-        default: moment().format('YYYY-MM-DD HH:mm:ss')
-    }
-});
+    registrations: [registrationSchema]
+},{ timestamps: true });
 
 module.exports = (dbName) => {
     return conn[dbName].model('SchoolUser', schoolUserSchema);

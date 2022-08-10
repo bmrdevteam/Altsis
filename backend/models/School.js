@@ -3,14 +3,19 @@ const moment=require('moment')
 const {conn}=require('../databases/connection')   
 
 
+const subjectSchema=mongoose.Schema({
+    label:[String],
+    data:Array
+},{ _id : false })
+
 const permissionSchema=mongoose.Schema({
     teacher:{
-        type:String,
-        default:'N'
+        type:Boolean,
+        default:false
     },
     student:{
-        type:String,
-        default:'N'
+        type:Boolean,
+        default:false
     },
     allowlist:[
         mongoose.Schema({
@@ -40,8 +45,8 @@ const seasonSchema= mongoose.Schema({
         required:true
     },
     activated:{ /* 시즌 활성화 */
-        type:String,
-        default:'N'
+        type:Boolean,
+        default:false
     },  
     permissions:{
         type:mongoose.Schema({
@@ -61,7 +66,7 @@ const seasonSchema= mongoose.Schema({
             evaluation:{}
         }
     },
-    form:{
+    forms:{
         type:mongoose.Schema({
             timetable:{
                 type:String,
@@ -101,13 +106,9 @@ const schoolSchema=mongoose.Schema({
     homepage:String,
     address:String,
     classrooms:[String],
-    subjects:Array,
-    seasons:[seasonSchema],
-    timestamps:{
-        type:String,
-        default:moment().format('YYYY-MM-DD HH:mm:ss')
-    },
-});
+    subjects:subjectSchema,
+    seasons:[seasonSchema]
+},{ timestamps: true });
 
 module.exports=(dbName)=>{
     return conn[dbName].model('School',schoolSchema);

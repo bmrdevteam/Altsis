@@ -59,12 +59,8 @@ const formSchema = mongoose.Schema(
         data: {
             type:dataSchema,
             required:true
-        },
-        timestamps: {
-            type: String,
-            default: moment().format('YYYY-MM-DD HH:mm:ss')
         }
-    })
+    },{ timestamps: true });
 
 module.exports = (dbName) => {
     return conn[dbName].model('Form', formSchema);

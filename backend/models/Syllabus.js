@@ -31,18 +31,33 @@ const syllabusSchema = mongoose.Schema({
         type:String,
         required:true
     },
-    confirm:{
-        type:String,
-        default:'N'
+    confirmed:{
+        type:Boolean,
+        default:false
     },
     time:{
-        type:String,
+        type:[
+            mongoose.Schema({
+                label:{
+                    type:String,
+                    required:true
+                },
+                start:{
+                    type:String,
+                    required:true
+                },
+                end:{
+                    type:String,
+                    required:true
+                }
+            },{_id:false})],
+            validate: v => Array.isArray(v) && v.length > 0,
         required:true
     },
     classroom:String,
     point:{
-        type:String,
-        default:'0'
+        type:Number,
+        default:0
     },
     subject:{
         type:Array,
@@ -63,12 +78,8 @@ const syllabusSchema = mongoose.Schema({
         validate: v => Array.isArray(v) && v.length > 0,
         required:true
         },
-    info: Object,
-    timestamps: {
-        type: String,
-        default: moment().format('YYYY-MM-DD HH:mm:ss')
-    }
-});
+    info: Object
+},{ timestamps: true });
 
 module.exports = (dbName) => {
     return conn[dbName].model('Syllabus', syllabusSchema);

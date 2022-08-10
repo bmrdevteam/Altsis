@@ -79,14 +79,9 @@ exports.create = async (req, res) => {
     try {
         // check duplication
         const academyId=req.body.academyId;
-        const _academy = await Academy.findOne( {$or:[ {academyId:academyId},{adminId:req.body.adminId} ]});
+        const _academy = await Academy.findOne({academyId:academyId});
         if(_academy){
-            if(_academy.academyId==academyId){
-                return res.status(400).send({message:`academyId is already in use`})
-            }
-            else{
-                return res.status(400).send({message:`adminId is already in use`})
-            }
+            return res.status(400).send({message:`academyId is already in use`})
         }
 
         // create academy document

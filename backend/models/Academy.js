@@ -11,11 +11,7 @@ const academySchema=mongoose.Schema({
     email:String,
     tel:String,
     adminId:String,
-    adminName:String,
-    timestamps:{
-        type:String,
-        default:moment().format('YYYY-MM-DD HH:mm:ss')
-    }
-});
+    adminName:String
+},{ timestamps: true });
 
 module.exports=conn.model('Academy',academySchema);
