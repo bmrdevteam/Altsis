@@ -28,12 +28,8 @@ const userSchema=mongoose.Schema({
             schoolId:String,
             schoolName:String
         },{_id:false})
-    ],
-    timestamps:{
-        type:String,
-        default:moment().format('YYYY-MM-DD HH:mm:ss')
-    }
-});
+    ]
+},{ timestamps: true });
 
 userSchema.pre('save',function(next){
     var user=this;

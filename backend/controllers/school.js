@@ -62,6 +62,7 @@ exports.update = async (req, res) => {
         }
 
         const fields=['logo','tel','email','head','homepage','address'];
+        
 
         if(req.params.field){
             if(fields.includes(req.params.field)){
@@ -76,7 +77,6 @@ exports.update = async (req, res) => {
                 school[field]=req.body.new[field];
             });
         }
-    
         await school.save();
         return res.status(200).send({ school})
     }
@@ -119,13 +119,12 @@ exports.createField = async (req, res) => {
 
 exports.updateField = async (req, res) => {
     try {
+        
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
         if(!school){
             return res.status(404).send({message:"no school!"});
         }
-        if(school[req.params.field].length!=req.body.new.length){
-            return res.status(409).send({message:"length is not matched!"})
-        }
+        
         school[req.params.field]=req.body.new;
         school.markModified(req.params.field);
         await school.save();
@@ -146,7 +145,12 @@ exports.updateFieldByIdx = async (req, res) => {
         if(school[req.params.field].length<req.params.idx){
             return res.status(409).send({message:"index out of range"})
         }
-        school[req.params.field][req.params.idx]=req.body.new;
+        if(req.params.field=='subjects'){
+            school[req.params.field]['data'][req.params.idx]=req.body.new;
+        }
+        else{
+            school[req.params.field][req.params.idx]=req.body.new;
+        }
         school.markModified(req.params.field);
         await school.save();
         return res.status(200).send({school});
@@ -162,125 +166,15 @@ exports.deleteFieldByIdx = async (req, res) => {
         if(!school){
             return res.status(404).send({message:"no school!"});
         }
-        if(school[req.params.field].length<req.params.idx){
-            return res.status(404).send({message:"index out of range"})
+        if(req.params.field=='subjects'){
+            school[req.params.field]['data'].splice(req.params.idx, 1);
         }
-        school[req.params.field].splice(req.params.idx, 1);
+        else{
+            school[req.params.field].splice(req.params.idx, 1);
+        }
+        
         await school.save();
         return res.status(200).send({school})
-    }
-    catch (err) {
-        return res.status(500).send({ err: err.message });
-    }
-}
-
-
-
-exports.createSubject = async (req, res) => {
-    try {
-        const school = await School(req.user.dbName).findOne({_id:req.params._id});
-        if(!school){
-            return res.status(404).send({message:"no school!"});
-        }
-        school["subjects"].push(req.body.subject);
-        await school.save();
-        return res.status(200).send({subjects:school["subjects"]})
-    }
-    catch (err) {
-        return res.status(500).send({ err: err.message });
-    }
-}
-
-exports.updateSubject = async (req, res) => {
-    try {
-        const school = await School(req.user.dbName).findOne({_id:req.params._id});
-        if(!school){
-            return res.status(404).send({message:"no school!"});
-        }
-        if(school["subjects"].length<=req.params.idx){
-            return res.status(404).send({message:"index out of range"})
-        }
-        const old=school["subjects"][req.params.idx];
-        school["subjects"][req.params.idx]=req.body.new;
-        await school.save();
-        return res.status(200).send({old:old,new:school["subjects"][req.params.idx]});
-    }
-    catch (err) {
-        return res.status(500).send({ err: err.message });
-    }
-}
-
-exports.deleteSubject = async (req, res) => {
-    try {
-        const school = await School(req.user.dbName).findOne({_id:req.params._id});
-        if(!school){
-            return res.status(404).send({message:"no school!"});
-        }
-        if(school["subjects"].length<=req.params.idx){
-            return res.status(404).send({message:"index out of range"})
-        }
-        const old=school["subjects"][req.params.idx];
-        school["subjects"].splice(req.params.idx, 1);
-        await school.save();
-        return res.status(200).send({old:old})
-    }
-    catch (err) {
-        return res.status(500).send({ err: err.message });
-    }
-}
-
-
-exports.createSeason = async (req, res) => {
-    try {
-        const school = await School(req.user.dbName).findOne({_id:req.params._id});
-        if(!school){
-            return res.status(404).send({message:"no school!"});
-        }
-        for(let key in req.body.season.permissions){
-            req.body.season.permissions[key]["allowlist"]=[];
-            req.body.season.permissions[key]["blocklist"]=[]
-        }
-        school["seasons"].push(req.body.season);
-        await school.save();
-        return res.status(200).send({seasons: school["seasons"][school["seasons"].length-1]})
-    }
-    catch (err) {
-        return res.status(500).send({ err: err.message });
-    }
-}
-
-exports.updateSeason = async (req, res) => {
-    try {
-        const school = await School(req.user.dbName).findOne({_id:req.params._id});
-        if(!school){
-            return res.status(404).send({message:"no school!"})
-        }
-        if(school["seasons"].length<=req.params.idx){
-            return res.status(404).send({message:"index out of range"})
-        }
-        const old=school["seasons"][req.params.idx];
-        school["seasons"][req.params.idx]=req.body.new;
-        await school.save();
-        return res.status(200).send({old:old,new:school["seasons"][req.params.idx]});
-    }
-    catch (err) {
-        return res.status(500).send({ err: err.message });
-    }
-}
-
-exports.deleteSeason = async (req, res) => {
-    try {
-        const school = await School(req.user.dbName).findOne({_id:req.params._id});
-        if(!school){
-            return res.status(404).send({message:"no school!"});
-        }
-        if(school["seasons"].length<=req.params.idx){
-            return res.status(404).send({message:"index out of range"})
-        }
-        const old=school["seasons"][req.params.idx];
-        school["seasons"].splice(req.params.idx, 1);
-        await school.save();
-        return res.status(200).send({old:old})
     }
     catch (err) {
         return res.status(500).send({ err: err.message });

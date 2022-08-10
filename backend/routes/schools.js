@@ -9,7 +9,7 @@ const {isAdManager}=require('../middleware/auth')
 
 router.post('/',isAdManager,school.validateCreate,school.create);
 router.get('/list',isAdManager,school.list);
-router.put('/:_id/:field?',isAdManager,school.update)
+router.put('/:_id/info/:field?',isAdManager,school.update)
 router.delete('/:_id',isAdManager,school.delete);
 
 // ________________________________________

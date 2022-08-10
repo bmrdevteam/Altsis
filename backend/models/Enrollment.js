@@ -10,7 +10,7 @@ var syllabusSchema =  mongoose.Schema({
     term:String,
     classTitle:String,
     time:String,
-    point:String,
+    point:Number,
     subject:Array
 },{_id:false});
 
@@ -22,12 +22,8 @@ const enrollmentSchema = mongoose.Schema({
     year:String,
     term:String,
     syllabus:syllabusSchema,
-    evaluation:Object,
-    timestamps: {
-        type: String,
-        default: moment().format('YYYY-MM-DD HH:mm:ss')
-    }
-});
+    evaluation:Object
+},{ timestamps: true });
 
 module.exports = (dbName) => {
     return conn[dbName].model('Enrollment', enrollmentSchema);
