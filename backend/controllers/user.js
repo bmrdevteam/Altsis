@@ -417,7 +417,34 @@ exports.cancelManager= async (req, res) => {
     
 }
 
-exports.readUsers = async (req, res) => {
+exports.readOwners = async (req, res) => {
+    try {
+        const users = await User(req.user.dbName).find({});
+        return res.status(200).send({users:users.map(user=>{
+            user.password=undefined;
+            return user;
+        })})
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.readAdmin = async (req, res) => {
+    try {
+        let dbName=req.query.academyId+'-db';
+        console.log('dbName: ',dbName);
+        const user = await User(dbName).findOne({userId:req.query.userId});
+        dbName['password']=undefined;
+        return res.status(200).send({user
+        })
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.readMembers = async (req, res) => {
     try {
         const users = await User(req.user.dbName).find({});
         return res.status(200).send({users:users.map(user=>{
@@ -456,21 +483,24 @@ exports.updateAdmin = async (req, res) => {
     }
 }
 
-exports.updateMember = async (req, res) => {
+
+exports.updateMemberField = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
     try {
+        
         const user = await User(req.user.dbName).findById(req.params._id);
         if(!user){
             return res.status(409).send({message:'no user with such _id'});
         }
+        
         if(user.auth!='member'){
             return res.status(401).send({message:'you cannot update this user'});
         }
-
+       
         const fields=['password','email','tel']
         if(fields.includes(req.params.field)){
             user[req.params.field]=req.body.new;
@@ -479,7 +509,6 @@ exports.updateMember = async (req, res) => {
             return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
         }
         await user.save();
-        user.password=undefined;
         return res.status(200).send({user})
     }
     catch (err) {
@@ -498,7 +527,7 @@ exports.read = async (req, res) => {
     }
 }
 
-exports.update = async (req, res) => {
+exports.updateField = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -507,19 +536,13 @@ exports.update = async (req, res) => {
     try {
         const user=req.user;
         const fields=['password','email','tel']
-        if(fields.includes(req.params.field)){
-            user[req.params.field]=req.body.new;
-        }
-        else{
+        if(!fields.includes(req.params.field)){
             return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
         }
+        
+        user[req.params.field]=req.body.new;
         await user.save();
-        return res.status(200).send({ user:{
-            userId:user.userId,
-            userName:user.userName,
-            email:user.email,
-            tel:user.tel
-        }})
+        return res.status(200).send({user})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });

@@ -52,15 +52,24 @@ exports.update = async (req, res) => {
         if(!form){
             return res.status(404).send({message:'no form'});
         }
-            const fields=['title','data']
+        const fields=['type','title','contents'];
+
+        if(req.params.field){
             if(fields.includes(req.params.field)){
                 form[req.params.field]=req.body.new;
             }
             else{
                 return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
             }
-            await form.save();
-            return res.status(200).send({ form})
+        }
+        else{
+            fields.forEach(field => {
+                form[field]=req.body.new[field];
+            });
+        }
+           
+        await form.save();
+        return res.status(200).send({ form})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });

@@ -7,6 +7,8 @@ const {isLoggedIn,isNotLoggedIn,isOwner,isAdmin,isAdManager}=require("../middlew
 //             User
 //=================================
 
+// ____________ common ____________
+
 /* local & google login */
 router.post('/login/local',isNotLoggedIn,user.loginLocal);
 router.post("/login/google",isNotLoggedIn,user.loginGoogle);
@@ -18,26 +20,24 @@ router.delete('/google',isLoggedIn,user.disconnectGoogle);
 /* logout */
 router.get("/logout", isLoggedIn,user.logout);
 
-//CRUD 
-router.post('/owners',isOwner,user.validateOwner,user.createOwner);
-router.post('/members',isAdManager,user.validateMembers,user.createMembers);
+// read & update oneself
+router.get('/',isLoggedIn,user.read);
+router.put('/:field',isLoggedIn,user.updateField);
 
+// ____________ owner ____________
+router.post('/owners',isOwner,user.validateOwner,user.createOwner);
+router.get('/owners/list',isOwner, user.readOwners);
+router.get('/admins',isOwner, user.readAdmin);
+
+// ____________ admin ____________
 // admin appoints member as manager
-router.patch('/managers/:_id',isAdmin,user.appointManager);
+router.post('/managers/:_id',isAdmin,user.appointManager);
 router.delete('/managers/:_id',isAdmin,user.cancelManager);
 
-// admin&manager read user list
-router.get('/list',isAdManager,user.readUsers);
-
-// admin&mnanger update member
-router.put('/:_id/:field',isAdManager,user.validateUpdate,user.updateMember);
-
-// owner, admin,manager, member read & update oneself
-router.get('/',isLoggedIn,user.read);
-router.put('/:field',isLoggedIn,user.update);
-
-
-// admin&manager delete member
+// ____________ admin + manager ____________
+router.post('/members',isAdManager,user.validateMembers,user.createMembers);
+router.get('/members/list',isAdManager,user.readMembers);
+router.put('/members/:_id/:field',isAdManager,user.validateUpdate,user.updateMemberField);
 router.delete('/members/:_id',isAdManager,user.deleteMember);
 
 module.exports = router;

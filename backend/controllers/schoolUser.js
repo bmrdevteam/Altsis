@@ -1,6 +1,7 @@
 const SchoolUser = require("../models/SchoolUser");
 const lodash=require('lodash');
 const mongoose=require('mongoose');
+const createError = require('http-errors');
 
 exports.register= async (req,res) => {
     try {
@@ -8,19 +9,26 @@ exports.register= async (req,res) => {
         if(!schoolUser){
             res.status(404).send({message:"no schoolUser!"});
         }
-        const idx = schoolUser["registrations"].findIndex(obj => obj.year.year === req.body.year.year);
-        if(idx==-1){
+        const yearIdx = schoolUser["registrations"].findIndex(obj => obj.year === req.body.year);
+        if(yearIdx==-1){
             schoolUser["registrations"].push({
                 year: req.body.year,
                 terms:[
                     req.body.term
-                ]
+                ],
+                info:req.body.info
             })
         }
         else{
-            schoolUser["registrations"][idx]['terms'].push(req.body.term);
-            schoolUser.markModified('registrations');
-        } 
+            const termIdx= schoolUser["registrations"][yearIdx]['terms'].findIndex(obj => obj === req.body.term);
+            if(termIdx==-1){
+                schoolUser["registrations"][yearIdx]['terms'].push(req.body.term);
+            }
+            else{
+               return res.status(409).send({message:'schoolUser already registered in this term'});
+            } 
+        }
+        schoolUser.markModified('registrations');
         await schoolUser.save();
         return res.status(200).send({schoolUser})
     }
@@ -36,36 +44,45 @@ exports.registerBulk= async (req,res) => {
             req.body.schoolUsers.map(async _schoolUser=>{
                 const schoolUser = await SchoolUser(req.user.dbName).findById(mongoose.Types.ObjectId(_schoolUser._id));
                 if(!schoolUser){
-                    throw new Error("no schooluser with _id "+_schoolUser._id);
+                    const error=new Error(`no schooluser(_id:${_schoolUser._id}`);
+                    error.code=404;
+                    throw error;
                 }
                 console.log('debug: schoolUser.userId: ',schoolUser.userId);
-                const idx = schoolUser["registrations"].findIndex(obj => obj.year.year === _schoolUser.year.year);
-                if(idx==-1){
+                const yearIdx = schoolUser["registrations"].findIndex(obj => obj.year === _schoolUser.year);
+                if(yearIdx==-1){
                     schoolUser["registrations"].push({
                         year: _schoolUser.year,
                         terms:[
                             _schoolUser.term
-                        ]
+                        ],
+                        info:_schoolUser.info
                     })
                 }
                 else{
-                    schoolUser["registrations"][idx]['terms'].push(_schoolUser.term);
-                    schoolUser.markModified('registrations');
-                } 
+                    const termIdx= schoolUser["registrations"][yearIdx]['terms'].findIndex(obj => obj === _schoolUser.term);
+                    if(termIdx==-1){
+                        schoolUser["registrations"][yearIdx]['terms'].push(_schoolUser.term);
+                    }
+                    else{
+                        const error=new Error('schoolUser already registered in this term');
+                        error.code=409;
+                        throw error;
+                    } 
+                 }
                 return schoolUser;
             })
         );
        await Promise.all(
-            schoolUsers.map(async schoolUser=>{
-                await schoolUser.save();
+            schoolUsers.map(schoolUser=>{
+                schoolUser.save();
                 console.log(`debug: schoolUser.userId(${schoolUser.userId}) is saved`);
             })
        )
         return res.status(200).send(schoolUsers);
     }
     catch (err) {
-        console.log('catched?');
-        return res.status(500).send({ err: err.message });
+        return res.status(err.code||500).send({ err: err.message });
     }
 }
 
@@ -92,20 +109,24 @@ exports.list=async(req,res)=>{
 
 exports.updateRegistration=async(req,res)=>{
     try {
-        const schoolUser = await SchoolUser(req.user.dbName).findById(req.body._id);
-        const yearIdx = schoolUser["registrations"].findIndex(obj => obj.year.year === req.body.year.year);
-        if(yearIdx==-1){
-            return res.status(404).send({message:"not existing..."});
-            
+        const schoolUser = await SchoolUser(req.user.dbName).findById(req.params._id);
+        if(!schoolUser){
+            return res.status(404).send({message:'no schoolUser!'});
+        }
+
+        // update every registration
+        if(!req.params.yearIdx){
+            schoolUser['registrations']=req.body.new;
+        }
+        else if(schoolUser['registrations'].length<req.params.yearIdx){
+            return res.status(409).send({message:'index out of range'});
         }
         else{
-            schoolUser["registrations"][yearIdx]=req.body.year;
-            const termIdx=schoolUser["registrations"][yearIdx]['terms'].findIndex(obj => obj.term.term === req.body.term.term);
-            schoolUser["registrations"][yearIdx]['terms'][termIdx]=req.body.term;
-            schoolUser.markModified('registrations');
-        } 
+             // update year Info
+             schoolUser['registrations'][req.params.yearIdx]=req.body.new;
+        }
         await schoolUser.save();
-        return res.status(200).send({schoolUser})
+        return res.status(200).send({schoolUser});
       }
       catch (err) {
           if (err) return res.status(500).send({ err: err.message });
@@ -115,29 +136,25 @@ exports.updateRegistration=async(req,res)=>{
 exports.update=async(req,res)=>{
   try {
         const schoolUser=await SchoolUser(req.user.dbName).findById(req.params._id);
-        const fields=['role','photo','info']
-        if(fields.includes(req.params.field)){
-            schoolUser[req.params.field]=req.body.new;
+        if(!schoolUser){
+            return res.status(404).send({message:"no schooluser!"});
         }
-        else if(req.params.field=='registration'){
-            console.log('...')
-            const yearIdx = schoolUser["registrations"].findIndex(obj => obj.year.year === req.body.year.year);
-            if(yearIdx==-1){
-                return res.status(404).send({message:"not existing..."});
+
+        const fields=['role','photo','archive'];
+        if(req.params.field){
+            if(fields.includes(req.params.field)){
+                schoolUser[req.params.field]=req.body.new;
             }
-            
-            schoolUser["registrations"][yearIdx]['year']=req.body.year;
-            console.log(schoolUser["registrations"][yearIdx]) 
-            const termIdx=schoolUser["registrations"][yearIdx]['terms'].findIndex(obj => obj.term === req.body.term.term);
-            if(termIdx==-1){
-                return res.status(404).send({message:"not existing..."});
+            else{
+                return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
             }
-            schoolUser["registrations"][yearIdx]['terms'][termIdx]=req.body.term;
-            schoolUser.markModified('registrations');
         }
         else{
-            return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+            fields.forEach(field => {
+                schoolUser[field]=req.body.new[field];
+            });
         }
+    
         await schoolUser.save();
         return res.status(200).send({schoolUser})
     }

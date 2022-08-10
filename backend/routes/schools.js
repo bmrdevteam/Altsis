@@ -9,22 +9,16 @@ const {isAdManager}=require('../middleware/auth')
 
 router.post('/',isAdManager,school.validateCreate,school.create);
 router.get('/list',isAdManager,school.list);
-router.put('/:_id',isAdManager,school.update)
+router.put('/:_id/:field?',isAdManager,school.update)
 router.delete('/:_id',isAdManager,school.delete);
 
-router.post('/:_id/classrooms',isAdManager,school.createClassroom);
-router.put('/:_id/classrooms/:idx',isAdManager,school.updateClassroom);
-router.delete('/:_id/classrooms/:idx',isAdManager,school.deleteClassroom);
+// ________________________________________
+// ---- classrooms, subjects, seasons ----
+// ________________________________________
 
-router.post('/:_id/subjects',isAdManager,school.createSubject);
-router.put('/:_id/subjects/:idx',isAdManager,school.updateSubject);
-router.delete('/:_id/subjects/:idx',isAdManager,school.deleteSubject);
-
-router.post('/:_id/seasons',isAdManager,school.createSeason);
-router.put('/:_id/seasons/:idx',isAdManager,school.updateSeason);
-router.delete('/:_id/seasons/:idx',isAdManager,school.deleteSeason);
-
-// user enter school => create schoolUser
-// router.post('/enter',isAdmin,school.validateCreateMultiple,school.)
+router.post('/:_id/:field',isAdManager,school.createField);
+router.put('/:_id/:field',isAdManager,school.updateField);
+router.put('/:_id/:field/:idx',isAdManager,school.updateFieldByIdx);
+router.delete('/:_id/:field/:idx',isAdManager,school.deleteFieldByIdx);
 
 module.exports = router;

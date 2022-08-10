@@ -143,15 +143,28 @@ exports.update = async (req, res) => {
 
     try {
         const academy=await Academy.findById(req.params._id);
-        const fields=['email','tel','adminId','adminName']
-        if(fields.includes(req.params.field)){
-            academy[req.params.field]=req.body[req.params.field];
+        if(!academy){
+            return res.status(404).send({message: "no academy!"})
+        }
+
+        const fields=['email','tel','adminId','adminName'];
+
+        if(req.params.field){
+            if(fields.includes(req.params.field)){
+                academy[req.params.field]=req.body.new;
+            }
+            {
+                return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+            }
         }
         else{
-            return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+            fields.forEach(field => {
+                academy[field]=req.body.new[field];
+            });
         }
-        await academy.save();
-        return res.status(200).send({ academy})
+        
+       await academy.save();
+        return res.status(200).send({academy})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });

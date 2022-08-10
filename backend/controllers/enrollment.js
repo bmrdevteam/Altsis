@@ -1,6 +1,21 @@
 const Enrollment = require("../models/Enrollment");
 const Syllabus=require('../models/Syllabus');
 
+
+const subSyllabus=(syllabus)=>
+   ( {
+        _id:syllabus._id,
+        schoolId:syllabus.schoolId,
+        schoolName:syllabus.schoolName,
+        year:syllabus.year,
+        term:syllabus.term,
+        classTitle:syllabus.classTitle,
+        time:syllabus.time,
+        point:syllabus.point,
+        subject:syllabus.subject
+    })
+
+
 exports.create = async(req,res)=>{
     try {
         const _Enrollment=Enrollment(req.user.dbName);
@@ -21,17 +36,7 @@ exports.create = async(req,res)=>{
         const enrollment=new _Enrollment({
             userId:req.user.userId,
             userName:req.user.userName,
-            syllabus:{
-                _id:_syllabus._id,
-                schoolId:_syllabus.schoolId,
-                schoolName:_syllabus.schoolName,
-                year:_syllabus.year,
-                term:_syllabus.term,
-                classTitle:_syllabus.classTitle,
-                time:_syllabus.time,
-                point:_syllabus.point,
-                subject:_syllabus.subject
-            }
+            syllabus:subSyllabus(_syllabus)
         })
         await enrollment.save();
         return res.status(200).send({enrollment})
@@ -51,19 +56,8 @@ exports.createBulk = async(req,res)=>{
             return res.status(409).send({message:"This course is not enrollable at the moment"});
         }
         
-        const syllabus= {
-            _id:_syllabus._id,
-            schoolId:_syllabus.schoolId,
-            schoolName:_syllabus.schoolName,
-            year:_syllabus.year,
-            term:_syllabus.term,
-            classTitle:_syllabus.classTitle,
-            time:_syllabus.time,
-            point:_syllabus.point,
-            subject:_syllabus.subject
-        }
+        const syllabus= subSyllabus(_syllabus);
         const userIds=(await Enrollment(req.user.dbName).find({"syllabus._id":syllabus._id})).map(enrollment=>enrollment.userId); //해당 수업을 듣는 학생들의 userId 리스트
-
 
         const enrollments=[];
         for(let student of req.body.students){
@@ -112,7 +106,10 @@ exports.updateEvaluation = async (req, res) => {
         // 권한 먼저 확인해야 함
 
         const enrollment=await Enrollment(req.user.dbName).findOne({_id:req.params._id});
-        enrollment["evaluation"]=req.body.evaluation;
+        if(!enrollment){
+            return res.status(404).send({message:'no enrollment!'})
+        }
+        enrollment["evaluation"]=req.body.new;
         await enrollment.save();
    
         return res.status(200).send({ enrollment })

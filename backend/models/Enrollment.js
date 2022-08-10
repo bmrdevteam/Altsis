@@ -3,6 +3,7 @@ const moment = require('moment');
 const { conn } = require('../databases/connection')
 
 var syllabusSchema =  mongoose.Schema({
+    _id:String,
     schoolId:String,
     schoolName:String,
     year:String,
@@ -11,7 +12,7 @@ var syllabusSchema =  mongoose.Schema({
     time:String,
     point:String,
     subject:Array
-});
+},{_id:false});
 
 
 const enrollmentSchema = mongoose.Schema({

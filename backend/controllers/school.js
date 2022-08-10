@@ -56,8 +56,29 @@ exports.list = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const updatedSchool=await School(req.user.dbName).findByIdAndUpdate(req.params._id,req.body,{ returnDocument: 'after' });
-        return res.status(200).send({ school:updatedSchool})
+        const school=await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:'no school!'});
+        }
+
+        const fields=['logo','tel','email','head','homepage','address'];
+
+        if(req.params.field){
+            if(fields.includes(req.params.field)){
+                school[req.params.field]=req.body.new;
+            }
+            else{
+                return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+            }
+        }
+        else{
+            fields.forEach(field => {
+                school[field]=req.body.new[field];
+            });
+        }
+    
+        await school.save();
+        return res.status(200).send({ school})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
@@ -75,55 +96,78 @@ exports.delete = async (req, res) => {
     }
 }
 
-
-
-exports.createClassroom = async (req, res) => {
+exports.createField = async (req, res) => {
     try {
+        const fields=['classrooms','subjects','seasons'];
+        if(!fields.includes(req.params.field)){
+            return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
+        }
+
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
         if(!school){
             return res.status(404).send({message:"no school!"});
         }
-        school["classrooms"].push(req.body.classroom);
+        school[req.params.field].push(req.body.new);
+        school.markModified(req.params.field);
         await school.save();
-        return res.status(200).send({classrooms:school["classrooms"]})
+        return res.status(200).send({school})
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
     }
 }
 
-exports.updateClassroom = async (req, res) => {
+exports.updateField = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
         if(!school){
             return res.status(404).send({message:"no school!"});
         }
-        if(school["classrooms"].length<=req.params.idx){
-            return res.status(404).send({message:"index out of range"})
+        if(school[req.params.field].length!=req.body.new.length){
+            return res.status(409).send({message:"length is not matched!"})
         }
-        const old=school["classrooms"][req.params.idx];
-        school["classrooms"][req.params.idx]=req.body.new;
+        school[req.params.field]=req.body.new;
+        school.markModified(req.params.field);
         await school.save();
-        return res.status(200).send({old:old,new:school["classrooms"][req.params.idx]});
+        return res.status(200).send({school});
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
     }
 }
 
-exports.deleteClassroom = async (req, res) => {
+exports.updateFieldByIdx = async (req, res) => {
     try {
         const school = await School(req.user.dbName).findOne({_id:req.params._id});
         if(!school){
             return res.status(404).send({message:"no school!"});
         }
-        if(school["classrooms"].length<=req.params.idx){
+
+        if(school[req.params.field].length<req.params.idx){
+            return res.status(409).send({message:"index out of range"})
+        }
+        school[req.params.field][req.params.idx]=req.body.new;
+        school.markModified(req.params.field);
+        await school.save();
+        return res.status(200).send({school});
+    }
+    catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.deleteFieldByIdx = async (req, res) => {
+    try {
+        const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
+        if(school[req.params.field].length<req.params.idx){
             return res.status(404).send({message:"index out of range"})
         }
-        const old=school["classrooms"][req.params.idx];
-        school["classrooms"].splice(req.params.idx, 1);
+        school[req.params.field].splice(req.params.idx, 1);
         await school.save();
-        return res.status(200).send({old:old})
+        return res.status(200).send({school})
     }
     catch (err) {
         return res.status(500).send({ err: err.message });
