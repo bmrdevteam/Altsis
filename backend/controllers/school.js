@@ -107,7 +107,13 @@ exports.createField = async (req, res) => {
         if(!school){
             return res.status(404).send({message:"no school!"});
         }
-        school[req.params.field].push(req.body.new);
+        if(req.params.field=='subjects'){
+            school[req.params.field]['data'].push(req.body.new);
+        }
+        else{
+            school[req.params.field].push(req.body.new);
+        }
+
         school.markModified(req.params.field);
         await school.save();
         return res.status(200).send({school})
