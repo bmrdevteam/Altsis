@@ -9,7 +9,7 @@ var syllabusSchema =  mongoose.Schema({
     year:String,
     term:String,
     classTitle:String,
-    time:String,
+    time:Array,
     point:Number,
     subject:Array
 },{_id:false});

@@ -52,7 +52,30 @@ exports.list = async (req, res) => {
         if (err) return res.status(500).send({ err: err.message });
     }
 }
-
+exports.classrooms = async (req, res) => {
+    try {
+        const school = await School(req.user.dbName).findById(req.params._id);
+        if(!school){
+            return res.status(404);
+        }
+        return res.status(200).send({classrooms:school.classrooms});
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
+exports.subjects = async (req, res) => {
+    try {
+        const school = await School(req.user.dbName).findById(req.params._id);
+        if(!school){
+            return res.status(404);
+        }
+        return res.status(200).send({classrooms:school.subjects});
+    }
+    catch (err) {
+        if (err) return res.status(500).send({ err: err.message });
+    }
+}
 
 exports.update = async (req, res) => {
     try {

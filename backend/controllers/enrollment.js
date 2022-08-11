@@ -1,6 +1,9 @@
 const Enrollment = require("../models/Enrollment");
 const Syllabus=require('../models/Syllabus');
-
+const School = require('../models/School');
+const SchoolUser = require('../models/SchoolUser');
+const { findSeasonIdx, findRegistrationIdx, checkPermission } = require('../utils/util');
+const { checkTimeAvailable } = require('../utils/util');
 
 const subSyllabus=(syllabus)=>
    ( {
@@ -18,31 +21,44 @@ const subSyllabus=(syllabus)=>
 
 exports.create = async(req,res)=>{
     try {
+
         const _Enrollment=Enrollment(req.user.dbName);
         const _enrollment=await _Enrollment.findOne({userId:req.user.userId,"syllabus._id":req.body.syllabus});
         if(_enrollment){
             return res.status(409).send({message:"you already enrolled in this syllabus"})
         }
 
-        const _syllabus=await Syllabus(req.user.dbName).findById(req.body.syllabus);
-        if(!_syllabus){
+        const syllabus=await Syllabus(req.user.dbName).findById(req.body.syllabus);
+        if(!syllabus){
             return res.status(404).send({message:"invalid syllabus!"});
         }
-        if(_syllabus['confirm']!='Y'){
+        if(!syllabus['confirmed']){
             return res.status(409).send({message:"This course is not enrollable at the moment"});
         }
+   
+        //check if user's role has permission
+        const school=await School(req.user.dbName).findOne({schoolId:syllabus.schoolId});
+        const schoolUser=await SchoolUser(req.user.dbName).findOne({userId:req.user.userId});
+        const seasonIdx = findSeasonIdx(school, syllabus.year, syllabus.term);
 
+        if (!checkPermission(school, seasonIdx, 'enrollment', schoolUser)) {
+            return res.status(401).send({ message: 'you have no permission!' });
+        }
+
+
+        const enrollments=await Enrollment(req.user.dbName).find({userId:req.user.userId});
+        await checkTimeAvailable(enrollments,syllabus.time);
 
         const enrollment=new _Enrollment({
             userId:req.user.userId,
             userName:req.user.userName,
-            syllabus:subSyllabus(_syllabus)
+            syllabus:subSyllabus(syllabus)
         })
         await enrollment.save();
         return res.status(200).send({enrollment})
     }
     catch (err) {
-        if (err) return res.status(500).send({ err: err.message });
+        if (err) return res.status(err.code||500).send({ err: err.message });
     }
 }
 
