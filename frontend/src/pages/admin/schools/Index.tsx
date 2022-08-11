@@ -75,7 +75,7 @@ const Schools = () => {
               text: "자세히",
               key: "schoolId",
               type: "link",
-              link: "/academy/schools",
+              link: "/admin/schools",
               width: "80px",
               align: "center",
             },
