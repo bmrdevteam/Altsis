@@ -22,21 +22,27 @@ export const SidebarData: any = [
     icon: <Svg type="school" />,
   },
   {
+    title: "courses/design",
+    name: "수업 개설",
+    path: "/courses/design",
+    icon: <Svg type="bookOpen" />,
+  },
+  {
     title: "admin",
     name: "관리자",
-    path: "/academy",
+    path: "/admin",
     icon: <Svg type="calender" />,
     subLink: [
       {
         title: "schools",
         name: "학교 관리",
-        path: "/academy/schools",
+        path: "/admin/schools",
         icon: <Svg type="file" />,
       },
       {
         title: "users",
         name: "사용자",
-        path: "/academy/users",
+        path: "/admin/users",
         icon: <Svg type="file" />,
       },
     ],
