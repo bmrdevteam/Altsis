@@ -1,24 +1,41 @@
+import React from "react";
 import Divider from "../../components/divider/Divider";
 import Input from "../../components/input/Input";
 import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
 import Select from "../../components/select/Select";
 import Table from "../../components/table/Table";
+import { courseData } from "../../dummyData/coursesData";
+import useSearch from "../../hooks/useSearch";
 import style from "../../style/pages/enrollment.module.scss";
 
 type Props = {};
 
 const Enrollment = (props: Props) => {
+  const search = useSearch(courseData);
+
   return (
     <div className={style.section}>
       <NavigationLinks />
       <div className={style.title}>수강신청</div>
 
       <div className={style.search_container}>
-        <Input placeholder={"수업명으로 검색"} />
+        <Input
+          placeholder={"수업명으로 검색"}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            search.addFilterItem({
+              id: "courseName",
+              key: "courseName",
+              operator: "=",
+              value: e.target.value,
+            });
+            console.log(e.target.value);
+          }}
+        />
         <div style={{ height: "8px" }}></div>
         <div style={{ display: "flex" }}>
           <Select
             options={[
+              { text: "", value: "" },
               { text: "월", value: "mon" },
               { text: "화", value: "tue" },
               { text: "수", value: "wed" },
@@ -30,6 +47,7 @@ const Enrollment = (props: Props) => {
           />
           <Select
             options={[
+              { text: "", value: "" },
               { text: "수학", value: "mon" },
               { text: "영어", value: "tue" },
               { text: "국어", value: "wed" },
@@ -41,6 +59,7 @@ const Enrollment = (props: Props) => {
           />
           <Select
             options={[
+              { text: "", value: "" },
               { text: "1 학점", value: "mon" },
               { text: "2 학점", value: "tue" },
               { text: "3 학점", value: "wed" },
@@ -53,100 +72,11 @@ const Enrollment = (props: Props) => {
       </div>
       <Divider />
       <Table
-        data={[
-          {
-            _id: 123794078125781,
-            timestamps: "2022-06-18 10:00:00",
-            classTitle: "14학년 국어",
-            userId: "mrgoodway",
-            userName: "조은길",
-            schoolId: "bmrhs",
-            schoolName: "별무리고등학교",
-            year: "2022학년도",
-            term: "1쿼터",
-            comfirm: "Y",
-            time: [
-              {
-                label: "화2",
-                start: "09:45",
-                end: "10:30",
-              },
-              {
-                label: "목2",
-                start: "09:45",
-                end: "10:30",
-              },
-            ],
-            point: "2",
-            classroom: "101호",
-            subject: ["정보", "웹프로그래밍1"],
-            teachers: [
-              {
-                userId: "mrgoodway",
-                userName: "조은길",
-              },
-              {
-                userId: "mrgoodway",
-                userName: "조은길",
-              },
-            ],
-            description: {
-              description: "웹프로그래밍을 배운다.",
-              attachments: [
-                "https://www.youtube.com/watch?v=pEE_uJ-joUA",
-                "https://www.next-t.co.kr/public/uploads/7b7f7e2138e29e598cd0cdf2c85ea08d.jpg",
-              ],
-            },
-          },
-          {
-            _id: 123794078125781,
-            timestamps: "2022-06-18 10:00:00",
-            classTitle: "웹프로그래밍 기초",
-            userId: "mrgoodway",
-            userName: "조은길",
-            schoolId: "bmrhs",
-            schoolName: "별무리고등학교",
-            year: "2022학년도",
-            term: "1쿼터",
-            comfirm: "Y",
-            time: [
-              {
-                label: "화2",
-                start: "09:45",
-                end: "10:30",
-              },
-              {
-                label: "목2",
-                start: "09:45",
-                end: "10:30",
-              },
-            ],
-            point: "2",
-            classroom: "세미나1",
-            subject: ["국어", "현대 국어"],
-            teachers: [
-              {
-                userId: "mrgoodway",
-                userName: "조은길",
-              },
-              {
-                userId: "mrgoodway",
-                userName: "조은길",
-              },
-            ],
-            description: {
-              description: "웹프로그래밍을 배운다.",
-              attachments: [
-                "https://www.youtube.com/watch?v=pEE_uJ-joUA",
-                "https://www.next-t.co.kr/public/uploads/7b7f7e2138e29e598cd0cdf2c85ea08d.jpg",
-              ],
-            },
-          },
-        ]}
+        data={search.result()}
         header={[
           {
             text: "수업 명",
-            key: "classTitle",
+            key: "courseName",
             type: "string",
           },
           {
@@ -165,12 +95,12 @@ const Enrollment = (props: Props) => {
             text: "자세히",
             key: "_id",
             type: "link",
-            link: "/classes",
+            link: "/courses",
             width: "80px",
             align: "center",
           },
         ]}
-        style={{ backgroundColor: "#fff", border: "none", rowHeight: "60px" }}
+        style={{ backgroundColor: "#fff" ,bodyHeight: 'calc(100vh - 300px)'}}
       />
     </div>
   );
