@@ -18,16 +18,30 @@ const Http404 = (props: Props) => {
         fontSize: "16px",
       }}
     >
-      <strong>404</strong>
-      <div>cannot find page </div>
+      <strong
+        style={{ fontSize: "32px", marginBottom: "4px" }}
+        onClick={() => {
+          console.log("click");
+        }}
+      >
+        404
+      </strong>
+      <iframe
+        src="https://gifer.com/embed/JwN"
+        width={480}
+        height={269.76}
+        frameBorder="0"
+        title="catgif"
+      ></iframe>
+
+      <div>페이지를 찾을수 없음 </div>
       <div
         style={{ cursor: "pointer" }}
         onClick={() => {
           navigate("/", { replace: true });
         }}
       >
-        return to
-        <strong> home page</strong>
+        <strong> 홈으로 </strong>
       </div>
     </div>
   );

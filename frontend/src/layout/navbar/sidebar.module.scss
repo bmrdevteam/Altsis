@@ -14,8 +14,8 @@
 }
 
 .nav_container {
-
-    background-color: rgb(255, 255, 255);
+    border-right: var(--border-default);
+    background-color: rgb(248, 248, 248);
     display: flex;
     flex-direction: column;
     max-width: 240px;
@@ -193,6 +193,7 @@
         // when active
         .nav_link_container.active {
             .nav_link {
+                background-color: #fff;
                 .icon {
                     svg {
                         fill: var(--primary-color);
@@ -230,7 +231,7 @@
     }
 
     .nav_profile_container {
-        border-top: 1px solid rgb(200, 200, 200);
+        border-top: var(--border-default);
         display: flex;
 
         .nav_profile {

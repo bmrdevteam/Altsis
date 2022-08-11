@@ -1,26 +1,55 @@
 .select {
     cursor: pointer;
-    font-size: 16px;
-    position: relative;
-    min-width: 120px;
-    .selected{
-        padding: 8.5px 14px;
-        
-        
+    font-size: 14px;
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+
+
+    .label{
+        font-size: 12px;
+        font-family: 'Pretendard';
+        font-weight: 500;
+        padding-bottom: 4px;
+        .required{
+            padding-left: 1px;
+            color: var(--alert-c1);
+        }
     }
-    .options{
+    
+    .selected {
+        position: relative;
+        border: var(--border-default);
+        height: 40px;
+        display: flex;
+        align-items: center;
+        padding: 8.5px 14px;
+
+        .text {
+            flex: 1 1 0;
+            padding-right: 8.5px;
+        }
+
+
+    }
+
+    .options {
+        border: var(--border-default);
+        width: calc(100% + 2px);
         z-index: 2022;
         position: absolute;
-        width: 100%;
-        top: 0;
-        left: 0;
+
+        top: 38px;
+        left: -1px;
 
         background-color: #fff;
-        .option{
+
+        .option {
             padding: 8.5px 14px;
 
         }
-        .option:hover{
+
+        .option:hover {
             background-color: rgb(225, 225, 225);
         }
     }

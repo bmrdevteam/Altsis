@@ -103,7 +103,7 @@ const Login = () => {
           <div style={{ height: "4px" }}></div>
           <Button
             type="ghost"
-            handleClick={() => {
+            onClick={() => {
               navigate("/register", { replace: true });
             }}
           >
