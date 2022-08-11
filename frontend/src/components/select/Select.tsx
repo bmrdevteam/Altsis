@@ -11,6 +11,9 @@ type Props = {
     width?: string;
   };
   ref?: any;
+  label?: string;
+  required?:boolean;
+  defaultSelected?: number;
 };
 
 const Select = (props: Props) => {
@@ -20,11 +23,12 @@ const Select = (props: Props) => {
 
   function handleMousedown(e: MouseEvent) {
     if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
-      console.log("You clicked outside of me!");
+      setEdit(false);
     }
   }
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
+    props.defaultSelected && setSelected(props.defaultSelected);
 
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
@@ -39,7 +43,7 @@ const Select = (props: Props) => {
             <div
               onClick={() => {
                 setSelected(index);
-                setEdit(false);
+
               }}
               data-value={value.value}
               className={style.option}
@@ -59,6 +63,10 @@ const Select = (props: Props) => {
       className={style.select}
       style={{ width: props.style?.width }}
     >
+      <label className={style.label}>{props.label}
+      {props.required && <span className={style.required}>*</span>}
+      
+      </label>
       <div
         ref={props.ref}
         className={style.selected}
@@ -71,8 +79,8 @@ const Select = (props: Props) => {
         <span className={style.icon}>
           <Svg type={"caretDown"} />
         </span>
+        {edit && <Options />}
       </div>
-      {edit && <Options />}
     </div>
   );
 };
