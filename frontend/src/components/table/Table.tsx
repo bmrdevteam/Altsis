@@ -1,72 +1,100 @@
-import React, { useState } from "react";
+import React from "react";
 import style from "./table.module.scss";
-
-import TableRow from "./TableRow";
+import { TableItem } from "./tableItems/TableItem";
 
 type Props = {
   data: any;
   header: {
     text: string;
     key: string;
-    type: string;
+    type:
+      | "index"
+      | "string"
+      | "dateTime"
+      | "date"
+      | "time"
+      | "select"
+      | "checkbox"
+      | "link"
+      | "input";
+    link?: string;
+    align?: "left" | "center" | "right";
+    width?: string;
   }[];
+  style?: {
+    border?: string;
+    backgroundColor?: string;
+    rowHeight?: string;
+    bodyHeight?: string;
+  };
 };
 
 const Table = (props: Props) => {
-  const [sortBy, setSortBy] = useState(null);
-
-  const TableHeaderItem = ({ type, text }: { type: string; text: string }) => {
-    switch (type) {
-      case "index":
-        return (
-          <div
-            className={`${style.table_header_item} ${style.table_item_index}`}
-          >
-            {text}
-          </div>
-        );
-      case "string":
-        return (
-          <div
-            className={`${style.table_header_item} ${style.table_item_string}`}
-          >
-            {text}
-          </div>
-        );
-      default:
-        return <div className={style.table_header_item}>{text}</div>;
-    }
-  };
-
   const TableHeader = () => {
     return (
       <div className={style.table_header}>
         {props.header.map((value: any, index: number) => {
           return (
-            <TableHeaderItem
+            <div
+              className={style.table_header_item}
               key={index}
-              text={props.header[index].text}
-              type={props.header[index].type ?? ""}
-            />
+              style={{
+                justifyContent: value.align,
+                maxWidth: value.width,
+                border: props.style?.border,
+                backgroundColor: props.style?.backgroundColor,
+              }}
+            >
+              {value.text}
+            </div>
           );
         })}
       </div>
     );
   };
+
   const TableBody = () => {
     return (
-      <div className={style.table_body}>
+      <div
+        className={style.table_body}
+        style={{ height: props.style?.bodyHeight }}
+      >
         <div className={style.table_body_container}>
-         
-
+          {props.data.map((data: any, dataIndex: number) => {
+            return (
+              <div
+                key={dataIndex}
+                className={style.table_row}
+                style={{ height: props.style?.rowHeight }}
+              >
+                {props.header.map((value, index) => {
+                  return (
+                    <TableItem
+                      key={index}
+                      header={value}
+                      data={data}
+                      index={dataIndex}
+                      style={props.style}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   };
 
   return (
-    <div className={style.table_container}>
-      <TableHeader/>
+    <div
+      className={style.table_container}
+      style={{
+        border: props.style?.border,
+        backgroundColor: props.style?.backgroundColor,
+      }}
+    >
+      <TableHeader />
       <TableBody />
     </div>
   );

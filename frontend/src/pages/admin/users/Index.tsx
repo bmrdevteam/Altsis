@@ -1,8 +1,10 @@
 import React from "react";
-import List from "../../components/list/List";
-import Select from "../../components/select/Select";
-import useSearch from "../../hooks/useSearch";
-import style from "../../style/pages/academy/users.module.scss";
+import FIleUploader from "../../../components/fileUploader/FIleUploader";
+
+import Select from "../../../components/select/Select";
+import Table from "../../../components/table/Table";
+import useSearch from "../../../hooks/useSearch";
+import style from "../../../style/pages/admin/users.module.scss";
 
 type Props = {};
 
@@ -44,6 +46,31 @@ const Users = (props: Props) => {
         </div>
       </div>
       <div style={{ height: "24px" }}></div>
+      <div style={{ backgroundColor: "#fff" }}>
+        <FIleUploader />
+
+        <Table
+          data={search.result()}
+          header={[
+            {
+              text: "",
+              key: "",
+              type: "checkbox",
+              width: "48px",
+              align: "center",
+            },
+            {
+              text: "id",
+              key: "",
+              type: "index",
+              width: "48px",
+              align: "center",
+            },
+            { text: "the firsta", key: "id", type: "string", align: "right" },
+            { text: "namefield", key: "name", type: "string" },
+          ]}
+        />
+      </div>
 
       {/* <List
         header={[

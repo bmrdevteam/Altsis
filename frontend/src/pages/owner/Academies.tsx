@@ -1,9 +1,9 @@
 import { AcademyList } from "../../dummyData/AcademyList";
-import style from "../../style/pages/admin/academy.module.scss";
+import style from "../../style/pages/owner/academy.module.scss";
 
 type Props = {};
 
-const Academy = (props: Props) => {
+const Academies = (props: Props) => {
   return (
     <div className={style.page_container}>
       <div className={style.page_title}>아카데미 관리</div>
@@ -31,4 +31,4 @@ const Academy = (props: Props) => {
   );
 };
 
-export default Academy;
+export default Academies;
