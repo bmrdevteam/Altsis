@@ -65,14 +65,14 @@ const NavLink = ({
   icon,
   active,
   subLink,
-  handleClick,
+
   path,
 }: {
   children?: string;
   icon?: JSX.Element;
   active?: boolean;
   subLink?: JSX.Element[] | JSX.Element;
-  handleClick?: any;
+
   path?: string;
 }) => {
   const navigate = useNavigate();
@@ -82,7 +82,7 @@ const NavLink = ({
       <div
         className={style.nav_link}
         onClick={() => {
-          handleClick();
+
           path && navigate(path, { replace: true });
         }}
       >
