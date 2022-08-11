@@ -13,6 +13,7 @@ import SchoolAdd from "../pages/admin/schools/Add";
 
 //dev pages
 import Test from "../pages/dev/Test";
+import E from "../pages/dev/E";
 
 // basic pages
 import Home from "../pages/Home";
@@ -21,8 +22,8 @@ import Register from "../pages/Register";
 
 //ummm naming,,??
 import Enrollment from "../pages/enrollment/Index";
-import Classes from "../pages/classes/Index";
-import Class from "../pages/classes/Pid";
+import Courses from "../pages/courses/Index";
+import Course from "../pages/courses/Pid";
 
 //error pages
 import Http404 from "../pages/error/404";
@@ -33,6 +34,7 @@ import Sidebar from "../layout/navbar/Sidebar";
 //hooks
 import { useAuth } from "../contexts/authContext";
 import { useSidebar } from "../contexts/sidebarContext";
+import CourseDesign from "../pages/courses/Design";
 
 // import Http404 from "./pages/error/404";
 
@@ -63,7 +65,7 @@ function RouterPage() {
               {/* ----------------------------------------------------- */}
 
               {/* admin routes */}
-              <Route path="admin">
+              <Route path="owner">
                 {/* <Route index element={<>}></Route>  */}
                 <Route path="academy" element={<Academies />}></Route>
               </Route>
@@ -71,7 +73,7 @@ function RouterPage() {
               {/* ----------------------------------------------------- */}
 
               {/* academy admin routes */}
-              <Route path="academy">
+              <Route path="admin">
                 {/* [!make!] an hook to identify the number of */}
                 <Route path="" element={<Academy />}></Route>
 
@@ -94,14 +96,16 @@ function RouterPage() {
 
               {/* idk(some kInd of school function routes) routes */}
               <Route path="enrollment" element={<Enrollment />}></Route>
-              <Route path="classes" element={<Classes />}></Route>
-              <Route path="classes/:pid" element={<Class />}></Route>
+              <Route path="courses" element={<Courses />}></Route>
+              <Route path="courses/design" element={<CourseDesign />}></Route>
+              <Route path="courses/:pid" element={<Course />}></Route>
 
               {/* ----------------------------------------------------- */}
 
               {/* dev routes */}
               <Route path="dev">
                 <Route path="test" element={<Test />}></Route>
+                <Route path="e" element={<E />}></Route>
                 {/*  404 error */}
                 <Route path="*" element={<Http404 />}></Route>
               </Route>
