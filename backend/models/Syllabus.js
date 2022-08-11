@@ -42,6 +42,10 @@ const syllabusSchema = mongoose.Schema({
                     type:String,
                     required:true
                 },
+                day:{
+                    type:String,
+                    required:true
+                },
                 start:{
                     type:String,
                     required:true
