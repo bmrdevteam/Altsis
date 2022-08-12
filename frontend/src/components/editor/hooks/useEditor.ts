@@ -2,8 +2,7 @@ import React from "react";
 import useDatabase from "../../../hooks/useDatabase";
 
 const useEditor = (setEditorData: React.Dispatch<any>) => {
-
-  const database = useDatabase()
+  const database = useDatabase();
   function generateId(length: number) {
     var result = "";
     var characters =
@@ -14,10 +13,17 @@ const useEditor = (setEditorData: React.Dispatch<any>) => {
     }
     return result as string;
   }
-  function create() {
+  async function create() {
+    console.log(await database.R({ location: "forms/list" }));
 
-    
-
+    // database.C({
+    //   location: "forms",
+    //   data: {
+    //     type: "timetable",
+    //     title: "hello froDm the frontend",
+    //     data: { umm: "id" },
+    //   },
+    // });
   }
 
   function addBlock(insertAfter?: number) {

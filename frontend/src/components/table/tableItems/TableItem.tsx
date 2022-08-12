@@ -7,9 +7,12 @@ interface ITableItem {
   header: {
     text: string;
     key: string;
+    value?: string;
+    onClick?: (e:React.MouseEvent<HTMLDivElement>) => void;
     type:
       | "index"
       | "string"
+      | "button"
       | "dateTime"
       | "date"
       | "time"
@@ -119,11 +122,34 @@ const TableItem = (props: ITableItem) => {
           {props.header.text}
         </div>
       );
-
+    case "button":
+      return (
+        <div
+          className={style.table_item}
+          onClick={props.header.onClick}
+          data-value={
+            props.header.value
+              ? props.header.value
+              : props.data[props.header.key]
+          }
+          style={{
+            justifyContent: props.header.align,
+            maxWidth: props.header.width,
+            border: props.style?.border,
+          }}
+        >
+          {props.header.text}
+        </div>
+      );
     default:
       return (
         <div
           className={style.table_item}
+          data-value={
+            props.header.value
+              ? props.header.value
+              : props.data[props.header.key]
+          }
           style={{
             justifyContent: props.header.align,
             maxWidth: props.header.width,

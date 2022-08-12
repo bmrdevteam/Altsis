@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./select.module.scss";
 type Props = {
@@ -12,8 +12,9 @@ type Props = {
   };
   ref?: any;
   label?: string;
-  required?:boolean;
+  required?: boolean;
   defaultSelected?: number;
+  setValue?: any;
 };
 
 const Select = (props: Props) => {
@@ -29,6 +30,7 @@ const Select = (props: Props) => {
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
     props.defaultSelected && setSelected(props.defaultSelected);
+    props.setValue && props.setValue(props.options[selected].value);
 
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
@@ -43,7 +45,7 @@ const Select = (props: Props) => {
             <div
               onClick={() => {
                 setSelected(index);
-
+                props.setValue(props.options[index].value);
               }}
               data-value={value.value}
               className={style.option}
@@ -63,9 +65,9 @@ const Select = (props: Props) => {
       className={style.select}
       style={{ width: props.style?.width }}
     >
-      <label className={style.label}>{props.label}
-      {props.required && <span className={style.required}>*</span>}
-      
+      <label className={style.label}>
+        {props.label}
+        {props.required && <span className={style.required}>*</span>}
       </label>
       <div
         ref={props.ref}

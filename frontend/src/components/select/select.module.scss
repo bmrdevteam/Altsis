@@ -1,22 +1,21 @@
 .select {
     cursor: pointer;
     font-size: 14px;
-    width: fit-content;
     display: flex;
     flex-direction: column;
 
 
-    .label{
+    .label {
         font-size: 12px;
         font-family: 'Pretendard';
         font-weight: 500;
-        padding-bottom: 4px;
-        .required{
+
+        .required {
             padding-left: 1px;
             color: var(--alert-c1);
         }
     }
-    
+
     .selected {
         position: relative;
         border: var(--border-default);
@@ -45,7 +44,11 @@
         background-color: #fff;
 
         .option {
-            padding: 8.5px 14px;
+            height: 40px;
+            display: flex;
+            padding: 0 14px;
+            white-space: nowrap;
+            align-items: center;
 
         }
 
