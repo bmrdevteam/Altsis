@@ -3,6 +3,7 @@ import Svg from "../../assets/svg/Svg";
 import style from "./sidebar.module.scss";
 import dummmyProfilePic from "../../assets/img/sponge.jpeg";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/authContext";
 
 const Nav = ({
   children,
@@ -28,12 +29,20 @@ const NavLogo = ({
   children?: JSX.Element[] | JSX.Element;
   handleClick: any;
 }) => {
+  const navigate = useNavigate();
   return (
     <div className={style.nav_logo}>
       <span className={style.icon} onClick={handleClick}>
         {<Svg type="menu" width="24px" height="24px" />}
       </span>
-      <div className={style.logo}>{children}</div>
+      <div
+        className={style.logo}
+        onClick={() => {
+          navigate("/", { replace: true });
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 };
@@ -82,7 +91,6 @@ const NavLink = ({
       <div
         className={style.nav_link}
         onClick={() => {
-
           path && navigate(path, { replace: true });
         }}
       >
@@ -126,7 +134,10 @@ const SubLink = ({
   );
 };
 
-const NavProfile = ({ user }: { user: any }) => {
+const NavProfile = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+
   return (
     <div className={style.nav_profile_container}>
       <div className={style.nav_profile}>
@@ -134,8 +145,17 @@ const NavProfile = ({ user }: { user: any }) => {
           <img src={dummmyProfilePic} alt="profile" />
         </div>
         <div className={style.profile_info}>
-          <div className={style.username}>{user?.userId ?? "로그인"}</div>
-          <div className={style.role}>관리자</div>
+          <div
+            className={style.username}
+            onClick={() => {
+              currentUser?.userId
+                ? navigate("myaccount", { replace: true })
+                : navigate("/login", { replace: true });
+            }}
+          >
+            {currentUser?.userName ?? "로그인"}
+          </div>
+          <div className={style.role}> {currentUser?.auth ?? ""}</div>
         </div>
         <div className={style.logout}>
           <Svg type="logout" width="18px" height="18px" />
