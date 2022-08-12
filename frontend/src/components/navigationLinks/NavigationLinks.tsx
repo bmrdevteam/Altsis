@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { SidebarData } from "../../dummyData/SidebarData";
+import { SidebarData } from "../../layout/navbar/SidebarData";
 
 type Props = {};
 
