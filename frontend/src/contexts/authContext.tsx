@@ -1,5 +1,6 @@
 import axios from "axios";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import useDatabase from "../hooks/useDatabase";
 
 const AuthContext = createContext<any>(null);
 
@@ -8,21 +9,15 @@ export function useAuth() {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const database = useDatabase()
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   async function getLoggedInUser() {
-    axios
-      .get(`${process.env.REACT_APP_SERVER_URL}/api/user/info`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        setCurrentUser(res.data._user ?? null);
-      })
-      .catch((error) => {
-        error.response.status === 403 && setCurrentUser(null);
-        
-      });
+   const {user:res} = await database.R({location:"users"})
+   setCurrentUser(res)
+   console.log(res);
+   return res
   }
 
   useEffect(() => {
@@ -30,7 +25,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading &&
         getLoggedInUser().then(() => {
           setLoading(false);
-        });
+        }).catch((err)=>{
+          setLoading(false);
+        })
     };
   }, [loading]);
 
