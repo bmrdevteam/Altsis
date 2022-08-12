@@ -1,13 +1,29 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/button/Button";
 import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
 import Table from "../../../components/table/Table";
+import useDatabase from "../../../hooks/useDatabase";
 import style from "../../../style/pages/admin/schools/schools.module.scss";
-
-
 
 const Schools = () => {
   const navigate = useNavigate();
+  const database = useDatabase();
+
+  const [schoolsList, setSchoolsList] = useState();
+  const [isLoading, setIsLoading] = useState(true);
+
+  async function getSchoolList() {
+    const { schools: res } = await database.R({ location: "schools/list" });
+    setSchoolsList(res);
+  }
+  useEffect(() => {
+    return () => {
+      getSchoolList().then(() => {
+        setIsLoading(false);
+      });
+    };
+  }, []);
 
   return (
     <div className={style.section}>
@@ -34,20 +50,7 @@ const Schools = () => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
-          data={[
-            {
-              id: "j23htjnasdbd34",
-              schoolId: "bmrhs",
-              schoolName: "별무리고등학교",
-              userCount: 134,
-            },
-            {
-              id: "2135ljh312bdas",
-              schoolId: "bmrms",
-              schoolName: "별무리중학교",
-              userCount: 153,
-            },
-          ]}
+          data={!isLoading ? schoolsList : []}
           header={[
             {
               text: "ID",
@@ -73,7 +76,7 @@ const Schools = () => {
             },
             {
               text: "자세히",
-              key: "schoolId",
+              key: "_id",
               type: "link",
               link: "/admin/schools",
               width: "80px",
