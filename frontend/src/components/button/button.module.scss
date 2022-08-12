@@ -1,0 +1,49 @@
+.btn {
+    cursor: pointer;
+    color: white;
+
+    background-color: var(--btn-color-1);
+    text-align: center;
+    display: flex;
+    height: 42px;
+    justify-content: center;
+    align-items: center;
+
+    font-size: 0.875rem;
+
+    //un selectable
+    -webkit-touch-callout: none;
+    /* iOS Safari */
+    -webkit-user-select: none;
+    /* Safari */
+    -khtml-user-select: none;
+    /* Konqueror HTML */
+    -moz-user-select: none;
+    /* Old versions of Firefox */
+    -ms-user-select: none;
+    /* Internet Explorer/Edge */
+    user-select: none;
+    /* Non-prefixed version, currently
+     supported by Chrome, Edge, Opera and Firefox */
+
+}
+
+
+.round {
+    border-radius: 40px;
+}
+
+
+.ghost{
+    border: var(--border-default);
+    background-color: transparent;
+    color:  var(--btn-color-1);
+}
+.ghost:hover{
+    background-color: rgb(244, 244, 244);
+
+}
+
+.smooth{
+    background-color: rgba(var(--btn-color-1),0.2);
+}

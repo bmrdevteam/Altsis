@@ -1,0 +1,59 @@
+.select {
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+
+
+    .label {
+        font-size: 12px;
+        font-family: 'Pretendard';
+        font-weight: 500;
+
+        .required {
+            padding-left: 1px;
+            color: var(--alert-c1);
+        }
+    }
+
+    .selected {
+        position: relative;
+        border: var(--border-default);
+        height: 40px;
+        display: flex;
+        align-items: center;
+        padding: 8.5px 14px;
+
+        .text {
+            flex: 1 1 0;
+            padding-right: 8.5px;
+        }
+
+
+    }
+
+    .options {
+        border: var(--border-default);
+        width: calc(100% + 2px);
+        z-index: 2022;
+        position: absolute;
+
+        top: 38px;
+        left: -1px;
+
+        background-color: #fff;
+
+        .option {
+            height: 40px;
+            display: flex;
+            padding: 0 14px;
+            white-space: nowrap;
+            align-items: center;
+
+        }
+
+        .option:hover {
+            background-color: rgb(225, 225, 225);
+        }
+    }
+}
