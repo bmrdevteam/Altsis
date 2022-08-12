@@ -2,21 +2,52 @@ const Enrollment = require("../models/Enrollment");
 const Syllabus=require('../models/Syllabus');
 const School = require('../models/School');
 const SchoolUser = require('../models/SchoolUser');
-const { findSeasonIdx, findRegistrationIdx, checkPermission } = require('../utils/util');
-const { checkTimeAvailable } = require('../utils/util');
+const { findSeasonIdx, findRegistrationIdx, checkPermission,checkTimeAvailable} = require('../utils/util');
 
-const subSyllabus=(syllabus)=>
-   ( {
-        _id:syllabus._id,
-        schoolId:syllabus.schoolId,
-        schoolName:syllabus.schoolName,
-        year:syllabus.year,
-        term:syllabus.term,
-        classTitle:syllabus.classTitle,
-        time:syllabus.time,
-        point:syllabus.point,
-        subject:syllabus.subject
-    })
+const check = async (user, syllabus) => {
+
+    // 1. find school
+    const school = await School(user.dbName).findOne({ schoolId: syllabus.schoolId });
+    if (!school) {
+        const error = new Error("not existing school...");
+        error.code = 404;
+        throw error;
+    }
+
+    // 2. check if season is activated
+    const seasonIdx = findSeasonIdx(school, syllabus.year, syllabus.term);
+    if (seasonIdx == -1) {
+        const error = new Error("not existing season...");
+        error.code = 404;
+        throw error;
+    }
+    if (!school["seasons"][seasonIdx]["activated"]) {
+        const error = new Error("season is not activated...");
+        error.code = 409;
+        throw error;
+    }
+
+    // 3. check if user is registered in requrested season
+    const schoolUser = await SchoolUser(user.dbName).findOne({ userId: user.userId });
+    const registrationIdx = findRegistrationIdx(schoolUser, syllabus.year, syllabus.term);
+    if (registrationIdx['year'] == -1) {
+        const error = new Error("you are not registered in this year");
+        error.code = 409;
+        throw error;
+    }
+    if (registrationIdx['term'] == -1) {
+        const error = new Error("you are not registered in this term");
+        error.code = 409;
+        throw error;
+    }
+
+    // 4. check if user's role has permission
+    if (!checkPermission(school, seasonIdx, 'syllabus', schoolUser)) {
+        const error = new Error("you have no permission!");
+        error.code = 401;
+        throw error;
+    }
+}
 
 
 exports.create = async(req,res)=>{
@@ -36,23 +67,14 @@ exports.create = async(req,res)=>{
             return res.status(409).send({message:"This course is not enrollable at the moment"});
         }
    
-        //check if user's role has permission
-        const school=await School(req.user.dbName).findOne({schoolId:syllabus.schoolId});
-        const schoolUser=await SchoolUser(req.user.dbName).findOne({userId:req.user.userId});
-        const seasonIdx = findSeasonIdx(school, syllabus.year, syllabus.term);
-
-        if (!checkPermission(school, seasonIdx, 'enrollment', schoolUser)) {
-            return res.status(401).send({ message: 'you have no permission!' });
-        }
-
-
+        check(req.user,syllabus);
         const enrollments=await Enrollment(req.user.dbName).find({userId:req.user.userId});
         await checkTimeAvailable(enrollments,syllabus.time);
 
         const enrollment=new _Enrollment({
             userId:req.user.userId,
             userName:req.user.userName,
-            syllabus:subSyllabus(syllabus)
+            syllabus:syllabus.getSubdocument()
         })
         await enrollment.save();
         return res.status(200).send({enrollment})
@@ -68,13 +90,14 @@ exports.createBulk = async(req,res)=>{
         if(!_syllabus){
             return res.status(404).send({message:"invalid syllabus!"});
         }
-        if(_syllabus['confirm']!='Y'){
+        if(_syllabus['confirmed']){
             return res.status(409).send({message:"This course is not enrollable at the moment"});
         }
         
-        const syllabus= subSyllabus(_syllabus);
-        const userIds=(await Enrollment(req.user.dbName).find({"syllabus._id":syllabus._id})).map(enrollment=>enrollment.userId); //해당 수업을 듣는 학생들의 userId 리스트
+      
+        const userIds=(await Enrollment(req.user.dbName).find({"syllabus._id":_syllabus._id})).map(enrollment=>enrollment.userId); //해당 수업을 듣는 학생들의 userId 리스트
 
+        const subSyllabus=_syllabus.getSubdocument();
         const enrollments=[];
         for(let student of req.body.students){
             if(userIds.includes(student.userId)){
@@ -83,7 +106,7 @@ exports.createBulk = async(req,res)=>{
             enrollments.push({
                 userId:student.userId,
                 userName:student.userName,
-                syllabus
+                syllabus:subSyllabus
             });
         }
         const newEnrollments=await Enrollment(req.user.dbName).insertMany(enrollments);
@@ -105,6 +128,7 @@ exports.list = async (req, res) => {
         return res.status(200).send({enrollments:enrollments.map((enrollment)=>{
             console.log(enrollment['syllabus']['classTitle']);
             return {
+                _id:enrollment['_id'],
                 classTitle:enrollment['syllabus']['classTitle'],
                 time:enrollment['syllabus']['time'],
                 point:enrollment['syllabus']['point'],
@@ -120,11 +144,20 @@ exports.list = async (req, res) => {
 exports.updateEvaluation = async (req, res) => {
     try {
         // 권한 먼저 확인해야 함
-
         const enrollment=await Enrollment(req.user.dbName).findOne({_id:req.params._id});
         if(!enrollment){
             return res.status(404).send({message:'no enrollment!'})
         }
+        const syllabus=await Syllabus(req.user.dbName).findById(enrollment.syllabus._id);
+        if(!syllabus.teachers.some(teacher=>teacher.userId===req.user.userId)){
+            const error = new Error("you have no permission!");
+            error.code = 401;
+            throw error;
+        }
+
+        check(req.user,enrollment.syllabus);
+
+
         enrollment["evaluation"]=req.body.new;
         await enrollment.save();
    
