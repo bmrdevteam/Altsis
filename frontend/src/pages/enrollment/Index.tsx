@@ -13,6 +13,10 @@ type Props = {};
 const Enrollment = (props: Props) => {
   const search = useSearch(courseData);
 
+  function handleTableOnClick(e: any) {
+    console.log(e.target.dataset.value);
+  }
+
   return (
     <div className={style.section}>
       <NavigationLinks />
@@ -99,8 +103,16 @@ const Enrollment = (props: Props) => {
             width: "80px",
             align: "center",
           },
+          {
+            text: "신청",
+            key: "subject",
+            onClick: handleTableOnClick,
+            type: "button",
+            width: "80px",
+            align: "center",
+          },
         ]}
-        style={{ backgroundColor: "#fff" ,bodyHeight: 'calc(100vh - 300px)'}}
+        style={{ backgroundColor: "#fff", bodyHeight: "calc(100vh - 300px)" }}
       />
     </div>
   );
