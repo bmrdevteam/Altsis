@@ -1,4 +1,5 @@
 
+
 // syllabus.time을 classroom별로 정리
 exports.classroomsTable = async (syllabuses) => {
     const table = {};
