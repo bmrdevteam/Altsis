@@ -1,0 +1,18 @@
+.section {
+    margin: 24px;
+
+    .title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 24px;
+
+    }
+
+    .user_container {
+        border: var(--border-default);
+        border-radius: 4px;
+        .username{
+            margin: 24px;
+        }
+    }
+}
