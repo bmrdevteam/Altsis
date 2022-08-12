@@ -4,7 +4,7 @@ const School = require('../models/School');
 const SchoolUser = require('../models/SchoolUser');
 const { findSeasonIdx, findRegistrationIdx, checkPermission,checkTimeAvailable} = require('../utils/util');
 
-const check = async (user, syllabus) => {
+const check = async (user, syllabus,type) => {
 
     // 1. find school
     const school = await School(user.dbName).findOne({ schoolId: syllabus.schoolId });
@@ -42,7 +42,7 @@ const check = async (user, syllabus) => {
     }
 
     // 4. check if user's role has permission
-    if (!checkPermission(school, seasonIdx, 'syllabus', schoolUser)) {
+    if (!checkPermission(school, seasonIdx, type, schoolUser)) {
         const error = new Error("you have no permission!");
         error.code = 401;
         throw error;
@@ -67,7 +67,7 @@ exports.create = async(req,res)=>{
             return res.status(409).send({message:"This course is not enrollable at the moment"});
         }
    
-        check(req.user,syllabus);
+        await check(req.user,syllabus,'enrollment');
         const enrollments=await Enrollment(req.user.dbName).find({userId:req.user.userId});
         await checkTimeAvailable(enrollments,syllabus.time);
 
@@ -155,7 +155,7 @@ exports.updateEvaluation = async (req, res) => {
             throw error;
         }
 
-        check(req.user,enrollment.syllabus);
+        await check(req.user,enrollment.syllabus,'evaluation');
 
 
         enrollment["evaluation"]=req.body.new;
@@ -164,7 +164,7 @@ exports.updateEvaluation = async (req, res) => {
         return res.status(200).send({ enrollment })
     }
     catch (err) {
-        if (err) return res.status(500).send({ err: err.message });
+        if (err) return res.status(err.code||500).send({ err: err.message });
     }
 }
 
