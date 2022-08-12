@@ -259,7 +259,9 @@
                 word-break: keep-all;
                 white-space: nowrap;
 
-                .username {}
+                .username {
+                    cursor: pointer;
+                }
 
                 .role {
                     font-size: 12px;
