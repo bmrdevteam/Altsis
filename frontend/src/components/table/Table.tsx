@@ -7,9 +7,14 @@ type Props = {
   header: {
     text: string;
     key: string;
+    value?: string;
+
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+
     type:
       | "index"
       | "string"
+      | "button"
       | "dateTime"
       | "date"
       | "time"

@@ -9,12 +9,15 @@ import Button from "../components/button/Button";
 import { useNavigate } from "react-router-dom";
 
 import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
+import Select from "../components/select/Select";
 // import useFormValidation from "../hooks/useFormValidation";
 
 const Login = () => {
   const usernameRef = useRef<{ value: any }>();
   const passwordRef = useRef<{ value: any }>();
+  const [academy, setAcademy] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+
 
   //later hooks
 
@@ -22,15 +25,13 @@ const Login = () => {
   const navigate = useNavigate();
   const status = useGoogleLogin();
 
-
-
-
   const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     axios
       .post(
-        "http://localhost:3000/api/user/login",
+        "http://localhost:3000/api/users/login/local",
         {
+          academyId: academy,
           userId: usernameRef.current?.value,
           password: passwordRef.current?.value,
         },
@@ -81,12 +82,19 @@ const Login = () => {
           <h1 className={style.title}>로그인</h1>
           <p className={style.error}>{errorMessage}</p>
           <AuthForm handleSubmit={onLoginSubmit}>
+            <div style={{ height: "12px" }}></div>
+            <Select
+              options={[
+                { text: "별무리학교", value: "bmr" },
+                { text: "별무2학교", value: "bmr2" },
+              ]}
+              style={{ width: "100%" }}
+              setValue={setAcademy}
+            />
+            <div style={{ height: "12px" }}></div>
             <FormInput
               name="아이디"
               placeholder="아이디 입력"
-              handleChange={(e: React.FormEvent<HTMLInputElement>) => {
-                console.log(usernameRef.current?.value);
-              }}
               useRef={usernameRef}
               required={true}
             />

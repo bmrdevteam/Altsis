@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import style from "../../../style/pages/admin/schools/schools.module.scss";
@@ -15,6 +15,7 @@ import Classroom from "./tab/Classroom";
 import Season from "./tab/Season";
 import Subject from "./tab/Subject";
 import Form from "./tab/Form";
+import useDatabase from "../../../hooks/useDatabase";
 
 type Props = {};
 
@@ -48,25 +49,45 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
   const navigate = useNavigate();
+  const database = useDatabase();
 
-  useEffect(() => {
-    navigate("#기본 정보");
-    //get school from backend
+  const [schoolData, setSchoolData] = useState<any>();
+  const [schoolsList, setSchoolsList] = useState<any>([]);
+  const [isSchool, setIsSchool] = useState<boolean>(true);
 
-    return () => {};
-  }, []);
-
-  //if the user cannot locate the school using the id return "CannotFindSchool" page
-
-  if (false) {
-    return <CannotFindSchool schoolId={pid} />;
+  async function getSchoolList() {
+    const { schools: res } = await database.R({ location: "schools/list" });
+    setSchoolsList(res);
+    return res;
   }
 
+  async function getSchoolData() {
+    const { schools: res } = await database.R({ location: `schools/${pid}` });
+    setSchoolData(res);
+    return res;
+  }
+  useEffect(() => {
+    navigate("#기본 정보");
+    return () => {
+      getSchoolList().then((res) => {
+        if (res.filter((val: any) => val._id === pid).length === 0) {
+          setIsSchool(false);
+        }
+      });
+      getSchoolData();
+    };
+  }, []);
+
+  if (!isSchool) {
+    return <CannotFindSchool />;
+  }
   return (
     <div className={style.section}>
       <NavigationLinks />
 
-      <div className={style.title}>{pid}</div>
+      <div className={style.title}>
+        {schoolData !== undefined && schoolData.schoolName}
+      </div>
 
       <Tab
         items={{
