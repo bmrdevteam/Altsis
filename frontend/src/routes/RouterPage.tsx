@@ -35,6 +35,7 @@ import Sidebar from "../layout/navbar/Sidebar";
 import { useAuth } from "../contexts/authContext";
 import { useSidebar } from "../contexts/sidebarContext";
 import CourseDesign from "../pages/courses/Design";
+import Settings from "../pages/settings/Index";
 
 // import Http404 from "./pages/error/404";
 
@@ -73,9 +74,17 @@ function RouterPage() {
               {/* ----------------------------------------------------- */}
 
               {/* academy admin routes */}
+
               <Route path="admin">
                 {/* [!make!] an hook to identify the number of */}
-                <Route path="" element={<Academy />}></Route>
+                <Route
+                  path=""
+                  element={
+                    <RequireAuth>
+                      <Academy />
+                    </RequireAuth>
+                  }
+                ></Route>
 
                 <Route path="users" element={<Users />}></Route>
                 <Route path="users/add" element={<Schools />}></Route>
@@ -92,13 +101,51 @@ function RouterPage() {
               <Route path="login" element={<Login />}></Route>
               <Route path="register" element={<Register />}></Route>
 
+              <Route
+                path="settings"
+                element={
+                  <RequireAuth>
+                    <Settings />
+                  </RequireAuth>
+                }
+              ></Route>
+
               {/* ----------------------------------------------------- */}
 
               {/* idk(some kInd of school function routes) routes */}
-              <Route path="enrollment" element={<Enrollment />}></Route>
-              <Route path="courses" element={<Courses />}></Route>
-              <Route path="courses/design" element={<CourseDesign />}></Route>
-              <Route path="courses/:pid" element={<Course />}></Route>
+
+              <Route
+                path="enrollment"
+                element={
+                  <RequireAuth>
+                    <Enrollment />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses"
+                element={
+                  <RequireAuth>
+                    <Courses />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/design"
+                element={
+                  <RequireAuth>
+                    <CourseDesign />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/:pid"
+                element={
+                  <RequireAuth>
+                    <Course />
+                  </RequireAuth>
+                }
+              ></Route>
 
               {/* ----------------------------------------------------- */}
 
