@@ -3,12 +3,15 @@
     font-size: 14px;
     display: flex;
     flex-direction: column;
+    flex: 1 1 0;
+
 
 
     .label {
         font-size: 12px;
         font-family: 'Pretendard';
         font-weight: 500;
+        padding-bottom: 4px;
 
         .required {
             padding-left: 1px;
@@ -27,6 +30,8 @@
         .text {
             flex: 1 1 0;
             padding-right: 8.5px;
+            outline: none;
+            border: none;
         }
 
 
@@ -34,6 +39,7 @@
 
     .options {
         border: var(--border-default);
+        cursor: pointer;
         width: calc(100% + 2px);
         z-index: 2022;
         position: absolute;
