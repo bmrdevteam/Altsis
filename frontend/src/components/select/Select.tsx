@@ -13,12 +13,14 @@ type Props = {
   ref?: any;
   label?: string;
   required?: boolean;
+
   defaultSelected?: number;
   setValue?: any;
 };
 
 const Select = (props: Props) => {
   const [selected, setSelected] = useState<number>(0);
+
   const [edit, setEdit] = useState<boolean>(false);
   const selectRef = useRef<HTMLDivElement>(null);
 
@@ -40,25 +42,25 @@ const Select = (props: Props) => {
   const Options = () => {
     return (
       <div className={style.options}>
-        {props.options.map((value, index) => {
-          return (
-            <div
-              onClick={() => {
-                setSelected(index);
-                props.setValue(props.options[index].value);
-              }}
-              data-value={value.value}
-              className={style.option}
-              key={index}
-            >
-              {value.text}
-            </div>
-          );
-        })}
+        {props.options
+          .map((value, index) => {
+            return (
+              <div
+                onClick={() => {
+                  setSelected(index);
+                  props.setValue && props.setValue(props.options[index].value);
+                }}
+                data-value={value.value}
+                className={style.option}
+                key={index}
+              >
+                {value.text}
+              </div>
+            );
+          })}
       </div>
     );
   };
-
   return (
     <div
       ref={selectRef}
