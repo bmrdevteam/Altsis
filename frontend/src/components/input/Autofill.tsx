@@ -1,58 +1,74 @@
-import React, { useRef, useState } from "react";
-import style from "./input.module.scss";
+import React, { useEffect, useRef, useState } from "react";
+import style from "./autoFill.module.scss";
 type Props = {
-  defaultValue?: string;
+  options: {
+    text: string;
+    value: string | number;
+  }[];
+  style?: {
+    minWidth?: string;
+    width?: string;
+  };
+  ref?: any;
   label?: string;
-  options: string[];
+  required?: boolean;
+  defaultSelected?: number;
+  setValue?: any;
 };
 
 const Autofill = (props: Props) => {
-  const [inputValue, setInputValue] = useState<string>(
-    props.defaultValue ? props.defaultValue : ""
+  const [selected, setSelected] = useState<number>(
+    props.defaultSelected ? props.defaultSelected : 0
   );
-  const [active, setActive] = useState<boolean>(false);
-  const inputRef = useRef(null);
+  const [inputValue, setInputValue] = useState(props.options[selected].text);
+
+  const [edit, setEdit] = useState<boolean>(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  function handleMousedown(e: MouseEvent) {
+    if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
+      setEdit(false);
+    }
+  }
+  useEffect(() => {
+    document.addEventListener("mousedown", handleMousedown);
+    props.defaultSelected && setSelected(props.defaultSelected);
+    props.setValue && props.setValue(props.options[selected].value);
+
+    return () => {
+      document.removeEventListener("mousedown", handleMousedown);
+    };
+  }, []);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column-reverse",
-        marginTop: "24px",
-        flex: "1 1 0",
-        position: "relative",
-      }}
-    >
+    <div className={style.input_container} ref={selectRef}>
+      <label className={style.label}>
+        {props.label}
+        {props.required && <span className={style.required}>*</span>}
+      </label>
       <input
         type="text"
-        ref={inputRef}
-        value={inputValue}
+
+        // value={}
         onChange={(e) => {
           setInputValue(e.target.value);
         }}
-        onFocus={() => {
-          setActive(true);
-        }}
-        style={{
-          fontSize: "14px",
-          padding: "8px",
-          outline: "none",
-          border: "1px solid rgb(225,225,225)",
-          width: "100%",
+        className={style.input}
+        value= {inputValue}
+        onFocus={()=>{
+          setEdit(true)
         }}
       />
-      {props.label && (
-        <label style={{ fontSize: "12px", paddingBottom: "6px" }}>
-          {props.label}
-        </label>
-      )}
-      {active && (
+
+      {edit && (
         <div className={style.options}>
           {props.options
-            .filter((val: string) => {
+            .filter((val: { text: string; value: string | number }) => {
               if (inputValue === "") {
                 return val;
-              } else if (val.toLowerCase().includes(inputValue.toLowerCase())) {
+              } else if (
+                val.text.toLowerCase().includes(inputValue.toLowerCase())
+              ) {
                 return val;
               }
             })
@@ -61,12 +77,12 @@ const Autofill = (props: Props) => {
                 <div
                   key={index}
                   onClick={() => {
-                    setInputValue(value);
-                    setActive(false);
+                    setInputValue(value.text);
+                    setEdit(false)
                   }}
                   className={style.option}
                 >
-                  {value}
+                  {value.text}
                 </div>
               );
             })}
