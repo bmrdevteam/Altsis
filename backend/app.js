@@ -24,13 +24,18 @@ app.use(cors({
 app.use(
   session({
      resave: false, // req마다 session 새로 저장
-     saveUninitialized: false, // uninitialized session 저장하는 것을 막음
+     saveUninitialized: false, // uninitialized session을 저장함. false인 것이 리소스 활용 측면에서 유리하지만 rolling을 사용하려면 true가 되어야 한다.
      secret: config['session-key'],
      cookie: {
         httpOnly: true, // 브라우저에서 쿠키값에 대한 접근을 하지 못하게 막는다.
         secure: false, // HTTPS 통신 외에서는 쿠키를 전달하지 않는다.
      },
-     store : new FileStore()
+     rolling:true,
+     store : new FileStore({
+      ttl:24*60*60, // 1 day
+      path: "./sessions", 
+      reapInterval: 12*60*60 // purge all expired cookies every 12 hours
+     })
   }),
 );
 app.use(passport.initialize()); 

@@ -132,6 +132,9 @@ exports.loginLocal = async (req, res) => {
         /* login */
         req.login({ user, dbName }, loginError => {
             if (loginError) return res.status(500).send({ loginError });
+            if(req.body.persist==='true'){
+                req.session.cookie['maxAge']=365*24*60*60*1000; //1 year
+            }
             return res.status(200).send({
                 success: true, user:{
                     _id:user._id,
@@ -168,14 +171,17 @@ exports.loginGoogle = async (req, res) => {
         })
 
         /* login */
-        req.login({ user,dbName }, loginError => {
-            if (loginError) return res.status(500).send({ loginError: loginError.message });
+        req.login({ user, dbName }, loginError => {
+            if (loginError) return res.status(500).send({ loginError });
+            if(req.body.persist==='true'){
+                req.session.cookie['maxAge']=365*24*60*60*1000; //1 year
+            }
             return res.status(200).send({
                 success: true, user:{
                     _id:user._id,
                     userId:user.userId,
-                    auth:user.auth,
-                    schools:user.schools
+                    userName:user.userName,
+                    auth:user.auth
                 }
             });
         });
@@ -196,22 +202,19 @@ exports.connectGoogle=async (req, res) => {
 
         const payload = ticket.getPayload();
 
-        let dbName='root'
-        if(req.body.academyId){
-            dbName=req.body.academyId+'-db';
-        }
-        const user = await User(dbName).findOne({ "snsId.provider":'google',"snsId.email":payload['email']});
+        const user = await User(req.user.dbName).findOne({ "snsId.provider":'google',"snsId.email":payload['email']});
         if (user) return res.status(409).send({
-            message: "User already exists with such google account"
+            message: "This account is already in use"
         })
 
         const snsId=req.user["snsId"];
-        const idx = snsId.findIndex(obj => obj.provider === 'google');
-        if(idx==-1){
+        if (!snsId.some(obj => obj.provider === 'google')){
             snsId.push({provider:'google', email:payload['email']});
         }
         else{
-            snsId[idx].email=payload['email'];
+            return res.status(409).send({
+                message: "You already have a connected google account"
+            })
         }
         await req.user.updateOne({snsId});
         return res.status(200).send({user:{
@@ -221,18 +224,13 @@ exports.connectGoogle=async (req, res) => {
         }})
     }
     catch (err) {
-        if (err) return res.status(500).send({ err: err.message });
+    console.log(err)
+        if (err) return res.status(500).send({ err: err.status });
     }
 }
 
 exports.disconnectGoogle=async (req, res) => {
     try {
-
-        let dbName='root'
-        if(req.body.academyId){
-            dbName=req.body.academyId+'-db';
-        }
-
         const snsId=req.user["snsId"];
         const idx = snsId.findIndex(obj => obj.provider === 'google');
         if(idx==-1){
