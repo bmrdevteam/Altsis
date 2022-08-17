@@ -1,3 +1,10 @@
+@media print {
+    .table_body {
+        height:max-content;
+    }
+}
+
+
 .table_container {
 
     border: 1px solid rgb(224, 224, 224);
@@ -75,6 +82,7 @@
 }
 
 .table_body {
+    height: auto;
     overflow: auto scroll;
 
     -ms-overflow-style: none;
