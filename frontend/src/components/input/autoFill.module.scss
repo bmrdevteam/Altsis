@@ -1,0 +1,59 @@
+.input_container {
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1 1 0;
+
+    .input {
+        padding: 8.5px 14px;
+        font-size: 14px;
+
+        height: 40px;
+        outline: none;
+        border: var(--border-default);
+        width: 100%;
+    }
+    .input.invaild{
+        border-color:var(--alert-c1) ;
+    }
+    .label{
+        font-size: 12px;
+        font-family: 'Pretendard';
+        font-weight: 500;
+        padding-bottom: 4px;
+        .required{
+            padding-left: 1px;
+            color: var(--alert-c1);
+        }
+    }
+    position: relative;
+
+    .options {
+        border: var(--border-default);
+        cursor: pointer;
+        width: 100%;
+        z-index: 2022;
+        position: absolute;
+
+        top: 58px;
+        left: 0px;
+
+        background-color: #fff;
+
+        .option {
+        font-size: 14px;
+
+            height: 40px;
+            display: flex;
+            padding: 0 14px;
+            white-space: nowrap;
+            align-items: center;
+
+        }
+
+        .option:hover {
+            background-color: rgb(225, 225, 225);
+        }
+    }
+}
