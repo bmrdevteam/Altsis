@@ -13,6 +13,17 @@
     }
 }
 
+@media print {
+    .nav_container {
+        display: none !important;
+    }
+
+    @page {
+        margin: 0;
+        page-break-after: always;
+    }
+}
+
 .nav_container {
     border-right: var(--border-default);
     background-color: rgb(248, 248, 248);
@@ -194,6 +205,7 @@
         .nav_link_container.active {
             .nav_link {
                 background-color: #fff;
+
                 .icon {
                     svg {
                         fill: var(--primary-color);
