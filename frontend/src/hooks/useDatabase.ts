@@ -1,9 +1,8 @@
 import axios from "axios";
-import { useState } from "react";
 
 export default function useDatabase() {
   interface IDatabaseQuery {
-    location: string
+    location: string;
   }
   interface IDatabaseQueryC extends Omit<IDatabaseQuery, "id"> {
     data: any;
@@ -13,7 +12,7 @@ export default function useDatabase() {
   //   academy: `${process.env.REACT_APP_SERVER_URL}/api/academies`,
   // };
 
-  function C({ location, data }: IDatabaseQueryC) {
+  async function C({ location, data }: IDatabaseQueryC) {
     const config = {
       method: "post",
       url: `${process.env.REACT_APP_SERVER_URL}/api/${location}`,
@@ -22,13 +21,14 @@ export default function useDatabase() {
       withCredentials: true,
     };
 
-    axios(config)
-      .then((response) => {
-        return JSON.stringify(response.data);
-      })
-      .catch(function (error) {
-        return JSON.stringify(error);
-      });
+    if (data !== null || undefined) {
+      try {
+        const result = await axios(config);
+        return result;
+      } catch (error) {
+        console.log(error);
+      }
+    }
   }
   async function R({ location }: IDatabaseQuery) {
     const config = {
