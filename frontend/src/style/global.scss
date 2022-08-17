@@ -61,7 +61,7 @@ table {
     height: 100vh;
     overflow-y: scroll;
 
-    
+
     -ms-overflow-style: none;
     /* IE and Edge */
     scrollbar-width: none;
@@ -70,4 +70,10 @@ table {
 
 .content::-webkit-scrollbar {
     display: none;
+}
+
+@media print {
+    .content {
+        max-width: 100% !important;
+    }
 }
