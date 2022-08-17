@@ -61,11 +61,6 @@ const School = (props: Props) => {
     return res;
   }
 
-  async function getSchoolData() {
-    const { schools: res } = await database.R({ location: `schools/${pid}` });
-    setSchoolData(res);
-    return res;
-  }
   useEffect(() => {
     navigate("#기본 정보");
     return () => {
@@ -73,10 +68,11 @@ const School = (props: Props) => {
         if (res.filter((val: any) => val._id === pid).length === 0) {
           setIsSchool(false);
         }
+        setSchoolData(res.filter((val: any) => val._id === pid)[0]);
       });
-      getSchoolData();
     };
   }, []);
+
 
   if (!isSchool) {
     return <CannotFindSchool />;
@@ -91,10 +87,10 @@ const School = (props: Props) => {
 
       <Tab
         items={{
-          "기본 정보": <BasicInfo />,
+          "기본 정보": <BasicInfo school={schoolData} />,
           학기: <Season />,
-          교과목: <Subject />,
-          강의실: <Classroom />,
+          교과목: <Subject school={schoolData} />,
+          강의실: <Classroom school={schoolData} />,
           양식: <Form />,
         }}
       />
