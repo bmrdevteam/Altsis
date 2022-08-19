@@ -12,6 +12,25 @@ const _ = require('lodash');
 //     })
 // })
 
+router.get('/lodash/indexof',(req,res)=>{
+    const arr=['abc','def'];
+    const arr2=[['abc','def'],['abc2','def2']];
+    const arr3=[{'first':'abc'},{'second':'def'}];
+
+    const resArr=[];
+
+    resArr.push(_.indexOf(arr,'abc'));
+    resArr.push(_.indexOf(arr,'qwer'));
+
+    resArr.push(_.findIndex(arr2, function(el) { return _.isEqual(el,['abc','def'])}));
+    resArr.push(_.findIndex(arr2, function(el) { return _.isEqual(el,['abcdef'])}));
+
+    resArr.push(_.findIndex(arr3,{'second':'def'}));
+    resArr.push(_.findIndex(arr3,{'thrid':'def'}));
+
+    return res.status(200).send({resArr});
+})
+
 router.get('/lodash',(req,res)=>{
     const arr11_1=[1,1];
     const arr11_2=[1,1];
