@@ -20,6 +20,7 @@ type Props = {
       | "time"
       | "select"
       | "checkbox"
+      | "arrText"
       | "link"
       | "input";
     link?: string;
@@ -65,7 +66,7 @@ const Table = (props: Props) => {
         style={{ height: props.style?.bodyHeight }}
       >
         <div className={style.table_body_container}>
-          {props.data.map((data: any, dataIndex: number) => {
+          {props.data?.map((data: any, dataIndex: number) => {
             return (
               <div
                 key={dataIndex}
