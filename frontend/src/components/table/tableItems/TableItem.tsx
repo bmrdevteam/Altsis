@@ -8,7 +8,7 @@ interface ITableItem {
     text: string;
     key: string;
     value?: string;
-    onClick?: (e:React.MouseEvent<HTMLDivElement>) => void;
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
     type:
       | "index"
       | "string"
@@ -19,6 +19,7 @@ interface ITableItem {
       | "select"
       | "checkbox"
       | "link"
+      | "arrText"
       | "input";
     link?: string;
     align?: "left" | "center" | "right";
@@ -141,6 +142,26 @@ const TableItem = (props: ITableItem) => {
           {props.header.text}
         </div>
       );
+    case "arrText":
+      return (
+        <div
+          className={style.table_item}
+          onClick={props.header.onClick}
+          data-value={
+            props.header.value
+              ? props.header.value
+              : props.data
+          }
+          style={{
+            justifyContent: props.header.align,
+            maxWidth: props.header.width,
+            border: props.style?.border,
+          }}
+        >
+          {props.data}
+        </div>
+      );
+
     default:
       return (
         <div

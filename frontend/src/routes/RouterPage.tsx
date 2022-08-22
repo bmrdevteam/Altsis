@@ -43,8 +43,18 @@ function RouterPage() {
   const { sidebarClose } = useSidebar();
 
   // authenticate path with simple userlogin check
-  const RequireAuth = ({ children }: { children: JSX.Element }) => {
+  const RequireAuth = ({
+    children,
+    role,
+  }: {
+    children: JSX.Element;
+    role?: string[];
+  }) => {
     const { currentUser } = useAuth();
+    if (role?.includes("admin") && currentUser.auth !== "admin") {
+      return currentUser ? children : <Navigate to="/" />;
+    }
+
     return currentUser ? children : <Navigate to="/login" />;
   };
 

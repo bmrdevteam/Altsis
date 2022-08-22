@@ -1,4 +1,4 @@
-
+const _ = require('lodash');
 const { checkSchema, validationResult } = require("express-validator");
 
 const School = require("../models/School");
@@ -130,10 +130,17 @@ exports.createField = async (req, res) => {
         if(!school){
             return res.status(404).send({message:"no school!"});
         }
+        if(_.isEmpty(req.body.new)){
+            return res.status(409).send({message:'body.new is null or empty!'});
+        }
+
         if(req.params.field=='subjects'){
             school[req.params.field]['data'].push(req.body.new);
         }
         else{
+            if(req.params.field=='classrooms'&&_.indexOf(school['classrooms'],req.body.new)!=-1){
+                return res.status(409).send({message:'already existing classroom'});
+            }
             school[req.params.field].push(req.body.new);
         }
 

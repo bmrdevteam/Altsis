@@ -1,7 +1,9 @@
 const mongoose = require('mongoose')
 const moment = require('moment');
 const { conn } = require('../databases/connection')
+const TimeBlock=require('./TimeBlock');
 
+//subdocument
 var syllabusSchema =  mongoose.Schema({
     _id:String,
     schoolId:String,
@@ -9,10 +11,11 @@ var syllabusSchema =  mongoose.Schema({
     year:String,
     term:String,
     classTitle:String,
-    time:Array,
+    time:[TimeBlock],
     point:Number,
     subject:Array
 },{_id:false});
+
 
 
 const enrollmentSchema = mongoose.Schema({
@@ -24,6 +27,19 @@ const enrollmentSchema = mongoose.Schema({
     syllabus:syllabusSchema,
     evaluation:Object
 },{ timestamps: true });
+
+
+enrollmentSchema.methods.isTimeOverlapped=function(time){
+    for(let block1 of this.syllabus.time){
+        for(let block2 of time){
+            if (block1.isOverlapped(block2)) {
+                return block1;
+            }
+        }
+    }
+    return null;
+}
+
 
 module.exports = (dbName) => {
     return conn[dbName].model('Enrollment', enrollmentSchema);

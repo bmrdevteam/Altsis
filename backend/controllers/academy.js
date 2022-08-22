@@ -148,7 +148,7 @@ exports.update = async (req, res) => {
             if(fields.includes(req.params.field)){
                 academy[req.params.field]=req.body.new;
             }
-            {
+            else {
                 return res.status(400).send({message:`field '${req.params.field}' does not exist or cannot be updated`});
             }
         }
