@@ -21,6 +21,9 @@ app.use(cors({
     credentials: true
 }))
 
+const RedisStore=require('connect-redis')(session)
+const client=require('./redis')
+
 app.use(
   session({
      resave: false, // req마다 session 새로 저장
@@ -31,11 +34,12 @@ app.use(
         secure: false, // HTTPS 통신 외에서는 쿠키를 전달하지 않는다.
      },
      rolling:true,
-     store : new FileStore({
-      ttl:24*60*60, // 1 day
-      path: "./sessions", 
-      reapInterval: 12*60*60 // purge all expired cookies every 12 hours
-     })
+     store:new RedisStore({client})
+    //  store : new FileStore({
+    //   ttl:24*60*60, // 1 day
+    //   path: "./sessions", 
+    //   reapInterval: 12*60*60 // purge all expired cookies every 12 hours
+    //  })
   }),
 );
 app.use(passport.initialize()); 
