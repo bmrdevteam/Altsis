@@ -17,8 +17,12 @@ const BasicInfo = (props: Props) => {
           marginTop: "24px",
         }}
       >
-        <Input label="학교명" defaultValue={props.school?.schoolName} />
-        <Input label="학교ID" />
+        <Input
+          label="학교명"
+          defaultValue={props.school?.schoolName}
+          required
+        />
+        <Input label="학교ID" defaultValue={props.school?.schoolId} required />
       </div>
       <div
         style={{
@@ -28,6 +32,7 @@ const BasicInfo = (props: Props) => {
           marginTop: "24px",
         }}
       >
+        <Autofill label="관리자" options={[{ text: "a", value: 0 }]} />
         <Autofill label="관리자" options={[{ text: "a", value: 0 }]} />
       </div>
     </div>
