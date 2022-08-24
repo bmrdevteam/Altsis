@@ -77,8 +77,10 @@ const Schools = () => {
             {
               text: "자세히",
               key: "_id",
-              type: "link",
-              link: "/admin/schools",
+              type: "button",
+              onClick:(e:any)=>{
+                navigate(`${e.target.dataset.value}`)
+              },
               width: "80px",
               align: "center",
             },
