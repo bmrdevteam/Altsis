@@ -9,7 +9,14 @@ const NavigationLinks = (props: Props) => {
   const locationArr = location.pathname.split("/").filter((x) => x !== "");
 
   return (
-    <div style={{ fontSize: "12px",fontWeight:500,marginBottom: "18px", display: "flex" }}>
+    <div
+      style={{
+        fontSize: "12px",
+        fontWeight: 500,
+        marginBottom: "18px",
+        display: "flex",
+      }}
+    >
       {locationArr.map((value, index) => {
         let to = "";
         for (let i = 0; i < index + 1; i++) {
@@ -17,7 +24,7 @@ const NavigationLinks = (props: Props) => {
         }
 
         return (
-          <div key={index}>
+          <div key={index} style={{ wordBreak: "keep-all" }}>
             <span>&nbsp;/&nbsp;</span>
             <span
               style={{ cursor: "pointer" }}
