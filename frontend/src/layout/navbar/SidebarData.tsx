@@ -43,6 +43,12 @@ export const SidebarData = (role: string):any => {
               icon: <Svg type="file" />,
             },
             {
+              title: "forms",
+              name: "양식 관리",
+              path: "/admin/forms",
+              icon: <Svg type="file" />,
+            },
+            {
               title: "users",
               name: "사용자",
               path: "/admin/users",
