@@ -47,18 +47,94 @@
         }
     }
 
-    .popup_container {
-        margin: 24px;
-        min-width: 320px;
-        .title{
-            font-family: 'Pretendard';
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0;
+    
+
+    .form_tab {
+        display: flex;
+
+
+        .sidemenu {
+            border-right: var(--border-default);
+            min-width: 120px;
+            flex: 240px 0 0;
+
+            .items {
+                display: flex;
+                flex-direction: column;
+
+                .item {
+                    padding: 4px 6px;
+                    margin: 4px 6px;
+                    cursor: pointer;
+                    border-radius: 2px;
+                    color: rgb(175, 175, 175);
+                }
+
+                .item:hover {
+                    background-color: rgb(225, 225, 225);
+                }
+
+                .item.active {
+                    color: black;
+                }
+            }
         }
 
-        .x {
-            cursor: pointer;
+        .content {
+            margin-left: 24px;
+            flex: 1 1 0;
+
+            .items {
+
+                display: flex;
+                flex-wrap: wrap;
+                gap: 24px;
+
+                .item:hover {
+                    background-color: rgb(245, 245, 245);
+                }
+                .item {
+                    width: 100%;
+                    min-width: 140px;
+                    min-height: 160px;
+                    max-width: 160px;
+                    border: var(--border-default);
+                    border-radius: 4px;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+
+                    .icon {
+                        min-height: 120px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        padding: 12px;
+
+                        svg {
+
+                            fill: rgb(114, 114, 114);
+                        }
+                    }
+
+                    .info {
+                        font-family: 'Pretendard';
+                        font-size: 14px;
+                        font-weight: 500;
+                        padding: 12px;
+                        width: 100%;
+                        border-top: var(--border-default);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        word-break: keep-all;
+                        text-overflow: ellipsis;
+                    }
+                }
+
+            }
+
 
         }
     }
