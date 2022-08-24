@@ -8,7 +8,7 @@ const E = (props: Props) => {
   return (
     <div style={{ margin: "24px" }}>
       <NavigationLinks />
-      <Editor auth="edit"/>
+
     </div>
   );
 };

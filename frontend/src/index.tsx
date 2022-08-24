@@ -5,7 +5,6 @@ import "./style/variables.scss";
 import "./style/fonts.scss";
 import RouterPage from "./routes/RouterPage";
 import { AuthProvider } from "./contexts/authContext";
-import { SidebarProvider } from "./contexts/sidebarContext";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -13,9 +12,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <SidebarProvider>
-        <RouterPage />
-      </SidebarProvider>
+      <RouterPage />
     </AuthProvider>
   </React.StrictMode>
 );

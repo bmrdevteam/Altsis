@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { useAuth } from "../../contexts/authContext";
 
@@ -12,15 +12,14 @@ import Nav, {
   SubLinks,
 } from "./sidebar.components";
 import { INavLink, SidebarData } from "./SidebarData";
-import { useSidebar } from "../../contexts/sidebarContext";
+
 import { useLocation } from "react-router-dom";
 
 type Props = {};
 
 const Sidebar = (props: Props) => {
   const location = useLocation();
-
-  const { sidebarClose, setSidebarClose } = useSidebar();
+  const [sidebarClose, setSidebarClose] = useState<boolean>(false);
 
   const { currentUser } = useAuth();
   return (

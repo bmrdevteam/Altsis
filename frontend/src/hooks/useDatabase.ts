@@ -12,6 +12,15 @@ export default function useDatabase() {
   //   academy: `${process.env.REACT_APP_SERVER_URL}/api/academies`,
   // };
 
+  /**
+   * function that reads from the database
+   * 
+   * @async
+   * @param {string} location
+   * @param {object} data
+   * @returns
+   */
+  
   async function C({ location, data }: IDatabaseQueryC) {
     const config = {
       method: "post",
@@ -27,6 +36,7 @@ export default function useDatabase() {
         return result;
       } catch (error) {
         console.log(error);
+        throw error;
       }
     }
   }
@@ -41,11 +51,24 @@ export default function useDatabase() {
       const { data: result } = await axios(config);
       return result;
     } catch (error) {
-      console.log(error);
+      throw error;
     }
   }
   function U({ location }: IDatabaseQuery) {}
-  function D({ location }: IDatabaseQuery) {}
+  async function D({ location }: IDatabaseQuery) {
+    const config = {
+      method: "delete",
+      url: `${process.env.REACT_APP_SERVER_URL}/api/${location}`,
+      headers: {},
+      withCredentials: true,
+    };
+    try {
+      const { data: result } = await axios(config);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
 
   return { C, R, U, D };
 }

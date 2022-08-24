@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { StyleHTMLAttributes, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Svg from "../../../assets/svg/Svg";
 import style from "../table.module.scss";
@@ -24,6 +24,7 @@ interface ITableItem {
     link?: string;
     align?: "left" | "center" | "right";
     width?: string;
+    textStyle?: object;
   };
   index: number;
   data: any;
@@ -114,6 +115,12 @@ const TableItem = (props: ITableItem) => {
             maxWidth: props.header.width,
             border: props.style?.border,
           }}
+          data-value={
+            props.header.value
+              ? props.header.value
+              : props.data[props.header.key]
+          }
+          data-rowindex={props.index}
           onClick={() => {
             navigate(props.header.link + "/" + props.data[props.header.key], {
               replace: true,
@@ -131,34 +138,43 @@ const TableItem = (props: ITableItem) => {
           data-value={
             props.header.value
               ? props.header.value
-              : props.data[props.header.key]
+              : props.data?.[props.header.key]
           }
+          data-rowindex={props.index}
           style={{
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
           }}
         >
-          {props.header.text}
+          <div
+            data-value={
+              props.header.value
+                ? props.header.value
+                : props.data?.[props.header.key]
+            }
+            data-rowindex={props.index}
+            style={props.header.textStyle}
+          >
+            {props.header.text}
+          </div>
         </div>
       );
+
     case "arrText":
       return (
         <div
           className={style.table_item}
           onClick={props.header.onClick}
-          data-value={
-            props.header.value
-              ? props.header.value
-              : props.data
-          }
+          data-value={props.header.value ? props.header.value : props.data}
+          data-rowindex={props.index}
           style={{
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
           }}
         >
-          {props.data}
+          {props.data ? props.data : null}
         </div>
       );
 
@@ -169,15 +185,16 @@ const TableItem = (props: ITableItem) => {
           data-value={
             props.header.value
               ? props.header.value
-              : props.data[props.header.key]
+              : props.data?.[props.header.key]
           }
+          data-rowindex={props.index}
           style={{
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
           }}
         >
-          {props.data[props.header.key]}
+          {props.data?.[props.header.key]}
         </div>
       );
   }

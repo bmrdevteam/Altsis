@@ -27,7 +27,7 @@ export default function useGoogleLogin() {
   window.handleGoogleLogin = function (response: any) {
     axios
       .post(
-        `${process.env.REACT_APP_SERVER_URL}/api/user/google/auth`,
+        `${process.env.REACT_APP_SERVER_URL}/api/users/login/google`,
         {
           credential: response.credential,
         },
@@ -35,6 +35,7 @@ export default function useGoogleLogin() {
       )
       .then((res) => {
         console.log(res);
+        window.location.replace("/")
 
         //save to token
       });

@@ -7,10 +7,9 @@ const Paragraphblock = ({ block }: { block: IParagraphBlock }) => {
   
 
   return (
-    <div
+    <input
       className={style.paragraph}
-      contentEditable={true}
-      suppressContentEditableWarning={true}
+      defaultValue={block.data.text}  
       onClick={()=>{
         
       }}
@@ -22,8 +21,8 @@ const Paragraphblock = ({ block }: { block: IParagraphBlock }) => {
       //   );
       // }}
     >
-      {block.data.text}
-    </div>
+      {/* {block.data.text} */}
+    </input>
   );
 };
 

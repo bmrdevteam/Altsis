@@ -8,9 +8,7 @@ type Props = {
     text: string;
     key: string;
     value?: string;
-
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-
     type:
       | "index"
       | "string"
@@ -26,6 +24,7 @@ type Props = {
     link?: string;
     align?: "left" | "center" | "right";
     width?: string;
+    textStyle?: object;
   }[];
   style?: {
     border?: string;

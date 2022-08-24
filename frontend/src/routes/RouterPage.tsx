@@ -33,15 +33,15 @@ import Sidebar from "../layout/navbar/Sidebar";
 
 //hooks
 import { useAuth } from "../contexts/authContext";
-import { useSidebar } from "../contexts/sidebarContext";
+
 import CourseDesign from "../pages/courses/Design";
 import Settings from "../pages/settings/Index";
+import Forms from "../pages/admin/forms/Index";
+import Form from "../pages/admin/forms/Pid";
 
 // import Http404 from "./pages/error/404";
 
 function RouterPage() {
-  const { sidebarClose } = useSidebar();
-
   // authenticate path with simple userlogin check
   const RequireAuth = ({
     children,
@@ -64,14 +64,21 @@ function RouterPage() {
         <Sidebar />
         <div
           className="content"
-          style={{ maxWidth: `calc(100vw - ${sidebarClose ? 56 : 240}px)` }}
+          // style={{ maxWidth: `calc(100vw - ${sidebarClose ? 56 : 240}px)` }}
         >
           <Routes>
             <Route path="/">
               {/* ----------------------------------------------------- */}
 
               {/* index */}
-              <Route index element={<Home />}></Route>
+              <Route
+                index
+                element={
+                  <RequireAuth>
+                    <Home />
+                  </RequireAuth>
+                }
+              ></Route>
 
               {/* ----------------------------------------------------- */}
 
@@ -100,9 +107,47 @@ function RouterPage() {
                 <Route path="users/add" element={<Schools />}></Route>
                 <Route path="user/:pid" element={<User />}></Route>
 
-                <Route path="schools" element={<Schools />}></Route>
-                <Route path="schools/add" element={<SchoolAdd />}></Route>
-                <Route path="schools/:pid" element={<School />}></Route>
+                <Route
+                  path="schools"
+                  element={
+                    <RequireAuth>
+                      <Schools />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="schools/add"
+                  element={
+                    <RequireAuth>
+                      <SchoolAdd />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="schools/:pid"
+                  element={
+                    <RequireAuth>
+                      <School />
+                    </RequireAuth>
+                  }
+                ></Route>
+
+                <Route
+                  path="forms"
+                  element={
+                    <RequireAuth>
+                      <Forms />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="forms/:pid"
+                  element={
+                    <RequireAuth>
+                      <Form />
+                    </RequireAuth>
+                  }
+                ></Route>
               </Route>
 
               {/* ----------------------------------------------------- */}
