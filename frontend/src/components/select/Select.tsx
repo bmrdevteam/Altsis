@@ -16,10 +16,13 @@ type Props = {
 
   defaultSelected?: number;
   setValue?: any;
+  onchange?: any;
 };
 
 const Select = (props: Props) => {
-  const [selected, setSelected] = useState<number>(0);
+  const [selected, setSelected] = useState<number>(
+    props.defaultSelected ? props.defaultSelected : 0
+  );
 
   const [edit, setEdit] = useState<boolean>(false);
   const selectRef = useRef<HTMLDivElement>(null);
@@ -31,7 +34,7 @@ const Select = (props: Props) => {
   }
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    props.defaultSelected && setSelected(props.defaultSelected);
+    // props.defaultSelected && setSelected(props.defaultSelected);
     props.setValue && props.setValue(props.options[selected].value);
 
     return () => {
@@ -39,25 +42,28 @@ const Select = (props: Props) => {
     };
   }, []);
 
+  useEffect(() => {
+    props.onchange?.(props.options[selected].value);
+  }, [selected]);
+
   const Options = () => {
     return (
       <div className={style.options}>
-        {props.options
-          .map((value, index) => {
-            return (
-              <div
-                onClick={() => {
-                  setSelected(index);
-                  props.setValue && props.setValue(props.options[index].value);
-                }}
-                data-value={value.value}
-                className={style.option}
-                key={index}
-              >
-                {value.text}
-              </div>
-            );
-          })}
+        {props.options.map((value, index) => {
+          return (
+            <div
+              onClick={() => {
+                setSelected(index);
+                props.setValue && props.setValue(props.options[index].value);
+              }}
+              data-value={value.value}
+              className={style.option}
+              key={index}
+            >
+              {value.text}
+            </div>
+          );
+        })}
       </div>
     );
   };
