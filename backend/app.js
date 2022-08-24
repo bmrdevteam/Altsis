@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({
-  origin: 'http://localhost:3001',
+  origin: config.CLIENT,
     credentials: true
 }))
 
@@ -51,7 +51,7 @@ routers.forEach(router => {
 
 module.exports = app;
 
-app.set('port',process.env.PORT||3000);
+app.set('port',config.SERVER_PORT||3000);
 var server=app.listen(app.get('port'),function(){
   console.log('Express server listening on port '+server.address().port);
 });

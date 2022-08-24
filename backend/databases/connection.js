@@ -8,7 +8,7 @@ const conn={"root":root};
 Academy.find({},(err,academies)=>{
     academies.forEach(academy => {
         const dbName=academy["academyId"]+'-db'
-        conn[dbName]=mongoose.createConnection(config["newUrl"](dbName))
+        conn[dbName]=mongoose.createConnection(config["url"](dbName))
     });
     console.log(Object.keys(conn))
 })
