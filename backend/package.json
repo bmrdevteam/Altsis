@@ -4,8 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "dev": "pm2 start ecosystem.config.js",
-    "prod": "pm2 start ecosystem.config.js --env production",
+    "start": "set NODE_ENV=development && node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

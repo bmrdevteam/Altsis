@@ -6,13 +6,13 @@ WORKDIR /app
 
 # 의존성 설치
 COPY package*.json ./
-RUN npm install
+COPY yarn.lock ./
+RUN yarn install
 
 COPY ./ ./
 
 #컨테이너가 켜지자마자 실행할 명령어 
-ENV NODE_ENV development
-CMD ["node", "app.js"]
+CMD ["yarn", "start"]
 
 # 이미지 생성
 # docker build -t {img} .
