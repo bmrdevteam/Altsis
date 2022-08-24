@@ -17,9 +17,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors({
-  origin: 'http://localhost:3001',
+  origin: config.CLIENT,
     credentials: true
 }))
+
+const RedisStore=require('connect-redis')(session)
+const client=require('./redis')
 
 app.use(
   session({
@@ -31,11 +34,12 @@ app.use(
         secure: false, // HTTPS 통신 외에서는 쿠키를 전달하지 않는다.
      },
      rolling:true,
-     store : new FileStore({
-      ttl:24*60*60, // 1 day
-      path: "./sessions", 
-      reapInterval: 12*60*60 // purge all expired cookies every 12 hours
-     })
+     store:new RedisStore({client})
+    //  store : new FileStore({
+    //   ttl:24*60*60, // 1 day
+    //   path: "./sessions", 
+    //   reapInterval: 12*60*60 // purge all expired cookies every 12 hours
+    //  })
   }),
 );
 app.use(passport.initialize()); 
@@ -47,7 +51,7 @@ routers.forEach(router => {
 
 module.exports = app;
 
-app.set('port',process.env.PORT||3000);
+app.set('port',config.SERVER_PORT||3000);
 var server=app.listen(app.get('port'),function(){
   console.log('Express server listening on port '+server.address().port);
 });

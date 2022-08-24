@@ -4,6 +4,9 @@ const Syllabus=require('../models/Syllabus');
 const router = express.Router();
 const {classroomsTable}=require('../utils/util');
 const _ = require('lodash');
+
+const client=require('../redis')
+
 // const {data,add}=require('../databases/connection')   
 // router.post('/test2', (req, res) => {
 //     add({key:req.body.key,val:req.body.val});
@@ -103,10 +106,41 @@ router.get("/session", (req, res) => {
 })
 
 router.post("/session", (req, res) => {
-    req.session.message=req.body.message;
+    req.session[req.body.key]=req.body.value;
     return req.session.save(()=>{                   
-        return res.status(200).send({success:true,message:req.session.message});
+        return res.status(200).send({success:true});
     }) 
 })
+
+router.post('/redis',(req,res)=>{
+    client.set(req.body.key,req.body.value);
+    return res.status(200).send({success:true});
+})
+
+router.get('/redis',(req,res)=>{
+    client.keys('*',(err,keys)=>{
+        return res.status(200).send({keys});
+    })
+})
+
+router.delete('/redis/all',(req,res)=>{
+    client.keys('*',(err,keys)=>{
+        keys.map(key=>{
+            client.del(key);
+        })
+        return res.status(200).send({success:true});
+    })   
+})
+
+router.delete('/redis/:key',(req,res)=>{
+    console.log('key: ',req.params.key);
+    client.del(req.params.key);
+    return res.status(200).send({success:true});
+})
+
+router.get('/passport',(req,res)=>{
+    return res.status(200).send({passport:req.session.passport});
+})
+
 
 module.exports = router;
