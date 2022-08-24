@@ -16,6 +16,7 @@ import Season from "./tab/Season";
 import Subject from "./tab/Subject";
 import Form from "./tab/Form";
 import useDatabase from "../../../hooks/useDatabase";
+import Setting from "./tab/Setting";
 
 type Props = {};
 
@@ -48,10 +49,11 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const navigate = useNavigate();
+
   const database = useDatabase();
 
   const [schoolData, setSchoolData] = useState<any>();
+  const [resetSchoolData, setResetSchoolData] = useState<boolean>(true);
   const [schoolsList, setSchoolsList] = useState<any>([]);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
@@ -62,17 +64,19 @@ const School = (props: Props) => {
   }
 
   useEffect(() => {
-    navigate("#기본 정보");
-    return () => {
+    if (resetSchoolData) {
       getSchoolList().then((res) => {
         if (res.filter((val: any) => val._id === pid).length === 0) {
           setIsSchool(false);
         }
         setSchoolData(res.filter((val: any) => val._id === pid)[0]);
       });
-    };
-  }, []);
+      console.log("reset");
 
+      setResetSchoolData(false);
+    }
+    return () => {};
+  }, [resetSchoolData]);
 
   if (!isSchool) {
     return <CannotFindSchool />;
@@ -90,8 +94,11 @@ const School = (props: Props) => {
           "기본 정보": <BasicInfo school={schoolData} />,
           학기: <Season />,
           교과목: <Subject school={schoolData} />,
-          강의실: <Classroom school={schoolData} />,
-          양식: <Form />,
+          강의실: (
+            <Classroom school={schoolData} resetData={setResetSchoolData} />
+          ),
+          "양식(beta)": <Form />,
+          "설정(test)": <Setting />,
         }}
       />
     </div>
