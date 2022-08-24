@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import style from "./button.module.scss";
 
 type Props = {
@@ -6,6 +7,8 @@ type Props = {
   type?: "ghost" | "solid";
   borderRadius?: string;
   round?: boolean;
+  disabled?: boolean;
+  disableOnclick?: boolean;
   maxWidth?: string;
   height?: string;
 };
@@ -16,10 +19,12 @@ const Button = ({
   type,
   round,
   borderRadius,
+  disabled,
+  disableOnclick,
   maxWidth,
   height,
 }: Props) => {
-  /////////////////////////////////////이세찬 일해라
+  const [disable, setDisable] = useState<boolean>(false);
 
   let btnClass = style.btn;
 
@@ -29,16 +34,26 @@ const Button = ({
   if (round) {
     btnClass += " " + style.round;
   }
+  if (disabled || disable) {
+    btnClass += " " + style.disabled;
+  }
 
   return (
     <div
-      className={btnClass}
+      className={`${btnClass} `}
       style={{
         maxWidth: maxWidth,
         borderRadius: borderRadius,
         height: height,
       }}
-      onClick={onClick}
+      onClick={() => {
+        if (!disable && !disabled) {
+          onClick();
+        }
+        if (disableOnclick && !disabled && !disable) {
+          setDisable(true);
+        }
+      }}
     >
       {children}
     </div>

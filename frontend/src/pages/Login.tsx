@@ -18,7 +18,6 @@ const Login = () => {
   const [academy, setAcademy] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-
   //later hooks
 
   //hooks
@@ -29,7 +28,7 @@ const Login = () => {
     e.preventDefault();
     axios
       .post(
-        "http://localhost:3000/api/users/login/local",
+        `${process.env.REACT_APP_SERVER_URL}/api/users/login/local`,
         {
           academyId: academy,
           userId: usernameRef.current?.value,

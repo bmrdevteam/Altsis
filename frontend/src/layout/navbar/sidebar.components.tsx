@@ -1,9 +1,11 @@
-import React, { ReactElement } from "react";
+import React, { ReactElement, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./sidebar.module.scss";
 import dummmyProfilePic from "../../assets/img/sponge.jpeg";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/authContext";
+import Popup from "../../components/popup/Popup";
+import Button from "../../components/button/Button";
 
 const Nav = ({
   children,
@@ -85,13 +87,14 @@ const NavLink = ({
   path?: string;
 }) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   return (
     <div className={`${style.nav_link_container} ${active && style.active}`}>
       <div
         className={style.nav_link}
         onClick={() => {
-          path && navigate(path, { replace: true });
+          currentUser && path && navigate(path, { replace: true });
         }}
       >
         <span className={style.icon}>{icon}</span>
@@ -117,6 +120,7 @@ const SubLink = ({
   path?: string;
 }) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   return (
     <div className={style.sub_link_container}>
@@ -124,7 +128,7 @@ const SubLink = ({
         className={style.sub_link}
         onClick={() => {
           handleClick && handleClick();
-          path && navigate(path, { replace: true });
+          currentUser && path && navigate(path, { replace: true });
         }}
       >
         <div className={style.icon}>{icon}</div>
@@ -137,31 +141,59 @@ const SubLink = ({
 const NavProfile = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const [logoutPopupActive, setLogoutPopupActive] = useState(false);
 
   return (
-    <div className={style.nav_profile_container}>
-      <div className={style.nav_profile}>
-        <div className={style.profile_img}>
-          <img src={dummmyProfilePic} alt="profile" />
-        </div>
-        <div className={style.profile_info}>
+    <>
+      <div className={style.nav_profile_container}>
+        <div className={style.nav_profile}>
+          <div className={style.profile_img}>
+            <img src={dummmyProfilePic} alt="profile" />
+          </div>
+          <div className={style.profile_info}>
+            <div
+              className={style.username}
+              onClick={() => {
+                currentUser?.userId
+                  ? navigate("myaccount", { replace: true })
+                  : navigate("/login", { replace: true });
+              }}
+            >
+              {currentUser?.userName ?? "로그인"}
+            </div>
+            <div className={style.role}> {currentUser?.auth ?? ""}</div>
+          </div>
           <div
-            className={style.username}
+            className={style.logout}
             onClick={() => {
-              currentUser?.userId
-                ? navigate("myaccount", { replace: true })
-                : navigate("/login", { replace: true });
+              setLogoutPopupActive(true);
             }}
           >
-            {currentUser?.userName ?? "로그인"}
+            <Svg type="logout" width="18px" height="18px" />
           </div>
-          <div className={style.role}> {currentUser?.auth ?? ""}</div>
-        </div>
-        <div className={style.logout}>
-          <Svg type="logout" width="18px" height="18px" />
         </div>
       </div>
-    </div>
+      {logoutPopupActive && (
+        <Popup setState={setLogoutPopupActive} title="로그아웃">
+          <div style={{ margin: "24px 0" }}>
+            <Button
+              type="ghost"
+              disableOnclick
+              onClick={() => {
+                fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/logout`, {
+                  credentials: "include",
+                }).then(() => {
+                  window.location.reload();
+                  setLogoutPopupActive(false);
+                });
+              }}
+            >
+              로그아웃
+            </Button>
+          </div>
+        </Popup>
+      )}
+    </>
   );
 };
 

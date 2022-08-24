@@ -1,17 +1,35 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Autofill from "../../components/input/Autofill";
 import Input from "../../components/input/Input";
 import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
 import Select from "../../components/select/Select";
 import { useAuth } from "../../contexts/authContext";
+import useDatabase from "../../hooks/useDatabase";
 import style from "../../style/pages/courses/courseDesign.module.scss";
 type Props = {};
 
 const CourseDesign = (props: Props) => {
   const { currentUser } = useAuth();
+  const database = useDatabase();
 
+  const [schoolData, setSchoolData] = useState<any>();
 
+  async function getSchoolList() {
+    const { schools: res } = await database.R({ location: "schools/list" });
+    setSchoolData(res.filter((val: any) => val._id === currentUser.schools[0])[0]);
+    return res;
+  }
+
+  useEffect(() => {
+    
+    
+    getSchoolList()
   
+    
+  }, [])
+  
+  console.log(schoolData);
+
   return (
     <div className={style.section}>
       <NavigationLinks />
@@ -29,7 +47,7 @@ const CourseDesign = (props: Props) => {
         <Select
           options={[
             { text: "이세찬", value: "1" },
-            { text: "나도몰라", value: "2  " },
+            { text: "나도몰라", value: "2" },
           ]}
           label="멘토 선택"
           required
@@ -55,13 +73,13 @@ const CourseDesign = (props: Props) => {
           />
         </div>
       </div>
-      <div style={{ display: "flex",marginTop:"24px" }}>
-        <Autofill
+      <div style={{ display: "flex", marginTop: "24px" }}>
+        <Select
           options={[
             { text: "101호", value: "1" },
             { text: "201호", value: "2  " },
           ]}
-          label="강의실"
+          label="강의실 선택"
           required
         />
         <div>시간표 양식</div>

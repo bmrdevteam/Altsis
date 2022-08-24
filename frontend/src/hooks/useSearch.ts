@@ -7,10 +7,16 @@ interface IFilterItem {
   operator: "=" | ">" | "<";
   value: string;
 }
-
+/**
+ *
+ * @param data
+ * @returns
+ */
 export default function useSearch(data: any) {
   const [filters, setFilters] = useState<IFilterItem[]>([]);
-
+  /**
+   * @returns result of the filtered array
+   */
   const result = useCallback(() => {
     if (filters.length < 1) {
       return data;
@@ -47,6 +53,11 @@ export default function useSearch(data: any) {
     });
   }, [filters, data]);
 
+  /**
+   * add a filter
+   * @param {IFilterItem} item
+   * @returns
+   */
   function addFilterItem(item: IFilterItem) {
     setFilters((prev) => [...prev.filter((val) => val.id !== item.id), item]);
     return filters;

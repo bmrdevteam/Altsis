@@ -1,0 +1,144 @@
+.section {
+
+    margin: 24px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+
+}
+
+.search {
+    .btns {
+        display: flex;
+
+        .btn {
+            width: 36px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+
+            svg {
+                fill: rgb(200, 200, 200);
+            }
+        }
+
+        .btn.active {
+            svg {
+                fill: var(--primary-color)
+            }
+        }
+
+    }
+
+}
+
+.content {
+    flex: 1 1 0;
+
+    .items {
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+
+        .item:hover {
+            background-color: rgb(245, 245, 245);
+        }
+
+        .item {
+            width: 100%;
+            min-width: 140px;
+            min-height: 160px;
+            max-width: 160px;
+            border: var(--border-default);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            .icon {
+                width: 100%;
+                background-color: #fff;
+                min-height: 120px;
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 12px;
+
+                .type {
+                    position: absolute;
+                    font-family: 'Pretendard';
+                    font-weight: 600;
+                    font-size: 12px;
+
+
+                }
+            }
+
+            .info {
+                display: flex;
+                align-items: center;
+                border-top: var(--border-default);
+                width: 100%;
+
+                .title {
+
+                    font-family: 'Pretendard';
+                    font-size: 14px;
+                    font-weight: 500;
+                    padding: 12px;
+                    margin: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    word-break: keep-all;
+                    text-overflow: ellipsis;
+                    flex: 1 1 0;
+
+                }
+
+                .more {
+                    height: auto;
+                    flex: 0 1 24px;
+                }
+
+                .more:hover {
+                    svg {
+                        background-color: rgb(200, 200, 200);
+                        border-radius: 10px;
+                    }
+                }
+
+            }
+        }
+
+    }
+}
+
+// pid.tsx
+
+.header_container {
+    display: flex;
+    flex-direction: column;
+
+
+    padding: 24px;
+    border-bottom: var(--border-default);
+
+
+    .menus {
+        display: flex;
+        gap: 10px;
+        .menu{
+            margin: 4px 0;
+            cursor: pointer;
+        }
+    }
+}

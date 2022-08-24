@@ -10,7 +10,7 @@ const Subject = (props: Props) => {
   const [subjects, setSubjects] = useState([]);
 
   useEffect(() => {
-    props.school.data.map(() => {});
+    props.school.data?.map(() => {});
 
     return () => {};
   }, []);
@@ -28,7 +28,9 @@ const Subject = (props: Props) => {
       <div style={{ marginTop: "24px" }}></div>
 
       <Table
-        data={props.school?.subject}
+        data={[]
+          // props.school?.subject
+        }
         header={[
           {
             text: "ID",

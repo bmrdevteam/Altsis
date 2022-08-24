@@ -5,7 +5,7 @@ export interface IEditor {
 
 export interface IBlock {
   id: string;
-  type: "heading" | "paragraph" | "table" | "divider" | "input";
+  type: "heading" | "paragraph" | "table" | "divider" | "input" | "timetable";
   data?: {};
 }
 export interface IParagraphBlock extends IBlock {
@@ -26,6 +26,7 @@ export interface IInputBlock extends IBlock {
     label?: string;
   };
 }
+export interface ITimetableBlock extends IBlock {}
 export interface ISelectBlock extends IBlock {
   data: {
     required?: boolean;
