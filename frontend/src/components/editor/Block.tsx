@@ -5,13 +5,11 @@ import HeadingBlock from "./blocks/HeadingBlock";
 import InputBlock from "./blocks/InputBlock";
 import Paragraphblock from "./blocks/ParagraphBlock";
 import TableBlock from "./blocks/TableBlock";
-import { useEditorData } from "./context/editorContext";
-import { IBlock, IHeadingBlock, IInputBlock, IParagraphBlock } from "./type";
+import { IBlock, IHeadingBlock, IInputBlock, IParagraphBlock, ITimetableBlock } from "./type";
 import style from "./editor.module.scss";
+import TimetableBlock from "./blocks/TimetableBlock";
 
 const Block = ({ data, editorId }: { data: IBlock; editorId: string }) => {
-  const { editorData } = useEditorData();
-
   const Wrapper = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
     return (
       <div id={`${editorId}-${data.id}`} className={style.block}>
@@ -56,7 +54,12 @@ const Block = ({ data, editorId }: { data: IBlock; editorId: string }) => {
           <InputBlock block={data as IInputBlock} />
         </Wrapper>
       );
-
+    case "timetable":
+      return (
+        <Wrapper>
+          <TimetableBlock block={data as ITimetableBlock} />
+        </Wrapper>
+      );
     default:
       break;
   }
