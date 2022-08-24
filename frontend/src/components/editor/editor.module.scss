@@ -1,0 +1,43 @@
+.editor {
+    display: flex;
+    flex-direction: column;
+
+
+    .block {
+        margin: 0 24px;
+        padding: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: 'Pretendard';
+
+
+        .paragraph {
+            outline: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Pretendard';
+            word-wrap: normal;
+            word-break: break-all;
+            width: 100%;
+        }
+
+        .timetable {
+            border: var(--border-default);
+            border-collapse: collapse;
+
+
+            td {
+                border: var(--border-default);
+                padding: 10px;
+                outline: none;
+            }
+        }
+    }
+
+    .block:hover {
+        border: var(--border-default);
+        padding: 5px;
+        border-radius: 4px;
+    }
+}
