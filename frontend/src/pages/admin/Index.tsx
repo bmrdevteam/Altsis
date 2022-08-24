@@ -4,7 +4,7 @@ type Props = {}
 
 const Academy = (props: Props) => {
   return (
-    <div>fdadf</div>
+    <div>관리자 페이지</div>
   )
 }
 
