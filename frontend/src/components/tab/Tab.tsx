@@ -1,14 +1,27 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import style from "./tab.module.scss";
 
-const Tab = (props: { items: object }) => {
+const Tab = (props: {
+  children?: JSX.Element[] | JSX.Element;
+  items: object;
+  align?: "flex-start" | "center" | "flex-end";
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  return (
-    <>
+  useEffect(() => {
+    if (location.hash === "") {
+      navigate(`#${Object.keys(props.items)[0]}`);
+    }
+
+    return () => {};
+  }, [location.hash]);
+
+  const Header = () => {
+    return (
       <div className={style.tab_menu_container}>
-        <div className={style.tab_menu}>
+        <div className={style.tab_menu} style={{ justifyContent: props.align }}>
           {Object.keys(props.items).map((value, index) => {
             return (
               <div
@@ -27,6 +40,13 @@ const Tab = (props: { items: object }) => {
           })}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <>
+      <Header />
+      {props.children}
       <div>
         {
           props.items[
