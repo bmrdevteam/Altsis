@@ -84,7 +84,6 @@ const Login = () => {
             <div style={{ height: "12px" }}></div>
             <Select
               options={[
-                { text: "별무리학교", value: "bmr" },
                 { text: "별무2학교", value: "bmr2" },
               ]}
               style={{ width: "100%" }}
