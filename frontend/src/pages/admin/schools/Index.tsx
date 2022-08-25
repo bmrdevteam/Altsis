@@ -18,11 +18,10 @@ const Schools = () => {
     setSchoolsList(res);
   }
   useEffect(() => {
-    return () => {
-      getSchoolList().then(() => {
-        setIsLoading(false);
-      });
-    };
+    getSchoolList().then(() => {
+      setIsLoading(false);
+    });
+    return () => {};
   }, []);
 
   return (
@@ -78,8 +77,8 @@ const Schools = () => {
               text: "자세히",
               key: "_id",
               type: "button",
-              onClick:(e:any)=>{
-                navigate(`${e.target.dataset.value}`)
+              onClick: (e: any) => {
+                navigate(`${e.target.dataset.value}`);
               },
               width: "80px",
               align: "center",
