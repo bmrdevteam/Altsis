@@ -1,11 +1,25 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Table from "../../components/table/Table";
 import { courseData } from "../../dummyData/coursesData";
+import useDatabase from "../../hooks/useDatabase";
 import style from "../../style/pages/courses/course.module.scss";
 
 type Props = {};
 
 const Courses = (props: Props) => {
+  const database = useDatabase();
+
+  async function getCourseList() {
+    const res = await database.R({ location: "api/syllabuses/list" });
+
+    // setCourseList(res);
+    return res;
+  }
+  useEffect(() => {
+    console.log(getCourseList());
+    return () => {};
+  }, []);
+
   return (
     <div className={style.section}>
       <div className={style.title}>개설 수업 목록</div>
