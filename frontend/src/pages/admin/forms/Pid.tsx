@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Editor from "../../../components/editor/Editor";
 import useEditor from "../../../hooks/useEditor";
-import Input from "../../../components/input/Input";
+
 import useDatabase from "../../../hooks/useDatabase";
 import style from "../../../style/pages/admin/forms/forms.module.scss";
 import Divider from "../../../components/divider/Divider";
+import ReloadWarning from "../../../components/reloadwarning/ReloadWarning";
 
 type Props = {};
 
@@ -33,6 +34,8 @@ const Form = (props: Props) => {
     //first time
     if (formData !== undefined && formData?.data === undefined) {
       editor.initalData(formData);
+    } else {
+      editor.initalData(formData);
     }
 
     return () => {};
@@ -40,12 +43,13 @@ const Form = (props: Props) => {
 
   return (
     <div>
+      <ReloadWarning></ReloadWarning>
       <div className={style.header_container}>
         <div
           className={style.title}
           onClick={() => {
             editor.addBlock({
-              blockType: "timetable",
+              blockType: "paragraph",
             });
           }}
         >
@@ -59,7 +63,7 @@ const Form = (props: Props) => {
         <Divider></Divider>
         <div></div>
       </div>
-      <div style={{padding:"24px 0"}}>
+      <div style={{ padding: "24px 0" }}>
         <Editor auth="edit" editorhook={editor} initalData={formData?.data} />
       </div>
     </div>
