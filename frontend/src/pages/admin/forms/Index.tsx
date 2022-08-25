@@ -61,7 +61,7 @@ const Forms = (props: Props) => {
         data: {
           title: inputFormTitle,
           type: selectFormType,
-          data: { },
+          data: [{ id: "initialBlock", type: "timetable", data: {} }],
         },
       })
       .then(() => {
@@ -82,6 +82,8 @@ const Forms = (props: Props) => {
         setUpdateFormList(false);
       });
   }, [updateFormList]);
+  console.log(formList);
+  
 
   useEffect(() => {
     inputFormTitle !== "" ? setIsValid(true) : setIsValid(false);
