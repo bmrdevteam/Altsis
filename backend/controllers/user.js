@@ -518,7 +518,13 @@ exports.updateMemberField = async (req, res) => {
 exports.read = async (req, res) => {
     try {
         const user=req.user;
-        return res.status(200).send({user})
+        const schoolUsers=await Promise.all(
+            user.schools.map(async school=>{
+                const schoolUser=await SchoolUser(req.user.dbName).findOne({userId:user.userId,schoolId:school.schoolId});
+                return schoolUser;
+            })
+        )
+        res.status(200).send({user,schoolUsers})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
