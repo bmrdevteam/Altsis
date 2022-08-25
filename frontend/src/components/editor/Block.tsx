@@ -5,11 +5,25 @@ import HeadingBlock from "./blocks/HeadingBlock";
 import InputBlock from "./blocks/InputBlock";
 import Paragraphblock from "./blocks/ParagraphBlock";
 import TableBlock from "./blocks/TableBlock";
-import { IBlock, IHeadingBlock, IInputBlock, IParagraphBlock, ITimetableBlock } from "./type";
+import {
+  IBlock,
+  IHeadingBlock,
+  IInputBlock,
+  IParagraphBlock,
+  ITimetableBlock,
+} from "./type";
 import style from "./editor.module.scss";
 import TimetableBlock from "./blocks/TimetableBlock";
 
-const Block = ({ data, editorId }: { data: IBlock; editorId: string }) => {
+const Block = ({
+  data,
+  editorId,
+  editorFunctions,
+}: {
+  data: IBlock;
+  editorId: string;
+  editorFunctions: any;
+}) => {
   const Wrapper = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
     return (
       <div id={`${editorId}-${data.id}`} className={style.block}>
@@ -18,7 +32,6 @@ const Block = ({ data, editorId }: { data: IBlock; editorId: string }) => {
     );
   };
   useEffect(() => {
-    console.log(data);
     return () => {};
   }, []);
 
@@ -33,7 +46,10 @@ const Block = ({ data, editorId }: { data: IBlock; editorId: string }) => {
     case "paragraph":
       return (
         <Wrapper>
-          <Paragraphblock block={data as IParagraphBlock} />
+          <Paragraphblock
+            block={data as IParagraphBlock}
+            editorFunctions={editorFunctions}
+          />
         </Wrapper>
       );
     case "divider":
