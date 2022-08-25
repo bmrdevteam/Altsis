@@ -20,13 +20,15 @@ const CourseDesign = (props: Props) => {
     return res;
   }
 
+
+
+
   useEffect(() => {
-    
-    
     getSchoolList()
-  
+
     
   }, [])
+  
   
   console.log(schoolData);
 
