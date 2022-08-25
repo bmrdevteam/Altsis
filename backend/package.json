@@ -30,5 +30,6 @@
     "passport-local": "^1.0.0",
     "redis": "^4.3.0",
     "session-file-store": "^1.5.0"
-  }
+  },
+  "packageManager": "yarn@3.2.3"
 }
