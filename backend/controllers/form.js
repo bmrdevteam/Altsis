@@ -21,7 +21,6 @@ exports.create = async(req,res)=>{
 exports.list = async (req, res) => {
     try {
         const forms = await Form(req.user.dbName).find({});
-        console.log('forms: ',forms);
         return res.status(200).send({forms});
     }
     catch (err) {
