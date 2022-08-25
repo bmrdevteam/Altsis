@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Divider from "../../components/divider/Divider";
 import Input from "../../components/input/Input";
 import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
 import Select from "../../components/select/Select";
 import Table from "../../components/table/Table";
 import { courseData } from "../../dummyData/coursesData";
+import useDatabase from "../../hooks/useDatabase";
 import useSearch from "../../hooks/useSearch";
 import style from "../../style/pages/enrollment.module.scss";
 
@@ -12,10 +13,24 @@ type Props = {};
 
 const Enrollment = (props: Props) => {
   const search = useSearch(courseData);
+  const database = useDatabase();
 
   function handleTableOnClick(e: any) {
     console.log(e.target.dataset.value);
   }
+
+  async function getCourseList() {
+    const res = await database.R({ location: "api/syllabuses/list?" });
+
+    // setCourseList(res);
+    return res;
+  }
+  useEffect(() => {
+    getCourseList().then((res) => {
+      console.log(res);
+    });
+    return () => {};
+  }, []);
 
   return (
     <div className={style.section}>
@@ -79,6 +94,20 @@ const Enrollment = (props: Props) => {
         data={search.result()}
         header={[
           {
+            text: "신청",
+            key: "subject",
+            onClick: handleTableOnClick,
+            type: "button",
+            width: "80px",
+            align: "center",
+            textStyle: {
+              padding: "0 10px",
+              border: "var(--border-default)",
+              background: "rgba(200, 200, 255, 0.25)",
+              borderColor: "rgba(200, 200, 255)",
+            },
+          },
+          {
             text: "수업 명",
             key: "courseName",
             type: "string",
@@ -100,14 +129,6 @@ const Enrollment = (props: Props) => {
             key: "_id",
             type: "link",
             link: "/courses",
-            width: "80px",
-            align: "center",
-          },
-          {
-            text: "신청",
-            key: "subject",
-            onClick: handleTableOnClick,
-            type: "button",
             width: "80px",
             align: "center",
           },
