@@ -21,15 +21,7 @@ exports.create = async(req,res)=>{
 exports.list = async (req, res) => {
     try {
         const forms = await Form(req.user.dbName).find({});
-        return res.status(200).send({forms:forms.map(form=>{
-            return {
-                _id:form._id,
-                type:form.type,
-                title:form.title,
-                userId:form.userId,
-                userName:form.userName
-            }
-        })});
+        return res.status(200).send({forms});
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
