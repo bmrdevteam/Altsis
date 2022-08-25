@@ -21,6 +21,7 @@ const Editor = (props: Props) => {
       {props.editorhook.result()?.map((value: IBlock, index: number) => {
         return (
           <Block
+          editorFunctions={props.editorhook}
             editorId={props.editorhook.editorData?.id}
             data={value}
             key={index}
