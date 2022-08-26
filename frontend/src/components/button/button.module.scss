@@ -1,11 +1,12 @@
 .btn {
     cursor: pointer;
-    color: white;
+    color: var( --btn-text-color-1);
 
     background-color: var(--btn-color-1);
     text-align: center;
     display: flex;
     height: 42px;
+    padding: 0 6px;
     justify-content: center;
     align-items: center;
 
@@ -37,11 +38,10 @@
 .ghost{
     border: var(--border-default);
     background-color: transparent;
-    color:  var(--btn-color-1);
+    color:  var(--accent-1);
 }
 .ghost:hover{
-    background-color: rgb(244, 244, 244);
-
+    background-color: var(--background-hover-color);
 }
 
 .smooth{
