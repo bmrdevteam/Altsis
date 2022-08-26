@@ -8,25 +8,32 @@
     .input {
         padding: 8.5px 14px;
         font-size: 14px;
+        background-color: var(--background-color);
+        color: var(--accent-1);
 
         height: 40px;
         outline: none;
         border: var(--border-default);
         width: 100%;
     }
-    .input.invaild{
-        border-color:var(--alert-c1) ;
+
+    .input.invaild {
+        border-color: var(--alert-c1);
     }
-    .label{
+
+    .label {
         font-size: 12px;
         font-family: 'Pretendard';
         font-weight: 500;
         padding-bottom: 4px;
-        .required{
+        color: var(--accent-1);
+
+        .required {
             padding-left: 1px;
             color: var(--alert-c1);
         }
     }
+
     position: relative;
 
     .options {
@@ -39,11 +46,11 @@
         top: 58px;
         left: 0px;
 
-        background-color: #fff;
+        background-color: var(--component-color);
 
         .option {
-        font-size: 14px;
-
+            font-size: 14px;
+            color: var(--accent-1);
             height: 40px;
             display: flex;
             padding: 0 14px;
@@ -53,7 +60,7 @@
         }
 
         .option:hover {
-            background-color: rgb(225, 225, 225);
+            background-color: var(--component-hover-color);
         }
     }
 }

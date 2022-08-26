@@ -53,7 +53,7 @@ const Subject = (props: Props) => {
             align: "center",
           },
         ]}
-        style={{ backgroundColor: "#fff" }}
+
       />
     </div>
   );

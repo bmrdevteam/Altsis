@@ -2,10 +2,12 @@
 
     display: flex;
     flex-direction: column;
-
+    
     flex: 1 1 0;
-
+    
     .input {
+        background-color: inherit;
+        color: var(--accent-1);
         padding: 8.5px 14px;
         font-size: 14px;
 
@@ -24,6 +26,8 @@
         font-family: 'Pretendard';
         font-weight: 500;
         padding-bottom: 4px;
+        color: var(--accent-1);
+
 
         .required {
             padding-left: 1px;

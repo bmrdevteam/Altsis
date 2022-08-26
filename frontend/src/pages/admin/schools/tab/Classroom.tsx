@@ -1,12 +1,10 @@
 import { useState } from "react";
-import Svg from "../../../../assets/svg/Svg";
 import Button from "../../../../components/button/Button";
 import Input from "../../../../components/input/Input";
 import Popup from "../../../../components/popup/Popup";
 import Table from "../../../../components/table/Table";
 import useDatabase from "../../../../hooks/useDatabase";
 import useGenerateId from "../../../../hooks/useGenerateId";
-import style from "../../../../style/pages/admin/schools/schools.module.scss";
 type Props = {
   school: any;
   resetData: any;
@@ -100,7 +98,7 @@ const Classroom = (props: Props) => {
             },
           },
         ]}
-        style={{ backgroundColor: "#fff" }}
+
       />
       {addClassroomPopupActive && (
         <Popup setState={setAddClassRoomPopupActive} title="강의실 추가">

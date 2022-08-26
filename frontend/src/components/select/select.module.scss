@@ -12,6 +12,7 @@
         font-family: 'Pretendard';
         font-weight: 500;
         padding-bottom: 4px;
+        color: var(--accent-1);
 
         .required {
             padding-left: 1px;
@@ -32,6 +33,10 @@
             padding-right: 8.5px;
             outline: none;
             border: none;
+            color: var(--accent-1);
+        }
+        .icon{
+            fill: var(--accent-1);
         }
 
 
@@ -47,7 +52,9 @@
         top: 38px;
         left: -1px;
 
-        background-color: #fff;
+
+        background-color: var(--component-color);
+
 
         .option {
             height: 40px;
@@ -55,11 +62,14 @@
             padding: 0 14px;
             white-space: nowrap;
             align-items: center;
+            color: var(--accent-1);
 
         }
 
         .option:hover {
-            background-color: rgb(225, 225, 225);
+
+            background-color: var(--component-hover-color);
+
         }
     }
 }

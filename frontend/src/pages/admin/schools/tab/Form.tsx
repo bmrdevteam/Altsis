@@ -1,7 +1,10 @@
 type Props = {};
 
 const Form = (props: Props) => {
-  return <div></div>;
+  return <div className="">
+
+
+  </div>;
 };
 
 export default Form;

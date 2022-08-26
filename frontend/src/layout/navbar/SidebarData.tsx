@@ -14,8 +14,9 @@ interface INavSubLink {
   path: string;
   icon: JSX.Element;
 }
-export const SidebarData = (role: string):any => {
+export const SidebarData = (role: string): any => {
   switch (role) {
+    case "manager":
     case "admin":
       return [
         {
