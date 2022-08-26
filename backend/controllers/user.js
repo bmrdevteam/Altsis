@@ -1,10 +1,12 @@
 const User = require("../models/User");
 const SchoolUser=require("../models/SchoolUser");
+const School=require('../models/School');
 const { OAuth2Client } = require('google-auth-library');
 const { checkSchema, validationResult } = require("express-validator");
 const clientID = require('../config/config')["GOOGLE-ID"]
 const saltRounds=require('../config/config')["saltRounds"]
 const bcrypt=require('bcrypt')
+const _ = require('lodash');
 
 const specialRegExp = /[!@#$%^&*()]+/;
 const schemaOwner ={
@@ -297,6 +299,58 @@ exports.createOwner = async (req, res) => {
         return res.status(500).send({ err: err.message });
     }
     
+}
+
+exports.enterMembers = async(req,res)=>{
+    try{
+        const school=await School(req.user.dbName).findOne({schoolId:req.body.schoolId,schoolName:req.body.schoolName});
+        if(!school){
+            return res.status(404).send({message:'no school!'});
+        }
+
+        const _userIds=(await SchoolUser(req.user.dbName).find({schoolId:school.schoolId})).map(_schoolUser=>_schoolUser.userId);
+        const schoolUsers=[];
+        const users=[];
+
+        for(let _user of req.body.users){
+            // userId 중복 검사
+            const user=await User(req.user.dbName).findOne({userId:_user.userId, userName:_user.userName});
+            if(!user){
+                return res.status(404).send({message:`no user ${_user.userId}`});
+            }
+
+            if(_.findIndex(user.schools,{schoolId:school.schoolId,schoolName:school.schoolName})!==-1){
+                return res.status(409).send({message:`user ${_user.userId} is already entered`});
+            };
+
+            user.schools.push({
+                schoolId:school.schoolId,
+                schoolName:school.schoolName,
+            })
+            users.push(user);
+
+            const schoolUser={
+                schoolId:school.schoolId,
+                schoolName:school.schoolName,
+                userId:_user.userId,
+                userName:_user.userName,
+                role:_user.role,
+                info:_user.info
+            };
+            schoolUsers.push(schoolUser);
+        }
+
+       const [newUsers,newSchoolUsers]=await Promise.all([
+        users.map(user=>{
+            user.save();
+        }),
+             SchoolUser(req.user.dbName).insertMany(schoolUsers)
+        ])
+        return res.status(200).send({schoolUsers:newSchoolUsers});
+    }
+    catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
 }
 
 exports.createMembers = async (req, res) => {
