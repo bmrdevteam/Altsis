@@ -48,7 +48,7 @@ const NavLogo = ({onClick}:{onClick:any}) => {
         }}
       >
 
-          {currentSchoolUser.schoolName
+          {currentSchoolUser?.schoolName
             ? currentSchoolUser.schoolName
             : currentUser?.a}
       </div>
