@@ -7,6 +7,8 @@
     font-size: 18px;
     font-weight: 600;
     margin-bottom: 12px;
+    color: var(--accent-1);
+
 
 }
 
@@ -23,13 +25,13 @@
             cursor: pointer;
 
             svg {
-                fill: rgb(200, 200, 200);
+                fill: var(--accent-5)
             }
         }
 
         .btn.active {
             svg {
-                fill: var(--primary-color)
+                fill: var(--primary-accent-)
             }
         }
 
@@ -47,7 +49,7 @@
         gap: 24px;
 
         .item:hover {
-            background-color: rgb(245, 245, 245);
+            background-color: var(--background-hover-color)
         }
 
         .item {
@@ -65,7 +67,7 @@
 
             .icon {
                 width: 100%;
-                background-color: #fff;
+                background-color: var(--background-color);
                 min-height: 120px;
                 position: relative;
                 display: flex;
@@ -111,7 +113,7 @@
 
                 .more:hover {
                     svg {
-                        background-color: rgb(200, 200, 200);
+                        background-color: var(--accent-5);
                         border-radius: 10px;
                     }
                 }
@@ -136,7 +138,8 @@
     .menus {
         display: flex;
         gap: 10px;
-        .menu{
+
+        .menu {
             margin: 4px 0;
             cursor: pointer;
         }
