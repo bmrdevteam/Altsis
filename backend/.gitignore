@@ -1,5 +1,11 @@
 /node_modules
 dev.js
-.yarn
-sessions/
- 
+
+#If you're using Zero-Installs:
+ .yarn/*
+ !.yarn/cache
+ !.yarn/patches
+ !.yarn/plugins
+ !.yarn/releases
+ !.yarn/sdks
+ !.yarn/versions
