@@ -51,7 +51,8 @@ function RouterPage() {
     role?: string[];
   }) => {
     const { currentUser } = useAuth();
-    if (role?.includes("admin") && currentUser.auth !== "admin") {
+
+    if (role !== undefined && !role?.includes(currentUser.auth)) {
       return currentUser ? children : <Navigate to="/" />;
     }
 
@@ -110,7 +111,7 @@ function RouterPage() {
                 <Route
                   path="schools"
                   element={
-                    <RequireAuth>
+                    <RequireAuth role={["member"]}>
                       <Schools />
                     </RequireAuth>
                   }
