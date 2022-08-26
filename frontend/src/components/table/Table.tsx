@@ -6,7 +6,7 @@ type Props = {
   data: any;
   header: {
     text: string;
-    key: string;
+    key: string | string[];
     value?: string;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
     type:
@@ -28,7 +28,6 @@ type Props = {
   }[];
   style?: {
     border?: string;
-    backgroundColor?: string;
     rowHeight?: string;
     bodyHeight?: string;
   };
@@ -47,7 +46,6 @@ const Table = (props: Props) => {
                 justifyContent: value.align,
                 maxWidth: value.width,
                 border: props.style?.border,
-                backgroundColor: props.style?.backgroundColor,
               }}
             >
               {value.text}
@@ -96,7 +94,6 @@ const Table = (props: Props) => {
       className={style.table_container}
       style={{
         border: props.style?.border,
-        backgroundColor: props.style?.backgroundColor,
       }}
     >
       <TableHeader />
