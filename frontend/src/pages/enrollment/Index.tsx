@@ -33,12 +33,12 @@ const Enrollment = (props: Props) => {
     return res;
   }
   useEffect(() => {
-    getCourseList().then((res) => {
-      console.log(res);
-    });
     if (currentSchoolUser === null || currentSchoolUser === undefined) {
       setAlertPopupActive(true);
     }
+    getCourseList().then((res) => {
+      console.log(res);
+    });
     return () => {};
   }, []);
 
