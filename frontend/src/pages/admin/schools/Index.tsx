@@ -84,7 +84,7 @@ const Schools = () => {
               align: "center",
             },
           ]}
-          style={{ backgroundColor: "#fff" }}
+
         />
       </div>
     </div>
