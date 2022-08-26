@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import style from "./autoFill.module.scss";
 type Props = {
-  options: {
-    text: string;
-    value: string | number;
-  }[];
+  options:
+    | {
+        text: string;
+        value: string | number;
+      }[];
+
   style?: {
     minWidth?: string;
     width?: string;
@@ -21,6 +23,7 @@ const Autofill = (props: Props) => {
     props.defaultSelected ? props.defaultSelected : 0
   );
   const [inputValue, setInputValue] = useState(props.options[selected].text);
+  const [valid, setValid] = useState(true);
 
   const [edit, setEdit] = useState<boolean>(false);
   const selectRef = useRef<HTMLDivElement>(null);
@@ -40,6 +43,26 @@ const Autofill = (props: Props) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (
+      props.options.filter((val: { text: string; value: string | number }) => {
+        if (inputValue === "") {
+          return val;
+        } else if (val.text.toLowerCase().includes(inputValue.toLowerCase())) {
+          return val;
+        }
+      }).length === 0
+    ) {
+      setValid(false);
+    } else {
+      setValid(true);
+    }
+
+    if (props.required && inputValue === "") {
+      setValid(false);
+    }
+  }, [inputValue]);
+
   return (
     <div className={style.input_container} ref={selectRef}>
       <label className={style.label}>
@@ -47,20 +70,27 @@ const Autofill = (props: Props) => {
         {props.required && <span className={style.required}>*</span>}
       </label>
       <input
+        style={{
+          borderColor: !valid ? "var(--alert-c1)" : "var(--border-default-color)",
+        }}
         type="text"
-
         // value={}
         onChange={(e) => {
           setInputValue(e.target.value);
         }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            setEdit(false);
+          }
+        }}
         className={style.input}
-        value= {inputValue}
-        onFocus={()=>{
-          setEdit(true)
+        value={inputValue}
+        onFocus={() => {
+          setEdit(true);
         }}
       />
 
-      {edit && (
+      {edit && (valid || inputValue === "") && (
         <div className={style.options}>
           {props.options
             .filter((val: { text: string; value: string | number }) => {
@@ -78,7 +108,7 @@ const Autofill = (props: Props) => {
                   key={index}
                   onClick={() => {
                     setInputValue(value.text);
-                    setEdit(false)
+                    setEdit(false);
                   }}
                   className={style.option}
                 >

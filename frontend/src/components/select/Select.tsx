@@ -56,11 +56,11 @@ const Select = (props: Props) => {
                 setSelected(index);
                 props.setValue && props.setValue(props.options[index].value);
               }}
-              data-value={value.value}
+              data-value={value?.value}
               className={style.option}
               key={index}
             >
-              {value.text}
+              {value?.text}
             </div>
           );
         })}
@@ -73,10 +73,12 @@ const Select = (props: Props) => {
       className={style.select}
       style={{ width: props.style?.width }}
     >
-      <label className={style.label}>
-        {props.label}
-        {props.required && <span className={style.required}>*</span>}
-      </label>
+      {props.label && (
+        <label className={style.label}>
+          {props.label}
+          {props.required && <span className={style.required}>*</span>}
+        </label>
+      )}
       <div
         ref={props.ref}
         className={style.selected}
@@ -85,7 +87,7 @@ const Select = (props: Props) => {
           setEdit((prev) => !prev);
         }}
       >
-        <span className={style.text}>{props.options[selected].text}</span>
+        <span className={style.text}>{props.options[selected]?.text}</span>
         <span className={style.icon}>
           <Svg type={"caretDown"} />
         </span>

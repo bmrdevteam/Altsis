@@ -4,10 +4,12 @@ const Popup = ({
   children,
   setState,
   title,
+  closeBtn,
 }: {
   children: JSX.Element | JSX.Element[];
   setState: any;
   title: string;
+  closeBtn?: boolean;
 }) => {
   return (
     <div
@@ -35,22 +37,10 @@ const Popup = ({
           setState(false);
         }}
       ></div>
-      <div
-        style={{
-          position: "absolute",
-          zIndex: 2026,
-          backgroundColor: "#fff",
-        }}
-      >
-        <div className={style.popup_container}>
-          <div
-            style={{
-              display: "flex",
-
-              alignItems: "flex-start",
-            }}
-          >
-            <div className={style.title}>{title}</div>
+      <div className={style.popup_container}>
+        <div className={style.popup}>
+          <div className={style.title}>{title}</div>
+          {closeBtn && (
             <div
               className={style.x}
               onClick={() => {
@@ -59,9 +49,9 @@ const Popup = ({
             >
               <Svg type="x" width="24px" height="24px" />
             </div>
-          </div>
-          {children}
+          )}
         </div>
+        {children}
       </div>
     </div>
   );

@@ -21,18 +21,18 @@ const Sidebar = (props: Props) => {
   const location = useLocation();
   const [sidebarClose, setSidebarClose] = useState<boolean>(false);
 
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchoolUser } = useAuth();
+
   return (
     <Nav close={sidebarClose}>
       <NavLogo
-        handleClick={() => {
+        onClick={() => {
           setSidebarClose((prev: boolean) => {
             return !prev;
           });
         }}
-      >
-        <h1>.Rename</h1>
-      </NavLogo>
+      />
+
       <NavLinks>
         <Search />
         {SidebarData(currentUser?.auth).map((data: INavLink, index: number) => {

@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./sidebar.module.scss";
 import dummmyProfilePic from "../../assets/img/sponge.jpeg";
@@ -14,6 +14,15 @@ const Nav = ({
   children?: JSX.Element[] | JSX.Element;
   close: boolean;
 }) => {
+
+  useEffect(() => {
+    document.title ="별무리힉교"
+  
+    return () => {
+      
+    }
+  }, [])
+  
   return (
     <nav
       id="Sidebar"
@@ -24,26 +33,24 @@ const Nav = ({
   );
 };
 
-const NavLogo = ({
-  children,
-  handleClick,
-}: {
-  children?: JSX.Element[] | JSX.Element;
-  handleClick: any;
-}) => {
+const NavLogo = ({onClick}:{onClick:any}) => {
   const navigate = useNavigate();
+  const { currentSchoolUser, currentUser } = useAuth();
   return (
     <div className={style.nav_logo}>
-      <span className={style.icon} onClick={handleClick}>
+      <span className={style.icon} onClick={onClick}>
         {<Svg type="menu" width="24px" height="24px" />}
       </span>
       <div
         className={style.logo}
         onClick={() => {
-          navigate("/", { replace: true });
+          // navigate("/", { replace: true });
         }}
       >
-        {children}
+
+          {currentSchoolUser?.schoolName
+            ? currentSchoolUser.schoolName
+            : currentUser?.a}
       </div>
     </div>
   );
@@ -174,7 +181,7 @@ const NavProfile = () => {
         </div>
       </div>
       {logoutPopupActive && (
-        <Popup setState={setLogoutPopupActive} title="로그아웃">
+        <Popup setState={setLogoutPopupActive} title="로그아웃" closeBtn>
           <div style={{ margin: "24px 0" }}>
             <Button
               type="ghost"

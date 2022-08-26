@@ -54,7 +54,7 @@ const Season = (props: Props) => {
               align: "center",
             },
           ]}
-          style={{ backgroundColor: "#fff" }}
+
         />
       </div>
     </div>

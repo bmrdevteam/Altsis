@@ -15,6 +15,7 @@ const NavigationLinks = (props: Props) => {
         fontWeight: 500,
         marginBottom: "18px",
         display: "flex",
+        color: "var(--accent-1)",
       }}
     >
       {locationArr.map((value, index) => {

@@ -1,4 +1,5 @@
-import React, { StyleHTMLAttributes, useState } from "react";
+import _, { isArray } from "lodash";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Svg from "../../../assets/svg/Svg";
 import style from "../table.module.scss";
@@ -6,7 +7,7 @@ import style from "../table.module.scss";
 interface ITableItem {
   header: {
     text: string;
-    key: string;
+    key: string | string[];
     value?: string;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
     type:
@@ -37,6 +38,21 @@ interface ITableItem {
 const TableItem = (props: ITableItem) => {
   const navigate = useNavigate();
   const [checked, setChecked] = useState<boolean>(false);
+  // const [output, setOutput] = useState("");
+  let output = "";
+  const d = _.get(props?.data, props.header.key);
+  if (typeof d === "string") {
+    output = d;
+  }
+  if (typeof d === "object") {
+    output = JSON.stringify(d);
+    if (isArray(d) && d.length === 1) {
+      output = _.values(d[0]).join(",")
+    }
+    if (isArray(d) && d.length > 1) {
+      output = d.join(",");
+    }
+  }
 
   switch (props.header.type) {
     case "index":
@@ -115,14 +131,10 @@ const TableItem = (props: ITableItem) => {
             maxWidth: props.header.width,
             border: props.style?.border,
           }}
-          data-value={
-            props.header.value
-              ? props.header.value
-              : props.data[props.header.key]
-          }
+          data-value={props.header.value ? props.header.value : output}
           data-rowindex={props.index}
           onClick={() => {
-            navigate(props.header.link + "/" + props.data[props.header.key], {
+            navigate(props.header.link + "/" + output, {
               replace: true,
             });
           }}
@@ -135,11 +147,7 @@ const TableItem = (props: ITableItem) => {
         <div
           className={style.table_item}
           onClick={props.header.onClick}
-          data-value={
-            props.header.value
-              ? props.header.value
-              : props.data?.[props.header.key]
-          }
+          data-value={props.header.value ? props.header.value : output}
           data-rowindex={props.index}
           style={{
             justifyContent: props.header.align,
@@ -148,11 +156,7 @@ const TableItem = (props: ITableItem) => {
           }}
         >
           <div
-            data-value={
-              props.header.value
-                ? props.header.value
-                : props.data?.[props.header.key]
-            }
+            data-value={props.header.value ? props.header.value : output}
             data-rowindex={props.index}
             style={props.header.textStyle}
           >
@@ -182,11 +186,7 @@ const TableItem = (props: ITableItem) => {
       return (
         <div
           className={style.table_item}
-          data-value={
-            props.header.value
-              ? props.header.value
-              : props.data?.[props.header.key]
-          }
+          data-value={props.header.value ? props.header.value : output}
           data-rowindex={props.index}
           style={{
             justifyContent: props.header.align,
@@ -194,83 +194,10 @@ const TableItem = (props: ITableItem) => {
             border: props.style?.border,
           }}
         >
-          {props.data?.[props.header.key]}
+          {output}
         </div>
       );
   }
 };
-// const TableItem_Index = (props: T_TableItem) => {
-//   return (
-//     <div
-//       onDoubleClick={() => {
-//         console.log("index");
-//       }}
-//       className={`${style.table_item} ${style.table_item_index} `}
-//     >
-//       {props.data}
-//     </div>
-//   );
-// };
-// const TableItem_String = (props: T_TableItem) => {
-//   const [isEditing, setIsEditing] = useState<boolean>(false);
-//   if (isEditing) {
-//     return (
-//       <input
-//         onBlur={() => {
-//           setIsEditing(false);
-//         }}
-//         className={`${style.table_item} ${style.table_item_string} ${style.edit}`}
-//         defaultValue={props.data}
-//         autoFocus
-//       >
-//       </input>
-//     );
-//   }
-//   return (
-//     <div
-//       onDoubleClick={() => {
-//         setIsEditing(true);
-//       }}
-//       className={`${style.table_item} ${style.table_item_string} `}
-//     >
-//       {props.data}
-//     </div>
-//   );
-// };
-// const TableItem_Number = (props: T_TableItem) => {
-//   return (
-//     <div
-//       onDoubleClick={() => {
-//         console.log("number");
-//       }}
-//       className={style.table_item}
-//     >
-//       {props.data}
-//     </div>
-//   );
-// };
-
-// const TableItem_Select = (props: T_TableItem) => {
-//   const selectColors: any = {
-//     pending: style.red,
-//     "주문 대기중": style.red,
-//     finished: style.green,
-//     "주문 완료": style.green,
-//     refunding: style.blue,
-//     "환불 대기중": style.blue,
-//     refunded: style.dark_blue,
-//     "환불 완료": style.dark_blue,
-//   };
-//   return (
-//     <div
-//       onDoubleClick={() => {
-//         console.log("asd");
-//       }}
-//       className={`${style.table_item} ${style.table_item_select}`}
-//     >
-//       <span className={selectColors[props.data]}>{props.data}</span>
-//     </div>
-//   );
-// };
 
 export { TableItem };
