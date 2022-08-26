@@ -56,8 +56,8 @@ const formSchema = mongoose.Schema(
             required:true
         },
         data: {
-            type:dataSchema,
-            required:true
+            type:Object,
+            // required:true
         }
     },{ timestamps: true });
 
