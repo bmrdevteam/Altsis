@@ -16,7 +16,8 @@ interface INavSubLink {
 }
 export const SidebarData = (role: string): any => {
   switch (role) {
-    case "admin" && "manager":
+    case "manager":
+    case "admin":
       return [
         {
           title: "enrollment",
