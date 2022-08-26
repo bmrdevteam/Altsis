@@ -36,6 +36,8 @@ router.delete('/managers/:_id',isAdmin,user.cancelManager);
 
 // ____________ admin + manager ____________
 router.post('/members',isAdManager,user.validateMembers,user.createMembers);
+router.post('/members/enter',isAdManager,user.enterMembers);
+
 router.get('/members/list',isAdManager,user.readMembers);
 router.put('/members/:_id/:field',isAdManager,user.validateUpdate,user.updateMemberField);
 router.delete('/members/:_id',isAdManager,user.deleteMember);

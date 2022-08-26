@@ -15,6 +15,24 @@ const client=require('../redis')
 //     })
 // })
 
+router.get('/lodash/findIndex',(req,res)=>{
+    const user={schools:[
+        {
+            schoolId:'bmrhs',
+            schoolName:'bmrhs'
+        },
+        {
+            schoolId:'bmrms',
+            schoolName:'bmrms'
+        }
+    ]}
+
+
+    const val=_.findIndex(user.schools,{schoolId:req.query.schoolId,schoolName:req.query.schoolName});
+
+    return res.status(200).send({query:req.query,val});
+})
+
 router.get('/lodash/indexof',(req,res)=>{
     const arr=['abc','def'];
     const arr2=[['abc','def'],['abc2','def2']];
