@@ -94,7 +94,7 @@ router.get('/date', (req, res) => {
 router.get('/test1', (req, res) => {
     res.status(200).json({
         success:true,
-        message: "hello world! this is test1"
+        message: "hello world! this is test1 -2"
     })
 })
 
