@@ -1,18 +1,18 @@
 @media print {
     .table_body {
-        height:max-content;
+        height: max-content;
     }
 }
 
 
 .table_container {
 
-    border: 1px solid rgb(224, 224, 224);
+    border: var(--border-default);
     border-radius: 4px;
     height: 100%;
 
-
     .table_header {
+        background-color: var(--component-color);
         display: flex;
         height: 48px;
         width: 100%;
@@ -22,6 +22,7 @@
         box-sizing: border-box;
 
         .table_header_item {
+            color: var(--accent-1);
             cursor: pointer;
             flex: 1 1 0;
             display: flex;
@@ -29,7 +30,7 @@
             align-items: center;
             box-sizing: border-box;
             vertical-align: inherit;
-            border-bottom: 1px solid rgb(224, 224, 224);
+            border-bottom: var(--border-default);
 
             text-align: right;
             height: 48px;
@@ -59,8 +60,7 @@
         }
 
         .table_header_item:hover {
-            background-color: rgb(240, 240, 240);
-
+            background-color: var(--component-hover-color);
         }
 
         .table_header_item:not(:last-child):after {
@@ -70,7 +70,7 @@
             position: absolute;
             top: 35%;
             right: 0;
-            background-color: rgb(224, 224, 224);
+            background-color: var(--accent-5);
         }
 
     }
@@ -84,7 +84,7 @@
 .table_body {
     height: auto;
     overflow: auto scroll;
-
+    background-color: var(--background-color);
     -ms-overflow-style: none;
     /* IE and Edge */
     scrollbar-width: none;
@@ -107,12 +107,12 @@
             align-items: center;
             box-sizing: border-box;
             vertical-align: inherit;
-            border-bottom: 1px solid rgb(224, 224, 224);
+            border-bottom: var(--border-default);
             text-align: right;
             height: 48px;
             padding: 16px;
             overflow: hidden;
-            color: rgba(0, 0, 0, 0.87);
+            color: var(--accent-1);
             font-weight: 400;
             font-size: 0.875rem;
             line-height: 1.5rem;
@@ -161,18 +161,18 @@
         }
 
         .table_item:hover {
-            background-color: rgb(245, 245, 245);
+            background-color: var(--background-hover-color)
 
         }
 
-        .table_item~.edit {
-            background-color: #fff;
-            outline: none;
-            border-top: none;
-            border-right: none;
-            border-left: none;
-            border-bottom: 1px solid rgb(224, 224, 224);
+        // .table_item~.edit {
+        //     background-color: #fff;
+        //     outline: none;
+        //     border-top: none;
+        //     border-right: none;
+        //     border-left: none;
+        //     border-bottom: 1px solid rgb(224, 224, 224);
 
-        }
+        // }
     }
 }
