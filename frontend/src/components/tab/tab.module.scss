@@ -23,7 +23,7 @@
     .tab_menu_item {
         cursor: pointer;
         white-space: nowrap;
-        color: rgb(150, 150, 150);
+        color: var(--accent-3);
         border-radius: 4px;
         display: flex;
         font-size: 14px;
@@ -40,14 +40,14 @@
     }
 
     .tab_menu_item.active {
-        color: var(--primary-color)
+        color: var(--primary-text-color)
     }
 
     .tab_menu_item.active::after {
         content: "";
         bottom: -13.5px;
         width: 100%;
-        background-color: var(--primary-color);
+        background-color: var(--primary-text-color);
         height: 2px;
         position: absolute;
 
