@@ -7,8 +7,7 @@ const Divider = (props: Props) => {
     <div
     style={{
       width: "100%",
-      height: "1px",
-      backgroundColor: "rgb(225,225,225)",
+      border:"var(--border-default)",
       margin: "12px 0",
     }}
   ></div>
