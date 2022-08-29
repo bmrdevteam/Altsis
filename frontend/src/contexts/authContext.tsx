@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => {};
   }, [loading]);
-  console.log(schoolUsers);
+  console.log(currentUser);
 
   const value = {
     setCurrentUser,
