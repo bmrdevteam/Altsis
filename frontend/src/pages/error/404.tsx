@@ -15,6 +15,10 @@ const Http404 = (props: Props) => {
         alignItems: "center",
         height: "100vh",
         flexDirection: "column",
+        position: "fixed",
+        width: "100vw",
+        left: 0,
+        background: "var(--background-color)",
         fontSize: "16px",
       }}
     >
