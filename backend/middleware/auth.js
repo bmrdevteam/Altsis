@@ -14,6 +14,16 @@ exports.isLoggedIn = (req, res, next) => {
     }
  };
 
+ exports.forceNotLoggedIn = (req, res, next) => {
+   if (req.isAuthenticated()) {
+      req.logout((err) => {
+         if (err) return res.status(500).send({ err: err.message });
+     });
+   }
+   next();
+
+};
+
  exports.isOwner = (req, res, next) => {
    if (req.isAuthenticated()) {
       if(req.user.auth=='owner'){

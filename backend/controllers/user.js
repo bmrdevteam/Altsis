@@ -142,7 +142,7 @@ exports.loginLocal = async (req, res) => {
 
         /* login */
         req.login({ user, dbName,academy }, loginError => {
-            if (loginError) return res.status(500).send({ loginError });
+            if (loginError) return res.status(500).send({ err:loginError.message });
             if(req.body.persist==='true'){
                 req.session.cookie['maxAge']=365*24*60*60*1000; //1 year
             }
