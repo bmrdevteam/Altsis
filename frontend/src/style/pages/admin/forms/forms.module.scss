@@ -134,14 +134,30 @@
     padding: 24px;
     border-bottom: var(--border-default);
 
+    .title {
+        padding: 0 0 12px 0;
+        border-bottom: var(--border-default);
+
+        div {
+
+            outline: none;
+        }
+    }
+
+    
+
 
     .menus {
         display: flex;
         gap: 10px;
+        font-family: 'Pretendard';
+        font-weight: 500;
+        font-size: 14px;
 
         .menu {
             margin: 4px 0;
             cursor: pointer;
         }
+
     }
 }
