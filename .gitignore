@@ -1,4 +1,3 @@
 docker-compose.yml
 .env
-.prettierrc
 backend.sh
