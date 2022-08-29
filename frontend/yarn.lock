@@ -5893,7 +5893,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express@npm:^4.17.3, express@npm:^4.18.1":
+"express@npm:^4.17.3":
   version: 4.18.1
   resolution: "express@npm:4.18.1"
   dependencies:
@@ -10621,7 +10621,6 @@ __metadata:
     "@types/react": ^18.0.0
     "@types/react-dom": ^18.0.0
     axios: ^0.27.2
-    express: ^4.18.1
     lodash: ^4.17.21
     react: ^18.2.0
     react-cookie: ^4.1.1
