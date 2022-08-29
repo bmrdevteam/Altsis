@@ -14,15 +14,12 @@ const Nav = ({
   children?: JSX.Element[] | JSX.Element;
   close: boolean;
 }) => {
-
   useEffect(() => {
-    document.title ="별무리힉교"
-  
-    return () => {
-      
-    }
-  }, [])
-  
+    document.title = "별무리힉교";
+
+    return () => {};
+  }, []);
+
   return (
     <nav
       id="Sidebar"
@@ -33,7 +30,7 @@ const Nav = ({
   );
 };
 
-const NavLogo = ({onClick}:{onClick:any}) => {
+const NavLogo = ({ onClick }: { onClick: any }) => {
   const navigate = useNavigate();
   const { currentSchoolUser, currentUser } = useAuth();
   return (
@@ -47,10 +44,15 @@ const NavLogo = ({onClick}:{onClick:any}) => {
           // navigate("/", { replace: true });
         }}
       >
-
-          {currentSchoolUser?.schoolName
-            ? currentSchoolUser.schoolName
-            : currentUser?.a}
+        {currentSchoolUser?.schoolName
+          ? `${currentSchoolUser.schoolName} - `
+          : ""}
+        {currentSchoolUser?.academyName
+          ? currentSchoolUser.academyName
+          : currentUser?.academyName}
+      </div>
+      <div className={style.caret}>
+        <Svg type={"caretDown"} />
       </div>
     </div>
   );
