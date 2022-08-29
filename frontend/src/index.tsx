@@ -5,14 +5,18 @@ import "./style/variables.scss";
 import "./style/fonts.scss";
 import RouterPage from "./routes/RouterPage";
 import { AuthProvider } from "./contexts/authContext";
+import { CookiesProvider } from "react-cookie";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
   // <React.StrictMode>
-    <AuthProvider>
+
+  <AuthProvider>
+    <CookiesProvider>
       <RouterPage />
-    </AuthProvider>
+    </CookiesProvider>
+  </AuthProvider>
   // </React.StrictMode>
 );
