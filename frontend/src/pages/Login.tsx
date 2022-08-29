@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import AuthForm, {
   FormInput,
   FormSubmit,
@@ -6,23 +6,79 @@ import AuthForm, {
 import style from "../style/pages/login.module.scss";
 import axios from "axios";
 import Button from "../components/button/Button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
 import Select from "../components/select/Select";
+import { useCookies } from "react-cookie";
+import useDatabase from "../hooks/useDatabase";
 // import useFormValidation from "../hooks/useFormValidation";
 
 const Login = () => {
+  const { pid } = useParams<"pid">();
+
   const usernameRef = useRef<{ value: any }>();
   const passwordRef = useRef<{ value: any }>();
-  const [academy, setAcademy] = useState<string>("");
+
+  const [cookies, setCookie, removeCookie] = useCookies(["academyId"]);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [academy, setAcademy] = useState<string>();
 
   //later hooks
 
   //hooks
   const navigate = useNavigate();
   const status = useGoogleLogin();
+  const database = useDatabase();
+  var date = new Date();
+
+  date.setFullYear(date.getFullYear() + 1);
+
+  async function getAcademis() {
+    const { academies: res } = await database.R({
+      location: `/academies/list`,
+    });
+    return res;
+  }
+
+  useEffect(() => {
+    getAcademis().then((res) => console.log(res));
+
+    console.log(pid);
+
+    if (
+      pid !== "root" &&
+      pid !== undefined &&
+      pid !== "undefined" &&
+      pid !== "0"
+    ) {
+      if (cookies.academyId === undefined) {
+        setCookie("academyId", pid, {
+          path: "/",
+          expires: date,
+        });
+        setAcademy(pid);
+      } else {
+        //get 아카데미 안에 있는지 확인후 없으면 쿠키 지우고 있는데 현재 쿠키랑 다르면 쿠키 지우고 거기로 이동
+        setAcademy(cookies.academyId);
+      }
+    }
+    if (pid === "0") {
+      navigate(`/${cookies.academyId}/login`);
+      navigate(0);
+    }
+    if (pid === "root") {
+      setAcademy("관리자");
+    }
+    if (pid === "undefined") {
+      navigate(`/login`);
+    }
+    if (pid === undefined) {
+      removeCookie("academyId");
+    }
+
+    return () => {};
+  }, []);
 
   const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,22 +129,43 @@ const Login = () => {
         }
       });
   };
+  console.log(academy);
 
+  if (academy === undefined) {
+    return (
+      <>
+        <div className={style.section}>
+          <div className={style.container}>
+            <div className={style.title}> 로그인 아카데미 선택</div>
+            <Select
+              onchange={(e: any) => {
+                if (e !== "") {
+                  setCookie("academyId", e, {
+                    path: "/",
+                    expires: date,
+                  });
+                  navigate(`/0/login`);
+                  navigate(0);
+                }
+              }}
+              options={[
+                { text: "", value: "" },
+                { text: "별무리학교", value: "bmr2" },
+              ]}
+            />
+          </div>
+        </div>
+      </>
+    );
+  }
   return (
     <>
       <div className={style.section}>
         <div className={style.container}>
-          <h1 className={style.title}>로그인</h1>
+          <div className={style.title}>{academy} 로그인</div>
           <p className={style.error}>{errorMessage}</p>
           <AuthForm handleSubmit={onLoginSubmit}>
             <div style={{ height: "12px" }}></div>
-            <Select
-              options={[
-                { text: "별무2학교", value: "bmr2" },
-              ]}
-              style={{ width: "100%" }}
-              setValue={setAcademy}
-            />
             <div style={{ height: "12px" }}></div>
             <FormInput
               name="아이디"
