@@ -19,8 +19,11 @@ const Subject = (props: Props) => {
     <div style={{ marginTop: "24px" }}>
       <Button
         type={"ghost"}
-        borderRadius={"4px"}
-        height={"32px"}
+        styles={{
+          borderRadius: "4px",
+          height: "32px",
+          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+        }}
         onClick={() => {}}
       >
         + 새로운 강의실 추가
@@ -28,7 +31,8 @@ const Subject = (props: Props) => {
       <div style={{ marginTop: "24px" }}></div>
 
       <Table
-        data={[]
+        data={
+          []
           // props.school?.subject
         }
         header={[
@@ -53,7 +57,6 @@ const Subject = (props: Props) => {
             align: "center",
           },
         ]}
-
       />
     </div>
   );
