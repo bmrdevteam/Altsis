@@ -8,7 +8,7 @@ const {isOwner}=require('../middleware/auth')
 //=================================
 
 router.post('/',isOwner,academy.validateCreate,academy.create);
-router.get('/list',isOwner,academy.list);
+router.get('/list',academy.list);
 
 router.put('/:_id/:field?',academy.validateUpdate,isOwner,academy.update);
 

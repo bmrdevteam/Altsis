@@ -123,7 +123,18 @@ exports.create = async (req, res) => {
 exports.list = async (req, res) => {
     try {
         const academies = await Academy.find({});
-        return res.status(200).send({academies})
+        // if owner
+        if (req.isAuthenticated()) {
+            if(req.user.auth=='owner'){
+                return res.status(200).send({academies})
+            }
+        }
+        return res.status(200).send({academies:academies.map(academy=>{
+            return{
+                academyId:academy.academyId,
+                academyName:academy.academyName
+            }
+        })})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
