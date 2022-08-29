@@ -57,6 +57,7 @@ function RouterPage() {
     }
 
     return currentUser ? children : <Navigate to="/login" />;
+    
   };
 
   return (
@@ -155,6 +156,7 @@ function RouterPage() {
 
               {/* basic routes */}
               <Route path="login" element={<Login />}></Route>
+              <Route path=":pid/login" element={<Login />}></Route>
               <Route path="register" element={<Register />}></Route>
 
               <Route
