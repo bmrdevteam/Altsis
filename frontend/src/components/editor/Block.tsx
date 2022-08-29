@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 import DividerBlock from "./blocks/DividerBlock";
 import HeadingBlock from "./blocks/HeadingBlock";
@@ -19,21 +19,34 @@ const Block = ({
   data,
   editorId,
   editorFunctions,
+  contextMenuController,
 }: {
   data: IBlock;
   editorId: string;
   editorFunctions: any;
+  contextMenuController: any;
 }) => {
+  useEffect(() => {
+    return () => {};
+  }, []);
+
   const Wrapper = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
+    
+    
+    
     return (
-      <div id={`${editorId}-${data.id}`} className={style.block}>
+      <div
+        id={`${editorId}-${data.id}`}
+        className={style.block}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          contextMenuController({ position: [e.pageX, e.pageY] });
+        }}
+      >
         {children}
       </div>
     );
   };
-  useEffect(() => {
-    return () => {};
-  }, []);
 
   switch (data.type) {
     case "heading":
