@@ -1,4 +1,4 @@
-import _ from "lodash";
+import _, { isArray } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { IBlock } from "../components/editor/type";
 
@@ -25,7 +25,7 @@ export default function useEditor() {
 
   function initalData(data: any) {
     setEditorData(data);
-    if (data?.data === undefined) {
+    if (data?.data === undefined || !isArray(data?.data)) {
       setBlockData([
         { id: "initialBlock", type: "paragraph", data: { text: "" } },
       ]);
