@@ -43,26 +43,6 @@ const Form = (props: Props) => {
 
   return (
     <div>
-      <ReloadWarning></ReloadWarning>
-      <div className={style.header_container}>
-        <div
-          className={style.title}
-          onClick={() => {
-            editor.addBlock({
-              blockType: "paragraph",
-            });
-          }}
-        >
-          {formData?.title}
-        </div>
-        <div className={style.menus}>
-          <div className={style.menu}>파일</div>
-          <div className={style.menu}>편집</div>
-          <div className={style.menu}>속성</div>
-        </div>
-        <Divider></Divider>
-        <div></div>
-      </div>
       <div style={{ padding: "24px 0" }}>
         <Editor auth="edit" editorhook={editor} initalData={formData?.data} />
       </div>
