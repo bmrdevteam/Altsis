@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/button/Button";
+import Divider from "../../../components/divider/Divider";
 import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
 import Table from "../../../components/table/Table";
 import useDatabase from "../../../hooks/useDatabase";
@@ -27,20 +28,32 @@ const Schools = () => {
   return (
     <div className={style.section}>
       <NavigationLinks />
-
-      <div className={style.title}>학교 명단</div>
-      <div
-        style={{
-          width: "100%",
-          height: "1px",
-          backgroundColor: "rgb(225,225,225)",
-          margin: "12px 0",
-        }}
-      ></div>
+      <div style={{ display: "flex", gap: "24px" }}>
+        <div style={{ flex: "1 1 0" }}>
+          <div className={style.title}>학교 명단</div>
+          <div className={style.description}>
+            학교는 교육과정을 다루기 적합한 곳입니다
+          </div>
+        </div>
+        {/* <Button
+          type={"ghost"}
+          borderRadius={"4px"}
+          height={"32px"}
+          onClick={() => {
+            navigate("add", { replace: true });
+          }}
+        >
+          + 학교추가
+        </Button> */}
+      </div>
+      <Divider />
       <Button
         type={"ghost"}
-        borderRadius={"4px"}
-        height={"32px"}
+        styles={{
+          borderRadius: "4px",
+          height: "32px",
+          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+        }}
         onClick={() => {
           navigate("add", { replace: true });
         }}
@@ -84,7 +97,6 @@ const Schools = () => {
               align: "center",
             },
           ]}
-
         />
       </div>
     </div>
