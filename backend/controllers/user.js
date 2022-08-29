@@ -7,6 +7,7 @@ const clientID = require('../config/config')["GOOGLE-ID"]
 const saltRounds=require('../config/config')["saltRounds"]
 const bcrypt=require('bcrypt')
 const _ = require('lodash');
+const Academy = require("../models/Academy");
 
 const specialRegExp = /[!@#$%^&*()]+/;
 const schemaOwner ={
@@ -116,9 +117,17 @@ const generateHash=async(password)=>{
 exports.loginLocal = async (req, res) => {
     try {
         /* authentication */
-        let dbName='root'
+        let dbName='root';
+        let academy={academyId:'root',academyName:'root'};
+
         if(req.body.academyId){
-            dbName=req.body.academyId+'-db';
+            const _academy=await Academy.findOne({academyId:req.body.academyId});
+            if(!_academy){
+                return res.status(404).send({message:'No Academy!'});
+            }
+            dbName=_academy.academyId+'-db';
+            academy.academyId=_academy.academyId;
+            academy.academyName=_academy.academyName;
         }
 
         const user = await User(dbName).findOne({ userId: req.body.userId });
@@ -132,7 +141,7 @@ exports.loginLocal = async (req, res) => {
         }
 
         /* login */
-        req.login({ user, dbName }, loginError => {
+        req.login({ user, dbName,academy }, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             if(req.body.persist==='true'){
                 req.session.cookie['maxAge']=365*24*60*60*1000; //1 year
@@ -148,15 +157,22 @@ exports.loginLocal = async (req, res) => {
         });
     }
     catch (err) {
-        res.status(500).send(err)
+        if (err) return res.status(500).send({ err: err.message });
     }
 }
 
 exports.loginGoogle = async (req, res) => {
     try {
-        let dbName='root'
+        let dbName='root';
+        let academy={academyId:'root',academyName:'root'};
         if(req.body.academyId){
-            dbName=req.body.academyId+'-db';
+            const _academy=await Academy.findOne({academyId:req.body.academyId});
+            if(!_academy){
+                return res.status(404).send({message:'No Academy!'});
+            }
+            dbName=_academy.academyId+'-db';
+            academy.academyId=_academy.academyId;
+            academy.academyName=_academy.academyName;
         }
 
         const client = new OAuth2Client(clientID);
@@ -173,7 +189,7 @@ exports.loginGoogle = async (req, res) => {
         })
 
         /* login */
-        req.login({ user, dbName }, loginError => {
+        req.login({ user, dbName,academy }, loginError => {
             if (loginError) return res.status(500).send({ loginError });
             if(req.body.persist==='true'){
                 req.session.cookie['maxAge']=365*24*60*60*1000; //1 year
@@ -578,7 +594,9 @@ exports.read = async (req, res) => {
                 return schoolUser;
             })
         )
-        res.status(200).send({user,schoolUsers})
+        res.status(200).send({
+            user:{...user['_doc'],academyId: req.user.academy.academyId, academyName:req.user.academy.academyName},
+            schoolUsers})
     }
     catch (err) {
         if (err) return res.status(500).send({ err: err.message });
