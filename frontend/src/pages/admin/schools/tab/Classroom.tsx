@@ -45,10 +45,13 @@ const Classroom = (props: Props) => {
   //
   return (
     <div style={{ marginTop: "24px" }}>
-      <Button
+     <Button
         type={"ghost"}
-        borderRadius={"4px"}
-        height={"32px"}
+        styles={{
+          borderRadius: "4px",
+          height: "32px",
+          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+        }}
         onClick={() => {
           setAddClassRoomPopupActive(true);
         }}
