@@ -1,6 +1,9 @@
-import { useEffect } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
+import Svg from "../../assets/svg/Svg";
+import Input from "../input/Input";
 import Block from "./Block";
 import style from "./editor.module.scss";
+import SelectionMenu from "./menu/SelectionMenu";
 
 import { IBlock } from "./type";
 
@@ -12,16 +15,123 @@ interface Props {
 }
 
 const Editor = (props: Props) => {
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  const [contextMenuPosition, setContextMenuPosition] = useState<number[]>([
+    0, 0,
+  ]);
+  const [contextMenuActive, setContextMenuActive] = useState<boolean>(false);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  function contextMenuController({ position }: { position: number[] }) {
+    setContextMenuActive(true);
+    setContextMenuPosition(position);
+  }
+
+  function handleMousedown(e: MouseEvent) {
+    if (
+      contextMenuRef.current &&
+      !contextMenuRef.current.contains(e.target as Node)
+    ) {
+      setContextMenuActive(false);
+    }
+  }
+  function handleSelection(e: any) {
+    console.log(e);
+  }
+
   useEffect(() => {
-    return () => {};
+    document.addEventListener("mousedown", handleMousedown);
+    document.addEventListener("select", handleSelection);
+    return () => {
+      document.removeEventListener("mousedown", handleMousedown);
+      document.removeEventListener("select", handleSelection);
+    };
   }, []);
+  // const SelectionMenu = ({
+  //   x,
+  //   y,
+  // }: {
+  //   x: number | undefined;
+  //   y: number | undefined;
+  // }) => {
+  //   return (
+  //     <div
+  //       className={style.selectionmenu}
+  //       style={{
+  //         top: `${y}px`,
+  //         left: `${x}px`,
+  //       }}
+  //     >
+  //       asdfas;dflkas;ldfkas;ldfklsa;dkfl;sdf
+  //       <div className={style.menus}>
+  //         <div className={style.menu}>dasdf</div>
+  //         <div className={style.menu}>dasdf</div>
+  //         <div className={style.menu}>dasdf</div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
+
+  const ContextMenu = ({ x, y }: { x: number; y: number }) => {
+    return (
+      <div
+        ref={contextMenuRef}
+        className={style.contextmenu}
+        style={{
+          top: `${y}px`,
+          left: `${x}px`,
+        }}
+      >
+        <div className={style.menus}>
+          <input type="text" className={style.search} placeholder="검색" />
+          <div className={style.menu}>
+            <span className={style.icon}>
+              <Svg type="text" />
+            </span>
+            <span className={style.text}>하이</span>
+            <span className={style.more}>
+              <Svg type="chevronRight" />
+            </span>
+          </div>
+
+          <div className={style.menu}>
+            <span className={style.icon}>
+              <Svg type="edit" />
+            </span>
+            <span className={style.text}>속성</span>
+            <span className={style.more}></span>
+          </div>
+
+          <div className={style.menu} onClick={() => {props.editorhook.addblock({})}}>
+            <span className={style.icon}>
+              <Svg type="plus" />
+            </span>
+            <span className={style.text}>새로운 블록</span>
+          </div>
+          <div className={style.menu}>
+            <span className={style.icon}>
+              <Svg type="trash" />
+            </span>
+            <span className={style.text}>블록 삭제</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className={style.editor}>
+    <div className={style.editor} ref={editorRef}>
+      {contextMenuActive && (
+        <ContextMenu x={contextMenuPosition[0]} y={contextMenuPosition[1]} />
+      )}
+      <SelectionMenu containerRef={editorRef} />
+
       {props.editorhook.result()?.map((value: IBlock, index: number) => {
         return (
           <Block
-          editorFunctions={props.editorhook}
+            contextMenuController={contextMenuController}
+            editorFunctions={props.editorhook}
             editorId={props.editorhook.editorData?.id}
             data={value}
             key={index}
