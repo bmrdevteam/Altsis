@@ -34,7 +34,11 @@ app.use(
         secure: false, // HTTPS 통신 외에서는 쿠키를 전달하지 않는다.
      },
      rolling:true,
-     store:new RedisStore({client})
+     store:new RedisStore({
+      client,
+      ttl:24*60*60 //1 day
+      // no need to set reapInterval
+    }),
     //  store : new FileStore({
     //   ttl:24*60*60, // 1 day
     //   path: "./sessions", 
