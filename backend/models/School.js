@@ -107,7 +107,8 @@ const schoolSchema=mongoose.Schema({
     address:String,
     classrooms:[String],
     subjects:subjectSchema,
-    seasons:[seasonSchema]
+    seasons:[seasonSchema],
+    settings:Object
 },{ timestamps: true });
 
 module.exports=(dbName)=>{

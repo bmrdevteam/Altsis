@@ -218,3 +218,37 @@ exports.deleteFieldByIdx = async (req, res) => {
 }
 
 
+
+
+exports.updateSettings = async (req, res) => {
+    try {
+        
+        const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
+        
+        school['settings']=req.body.new;
+        school.markModified(req.params.field);
+        await school.save();
+        return res.status(200).send({school});
+    }
+    catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
+}
+
+exports.readSettings = async (req, res) => {
+    try {
+        
+        const school = await School(req.user.dbName).findOne({_id:req.params._id});
+        if(!school){
+            return res.status(404).send({message:"no school!"});
+        }
+
+        return res.status(200).send({settings: school['settings']});
+    }
+    catch (err) {
+        return res.status(500).send({ err: err.message });
+    }
+}

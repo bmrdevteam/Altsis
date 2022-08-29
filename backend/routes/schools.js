@@ -18,6 +18,9 @@ router.delete('/:_id',isAdManager,school.delete);
 // ---- classrooms, subjects, seasons ----
 // ________________________________________
 
+router.put('/:_id/settings',isAdManager,school.updateSettings);
+router.get('/:_id/settings',isAdManager,school.readSettings);
+
 router.post('/:_id/:field',isAdManager,school.createField);
 router.put('/:_id/:field',isAdManager,school.updateField);
 router.put('/:_id/:field/:idx',isAdManager,school.updateFieldByIdx);
