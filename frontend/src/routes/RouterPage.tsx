@@ -56,7 +56,7 @@ function RouterPage() {
       return currentUser ? children : <Navigate to="/" />;
     }
 
-    return currentUser ? children : <Navigate to="/login" />;
+    return currentUser ? children : <Navigate to="/0/login" />;
     
   };
 
