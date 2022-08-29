@@ -11,6 +11,15 @@
 
     }
 
+    .description {
+        font-size: 13px;
+        font-family: 'Pretendard';
+        font-weight: 500;
+
+        color: var(--accent-3);
+    }
+
+
     .tab_menu_container {
         border-bottom: var(--border-default);
 
@@ -49,7 +58,7 @@
         }
     }
 
-    
+
 
     .form_tab {
         display: flex;
@@ -95,6 +104,7 @@
                 .item:hover {
                     background-color: rgb(245, 245, 245);
                 }
+
                 .item {
                     width: 100%;
                     min-width: 140px;
