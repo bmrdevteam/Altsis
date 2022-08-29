@@ -5,12 +5,10 @@ type Props = {
   children?: string;
   onClick?: any;
   type?: "ghost" | "solid";
-  borderRadius?: string;
   round?: boolean;
   disabled?: boolean;
   disableOnclick?: boolean;
-  maxWidth?: string;
-  height?: string;
+  styles?: object;
 };
 
 const Button = ({
@@ -18,11 +16,9 @@ const Button = ({
   onClick,
   type,
   round,
-  borderRadius,
   disabled,
   disableOnclick,
-  maxWidth,
-  height,
+  styles,
 }: Props) => {
   const [disable, setDisable] = useState<boolean>(false);
 
@@ -41,11 +37,7 @@ const Button = ({
   return (
     <div
       className={`${btnClass} `}
-      style={{
-        maxWidth: maxWidth,
-        borderRadius: borderRadius,
-        height: height,
-      }}
+      style={styles}
       onClick={() => {
         if (!disable && !disabled) {
           onClick();
