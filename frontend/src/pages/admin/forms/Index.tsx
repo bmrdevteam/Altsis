@@ -83,7 +83,6 @@ const Forms = (props: Props) => {
       });
   }, [updateFormList]);
   console.log(formList);
-  
 
   useEffect(() => {
     inputFormTitle !== "" ? setIsValid(true) : setIsValid(false);
@@ -111,9 +110,7 @@ const Forms = (props: Props) => {
         break;
     }
 
-    const Menu = () => {
-      return <div>sd</div>;
-    };
+  
     return (
       <div className={style.item} title={data.title}>
         <div
@@ -167,7 +164,7 @@ const Forms = (props: Props) => {
    * @param {any[]} data
    * @returns {JSX.Element} a grid of form items
    */
-  const FormItems = ({ data }: { data: any[] }) => {
+  const FormItems = ({ type }: { type?: string }) => {
     return (
       <div className={style.content}>
         <div className={style.items}>
@@ -177,14 +174,23 @@ const Forms = (props: Props) => {
             onClick={() => {
               setAddFormPopupActive(true);
             }}
+            style={{height:"160px"}}
           >
             <div className={style.icon} style={{ height: "100%" }}>
               <Svg type="plus" width="32px" height="32px" />
             </div>
           </div>
-          {data.map((value: any, index: number) => {
-            return <FormItem key={index} data={value} />;
-          })}
+          {search
+            .result()
+            .filter((value: any) => {
+              if(type === undefined){
+                return true
+              }
+              return value.type === type;
+            })
+            .map((value: any, index: number) => {
+              return <FormItem key={index} data={value} />;
+            })}
         </div>
       </div>
     );
@@ -202,11 +208,7 @@ const Forms = (props: Props) => {
               시간표: (
                 <div style={{ marginTop: "24px" }}>
                   {view === "grid" ? (
-                    <FormItems
-                      data={search.result().filter((value: any) => {
-                        return value.type === "timetable";
-                      })}
-                    />
+                    <FormItems type={"timetable"} />
                   ) : (
                     <Table
                       data={search.result().filter((value: any) => {
@@ -229,11 +231,7 @@ const Forms = (props: Props) => {
               강의계획서: (
                 <div style={{ marginTop: "24px" }}>
                   {view === "grid" ? (
-                    <FormItems
-                      data={search.result().filter((value: any) => {
-                        return value.type === "syllabus";
-                      })}
-                    />
+                    <FormItems type={"syllabus"} />
                   ) : (
                     <Table
                       data={search.result().filter((value: any) => {
@@ -256,11 +254,7 @@ const Forms = (props: Props) => {
               평가: (
                 <div style={{ marginTop: "24px" }}>
                   {view === "grid" ? (
-                    <FormItems
-                      data={search.result().filter((value: any) => {
-                        return value.type === "evaluation";
-                      })}
-                    />
+                    <FormItems type={"evaluation"} />
                   ) : (
                     <Table
                       data={search.result().filter((value: any) => {
@@ -283,7 +277,7 @@ const Forms = (props: Props) => {
               전체: (
                 <div style={{ marginTop: "24px" }}>
                   {view === "grid" ? (
-                    <FormItems data={search.result()} />
+                    <FormItems />
                   ) : (
                     <Table
                       data={search.result()}
