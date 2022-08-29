@@ -1,21 +1,21 @@
-import React from 'react'
-import Button from '../../../../components/button/Button'
-import Table from '../../../../components/table/Table'
+import React from "react";
+import Button from "../../../../components/button/Button";
+import Table from "../../../../components/table/Table";
 
-type Props = {}
+type Props = {};
 
 const Season = (props: Props) => {
   return (
     <div>
-      <div style={{height:"24px"}}></div>
+      <div style={{ height: "24px" }}></div>
       <Button
         type={"ghost"}
-        borderRadius={"4px"}
-        height={"32px"}
-        
-        onClick={() => {
-
+        styles={{
+          borderRadius: "4px",
+          height: "32px",
+          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
+        onClick={() => {}}
       >
         + 새로운 학기 추가
       </Button>
@@ -54,11 +54,10 @@ const Season = (props: Props) => {
               align: "center",
             },
           ]}
-
         />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Season
+export default Season;
