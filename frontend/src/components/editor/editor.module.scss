@@ -1,8 +1,74 @@
 .editor {
     display: flex;
     flex-direction: column;
+position: relative;
 
+    .selectionmenu {
+        background-color: var(--background-color);
+        position: fixed;
+        padding: 10px;
+        width: 200px;
+        min-width: 180px;
+        box-shadow: rgb(15 15 15 / 5%) 0px 0px 0px 1px, rgb(15 15 15 / 10%) 0px 3px 6px, rgb(15 15 15 / 20%) 0px 9px 24px;
 
+        .menus {
+            .menu {}
+        }
+    }
+
+    .contextmenu {
+        background-color: var(--background-color);
+        position: fixed;
+        padding: 10px;
+        width: 200px;
+        min-width: 180px;
+        box-shadow: rgb(15 15 15 / 5%) 0px 0px 0px 1px, rgb(15 15 15 / 10%) 0px 3px 6px, rgb(15 15 15 / 20%) 0px 9px 24px;
+
+        .menus {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .search {
+                width: 100%;
+                padding: 6px 8px;
+                border: var(--border-default);
+                background-color: var(--background-color);
+                outline: 1px solidrgb(100, 204, 195);
+                color: var(--accent-2);
+
+            }
+
+            .menu {
+                width: 100%;
+                cursor: pointer;
+                padding: 6px 4px;
+                border-radius: 2px;
+                font-family: 'Pretendard';
+                font-weight: 500;
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                color: var(--accent-2);
+                fill: var(--accent-2);
+
+                .icon {
+                    flex-basis: 16px;
+                }
+
+                .text {
+                    flex: 1 1 0;
+                }
+            }
+
+            .menu:hover {
+                background-color: var(--background-hover-color);
+                color: var(--accent-2);
+                fill: var(--accent-2)
+            }
+        }
+    }
 
     .block {
         margin: 0 24px;
@@ -50,5 +116,32 @@
         border: var(--border-default);
         padding: 5px;
         border-radius: 4px;
+    }
+}
+
+.appearance_menu {
+    background-color: #fff;
+
+    box-shadow: 0 3px 15px -3px rgb(13 20 33 / 13%);
+    position: absolute;
+    z-index: 2024;
+
+    .menu_items {
+        display: flex;
+        align-items: center;
+
+        .menu_item {
+            cursor: pointer;
+            margin: 6px;
+            padding: 2px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+min-width: 20px;
+        }
+
+        .menu_item:hover {
+            background-color: rgb(225, 225, 225);
+        }
     }
 }
