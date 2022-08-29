@@ -21,9 +21,19 @@ const Editor = (props: Props) => {
     0, 0,
   ]);
   const [contextMenuActive, setContextMenuActive] = useState<boolean>(false);
+  const [contextMenuId, setContextMenuId] = useState<string>();
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
-  function contextMenuController({ position }: { position: number[] }) {
+  function contextMenuController({
+    position,
+    ref,
+    blockId,
+  }: {
+    position: number[];
+    ref?: any;
+    blockId?: string;
+  }) {
+    setContextMenuId(blockId);
     setContextMenuActive(true);
     setContextMenuPosition(position);
   }
@@ -36,16 +46,12 @@ const Editor = (props: Props) => {
       setContextMenuActive(false);
     }
   }
-  function handleSelection(e: any) {
-    console.log(e);
-  }
 
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    document.addEventListener("select", handleSelection);
+
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
-      document.removeEventListener("select", handleSelection);
     };
   }, []);
   // const SelectionMenu = ({
@@ -103,7 +109,15 @@ const Editor = (props: Props) => {
             <span className={style.more}></span>
           </div>
 
-          <div className={style.menu} onClick={() => {props.editorhook.addblock({})}}>
+          <div
+            className={style.menu}
+            onClick={() => {
+              console.log(contextMenuId);
+              props.editorhook.addBlock({
+                insertAfter: props.editorhook.getBlockIndex(contextMenuId) +1,
+              });
+            }}
+          >
             <span className={style.icon}>
               <Svg type="plus" />
             </span>
@@ -121,23 +135,25 @@ const Editor = (props: Props) => {
   };
 
   return (
-    <div className={style.editor} ref={editorRef}>
-      {contextMenuActive && (
-        <ContextMenu x={contextMenuPosition[0]} y={contextMenuPosition[1]} />
-      )}
-      <SelectionMenu containerRef={editorRef} />
+    <div className={style.editor_container} style={{ height: "100%" }}>
+      <div className={style.editor} ref={editorRef}>
+        {contextMenuActive && (
+          <ContextMenu x={contextMenuPosition[0]} y={contextMenuPosition[1]} />
+        )}
+        <SelectionMenu containerRef={editorRef} />
 
-      {props.editorhook.result()?.map((value: IBlock, index: number) => {
-        return (
-          <Block
-            contextMenuController={contextMenuController}
-            editorFunctions={props.editorhook}
-            editorId={props.editorhook.editorData?.id}
-            data={value}
-            key={index}
-          />
-        );
-      })}
+        {props.editorhook.result()?.map((value: IBlock, index: number) => {
+          return (
+            <Block
+              contextMenuController={contextMenuController}
+              editorFunctions={props.editorhook}
+              editorId={props.editorhook.editorData?.id}
+              data={value}
+              key={index}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 };
