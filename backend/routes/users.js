@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const user = require("../controllers/user");
-const {isLoggedIn,isNotLoggedIn,isOwner,isAdmin,isAdManager}=require("../middleware/auth");
+const {isLoggedIn,isNotLoggedIn,forceNotLoggedIn,isOwner,isAdmin,isAdManager}=require("../middleware/auth");
 
 //=================================
 //             User
@@ -10,8 +10,8 @@ const {isLoggedIn,isNotLoggedIn,isOwner,isAdmin,isAdManager}=require("../middlew
 // ____________ common ____________
 
 /* local & google login */
-router.post('/login/local',isNotLoggedIn,user.loginLocal);
-router.post("/login/google",isNotLoggedIn,user.loginGoogle);
+router.post('/login/local',forceNotLoggedIn,user.loginLocal);
+router.post("/login/google",forceNotLoggedIn,user.loginGoogle);
 
 /* connect to social account */
 router.post('/google',isLoggedIn,user.connectGoogle);
