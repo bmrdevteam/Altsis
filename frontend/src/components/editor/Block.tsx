@@ -31,16 +31,17 @@ const Block = ({
   }, []);
 
   const Wrapper = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
-    
-    
-    
     return (
       <div
         id={`${editorId}-${data.id}`}
         className={style.block}
         onContextMenu={(e) => {
           e.preventDefault();
-          contextMenuController({ position: [e.pageX, e.pageY] });
+          contextMenuController({
+            position: [e.pageX, e.pageY],
+            ref: e,
+            blockId: data.id,
+          });
         }}
       >
         {children}
