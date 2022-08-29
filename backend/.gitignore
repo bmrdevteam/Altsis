@@ -1,6 +1,5 @@
 /node_modules
 dev.js
-sessions
 
 #If you're using Zero-Installs:
  .yarn/*

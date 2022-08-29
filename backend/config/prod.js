@@ -1,5 +1,5 @@
 module.exports = {
-    'url':'',
-    'saltRounds': 0,
-    'session-key':''
-}
+    url: "",
+    saltRounds: 0,
+    "session-key": ""
+};
