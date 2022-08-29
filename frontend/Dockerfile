@@ -8,11 +8,12 @@ WORKDIR /app
 COPY package*.json ./
 COPY yarn.lock ./
 RUN yarn install
+RUN yarn build
 
-COPY ./ ./
+COPY ./build ./build
 
 #컨테이너가 켜지자마자 실행할 명령어 
-CMD ["yarn", "start"]
+CMD node server.js &
 
 # 이미지 생성
 # docker build -t {img} .
