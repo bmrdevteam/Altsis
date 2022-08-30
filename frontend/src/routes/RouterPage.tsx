@@ -57,7 +57,6 @@ function RouterPage() {
     }
 
     return currentUser ? children : <Navigate to="/0/login" />;
-    
   };
 
   return (
@@ -105,7 +104,14 @@ function RouterPage() {
                   }
                 ></Route>
 
-                <Route path="users" element={<Users />}></Route>
+                <Route
+                  path="users"
+                  element={
+                    <RequireAuth>
+                      <Users />
+                    </RequireAuth>
+                  }
+                ></Route>
                 <Route path="users/add" element={<Schools />}></Route>
                 <Route path="user/:pid" element={<User />}></Route>
 
