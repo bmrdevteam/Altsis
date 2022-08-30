@@ -1,8 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import AuthForm, {
-  FormInput,
-  FormSubmit,
-} from "../components/authForm/AuthForm";
 import style from "../style/pages/login.module.scss";
 import axios from "axios";
 import Button from "../components/button/Button";
@@ -12,16 +8,19 @@ import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
 import Select from "../components/select/Select";
 import { useCookies } from "react-cookie";
 import useDatabase from "../hooks/useDatabase";
+import Input from "../components/input/Input";
 // import useFormValidation from "../hooks/useFormValidation";
 
 const Login = () => {
   const { pid } = useParams<"pid">();
 
-  const usernameRef = useRef<{ value: any }>();
-  const passwordRef = useRef<{ value: any }>();
+  const [username, setUsername] = useState<string>();
+  const [password, setPassword] = useState<string>();
 
   const [cookies, setCookie, removeCookie] = useCookies(["academyId"]);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [academies, setAcademies] = useState<any[]>();
   const [academy, setAcademy] = useState<string>();
 
   //later hooks
@@ -36,15 +35,13 @@ const Login = () => {
 
   async function getAcademis() {
     const { academies: res } = await database.R({
-      location: `/academies/list`,
+      location: `academies/list`,
     });
+    setLoading(false);
     return res;
   }
-
   useEffect(() => {
-    getAcademis().then((res) => console.log(res));
-
-    console.log(pid);
+    getAcademis().then((res) => setAcademies(res));
 
     if (
       pid !== "root" &&
@@ -60,6 +57,19 @@ const Login = () => {
         setAcademy(pid);
       } else {
         //get 아카데미 안에 있는지 확인후 없으면 쿠키 지우고 있는데 현재 쿠키랑 다르면 쿠키 지우고 거기로 이동
+        if (
+          !loading &&
+          !(
+            (
+              academies?.filter((val) => val.academyId === cookies.academyId) ??
+              []
+            ).length > 0
+          )
+        ) {
+          navigate("/login");
+          navigate(0);
+          setLoading(true);
+        }
         setAcademy(cookies.academyId);
       }
     }
@@ -78,61 +88,38 @@ const Login = () => {
     }
 
     return () => {};
-  }, []);
+  }, [loading]);
 
-  const onLoginSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const onLoginSubmit = () => {
     axios
       .post(
         `${process.env.REACT_APP_SERVER_URL}/api/users/login/local`,
         {
           academyId: academy,
-          userId: usernameRef.current?.value,
-          password: passwordRef.current?.value,
+          userId: username,
+          password: password,
         },
         { withCredentials: true }
       )
       .then(function (response) {
         response.status === 200 && window.location.replace("/");
       })
-      .catch(function (error) {
-        const errorMsg = error.response.data.errors;
+      .catch((error) => {
+        const errorMsg = error.response.data;
+        console.log(errorMsg);
 
         for (let i = 0; i < errorMsg?.length; i++) {
-          console.log(errorMsg[i]?.msg);
-          console.log(errorMsg[i]?.param);
           setErrorMessage(errorMsg[i]?.msg);
-
-          switch (errorMsg[i]?.msg) {
-            case "409":
-              //conflict
-              break;
-            case "ID length error":
-              console.log(1);
-
-              break;
-            case "ID must be alphanumeric":
-              console.log(2);
-
-              break;
-            case "Password length error":
-              console.log(3);
-
-              break;
-            case "Password must contain one special character":
-              console.log(4);
-
-              break;
-
-            default:
-          }
         }
       });
   };
-  console.log(academy);
 
   if (academy === undefined) {
-    return (
+    let options: { text: string; value: string }[] = [{ text: "", value: "" }];
+    academies?.map((value, index) => {
+      options.push({ text: value.academyName, value: value.academyId });
+    });
+    return !loading ? (
       <>
         <div className={style.section}>
           <div className={style.container}>
@@ -148,42 +135,74 @@ const Login = () => {
                   navigate(0);
                 }
               }}
-              options={[
-                { text: "", value: "" },
-                { text: "별무리학교", value: "bmr2" },
-              ]}
+              options={options}
             />
           </div>
         </div>
       </>
+    ) : (
+      <div className={style.section}></div>
     );
   }
-  return (
+  return !loading ? (
     <>
       <div className={style.section}>
         <div className={style.container}>
-          <div className={style.title}>{academy} 로그인</div>
-          <p className={style.error}>{errorMessage}</p>
-          <AuthForm handleSubmit={onLoginSubmit}>
-            <div style={{ height: "12px" }}></div>
-            <div style={{ height: "12px" }}></div>
-            <FormInput
-              name="아이디"
+          <div className={style.title}>
+            {
+              academies?.filter((val) => val.academyId === academy)[0]
+                ?.academyName
+            }
+            에 로그인
+          </div>
+          <div
+            style={{ display: "flex", gap: "12px", flexDirection: "column" }}
+          >
+            <p className={style.error}>{errorMessage}</p>
+
+            <Input
+              label="아이디"
               placeholder="아이디 입력"
-              useRef={usernameRef}
-              required={true}
+              onChange={(e: any) => {
+                setUsername(e.target.value);
+              }}
+              required
             />
-            <FormInput
-              name="패스워드"
+            <Input
+              label="패스워드"
               placeholder="패스워드 입력"
-              valueType="password"
-              useRef={passwordRef}
+              onChange={(e: any) => {
+                setPassword(e.target.value);
+              }}
+              onKeyDown={(e: any) => {
+                if (
+                  username !== undefined &&
+                  password !== undefined &&
+                  username !== "" &&
+                  password !== "" &&
+                  e.key === "Enter"
+                ) {
+                  onLoginSubmit();
+                }
+              }}
+              type="password"
               required
             />
 
-            <FormSubmit placeholder="로그인" />
-          </AuthForm>
+            <Button
+              disabled={
+                username === undefined ||
+                password === undefined ||
+                username === "" ||
+                password === ""
+              }
+              onClick={onLoginSubmit}
+            >
+              로그인
+            </Button>
+          </div>
           <div style={{ height: "4px" }}></div>
+
           <Button
             type="ghost"
             onClick={() => {
@@ -192,12 +211,13 @@ const Login = () => {
           >
             회원가입
           </Button>
-
           <div style={{ height: "4px" }}></div>
           <GoogleLoginBtn />
         </div>
       </div>
     </>
+  ) : (
+    <div className={style.section}></div>
   );
 };
 
