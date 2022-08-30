@@ -4,10 +4,12 @@ type Props = {
   defaultValue?: string;
   placeholder?: string;
   label?: string;
+  type?: string;
   required?: boolean;
   disabled?: boolean;
   onChange?: any;
   onKeyDown?: any;
+  ref?: any;
 };
 
 const Input = (props: Props) => {
@@ -20,7 +22,8 @@ const Input = (props: Props) => {
         </label>
       )}
       <input
-        type="text"
+        ref={props.ref}
+        type={props.type ? props.type : "text"}
         className={style.input}
         defaultValue={props.defaultValue}
         placeholder={props.placeholder}
