@@ -32,6 +32,7 @@ const Nav = ({
 
 const NavLogo = ({ onClick }: { onClick: any }) => {
   const navigate = useNavigate();
+
   const { currentSchoolUser, currentUser } = useAuth();
   return (
     <div className={style.nav_logo}>
