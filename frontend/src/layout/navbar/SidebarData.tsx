@@ -58,7 +58,7 @@ export const SidebarData = (role: string): any => {
           ],
         },
         {
-          title: "setting",
+          title: "settings",
           name: "설정",
           path: "/settings",
           icon: <Svg type="gear" />,
@@ -80,7 +80,7 @@ export const SidebarData = (role: string): any => {
           icon: <Svg type="bookOpen" />,
         },
         {
-          title: "setting",
+          title: "settings",
           name: "설정",
           path: "/settings",
           icon: <Svg type="gear" />,
