@@ -122,11 +122,13 @@ const SubLink = ({
   icon,
   handleClick,
   path,
+  active,
 }: {
   children?: string;
   icon?: JSX.Element;
   handleClick?: any;
   path?: string;
+  active?: boolean;
 }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -134,7 +136,7 @@ const SubLink = ({
   return (
     <div className={style.sub_link_container}>
       <div
-        className={style.sub_link}
+        className={`${style.sub_link} ${active && style.active}`}
         onClick={() => {
           handleClick && handleClick();
           currentUser && path && navigate(path, { replace: true });
