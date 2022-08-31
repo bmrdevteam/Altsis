@@ -14,6 +14,7 @@ import Nav, {
 import { INavLink, SidebarData } from "./SidebarData";
 
 import { useLocation } from "react-router-dom";
+import Divider from "../../components/divider/Divider";
 
 type Props = {};
 
@@ -35,6 +36,7 @@ const Sidebar = (props: Props) => {
 
       <NavLinks>
         <Search />
+
         {SidebarData(currentUser?.auth).map((data: INavLink, index: number) => {
           return (
             <NavLink
@@ -48,10 +50,19 @@ const Sidebar = (props: Props) => {
               subLink={
                 data.subLink && (
                   <SubLinks>
-                    {data.subLink.map((data, index) => {
+                    {data.subLink.map((sbData, index) => {
                       return (
-                        <SubLink key={index} icon={data.icon} path={data.path}>
-                          {data.name}
+                        <SubLink
+                          key={index}
+                          icon={sbData.icon}
+                          path={sbData.path}
+                          active={
+                            location.pathname !== "/" &&
+                            location.pathname.includes(sbData.path)
+                          }
+                          
+                        >
+                          {sbData.name}
                         </SubLink>
                       );
                     })}
