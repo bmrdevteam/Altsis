@@ -1,3 +1,10 @@
-module.exports=[
-    'academies','users','schools','schoolUsers','forms','enrollments','syllabuses','test'
+module.exports = [
+    "academies",
+    "users",
+    "schools",
+    "schoolUsers",
+    "forms",
+    "enrollments",
+    "syllabuses",
+    "test"
 ];

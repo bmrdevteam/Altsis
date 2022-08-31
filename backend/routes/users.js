@@ -2,14 +2,15 @@ const express = require("express");
 const router = express.Router();
 const user = require("../controllers/user");
 const {
-  isLoggedIn,
-  isNotLoggedIn,
-  forceNotLoggedIn,
-  isOwner,
-  isAdmin,
-  isAdManager,
+    isLoggedIn,
+    isNotLoggedIn,
+    forceNotLoggedIn,
+    isOwner,
+    isAdmin,
+    isAdManager
 } = require("../middleware/auth");
 const profile = require("../controllers/profile");
+
 //=================================
 //             User
 //=================================
@@ -52,10 +53,10 @@ router.post("/members/enter", isAdManager, user.enterMembers);
 
 router.get("/members/list", isAdManager, user.readMembers);
 router.put(
-  "/members/:_id/:field",
-  isAdManager,
-  user.validateUpdate,
-  user.updateMemberField
+    "/members/:_id/:field",
+    isAdManager,
+    user.validateUpdate,
+    user.updateMemberField
 );
 router.delete("/members/:_id", isAdManager, user.deleteMember);
 
