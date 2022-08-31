@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import style from "./tab.module.scss";
 
@@ -17,7 +17,6 @@ const Tab = (props: {
 
     return () => {};
   }, [location.hash]);
-
   const Header = () => {
     return (
       <div className={style.tab_menu_container}>
@@ -30,7 +29,8 @@ const Tab = (props: {
                   decodeURI(location.hash).replace("#", "") === value &&
                   style.active
                 }`}
-                onClick={() => {
+                
+                onClick={(e: any) => {
                   navigate(`#${value}`, { replace: true });
                 }}
               >
@@ -38,6 +38,12 @@ const Tab = (props: {
               </div>
             );
           })}
+        </div>
+        <div className={style.indicator_container}>
+          <div
+            className={style.indicator}
+            id="indicator"
+          ></div>
         </div>
       </div>
     );
