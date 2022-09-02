@@ -2,6 +2,9 @@ import _, { isArray } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { IBlock } from "../components/editor/type";
 
+
+
+
 export default function useEditor() {
   const [editorData, setEditorData] = useState<any>();
   const [blockData, setBlockData] = useState<any>();
