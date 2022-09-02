@@ -17,6 +17,7 @@ import Subject from "./tab/Subject";
 import Form from "./tab/Form";
 import useDatabase from "../../../hooks/useDatabase";
 import Setting from "./tab/Setting";
+import Skeleton from "../../../components/skeleton/Skeleton";
 
 type Props = {};
 
@@ -86,7 +87,11 @@ const School = (props: Props) => {
       <NavigationLinks />
 
       <div className={style.title}>
-        {schoolData !== undefined && schoolData.schoolName}
+        {schoolData !== undefined ? (
+          schoolData.schoolName
+        ) : (
+          <Skeleton height="22px" width="20%" />
+        )}
       </div>
 
       <Tab
