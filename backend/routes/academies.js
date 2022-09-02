@@ -7,10 +7,10 @@ const { isOwner } = require("../middleware/auth");
 //             Academy
 //=================================
 
-router.post("/", isOwner, academy.validateCreate, academy.create);
+router.post("/", isOwner, academy.create);
 router.get("/list", academy.list);
 
-router.put("/:_id/:field?", academy.validateUpdate, isOwner, academy.update);
+router.put("/:_id/:field", isOwner, academy.update);
 
 router.delete("/:_id", isOwner, academy.delete);
 
