@@ -1,10 +1,12 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../../../components/button/Button";
 import Table from "../../../../components/table/Table";
 
 type Props = {};
 
 const Season = (props: Props) => {
+  const navigate = useNavigate();
   return (
     <div>
       <div style={{ height: "24px" }}></div>
@@ -48,8 +50,12 @@ const Season = (props: Props) => {
             {
               text: "자세히",
               key: "_id",
-              type: "link",
-              link: "/admin/schools",
+              type: "button",
+              onClick: (e: any) => {
+                navigate(`/admin/schools/${e.target.dataset.value}`, {
+                  replace: true,
+                });
+              },
               width: "80px",
               align: "center",
             },
