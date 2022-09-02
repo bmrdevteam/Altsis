@@ -1,7 +1,8 @@
 .editor {
     display: flex;
     flex-direction: column;
-position: relative;
+    position: relative;
+    padding: 24px 0;
 
     .selectionmenu {
         background-color: var(--background-color);
@@ -17,6 +18,12 @@ position: relative;
     }
 
     .contextmenu {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
         background-color: var(--background-color);
         position: fixed;
         padding: 10px;
@@ -29,6 +36,7 @@ position: relative;
             flex-direction: column;
             gap: 2px;
 
+
             .search {
                 width: 100%;
                 padding: 6px 8px;
@@ -36,10 +44,13 @@ position: relative;
                 background-color: var(--background-color);
                 outline: 1px solidrgb(100, 204, 195);
                 color: var(--accent-2);
+                padding-right: 10px;
 
             }
 
             .menu {
+                padding-right: 10px;
+                position: relative;
                 width: 100%;
                 cursor: pointer;
                 padding: 6px 4px;
@@ -59,6 +70,38 @@ position: relative;
 
                 .text {
                     flex: 1 1 0;
+                }
+
+                .sub_menus {
+                    box-shadow: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 3px 6px, rgba(15, 15, 15, 0.2) 0px 9px 24px;
+                    padding: 10px;
+                    position: absolute;
+                    left: 180px;
+                    margin-left: 10px;
+                    top: 0;
+                    min-width: 120px;
+                    background-color: var(--background-color);
+
+                    .sub_menu {
+                        width: 100%;
+                        cursor: pointer;
+                        padding: 6px 4px;
+                        border-radius: 2px;
+                        font-family: 'Pretendard';
+                        font-weight: 500;
+                        font-size: 14px;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                        color: var(--accent-2);
+                        fill: var(--accent-2);
+                    }
+
+                    .sub_menu:hover {
+                        background-color: var(--background-hover-color);
+                        color: var(--accent-2);
+                        fill: var(--accent-2)
+                    }
                 }
             }
 
@@ -137,7 +180,7 @@ position: relative;
             border-radius: 4px;
             display: flex;
             align-items: center;
-min-width: 20px;
+            min-width: 20px;
         }
 
         .menu_item:hover {
