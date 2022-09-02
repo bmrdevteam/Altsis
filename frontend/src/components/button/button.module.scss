@@ -1,6 +1,6 @@
 .btn {
     cursor: pointer;
-    color: var( --btn-text-color-1);
+    color: var(--btn-text-color-1);
 
     background-color: var(--btn-color-1);
     text-align: center;
@@ -34,21 +34,33 @@
     border-radius: 40px;
 }
 
+.hover {
+    background-color: transparent;
+    color: var(--accent-1);
 
-.ghost{
+}
+
+.hover:hover {
+    background-color: var(--background-hover-color);
+
+}
+
+
+.ghost {
     border: var(--border-default);
     background-color: transparent;
-    color:  var(--accent-1);
+    color: var(--accent-1);
 }
-.ghost:hover{
+
+.ghost:hover {
     background-color: var(--background-hover-color);
 }
 
-.smooth{
-    background-color: rgba(var(--btn-color-1),0.2);
+.smooth {
+    background-color: rgba(var(--btn-color-1), 0.2);
 }
 
-.disabled{
+.disabled {
     cursor: not-allowed;
     opacity: 0.5;
 }
