@@ -1,6 +1,11 @@
-import React, { RefObject, useState } from "react";
+/**
+ * @version 1.0
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ */
+
+import React from "react";
 import Svg from "../../assets/svg/Svg";
-import useDatabase from "../../hooks/useDatabase";
 import useOutsideClick from "../../hooks/useOutsideClick";
 import useSearch from "../../hooks/useSearch";
 import Button from "../button/Button";
@@ -24,7 +29,6 @@ type Props = {
       | "select"
       | "checkbox"
       | "arrText"
-      | "link"
       | "input";
     link?: string;
     align?: "left" | "center" | "right";
@@ -39,15 +43,23 @@ type Props = {
   filter?: boolean;
 };
 
+/**
+ * returns a filterItem component for the filter component
+ *
+ * @returns {JSX.Element}
+ *
+ * @example <TableFilterItem/>
+ *
+ * @version 1.0 design + close and open
+ */
 const TableFilterItem = () => {
+  // implement close on clicked somewhere else
   const outsideClick = useOutsideClick();
+
+  // return
   return (
     <div className={style.item}>
-      <div
-        onClick={() => {
-          outsideClick.setActive(true);
-        }}
-      >
+      <div onClick={outsideClick.handleOnClick}>
         <span className={style.emphasis}>학교명</span>
         <span>&gt;</span>
         <span className={`${style.emphasis} ${style.number}`}>100</span>
@@ -91,10 +103,23 @@ const TableFilterItem = () => {
     </div>
   );
 };
-const TableControls = () => {
-  const outsideClick = useOutsideClick();
-  const database = useDatabase()
 
+/**
+ * returns a control component for the table component
+ *
+ * @returns {JSX.Element} controls component
+ *
+ * @example
+ * <TableControls/>
+ *
+ * @version 1.0 design + close and open
+ *
+ */
+const TableControls = () => {
+  // implement close on clicked somewhere else
+  const outsideClick = useOutsideClick();
+
+  // return
   return (
     <div className={style.controls}>
       <div className={style.icon} onClick={outsideClick.handleOnClick}>
@@ -109,8 +134,48 @@ const TableControls = () => {
     </div>
   );
 };
+
+/**
+ * a table component
+ *
+ * @param {Props}
+ *
+ * @returns {JSX.Element}
+ * 
+ * @example 
+ <Table
+  data={search.result()}
+  header={[
+    {
+      text: "id",
+      key: "",
+      type: "index",
+      width: "48px",
+      align: "center",
+    },
+    { 
+      text: "이름",
+      key: "userName",
+      type: "string",
+      align: "right" 
+    },
+  ]}
+/>
+ * @version 2.1 added filters and controls to the component
+ * @version 1.2 removed the link item due to simplifying the items - use buttons instead
+ * @version 1.1 minor fixes on the button item
+ * @version 1.0 initial version - created the table component
+ */
 const Table = (props: Props) => {
   const search = useSearch({});
+
+  /**
+   * filter component
+   *
+   * @returns {JSX.Element}
+   *
+   * @version 1.0 design
+   */
 
   const TableFilter = () => {
     return (
@@ -122,7 +187,17 @@ const Table = (props: Props) => {
       </div>
     );
   };
+
+  /**
+   * table header component
+   *
+   * @returns {JSX.Element}
+   *
+   * @version 1.0
+   */
+
   const TableHeader = () => {
+    //return
     return (
       <div className={style.table_header}>
         {props.header.map((value: any, index: number) => {
@@ -144,6 +219,14 @@ const Table = (props: Props) => {
     );
   };
 
+  /**
+   * table header component
+   *
+   * @returns {JSX.Element}
+   *
+   * @version 1.0
+   */
+
   const TableBody = () => {
     return (
       <div
@@ -151,6 +234,7 @@ const Table = (props: Props) => {
         style={{ height: props.style?.bodyHeight }}
       >
         <div className={style.table_body_container}>
+          {/* map through rows */}
           {props.data?.map((data: any, dataIndex: number) => {
             return (
               <div
@@ -158,6 +242,7 @@ const Table = (props: Props) => {
                 className={style.table_row}
                 style={{ height: props.style?.rowHeight }}
               >
+                {/* map through the header to display the right output with the data */}
                 {props.header.map((value, index) => {
                   return (
                     <TableItem
@@ -177,6 +262,7 @@ const Table = (props: Props) => {
     );
   };
 
+  //return the table component
   return (
     <div
       className={style.table_container}
