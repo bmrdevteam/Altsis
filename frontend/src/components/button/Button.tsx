@@ -4,7 +4,7 @@ import style from "./button.module.scss";
 type Props = {
   children?: string;
   onClick?: any;
-  type?: "ghost" | "solid";
+  type?: "ghost" | "solid" | "hover";
   round?: boolean;
   disabled?: boolean;
   disableOnclick?: boolean;
@@ -27,9 +27,13 @@ const Button = ({
   if (type === "ghost") {
     btnClass += " " + style.ghost;
   }
+  if (type ==="hover") {
+    btnClass += " " + style.hover;
+  }
   if (round) {
     btnClass += " " + style.round;
   }
+  
   if (disabled || disable) {
     btnClass += " " + style.disabled;
   }
