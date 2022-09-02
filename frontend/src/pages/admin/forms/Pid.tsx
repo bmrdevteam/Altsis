@@ -43,9 +43,7 @@ const Form = (props: Props) => {
 
   return (
     <div>
-      <div style={{ padding: "24px 0" }}>
-        <Editor auth="edit" editorhook={editor} initalData={formData?.data} />
-      </div>
+      <Editor auth="edit" editorhook={editor} initalData={formData?.data} />
     </div>
   );
 };
