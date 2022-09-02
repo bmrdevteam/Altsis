@@ -11,6 +11,160 @@
     border-radius: 4px;
     height: 100%;
 
+    .table_filter {
+        display: flex;
+        height: 48px;
+        width: 100%;
+        -webkit-box-align: center;
+        align-items: center;
+        box-sizing: border-box;
+        border-bottom: var(--border-default);
+
+        .filters {
+            flex: 1 1 0;
+            display: flex;
+            gap: 18px;
+            margin-left: 12px;
+
+
+            .item {
+                position: relative;
+                border: var(--border-default);
+                padding: 4px 12px;
+                font-size: 13px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                border-radius: 24px;
+                font-family: 'Pretendard';
+                cursor: pointer;
+
+                .emphasis {
+                    font-weight: 700;
+                    font-size: 12px;
+                    padding: 2px 4px;
+
+                    border-radius: 2px;
+                    margin: 0 4px;
+                    background-color: var(--color-b6);
+                    color: var(--color-b2);
+                }
+
+                .emphasis.number {
+                    color: var(--accent-1);
+                    background-color: var(--color-g6);
+
+
+                }
+
+                .cancel {
+                    border-radius: 16px;
+                }
+
+                .cancel:hover {
+                    background-color: var(--background-hover-color);
+                }
+            }
+
+            .item:hover {
+                background-color: var(--color-b6);
+                border-color: var(--primary-background-color);
+
+                .emphasis {
+                    background-color: transparent;
+                }
+
+            }
+        }
+
+        .controls {
+
+            display: flex;
+            gap: 4px;
+            padding: 0 10px;
+            position: relative;
+
+            .icon {
+                cursor: pointer;
+                fill: var(--accent-2);
+                padding: 8px;
+                border-radius: 24px;
+            }
+
+            .icon:hover {
+                background-color: var(--background-hover-color);
+            }
+
+            .control {
+                background-color: var(--background-color);
+                box-shadow: var(--component-box-shadow);
+                position: absolute;
+                right: 4px;
+                top: 44px;
+                padding: 4px;
+                z-index: 1;
+                font-size: 12px;
+                font-family: 'Pretendard';
+                font-weight: 500;
+
+                border-radius: 4px;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+
+                .item {
+                    display: flex;
+                    align-items: center;
+                    word-break: keep-all;
+                    white-space: nowrap;
+                    gap: 4px;
+                    color: var(--accent-2);
+                    cursor: pointer;
+                    border-radius: 4px;
+                    padding: 8px 8px;
+                }
+
+                .item:hover {
+                    background-color: var(--background-hover-color);
+                }
+
+
+            }
+        }
+
+
+    }
+
+    .filter_editor {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        top: 40px;
+        min-width: 240px;
+        left: 0;
+        background-color: var(--background-color);
+        z-index: 2022;
+        padding: 17px 12px;
+
+        .edit_emphasis {
+            font-weight: 700;
+            font-size: 12px;
+            padding: 2px 4px;
+
+            border-radius: 2px;
+            margin: 0 4px;
+            background-color: var(--color-b6);
+            color: var(--color-b2);
+        }
+
+        .edit_emphasis.number {
+            color: var(--accent-1);
+            background-color: var(--color-g6);
+
+
+        }
+    }
+
     .table_header {
         background-color: var(--component-color);
         display: flex;
@@ -162,7 +316,6 @@
 
         .table_item:hover {
             background-color: var(--background-hover-color)
-
         }
 
         // .table_item~.edit {
