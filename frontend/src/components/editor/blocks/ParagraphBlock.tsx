@@ -20,7 +20,7 @@ const Paragraphblock = ({
       placeholder={"입력"}
       contentEditable
       suppressContentEditableWarning
-      onKeyDown={(e:any) => {
+      onKeyDown={(e: any) => {
         if (e.key === "Enter") {
           e.preventDefault();
           editorFunctions.addBlock({
@@ -59,9 +59,8 @@ const Paragraphblock = ({
       //       : "bluff"
       //   );
       // }}
-    >
-      {block.data.text}
-    </div>
+      dangerouslySetInnerHTML={{ __html: block.data.text }}
+    ></div>
   );
 };
 
