@@ -62,6 +62,7 @@ const Schools = () => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
+        filter
           data={!isLoading ? schoolsList : []}
           header={[
             {
