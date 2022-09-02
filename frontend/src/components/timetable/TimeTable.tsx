@@ -5,7 +5,7 @@ type Props = {
     days: Array<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun">;
     period: { label: string; start: string; end: string }[];
   };
-  data: {
+  data?: {
     period: {
       day: 0 | 1 | 2 | 3 | 4 | 5 | 6;
       start: string;
