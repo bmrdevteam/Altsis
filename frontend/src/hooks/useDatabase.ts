@@ -1,3 +1,7 @@
+/**
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ */
+
 import axios from "axios";
 
 /**
@@ -6,10 +10,12 @@ import axios from "axios";
  *
  *
  * @params none
+ * 
  * @returns {} { C , R , U , D }
+ * 
  * @version 1.0 - inital version (only create and read functions are avaliable )
+ * 
  * @see https://documenter.getpostman.com/view/21807335/UzJHRyKX
-
  */
 
 export default function useDatabase() {
@@ -24,9 +30,13 @@ export default function useDatabase() {
    * function that create to the database
    *
    * @async
+   *
    * @param {string} {location}
    * @param {object | string | number} {data}
-   * @returns
+   *
+   * @returns retrived data or throws an error
+   *
+   * @example C(location: {"/users/list"}, data: {username: "foo",password: "password1!"})
    */
 
   async function C({ location, data }: IDatabaseQueryC) {
@@ -51,9 +61,14 @@ export default function useDatabase() {
 
   /**
    * function that read from the database
+   * 
    * @async
+   * 
    * @param {string} {location} - SeverLocation/api/{location}
-   * @returns
+   * 
+   * @returns retrived data or throws an error
+   * 
+   * @example C(location: {"/users/list"}})
    */
   async function R({ location }: IDatabaseQuery) {
     const config = {
@@ -69,7 +84,33 @@ export default function useDatabase() {
       throw error;
     }
   }
-  function U({ location }: IDatabaseQuery) {}
+
+  /**
+   * function that updates the database
+   * 
+   * @async
+   * 
+   * @param {string} {location} - SeverLocation/api/{location}
+   * 
+   * @returns retrived data or throws an error
+   * 
+   * @example C(location: {"/users/list"}})
+   * 
+   */
+  async function U({ location }: IDatabaseQuery) {}
+
+  /**
+   * function that deletes from the database
+   * 
+   * @async
+   * 
+   * @param {string} {location} - SeverLocation/api/{location}
+   * 
+   * @returns retrived data or throws an error
+   * 
+   * @example C(location: {"/users/list"}})
+   * 
+   */
   async function D({ location }: IDatabaseQuery) {
     const config = {
       method: "delete",
