@@ -259,7 +259,6 @@
                 max-height: 100vh;
                 display: block;
                 transition: max-height 1s linear;
-                z-index: 2;
 
                 .sub_link_container {
                     height: auto;
@@ -294,7 +293,7 @@
                 max-height: 100vh;
                 height: 82%;
                 top: 9%;
-                z-index: 0;
+
             }
 
             @for $i from 1 through 10 {
