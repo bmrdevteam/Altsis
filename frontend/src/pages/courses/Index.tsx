@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Table from "../../components/table/Table";
 import { courseData } from "../../dummyData/coursesData";
 import useDatabase from "../../hooks/useDatabase";
@@ -8,6 +9,7 @@ type Props = {};
 
 const Courses = (props: Props) => {
   const database = useDatabase();
+  const navigate = useNavigate();
 
   async function getCourseList() {
     const res = await database.R({ location: "api/syllabuses/list" });
@@ -54,8 +56,13 @@ const Courses = (props: Props) => {
           {
             text: "자세히",
             key: "_id",
-            type: "link",
-            link: "/courses",
+            type: "button",
+            onClick:(e:any)=>{
+              navigate(`${e.target.dataset.value}`, {
+                replace: true,
+              });
+            },
+
             width: "80px",
             align: "center",
           },
