@@ -16,10 +16,10 @@ function useSelectionPosition(editorContainerRef: RefObject<HTMLDivElement>) {
       setSelectionX(i!.x - editorContainerRef.current!.offsetLeft);
       setSelectionY(
         i!.y -
-          editorContainerRef.current!.offsetTop  +
+          editorContainerRef.current!.offsetTop +
           editorContainerRef.current!.scrollTop
       );
-      console.log(editorContainerRef.current!.offsetParent?.scrollTop);
+      console.log(editorContainerRef.current!.offsetTop);
     }
 
     return setIsSelecting(
@@ -34,26 +34,18 @@ const SelectionMenu = ({ containerRef }: Props) => {
   const { isSelecting, selectionX, selectionY } =
     useSelectionPosition(containerRef);
   const menuData: any[] = [
-    { icon: <Svg width="20px" height="20px" type="bold" /> },
+    { icon: <Svg width="20px" height="20px" type="bold" />, cmd: "bold" },
     { icon: <Svg width="20px" height="20px" type="text" /> },
     { icon: <Svg width="20px" height="20px" type="calender" /> },
     { icon: <Svg width="20px" height="20px" type="gear" /> },
   ];
 
-  const MenuItem = ({ icon }: { icon: JSX.Element }) => {
+  const MenuItem = ({ data }: { data: any }) => {
     return (
-      <div
-        className={style.menu_item}
-        onClick={(e) => {
-          console.log(window.getSelection()?.toString());
-
-          console.log(
-            window.getSelection()?.getRangeAt(0).commonAncestorContainer
-              .parentElement?.innerHTML
-          );
-        }}
-      >
-        {icon}
+      <div className={style.menu_item} onClick={(e) => {
+        document.execCommand(data.cmd)
+      }}>
+        {data.icon}
       </div>
     );
   };
@@ -66,13 +58,13 @@ const SelectionMenu = ({ containerRef }: Props) => {
         }}
         className={style.appearance_menu}
         style={{
-          top: `${selectionY && selectionY + 48}px`,
+          top: `${selectionY && selectionY - 48}px`,
           left: `${selectionX && selectionX}px`,
         }}
       >
         <div className={style.menu_items}>
           {menuData.map((value, index) => {
-            return <MenuItem key={index} icon={value.icon} />;
+            return <MenuItem key={index} data={value} />;
           })}
         </div>
       </div>
