@@ -64,7 +64,7 @@ function RouterPage() {
       <BrowserRouter>
         <Sidebar />
         <div
-          className="content"
+          className="content" id="content"
           // style={{ maxWidth: `calc(100vw - ${sidebarClose ? 56 : 240}px)` }}
         >
           <Routes>
@@ -112,8 +112,8 @@ function RouterPage() {
                     </RequireAuth>
                   }
                 ></Route>
+                <Route path="users/:pid" element={<User />}></Route>
                 <Route path="users/add" element={<Schools />}></Route>
-                <Route path="user/:pid" element={<User />}></Route>
 
                 <Route
                   path="schools"
