@@ -19,7 +19,6 @@ interface ITableItem {
       | "time"
       | "select"
       | "checkbox"
-      | "link"
       | "arrText"
       | "input";
     link?: string;
@@ -120,26 +119,6 @@ const TableItem = (props: ITableItem) => {
           }}
         >
           []
-        </div>
-      );
-    case "link":
-      return (
-        <div
-          className={style.table_item}
-          style={{
-            justifyContent: props.header.align,
-            maxWidth: props.header.width,
-            border: props.style?.border,
-          }}
-          data-value={props.header.value ? props.header.value : output}
-          data-rowindex={props.index}
-          onClick={() => {
-            navigate(props.header.link + "/" + output, {
-              replace: true,
-            });
-          }}
-        >
-          {props.header.text}
         </div>
       );
     case "button":
