@@ -78,6 +78,9 @@ const Editor = (props: Props) => {
   //     </div>
   //   );
   // };
+  const ContextMenuItem = () => {
+    return <div></div>;
+  };
 
   const ContextMenu = ({ x, y }: { x: number; y: number }) => {
     return (
@@ -91,14 +94,40 @@ const Editor = (props: Props) => {
       >
         <div className={style.menus}>
           <input type="text" className={style.search} placeholder="검색" />
-          <div className={style.menu}>
+
+          <div
+            className={style.menu}
+            onClick={() => {
+              console.log(contextMenuId);
+              props.editorhook.addBlock({
+                insertAfter: props.editorhook.getBlockIndex(contextMenuId) + 1,
+              });
+            }}
+            onMouseOver={() => {
+              console.log("in");
+            }}
+            onMouseOut={() => {
+              console.log("out");
+            }}
+          >
             <span className={style.icon}>
               <Svg type="text" />
             </span>
-            <span className={style.text}>하이</span>
+            <span className={style.text}>블록 타입</span>
             <span className={style.more}>
               <Svg type="chevronRight" />
             </span>
+            <div className={style.sub_menus}>
+              <div className={style.sub_menu}>
+                <span className={style.icon}>
+                  <Svg type="table" />
+                </span>
+                일반 텍스트
+              </div>
+              <div className={style.sub_menu}>테이블</div>
+              <div className={style.sub_menu}>헤딩</div>
+              <div className={style.sub_menu}>일다이</div>
+            </div>
           </div>
 
           <div className={style.menu}>
@@ -112,9 +141,8 @@ const Editor = (props: Props) => {
           <div
             className={style.menu}
             onClick={() => {
-              console.log(contextMenuId);
               props.editorhook.addBlock({
-                insertAfter: props.editorhook.getBlockIndex(contextMenuId) +1,
+                insertAfter: props.editorhook.getBlockIndex(contextMenuId) + 1,
               });
             }}
           >
@@ -135,8 +163,12 @@ const Editor = (props: Props) => {
   };
 
   return (
-    <div className={style.editor_container} style={{ height: "100%" }}>
-      <div className={style.editor} ref={editorRef}>
+    <div
+      className={style.editor_container}
+      style={{ height: "100vh", overflowY: "scroll" }}
+      ref={editorRef}
+    >
+      <div className={style.editor}>
         {contextMenuActive && (
           <ContextMenu x={contextMenuPosition[0]} y={contextMenuPosition[1]} />
         )}
