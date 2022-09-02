@@ -137,9 +137,13 @@ const Enrollment = (props: Props) => {
             },
             {
               text: "자세히",
-              key: "_id",
-              type: "link",
-              link: "/courses",
+              key: "courseName",
+              type: "button",
+              onClick: (e: any) => {
+                navigate(`courses/${e.target.dataset.value}`, {
+                  replace: true,
+                });
+              },
               width: "80px",
               align: "center",
             },
