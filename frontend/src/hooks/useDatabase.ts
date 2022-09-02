@@ -1,5 +1,17 @@
 import axios from "axios";
 
+/**
+ *
+ * React hook to Implement CRUD using axios
+ *
+ *
+ * @params none
+ * @returns {} { C , R , U , D }
+ * @version 1.0 - inital version (only create and read functions are avaliable )
+ * @see https://documenter.getpostman.com/view/21807335/UzJHRyKX
+
+ */
+
 export default function useDatabase() {
   interface IDatabaseQuery {
     location: string;
@@ -7,20 +19,16 @@ export default function useDatabase() {
   interface IDatabaseQueryC extends Omit<IDatabaseQuery, "id"> {
     data: any;
   }
-  // const Location = {
-  //   school: `${process.env.REACT_APP_SERVER_URL}/api/schools`,
-  //   academy: `${process.env.REACT_APP_SERVER_URL}/api/academies`,
-  // };
 
   /**
-   * function that reads from the database
-   * 
+   * function that create to the database
+   *
    * @async
-   * @param {string} location
-   * @param {object} data
+   * @param {string} {location}
+   * @param {object | string | number} {data}
    * @returns
    */
-  
+
   async function C({ location, data }: IDatabaseQueryC) {
     const config = {
       method: "post",
@@ -40,6 +48,13 @@ export default function useDatabase() {
       }
     }
   }
+
+  /**
+   * function that read from the database
+   * @async
+   * @param {string} {location} - SeverLocation/api/{location}
+   * @returns
+   */
   async function R({ location }: IDatabaseQuery) {
     const config = {
       method: "get",
