@@ -1,12 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-
 /**
- * @typedef {Object} returnObj
- * @property {boolean} active - the state (initially false)
- * @property {React.Dispatch<React.SetStateAction<boolean>>} setActive - function to update the state
- * @property {React.RefObject<HTMLDivElement>} RefObject -  useRef Object (initially null)
- * @property {() => void} handleOnClick - function to set the state to false
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
  */
+
+import { useEffect, useRef, useState } from "react";
 
 /**
  *
@@ -14,9 +10,25 @@ import { useEffect, useRef, useState } from "react";
  *
  *
  * @params
- * @returns {returnObj} {active , setActive ,RefObject ,handleOnClick}
- * @version 1.0 - inital version  
-
+ *
+ * @returns {} {active , setActive ,RefObject ,handleOnClick}
+ *
+ * @version 1.0 - inital version
+ *
+ * @example
+ * const outsideClick = useOutsideClick();
+ * return
+ * <div>
+ *  {outsideClick.active && (
+ *    <div 
+ *       ref = {outsideClick.RefObject} 
+ *       onClick={outsideClick.handleOnClick}>
+ *       foo
+ *    </div>
+ *  )}
+ * </div>
+ *
+ *
  */
 export default function useOutsideClick() {
   const [active, setActive] = useState<boolean>(false);
@@ -24,6 +36,7 @@ export default function useOutsideClick() {
 
   /**
    * function to set the state to false
+   *
    */
   function handleOnClick() {
     setActive(true);
