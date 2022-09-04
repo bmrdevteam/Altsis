@@ -1,6 +1,30 @@
 /**
- *
+ * @file useGoogleLogin
+ * 
  * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *  - useGoogleLogin hook
+ *  - GoogleLoginBtn component
+ * 
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *  - one Tap user not apearing -> GoogleLoginBtn component
+ * 
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
  *
  */
 
@@ -17,7 +41,7 @@ import { useAuth } from "../contexts/authContext";
  *  @version 1.0 initial version
  */
 export default function useGoogleLogin() {
-  // script script 
+  // script script
   const [loadingScript, setLoadingScript] = useState<boolean>(true);
 
   //load script on load
@@ -57,7 +81,7 @@ export default function useGoogleLogin() {
   /**
    *
    * window function to handle the callback triggered from google login
-   * 
+   *
    * @param response - added in the callback function
    *
    */
@@ -76,13 +100,11 @@ export default function useGoogleLogin() {
         { withCredentials: true }
       )
       .then(() => {
-
         //redirect the user to the index page on success
         window.location.replace("/");
-
       });
   };
-  
+
   //return script loading state
   return loadingScript;
 }
@@ -103,7 +125,7 @@ export const GoogleLoginBtn = () => {
   // get the loading state from the useGoogleLogin 🪝 hook
   const status = useGoogleLogin();
 
-  // returns the component 
+  // returns the component
   return (
     <>
       {!status && (
