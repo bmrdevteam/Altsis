@@ -1,3 +1,36 @@
+/**
+ * @file useFormValidation hook
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ * useFormValidation - unuse of hook
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
+
+
+
+
+
 import { useState } from "react";
 
 type Props = {
