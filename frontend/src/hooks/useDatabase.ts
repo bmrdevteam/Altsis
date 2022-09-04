@@ -1,5 +1,32 @@
 /**
+ * @file useDatabase hook
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *  - useDataBase.C function
+ *  - useDataBase.R function
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *  - useDataBase.U function
+ *  - useDataBase.D function
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
  */
 
 import axios from "axios";
@@ -79,7 +106,7 @@ export default function useDatabase() {
    *
    * @returns retrived data or throws an error
    *
-   * @example C(location: {"/users/list"}})
+   * @example R(location: {"/users/list"}})
    *
    * @version 1.0 initial version
    *
@@ -116,7 +143,7 @@ export default function useDatabase() {
    *
    * @returns retrived data or throws an error
    *
-   * @example C(location: {"/users/list"}})
+   * @example U(location: {"/users/list"}})
    *
    * @version 1.0 initial version
    *
@@ -132,12 +159,16 @@ export default function useDatabase() {
    *
    * @returns retrived data or throws an error
    *
-   * @example C(location: {"/users/list"}})
+   * @example D(location: {"/users/list"}})
    *
    * @version 1.0 initial version
    *
    */
   async function D({ location }: IDatabaseQuery) {
+    /** 
+     * @constant config for the axios 
+     * 
+     */
     const config = {
       //set the method
       method: "delete",
@@ -149,14 +180,12 @@ export default function useDatabase() {
       withCredentials: true,
     };
     try {
-      //asynchronously call axios
+      /** @constant config for the axios asynchronously call axios */
       const result = await axios(config);
 
       // return the response
       return result;
-
     } catch (error) {
-      
       //throw an error
       throw error;
     }
