@@ -1,4 +1,33 @@
 /**
+ * @file useGenerateId
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *  - useGenerateId function
+ * 
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ * 
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
+
+/**
  * hook that genenrates random id base on the given length
  * @param {number} length 
  * 
