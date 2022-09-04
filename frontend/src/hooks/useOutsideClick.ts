@@ -1,5 +1,29 @@
 /**
+ * @file useOutsideClick
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *  - useOutsideClick hook
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -20,8 +44,8 @@ import { useEffect, useRef, useState } from "react";
  * return
  * <div>
  *  {outsideClick.active && (
- *    <div 
- *       ref = {outsideClick.RefObject} 
+ *    <div
+ *       ref = {outsideClick.RefObject}
  *       onClick={outsideClick.handleOnClick}>
  *       foo
  *    </div>
@@ -31,7 +55,10 @@ import { useEffect, useRef, useState } from "react";
  *
  */
 export default function useOutsideClick() {
+  /** @constant - used for managing states of the OutsideClick */
   const [active, setActive] = useState<boolean>(false);
+
+  /** @constant RefObject used for checking if click event contains self */
   const RefObject = useRef<HTMLDivElement>(null);
 
   /**
@@ -62,5 +89,8 @@ export default function useOutsideClick() {
     };
   }, []);
 
+  /**
+   * return
+   */
   return { active, setActive, RefObject, handleOnClick };
 }
