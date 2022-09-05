@@ -1,5 +1,7 @@
 /**
  * @file useFormValidation hook
+ * 
+ * !!DISCLAMER!! the file is no longer supported
  *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
