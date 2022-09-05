@@ -1,9 +1,43 @@
+/**
+ * @file NavigationLinks
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - NavigationLinks component
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * - change the navlink name to korean
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import { useLocation, useNavigate } from "react-router-dom";
-import { SidebarData } from "../../layout/navbar/SidebarData";
 
-type Props = {};
+/**
+ * NavigationLinks component
+ * 
+ * @returns NavigationLinks component
+ *
+ * @example <NavigationLinks/>
+ */
 
-const NavigationLinks = (props: Props) => {
+const NavigationLinks = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const locationArr = location.pathname.split("/").filter((x) => x !== "");
