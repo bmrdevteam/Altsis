@@ -295,6 +295,7 @@ __metadata:
     lodash: ^4.17.21
     moment: ^2.29.4
     mongoose: ^6.4.2
+    mongoose-validator: ^2.1.0
     multer: ^1.4.5-lts.1
     multer-s3: 2.10
     passport: ^0.6.0
@@ -1508,6 +1509,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"is@npm:^3.2.1":
+  version: 3.3.0
+  resolution: "is@npm:3.3.0"
+  checksum: 81fad3b40c606984c2d0699207c4c48d2a0d29cc834b274d0b74c172f3eeebdb981301fe0d690ce090a96bf021a8a1f8b1325262ad9870c525e557ac4a559c56
+  languageName: node
+  linkType: hard
+
 "isarray@npm:^1.0.0, isarray@npm:~1.0.0":
   version: 1.0.0
   resolution: "isarray@npm:1.0.0"
@@ -1945,6 +1953,16 @@ __metadata:
     saslprep:
       optional: true
   checksum: 97ff4ebe3fde7b3b5b133d8f7a2e4d6e372c44f8223a6d40b13bb3a705bbbb48ed50958a0fc6b3a33161605723479fced8e0eb83cf7fd5271f7530e6e2d67a2d
+  languageName: node
+  linkType: hard
+
+"mongoose-validator@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "mongoose-validator@npm:2.1.0"
+  dependencies:
+    is: ^3.2.1
+    validator: ^10.4.0
+  checksum: c0a341ff2aecae5a06c20ff0e900a60d535b2183f927bed0828bc55ea7007f5d3d2b428d7be6f8635614b4bdeee13b3f0723c06208a828b489544472dff4fc11
   languageName: node
   linkType: hard
 
@@ -2909,6 +2927,13 @@ __metadata:
   bin:
     uuid: dist/bin/uuid
   checksum: 56d4e23aa7ac26fa2db6bd1778db34cb8c9f5a10df1770a27167874bf6705fc8f14a4ac414af58a0d96c7653b2bd4848510b29d1c2ef8c91ccb17429c1872b5e
+  languageName: node
+  linkType: hard
+
+"validator@npm:^10.4.0":
+  version: 10.11.0
+  resolution: "validator@npm:10.11.0"
+  checksum: b945e5712af888fc5c984312cf9a7736d16a03f989556291d7984e5747efaaee6cdff671f6b0ef2630a6e2866a2728ab0f341877b878a9ffb8ad770dfcad7170
   languageName: node
   linkType: hard
 
