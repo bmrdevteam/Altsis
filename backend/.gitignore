@@ -1,6 +1,7 @@
 /node_modules
 dev.js
 backend.sh
+ecosystem.config.js
 
 #If you're using Zero-Installs:
  .yarn/*
