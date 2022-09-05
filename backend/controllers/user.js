@@ -2,12 +2,12 @@ const User = require("../models/User");
 const SchoolUser = require("../models/SchoolUser");
 const School = require("../models/School");
 const { OAuth2Client } = require("google-auth-library");
-const { checkSchema, validationResult } = require("express-validator");
 const clientID = require("../config/config")["GOOGLE-ID"];
 const saltRounds = require("../config/config")["saltRounds"];
 const bcrypt = require("bcrypt");
 const _ = require("lodash");
 const Academy = require("../models/Academy");
+const passport = require("passport");
 
 const generateHash = async (password) => {
   try {
@@ -20,43 +20,23 @@ const generateHash = async (password) => {
 };
 
 exports.loginLocal = async (req, res) => {
-  try {
-    /* authentication */
-    const academy = await Academy.findOne({
-      academyId: req.body.academyId,
-    });
-    if (!academy) {
-      return res.status(404).send({ message: "No Academy!" });
-    }
+  passport.authenticate("local2", (err, user, dbName) => {
+    try {
+      if (err) throw err;
 
-    const user = await User(academy.dbName)
-      .findOne({
-        userId: req.body.userId,
-      })
-      .select("+password");
-    if (!user) {
-      return res.status(409).send({ message: "No user with such ID" });
-    }
-
-    const isMatch = await user.comparePassword(req.body.password);
-    if (!isMatch) {
-      return res.status(409).send({ message: "Password is incorrect" });
-    }
-
-    /* login */
-    req.login({ user, dbName: academy.dbName }, (loginError) => {
-      if (loginError) return res.status(500).send({ err: loginError.message });
-      if (req.body.persist === "true") {
-        req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
-      }
-      return res.status(200).send({
-        success: true,
-        user,
+      return req.login({ user, dbName }, (loginError) => {
+        if (loginError) throw loginError;
+        if (req.body.persist === "true") {
+          req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
+        }
+        return res.status(200).send({
+          user,
+        });
       });
-    });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
+    } catch (err) {
+      return res.status(err.status || 500).send({ err: err.message });
+    }
+  })(req, res);
 };
 
 exports.loginGoogle = async (req, res) => {
@@ -196,21 +176,67 @@ exports.createOwner = async (req, res) => {
         message: `userId '${req.body.userId}' is already in use`,
       });
 
-    // generate random password
-    const password = _User.generatePassword();
     const user = new _User(req.body);
     user.auth = "owner";
-    user.password = password;
     if (!user.validationCheck()) {
       return res.status(400).send({ message: "validation failed" });
     }
     await user.save();
 
-    user.password = password;
     return res.status(200).send({
       success: true,
       user,
     });
+  } catch (err) {
+    return res.status(500).send({ err: err.message });
+  }
+};
+
+exports.createMembers = async (req, res) => {
+  try {
+    const _User = User(req.user.dbName);
+
+    // db의 userId 목록
+    const _userIds = _User.find({}).map((_user) => _user.userId);
+    const users = [];
+    const schoolUsers = [];
+
+    for (let _user of req.body.users) {
+      // userId 중복 검사
+      if (_userIds.includes(_user.userId)) {
+        return res
+          .status(409)
+          .send({ message: "duplicate userId " + _user.userId });
+      }
+
+      const user = new _User(_user);
+      user.auth = "member";
+      user.academyId = req.user.academyId;
+      user.academyName = req.user.academyName;
+      if (!user.checkValidation) {
+        return res.status(400).send({ message: "validation failed" });
+      }
+
+      if (_user.schoolId) {
+        user["schools"] = [
+          {
+            schoolId: _user.schoolId,
+            schoolName: _user.schoolName,
+          },
+        ];
+        const schoolUser = new _User(_user);
+        schoolUsers.push(schoolUser);
+      }
+      users.push(user);
+    }
+
+    const [newUsers, newSchoolUsers] = await Promise.all([
+      users.map((user) => user.save()),
+      schoolUsers.map((schoolUser) => schoolUser.save()),
+    ]);
+    return res
+      .status(200)
+      .send({ users: newUsers, schoolUsers: newSchoolUsers });
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
@@ -276,56 +302,6 @@ exports.enterMembers = async (req, res) => {
   }
 };
 
-exports.createMembers = async (req, res) => {
-  try {
-    const _User = User(req.user.dbName);
-
-    // db의 userId 목록
-    const _userIds = _User.find({}).map((_user) => _user.userId);
-    const users = [];
-    const schoolUsers = [];
-
-    for (let _user of req.body.users) {
-      // userId 중복 검사
-      if (_userIds.includes(_user.userId)) {
-        return res
-          .status(409)
-          .send({ message: "duplicate userId " + _user.userId });
-      }
-
-      const user = new _User(_user);
-      user.auth = "member";
-      user.academyId = req.user.academyId;
-      user.academyName = req.user.academyName;
-      if (!user.checkValidation) {
-        return res.status(400).send({ message: "validation failed" });
-      }
-
-      if (_user.schoolId) {
-        user["schools"] = [
-          {
-            schoolId: _user.schoolId,
-            schoolName: _user.schoolName,
-          },
-        ];
-        const schoolUser = new _User(_user);
-        schoolUsers.push(schoolUser);
-      }
-      users.push(user);
-    }
-
-    const [newUsers, newSchoolUsers] = await Promise.all([
-      users.map((user) => user.save()),
-      schoolUsers.map((schoolUser) => schoolUser.save()),
-    ]);
-    return res
-      .status(200)
-      .send({ users: newUsers, schoolUsers: newSchoolUsers });
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
 exports.appointManager = async (req, res) => {
   try {
     const user = await User(req.user.dbName).findOne({
@@ -380,7 +356,7 @@ exports.cancelManager = async (req, res) => {
 
 exports.readOwners = async (req, res) => {
   try {
-    const users = await User(req.user.dbName).find({});
+    const users = await User("root").find({});
     return res.status(200).send({ users });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
@@ -403,32 +379,6 @@ exports.readMembers = async (req, res) => {
   try {
     const users = await User(req.user.dbName).find({});
     return res.status(200).send({ users });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.updateAdmin = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  try {
-    const user = await User("root").find({ _id: req.params._id });
-    if (!user) {
-      return res.status(409).send({ message: "no user with such _id" });
-    }
-    const fields = ["password", "email", "tel"];
-    if (fields.includes(req.params.field)) {
-      user[req.params.field] = req.body[req.params.field];
-    } else {
-      return res.status(400).send({
-        message: `field '${req.params.field}' does not exist or cannot be updated`,
-      });
-    }
-    await user.save();
-    return res.status(200).send({ user });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
