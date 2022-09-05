@@ -40,57 +40,23 @@ exports.loginLocal = async (req, res) => {
 };
 
 exports.loginGoogle = async (req, res) => {
-  try {
-    let dbName = "root";
-    let academy = { academyId: "root", academyName: "root" };
-    if (req.body.academyId) {
-      const _academy = await Academy.findOne({
-        academyId: req.body.academyId,
+  passport.authenticate("google2", (err, user, dbName) => {
+    try {
+      if (err) throw err;
+
+      return req.login({ user, dbName }, (loginError) => {
+        if (loginError) throw loginError;
+        if (req.body.persist === "true") {
+          req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
+        }
+        return res.status(200).send({
+          user,
+        });
       });
-      if (!_academy) {
-        return res.status(404).send({ message: "No Academy!" });
-      }
-      dbName = _academy.academyId + "-db";
-      academy.academyId = _academy.academyId;
-      academy.academyName = _academy.academyName;
+    } catch (err) {
+      return res.status(err.status || 500).send({ err: err.message });
     }
-
-    const client = new OAuth2Client(clientID);
-
-    const ticket = await client.verifyIdToken({
-      idToken: req.body.credential,
-      audience: clientID,
-    });
-
-    const payload = ticket.getPayload();
-    const user = await User(dbName).findOne({
-      "snsId.provider": "google",
-      "snsId.email": payload["email"],
-    });
-    if (!user)
-      return res.status(409).send({
-        message: "User doesn't exists with such google account",
-      });
-
-    /* login */
-    req.login({ user, dbName, academy }, (loginError) => {
-      if (loginError) return res.status(500).send({ loginError });
-      if (req.body.persist === "true") {
-        req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
-      }
-      return res.status(200).send({
-        success: true,
-        user: {
-          _id: user._id,
-          userId: user.userId,
-          userName: user.userName,
-          auth: user.auth,
-        },
-      });
-    });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
+  })(req, res);
 };
 
 exports.connectGoogle = async (req, res) => {
@@ -122,13 +88,7 @@ exports.connectGoogle = async (req, res) => {
       });
     }
     await req.user.updateOne({ snsId });
-    return res.status(200).send({
-      user: {
-        userId: req.user.userId,
-        userName: req.user.userName,
-        snsId: req.user.snsId,
-      },
-    });
+    return res.status(200).send();
   } catch (err) {
     console.log(err);
     if (err) return res.status(500).send({ err: err.status });
@@ -146,13 +106,7 @@ exports.disconnectGoogle = async (req, res) => {
     }
     req.user["snsId"].splice(idx, 1);
     await req.user.updateOne({ snsId });
-    return res.status(200).send({
-      user: {
-        userId: req.user.userId,
-        userName: req.user.userName,
-        snsId: req.user.snsId,
-      },
-    });
+    return res.status(200).send();
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
@@ -163,7 +117,7 @@ exports.logout = (req, res) => {
     if (err) return res.status(500).send({ err });
     req.session.destroy();
     res.clearCookie("connect.sid");
-    return res.status(200).send({ success: true });
+    return res.status(200).send();
   });
 };
 
@@ -184,7 +138,6 @@ exports.createOwner = async (req, res) => {
     await user.save();
 
     return res.status(200).send({
-      success: true,
       user,
     });
   } catch (err) {
@@ -320,7 +273,6 @@ exports.appointManager = async (req, res) => {
     await user.save();
 
     return res.status(200).send({
-      success: true,
       user,
     });
   } catch (err) {
@@ -346,7 +298,6 @@ exports.cancelManager = async (req, res) => {
     await user.save();
 
     return res.status(200).send({
-      success: true,
       user,
     });
   } catch (err) {
@@ -461,7 +412,7 @@ exports.deleteMember = async (req, res) => {
       _id: req.params._id,
       auth: "member",
     });
-    return res.status(200).send({ success: !!doc });
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }

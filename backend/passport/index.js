@@ -2,6 +2,8 @@ const passport = require("passport");
 const local = require("./localStrategy");
 const local2 = require("./localStrategy2");
 const google = require("./googleStrategy");
+
+const google2 = require("./googleStrategy2");
 const User = require("../models/User");
 
 module.exports = () => {
@@ -18,5 +20,6 @@ module.exports = () => {
   });
 
   local2();
+  google2();
   //  google();
 };
