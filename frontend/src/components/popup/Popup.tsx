@@ -1,5 +1,47 @@
+/**
+ * @file Popup component
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - Popup component 
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ * - move all inline styles to the scss file
+ *
+ */
+
 import Svg from "../../assets/svg/Svg";
 import style from "./popup.module.scss";
+
+
+/**
+ * Popup component
+ * 
+ * 
+ * @param children
+ * @param setState
+ * @param title
+ * @param closeBtn
+ * 
+ * @returns 
+ */
 const Popup = ({
   children,
   setState,
@@ -11,6 +53,10 @@ const Popup = ({
   title: string;
   closeBtn?: boolean;
 }) => {
+
+  /**
+   * return the component
+   */
   return (
     <div
       style={{
