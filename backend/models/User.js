@@ -1,25 +1,38 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
-const moment = require("moment");
 const validator = require("validator");
-
+const validate = require("mongoose-validator");
 var config = require("../config/config.js");
 
 const { conn } = require("../databases/connection");
+const specialRegExp = /[!@#$%^&*()]+/;
 
 const userSchema = mongoose.Schema(
   {
     userId: {
       type: String,
       unique: true,
+      minLength: 4,
+      maxLength: 20,
+      validate: validate({ validator: "isAlphanumeric" }),
     },
-    userName: String,
+    userName: {
+      type: String,
+      min: 2,
+      max: 20,
+    },
     password: {
       type: String,
+      min: 8,
+      max: 20,
+      match: specialRegExp,
       select: false, //alwasy exclude password in user document
     },
     auth: String,
-    email: String,
+    email: {
+      type: String,
+      validate: validate({ validator: "isEmail" }),
+    },
     tel: String,
     snsId: [
       mongoose.Schema(
@@ -52,15 +65,19 @@ const check = {
     validator.isAlphanumeric(val),
   userName: (val) => validator.isLength(val, { min: 2, max: 20 }),
   email: (val) => validator.isEmail(val),
+  password: (val) =>
+    validator.isLength(val, { min: 8, max: 20 }) &&
+    validator.matches(val, specialRegExp),
 };
 
-userSchema.methods.validationCheck = function (key) {
-  if (!key) {
-    for (const key in check) {
-      if (!check[key](this[key])) return false;
-    }
+userSchema.statics.validationCheck = function (user, key) {
+  if (key) {
+    return check[key](user[key]);
   }
-  return check[key](this[key]);
+  for (const key in check) {
+    if (!check[key](user[key])) return false;
+  }
+  return true;
 };
 
 userSchema.pre("save", function (next) {

@@ -124,19 +124,19 @@ exports.logout = (req, res) => {
 exports.createOwner = async (req, res) => {
   try {
     const _User = User("root");
-    const _user = await _User.findOne({ userId: req.body.userId });
-    if (_user)
+    const exUser = await _User.findOne({ userId: req.body.userId });
+    if (exUser)
       return res.status(409).send({
         message: `userId '${req.body.userId}' is already in use`,
       });
 
     const user = new _User(req.body);
+    const password = _User.generatePassword();
+    user.password = password;
     user.auth = "owner";
-    if (!user.validationCheck()) {
-      return res.status(400).send({ message: "validation failed" });
-    }
     await user.save();
 
+    user.password = password;
     return res.status(200).send({
       user,
     });
@@ -148,11 +148,10 @@ exports.createOwner = async (req, res) => {
 exports.createMembers = async (req, res) => {
   try {
     const _User = User(req.user.dbName);
+    const _SchoolUser = SchoolUser(req.user.dbName);
 
     // db의 userId 목록
-    const _userIds = _User.find({}).map((_user) => _user.userId);
-    const users = [];
-    const schoolUsers = [];
+    const _userIds = (await _User.find({})).map((_user) => _user.userId);
 
     for (let _user of req.body.users) {
       // userId 중복 검사
@@ -162,13 +161,18 @@ exports.createMembers = async (req, res) => {
           .send({ message: "duplicate userId " + _user.userId });
       }
 
-      const user = new _User(_user);
-      user.auth = "member";
-      user.academyId = req.user.academyId;
-      user.academyName = req.user.academyName;
-      if (!user.checkValidation) {
+      // validate
+      if (!_User.validationCheck(_user)) {
         return res.status(400).send({ message: "validation failed" });
       }
+    }
+
+    const users = [];
+    const schoolUsers = [];
+    for (let _user of req.body.users) {
+      const user = new _User(_user);
+      user.academyId = req.user.academyId;
+      user.academyName = req.user.academyName;
 
       if (_user.schoolId) {
         user["schools"] = [
@@ -177,19 +181,20 @@ exports.createMembers = async (req, res) => {
             schoolName: _user.schoolName,
           },
         ];
-        const schoolUser = new _User(_user);
+
+        const schoolUser = new _SchoolUser(user);
+        schoolUser.schoolId = _user.schoolId;
+        schoolUser.schoolName = _user.schoolName;
         schoolUsers.push(schoolUser);
       }
       users.push(user);
     }
 
-    const [newUsers, newSchoolUsers] = await Promise.all([
+    await Promise.all([
       users.map((user) => user.save()),
       schoolUsers.map((schoolUser) => schoolUser.save()),
     ]);
-    return res
-      .status(200)
-      .send({ users: newUsers, schoolUsers: newSchoolUsers });
+    return res.status(200).send({ users, schoolUsers });
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
@@ -197,23 +202,26 @@ exports.createMembers = async (req, res) => {
 
 exports.enterMembers = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findOne({
+    const _User = User(req.user.dbName);
+    const _School = School(req.user.dbName);
+    const _SchoolUser = SchoolUser(req.user.dbName);
+
+    const school = await _School.findOne({
       schoolId: req.body.schoolId,
     });
     if (!school) {
       return res.status(404).send({ message: "no school!" });
     }
 
-    const schoolUsers = [];
     const users = [];
+    const schoolUsers = [];
 
-    for (let _user of req.body.users) {
-      // userId 검사
-      const user = await User(req.user.dbName).findOne({
+    for (const _user of req.body.users) {
+      const user = await _User.findOne({
         userId: _user.userId,
       });
       if (!user) {
-        return res.status(404).send({ message: `no user ${_user.userId}` });
+        return res.status(404).send({ message: "no user!" });
       }
 
       if (
@@ -222,34 +230,32 @@ exports.enterMembers = async (req, res) => {
         }) !== -1
       ) {
         return res.status(409).send({
-          message: `user ${_user.userId} is already entered`,
+          message: `user ${user.userId} is already entered`,
         });
       }
-
       user.schools.push({
         schoolId: school.schoolId,
         schoolName: school.schoolName,
       });
       users.push(user);
 
-      const schoolUser = {
+      const schoolUser = new _SchoolUser({
         schoolId: school.schoolId,
         schoolName: school.schoolName,
-        userId: _user.userId,
-        userName: _user.userName,
+        userId: user.userId,
+        userName: user.userName,
         role: _user.role,
         info: _user.info,
-      };
+      });
       schoolUsers.push(schoolUser);
     }
 
-    const [newUsers, newSchoolUsers] = await Promise.all([
-      users.map((user) => {
-        user.save();
-      }),
-      SchoolUser(req.user.dbName).insertMany(schoolUsers),
+    await Promise.all([
+      users.map((user) => user.save()),
+      schoolUsers.map((schoolUser) => schoolUser.save()),
     ]);
-    return res.status(200).send({ schoolUsers: newSchoolUsers });
+
+    return res.status(200).send({ schoolUsers });
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
@@ -260,21 +266,18 @@ exports.appointManager = async (req, res) => {
     const user = await User(req.user.dbName).findOne({
       _id: req.params._id,
     });
+
     if (!user) {
       return res.status(409).send({ message: "no such user!" });
     }
+
     if (user.auth != "member") {
-      return res
-        .status(401)
-        .send({ message: "you can't appoint user as manager" });
+      return res.status(401).send({ message: "you cannot update this user" });
     }
 
     user.auth = "manager";
     await user.save();
-
-    return res.status(200).send({
-      user,
-    });
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
@@ -297,9 +300,7 @@ exports.cancelManager = async (req, res) => {
     user.auth = "member";
     await user.save();
 
-    return res.status(200).send({
-      user,
-    });
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
@@ -336,13 +337,10 @@ exports.readMembers = async (req, res) => {
 };
 
 exports.updateMemberField = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
   try {
-    const user = await User(req.user.dbName).findById(req.params._id);
+    const _User = User(req.user.dbName);
+
+    const user = await _User.findById(req.params._id);
     if (!user) {
       return res.status(409).send({ message: "no user with such _id" });
     }
@@ -351,14 +349,11 @@ exports.updateMemberField = async (req, res) => {
       return res.status(401).send({ message: "you cannot update this user" });
     }
 
-    const fields = ["password", "email", "tel"];
-    if (fields.includes(req.params.field)) {
-      user[req.params.field] = req.body.new;
-    } else {
-      return res.status(400).send({
-        message: `field '${req.params.field}' does not exist or cannot be updated`,
-      });
+    user[req.params.field] = req.body.new;
+    if (!_User.validationCheck(user, req.params.field)) {
+      return res.status(400).send({ message: "validation failed" });
     }
+
     await user.save();
     return res.status(200).send({ user });
   } catch (err) {
@@ -370,12 +365,11 @@ exports.read = async (req, res) => {
   try {
     const user = req.user;
     const schoolUsers = await Promise.all(
-      user.schools.map(async (school) => {
-        const schoolUser = await SchoolUser(req.user.dbName).findOne({
+      user.schools.map((school) => {
+        SchoolUser(req.user.dbName).findOne({
           userId: user.userId,
           schoolId: school.schoolId,
         });
-        return schoolUser;
       })
     );
     res.status(200).send({
@@ -390,15 +384,11 @@ exports.read = async (req, res) => {
 exports.updateField = async (req, res) => {
   try {
     const user = req.user;
-    const fields = ["password", "email", "tel"];
-    if (
-      (req.params.field === "password" &&
-        !myValidator.validatePassword(req.body.new)) ||
-      (req.params.field === "email" && !myValidator.validateEmail(req.body.new))
-    ) {
-      throw new Error("validation failed");
-    }
     user[req.params.field] = req.body.new;
+
+    if (!User(req.user.dbName).validationCheck(user, req.params.field)) {
+      return res.status(400).send({ message: "validation failed" });
+    }
     await user.save();
     return res.status(200).send({ user });
   } catch (err) {
@@ -408,9 +398,13 @@ exports.updateField = async (req, res) => {
 
 exports.deleteMember = async (req, res) => {
   try {
-    const doc = await User(req.user.dbName).findByIdAndDelete({
+    const exUser = await User(req.user.dbName).findByIdAndDelete({
       _id: req.params._id,
       auth: "member",
+    });
+
+    await SchoolUser(req.user.dbName).deleteMany({
+      userId: exUser.userId,
     });
     return res.status(200).send();
   } catch (err) {

@@ -9,35 +9,37 @@ module.exports = () => {
   passport.use(
     "google2",
     new CustomStrategy(async function (req, done) {
-      const { academyId, credential } = req.body;
+      try {
+        const { academyId, credential } = req.body;
 
-      const academy = await Academy.findOne({
-        academyId,
-      });
-      if (!academy) {
-        const err = new Error("No academy!");
-        err.status = 404;
+        const academy = await Academy.findOne({
+          academyId,
+        });
+        if (!academy) {
+          const err = new Error("No academy!");
+          err.status = 404;
+          throw err;
+        }
+
+        const client = new OAuth2Client(clientID);
+        const ticket = await client.verifyIdToken({
+          idToken: credential,
+          audience: clientID,
+        });
+        const payload = ticket.getPayload();
+        const user = await User(academy.dbName).findOne({
+          "snsId.provider": "google",
+          "snsId.email": payload["email"],
+        });
+        if (!user) {
+          const err = new Error("User doesn't exists with such google account");
+          err.status = 409;
+          throw err;
+        }
+        return done(null, user, academy.dbName);
+      } catch (err) {
         return done(err, null, null);
       }
-
-      const client = new OAuth2Client(clientID);
-
-      const ticket = await client.verifyIdToken({
-        idToken: credential,
-        audience: clientID,
-      });
-
-      const payload = ticket.getPayload();
-      const user = await User(academy.dbName).findOne({
-        "snsId.provider": "google",
-        "snsId.email": payload["email"],
-      });
-      if (!user) {
-        const err = new Error("User doesn't exists with such google account");
-        err.status = 409;
-        return done(err, null, null);
-      }
-      return done(null, user, academy.dbName);
     })
   );
 };
