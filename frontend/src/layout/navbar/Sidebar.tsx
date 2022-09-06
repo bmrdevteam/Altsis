@@ -14,7 +14,6 @@ import Nav, {
 import { INavLink, SidebarData } from "./SidebarData";
 
 import { useLocation } from "react-router-dom";
-import Divider from "../../components/divider/Divider";
 
 type Props = {};
 
