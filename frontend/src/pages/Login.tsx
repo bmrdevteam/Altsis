@@ -35,7 +35,7 @@ const Login = () => {
 
   async function getAcademis() {
     const { academies: res } = await database.R({
-      location: `academies/list`,
+      location: `academies`,
     });
     setLoading(false);
     return res;
