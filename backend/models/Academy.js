@@ -1,27 +1,37 @@
 const mongoose = require("mongoose");
 const conn = require("../databases/root");
 const validator = require("validator");
-
-const defaultVal = "root";
+const validate = require("mongoose-validator");
 
 const academySchema = mongoose.Schema(
   {
     academyId: {
       type: String,
       unique: true,
-      default: defaultVal,
+      minLength: 3,
+      maxLength: 20,
     },
     academyName: {
       type: String,
-      default: defaultVal,
     },
-    email: String,
+    email: {
+      type: String,
+      validate: validate({ validator: "isEmail" }),
+    },
     tel: String,
-    adminId: String,
-    adminName: String,
+    adminId: {
+      type: String,
+      minLength: 4,
+      maxLength: 20,
+      validate: validate({ validator: "isAlphanumeric" }),
+    },
+    adminName: {
+      type: String,
+      min: 2,
+      max: 20,
+    },
     dbName: {
       type: String,
-      default: defaultVal,
     },
   },
   { timestamps: true }
@@ -29,36 +39,10 @@ const academySchema = mongoose.Schema(
 
 academySchema.pre("save", function (next) {
   var user = this;
-  if (user.isModified("academyId") && user.academyId != defaultVal) {
+  if (user.isModified("academyId")) {
     user.dbName = user.academyId + "-db";
   }
   next();
 });
-
-academySchema.statics.getDefault = function () {
-  return {
-    academyId: defaultVal,
-    academyName: defaultVal,
-    dbName: defaultVal,
-  };
-};
-
-const check = {
-  academyId: (val) => validator.isLength(val, { min: 3, max: 20 }),
-  adminId: (val) =>
-    validator.isLength(val, { min: 4, max: 20 }) &&
-    validator.isAlphanumeric(val),
-  adminName: (val) => validator.isLength(val, { min: 2, max: 20 }),
-  email: (val) => validator.isEmail(val),
-};
-
-academySchema.methods.validationCheck = function (key) {
-  if (!key) {
-    for (const key in check) {
-      if (!check[key](this[key])) return false;
-    }
-  }
-  return check[key](this[key]);
-};
 
 module.exports = conn.model("Academy", academySchema);

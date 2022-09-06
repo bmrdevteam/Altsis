@@ -18,9 +18,6 @@ exports.create = async (req, res) => {
 
     // create academy document
     const academy = new Academy(req.body);
-    if (!academy.validationCheck()) {
-      return res.status(400).send({ message: "validation failed" });
-    }
     await academy.save();
 
     // create academy DB
