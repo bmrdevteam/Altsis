@@ -24,9 +24,18 @@
 }
 
 .section {
-    margin: 24px;
+
+    height: calc(100vh - 56px);
+    overflow: auto;
 
     .settings_container {
+
+        padding: 24px;
+        background-color: var(--background-color);
+        border-radius: 8px;
+
+        max-width: 1000px;
+        margin: 0 auto;
 
         .container_title {
             font-size: 16px;
