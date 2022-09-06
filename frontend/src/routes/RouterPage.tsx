@@ -39,6 +39,7 @@ import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
 
+
 // import Http404 from "./pages/error/404";
 
 function RouterPage() {
@@ -64,7 +65,8 @@ function RouterPage() {
       <BrowserRouter>
         <Sidebar />
         <div
-          className="content" id="content"
+          className="content"
+          id="content"
           // style={{ maxWidth: `calc(100vw - ${sidebarClose ? 56 : 240}px)` }}
         >
           <Routes>
@@ -173,6 +175,7 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
+
 
               {/* ----------------------------------------------------- */}
 
