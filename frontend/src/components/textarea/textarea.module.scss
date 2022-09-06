@@ -11,10 +11,8 @@
 
         background-color: inherit;
         color: var(--accent-1);
-        padding: 10px 14px;
+        padding: 12px 14px;
         font-size: 14px;
-
-        height: 40px;
         outline: none;
         border: var(--border-default);
         width: 100%;
@@ -33,10 +31,6 @@
 
     .textarea::-webkit-scrollbar-button {
         display: none
-    }
-
-    ::-webkit-resizer {
-        background-color: var(--component-color);
     }
 
 
@@ -88,7 +82,6 @@
         border: none;
         border-radius: 8px;
         background-color: var(--component-color);
-        padding: 8px 18px;
         width: 100%;
 
     }
