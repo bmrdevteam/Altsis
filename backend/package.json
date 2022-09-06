@@ -24,6 +24,7 @@
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "mongoose": "^6.4.2",
+    "mongoose-validator": "^2.1.0",
     "multer": "^1.4.5-lts.1",
     "multer-s3": "2.10",
     "passport": "^0.6.0",
@@ -32,7 +33,8 @@
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
     "redis": "^4.3.0",
-    "session-file-store": "^1.5.0"
+    "session-file-store": "^1.5.0",
+    "validator": "^13.7.0"
   },
   "packageManager": "yarn@3.2.3"
 }
