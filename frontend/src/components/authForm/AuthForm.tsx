@@ -1,3 +1,37 @@
+/**
+ * @file auth form
+ * 
+ * !DISCLAMER! the component will not be supported soon
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - auth form component
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ * - auth form component -> replaced with input components
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ * 
+ * change the auth form components on the resgister page to input components
+ *
+ */
+
+
 import React from "react";
 import style from "./authForm.module.scss";
 
