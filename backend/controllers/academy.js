@@ -105,7 +105,7 @@ exports.delete = async (req, res) => {
     academy.remove();
     await conn[academy.dbName].db.dropDatabase();
     deleteConnection(academy.dbName);
-    return res.status(200).send({ success: true });
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }

@@ -185,6 +185,7 @@ exports.createMembers = async (req, res) => {
         const schoolUser = new _SchoolUser(user);
         schoolUser.schoolId = _user.schoolId;
         schoolUser.schoolName = _user.schoolName;
+        schoolUser.role = _user.role;
         schoolUsers.push(schoolUser);
       }
       users.push(user);
