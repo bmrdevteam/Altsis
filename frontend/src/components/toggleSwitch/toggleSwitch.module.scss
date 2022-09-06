@@ -25,15 +25,16 @@
     background-color: #ccc;
     -webkit-transition: .4s;
     transition: .4s;
+    border: var(--border-default);
   }
   
   .slider:before {
     position: absolute;
     content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
+    height: 15px;
+    width: 15px;
+    left: 1.5px;
+    bottom: 1.5px;
     border-radius: 50%;
     background-color: var(--accent-6);
     -webkit-transition: .4s;
@@ -41,11 +42,11 @@
   }
   
   input:checked + .slider {
-    background-color: var(--color-g);
+    background-color: var(--color-b3);
   }
   
   input:focus + .slider {
-    box-shadow: 0 0 1px var(--color-g);
+    box-shadow: 0 0 1px var(--color-b3);
   }
   
   input:checked + .slider:before {
