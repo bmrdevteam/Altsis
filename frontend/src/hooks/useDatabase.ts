@@ -113,13 +113,22 @@ export default function useDatabase() {
    */
   async function R({ location }: IDatabaseQuery) {
     const config = {
-      // set the method
+      /**
+       * set the method
+       */
       method: "get",
-      //set the url
+      /**
+       * set the url
+       */
       url: `${process.env.REACT_APP_SERVER_URL}/api/${location}`,
-      //set the headers
+      /**
+       * set the headers
+       */
       headers: {},
-      // send request with 🍪 cookies
+      /**
+       * send request with 🍪 cookies
+       */
+
       withCredentials: true,
     };
     try {
@@ -165,9 +174,9 @@ export default function useDatabase() {
    *
    */
   async function D({ location }: IDatabaseQuery) {
-    /** 
-     * @constant config for the axios 
-     * 
+    /**
+     * @constant config for the axios
+     *
      */
     const config = {
       //set the method
