@@ -1,3 +1,33 @@
+/**
+ * @file drag and drop component
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * - drag and drop component
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ * 
+ * implement drop
+ *
+ */
+
 import React from "react";
 
 const DragAndDrop = (props: { children: JSX.Element | JSX.Element[] }) => {
