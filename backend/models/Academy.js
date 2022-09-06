@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const conn = require("../databases/root");
-const validator = require("validator");
 const validate = require("mongoose-validator");
 
 const academySchema = mongoose.Schema(
@@ -27,8 +26,8 @@ const academySchema = mongoose.Schema(
     },
     adminName: {
       type: String,
-      min: 2,
-      max: 20,
+      minLength: 2,
+      maxLength: 20,
     },
     dbName: {
       type: String,
