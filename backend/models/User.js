@@ -28,7 +28,10 @@ const userSchema = mongoose.Schema(
       match: specialRegExp,
       select: false, //alwasy exclude password in user document
     },
-    auth: String,
+    auth: {
+      type: String,
+      default: "member",
+    },
     email: {
       type: String,
       validate: validate({ validator: "isEmail" }),

@@ -365,12 +365,12 @@ exports.read = async (req, res) => {
   try {
     const user = req.user;
     const schoolUsers = await Promise.all(
-      user.schools.map((school) => {
+      user.schools.map((school) =>
         SchoolUser(req.user.dbName).findOne({
           userId: user.userId,
           schoolId: school.schoolId,
-        });
-      })
+        })
+      )
     );
     res.status(200).send({
       user,
