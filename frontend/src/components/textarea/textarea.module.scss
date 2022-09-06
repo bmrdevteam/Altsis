@@ -1,0 +1,105 @@
+.textarea_container {
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1 1 0;
+
+    .textarea {
+        resize: vertical;
+        font-family: 'Pretendard';
+
+        background-color: inherit;
+        color: var(--accent-1);
+        padding: 10px 14px;
+        font-size: 14px;
+
+        height: 40px;
+        outline: none;
+        border: var(--border-default);
+        width: 100%;
+    }
+
+    .textarea::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+
+    .textarea::-webkit-scrollbar {
+        width: 10px;
+        background-color: transparent;
+    }
+
+    .textarea::-webkit-scrollbar-thumb {
+        background-color: #0000002a;
+        background-clip: padding-box;
+        border-radius: 8px;
+    }
+
+    .textarea::-webkit-resizer {
+        border: none;
+
+    }
+
+
+    .textarea.invaild {
+        border-color: var(--alert-c1);
+    }
+
+    .label {
+        font-size: 12px;
+        font-family: 'Pretendard';
+        font-weight: 500;
+        margin-bottom: 5px;
+        color: var(--accent-1);
+
+
+        .required {
+            padding-left: 1px;
+            color: var(--alert-c1);
+        }
+    }
+
+}
+
+
+.textarea_container.flat {
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1 1 0;
+
+    .label {
+        font-size: 12px;
+        color: var(--accent-2);
+        font-weight: 600;
+
+        margin-bottom: 5px;
+
+        .required {
+            padding-left: 1px;
+            color: var(--alert-c1);
+        }
+
+    }
+
+    .textarea {
+        margin-top: 5px;
+        outline: none;
+        border: none;
+        border-radius: 8px;
+        background-color: var(--component-color);
+        padding: 8px 18px;
+        width: 100%;
+
+    }
+
+    .textarea.invaild {
+        background-color: var(--alert-c1);
+    }
+
+
+
+
+
+}
