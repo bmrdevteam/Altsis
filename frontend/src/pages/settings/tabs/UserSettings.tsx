@@ -1,4 +1,5 @@
 import React from "react";
+import Divider from "../../../components/divider/Divider";
 import Input from "../../../components/input/Input";
 import Textarea from "../../../components/textarea/Textarea";
 import { useAuth } from "../../../contexts/authContext";
@@ -30,6 +31,9 @@ const UserSettings = (props: Props) => {
           defaultValue={currentUser.userId}
           disabled
         />
+      </div>
+      <div style={{marginTop:"12px"}}>
+        <Textarea label="설명" placeholder="설명"/>
       </div>
     </div>
   );
