@@ -1,4 +1,5 @@
 .section {
+
     display: flex;
     justify-content: center;
     align-items: center;
@@ -6,12 +7,15 @@
     width: 100vw;
     position: fixed;
     z-index: 1;
-    background: var(--background-color);
+    background: var(--component-color);
     left: 0;
     top: 0;
 
 
     .container {
+        background: var(--background-color);
+        box-shadow: var(--component-box-shadow);
+        border-radius: 8px;
         min-width: 450px;
         padding: 24px;
 
