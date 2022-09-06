@@ -12,3 +12,16 @@
         background-color: hsl(0, 0, 95%);
     }
 }
+
+:root[data-theme="dark"] {
+    @keyframes skeleton-loading {
+        0% {
+            background-color: rgb(51, 51, 51);
+        }
+
+        100% {
+            background-color: rgb(41, 41, 41);
+        }
+    }
+
+}
