@@ -16,7 +16,7 @@ type Props = {
 
 const Input = (props: Props) => {
   return (
-    <div className={`${style.input_container} ${style.flat}`}>
+    <div className={`${style.input_container} ${props.inputStyle && style.flat}`}>
       {props.label && (
         <label className={style.label}>
           {props.label}
