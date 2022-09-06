@@ -161,12 +161,14 @@ const Login = () => {
             <p className={style.error}>{errorMessage}</p>
 
             <Input
+            
               label="아이디"
               placeholder="아이디 입력"
               onChange={(e: any) => {
                 setUsername(e.target.value);
               }}
               required
+              style={{borderRadius:"8px"}}
             />
             <Input
               label="패스워드"
@@ -187,6 +189,7 @@ const Login = () => {
               }}
               type="password"
               required
+              style={{borderRadius:"8px"}}
             />
 
             <Button
@@ -197,6 +200,8 @@ const Login = () => {
                 password === ""
               }
               onClick={onLoginSubmit}
+            styles={{borderRadius:"8px"}}
+
             >
               로그인
             </Button>
@@ -208,6 +213,8 @@ const Login = () => {
             onClick={() => {
               navigate("/register", { replace: true });
             }}
+            styles={{borderRadius:"8px"}}
+
           >
             회원가입
           </Button>
