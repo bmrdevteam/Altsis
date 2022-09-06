@@ -10,12 +10,13 @@ type Props = {
   onChange?: any;
   onKeyDown?: any;
   ref?: any;
-  style?:any;
+  style?: any;
+  inputStyle?: "flat";
 };
 
 const Input = (props: Props) => {
   return (
-    <div className={style.input_container}>
+    <div className={`${style.input_container} ${style.flat}`}>
       {props.label && (
         <label className={style.label}>
           {props.label}
