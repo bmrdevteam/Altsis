@@ -20,24 +20,23 @@
         width: 100%;
     }
 
-    .textarea::-webkit-scrollbar-track {
-        background-color: transparent;
-    }
-
     .textarea::-webkit-scrollbar {
-        width: 10px;
         background-color: transparent;
+        width: 16px
     }
 
     .textarea::-webkit-scrollbar-thumb {
-        background-color: #0000002a;
-        background-clip: padding-box;
-        border-radius: 8px;
+        background-color: #babac0;
+        border-radius: 16px;
+        border: 6px solid var(--component-color);
     }
 
-    .textarea::-webkit-resizer {
-        border: none;
+    .textarea::-webkit-scrollbar-button {
+        display: none
+    }
 
+    ::-webkit-resizer {
+        background-color: var(--component-color);
     }
 
 
