@@ -32,6 +32,7 @@ const Textarea = (props: Props) => {
         disabled={props.disabled}
         onKeyDown={props.onKeyDown}
         style={props.style}
+        rows={3}
       />
     </div>
   );
