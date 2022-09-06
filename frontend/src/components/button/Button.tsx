@@ -1,6 +1,6 @@
 /**
  * @file button component
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -81,7 +81,6 @@ const Button = ({
   disableOnclick,
   styles,
 }: Props) => {
-
   // button state
   const [disable, setDisable] = useState<boolean>(false);
 
@@ -115,7 +114,7 @@ const Button = ({
       style={styles}
       onClick={(e) => {
         if (!disable && !disabled) {
-          onClick(e);
+          onClick && onClick(e);
         }
         if (disableOnclick && !disabled && !disable) {
           setDisable(true);
