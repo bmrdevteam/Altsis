@@ -12,7 +12,7 @@ router.post("/", isLoggedIn, syllabus.create);
 router.get("/classrooms", isLoggedIn, syllabus.classrooms);
 router.get("/time", isLoggedIn, syllabus.time);
 
-router.get("/list", isLoggedIn, syllabus.list);
+router.get("/", isLoggedIn, syllabus.list);
 router.get("/:_id", isLoggedIn, syllabus.read);
 router.get("/:_id/students", isLoggedIn, syllabus.students);
 
