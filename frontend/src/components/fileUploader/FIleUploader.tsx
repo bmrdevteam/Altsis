@@ -1,3 +1,33 @@
+/**
+ * @file FIleUploader component
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * - FIleUploader component
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ * - change popups with popup component 
+ * - create scss file
+ *
+ */
+
 import React, { useState } from "react";
 
 type Props = {};
@@ -43,10 +73,7 @@ function FIleUploader({}: Props) {
               <h1>File Upload</h1>
             </div>
           </div>
-          <div style={{ flex: "1 1 0" }}>
-
-
-          </div>
+          <div style={{ flex: "1 1 0" }}></div>
         </div>
       </div>
     </div>
