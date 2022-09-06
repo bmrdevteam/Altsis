@@ -1,4 +1,4 @@
-const config = require("./config/config");
+const config = require("../config/config");
 
 const redisClient = require("redis").createClient({
   url: config["REDIS"],
