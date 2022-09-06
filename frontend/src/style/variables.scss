@@ -1,15 +1,15 @@
 :root {
+
     // primary color for the application
     --primary-color: rgb(49, 55, 117);
     --primary-text-color: rgb(49, 55, 117);
     --primary-background-color: rgb(220, 222, 252);
-    
+
 
     //background colors for the application
     --background-color: rgb(255, 255, 255);
     --background-hover-color: rgb(245, 245, 245);
 
-    // the canvas color for the applicaton -> the canvas color does not change even if dark mode is enabled
     --canvas-color: rgb(255, 255, 255);
 
     // the component settings for the application
@@ -28,21 +28,26 @@
     // alert colors
     --alert-c1: rgb(255, 100, 100);
 
-    --color-r:rgb(255, 100, 100);
-    
-    --color-g1:rgb(0, 255, 0);
-    --color-g2:rgb(51, 255, 51);
-    --color-g3:rgb(102, 255, 102);
-    --color-g4:rgb(153, 255, 153);
-    --color-g5:rgb(204, 255, 204);
-    --color-g6:rgb(225, 255, 225);
+    --color-r1: rgb(255, 0, 0);
+    --color-r2: rgb(255, 51, 51);
+    --color-r3: rgb(255, 102, 102);
+    --color-r4: rgb(255, 153, 153);
+    --color-r5: rgb(255, 204, 204);
+    --color-r6: rgb(255, 225, 225);
 
-    --color-b1:rgb(0, 0, 255);
-    --color-b2:rgb(51, 51, 255);
-    --color-b3:rgb(102, 102, 255);
-    --color-b4:rgb(153, 153, 255);
-    --color-b5:rgb(204, 204, 255);
-    --color-b6:rgb(225, 225, 255);
+    --color-g1: rgb(0, 255, 0);
+    --color-g2: rgb(51, 255, 51);
+    --color-g3: rgb(102, 255, 102);
+    --color-g4: rgb(153, 255, 153);
+    --color-g5: rgb(204, 255, 204);
+    --color-g6: rgb(225, 255, 225);
+
+    --color-b1: rgb(0, 0, 255);
+    --color-b2: rgb(51, 51, 255);
+    --color-b3: rgb(102, 102, 255);
+    --color-b4: rgb(153, 153, 255);
+    --color-b5: rgb(204, 204, 255);
+    --color-b6: rgb(225, 225, 255);
 
 
     //border for the applicaion 
@@ -68,41 +73,44 @@
     // /* Internet Explorer/Edge */
     // user-select: none;
     // /* Non-prefixed version, currently */
+    body,
+    p,
+    span,
+    label,
+    div {
+        transition: color 0.5s , background-color 0.5s ,border .5s;
+    }
 
 
 }
 
-@media (prefers-color-scheme: dark) {
+:root[data-theme="dark"] {
+
+    --background-color: rgb(20, 20, 20);
+    --background-hover-color: rgb(30, 30, 30);
+
+    --canvas-color: #000000;
+    --component-color: rgb(31, 31, 31);
+    --component-hover-color: rgb(50, 50, 50);
+
+    --component-box-shadow: none;
 
 
 
-    :root {
-        --background-color: rgb(20, 20, 20);
-        --background-hover-color: rgb(30, 30, 30);
+    --border-default: 1px solid rgb(45, 45, 45);
+    --border-default-color: rgb(45, 45, 45);
 
-        --canvas-color: #000000;
-        --component-color: rgb(31, 31, 31);
-        --component-hover-color: rgb(50, 50, 50);
-
-        --component-box-shadow: none;
-
-
-
-        --border-default: 1px solid rgb(45, 45, 45);
-        --border-default-color: rgb(45, 45, 45);
-
-        --accent-1: rgb(255, 255, 255);
-        --accent-2: rgb(204, 204, 204);
-        --accent-3: rgb(153, 153, 153);
-        --accent-4: rgb(102, 102, 102);
-        --accent-5: rgb(51, 51, 51);
-        --accent-6: rgb(0, 0, 0);
+    --accent-1: rgb(255, 255, 255);
+    --accent-2: rgb(204, 204, 204);
+    --accent-3: rgb(153, 153, 153);
+    --accent-4: rgb(102, 102, 102);
+    --accent-5: rgb(51, 51, 51);
+    --accent-6: rgb(0, 0, 0);
 
 
-        --primary-text-color: rgb(220, 226, 255);
+    --primary-text-color: rgb(220, 226, 255);
 
-        --btn-color-1: rgb(100, 100, 100);
-        --btn-text-color-1: rgb(255, 255, 255);
+    --btn-color-1: rgb(100, 100, 100);
+    --btn-text-color-1: rgb(255, 255, 255);
 
-    }
 }
