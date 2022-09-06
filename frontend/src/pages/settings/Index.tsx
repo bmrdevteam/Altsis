@@ -1,5 +1,7 @@
 import React from "react";
+import Input from "../../components/input/Input";
 import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
+import Textarea from "../../components/textarea/Textarea";
 import { useAuth } from "../../contexts/authContext";
 import style from "../../style/pages/settings/settings.module.scss";
 
@@ -37,9 +39,8 @@ const Settings = (props: Props) => {
       </div>
       <div className={style.section}>
         <SettingsContainer>
-          <SettingItem />
-          <SettingItem />
-          <SettingItem />
+          <Input label="이름" placeholder="이름" inputStyle="flat" style={{fontSize:"14px"}}/>
+          <Textarea />
         </SettingsContainer>
       </div>
     </>
