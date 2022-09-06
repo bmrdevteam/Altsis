@@ -15,7 +15,6 @@
  * -------------------------------------------------------
  *
  * IN DEVELOPMENT
- * - change the navlink name to korean
  *
  * -------------------------------------------------------
  *
@@ -24,6 +23,7 @@
  * -------------------------------------------------------
  *
  * NOTES
+ * - change the navlink name to korean
  *
  */
 
@@ -31,7 +31,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 /**
  * NavigationLinks component
- * 
+ *
  * @returns NavigationLinks component
  *
  * @example <NavigationLinks/>
