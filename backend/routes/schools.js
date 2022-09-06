@@ -8,7 +8,7 @@ const { isLoggedIn, isAdManager } = require("../middleware/auth");
 //=================================
 
 router.post("/", isAdManager, school.create);
-router.get("/list", isAdManager, school.list);
+router.get("/", isAdManager, school.list);
 router.get("/:_id/classrooms", isLoggedIn, school.classrooms);
 router.get("/:_id/subjects", isLoggedIn, school.subjects);
 router.put("/:_id/info/:field?", isAdManager, school.update);
