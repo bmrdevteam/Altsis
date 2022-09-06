@@ -167,7 +167,7 @@ const NavProfile = () => {
               className={style.username}
               onClick={() => {
                 currentUser?.userId
-                  ? navigate("myaccount", { replace: true })
+                  ? navigate("/settings", { replace: true })
                   : navigate("/login", { replace: true });
               }}
             >
