@@ -10,6 +10,7 @@ type Props = {
   onChange?: any;
   onKeyDown?: any;
   ref?: any;
+  style?:any;
 };
 
 const Input = (props: Props) => {
@@ -31,6 +32,7 @@ const Input = (props: Props) => {
         required={props.required}
         disabled={props.disabled}
         onKeyDown={props.onKeyDown}
+        style={props.style}
       />
     </div>
   );
