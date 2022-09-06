@@ -1,12 +1,12 @@
 /**
  * @file Popup component
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
  *
  * IN PRODUCTION
- * - Popup component 
+ * - Popup component
  *
  * -------------------------------------------------------
  *
@@ -30,30 +30,30 @@
 import Svg from "../../assets/svg/Svg";
 import style from "./popup.module.scss";
 
-
 /**
  * Popup component
- * 
- * 
+ *
+ *
  * @param children
  * @param setState
  * @param title
  * @param closeBtn
- * 
- * @returns 
+ *
+ * @returns
  */
 const Popup = ({
   children,
   setState,
   title,
   closeBtn,
+  borderRadius,
 }: {
   children: JSX.Element | JSX.Element[];
   setState: any;
   title: string;
   closeBtn?: boolean;
+  borderRadius?: string;
 }) => {
-
   /**
    * return the component
    */
@@ -83,7 +83,11 @@ const Popup = ({
           setState(false);
         }}
       ></div>
-      <div className={style.popup_container}>
+
+      <div
+        className={style.popup_container}
+        style={{ borderRadius: borderRadius ?? "0px" }}
+      >
         <div className={style.popup}>
           <div className={style.title}>{title}</div>
           {closeBtn && (
