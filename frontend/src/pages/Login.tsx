@@ -78,7 +78,8 @@ const Login = () => {
       navigate(0);
     }
     if (pid === "root") {
-      setAcademy("관리자");
+      setAcademy("root");
+      
     }
     if (pid === "undefined") {
       navigate(`/login`);
