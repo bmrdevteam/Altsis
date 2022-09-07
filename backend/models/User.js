@@ -83,6 +83,18 @@ userSchema.statics.checkValidation = function (user, key) {
   return true;
 };
 
+userSchema.methods.checkValidation = function (key) {
+  console.log("this is ", this);
+  console.log("key is ", key);
+  if (key) {
+    return check[key](this[key]);
+  }
+  for (const key in check) {
+    if (!check[key](this[key])) return false;
+  }
+  return true;
+};
+
 userSchema.pre("save", function (next) {
   var user = this;
   if (user.isModified("password")) {

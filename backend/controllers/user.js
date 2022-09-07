@@ -5,6 +5,8 @@ const _ = require("lodash");
 const config = require("../config/config");
 const { User, SchoolUser, School, Academy } = require("../models/models");
 
+// ____________ common ____________
+
 exports.loginLocal = async (req, res) => {
   /* authenticate */
   passport.authenticate("local2", (err, user, dbName) => {
@@ -127,6 +129,8 @@ exports.logout = (req, res) => {
   });
 };
 
+// ____________ create ____________
+
 exports.createOwner = async (req, res) => {
   try {
     const _User = User("root");
@@ -216,6 +220,131 @@ exports.createMembers = async (req, res) => {
     return res.status(500).send({ err: err.message });
   }
 };
+
+// ____________ read ____________
+
+exports.read = async (req, res) => {
+  try {
+    /* find user and schoolUser */
+    const user = req.user;
+    const schoolUsers = await Promise.all(
+      user.schools.map((school) =>
+        SchoolUser(req.user.dbName).findOne({
+          userId: user.userId,
+          schoolId: school.schoolId,
+        })
+      )
+    );
+    res.status(200).send({
+      user,
+      schoolUsers,
+    });
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+exports.readOwners = async (req, res) => {
+  try {
+    /* find users */
+    const users = await User("root").find({});
+    return res.status(200).send({ users });
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+exports.readAdmin = async (req, res) => {
+  try {
+    /* find admin */
+    const academy = await Academy.findOne({ academyId: req.query.academyId });
+    const user = await User(academy.dbName).findOne({
+      userId: academy.adminId,
+    });
+    return res.status(200).send({ user });
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+exports.readMembers = async (req, res) => {
+  try {
+    /* find members */
+    const users = await User(req.user.dbName).find({});
+    return res.status(200).send({ users });
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+// ____________ update ____________
+
+const update = async (user, field, val) => {
+  /* update user document & check validation */
+  user[field] = val;
+  if (!user.checkValidation(field)) {
+    const err = new Error("validation failed");
+    err.status = 400;
+    throw err;
+  }
+  /* save document */
+  await user.save();
+};
+
+exports.updateField = async (req, res) => {
+  try {
+    const user = req.user;
+    await update(user, req.params.field, req.body.new);
+    user.password = undefined;
+    return res.status(200).send({ user });
+  } catch (err) {
+    if (err) return res.status(err.status || 500).send({ err: err.message });
+  }
+};
+
+exports.updateMemberField = async (req, res) => {
+  try {
+    const _User = User(req.user.dbName);
+
+    /* find user */
+    const user = await _User.findById(req.params._id);
+    if (!user) {
+      return res.status(409).send({ message: "user not found" });
+    }
+
+    /* check if user is a member */
+    if (user.auth != "member") {
+      return res.status(401).send({ message: "user is not a member" });
+    }
+
+    /* update document & check validation */
+    await update(user, req.params.field, req.body.new);
+    return res.status(200).send({ user });
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+// ____________ delete ____________
+
+exports.deleteMember = async (req, res) => {
+  try {
+    /* delete user & schoolUsers */
+    const exUser = await User(req.user.dbName).findByIdAndDelete({
+      _id: req.params._id,
+      auth: "member",
+    });
+
+    await SchoolUser(req.user.dbName).deleteMany({
+      userId: exUser.userId,
+    });
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ err: err.message });
+  }
+};
+
+// ____________ etc. ____________
 
 exports.enterMembers = async (req, res) => {
   try {
@@ -329,125 +458,6 @@ exports.cancelManager = async (req, res) => {
     user.auth = "member";
     await user.save();
 
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.readOwners = async (req, res) => {
-  try {
-    /* find users */
-    const users = await User("root").find({});
-    return res.status(200).send({ users });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.readAdmin = async (req, res) => {
-  try {
-    /* find admin */
-    const academy = await Academy.findOne({ academyId: req.query.academyId });
-    const user = await User(academy.dbName).findOne({
-      userId: academy.adminId,
-    });
-    return res.status(200).send({ user });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.readMembers = async (req, res) => {
-  try {
-    /* find members */
-    const users = await User(req.user.dbName).find({});
-    return res.status(200).send({ users });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.updateMemberField = async (req, res) => {
-  try {
-    const _User = User(req.user.dbName);
-
-    /* find user */
-    const user = await _User.findById(req.params._id);
-    if (!user) {
-      return res.status(409).send({ message: "user not found" });
-    }
-
-    /* check if user is a member */
-    if (user.auth != "member") {
-      return res.status(401).send({ message: "user is not a member" });
-    }
-
-    /* update document & check validation */
-    user[req.params.field] = req.body.new;
-    if (!_User.checkValidation(user, req.params.field)) {
-      return res.status(400).send({ message: "validation failed" });
-    }
-
-    /* save document */
-    await user.save();
-    return res.status(200).send({ user });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.read = async (req, res) => {
-  try {
-    /* find user and schoolUser */
-    const user = req.user;
-    const schoolUsers = await Promise.all(
-      user.schools.map((school) =>
-        SchoolUser(req.user.dbName).findOne({
-          userId: user.userId,
-          schoolId: school.schoolId,
-        })
-      )
-    );
-    res.status(200).send({
-      user,
-      schoolUsers,
-    });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.updateField = async (req, res) => {
-  try {
-    const user = req.user;
-
-    /* update user document & check validation */
-    user[req.params.field] = req.body.new;
-    if (!User(req.user.dbName).checkValidation(user, req.params.field)) {
-      return res.status(400).send({ message: "validation failed" });
-    }
-    /* save document */
-    await user.save();
-
-    user.password = undefined;
-    return res.status(200).send({ user });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.deleteMember = async (req, res) => {
-  try {
-    /* delete user & schoolUsers */
-    const exUser = await User(req.user.dbName).findByIdAndDelete({
-      _id: req.params._id,
-      auth: "member",
-    });
-
-    await SchoolUser(req.user.dbName).deleteMany({
-      userId: exUser.userId,
-    });
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });
