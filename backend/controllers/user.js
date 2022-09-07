@@ -5,6 +5,20 @@ const _ = require("lodash");
 const config = require("../config/config");
 const { User, SchoolUser, School, Academy } = require("../models/models");
 
+// utils
+
+const update = async (user, field, val) => {
+  /* update user document & check validation */
+  user[field] = val;
+  if (!user.checkValidation(field)) {
+    const err = new Error("validation failed");
+    err.status = 400;
+    throw err;
+  }
+  /* save document */
+  await user.save();
+};
+
 // ____________ common ____________
 
 exports.loginLocal = async (req, res) => {
@@ -278,18 +292,6 @@ exports.readMembers = async (req, res) => {
 };
 
 // ____________ update ____________
-
-const update = async (user, field, val) => {
-  /* update user document & check validation */
-  user[field] = val;
-  if (!user.checkValidation(field)) {
-    const err = new Error("validation failed");
-    err.status = 400;
-    throw err;
-  }
-  /* save document */
-  await user.save();
-};
 
 exports.updateField = async (req, res) => {
   try {

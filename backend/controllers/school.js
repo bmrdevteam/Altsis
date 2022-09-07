@@ -1,15 +1,34 @@
 const _ = require("lodash");
-const { checkSchema, validationResult } = require("express-validator");
-
 const School = require("../models/School");
+
+// utils
+
+const _findById = async (dbName, _id) => {
+  /* find school document */
+  const school = await School(dbName).findById(_id);
+  if (!school) {
+    const err = new Error("school not found");
+    err.status = 404;
+    throw err;
+  }
+  return school;
+};
+
+/* create */
 
 exports.create = async (req, res) => {
   try {
     const _School = School(req.user.dbName);
+
+    /* check duplication */
     const exSchool = await _School.findOne({ schoolId: req.body.schoolId });
     if (exSchool) {
-      return res.status(409).send({ message: "already exsisting schoolId" });
+      return res
+        .status(409)
+        .send({ message: `schoolId ${req.body.schoolId} is already in use` });
     }
+
+    /* create and save document */
     const school = new _School(req.body);
     await school.save();
     return res.status(200).send({ school });
@@ -18,45 +37,80 @@ exports.create = async (req, res) => {
   }
 };
 
+exports.pushField = async (req, res) => {
+  try {
+    /* validaton */
+    if (_.isEmpty(req.body.new)) {
+      return res.status(409).send({ message: "body.new is null or empty" });
+    }
+
+    /* find school */
+    const school = await _findById(req.user.dbName, req.params._id);
+
+    const field = req.params.field;
+    const val = req.body.new;
+
+    /* check duplication */
+    if (_.indexOf(school[field], val) != -1) {
+      return res.status(409).send({
+        message: `${field} '${val}' is already in the list`,
+      });
+    }
+
+    /* push data */
+    if (field === "subjects") {
+      school[field]["data"].push(val);
+    } else {
+      school[field].push(val);
+    }
+    school.markModified(field);
+    await school.save();
+
+    return res.status(200).send({ school });
+  } catch (err) {
+    return res.status(err.status || 500).send({ err: err.message });
+  }
+};
+
+/* read */
+
 exports.list = async (req, res) => {
   try {
+    /* find schools list */
     const schools = await School(req.user.dbName).find({});
     return res.status(200).send({ schools });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
 };
-exports.classrooms = async (req, res) => {
+
+exports.read = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findById(req.params._id);
-    if (!school) {
-      return res.status(404);
+    /* find school */
+    const school = await _findById(req.user.dbName, req.params._id);
+    if (!req.params.field) {
+      return res.status(200).send({ school });
+    } else if (req.params.field === "classrooms") {
+      return res.status(200).send({ classrooms: school.classrooms });
+    } else if (req.params.field === "subjects") {
+      return res.status(200).send({ subjects: school.subjects });
+    } else if (req.params.field === "seasons") {
+      return res.status(200).send({ seasons: school.seasons });
+    } else if (req.params.field === "settings") {
+      return res.status(200).send({ settings: school.settings });
     }
-    return res.status(200).send({ classrooms: school.classrooms });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-exports.subjects = async (req, res) => {
-  try {
-    const school = await School(req.user.dbName).findById(req.params._id);
-    if (!school) {
-      return res.status(404);
-    }
-    return res.status(200).send({ classrooms: school.subjects });
+    return res.status(400).send();
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
 };
 
+/* update */
+
 exports.update = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "no school!" });
-    }
+    /* find school document and get data */
+    const school = await _findById(req.user.dbName, req.params._id);
 
     const fields = ["logo", "tel", "email", "head", "homepage", "address"];
 
@@ -80,63 +134,10 @@ exports.update = async (req, res) => {
   }
 };
 
-exports.delete = async (req, res) => {
-  try {
-    const doc = await School(req.user.dbName).findByIdAndDelete(req.params._id);
-    return res.status(200).send({ success: !!doc });
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.createField = async (req, res) => {
-  try {
-    const fields = ["classrooms", "subjects", "seasons"];
-    if (!fields.includes(req.params.field)) {
-      return res.status(400).send({
-        message: `field '${req.params.field}' does not exist or cannot be updated`,
-      });
-    }
-
-    const school = await School(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "no school!" });
-    }
-    if (_.isEmpty(req.body.new)) {
-      return res.status(409).send({ message: "body.new is null or empty!" });
-    }
-
-    if (req.params.field == "subjects") {
-      school[req.params.field]["data"].push(req.body.new);
-    } else {
-      if (
-        req.params.field == "classrooms" &&
-        _.indexOf(school["classrooms"], req.body.new) != -1
-      ) {
-        return res.status(409).send({ message: "already existing classroom" });
-      }
-      school[req.params.field].push(req.body.new);
-    }
-
-    school.markModified(req.params.field);
-    await school.save();
-    return res.status(200).send({ school });
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
 exports.updateField = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "no school!" });
-    }
-
+    /* find school document and update */
+    const school = await _findById(req.user.dbName, req.params._id);
     school[req.params.field] = req.body.new;
     school.markModified(req.params.field);
     await school.save();
@@ -148,17 +149,14 @@ exports.updateField = async (req, res) => {
 
 exports.updateFieldByIdx = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "no school!" });
-    }
+    /* find school document */
+    const school = await _findById(req.user.dbName, req.params._id);
 
     if (school[req.params.field].length < req.params.idx) {
       return res.status(409).send({ message: "index out of range" });
     }
-    if (req.params.field == "subjects") {
+
+    if (req.params.field === "subjects") {
       school[req.params.field]["data"][req.params.idx] = req.body.new;
     } else {
       school[req.params.field][req.params.idx] = req.body.new;
@@ -171,35 +169,10 @@ exports.updateFieldByIdx = async (req, res) => {
   }
 };
 
-exports.deleteFieldByIdx = async (req, res) => {
-  try {
-    const school = await School(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "no school!" });
-    }
-    if (req.params.field == "subjects") {
-      school[req.params.field]["data"].splice(req.params.idx, 1);
-    } else {
-      school[req.params.field].splice(req.params.idx, 1);
-    }
-
-    await school.save();
-    return res.status(200).send({ school });
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
 exports.updateSettings = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "no school!" });
-    }
+    /* find school document */
+    const school = await _findById(req.user.dbName, req.params._id);
 
     school["settings"] = req.body.new;
     school.markModified(req.params.field);
@@ -210,16 +183,30 @@ exports.updateSettings = async (req, res) => {
   }
 };
 
-exports.readSettings = async (req, res) => {
+/* delete */
+
+exports.delete = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "no school!" });
+    await School(req.user.dbName).findByIdAndDelete(req.params._id);
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ err: err.message });
+  }
+};
+
+exports.deleteFieldByIdx = async (req, res) => {
+  try {
+    /* find school document */
+    const school = await _findById(req.user.dbName, req.params._id);
+
+    if (req.params.field == "subjects") {
+      school[req.params.field]["data"].splice(req.params.idx, 1);
+    } else {
+      school[req.params.field].splice(req.params.idx, 1);
     }
 
-    return res.status(200).send({ settings: school["settings"] });
+    await school.save();
+    return res.status(200).send({ school });
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
