@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const conn = require("../databases/root");
+const validator = require("validator");
 const validate = require("mongoose-validator");
 
 const academySchema = mongoose.Schema(
@@ -9,6 +10,7 @@ const academySchema = mongoose.Schema(
       unique: true,
       minLength: 3,
       maxLength: 20,
+      validate: validate({ validator: "isAlphanumeric" }),
     },
     academyName: {
       type: String,
@@ -43,5 +45,26 @@ academySchema.pre("save", function (next) {
   }
   next();
 });
+
+const check = {
+  academyId: (val) =>
+    validator.isLength(val, { min: 3, max: 20 }) &&
+    validator.isAlphanumeric(val),
+  email: (val) => validator.isEmail(val),
+  adminId: (val) =>
+    validator.isLength(val, { min: 4, max: 20 }) &&
+    validator.isAlphanumeric(val),
+  adminName: (val) => validator.isLength(val, { min: 2, max: 20 }),
+};
+
+academySchema.statics.checkValidation = function (user, key) {
+  if (key) {
+    return check[key](user[key]);
+  }
+  for (const key in check) {
+    if (!check[key](user[key])) return false;
+  }
+  return true;
+};
 
 module.exports = conn.model("Academy", academySchema);
