@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { useAuth } from "../../contexts/authContext";
 
@@ -20,6 +20,21 @@ type Props = {};
 const Sidebar = (props: Props) => {
   const location = useLocation();
   const [sidebarClose, setSidebarClose] = useState<boolean>(false);
+
+  useEffect(() => {
+    setSidebarClose(
+      window.localStorage.getItem("AppSidebarStatus") === "close"
+    );
+    console.log(window.localStorage.getItem("AppSidebarStatus"));
+  }, []);
+
+  useEffect(() => {
+    if (sidebarClose) {
+      window.localStorage.setItem("AppSidebarStatus", "close");
+    } else {
+      window.localStorage.setItem("AppSidebarStatus", "open");
+    }
+  }, [sidebarClose]);
 
   const { currentUser, currentSchoolUser } = useAuth();
 
@@ -59,7 +74,6 @@ const Sidebar = (props: Props) => {
                             location.pathname !== "/" &&
                             location.pathname.includes(sbData.path)
                           }
-                          
                         >
                           {sbData.name}
                         </SubLink>
