@@ -1,9 +1,37 @@
+/**
+ * @file login page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * Login page
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ *
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import style from "../style/pages/login.module.scss";
 import axios from "axios";
 import Button from "../components/button/Button";
 import { useNavigate, useParams } from "react-router-dom";
-
 import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
 import Select from "../components/select/Select";
 import { useCookies } from "react-cookie";
@@ -11,28 +39,84 @@ import useDatabase from "../hooks/useDatabase";
 import Input from "../components/input/Input";
 // import useFormValidation from "../hooks/useFormValidation";
 
+/**
+ *
+ * login page
+ *
+ * @returns login page
+ *
+ * @example <Login/>
+ *
+ *
+ */
+
 const Login = () => {
+  /**
+   * the page id - to check which academy the user wants to login
+   */
   const { pid } = useParams<"pid">();
 
+  /**
+   * usernamme and password input
+   */
   const [username, setUsername] = useState<string>();
   const [password, setPassword] = useState<string>();
 
-  const [cookies, setCookie, removeCookie] = useCookies(["academyId"]);
+  /**
+   * username and password input valid state
+   */
+  const [usernameInputValid, setUsernameInputValid] = useState<boolean>(true);
+  const [passwordInputValid, setPasswordInputValid] = useState<boolean>(true);
+
+  /**
+   * to display error messages to the user
+   */
   const [errorMessage, setErrorMessage] = useState<string>("");
+
+  /**
+   * to indicate when the data from the backend has mounted
+   */
   const [loading, setLoading] = useState<boolean>(true);
+
+  /**
+   * academies list - from the backend
+   */
   const [academies, setAcademies] = useState<any[]>();
+  /**
+   * the current selected academy
+   */
   const [academy, setAcademy] = useState<string>();
 
-  //later hooks
+  /**
+   * cookies hook
+   * {@link https://www.npmjs.com/package/react-cookie}
+   */
+  const [cookies, setCookie, removeCookie] = useCookies(["academyId"]);
 
-  //hooks
+  /**
+   * react-router navigation
+   */
   const navigate = useNavigate();
+  /**
+   * to use google login
+   */
   const status = useGoogleLogin();
+  /**
+   * database hook
+   */
   const database = useDatabase();
+  /** Date for setting the cookie expire date  */
   var date = new Date();
-
+  /** */
   date.setFullYear(date.getFullYear() + 1);
 
+  /**
+   * get academies from the backend
+   *
+   * @async
+   *
+   * @returns list of academies
+   */
   async function getAcademis() {
     const { academies: res } = await database.R({
       location: `academies`,
@@ -40,23 +124,31 @@ const Login = () => {
     setLoading(false);
     return res;
   }
+
   useEffect(() => {
     getAcademis().then((res) => setAcademies(res));
 
-    if (
-      pid !== "root" &&
-      pid !== undefined &&
-      pid !== "undefined" &&
-      pid !== "0"
-    ) {
+    /**
+     *
+     */
+    if (pid !== undefined && pid !== "undefined" && pid !== "0") {
       if (cookies.academyId === undefined) {
+        /**
+         * if the cookie is not yet set, set the cookie with the pid
+         */
         setCookie("academyId", pid, {
           path: "/",
           expires: date,
         });
+
+        /**
+         * set the current academy
+         */
         setAcademy(pid);
       } else {
-        //get 아카데미 안에 있는지 확인후 없으면 쿠키 지우고 있는데 현재 쿠키랑 다르면 쿠키 지우고 거기로 이동
+        /**
+         * chech if the cookie matched any academies from the backend
+         */
         if (
           !loading &&
           !(
@@ -66,24 +158,43 @@ const Login = () => {
             ).length > 0
           )
         ) {
+          /**
+           * if there are no matches
+           * return to the select academy page
+           * and ,,, reload? - werid behavior - not moving
+           */
           navigate("/login");
           navigate(0);
+
+          /**
+           * to get the academy list again
+           */
           setLoading(true);
+        } else {
+          /**
+           * else set the academy with the current cookie
+           */
+          setAcademy(cookies.academyId);
         }
-        setAcademy(cookies.academyId);
       }
     }
+    /**
+     * if the pid is 0 redirect the user to the login page using the cookie
+     * and ... reload
+     */
     if (pid === "0") {
       navigate(`/${cookies.academyId}/login`);
       navigate(0);
     }
-    if (pid === "root") {
-      setAcademy("root");
-      
-    }
+    /**
+     * if the pid is "undefined" due to the cookie being undefined
+     */
     if (pid === "undefined") {
       navigate(`/login`);
     }
+    /**
+     * if the pid is undefined that is frontend/login
+     */
     if (pid === undefined) {
       removeCookie("academyId");
     }
@@ -103,11 +214,15 @@ const Login = () => {
         { withCredentials: true }
       )
       .then(function (response) {
+        /** if the result is a success */
         response.status === 200 && window.location.replace("/");
       })
       .catch((error) => {
-        const errorMsg = error.response.data;
-        console.log(errorMsg);
+        /** if the result is a success */
+        const errorMsg = error.response.data.err;
+        // console.log(errorMsg);
+        setPasswordInputValid(false);
+        setUsernameInputValid(false);
 
         for (let i = 0; i < errorMsg?.length; i++) {
           setErrorMessage(errorMsg[i]?.msg);
@@ -162,16 +277,17 @@ const Login = () => {
             <p className={style.error}>{errorMessage}</p>
 
             <Input
-            
+              invalid={!usernameInputValid}
               label="아이디"
               placeholder="아이디 입력"
               onChange={(e: any) => {
                 setUsername(e.target.value);
               }}
               required
-              style={{borderRadius:"8px"}}
+              style={{ borderRadius: "8px" }}
             />
             <Input
+              invalid={!passwordInputValid}
               label="패스워드"
               placeholder="패스워드 입력"
               onChange={(e: any) => {
@@ -190,7 +306,7 @@ const Login = () => {
               }}
               type="password"
               required
-              style={{borderRadius:"8px"}}
+              style={{ borderRadius: "8px" }}
             />
 
             <Button
@@ -201,8 +317,7 @@ const Login = () => {
                 password === ""
               }
               onClick={onLoginSubmit}
-            styles={{borderRadius:"8px"}}
-
+              styles={{ borderRadius: "8px" }}
             >
               로그인
             </Button>
@@ -214,8 +329,7 @@ const Login = () => {
             onClick={() => {
               navigate("/register", { replace: true });
             }}
-            styles={{borderRadius:"8px"}}
-
+            styles={{ borderRadius: "8px" }}
           >
             회원가입
           </Button>
