@@ -156,9 +156,11 @@
     }
 
     .block:hover {
+        transition: border 0s;
         border: var(--border-default);
         padding: 5px;
         border-radius: 4px;
+
     }
 }
 
