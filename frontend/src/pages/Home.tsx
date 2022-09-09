@@ -1,6 +1,8 @@
-import React, { useEffect } from "react";
-import style from '../style/pages/home.module.scss'  
+import React, { useEffect, useRef } from "react";
+import style from "../style/pages/home.module.scss";
 import TimeTable from "../components/timetable/TimeTable";
+import Canvas from "../components/canvas/Canvas";
+import Calender from "../components/calender/Calender";
 
 type Props = {};
 
@@ -12,11 +14,14 @@ const Home = (props: Props) => {
   }, []);
 
   return (
-    <div className={style.section}>
-      {/* <div className={style.title}>일정</div> */}
-      <div ></div>
-      
-    </div>
+    <>
+      <div className={style.menu_container}>
+        <div className={style.menu_item}></div>
+      </div>
+      <div className={style.section}>
+        <Calender />
+      </div>
+    </>
   );
 };
 
