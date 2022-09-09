@@ -1,43 +1,50 @@
 const mongoose = require("mongoose");
-const config = require("../config/config");
+
 const {
   conn,
   addConnection,
   deleteConnection,
 } = require("../databases/connection");
-const Academy = require("../models/Academy");
-const User = require("../models/User");
+const config = require("../config/config");
+const { User, Academy } = require("../models/models");
 
 exports.create = async (req, res) => {
   try {
-    // check duplication
-    const _academy = await Academy.findOne({ academyId: req.body.academyId });
-    if (_academy) {
-      return res.status(400).send({ message: `academyId is already in use` });
+    /* check duplication */
+    const exAcademy = await Academy.findOne({ academyId: req.body.academyId });
+    if (exAcademy) {
+      return res.status(409).send({
+        message: `academyId '${exAcademy.academyId}'is already in use`,
+      });
     }
 
-    // create academy document
+    /* create academy document & check validation */
     const academy = new Academy(req.body);
+    if (!Academy.checkValidation(academy)) {
+      return res.status(400).send({ message: "validation failed" });
+    }
+
+    /* save academy document */
     await academy.save();
 
-    // create academy DB
+    /* create db */
     const newConn = mongoose.createConnection(config["url"](academy.dbName));
     addConnection({ dbName: academy.dbName, newConn });
 
-    // create admin document
+    /* create & save admin document  */
     const _User = User(academy.dbName);
     const password = _User.generatePassword();
     const admin = new _User({
       userId: academy.adminId,
       userName: academy.adminName,
-      password,
-      auth: "admin",
       academyId: academy.academyId,
       academyName: academy.academyName,
+      password,
+      auth: "admin",
     });
     await admin.save();
-    admin["password"] = password;
 
+    admin["password"] = password;
     return res.status(200).send({
       academy,
       admin,
@@ -50,10 +57,11 @@ exports.create = async (req, res) => {
 exports.list = async (req, res) => {
   try {
     const academies = await Academy.find({});
-    // if owner
+    /* if user is owner: return full info */
     if (req.isAuthenticated() && req.user.auth == "owner") {
       return res.status(200).send({ academies });
     }
+    /* else: return filtered info */
     return res.status(200).send({
       academies: academies.map((academy) => {
         return {
@@ -69,26 +77,27 @@ exports.list = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
+    /* find document */
     const academy = await Academy.findById(req.params._id);
     if (!academy) {
-      return res.status(404).send({ message: "no academy!" });
+      return res.status(404).send({ message: "academy not found" });
     }
 
+    /* update document */
     academy[req.params.field] = req.body.new;
 
-    if (!academy.validationCheck()) {
-      return res.status(400).send({ message: "validation failed!" });
-    }
-
+    /* if updated filed is adminId, find admin and update adminName */
     if (req.params.field == "adminId") {
       const admin = await User(academy.dbName).findOne({
         userId: academy.adminId,
       });
       if (!admin) {
-        return res.status(404).send({ message: "no adimin!" });
+        return res.status(404).send({ message: "admin not found" });
       }
-      academy["adminName"] = admin.userName;
+      academy.adminName = admin.userName;
     }
+
+    /* save document */
     await academy.save();
     return res.status(200).send({ academy });
   } catch (err) {
@@ -98,11 +107,16 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
+    /* find document */
     const academy = await Academy.findById(req.params._id);
     if (!academy) {
-      return res.status(404).send({ message: "no academy!" });
+      return res.status(404).send({ message: "not found academy" });
     }
+
+    /* delete document */
     academy.remove();
+
+    /* delete db */
     await conn[academy.dbName].db.dropDatabase();
     deleteConnection(academy.dbName);
     return res.status(200).send();
