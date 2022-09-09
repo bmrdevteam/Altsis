@@ -9,6 +9,7 @@ type Props = {
   disabled?: boolean;
   onChange?: any;
   onKeyDown?: any;
+  invalid?:boolean;
   ref?: any;
   style?: any;
   inputStyle?: "flat";
@@ -26,7 +27,7 @@ const Input = (props: Props) => {
       <input
         ref={props.ref}
         type={props.type ? props.type : "text"}
-        className={style.input}
+        className={`${style.input} ${props.invalid && style.invalid }`}
         defaultValue={props.defaultValue}
         placeholder={props.placeholder}
         onChange={props.onChange}
