@@ -1,27 +1,16 @@
 .skeleton {
     animation: skeleton-loading 1s linear infinite alternate;
     border-radius: 4px;
+    background-color: var(--accent-5);
 }
 
 @keyframes skeleton-loading {
     0% {
-        background-color: hsl(0, 0, 90%);
+        opacity: .6;
     }
 
     100% {
-        background-color: hsl(0, 0, 95%);
+        opacity: .9;
+
     }
-}
-
-:root[data-theme="dark"] {
-    @keyframes skeleton-loading {
-        0% {
-            background-color: rgb(51, 51, 51);
-        }
-
-        100% {
-            background-color: rgb(41, 41, 41);
-        }
-    }
-
 }
