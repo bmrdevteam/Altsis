@@ -15,7 +15,7 @@ const Schools = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools/list" });
+    const { schools: res } = await database.R({ location: "schools" });
     setSchoolsList(res);
   }
   useEffect(() => {
