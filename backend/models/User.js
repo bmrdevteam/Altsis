@@ -73,12 +73,24 @@ const check = {
     validator.matches(val, specialRegExp),
 };
 
-userSchema.statics.validationCheck = function (user, key) {
+userSchema.statics.checkValidation = function (user, key) {
   if (key) {
     return check[key](user[key]);
   }
   for (const key in check) {
     if (!check[key](user[key])) return false;
+  }
+  return true;
+};
+
+userSchema.methods.checkValidation = function (key) {
+  console.log("this is ", this);
+  console.log("key is ", key);
+  if (key) {
+    return check[key](this[key]);
+  }
+  for (const key in check) {
+    if (!check[key](this[key])) return false;
   }
   return true;
 };
@@ -113,9 +125,12 @@ userSchema.methods.comparePassword = async function (plainPassword) {
 userSchema.statics.generatePassword = function () {
   const chars =
     "0123456789abcdefghijklmnopqrstuvwxyz!@#$%^&*()ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let password = "";
-  for (var i = 0; i < 12; i++) {
-    var randomNumber = Math.floor(Math.random() * chars.length);
+  const specialChars = "!@#$%^&*()";
+
+  const randomNumber = Math.floor(Math.random() * specialChars.length);
+  let password = specialChars[randomNumber];
+  for (var i = 0; i < 11; i++) {
+    const randomNumber = Math.floor(Math.random() * chars.length);
     password += chars[randomNumber];
   }
   return password;
