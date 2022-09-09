@@ -22,7 +22,7 @@ const Users = (props: Props) => {
   const [userInfoPopupActive, setUserInfoPopupActive] =
     useState<boolean>(false);
   async function getAcademyUsers() {
-    const { users: res } = await database.R({ location: "users/members/list" });
+    const { users: res } = await database.R({ location: "users/members" });
     return res;
   }
 
