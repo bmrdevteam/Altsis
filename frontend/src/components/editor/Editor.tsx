@@ -78,8 +78,37 @@ const Editor = (props: Props) => {
   //     </div>
   //   );
   // };
-  const ContextMenuItem = () => {
-    return <div></div>;
+  const ContextMenuItem = ({name,}:{name:string}) => {
+    return (
+      <div
+        className={style.menu}
+        onClick={() => {
+          console.log(contextMenuId);
+          props.editorhook.addBlock({
+            insertAfter: props.editorhook.getBlockIndex(contextMenuId) + 1,
+          });
+        }}
+      >
+        <span className={style.icon}>
+          <Svg type="text" />
+        </span>
+        <span className={style.text}>블록 타입</span>
+        <span className={style.more}>
+          <Svg type="chevronRight" />
+        </span>
+        <div className={style.sub_menus}>
+          <div className={style.sub_menu}>
+            <span className={style.icon}>
+              <Svg type="table" />
+            </span>
+            일반 텍스트
+          </div>
+          <div className={style.sub_menu}>테이블</div>
+          <div className={style.sub_menu}>헤딩</div>
+          <div className={style.sub_menu}>일다이</div>
+        </div>
+      </div>
+    );
   };
 
   const ContextMenu = ({ x, y }: { x: number; y: number }) => {
@@ -102,12 +131,6 @@ const Editor = (props: Props) => {
               props.editorhook.addBlock({
                 insertAfter: props.editorhook.getBlockIndex(contextMenuId) + 1,
               });
-            }}
-            onMouseOver={() => {
-              console.log("in");
-            }}
-            onMouseOut={() => {
-              console.log("out");
             }}
           >
             <span className={style.icon}>
