@@ -59,7 +59,7 @@ const School = (props: Props) => {
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools/list" });
+    const { schools: res } = await database.R({ location: "schools" });
     setSchoolsList(res);
     return res;
   }
@@ -103,7 +103,6 @@ const School = (props: Props) => {
             <Classroom school={schoolData} resetData={setResetSchoolData} />
           ),
           "양식(beta)": <Form />,
-          "설정(test)": <Setting />,
         }}
       />
     </div>
