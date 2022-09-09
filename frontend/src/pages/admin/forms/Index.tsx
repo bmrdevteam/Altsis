@@ -43,7 +43,7 @@ const Forms = (props: Props) => {
    * @returns {Array} list of forms
    */
   async function getForms() {
-    const { forms: res } = await database.R({ location: "forms/list" });
+    const { forms: res } = await database.R({ location: "forms" });
     setFormList(res.reverse());
     return res;
   }
