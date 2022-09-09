@@ -1,5 +1,18 @@
+.menu_container{
+    height: 56px;
+    border-bottom: var(--border-default);
+    display: flex;
+    align-items: center;
+    .menu_item{
+        padding: 0 12px;
+    }
+}
+
 .section{
     margin: 24px;
+
+
+
     .title{
         font-size: 18px;
         font-weight: 600;
