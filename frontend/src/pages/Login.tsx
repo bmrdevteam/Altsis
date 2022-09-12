@@ -215,6 +215,7 @@ const Login = () => {
       )
       .then(function (response) {
         /** if the result is a success */
+       
         response.status === 200 && window.location.replace("/");
       })
       .catch((error) => {
