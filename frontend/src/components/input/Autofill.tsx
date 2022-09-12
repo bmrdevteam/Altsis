@@ -16,6 +16,7 @@ type Props = {
   required?: boolean;
   defaultSelected?: number;
   setValue?: any;
+  appearence?: "flat";
 };
 
 const Autofill = (props: Props) => {
@@ -64,14 +65,21 @@ const Autofill = (props: Props) => {
   }, [inputValue]);
 
   return (
-    <div className={style.input_container} ref={selectRef}>
+    <div
+      className={`${style.input_container} ${
+        props.appearence === "flat" && style.flat
+      }`}
+      ref={selectRef}
+    >
       <label className={style.label}>
         {props.label}
         {props.required && <span className={style.required}>*</span>}
       </label>
       <input
         style={{
-          borderColor: !valid ? "var(--alert-c1)" : "var(--border-default-color)",
+          borderColor: !valid
+            ? "var(--alert-c1)"
+            : "var(--border-default-color)",
         }}
         type="text"
         // value={}
