@@ -1,3 +1,31 @@
+/**
+ * @file SchoolSettings Page
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - SchoolSettings Page
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * - delete school and add school function
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import React from "react";
 import Svg from "../../../assets/svg/Svg";
 import Button from "../../../components/button/Button";
@@ -7,7 +35,7 @@ import style from "../../../style/pages/settings/settings.module.scss";
 type Props = {};
 
 const SchoolSettings = (props: Props) => {
-    const { schoolUsers} = useAuth();
+  const { schoolUsers } = useAuth();
   return (
     <div className={style.settings_container}>
       <div className={style.container_title}>등록된 학교</div>
