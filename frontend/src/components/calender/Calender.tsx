@@ -16,6 +16,8 @@
  *
  * IN DEVELOPMENT
  * onclick function when selecting with the calendar component
+ * more flexabilty with selecting dates useing inputs maybe
+ * 
  * -------------------------------------------------------
  *
  * DEPRECATED
