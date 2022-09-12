@@ -17,6 +17,7 @@ type Props = {
   defaultSelected?: number;
   setValue?: any;
   onchange?: any;
+  appearence?: "flat";
 };
 
 const Select = (props: Props) => {
@@ -70,7 +71,9 @@ const Select = (props: Props) => {
   return (
     <div
       ref={selectRef}
-      className={style.select}
+      className={`${style.select} ${
+        props.appearence === "flat" && style.flat
+      }`}
       style={{ width: props.style?.width }}
     >
       {props.label && (
@@ -89,7 +92,7 @@ const Select = (props: Props) => {
       >
         <span className={style.text}>{props.options[selected]?.text}</span>
         <span className={style.icon}>
-          <Svg type={"caretDown"} />
+          <Svg type={"chevronDown"} />
         </span>
         {edit && <Options />}
       </div>
