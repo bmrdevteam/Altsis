@@ -25,7 +25,7 @@
         font-size: 12px;
         font-family: 'Pretendard';
         font-weight: 500;
-        padding-bottom: 4px;
+        margin-bottom: 4px;
         color: var(--accent-1);
 
         .required {
@@ -61,6 +61,85 @@
 
         .option:hover {
             background-color: var(--component-hover-color);
+        }
+    }
+}
+
+
+.input_container.flat {
+
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1 1 0;
+
+    .label {
+        font-size: 12px;
+        color: var(--accent-2);
+        font-weight: 600;
+        margin-bottom: 5px;
+
+        .required {
+            padding-left: 1px;
+            color: var(--alert-c1);
+        }
+
+    }
+
+    .input {
+        height: auto;
+        margin-top: 5px;
+        outline: none;
+        border: none;
+        border-radius: 8px;
+        background-color: var(--component-color);
+        padding: 8px 18px;
+        width: 100%;
+
+    }
+
+    .input:disabled {
+        color: var(--accent-4);
+
+
+    }
+
+    .input.invalid {
+        background-color: var(--alert-c1);
+    }
+
+    .options {
+        border: none;
+        width: 100%;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        z-index: 2022;
+        position: absolute;
+
+        top: 60px;
+        left: 0px;
+
+
+        background-color: var(--component-color);
+
+
+        .option {
+            border-radius: 8px;
+            height: 38px;
+            display: flex;
+            padding: 0 14px;
+            white-space: nowrap;
+            align-items: center;
+            color: var(--accent-1);
+
+        }
+
+        .option:hover {
+
+            background-color: var(--component-hover-color);
+
         }
     }
 }
