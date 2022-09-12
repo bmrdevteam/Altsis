@@ -50,7 +50,7 @@ const Popup = ({
 }: {
   children: JSX.Element | JSX.Element[];
   setState: any;
-  title: string;
+  title?: string;
   closeBtn?: boolean;
   borderRadius?: string;
 }) => {
