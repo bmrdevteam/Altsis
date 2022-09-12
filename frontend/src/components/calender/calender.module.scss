@@ -4,14 +4,16 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    max-width: 800px;
 
-    width: 300px;
+
     border: var(--border-default);
     border-radius: 8px;
 
     .calender {
         padding: 12px;
         font-weight: 600;
+        fill: var(--accent-1);
         color: var(--accent-1);
 
 
@@ -53,6 +55,7 @@
 
         .dates {
             font-size: 12px;
+            aspect-ratio: 1;
 
 
             display: grid;
@@ -65,8 +68,8 @@
                 cursor: pointer;
                 display: flex;
                 align-items: center;
-                height: 32px;
-                width: 32px;
+                height: 24px;
+                width: 24px;
                 justify-content: center;
                 border-radius: 24px;
             }
