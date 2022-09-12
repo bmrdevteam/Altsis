@@ -1,3 +1,32 @@
+/**
+ * @file SecuritySettings Page
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - SecuritySettings Page
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * - change password btn onclick function
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import React, { useState } from "react";
 import style from "../../../style/pages/settings/settings.module.scss";
 import ToggleSwitch from "../../../components/toggleSwitch/ToggleSwitch";
@@ -89,6 +118,7 @@ const SecuritySettings = (props: Props) => {
               type="password"
             />
           </div>
+          <Button>비밀번호 변경</Button>
         </Popup>
       )}
     </>
