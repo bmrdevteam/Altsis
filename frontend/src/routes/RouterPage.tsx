@@ -16,7 +16,7 @@ import Test from "../pages/dev/Test";
 import E from "../pages/dev/E";
 
 // basic pages
-import Home from "../pages/Home";
+import Home from "../pages/index/Home";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 
@@ -29,7 +29,7 @@ import Course from "../pages/courses/Pid";
 import Http404 from "../pages/error/404";
 
 //components
-import Sidebar from "../layout/navbar/Sidebar";
+import Sidebar from "../layout/sidebar/Sidebar";
 
 //hooks
 import { useAuth } from "../contexts/authContext";
