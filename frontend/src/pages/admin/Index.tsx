@@ -1,11 +1,15 @@
-import React from 'react'
+import React from "react";
+import Navbar from "../../layout/navbar/Navbar";
 
-type Props = {}
+type Props = {};
 
 const Academy = (props: Props) => {
   return (
-    <div>관리자 페이지</div>
-  )
-}
+    <>
+      <Navbar title="관리자" />
+      <div></div>
+    </>
+  );
+};
 
-export default Academy
+export default Academy;
