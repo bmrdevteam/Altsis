@@ -131,37 +131,38 @@
 // pid.tsx
 
 .header_container {
-    display: flex;
-    flex-direction: column;
-
-
-    padding: 24px;
+    height: 56px;
     border-bottom: var(--border-default);
 
-    .title {
-        padding: 0 0 12px 0;
-        border-bottom: var(--border-default);
-
-        div {
-
-            outline: none;
-        }
-    }
-
-
-
-
-    .menus {
+    .header {
+        height: inherit;
         display: flex;
-        gap: 10px;
-        font-family: 'Pretendard';
-        font-weight: 500;
-        font-size: 14px;
+        align-items: center;
+        gap: 12px;
+        margin: 0 24px;
 
-        .menu {
-            margin: 4px 0;
+        .back {
             cursor: pointer;
         }
 
+        .title {
+            margin: 0;
+            flex: 1 1 0;
+
+            input {
+                font-size: 16px;
+                font-weight: 600;
+                border: none;
+                width: fit-content;
+                padding: 8px 6px;
+            }
+        }
+
+        .save {
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+        }
     }
+
 }
