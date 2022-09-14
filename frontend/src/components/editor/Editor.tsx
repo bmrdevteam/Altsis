@@ -188,7 +188,6 @@ const Editor = (props: Props) => {
   return (
     <div
       className={style.editor_container}
-      style={{ height: "100vh", overflowY: "scroll" }}
       ref={editorRef}
     >
       <div className={style.editor}>
