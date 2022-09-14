@@ -1,8 +1,23 @@
+.editor_container {
+    height: 100vh;
+    overflow-y: scroll;
+    max-width: 1000px;
+    margin: 0 auto;
+
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    padding-bottom: 50vh;
+}
+
+.editor_container::-webkit-scrollbar {
+    display: none;
+}
+
 .editor {
     display: flex;
     flex-direction: column;
     position: relative;
-    padding: 24px 0;
+    padding: 48px 0 0 0;
 
     .selectionmenu {
         background-color: var(--background-color);
