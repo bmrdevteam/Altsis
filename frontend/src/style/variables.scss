@@ -79,7 +79,9 @@
     label,
     input,
     div {
-        transition: color 0.3s , background-color 0.3s ,border .3s;
+        color: var(--accent-1);
+        fill: var(--accent-1);
+        transition: color 0.3s, background-color 0.3s, border .3s;
     }
 
 
