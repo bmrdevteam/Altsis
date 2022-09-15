@@ -1,12 +1,30 @@
+@media print {
+    .sidebar_container {
+        display: none;
+    }
+
+    .selectionmenu {
+        display: none;
+    }
+
+    .appearance_menu {
+        display: none;
+    }
+
+    .editor_container::placeholder {
+        display: none;
+    }
+
+}
+
 .editor_container {
     height: 100vh;
     overflow-y: scroll;
-    max-width: 1000px;
-    margin: 0 auto;
 
     -ms-overflow-style: none;
     scrollbar-width: none;
-    padding-bottom: 50vh;
+    background-color: var(--component-color);
+
 }
 
 .editor_container::-webkit-scrollbar {
@@ -14,6 +32,11 @@
 }
 
 .editor {
+    max-width: 1000px;
+    min-height: 100%;
+    background-color: var(--background-color);
+
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -177,6 +200,22 @@
         border-radius: 4px;
 
     }
+}
+
+.sidebar_container {
+    z-index: 1;
+    background-color: var(--background-color);
+    position: absolute;
+    right: 0;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    min-width: 240px;
+    height: calc(100vh - 56px);
+    border-left: var(--border-default);
 }
 
 .appearance_menu {
