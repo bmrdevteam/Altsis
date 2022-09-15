@@ -4,7 +4,17 @@ import { IBlock } from "../components/editor/type";
 
 
 
-
+/**
+ * 
+ * @returns a editor hook to control functions in the editor
+ *  
+ * @example
+ * 
+ * @version 2.0 changed the rendering method with (useRef and useState)
+ * @version 1.0 initial version
+ * 
+ * 
+ */
 export default function useEditor() {
   const [editorData, setEditorData] = useState<any>();
   const [blockData, setBlockData] = useState<any>();
