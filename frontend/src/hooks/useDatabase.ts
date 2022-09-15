@@ -49,7 +49,7 @@ export default function useDatabase() {
   interface IDatabaseQuery {
     location: string;
   }
-  interface IDatabaseQueryC extends Omit<IDatabaseQuery, "id"> {
+  interface IDatabaseQueryC extends IDatabaseQuery {
     data: any;
   }
 
@@ -152,12 +152,39 @@ export default function useDatabase() {
    *
    * @returns retrived data or throws an error
    *
-   * @example U(location: {"/users/list"}})
+   * @example U({location: "/users/list"})
    *
    * @version 1.0 initial version
    *
    */
-  async function U({ location }: IDatabaseQuery) {}
+  async function U({ location, data }: IDatabaseQueryC) {
+    const config = {
+      // set the method
+      method: "update",
+      //set the url
+      url: `${process.env.REACT_APP_SERVER_URL}/api/${location}`,
+      //set the header
+      headers: {},
+      // pass in the data from props
+      data: data,
+      // send request with 🍪 cookies
+      withCredentials: true,
+    };
+    // check if data is not null or undefined or ''
+    if (data) {
+      //
+      try {
+        // asynchronously call axios
+        const result = await axios(config);
+
+        // return result
+        return result;
+      } catch (error) {
+        // throw an error
+        throw error;
+      }
+    }
+  }
 
   /**
    * function that deletes from the database
@@ -168,7 +195,7 @@ export default function useDatabase() {
    *
    * @returns retrived data or throws an error
    *
-   * @example D(location: {"/users/list"}})
+   * @example D({location: "/users/list"})
    *
    * @version 1.0 initial version
    *
