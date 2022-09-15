@@ -1,9 +1,10 @@
 import { RefObject, useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
-import Input from "../input/Input";
+
 import Block from "./Block";
 import style from "./editor.module.scss";
 import SelectionMenu from "./menu/SelectionMenu";
+import Sidebar from "./menu/Sidebar";
 
 import { IBlock } from "./type";
 
@@ -78,7 +79,7 @@ const Editor = (props: Props) => {
   //     </div>
   //   );
   // };
-  const ContextMenuItem = ({name,}:{name:string}) => {
+  const ContextMenuItem = ({ name }: { name: string }) => {
     return (
       <div
         className={style.menu}
@@ -186,10 +187,8 @@ const Editor = (props: Props) => {
   };
 
   return (
-    <div
-      className={style.editor_container}
-      ref={editorRef}
-    >
+    <div className={style.editor_container} ref={editorRef}>
+      <Sidebar />
       <div className={style.editor}>
         {contextMenuActive && (
           <ContextMenu x={contextMenuPosition[0]} y={contextMenuPosition[1]} />
