@@ -35,7 +35,13 @@ const Paragraphblock = ({
             },
           });
         }
-        if (e.key === "Backspace" && e.target.innerText === "") {
+
+        
+        if (
+          editorFunctions?.result().length > 1 &&
+          e.key === "Backspace" &&
+          e.target.innerText === ""
+        ) {
           editorFunctions.deleteBlock(block.id);
         }
       }}
