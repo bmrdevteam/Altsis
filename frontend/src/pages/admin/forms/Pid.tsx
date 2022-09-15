@@ -28,6 +28,9 @@ const Form = (props: Props) => {
       setformData(res.form);
     });
   }
+  async function saveFormData() {
+    await database.U({ location: `forms/${pid}`,data: });
+  }
   useEffect(() => {
     updateFormData &&
       getFormdata().then(() => {
@@ -67,7 +70,9 @@ const Form = (props: Props) => {
           <div className={style.title}>
             <input defaultValue={formData?.title} />
           </div>
-          <div className={style.save}>저장</div>
+          <div className={style.save} onClick={() => {}}>
+            저장
+          </div>
         </div>
       </div>
 
