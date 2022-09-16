@@ -8,9 +8,9 @@ const { isAdManager } = require("../middleware/auth");
 //=================================
 
 router.post("/", isAdManager, form.create);
-router.get("/", isAdManager, form.list);
-router.get("/:_id", isAdManager, form.read);
+router.get("/", isAdManager, form.getAll);
+router.get("/:_id", isAdManager, form.get);
 router.put("/:_id/:field?", isAdManager, form.update);
-router.delete("/:_id", isAdManager, form.delete);
+router.delete("/:_id", isAdManager, form.remove);
 
 module.exports = router;
