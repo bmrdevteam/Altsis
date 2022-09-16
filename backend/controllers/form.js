@@ -52,15 +52,6 @@ const update = async (req, res) => {
       form[field] = req.body.new[field];
     });
   }
-  const exForm = await Form(req.user.dbName).findOne({
-    title: form.title,
-    type: form.type,
-  });
-  if (exForm) {
-    return res.status(409).send({
-      message: "already existing form title and type",
-    });
-  }
 
   await form.save();
   return res.status(200).send({ form });
