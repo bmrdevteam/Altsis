@@ -32,15 +32,11 @@ const Form = (props: Props) => {
     setformData(result);
     return result;
   }
-  async function saveFormData() {
+  async function saveFormData(data:any) {
     await database.U({
-      location: `forms/${pid}`,
+      location: `forms/${pid}/data`,
       data: {
-        new: {
-          type: formData?.type,
-          title: formTitle,
-          data: editor.result(),
-        },
+        new:[{foo:"foo"},{fa:"fa"}],
       },
     });
   }
@@ -88,7 +84,7 @@ const Form = (props: Props) => {
           <div
             className={style.save}
             onClick={() => {
-              saveFormData().then(() => {
+              saveFormData(editor.result()).then(() => {
                 console.log(editor.result());
               });
             }}
