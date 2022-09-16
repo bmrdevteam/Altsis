@@ -160,7 +160,7 @@ export default function useDatabase() {
   async function U({ location, data }: IDatabaseQueryC) {
     const config = {
       // set the method
-      method: "update",
+      method: "put",
       //set the url
       url: `${process.env.REACT_APP_SERVER_URL}/api/${location}`,
       //set the header
