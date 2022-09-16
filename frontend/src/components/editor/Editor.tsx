@@ -13,6 +13,7 @@ interface Props {
   editorhook: any;
   initalData?: any;
   autoSave?: boolean;
+  editorId: string;
 }
 
 const Editor = (props: Props) => {
@@ -55,30 +56,7 @@ const Editor = (props: Props) => {
       document.removeEventListener("mousedown", handleMousedown);
     };
   }, []);
-  // const SelectionMenu = ({
-  //   x,
-  //   y,
-  // }: {
-  //   x: number | undefined;
-  //   y: number | undefined;
-  // }) => {
-  //   return (
-  //     <div
-  //       className={style.selectionmenu}
-  //       style={{
-  //         top: `${y}px`,
-  //         left: `${x}px`,
-  //       }}
-  //     >
-  //       asdfas;dflkas;ldfkas;ldfklsa;dkfl;sdf
-  //       <div className={style.menus}>
-  //         <div className={style.menu}>dasdf</div>
-  //         <div className={style.menu}>dasdf</div>
-  //         <div className={style.menu}>dasdf</div>
-  //       </div>
-  //     </div>
-  //   );
-  // };
+
   const ContextMenuItem = ({ name }: { name: string }) => {
     return (
       <div
@@ -200,7 +178,7 @@ const Editor = (props: Props) => {
             <Block
               contextMenuController={contextMenuController}
               editorFunctions={props.editorhook}
-              editorId={props.editorhook.editorData?.id}
+              editorId={props.editorId}
               data={value}
               key={index}
             />
