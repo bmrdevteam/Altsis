@@ -19,7 +19,7 @@ const myMulter = multer({
     acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      cb(null, `original/${req.user.academy.academyId}_${req.user._id}`);
+      cb(null, `original/${req.user.academyId}_${req.user._id}`);
     },
   }),
   fileFilter: (req, file, cb) => {
@@ -49,7 +49,7 @@ exports.upload = async (req, res) => {
       try {
         await s3.deleteObject({
           Bucket: bucket,
-          Key: `thumb/${user.academy.academyId}_${user._id}`,
+          Key: `thumb/${user.academyId}_${user._id}`,
         });
       } catch (err) {
         return res.status(500).send({ err: err.message });

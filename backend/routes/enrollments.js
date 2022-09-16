@@ -10,9 +10,9 @@ const { isAdmin, isLoggedIn } = require("../middleware/auth");
 router.post("/", isLoggedIn, enrollment.create);
 router.post("/bulk", isLoggedIn, enrollment.createBulk);
 
-router.get("/list", isLoggedIn, enrollment.list);
+router.get("/list", isLoggedIn, enrollment.getAll);
 
 router.put("/:_id/evaluation", isLoggedIn, enrollment.updateEvaluation);
-router.delete("/:_id", isLoggedIn, enrollment.delete);
+router.delete("/:_id", isLoggedIn, enrollment.remove);
 
 module.exports = router;
