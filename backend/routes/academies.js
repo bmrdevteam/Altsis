@@ -8,10 +8,10 @@ const { isOwner } = require("../middleware/auth");
 //=================================
 
 router.post("/", isOwner, academy.create);
-router.get("/", academy.list);
+router.get("/", academy.getAll);
 
 router.put("/:_id/:field", isOwner, academy.update);
 
-router.delete("/:_id", isOwner, academy.delete);
+router.delete("/:_id", isOwner, academy.remove);
 
 module.exports = router;
