@@ -17,6 +17,10 @@ const Form = (props: Props) => {
   const database = useDatabase();
   const editor = useEditor();
 
+  /**
+   * form title for the current form
+   */
+  const [formTitle, setFormTitle] = useState<string>();
   const [formData, setformData] = useState<any>();
   const [updateFormData, setUpdateFormData] = useState<boolean>(true);
   /**
@@ -24,24 +28,30 @@ const Form = (props: Props) => {
    * @async
    */
   async function getFormdata() {
-    await database.R({ location: `forms/${pid}` }).then((res) => {
-      setformData(res.form);
-    });
+    const { form: result } = await database.R({ location: `forms/${pid}` });
+    setformData(result);
+    return result;
   }
   async function saveFormData() {
-    await database.U({ location: `forms/${pid}`,data: });
+    await database.U({
+      location: `forms/${pid}`,
+      data: {
+        new: {
+          type: formData?.type,
+          title: formTitle,
+          data: editor.result(),
+        },
+      },
+    });
   }
   useEffect(() => {
     updateFormData &&
-      getFormdata().then(() => {
+      getFormdata().then((res) => {
         setUpdateFormData(false);
+        setFormTitle(res?.title);
       });
-    //first time
-    if (formData !== undefined && formData?.data === undefined) {
-      editor.initalData(formData);
-    } else {
-      editor.initalData(formData);
-    }
+
+    editor.initalData(formData);
 
     return () => {};
   }, [updateFormData]);
@@ -68,15 +78,32 @@ const Form = (props: Props) => {
             <Svg type={"arrowBack"} width="20px" height="20px" />
           </div>
           <div className={style.title}>
-            <input defaultValue={formData?.title} />
+            <input
+              defaultValue={formTitle}
+              onChange={(e) => {
+                setFormTitle(e.target.value);
+              }}
+            />
           </div>
-          <div className={style.save} onClick={() => {}}>
+          <div
+            className={style.save}
+            onClick={() => {
+              saveFormData().then(() => {
+                console.log(editor.result());
+              });
+            }}
+          >
             저장
           </div>
         </div>
       </div>
 
-      <Editor auth="edit" editorhook={editor} initalData={formData?.data} />
+      <Editor
+        auth="edit"
+        editorhook={editor}
+        initalData={formData?.data}
+        editorId={pid ?? "idUndefined"}
+      />
     </div>
   );
 };
