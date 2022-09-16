@@ -25,9 +25,6 @@ export default function useEditor() {
 
   useEffect(() => {
     setBlockDataUpdate(false);
-    if (blockDataUpdate) {
-      console.log(blockDataRef.current);
-    }
 
     return () => {};
   }, [blockDataUpdate]);
@@ -38,7 +35,7 @@ export default function useEditor() {
 
   function initalData(data: any) {
     setEditorData(data);
-    if (data?.data === undefined || !isArray(data?.data)) {
+    if (data === undefined || !isArray(data)) {
       setBlockData([
         { id: "initialBlock", type: "paragraph", data: { text: "" } },
       ]);
@@ -46,8 +43,8 @@ export default function useEditor() {
         { id: "initialBlock", type: "paragraph", data: { text: "" } },
       ];
     } else {
-      setBlockData(data?.data.filter((val: any) => val.id !== undefined));
-      blockDataRef.current = data?.data.filter(
+      setBlockData(data.filter((val: any) => val.id !== undefined));
+      blockDataRef.current = data.filter(
         (val: any) => val.id !== undefined
       );
     }
@@ -146,7 +143,6 @@ export default function useEditor() {
   function save(saveFuntion: any) {
     saveFuntion();
   }
-  function autoSave() {}
 
   return {
     addBlock,
