@@ -2,7 +2,7 @@ const errorHandler = (block) => async (req, res) => {
   try {
     await block(req, res);
   } catch (e) {
-    res.status(e.code || 500).send({ err: e.message });
+    res.status(500).send({ err: e.message });
   }
 };
 
