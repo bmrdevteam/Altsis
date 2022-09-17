@@ -35,6 +35,16 @@ const Block = ({
       <div
         id={`${editorId}-${data.id}`}
         className={style.block}
+        onInput={(e: any) => {
+          console.log(e.currentTarget.childNodes[0].innerHTML);
+        }}
+        onKeyDown={(e) => {
+          console.log(e.key);
+
+          if (e.key === "Tab") {
+            e.preventDefault();
+          }
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           contextMenuController({
