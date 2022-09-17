@@ -3,9 +3,12 @@ import style from "../editor.module.scss";
 import { RefObject, useEffect, useState } from "react";
 import Svg from "../../../assets/svg/Svg";
 
-type Props = { containerRef: RefObject<HTMLDivElement> };
+type Props = {
+  containerRef: RefObject<HTMLDivElement>;
+  editorRef: RefObject<HTMLDivElement>;
+};
 
-function useSelectionPosition(editorContainerRef: RefObject<HTMLDivElement>) {
+const SelectionMenu = ({ containerRef,editorRef }: Props) => {
   const [selectionX, setSelectionX] = useState<number>();
   const [selectionY, setSelectionY] = useState<number>();
   const [isSelecting, setIsSelecting] = useState<boolean>(false);
@@ -13,13 +16,10 @@ function useSelectionPosition(editorContainerRef: RefObject<HTMLDivElement>) {
   document.onselectionchange = () => {
     if (document.getSelection()?.toString() !== "") {
       let i = document.getSelection()?.getRangeAt(0).getBoundingClientRect();
-      setSelectionX(i!.x - editorContainerRef.current!.offsetLeft);
+      setSelectionX(i!.x - editorRef.current!.offsetLeft);
       setSelectionY(
-        i!.y -
-          editorContainerRef.current!.offsetTop +
-          editorContainerRef.current!.scrollTop
+        i!.y - containerRef.current!.offsetTop + containerRef.current!.scrollTop
       );
-      console.log(editorContainerRef.current!.offsetTop);
     }
 
     return setIsSelecting(
@@ -27,12 +27,6 @@ function useSelectionPosition(editorContainerRef: RefObject<HTMLDivElement>) {
     );
   };
 
-  return { isSelecting, selectionX, selectionY };
-}
-
-const SelectionMenu = ({ containerRef }: Props) => {
-  const { isSelecting, selectionX, selectionY } =
-    useSelectionPosition(containerRef);
   const menuData: any[] = [
     { icon: <Svg width="20px" height="20px" type="bold" />, cmd: "bold" },
     { icon: <Svg width="20px" height="20px" type="text" /> },
@@ -42,9 +36,12 @@ const SelectionMenu = ({ containerRef }: Props) => {
 
   const MenuItem = ({ data }: { data: any }) => {
     return (
-      <div className={style.menu_item} onClick={(e) => {
-        document.execCommand(data.cmd)
-      }}>
+      <div
+        className={style.menu_item}
+        onClick={(e) => {
+          document.execCommand(data.cmd);
+        }}
+      >
         {data.icon}
       </div>
     );
