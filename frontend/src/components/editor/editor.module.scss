@@ -216,6 +216,26 @@
     min-width: 240px;
     height: calc(100vh - 56px);
     border-left: var(--border-default);
+
+    .sidebar {
+        margin: 12px;
+
+        .item {
+            border-bottom: var(--border-default);
+
+            .label {
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--accent-2);
+                margin-bottom: 5px;
+            }
+
+            .content {
+                display: flex;
+            }
+
+        }
+    }
 }
 
 .appearance_menu {
