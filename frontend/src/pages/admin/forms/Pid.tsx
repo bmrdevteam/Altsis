@@ -21,33 +21,61 @@ const Form = (props: Props) => {
    * form title for the current form
    */
   const [formTitle, setFormTitle] = useState<string>();
+  const [formType, setFormType] = useState<string>();
   const [formData, setformData] = useState<any>();
   const [updateFormData, setUpdateFormData] = useState<boolean>(true);
   /**
    * get the form data from the backend
    * @async
    */
-  async function getFormdata() {
+  async function getFormData() {
     const { form: result } = await database.R({ location: `forms/${pid}` });
     setformData(result);
     return result;
   }
-  async function saveFormData(data:any) {
+  /**
+   * save the form data to the backend
+   */
+  async function saveFormData() {
     await database.U({
-      location: `forms/${pid}/data`,
+      location: `forms/${pid}`,
       data: {
-        new:[{foo:"foo"},{fa:"fa"}],
+        new: {
+          type: formType,
+          title: formTitle,
+          data: editor.result(),
+        },
       },
     });
   }
   useEffect(() => {
+    /**
+     * if the updateFormData is TRUE
+     */
     updateFormData &&
-      getFormdata().then((res) => {
+      getFormData().then((res) => {
+        /**
+         * set the updateFormData to FALSE
+         */
         setUpdateFormData(false);
-        setFormTitle(res?.title);
-      });
+        /**
+         * set the form title
+         */
+        setFormTitle(res.title);
+        /**
+         * set the form type
+         */
+        setFormType(res.type);
+        /**
+         * pass in the initial data to the editor hook
+         */
+        editor.initalData(res.data);
 
-    editor.initalData(formData);
+        /**
+         * set the document title to the current form title
+         */
+        document.title = res?.title;
+      });
 
     return () => {};
   }, [updateFormData]);
@@ -57,6 +85,7 @@ const Form = (props: Props) => {
       style={{
         position: "fixed",
         width: "100vw",
+        height: "100vh",
         top: "0",
         left: "0",
         zIndex: "3000",
@@ -81,25 +110,20 @@ const Form = (props: Props) => {
               }}
             />
           </div>
-          <div
-            className={style.save}
-            onClick={() => {
-              saveFormData(editor.result()).then(() => {
-                console.log(editor.result());
-              });
-            }}
-          >
+          <div className={style.save} onClick={saveFormData}>
             저장
           </div>
         </div>
       </div>
-
-      <Editor
-        auth="edit"
-        editorhook={editor}
-        initalData={formData?.data}
-        editorId={pid ?? "idUndefined"}
-      />
+      {!updateFormData ? (
+        <Editor
+          auth="edit"
+          editorhook={editor}
+          editorId={pid ?? "idUndefined"}
+        />
+      ) : (
+        <>로딩중</>
+      )}
     </div>
   );
 };
