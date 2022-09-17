@@ -25,7 +25,6 @@ const Sidebar = (props: Props) => {
     setSidebarClose(
       window.localStorage.getItem("AppSidebarStatus") === "close"
     );
-    console.log(window.localStorage.getItem("AppSidebarStatus"));
   }, []);
 
   useEffect(() => {
