@@ -1,4 +1,31 @@
-import { RefObject, useEffect, useRef, useState } from "react";
+/**
+ * @file Editor component
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * - Editor component
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
+import { useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 
 import Block from "./Block";
@@ -11,31 +38,58 @@ import { IBlock } from "./type";
 interface Props {
   auth: "read" | "edit";
   editorhook: any;
-  initalData?: any;
   autoSave?: boolean;
   editorId: string;
 }
-
+/**
+ *
+ * @param props
+ *
+ * @returns Editor component
+ *
+ * @version 1.1 fixes on selection menu component
+ * @version 1.0 initial version
+ *
+ */
 const Editor = (props: Props) => {
+  /**
+   * ref obj for the editor contianer
+   */
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  /**
+   * REACT.RefObject
+   * ref obj for the editor
+   */
   const editorRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * active state for the context menu component
+   */
+  const [contextMenuActive, setContextMenuActive] = useState<boolean>(false);
+  /**
+   * state for the position of the context menu component
+   * default x, y : 0, 0
+   */
   const [contextMenuPosition, setContextMenuPosition] = useState<number[]>([
     0, 0,
   ]);
-  const [contextMenuActive, setContextMenuActive] = useState<boolean>(false);
-  const [contextMenuId, setContextMenuId] = useState<string>();
+  /**
+   * state for the current blockId the context menu is modifying
+   */
+  const [contextMenuBlockId, setContextMenuBlockId] = useState<string>();
+  /**
+   * ref obj for the context menu
+   */
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   function contextMenuController({
     position,
-    ref,
     blockId,
   }: {
     position: number[];
-    ref?: any;
     blockId?: string;
   }) {
-    setContextMenuId(blockId);
+    setContextMenuBlockId(blockId);
     setContextMenuActive(true);
     setContextMenuPosition(position);
   }
@@ -62,9 +116,9 @@ const Editor = (props: Props) => {
       <div
         className={style.menu}
         onClick={() => {
-          console.log(contextMenuId);
+          console.log(contextMenuBlockId);
           props.editorhook.addBlock({
-            insertAfter: props.editorhook.getBlockIndex(contextMenuId) + 1,
+            insertAfter: props.editorhook.getBlockIndex(contextMenuBlockId) + 1,
           });
         }}
       >
@@ -106,9 +160,10 @@ const Editor = (props: Props) => {
           <div
             className={style.menu}
             onClick={() => {
-              console.log(contextMenuId);
+              console.log(contextMenuBlockId);
               props.editorhook.addBlock({
-                insertAfter: props.editorhook.getBlockIndex(contextMenuId) + 1,
+                insertAfter:
+                  props.editorhook.getBlockIndex(contextMenuBlockId) + 1,
               });
             }}
           >
@@ -144,7 +199,8 @@ const Editor = (props: Props) => {
             className={style.menu}
             onClick={() => {
               props.editorhook.addBlock({
-                insertAfter: props.editorhook.getBlockIndex(contextMenuId) + 1,
+                insertAfter:
+                  props.editorhook.getBlockIndex(contextMenuBlockId) + 1,
               });
             }}
           >
@@ -165,13 +221,16 @@ const Editor = (props: Props) => {
   };
 
   return (
-    <div className={style.editor_container} ref={editorRef}>
+    <div className={style.editor_container} ref={editorContainerRef}>
       <Sidebar />
-      <div className={style.editor}>
+      <div className={style.editor} ref={editorRef}>
         {contextMenuActive && (
           <ContextMenu x={contextMenuPosition[0]} y={contextMenuPosition[1]} />
         )}
-        <SelectionMenu containerRef={editorRef} />
+        <SelectionMenu
+          containerRef={editorContainerRef}
+          editorRef={editorRef}
+        />
 
         {props.editorhook.result()?.map((value: IBlock, index: number) => {
           return (
