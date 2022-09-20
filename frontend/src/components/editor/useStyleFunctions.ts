@@ -23,8 +23,8 @@
  *
  * NOTES
  *
- * 
- * use var tags or span tags for data 
+ *
+ * use var tags or span tags for data
  */
 
 import { useState } from "react";
@@ -43,6 +43,43 @@ export default function useStyleFunctions() {
     currentBlockId = id;
   }
 
+  // function insertHTML() {
+  //   let sel, range;
+  //   if (window.getSelection && (sel = window.getSelection()).rangeCount) {
+  //     range = sel.getRangeAt(0);
+  //     range.collapse(true);
+  //     var span = document.createElement("span");
+  //     span.id = "myId";
+  //     span.appendChild(document.createTextNode("hi"));
+  //     range.insertNode(span);
+
+  //     // Move the caret immediately after the inserted span
+  //     range.setStartAfter(span);
+  //     range.collapse(true);
+  //     sel.removeAllRanges();
+  //     sel.addRange(range);
+  //   }
+  // }
+  /**
+   *
+   * @returns boolean value whether the parentNode only contains text nodes
+   *
+   */
+  function onlyTextNode() {
+    let result: boolean = true;
+    getParentElement()?.childNodes.forEach((element) => {
+      if (element.nodeName !== "#text") {
+        result = false;
+      }
+    });
+
+    return result;
+  }
+  /**
+   *
+   * @returns Range object at current selection
+   *
+   */
   function getRange() {
     let range = null;
     if (window.getSelection()?.toString() !== "") {
@@ -50,27 +87,57 @@ export default function useStyleFunctions() {
     }
     return range;
   }
+  /**
+   *
+   * @returns the parent element (using the currentBlock id) as a HTMLDivElement
+   */
   function getParentElement() {
-    if (window.getSelection()?.toString() !== "" && currentBlockId) {
+    if (currentBlockId) {
       return document.getElementById(currentBlockId) as HTMLDivElement;
     }
-
-    return undefined;
   }
 
+  /**
+   * function for tests
+   * @returns
+   */
   function test() {
+    console.log(getParentElement()?.innerHTML);
+
     return;
   }
+  /**
+   * function to run before styling
+   *
+   */
+  function _init() {
+    console.log(getRange()?.startOffset);
+  }
 
-  function _init() {}
+  /**
+   * bold
+   */
+  
+  function bold() {
+    _init();
 
-  function bold() {}
+    // for (let i = 0; i < getParentElement()!.childNodes.length; i++) {
+    //   console.log(getParentElement()?.childNodes[i].nodeName);
+    // }
+  }
 
   function align(x: "left" | "center" | "right") {
     if (getParentElement() !== undefined) {
       getParentElement()!.style.textAlign = x;
     }
+    getParentElement()?.focus();
+  }
+  function handleKeyDown(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+      e.preventDefault();
+      bold();
+    }
   }
 
-  return { test, _init, bold, align, setCurrentBlockId };
+  return { test, _init, bold, align, setCurrentBlockId, handleKeyDown };
 }
