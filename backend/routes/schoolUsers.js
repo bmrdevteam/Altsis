@@ -14,7 +14,7 @@ router.put(
 
 router.put("/:_id/:field?", isAdManager, schoolUser.update);
 
-router.get("/", isAdManager, schoolUser.list);
+router.get("/", isAdManager, schoolUser.getAll);
 router.get("/:_id", isAdManager, schoolUser.read);
 
 module.exports = router;
