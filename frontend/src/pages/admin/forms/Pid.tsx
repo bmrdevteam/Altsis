@@ -12,17 +12,48 @@ import Svg from "../../../assets/svg/Svg";
 type Props = {};
 
 const Form = (props: Props) => {
+  /**
+   * get the page id
+   */
   const { pid } = useParams<"pid">();
+  /**
+   * navigation hook
+   */
   const navigate = useNavigate();
+  /**
+   * database hook
+   */
   const database = useDatabase();
-  const editor = useEditor();
+  /**
+   * counter for tracking updates
+   */
+  let updateCounter = 0;
+  const editor = useEditor(() => {
+    if (updateCounter >= 5) {
+      // reset the counter
+      updateCounter = 0;
+      /**
+       * count to 5 updates before saving to the backend
+       */
+      saveFormData();
+    } else {
+      //increase the counter
+      updateCounter += 1;
+    }
+  });
 
   /**
    * form title for the current form
    */
   const [formTitle, setFormTitle] = useState<string>();
+  /**
+   * form type for the current form
+   */
   const [formType, setFormType] = useState<string>();
-  const [formData, setformData] = useState<any>();
+  /**
+   * stat for the form data from the backend
+   */
+
   const [updateFormData, setUpdateFormData] = useState<boolean>(true);
   /**
    * get the form data from the backend
@@ -30,7 +61,6 @@ const Form = (props: Props) => {
    */
   async function getFormData() {
     const { form: result } = await database.R({ location: `forms/${pid}` });
-    setformData(result);
     return result;
   }
   /**
@@ -48,6 +78,7 @@ const Form = (props: Props) => {
       },
     });
   }
+
   useEffect(() => {
     /**
      * if the updateFormData is TRUE
