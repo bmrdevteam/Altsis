@@ -405,12 +405,12 @@ exports.enterMembers = async (req, res) => {
       schoolUsers.push(schoolUser);
     }
 
-    const [newUsers, newSchoolUsers] = await Promise.all([
+    await Promise.all([
       users.map((user) => user.save()),
       schoolUsers.map((schoolUser) => schoolUser.save()),
     ]);
 
-    return res.status(200).send({ schoolUsers: newSchoolUsers });
+    return res.status(200).send({ schoolUsers });
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
