@@ -1,3 +1,30 @@
+/**
+ * @file Block component for the editor
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - Block component
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import React, { useEffect, useState } from "react";
 
 import DividerBlock from "./blocks/DividerBlock";
@@ -20,42 +47,80 @@ const Block = ({
   editorId,
   editorFunctions,
   contextMenuController,
+  styleFunctions,
 }: {
   data: IBlock;
   editorId: string;
   editorFunctions: any;
   contextMenuController: any;
+  styleFunctions: any;
 }) => {
   useEffect(() => {
     return () => {};
   }, []);
+  const block = data as IParagraphBlock;
 
   const Wrapper = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
     return (
       <div
         id={`${editorId}-${data.id}`}
         className={style.block}
+        placeholder={"입력"}
+        contentEditable
+        suppressContentEditableWarning
         onInput={(e: any) => {
-          console.log(e.currentTarget.childNodes[0].innerHTML);
+          editorFunctions.saveBlock({
+            block: {
+              id: block.id,
+              type: block.type,
+              data: { text: e.target.innerHTML },
+            },
+            update: false,
+          });
         }}
-        onKeyDown={(e) => {
-          console.log(e.key);
+        onKeyDown={(e: any) => {
+          // console.log(e.key);
 
           if (e.key === "Tab") {
             e.preventDefault();
           }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            editorFunctions.addBlock({
+              insertAfter: editorFunctions.getBlockIndex(block.id) + 1,
+            });
+
+            editorFunctions.saveBlock({
+              block: {
+                id: block.id,
+                type: block.type,
+                data: { text: e.target.innerHTML },
+              },
+            });
+          }
+
+          if (
+            editorFunctions?.result().length > 1 &&
+            e.key === "Backspace" &&
+            e.target.innerText === ""
+          ) {
+            editorFunctions.deleteBlock(block.id);
+          }
+        }}
+        onSelect={() => {
+          console.log(`${editorId}-${data.id}`);
+          styleFunctions.setCurrentBlockId(`${editorId}-${data.id}`);
         }}
         onContextMenu={(e) => {
           e.preventDefault();
           contextMenuController({
             position: [e.pageX, e.pageY],
             ref: e,
-            blockId: data.id,
+            blockId: block.id,
           });
         }}
-      >
-        {children}
-      </div>
+        dangerouslySetInnerHTML={{ __html: block.data.text }}
+      ></div>
     );
   };
 
