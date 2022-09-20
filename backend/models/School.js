@@ -141,6 +141,12 @@ const schoolSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+schoolSchema.methods.getSeasonIdx = function (year, term) {
+  return this.seasons.findIndex(
+    (season) => season.year === year && season.term === term
+  );
+};
+
 module.exports = (dbName) => {
   return conn[dbName].model("School", schoolSchema);
 };
