@@ -34,6 +34,7 @@ import SelectionMenu from "./menu/SelectionMenu";
 import Sidebar from "./menu/Sidebar";
 
 import { IBlock } from "./type";
+import useStyleFunctions from "./useStyleFunctions";
 
 interface Props {
   auth: "read" | "edit";
@@ -52,6 +53,10 @@ interface Props {
  *
  */
 const Editor = (props: Props) => {
+  /**
+   *
+   */
+  const styleFunctions = useStyleFunctions();
   /**
    * ref obj for the editor contianer
    */
@@ -111,38 +116,38 @@ const Editor = (props: Props) => {
     };
   }, []);
 
-  const ContextMenuItem = ({ name }: { name: string }) => {
-    return (
-      <div
-        className={style.menu}
-        onClick={() => {
-          console.log(contextMenuBlockId);
-          props.editorhook.addBlock({
-            insertAfter: props.editorhook.getBlockIndex(contextMenuBlockId) + 1,
-          });
-        }}
-      >
-        <span className={style.icon}>
-          <Svg type="text" />
-        </span>
-        <span className={style.text}>블록 타입</span>
-        <span className={style.more}>
-          <Svg type="chevronRight" />
-        </span>
-        <div className={style.sub_menus}>
-          <div className={style.sub_menu}>
-            <span className={style.icon}>
-              <Svg type="table" />
-            </span>
-            일반 텍스트
-          </div>
-          <div className={style.sub_menu}>테이블</div>
-          <div className={style.sub_menu}>헤딩</div>
-          <div className={style.sub_menu}>일다이</div>
-        </div>
-      </div>
-    );
-  };
+  // const ContextMenuItem = ({ name }: { name: string }) => {
+  //   return (
+  //     <div
+  //       className={style.menu}
+  //       onClick={() => {
+  //         console.log(contextMenuBlockId);
+  //         props.editorhook.addBlock({
+  //           insertAfter: props.editorhook.getBlockIndex(contextMenuBlockId) + 1,
+  //         });
+  //       }}
+  //     >
+  //       <span className={style.icon}>
+  //         <Svg type="text" />
+  //       </span>
+  //       <span className={style.text}>블록 타입</span>
+  //       <span className={style.more}>
+  //         <Svg type="chevronRight" />
+  //       </span>
+  //       <div className={style.sub_menus}>
+  //         <div className={style.sub_menu}>
+  //           <span className={style.icon}>
+  //             <Svg type="table" />
+  //           </span>
+  //           일반 텍스트
+  //         </div>
+  //         <div className={style.sub_menu}>테이블</div>
+  //         <div className={style.sub_menu}>헤딩</div>
+  //         <div className={style.sub_menu}>일다이</div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
   const ContextMenu = ({ x, y }: { x: number; y: number }) => {
     return (
@@ -221,30 +226,36 @@ const Editor = (props: Props) => {
   };
 
   return (
-    <div className={style.editor_container} ref={editorContainerRef}>
-      <Sidebar />
-      <div className={style.editor} ref={editorRef}>
-        {contextMenuActive && (
-          <ContextMenu x={contextMenuPosition[0]} y={contextMenuPosition[1]} />
-        )}
-        <SelectionMenu
-          containerRef={editorContainerRef}
-          editorRef={editorRef}
-        />
-
-        {props.editorhook.result()?.map((value: IBlock, index: number) => {
-          return (
-            <Block
-              contextMenuController={contextMenuController}
-              editorFunctions={props.editorhook}
-              editorId={props.editorId}
-              data={value}
-              key={index}
+    <>
+      <Sidebar styleFunctions={styleFunctions} />
+      <div className={style.editor_container} ref={editorContainerRef}>
+        <div className={style.editor} ref={editorRef}>
+          {contextMenuActive && (
+            <ContextMenu
+              x={contextMenuPosition[0]}
+              y={contextMenuPosition[1]}
             />
-          );
-        })}
+          )}
+          <SelectionMenu
+            containerRef={editorContainerRef}
+            editorRef={editorRef}
+          />
+
+          {props.editorhook.result()?.map((value: IBlock, index: number) => {
+            return (
+              <Block
+                styleFunctions={styleFunctions}
+                contextMenuController={contextMenuController}
+                editorFunctions={props.editorhook}
+                editorId={props.editorId}
+                data={value}
+                key={index}
+              />
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
