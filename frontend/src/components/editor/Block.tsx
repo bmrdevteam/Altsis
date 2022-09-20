@@ -60,7 +60,7 @@ const Block = ({
   }, []);
   const block = data as IParagraphBlock;
 
-  const Wrapper = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
+  const Wrapper = () => {
     return (
       <div
         id={`${editorId}-${data.id}`}
@@ -80,6 +80,7 @@ const Block = ({
         }}
         onKeyDown={(e: any) => {
           // console.log(e.key);
+          styleFunctions.handleKeyDown(e);
 
           if (e.key === "Tab") {
             e.preventDefault();
@@ -98,7 +99,7 @@ const Block = ({
               },
             });
           }
-
+          
           if (
             editorFunctions?.result().length > 1 &&
             e.key === "Backspace" &&
@@ -111,68 +112,19 @@ const Block = ({
           console.log(`${editorId}-${data.id}`);
           styleFunctions.setCurrentBlockId(`${editorId}-${data.id}`);
         }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          contextMenuController({
-            position: [e.pageX, e.pageY],
-            ref: e,
-            blockId: block.id,
-          });
-        }}
+        // onContextMenu={(e) => {
+        //   e.preventDefault();
+        //   contextMenuController({
+        //     position: [e.pageX, e.pageY],
+        //     ref: e,
+        //     blockId: block.id,
+        //   });
+        // }}
         dangerouslySetInnerHTML={{ __html: block.data.text }}
       ></div>
     );
   };
-
-  switch (data.type) {
-    case "heading":
-      return (
-        <Wrapper>
-          <HeadingBlock block={data as IHeadingBlock} />
-        </Wrapper>
-      );
-
-    case "paragraph":
-      return (
-        <Wrapper>
-          <Paragraphblock
-            block={data as IParagraphBlock}
-            editorFunctions={editorFunctions}
-          />
-        </Wrapper>
-      );
-    case "divider":
-      return (
-        <Wrapper>
-          <DividerBlock />
-        </Wrapper>
-      );
-    case "table":
-      return (
-        <Wrapper>
-          <TableBlock />
-        </Wrapper>
-      );
-    case "input":
-      return (
-        <Wrapper>
-          <InputBlock block={data as IInputBlock} />
-        </Wrapper>
-      );
-    case "timetable":
-      return (
-        <Wrapper>
-          <TimetableBlock block={data as ITimetableBlock} />
-        </Wrapper>
-      );
-    default:
-      break;
-  }
-  return (
-    <Wrapper>
-      <div></div>
-    </Wrapper>
-  );
+  return <Wrapper />;
 };
 
 export default Block;
