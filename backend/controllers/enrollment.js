@@ -79,37 +79,27 @@ const create = async (req, res) => {
       .send({ message: "syllabus is not confirmed or doens't exist" });
   }
 
-  const [exEnrollments, myEnrollments, school, schoolUser] = await Promise.all([
-    // 수업의 수강신청 현황
-    _Enrollment.find({
-      "syllabus._id": req.body.syllabus,
-    }),
-    // 내 수강신청 현황
-    _Enrollment.find({
-      userId: user.userId,
-      "syllabus.year": syllabus.year,
-      "syllabus.term": syllabus.term,
-    }),
-    // school
-    _School.findOne({
-      schoolId: syllabus.schoolId,
-    }),
-    // schoolUser
-    _SchoolUser.findOne({
-      schoolId: syllabus.schoolId,
-      userId: user.userId,
-    }),
-  ]);
-
   // 1. 수강정원 확인
+  const exEnrollments = await _Enrollment.find({
+    "syllabus._id": req.body.syllabus,
+  });
   if (syllabus.limit != 0 && exEnrollments.length >= syllabus.limit) {
     return res.status(409).send({ message: "수강정원이 다 찼습니다." });
   }
 
   // 2. 수강신청 가능한 시간인가?
+  const myEnrollments = await _Enrollment.find({
+    userId: user.userId,
+    "syllabus.year": syllabus.year,
+    "syllabus.term": syllabus.term,
+  });
   await checkTimeAvailable(myEnrollments, syllabus.time);
 
   // 4. register 여부 확인
+  const schoolUser = await _SchoolUser.findOne({
+    schoolId: syllabus.schoolId,
+    userId: user.userId,
+  });
   if (!schoolUser) {
     return res.status(404).send({
       message: "schoolUser not found",
@@ -129,6 +119,9 @@ const create = async (req, res) => {
   }
 
   // 3. season 활성화 확인
+  const school = _School.findOne({
+    schoolId: syllabus.schoolId,
+  });
   if (!school) {
     return res.status(404).send({
       message: "school not found",
