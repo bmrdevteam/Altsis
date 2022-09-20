@@ -9,9 +9,9 @@ const {
   checkTimeAvailable,
 } = require("../utils/util");
 const { wrapWithErrorHandler } = require("../utils/errorHandler");
+const _ = require("lodash");
 
 const check = async (user, syllabus, type) => {
-  // 1. find school
   const school = await School(user.dbName).findOne({
     schoolId: syllabus.schoolId,
   });
@@ -21,7 +21,7 @@ const check = async (user, syllabus, type) => {
     throw error;
   }
 
-  // 2. check if season is activated
+  // 1. check if season is activated
   const seasonIdx = findSeasonIdx(school, syllabus.year, syllabus.term);
   if (seasonIdx == -1) {
     const error = new Error("not existing season...");
@@ -34,7 +34,7 @@ const check = async (user, syllabus, type) => {
     throw error;
   }
 
-  // 3. check if user is registered in requrested season
+  // 2. check if user is registered in requrested season
   const schoolUser = await SchoolUser(user.dbName).findOne({
     userId: user.userId,
   });
@@ -63,36 +63,92 @@ const check = async (user, syllabus, type) => {
 };
 
 const create = async (req, res) => {
-  const _Enrollment = Enrollment(req.user.dbName);
-  const _enrollment = await _Enrollment.findOne({
-    userId: req.user.userId,
-    "syllabus._id": req.body.syllabus,
+  const user = req.user;
+  const _Enrollment = Enrollment(user.dbName);
+  const _Syllabus = Syllabus(user.dbName);
+  const _School = School(user.dbName);
+  const _SchoolUser = SchoolUser(user.dbName);
+
+  const syllabus = await _Syllabus.findOne({
+    _id: req.body.syllabus,
+    confirmed: true,
   });
-  if (_enrollment) {
+  if (!syllabus) {
     return res
       .status(409)
-      .send({ message: "you already enrolled in this syllabus" });
+      .send({ message: "syllabus is not confirmed or doens't exist" });
   }
 
-  const syllabus = await Syllabus(req.user.dbName).findById(req.body.syllabus);
-  if (!syllabus) {
-    return res.status(404).send({ message: "invalid syllabus!" });
+  // 1. 수강정원 확인
+  const exEnrollments = await _Enrollment.find({
+    "syllabus._id": req.body.syllabus,
+  });
+  if (syllabus.limit != 0 && exEnrollments.length >= syllabus.limit) {
+    return res.status(409).send({ message: "수강정원이 다 찼습니다." });
   }
-  if (!syllabus["confirmed"]) {
-    return res.status(409).send({
-      message: "This course is not enrollable at the moment",
+
+  // 2. 수강신청 가능한 시간인가?
+  const myEnrollments = await _Enrollment.find({
+    userId: user.userId,
+    "syllabus.year": syllabus.year,
+    "syllabus.term": syllabus.term,
+  });
+  await checkTimeAvailable(myEnrollments, syllabus.time);
+
+  // 4. register 여부 확인
+  const schoolUser = await _SchoolUser.findOne({
+    schoolId: syllabus.schoolId,
+    userId: user.userId,
+  });
+  if (!schoolUser) {
+    return res.status(404).send({
+      message: "schoolUser not found",
+    });
+  }
+  let isRegistered = schoolUser.registrations.some(function (registration) {
+    return (
+      registration.year == syllabus.year &&
+      registration.terms.includes(syllabus.term)
+    );
+  });
+  if (!isRegistered) {
+    console.log(schoolUser);
+    return res.status(404).send({
+      message: "schoolUser not found(check registration)",
     });
   }
 
-  await check(req.user, syllabus, "enrollment");
-  const enrollments = await Enrollment(req.user.dbName).find({
-    userId: req.user.userId,
+  // 3. season 활성화 확인
+  const school = _School.findOne({
+    schoolId: syllabus.schoolId,
   });
-  await checkTimeAvailable(enrollments, syllabus.time);
+  if (!school) {
+    return res.status(404).send({
+      message: "school not found",
+    });
+  }
 
+  // 5. permission 확인
+  const seasonIdx = _.findIndex(school.seasons, {
+    year: syllabus.year,
+    term: syllabus.term,
+    activated: true,
+  });
+  if (seasonIdx == -1) {
+    return res.status(404).send({
+      message: "season not found",
+    });
+  }
+  if (!checkPermission(school, seasonIdx, "enrollment", schoolUser)) {
+    return res.status(401).send({
+      message: "you have no permission",
+    });
+  }
+
+  // 수강신청 완료 (도큐먼트 저장)
   const enrollment = new _Enrollment({
-    userId: req.user.userId,
-    userName: req.user.userName,
+    userId: user.userId,
+    userName: user.userName,
     syllabus: syllabus.getSubdocument(),
   });
   await enrollment.save();
