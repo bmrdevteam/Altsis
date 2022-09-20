@@ -20,7 +20,7 @@
 .editor_container {
     height: 100vh;
     overflow-y: scroll;
-
+    margin: 0 240px 0 0;
     -ms-overflow-style: none;
     scrollbar-width: none;
     background-color: var(--component-color);
@@ -158,6 +158,7 @@
         font-weight: 500;
         font-family: 'Pretendard';
         border: none;
+        outline: none;
 
 
         .paragraph {
@@ -193,6 +194,13 @@
         }
     }
 
+    .block:empty:before {
+        content: attr(placeholder);
+        color: rgb(171, 171, 171);
+        display: block;
+        cursor: text;
+    }
+
     .block:hover {
         transition: border 0s;
         border: var(--border-default);
@@ -220,23 +228,78 @@
     .sidebar {
         margin: 12px;
 
-        .item {
+        .menu {
             border-bottom: var(--border-default);
 
-            .label {
+            .name {
                 font-size: 14px;
                 font-weight: 600;
                 color: var(--accent-2);
-                margin-bottom: 5px;
+                margin-bottom: 14px;
             }
 
             .content {
                 display: flex;
-            }
+                flex-direction: column;
 
+                .item {
+                    height: 42px;
+                    display: flex;
+                    gap: 12px;
+                    align-items: center;
+                    justify-content: space-between;
+
+                    label {
+                        padding: 0 0 0 12px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: var(--accent-3);
+
+                    }
+
+                    select {
+                        height: 30px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        flex: 1 1 0;
+                        font-size: 12px;
+                        background-color: var(--component-color);
+                        border: none;
+                        border-radius: 8px;
+                        appearance: none;
+                        -webkit-appearance: none;
+                        padding: 0 12px;
+                    }
+
+                    .align {
+
+                        justify-content: space-between;
+
+                        .options {
+                            height: 30px;
+                            display: flex;
+                            align-items: center;
+                            border-radius: 8px;
+
+                            background-color: var(--component-color);
+
+                            .option {
+                                cursor: pointer;
+
+                                padding: 4px 6px;
+                            }
+                        }
+
+                    }
+                }
+
+            }
         }
+
     }
 }
+
 
 .appearance_menu {
     background-color: #fff;
