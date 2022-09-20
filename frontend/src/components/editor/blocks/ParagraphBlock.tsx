@@ -55,7 +55,7 @@ const Paragraphblock = ({
       onClick={() => {
         console.log();
       }}
-      dangerouslySetInnerHTML={{ __html: block.data.text }}
+      // dangerouslySetInnerHTML={{ __html: block.data.text }}
     ></div>
   );
 };
