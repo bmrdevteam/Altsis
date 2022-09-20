@@ -1,37 +1,96 @@
+/**
+ * @file useEditor hook
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - useEditor hook
+ *   - addBlock()
+ *   - deleteBlock()
+ *   - saveBlock()
+ *   - save()
+ *   - result()
+ *   - getBlockIndex()
+ *   - focusBlock()
+ *   - editorData()
+ *   - initalData()
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import _, { isArray } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import { IBlock } from "../components/editor/type";
 
-
-
 /**
- * 
+ *
  * @returns a editor hook to control functions in the editor
- *  
+ *
  * @example
- * 
+ *
  * @version 2.0 changed the rendering method with (useRef and useState)
  * @version 1.0 initial version
- * 
- * 
+ *
+ *
  */
-export default function useEditor() {
+export default function useEditor(onUpdate: () => void ) {
+  /**
+   *  state for the whole editor data
+   */
   const [editorData, setEditorData] = useState<any>();
+  /**
+   * ref object containing blocks
+   * [
+   *  {block1},
+   *  {block2},
+   *  {block3}
+   *  ...
+   * ]
+   */
+  const blockDataRef = useRef<any>(null);
+  /**
+   * state containing blocks
+   *
+   */
   const [blockData, setBlockData] = useState<any>();
 
-  const blockDataRef = useRef<any>(null);
   const [blockDataUpdate, setBlockDataUpdate] = useState(false);
+
   const [auth, setAuth] = useState();
 
   useEffect(() => {
-    setBlockDataUpdate(false);
-
-    return () => {};
+    if (blockDataUpdate) {
+      setBlockDataUpdate(false);
+    }
   }, [blockDataUpdate]);
-
+  
   function result() {
+    onUpdate();
     return blockDataRef.current;
   }
+
+  /**
+   * sets the initial data for the editor
+   *
+   * @param data
+   */
 
   function initalData(data: any) {
     setEditorData(data);
@@ -44,9 +103,7 @@ export default function useEditor() {
       ];
     } else {
       setBlockData(data.filter((val: any) => val.id !== undefined));
-      blockDataRef.current = data.filter(
-        (val: any) => val.id !== undefined
-      );
+      blockDataRef.current = data.filter((val: any) => val.id !== undefined);
     }
     setBlockDataUpdate(true);
   }
@@ -152,7 +209,7 @@ export default function useEditor() {
     result,
     getBlockIndex,
     focusBlock,
-    editorData,
     initalData,
+
   };
 }
