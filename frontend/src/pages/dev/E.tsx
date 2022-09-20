@@ -7,7 +7,7 @@ type Props = {};
 const E = (props: Props) => {
   return (
     <div style={{ margin: "24px" }}>
-      <NavigationLinks />
+
 
     </div>
   );
