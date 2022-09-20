@@ -1,5 +1,41 @@
-import { useState } from "react";
+/**
+ * @file useStyleFunctions hook
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ * - useStyleFunctions component
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * 
+ * use var tags or span tags for data 
+ */
 
+import { useState } from "react";
+/**
+ * styles function
+ *
+ * @returns styleFunctions
+ *
+ * @version 2.0 stashed all functions related to execommands {@link https://developer.mozilla.org/ko/docs/Web/API/Document/execCommand} - deprecated
+ * @version 1.0 initial version
+ */
 export default function useStyleFunctions() {
   let currentBlockId = "";
 
@@ -28,10 +64,7 @@ export default function useStyleFunctions() {
 
   function _init() {}
 
-  function bold() {
-
-    
-  }
+  function bold() {}
 
   function align(x: "left" | "center" | "right") {
     if (getParentElement() !== undefined) {
