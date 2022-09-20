@@ -9,13 +9,10 @@ const Paragraphblock = ({
   block: IParagraphBlock;
   editorFunctions: any;
 }) => {
-  const divRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {}, [divRef]);
 
   return (
     <div
-      ref={divRef}
       className={style.paragraph}
       placeholder={"입력"}
       contentEditable
@@ -58,13 +55,6 @@ const Paragraphblock = ({
       onClick={() => {
         console.log();
       }}
-      // onSelect={(e) => {
-      //   console.log(
-      //     window.getSelection()?.toString() !== ""
-      //       ? window.getSelection()?.getRangeAt(0).getBoundingClientRect()
-      //       : "bluff"
-      //   );
-      // }}
       dangerouslySetInnerHTML={{ __html: block.data.text }}
     ></div>
   );
