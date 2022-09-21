@@ -18,6 +18,6 @@ router.get("/:_id/students", isLoggedIn, syllabus.students);
 
 router.put("/:_id/confirmed", isLoggedIn, syllabus.confirm);
 router.put("/:_id/:field?", isLoggedIn, syllabus.update);
-router.delete("/:_id", isLoggedIn, syllabus.delete);
+router.delete("/:_id", isLoggedIn, syllabus.remove);
 
 module.exports = router;
