@@ -12,7 +12,6 @@ RUN yarn install
 COPY ./ ./
 
 #컨테이너가 켜지자마자 실행할 명령어 
-ENV NODE_ENV development
 CMD ["yarn", "start"]
 
 # 이미지 생성

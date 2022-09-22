@@ -1,10 +1,13 @@
-const User = require("../models/User");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 const aws = require("aws-sdk");
-const config = require("../config/config");
-const s3 = new aws.S3(config.s3);
-const bucket = "bsis-profile";
+
+const s3 = new aws.S3({
+  accessKeyId: process.env["s3_accessKeyId"],
+  secretAccessKey: process.env["s3_secretAccessKey"],
+  region: process.env["s3_region"],
+});
+const bucket = process.env["s3_bucket"];
 
 const whitelist = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
@@ -64,7 +67,7 @@ exports.upload = async (req, res) => {
 };
 
 exports.read = (req, res) => {
-  const url = req.user.profile || config.defaultProfile;
+  const url = req.user.profile || process.env["defaultProfile"];
   return res.status(200).send({ url });
 };
 
