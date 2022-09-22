@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const moment = require("moment");
 const { conn } = require("../databases/connection");
 
 // temp-1.1: form의 data가 object type인 경우

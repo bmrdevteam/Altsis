@@ -1,11 +1,6 @@
 const mongoose = require("mongoose");
 
-const {
-  conn,
-  addConnection,
-  deleteConnection,
-} = require("../databases/connection");
-const config = require("../config/config");
+const { addConnection, deleteConnection } = require("../databases/connection");
 const { User, Academy } = require("../models/models");
 const { wrapWithErrorHandler } = require("../utils/errorHandler");
 
@@ -28,8 +23,7 @@ const create = async (req, res) => {
   await academy.save();
 
   /* create db */
-  const newConn = mongoose.createConnection(config["url"](academy.dbName));
-  addConnection({ dbName: academy.dbName, newConn });
+  addConnection(academy.dbName);
 
   /* create & save admin document  */
   const _User = User(academy.dbName);
@@ -105,8 +99,7 @@ const remove = async (req, res) => {
   academy.remove();
 
   /* delete db */
-  await conn[academy.dbName].db.dropDatabase();
-  deleteConnection(academy.dbName);
+  await deleteConnection(academy.dbName);
   return res.status(200).send();
 };
 
