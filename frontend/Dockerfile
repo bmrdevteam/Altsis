@@ -11,4 +11,4 @@ RUN yarn build
 
 RUN yarn global add serve
 
-CMD PORT=3030 serve -s build
+CMD serve -s build
