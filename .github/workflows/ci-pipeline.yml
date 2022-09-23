@@ -1,0 +1,51 @@
+name: ci-pipeline
+
+on:
+  push:
+    branches: [ test ]
+
+env:
+  DOCKER_IMAGE: ghcr.io/${{ github.actor }}/nuxt-auto-deploy
+  VERSION: ${{ github.sha }}
+  NAME: go_cicd
+  DB_URL: ${{ secrets.DB_URL }}
+  REDIS_URL: ${{secretes.REDIS_URL}}
+  S3_accessKeyId: ${{secrets.S3_accessKeyId}}
+  S3_secretAccessKey: ${{secrets.S3_secretAccessKey}}
+  S3_region: ${{secrets.S3_region}}
+  s3_bucket: ${{secrets.s3_bucket}}
+  saltRounts: ${{secrets.saltRounts}}
+  session_key: ${{secrets.session_key}}
+  GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
+  URL: ${{secrets.URL}}
+  SERVER_PORT: ${{secrets.SERVER_PORT_TEST}} 
+  CLIENT_PORT: ${{secrets.CLIENT_PORT_TEST}} 
+  
+jobs:
+
+  build-and-push-image:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    
+      # 체크아웃
+      - uses: actions/checkout@v3
+      
+      # docker build 세팅
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v2.0.0
+            
+      # GitHub 컨테이너 레지스트리에 로그인
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+          
+      # 빌드 후 푸쉬
+      - name: Build the Docker images
+        run: docker-compose build
+
+      - name: Push the Docker images
+        run: docker-compose push
