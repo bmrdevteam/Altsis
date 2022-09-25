@@ -9,16 +9,39 @@ type Props = {
   style?: {
     minWidth?: string;
     width?: string;
+    height?: string;
+    fontSize?: string;
   };
   ref?: any;
   label?: string;
   required?: boolean;
 
   defaultSelected?: number;
+  selectedValue?: number;
+
   setValue?: any;
   onchange?: any;
   appearence?: "flat";
 };
+
+/**
+ *
+ *
+ *
+ * @param options
+ * @param style
+ * @param ref
+ * @param label
+ * @param required
+ * @param defaultSelected
+ * @param setValue
+ * @param onchange
+ * @param appearence
+ *
+ * @returns
+ *
+ * @example <Select options={[{text:"",value:""},{text:"",value:""}]}/>
+ */
 
 const Select = (props: Props) => {
   const [selected, setSelected] = useState<number>(
@@ -44,7 +67,17 @@ const Select = (props: Props) => {
   }, []);
 
   useEffect(() => {
-    props.onchange?.(props.options[selected].value);
+    if (props.selectedValue) {
+      setSelected(
+        props.options.findIndex((val) => val.value === props.selectedValue)
+      );
+    }
+  }, [props.selectedValue]);
+
+  useEffect(() => {
+    if (selected >= 0 && typeof selected === "number") {
+      props.onchange?.(props.options[selected].value);
+    }
   }, [selected]);
 
   const Options = () => {
@@ -71,10 +104,8 @@ const Select = (props: Props) => {
   return (
     <div
       ref={selectRef}
-      className={`${style.select} ${
-        props.appearence === "flat" && style.flat
-      }`}
-      style={{ width: props.style?.width }}
+      className={`${style.select} ${props.appearence === "flat" && style.flat}`}
+      style={{ width: props.style?.width, fontSize: props.style?.fontSize }}
     >
       {props.label && (
         <label className={style.label}>
