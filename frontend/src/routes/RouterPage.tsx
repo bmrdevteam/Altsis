@@ -38,7 +38,7 @@ import CourseDesign from "../pages/courses/Design";
 import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
-
+import { EditorFunctionProvider } from "../components/editor/context/editorContext";
 
 // import Http404 from "./pages/error/404";
 
@@ -154,7 +154,9 @@ function RouterPage() {
                   path="forms/:pid"
                   element={
                     <RequireAuth>
-                      <Form />
+                      <EditorFunctionProvider>
+                        <Form />
+                      </EditorFunctionProvider>
                     </RequireAuth>
                   }
                 ></Route>
@@ -175,7 +177,6 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
-
 
               {/* ----------------------------------------------------- */}
 
