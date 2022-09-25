@@ -92,13 +92,16 @@
     }
 
     .selected {
-        height: auto;
+        max-height: 30px;
+        min-height: 30px;
+        display: flex;
+        justify-content: center;
         margin-top: 5px;
         outline: none;
         border: none;
         border-radius: 8px;
         background-color: var(--component-color);
-        padding: 8px 18px;
+        padding: 0 18px;
         width: 100%;
 
         .text {
@@ -134,7 +137,7 @@
 
         .option {
             border-radius: 8px;
-            height: 38px;
+            height: 30px;
             display: flex;
             padding: 0 14px;
             white-space: nowrap;
