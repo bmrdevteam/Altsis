@@ -26,12 +26,6 @@
  */
 
 import React, { useEffect, useState } from "react";
-
-import DividerBlock from "./blocks/DividerBlock";
-import HeadingBlock from "./blocks/HeadingBlock";
-import InputBlock from "./blocks/InputBlock";
-import Paragraphblock from "./blocks/ParagraphBlock";
-import TableBlock from "./blocks/TableBlock";
 import {
   IBlock,
   IHeadingBlock,
@@ -41,35 +35,41 @@ import {
 } from "./type";
 import style from "./editor.module.scss";
 import TimetableBlock from "./blocks/TimetableBlock";
+import { useEditorFunctions } from "./context/editorContext";
+import Input from "../input/Input";
 
 const Block = ({
   data,
   editorId,
-  editorFunctions,
   contextMenuController,
-  styleFunctions,
 }: {
   data: IBlock;
   editorId: string;
-  editorFunctions: any;
   contextMenuController: any;
-  styleFunctions: any;
 }) => {
-  useEffect(() => {
-    return () => {};
-  }, []);
+  const { editor } = useEditorFunctions();
+
   const block = data as IParagraphBlock;
 
-  const Wrapper = () => {
+  const Block = ({ children }: { children?: JSX.Element }) => {
+    let classNameArr: string[] = [style.block];
+    if (block.type === "table") {
+      classNameArr.push(style.table);
+    }
+    if (block.type === "divider") {
+      classNameArr.push(style.divider);
+    }
+
     return (
       <div
         id={`${editorId}-${data.id}`}
-        className={style.block}
+        className={classNameArr.join(" ")}
         placeholder={"입력"}
+        data-divide-count={1}
         contentEditable
         suppressContentEditableWarning
         onInput={(e: any) => {
-          editorFunctions.saveBlock({
+          editor.saveBlock({
             block: {
               id: block.id,
               type: block.type,
@@ -79,19 +79,18 @@ const Block = ({
           });
         }}
         onKeyDown={(e: any) => {
-          // console.log(e.key);
-          styleFunctions.handleKeyDown(e);
+          // styleFunctions.handleKeyDown(e);
 
           if (e.key === "Tab") {
             e.preventDefault();
           }
           if (e.key === "Enter") {
             e.preventDefault();
-            editorFunctions.addBlock({
-              insertAfter: editorFunctions.getBlockIndex(block.id) + 1,
+            editor.addBlock({
+              insertAfter: editor.getBlockIndex(block.id) + 1,
             });
 
-            editorFunctions.saveBlock({
+            editor.saveBlock({
               block: {
                 id: block.id,
                 type: block.type,
@@ -99,18 +98,14 @@ const Block = ({
               },
             });
           }
-          
+
           if (
-            editorFunctions?.result().length > 1 &&
+            editor.result().length > 1 &&
             e.key === "Backspace" &&
             e.target.innerText === ""
           ) {
-            editorFunctions.deleteBlock(block.id);
+            editor.deleteBlock(block.id);
           }
-        }}
-        onSelect={() => {
-          console.log(`${editorId}-${data.id}`);
-          styleFunctions.setCurrentBlockId(`${editorId}-${data.id}`);
         }}
         // onContextMenu={(e) => {
         //   e.preventDefault();
@@ -124,7 +119,13 @@ const Block = ({
       ></div>
     );
   };
-  return <Wrapper />;
+
+  switch (data.type) {
+    case "input":
+      return <Input label="입력의 이름을 정해주세요" required/>;
+    default:
+      return <Block />;
+  }
 };
 
 export default Block;
