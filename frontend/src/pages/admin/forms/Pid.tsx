@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Editor from "../../../components/editor/Editor";
-import useEditor from "../../../hooks/useEditor";
+import useEditor from "../../../components/editor/context/useEditor";
 
 import useDatabase from "../../../hooks/useDatabase";
 import style from "../../../style/pages/admin/forms/forms.module.scss";
 import Divider from "../../../components/divider/Divider";
 import ReloadWarning from "../../../components/reloadwarning/ReloadWarning";
 import Svg from "../../../assets/svg/Svg";
+import { useEditorFunctions } from "../../../components/editor/context/editorContext";
 
 type Props = {};
 
@@ -20,96 +21,12 @@ const Form = (props: Props) => {
    * navigation hook
    */
   const navigate = useNavigate();
-  /**
-   * database hook
-   */
-  const database = useDatabase();
+
   /**
    * counter for tracking updates
    */
-  let updateCounter = 0;
-  const editor = useEditor(() => {
-    if (updateCounter >= 5) {
-      // reset the counter
-      updateCounter = 0;
-      /**
-       * count to 5 updates before saving to the backend
-       */
-      saveFormData();
-    } else {
-      //increase the counter
-      updateCounter += 1;
-    }
-  });
-
-  /**
-   * form title for the current form
-   */
-  const [formTitle, setFormTitle] = useState<string>();
-  /**
-   * form type for the current form
-   */
-  const [formType, setFormType] = useState<string>();
-  /**
-   * stat for the form data from the backend
-   */
-
-  const [updateFormData, setUpdateFormData] = useState<boolean>(true);
-  /**
-   * get the form data from the backend
-   * @async
-   */
-  async function getFormData() {
-    const { form: result } = await database.R({ location: `forms/${pid}` });
-    return result;
-  }
-  /**
-   * save the form data to the backend
-   */
-  async function saveFormData() {
-    await database.U({
-      location: `forms/${pid}`,
-      data: {
-        new: {
-          type: formType,
-          title: formTitle,
-          data: editor.result(),
-        },
-      },
-    });
-  }
-
-  useEffect(() => {
-    /**
-     * if the updateFormData is TRUE
-     */
-    updateFormData &&
-      getFormData().then((res) => {
-        /**
-         * set the updateFormData to FALSE
-         */
-        setUpdateFormData(false);
-        /**
-         * set the form title
-         */
-        setFormTitle(res.title);
-        /**
-         * set the form type
-         */
-        setFormType(res.type);
-        /**
-         * pass in the initial data to the editor hook
-         */
-        editor.initalData(res.data);
-
-        /**
-         * set the document title to the current form title
-         */
-        document.title = res?.title;
-      });
-
-    return () => {};
-  }, [updateFormData]);
+  const { editor, formTitle, setFormTitle, saveFormData } =
+    useEditorFunctions();
 
   return (
     <div
@@ -146,15 +63,8 @@ const Form = (props: Props) => {
           </div>
         </div>
       </div>
-      {!updateFormData ? (
-        <Editor
-          auth="edit"
-          editorhook={editor}
-          editorId={pid ?? "idUndefined"}
-        />
-      ) : (
-        <>로딩중</>
-      )}
+
+      <Editor auth="edit" editorId={pid ?? "idUndefined"} />
     </div>
   );
 };
