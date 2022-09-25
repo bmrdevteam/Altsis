@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
 const validate = require("mongoose-validator");
+const _ = require("lodash");
 
 const subjectSchema = mongoose.Schema(
   {
@@ -145,6 +146,11 @@ schoolSchema.methods.getSeasonIdx = function (year, term) {
   return this.seasons.findIndex(
     (season) => season.year === year && season.term === term
   );
+};
+
+schoolSchema.methods.findSeasonIdx = function (year, term) {
+  const seasonIdx = _.findIndex(this["seasons"], { year, term });
+  return seasonIdx;
 };
 
 module.exports = (dbName) => {

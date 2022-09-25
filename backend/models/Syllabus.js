@@ -70,7 +70,10 @@ const syllabusSchema = mongoose.Schema(
       validate: (v) => Array.isArray(v) && v.length > 0,
       required: true,
     },
-    limit: Number,
+    limit: {
+      type: Number,
+      default: 0,
+    },
     info: Object,
   },
   { timestamps: true }

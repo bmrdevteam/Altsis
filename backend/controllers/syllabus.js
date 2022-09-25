@@ -13,6 +13,7 @@ const {
   checkClassroomAvailable,
   isEqual,
 } = require("../utils/util");
+const { wrapWithErrorHandler } = require("../utils/errorHandler");
 
 const check = async (user, syllabus) => {
   // 1. find school
@@ -66,36 +67,69 @@ const check = async (user, syllabus) => {
   }
 };
 
-exports.create = async (req, res) => {
-  try {
-    const year = req.body.year;
-    const term = req.body.term;
-    const schoolId = req.body.schoolId;
+const create = async (req, res) => {
+  const user = req.user;
+  const { schoolId, year, term, classroom } = req.body;
 
-    const _Syllabus = Syllabus(req.user.dbName);
-    const syllabus = new _Syllabus(req.body);
-
-    await check(req.user, syllabus);
-
-    // check if classroom is available
-    const syllabuses = await Syllabus(req.user.dbName).find({
-      schoolId,
-      year,
-      term,
-      classroom: req.body.classroom,
-    });
-    await checkClassroomAvailable(syllabuses, syllabus);
-
-    syllabus.userId = req.user.userId;
-    syllabus.userName = req.user.userName;
-    await syllabus.save();
-    return res.status(200).send({ syllabus });
-  } catch (err) {
-    return res.status(err.code || 500).send({ err: err.message });
+  // 1. find school
+  const school = await School(user.dbName).findOne({
+    schoolId,
+  });
+  if (!school) {
+    return res.status(404).send({ message: "school not found" });
   }
+
+  // 2. check if season is activated
+  const seasonIdx = school.findSeasonIdx(year, term);
+  if (seasonIdx == -1) {
+    return res.status(404).send({ message: "season not found" });
+  }
+  if (!school["seasons"][seasonIdx]["activated"]) {
+    return res.status(409).send({ message: "season not activated" });
+  }
+
+  // 3. check if user is registered in requrested season
+  const schoolUser = await SchoolUser(user.dbName).findOne({
+    userId: user.userId,
+    schoolId,
+  });
+  if (!schoolUser) {
+    return res.status(404).send({ message: "schoolUser not found" });
+  }
+  const { yearIdx, termIdx } = schoolUser.findRegistrationIdx(year, term);
+  if (yearIdx == -1 || termIdx == -1) {
+    return res
+      .status(409)
+      .send({ message: "user is not registered in this season" });
+  }
+
+  // 4. check if user's role has permission
+  if (!checkPermission(school, seasonIdx, "syllabus", schoolUser)) {
+    return res
+      .status(409)
+      .send({ message: "not permitted to create a syllabus" });
+  }
+
+  const _Syllabus = Syllabus(user.dbName);
+  const syllabus = new _Syllabus(req.body);
+  syllabus.userId = user.userId;
+  syllabus.userName = user.userName;
+  syllabus.schoolName = school.schoolName;
+
+  // check if classroom is available
+  const syllabuses = await Syllabus(user.dbName).find({
+    schoolId,
+    year,
+    term,
+    classroom,
+  });
+  await checkClassroomAvailable(syllabuses, syllabus);
+
+  await syllabus.save();
+  return res.status(200).send({ syllabus });
 };
 
-exports.list = async (req, res) => {
+const list = async (req, res) => {
   try {
     const query = {
       schoolId: req.query.schoolId,
@@ -116,7 +150,7 @@ exports.list = async (req, res) => {
   }
 };
 
-exports.read = async (req, res) => {
+const read = async (req, res) => {
   try {
     const syllabus = await Syllabus(req.user.dbName).findOne({
       _id: req.params._id,
@@ -127,7 +161,7 @@ exports.read = async (req, res) => {
   }
 };
 
-exports.students = async (req, res) => {
+const students = async (req, res) => {
   try {
     const syllabus = await Syllabus(req.user.dbName).findOne({
       _id: req.params._id,
@@ -151,7 +185,7 @@ exports.students = async (req, res) => {
   }
 };
 
-exports.classrooms = async (req, res) => {
+const classrooms = async (req, res) => {
   try {
     const schoolId = req.query.schoolId;
     const year = req.query.year;
@@ -170,7 +204,7 @@ exports.classrooms = async (req, res) => {
   }
 };
 
-exports.time = async (req, res) => {
+const time = async (req, res) => {
   try {
     const syllabus = await Syllabus(req.user.dbName).findOne({
       _id: req.params._id,
@@ -194,7 +228,7 @@ exports.time = async (req, res) => {
   }
 };
 
-exports.confirm = async (req, res) => {
+const confirm = async (req, res) => {
   try {
     // authentication
     const syllabus = await Syllabus(req.user.dbName).findOne({
@@ -216,7 +250,7 @@ exports.confirm = async (req, res) => {
   }
 };
 
-exports.update = async (req, res) => {
+const update = async (req, res) => {
   try {
     // 내가 만든 syllabus인가?
     const syllabus = await Syllabus(req.user.dbName).findOne({
@@ -300,7 +334,7 @@ exports.update = async (req, res) => {
   }
 };
 
-exports.delete = async (req, res) => {
+const remove = async (req, res) => {
   try {
     const doc = await Syllabus(req.user.dbName).findByIdAndDelete(
       req.params._id
@@ -310,3 +344,16 @@ exports.delete = async (req, res) => {
     return res.status(500).send({ err: err.message });
   }
 };
+
+module.exports = wrapWithErrorHandler({
+  check,
+  create,
+  list,
+  read,
+  students,
+  classrooms,
+  time,
+  confirm,
+  update,
+  remove,
+});
