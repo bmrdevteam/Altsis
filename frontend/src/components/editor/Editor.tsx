@@ -29,16 +29,15 @@ import { useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 
 import Block from "./Block";
+import { useEditorFunctions } from "./context/editorContext";
 import style from "./editor.module.scss";
 import SelectionMenu from "./menu/SelectionMenu";
 import Sidebar from "./menu/Sidebar";
 
 import { IBlock } from "./type";
-import useStyleFunctions from "./useStyleFunctions";
 
 interface Props {
   auth: "read" | "edit";
-  editorhook: any;
   autoSave?: boolean;
   editorId: string;
 }
@@ -53,10 +52,7 @@ interface Props {
  *
  */
 const Editor = (props: Props) => {
-  /**
-   *
-   */
-  const styleFunctions = useStyleFunctions();
+  const { editor } = useEditorFunctions();
   /**
    * ref obj for the editor contianer
    */
@@ -162,16 +158,7 @@ const Editor = (props: Props) => {
         <div className={style.menus}>
           <input type="text" className={style.search} placeholder="검색" />
 
-          <div
-            className={style.menu}
-            onClick={() => {
-              console.log(contextMenuBlockId);
-              props.editorhook.addBlock({
-                insertAfter:
-                  props.editorhook.getBlockIndex(contextMenuBlockId) + 1,
-              });
-            }}
-          >
+          <div className={style.menu} onClick={() => {}}>
             <span className={style.icon}>
               <Svg type="text" />
             </span>
@@ -182,7 +169,7 @@ const Editor = (props: Props) => {
             <div className={style.sub_menus}>
               <div className={style.sub_menu}>
                 <span className={style.icon}>
-                  <Svg type="table" />
+                  <Svg type="text" />
                 </span>
                 일반 텍스트
               </div>
@@ -203,9 +190,8 @@ const Editor = (props: Props) => {
           <div
             className={style.menu}
             onClick={() => {
-              props.editorhook.addBlock({
-                insertAfter:
-                  props.editorhook.getBlockIndex(contextMenuBlockId) + 1,
+              editor.addBlock({
+                insertAfter: editor.getBlockIndex(contextMenuBlockId) + 1,
               });
             }}
           >
@@ -227,34 +213,33 @@ const Editor = (props: Props) => {
 
   return (
     <>
-      <Sidebar styleFunctions={styleFunctions} />
-      <div className={style.editor_container} ref={editorContainerRef}>
-        <div className={style.editor} ref={editorRef}>
-          {contextMenuActive && (
-            <ContextMenu
-              x={contextMenuPosition[0]}
-              y={contextMenuPosition[1]}
-            />
-          )}
-          <SelectionMenu
-            containerRef={editorContainerRef}
-            editorRef={editorRef}
-          />
-
-          {props.editorhook.result()?.map((value: IBlock, index: number) => {
-            return (
-              <Block
-                styleFunctions={styleFunctions}
-                contextMenuController={contextMenuController}
-                editorFunctions={props.editorhook}
-                editorId={props.editorId}
-                data={value}
-                key={index}
+      <Sidebar>
+        <div className={style.editor_container} ref={editorContainerRef}>
+          <div className={style.editor} ref={editorRef} id={"editor"}>
+            {contextMenuActive && (
+              <ContextMenu
+                x={contextMenuPosition[0]}
+                y={contextMenuPosition[1]}
               />
-            );
-          })}
+            )}
+            <SelectionMenu
+              containerRef={editorContainerRef}
+              editorRef={editorRef}
+            />
+
+            {editor.result()?.map((value: IBlock, index: number) => {
+              return (
+                <Block
+                  contextMenuController={contextMenuController}
+                  editorId={props.editorId}
+                  data={value}
+                  key={index}
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </Sidebar>
     </>
   );
 };
