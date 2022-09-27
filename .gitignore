@@ -2,3 +2,4 @@ docker-compose.yml
 .env
 backend.sh
 node_modules
+deploy.sh
