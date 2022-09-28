@@ -85,7 +85,7 @@ const Login = () => {
   /**
    * the current selected academy
    */
-  const [academy, setAcademy] = useState<string>();
+  const [academy, setAcademy] = useState<string>("");
 
   /**
    * cookies hook
@@ -97,10 +97,7 @@ const Login = () => {
    * react-router navigation
    */
   const navigate = useNavigate();
-  /**
-   * to use google login
-   */
-  const status = useGoogleLogin();
+ 
   /**
    * database hook
    */
@@ -215,7 +212,7 @@ const Login = () => {
       )
       .then(function (response) {
         /** if the result is a success */
-       
+
         response.status === 200 && window.location.replace("/");
       })
       .catch((error) => {
@@ -242,7 +239,7 @@ const Login = () => {
           <div className={style.container}>
             <div className={style.title}> 로그인 아카데미 선택</div>
             <Select
-              onchange={(e: any) => {
+              onChange={(e: any) => {
                 if (e !== "") {
                   setCookie("academyId", e, {
                     path: "/",
@@ -335,7 +332,7 @@ const Login = () => {
             회원가입
           </Button>
           <div style={{ height: "4px" }}></div>
-          <GoogleLoginBtn />
+          <GoogleLoginBtn academyId={academy} />
         </div>
       </div>
     </>
