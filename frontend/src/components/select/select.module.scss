@@ -53,6 +53,8 @@
         top: 38px;
         left: -1px;
 
+        overflow: auto;
+        max-height: 165px;
 
         background-color: var(--component-color);
 
