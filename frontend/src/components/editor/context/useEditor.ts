@@ -16,7 +16,7 @@
  *   - focusBlock()
  *   - editorData()
  *   - initalData()
- * 
+ *
  *
  * -------------------------------------------------------
  *
@@ -33,7 +33,7 @@
  * -------------------------------------------------------
  *
  * NOTES
- * 
+ *
  * https://stackoverflow.com/questions/2234979/how-to-check-in-javascript-if-one-element-is-contained-within-another
  *
  */
@@ -99,7 +99,7 @@ export default function useEditor(onUpdate: () => any) {
 
   function initalData(data: any) {
     // setEditorData(data);
-    if (data === undefined || !isArray(data)) {
+    if (data === undefined || !isArray(data) || data[0].id === undefined) {
       setBlockData([
         { id: "initialBlock", type: "paragraph", data: { text: "" } },
       ]);
@@ -191,6 +191,7 @@ export default function useEditor(onUpdate: () => any) {
     });
     setBlockDataUpdate(true);
   }
+
   function changeBlockType({
     blockId,
     type,
@@ -204,9 +205,23 @@ export default function useEditor(onUpdate: () => any) {
       ) {
         blockDataRef.current[getBlockIndex(blockId) as number].type = type;
         console.log(blockDataRef.current[getBlockIndex(blockId) as number]);
+        setBlockDataUpdate(true);
       }
     }
   }
+  function changeBlockData({ blockId, data }: { blockId: string; data: any }) {
+    if ((getBlockIndex(blockId) as number) >= 0) {
+      Object.assign(
+        blockDataRef.current[getBlockIndex(blockId) as number].data,
+        data
+      );
+
+      console.log(blockDataRef.current[getBlockIndex(blockId) as number]);
+
+      setBlockDataUpdate(true);
+    }
+  }
+
   function saveBlock({ block, update }: { block: IBlock; update?: boolean }) {
     if (!(_.findIndex(blockDataRef.current, { id: block.id }) < 0)) {
       blockDataRef.current = [
@@ -462,14 +477,13 @@ export default function useEditor(onUpdate: () => any) {
 
     // _init();
   }
-  function underline() {}
-  function strikeThrough() {}
-  function overline() {}
-  function color() {}
-  function backgroundColor() {}
+  // function underline() {}
+  // function strikeThrough() {}
+  // function overline() {}
+  // function color() {}
+  // function backgroundColor() {}
 
   function align(x: "left" | "center" | "right") {
-
     console.log(currentBlockId);
     if (getParentElement() !== undefined) {
       getParentElement()!.style.textAlign = x;
@@ -477,6 +491,13 @@ export default function useEditor(onUpdate: () => any) {
     getParentElement()?.focus();
   }
   function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+    }
+    if (e.key === "Enter") {
+   e.preventDefault()
+    }
+
     if ((e.ctrlKey || e.metaKey) && e.key === "b") {
       e.preventDefault();
       bold();
@@ -503,10 +524,8 @@ export default function useEditor(onUpdate: () => any) {
     getBlock,
 
     changeBlockType,
-
+    changeBlockData,
     // focusBlock,
-
-
 
     bold,
     align,
