@@ -17,10 +17,11 @@ type Props = {
   required?: boolean;
 
   defaultSelected?: number;
-  selectedValue?: number;
+  selectedValue?: string;
 
   setValue?: any;
-  onchange?: any;
+  onChange?: any;
+  onChangeWithClick?: any;
   appearence?: "flat";
 };
 
@@ -76,7 +77,7 @@ const Select = (props: Props) => {
 
   useEffect(() => {
     if (selected >= 0 && typeof selected === "number") {
-      props.onchange?.(props.options[selected].value);
+      props.onChange?.(props.options[selected].value);
     }
   }, [selected]);
 
@@ -88,6 +89,7 @@ const Select = (props: Props) => {
             <div
               onClick={() => {
                 setSelected(index);
+                props.onChangeWithClick && props.onChangeWithClick(value.value);
                 props.setValue && props.setValue(props.options[index].value);
               }}
               data-value={value?.value}
