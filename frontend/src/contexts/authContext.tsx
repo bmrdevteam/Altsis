@@ -19,7 +19,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { user: res, schoolUsers: users } = await database.R({
       location: "users",
     });
-    console.log(users);
     
     setCurrentUser(res);
     setSchoolUsers(users);
@@ -39,7 +38,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => {};
   }, [loading]);
-  console.log(currentUser);
 
   const value = {
     setCurrentUser,
