@@ -17,13 +17,13 @@ const Register = (props: Props) => {
   const passwordCheckRef = useRef<{ value: any }>();
 
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const status = useGoogleLogin();
+  // const status = useGoogleLogin();
 
   useEffect(() => {
     console.log("first");
 
     return () => {
-      console.log(status);
+      // console.log(status);
     };
   }, []);
 
@@ -115,7 +115,7 @@ const Register = (props: Props) => {
           <FormSubmit placeholder="회원가입" />
         </AuthForm>
         <div style={{ height: "4px" }}></div>
-        <GoogleLoginBtn />
+        {/* <GoogleLoginBtn /> */}
       </div>
     </div>
   );
