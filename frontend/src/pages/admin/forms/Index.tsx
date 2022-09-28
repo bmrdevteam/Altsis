@@ -372,7 +372,7 @@ const Forms = (props: Props) => {
                 { text: "평가", value: "evaluation" },
                 { text: "기타", value: "" },
               ]}
-              onchange={(e: any) => {
+              onChange={(e: any) => {
                 setSelectFormType(e);
                 switch (e) {
                   case "timetable":
