@@ -4,6 +4,8 @@ import Select from "../../select/Select";
 import style from "../editor.module.scss";
 
 import { useEditorFunctions } from "../context/editorContext";
+import { useParams } from "react-router-dom";
+import ToggleSwitch from "../../toggleSwitch/ToggleSwitch";
 
 /**
  *
@@ -13,8 +15,15 @@ import { useEditorFunctions } from "../context/editorContext";
  * @returns
  */
 function Sidebar({ children }: { children: JSX.Element }) {
-  const [currentBlockId, setCurrentBlockId] = useState<string>();
   const { editor } = useEditorFunctions();
+  const { pid } = useParams();
+  const [currentBlockId, setCurrentBlockId] = useState<string>();
+  useEffect(() => {
+    editor.result() &&
+    setCurrentBlockId(`${pid}-${editor.result()[0].id}`);
+    return () => {};
+  }, []);
+
   // useEffect(() => {
   //   document.addEventListener("mousedown", (e) => {
   //     // e.preventDefault();
@@ -43,15 +52,11 @@ function Sidebar({ children }: { children: JSX.Element }) {
               <div className={style.item}>
                 <label>타입</label>
                 <Select
-                  onchange={(value: string) => {
+                  onChangeWithClick={(value: string) => {
                     editor.changeBlockType({
                       blockId: currentBlockId,
                       type: value,
                     });
-                    /**
-                     * update
-                     */
-                    editor.setBlockDataUpdate(true);
                   }}
                   style={{ fontSize: "12px" }}
                   selectedValue={editor.getBlock(currentBlockId)?.type}
@@ -79,6 +84,43 @@ function Sidebar({ children }: { children: JSX.Element }) {
                   <div className={style.item}>
                     <label>테두리 색상</label>
                     <input type="text" defaultValue={1} />
+                  </div>
+                </>
+              )}
+              {editor.getBlock(currentBlockId)?.type === "input" && (
+                <>
+                  <div className={style.item}>
+                    <label>레이블</label>
+                    <input type="text" defaultValue={"입력"} />
+                  </div>
+                  <div className={style.item}>
+                    <label>placehodler</label>
+                    <input
+                      type="text"
+                      defaultValue={"입력하세요"}
+                      onChange={(e) => {
+                        editor.changeBlockData({
+                          blockId: currentBlockId,
+                          data: {
+                            placeholder: e.target.value,
+                          },
+                        });
+                      }}
+                    />
+                  </div>
+                  <div className={style.item}>
+                    <label>필수</label>
+                    <ToggleSwitch
+                      defaultChecked
+                      onChange={(e: any) => {
+                        editor.changeBlockData({
+                          blockId: currentBlockId,
+                          data: {
+                            required: e.target.checked,
+                          },
+                        });
+                      }}
+                    />
                   </div>
                 </>
               )}
@@ -151,11 +193,13 @@ function Sidebar({ children }: { children: JSX.Element }) {
         </div>
       </div>
       <div
-        onFocus={(e) => {
-          if (e.target.contentEditable === "true") {
-            setCurrentBlockId(e.target.id);
-            editor.setCurrentBlockId(e.target.id);
-          }
+        // onFocus={(e) => {
+        //   if (e.target.contentEditable === "true") {
+        //     setCurrentBlockId(e.target.id);
+        //   }
+        // }}
+        onClick={() => {
+          setCurrentBlockId(editor.currentBlock().currentBlockId);
         }}
       >
         {children}
