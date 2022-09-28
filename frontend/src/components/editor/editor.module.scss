@@ -225,9 +225,8 @@
         padding: 5px;
         border-radius: 0px;
     }
-    .block.divider{
-        
-    }
+
+    .block.divider {}
 
 }
 
@@ -296,7 +295,7 @@
                         padding: 0 12px;
                     }
 
-                    input {
+                    input[type=text],input[type=number]  {
                         height: 30px;
                         flex: 1 1 0;
                         font-size: 12px;
