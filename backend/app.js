@@ -16,12 +16,7 @@ passportConfig();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: config.CLIENT,
-    credentials: true,
-  })
-);
+app.use(cors()); // API 요청에 대한 도메인 제한 없음
 
 const RedisStore = require("connect-redis")(session);
 const client = require("./caches/redis");
