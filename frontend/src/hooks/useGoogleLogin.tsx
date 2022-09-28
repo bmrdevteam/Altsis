@@ -1,6 +1,6 @@
 /**
  * @file useGoogleLogin
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -8,12 +8,12 @@
  * IN PRODUCTION
  *  - useGoogleLogin hook
  *  - GoogleLoginBtn component
- * 
+ *
  * -------------------------------------------------------
  *
  * IN MAINTENANCE
  *  - one Tap user not apearing -> GoogleLoginBtn component
- * 
+ *
  * -------------------------------------------------------
  *
  * IN DEVELOPMENT
@@ -40,7 +40,7 @@ import { useAuth } from "../contexts/authContext";
  *
  *  @version 1.0 initial version
  */
-export default function useGoogleLogin() {
+export default function useGoogleLogin(academyId: string) {
   // script script
   const [loadingScript, setLoadingScript] = useState<boolean>(true);
 
@@ -94,6 +94,7 @@ export default function useGoogleLogin() {
         // send the credential
         {
           credential: response.credential,
+          academyId: academyId,
         },
 
         // send post request with 🍪 cookies
@@ -118,12 +119,12 @@ export default function useGoogleLogin() {
  *
  * @version 1.0 initial version
  */
-export const GoogleLoginBtn = () => {
+export const GoogleLoginBtn = ({ academyId }: { academyId: string }) => {
   // to check if sb is logged in ( currentUser = null )
   const { currentUser } = useAuth();
 
   // get the loading state from the useGoogleLogin 🪝 hook
-  const status = useGoogleLogin();
+  const status = useGoogleLogin(academyId);
 
   // returns the component
   return (
