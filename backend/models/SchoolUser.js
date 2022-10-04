@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const _ = require("lodash");
 
-var config = require("../config/config.js");
-
 const { conn } = require("../databases/connection");
 
 const registrationSchema = mongoose.Schema(

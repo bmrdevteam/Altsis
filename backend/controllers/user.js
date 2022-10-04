@@ -1,8 +1,6 @@
 const { OAuth2Client } = require("google-auth-library");
 const passport = require("passport");
 const _ = require("lodash");
-
-const config = require("../config/config");
 const { User, SchoolUser, School, Academy } = require("../models/models");
 
 // utils
@@ -74,10 +72,10 @@ exports.connectGoogle = async (req, res) => {
     const user = req.user;
 
     /* set snsId using credential */
-    const client = new OAuth2Client(config.clientID);
+    const client = new OAuth2Client(process.env["GOOGLE_CLIENT_ID"]);
     const ticket = await client.verifyIdToken({
       idToken: req.body.credential,
-      audience: config.clientID,
+      audience: process.env["GOOGLE_CLIENT_ID"],
     });
     const payload = ticket.getPayload();
     const snsId = {

@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/usr/src/app
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    environment:
+      - DB_URL=${DB_URL}
+      - REDIS_URL=${REDIS_URL}
+      - s3_accessKeyId=${s3_accessKeyId}
+      - s3_secretAccessKey=${s3_secretAccessKey}
+      - s3_region=${s3_region}
+      - s3_bucket=${s3_bucket}
+      - saltRounts=${saltRounts}
+      - session_key=${session_key}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - PORT=${SERVER_PORT}
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/usr/src/app
+    ports:
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
+    environment:
+      - PORT=${CLIENT_PORT}
+      - REACT_APP_SERVER_URL=${URL}:${SERVER_PORT}
+      - REACT_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}

@@ -2,10 +2,8 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const session = require("express-session");
-const FileStore = require("session-file-store")(session);
 const passport = require("passport");
 
-const config = require("./config/config.js");
 const passportConfig = require("./passport");
 const routers = require("./routes/index");
 
@@ -19,9 +17,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: config.CLIENT2,
+    origin: process.env["URL"].trim(),
     credentials: true,
   })
+  // cors() //테스트를 위해 모든 도메인에서 오는 요청 허용(임시)
 );
 
 const RedisStore = require("connect-redis")(session);
@@ -31,7 +30,7 @@ app.use(
   session({
     resave: false, // req마다 session 새로 저장
     saveUninitialized: false, // uninitialized session을 저장함. false인 것이 리소스 활용 측면에서 유리하지만 rolling을 사용하려면 true가 되어야 한다.
-    secret: config["session-key"],
+    secret: process.env["session_key"].trim(),
     cookie: {
       httpOnly: true, // 브라우저에서 쿠키값에 대한 접근을 하지 못하게 막는다.
       secure: false, // HTTPS 통신 외에서는 쿠키를 전달하지 않는다.
@@ -58,7 +57,7 @@ routers.forEach((router) => {
 
 module.exports = app;
 
-app.set("port", config.SERVER_PORT || 3000);
+app.set("port", process.env["SERVER_PORT"].trim() || 3000);
 var server = app.listen(app.get("port"), function () {
   console.log("Express server listening on port " + server.address().port);
 });

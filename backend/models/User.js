@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 const validate = require("mongoose-validator");
-var config = require("../config/config.js");
 
 const { conn } = require("../databases/connection");
 const specialRegExp = /[!@#$%^&*()]+/;
@@ -99,7 +98,7 @@ userSchema.pre("save", function (next) {
   var user = this;
   if (user.isModified("password")) {
     //비밀번호가 바뀔때만 암호화
-    bcrypt.genSalt(config.saltRounds, function (err, salt) {
+    bcrypt.genSalt(process.env["saltRounds"], function (err, salt) {
       if (err) return next(err);
       bcrypt.hash(user.password, salt, function (err, hash) {
         if (err) return next(err);
