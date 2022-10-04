@@ -3,11 +3,11 @@ const multerS3 = require("multer-s3");
 const aws = require("aws-sdk");
 
 const s3 = new aws.S3({
-  accessKeyId: process.env["s3_accessKeyId"],
-  secretAccessKey: process.env["s3_secretAccessKey"],
-  region: process.env["s3_region"],
+  accessKeyId: process.env["s3_accessKeyId"].trim(),
+  secretAccessKey: process.env["s3_secretAccessKey"].trim(),
+  region: process.env["s3_region"].trim(),
 });
-const bucket = process.env["s3_bucket"];
+const bucket = process.env["s3_bucket"].trim();
 
 const whitelist = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
