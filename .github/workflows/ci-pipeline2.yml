@@ -5,20 +5,10 @@ on:
     branches: [test2]
 
 jobs:
-  CI:
-    name: CI
+  backend-CI:
+    name: backend-CI
     runs-on: ubuntu-latest
     env:
-      DB_URL: ${{ secrets.DB_URL }}
-      REDIS_URL: ${{secrets.REDIS_URL}}
-      s3_accessKeyId: ${{secrets.s3_accessKeyId}}
-      s3_secretAccessKey: ${{secrets.s3_secretAccessKey}}
-      s3_region: ${{secrets.s3_region}}
-      s3_bucket: ${{secrets.s3_bucket}}
-      saltRounts: ${{secrets.saltRounts}}
-      session_key: ${{secrets.session_key}}
-      GOOGLE_CLIENT_ID: ${{secrets.GOOGLE_CLIENT_ID}}
-      URL: ${{secrets.URL}}
       SERVER_PORT: ${{secrets.SERVER_PORT_TEST}}
       CLIENT_PORT: ${{secrets.CLIENT_PORT_TEST}}
 
@@ -52,14 +42,28 @@ jobs:
       - name: Build and push
         id: docker-build
         uses: docker/build-push-action@v2
+
         with:
-          context: .
+          context: backend
           file: ./backend/Dockerfile
           push: true
           tags: "ghcr.io/bmrdevteam/bsis-test_backend:latest"
           # (3)
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
+          build-args: |
+            DB_URL= ${{secrets.DB_URL}}
+            REDIS_URL= ${{secrets.REDIS_URL}}
+            s3_accessKeyId = ${{secrets.S3_ACCESSKEYID}}
+            s3_secretAccessKey= ${{secrets.S3_SECRETACCESSKEY}}
+            s3_region=${{secrets.S3_REGION}}
+            s3_bucket=${{secrets.S3_BUCKET}}
+            saltRounts= ${{secrets.SALTROUNTS}}
+            session_key= ${{secrets.SESSION_KEY}}
+            GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}
+            URL= ${{secrets.URL}}
+            SERVER_PORT= ${{env.SERVER_PORT}}
+            CLIENT_PORT=${{env.CLIENT_PORT}}
 
       # 이전 캐시 지우고 새로운 캐시 옮기기
       - name: Move cache
@@ -72,16 +76,18 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          author_name: Github Action Chatbot
+          author_name: Github Action Chatbot - backend-CI
           fields: repo,commit,message,author,action,took
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
         if: always() # Pick up events even if the job fails or is canceled.
 
-  CD:
-    name: CD
-    needs: CI
+  backend-CD:
+    name: backend-CD
+    needs: backend-CI
     runs-on: [self-hosted, label-go] # AWS ./configure에서 사용할 label명
+    env:
+      SERVER_PORT: ${{secrets.SERVER_PORT_TEST}}
 
     steps:
       # 체크아웃
@@ -96,8 +102,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      # Pull images
+      - name: Docker pull
+        run: |
+          docker pull ghcr.io/bmrdevteam/bsis-test_backend:latest
+
+      # Run containers
       - name: Docker run
         run: |
+          docker rm -f bsis-test_backend_1
           docker run --name bsis-test_backend_1 -p ${{env.SERVER_PORT}}:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-test_backend:latest
 
       # 슬랙 알림
@@ -105,7 +118,7 @@ jobs:
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          author_name: Github Action Chatbot - CD
+          author_name: Github Action Chatbot - backend-CD
           fields: repo,commit,message,author,action,took
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
