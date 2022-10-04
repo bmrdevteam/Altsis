@@ -1,0 +1,125 @@
+name: deploy-pipeline2
+
+on:
+  push:
+    branches: [test3]
+
+jobs:
+  backend-CI:
+    name: backend-CI
+    runs-on: ubuntu-latest
+    env:
+      SERVER_PORT: ${{secrets.SERVER_PORT_TEST}}
+      CLIENT_PORT: ${{secrets.CLIENT_PORT_TEST}}
+
+    steps:
+      # 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # docker build 세팅
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v2.0.0
+
+      # 캐시 받아오기
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # GitHub 컨테이너 레지스트리에 로그인
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io/bmrdevteam
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      # 빌드 후 푸쉬
+      - name: Build and push
+        id: docker-build
+        uses: docker/build-push-action@v2
+
+        with:
+          context: backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: "ghcr.io/bmrdevteam/bsis-test_backend:latest"
+          # (3)
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          build-args: |
+            DB_URL= ${{secrets.DB_URL}}
+            REDIS_URL= ${{secrets.REDIS_URL}}
+            s3_accessKeyId = ${{secrets.S3_ACCESSKEYID}}
+            s3_secretAccessKey= ${{secrets.S3_SECRETACCESSKEY}}
+            s3_region=${{secrets.S3_REGION}}
+            s3_bucket=${{secrets.S3_BUCKET}}
+            saltRounts= ${{secrets.SALTROUNTS}}
+            session_key= ${{secrets.SESSION_KEY}}
+            GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}
+            URL= ${{secrets.URL}}
+            SERVER_PORT= ${{env.SERVER_PORT}}
+            CLIENT_PORT=${{env.CLIENT_PORT}}
+
+      # 이전 캐시 지우고 새로운 캐시 옮기기
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # 슬랙 알림
+      - name: Send Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          author_name: Github Action Chatbot - backend-CI
+          fields: repo,commit,message,author,action,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.
+
+  backend-CD:
+    name: backend-CD
+    needs: backend-CI
+    runs-on: [self-hosted, label-go] # AWS ./configure에서 사용할 label명
+    env:
+      SERVER_PORT: ${{secrets.SERVER_PORT_TEST}}
+
+    steps:
+      # 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # GitHub 컨테이너 레지스트리에 로그인
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io/bmrdevteam
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      # Pull images
+      - name: Docker pull
+        run: |
+          docker pull ghcr.io/bmrdevteam/bsis-test_backend:latest
+
+      # Run containers
+      - name: Docker run
+        run: |
+          docker rm -f bsis-test_backend_1
+          docker run --name bsis-test_backend_1 -p ${{env.SERVER_PORT}}:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-test_backend:latest
+
+      # 슬랙 알림
+      - name: Send Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          author_name: Github Action Chatbot - backend-CD
+          fields: repo,commit,message,author,action,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.
