@@ -2,7 +2,7 @@ name: deploy-pipeline2
 
 on:
   push:
-    branches: [test2]
+    branches: [test3]
 
 jobs:
   backend-CI:
