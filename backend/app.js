@@ -10,13 +10,19 @@ const passportConfig = require("./passport");
 const routers = require("./routes/index");
 
 const app = express();
+console.log("test!");
 
 passportConfig();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(cors()); // API 요청에 대한 도메인 제한 없음
+app.use(
+  cors({
+    origin: config.CLIENT2,
+    credentials: true,
+  })
+);
 
 const RedisStore = require("connect-redis")(session);
 const client = require("./caches/redis");
