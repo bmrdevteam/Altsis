@@ -61,7 +61,6 @@ jobs:
             saltRounts= ${{secrets.SALTROUNTS}}
             session_key= ${{secrets.SESSION_KEY}}
             GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}
-            URL= ${{secrets.URL}}
             SERVER_PORT= ${{env.SERVER_PORT}}
             CLIENT_PORT=${{env.CLIENT_PORT}}
 

@@ -9,7 +9,6 @@ jobs:
     name: frontend-CI/CD
     runs-on: ubuntu-22.04
     env:
-      SERVER_PORT: ${{secrets.SERVER_PORT_DEV}}
       CLIENT_PORT: ${{secrets.CLIENT_PORT_DEV}}
       CI: false
 
@@ -32,7 +31,7 @@ jobs:
         run: |
           cd frontend
           echo "PORT=${{env.CLIENT_PORT}}" >> .env
-          echo "REACT_APP_SERVER_URL=${{secrets.URL}}:${{env.SERVER_PORT}}" >> .env
+          echo "REACT_APP_SERVER_URL=${{secrets.SERVER_URL}}" >> .env
           echo "REACT_APP_GOOGLE_CLIENT_ID=${{secrets.GOOGLE_CLIENT_ID}}" >> .env
 
       - name: Install Dependencies and Build
