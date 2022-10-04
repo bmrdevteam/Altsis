@@ -3,7 +3,9 @@ const root = require("./root");
 const Academy = require("../models/Academy");
 
 const getURL = (dbname) => {
-  return `${process.env["DB_URL"]}/${dbname}?retryWrites=true&w=majority`;
+  return `${process.env[
+    "DB_URL"
+  ].trim()}/${dbname}?retryWrites=true&w=majority`;
 };
 
 const conn = { root: root };
