@@ -6,11 +6,12 @@ on:
 
 jobs:
   frontend-CI:
-    name: frontend-CI
-    runs-on: ubuntu-latest
+    name: frontend-CI/CD
+    runs-on: ubuntu-22.04
     env:
       SERVER_PORT: ${{secrets.SERVER_PORT_TEST}}
       CLIENT_PORT: ${{secrets.CLIENT_PORT_TEST}}
+      CI: false
 
     steps:
       # 체크아웃
@@ -27,37 +28,46 @@ jobs:
             ${{ runner.OS }}-build-
             ${{ runner.OS }}-
 
-      - name: Install Dependencies # node module install
-        run: yarn
+      - name: Set .env File
+        run: |
+          cd frontend
+          echo "PORT=${{secrets.CLIENT_PORT_TEST}}" >> .env
+          echo "REACT_APP_SERVER_URL=${{secrets.URL}}:${{secrets.SERVER_PORT_TEST}}" >> .env
+          echo "REACT_APP_GOOGLE_CLIENT_ID=${{secrets.GOOGLE_CLIENT_ID}}" >> .env
 
-      - name: Build # project build
-        run: yarn build
+      - name: Install Dependencies and Build
+        run: |
+          cd frontend
+          yarn
+          yarn build
 
       - name: Deploy
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESSKEYID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRETACCESSKEY }}
+          AWS_REGION: ${{ secrets.S3_REGION }}
+
         run: |
+          cd frontend
           aws s3 sync \
           --acl public-read \
           --cache-control private,max-age=0,must-revalidate \
           --include "*.html" --include "*.json" \
           --delete \
-          ./build ${{secrets.S3_BUCKET_CLIENT}}
+          ./build ${{secrets.S3_BUCKET_CLIENT}} 
           aws s3 sync \
           --acl public-read \
-          --cache-control private,
-          max-age=31536000 \
+          --cache-control private,max-age=31536000 \
           --exclude "*.html" --exclude "*.json" \
           --delete \
-          ./build ${{secrets.S3_BUCKET_CLIENT}}
+          ./build ${{secrets.S3_BUCKET_CLIENT}} \
 
       # 슬랙 알림
       - name: Send Slack Notification
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          author_name: Github Action Chatbot - frontend-CI/CD
+          author_name: Github Action Chatbot - frontend-CI/CD 2
           fields: repo,commit,message,author,action,took
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
