@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import Button from "../../components/button/Button";
+import Popup from "../../components/popup/Popup";
 import Select from "../../components/select/Select";
 import ToggleSwitch from "../../components/toggleSwitch/ToggleSwitch";
 import style from "../editor.module.scss";
 import { useEditor } from "../functions/editorContext";
+import DatatableMenu from "./sidebar/DatatableMenu";
+import Menu from "./sidebar/Menu";
 
 type Props = {
   callPageReload: () => void;
@@ -27,35 +30,28 @@ const Sidebar = (props: Props) => {
   const [, updateState] = React.useState({});
   const forcefullyReloadSidebar = React.useCallback(() => updateState({}), []);
 
-
   document.onclick = (e) => {
     if (
       editorPageRef.current &&
       editorPageRef.current.contains(e.target as Node)
     ) {
-      forcefullyReloadSidebar()
+      forcefullyReloadSidebar();
+      console.log(getCurrentBlock());
     }
   };
-
 
   console.log("sidebar reloaded");
 
   const [addNewBlockType, setAddNewBlockType] = useState<string>("paragraph");
+  const blockTypes = [
+    { text: "텍스트", value: "paragraph" },
+    { text: "테이블", value: "table" },
+    { text: "Data 테이블", value: "dataTable" },
+    { text: "선", value: "divider" },
+    { text: "[input]", value: "input" },
+    { text: "[select]", value: "select" },
+  ];
 
-  const Menu = ({
-    children,
-    name,
-  }: {
-    children: React.ReactNode | React.ReactNode[];
-    name: string;
-  }) => {
-    return (
-      <div className={style.menu}>
-        <div className={style.name}>{name}</div>
-        <div className={style.content}>{children}</div>
-      </div>
-    );
-  };
   const AddBlockMenu = () => {
     return (
       <Menu name="블록 추가">
@@ -68,13 +64,7 @@ const Sidebar = (props: Props) => {
               setAddNewBlockType(value);
             }}
             selectedValue={addNewBlockType}
-            options={[
-              { text: "텍스트", value: "paragraph" },
-              { text: "테이블", value: "table" },
-              { text: "선", value: "divider" },
-              { text: "[input]", value: "input" },
-              { text: "[select]", value: "select" },
-            ]}
+            options={blockTypes}
           />
         </div>
         <Button
@@ -106,18 +96,12 @@ const Sidebar = (props: Props) => {
           <Select
             onChangeWithClick={(value: any) => {
               changeCurrentBlockType(value);
-              forcefullyReloadSidebar()
+              forcefullyReloadSidebar();
             }}
             style={{ fontSize: "12px" }}
             selectedValue={getCurrentBlock()?.type}
             appearence="flat"
-            options={[
-              { text: "텍스트", value: "paragraph" },
-              { text: "테이블", value: "table" },
-              { text: "선", value: "divider" },
-              { text: "[input]", value: "input" },
-              { text: "[select]", value: "select" },
-            ]}
+            options={blockTypes}
           />
         </div>
         <div className={style.item}>
@@ -143,8 +127,7 @@ const Sidebar = (props: Props) => {
           <label>셀 타입</label>
           <Select
             onChangeWithClick={(value: any) => {
-
-              forcefullyReloadSidebar()
+              forcefullyReloadSidebar();
             }}
             style={{ fontSize: "12px" }}
             selectedValue={getCurrentCell()?.type}
@@ -160,10 +143,7 @@ const Sidebar = (props: Props) => {
         <div className={style.item}>
           <label>셀 colSpan</label>
           <Select
-            onChangeWithClick={(value: any) => {
-
-
-            }}
+            onChangeWithClick={(value: any) => {}}
             style={{ fontSize: "12px" }}
             selectedValue={getCurrentCell()?.data?.colSpan}
             appearence="flat"
@@ -296,7 +276,9 @@ const Sidebar = (props: Props) => {
       <div className={style.sidebar}>
         <AddBlockMenu />
         <BlockMenu />
+
         {getCurrentBlock()?.type === "table" && <TableBlockMenu />}
+        {getCurrentBlock()?.type === "dataTable" && <DatatableMenu />}
         {getCurrentBlock()?.type === "input" && <InputBlockMenu />}
         <TextMenu />
       </div>
