@@ -3,7 +3,6 @@ const CustomStrategy = require("passport-custom").Strategy;
 const User = require("../models/User");
 const Academy = require("../models/Academy");
 const { OAuth2Client } = require("google-auth-library");
-const clientID = require("../config/config")["GOOGLE-ID"];
 
 module.exports = () => {
   passport.use(
@@ -21,10 +20,10 @@ module.exports = () => {
           throw err;
         }
 
-        const client = new OAuth2Client(clientID);
+        const client = new OAuth2Client(process.env["GOOGLE_CLIENT_ID"]);
         const ticket = await client.verifyIdToken({
           idToken: credential,
-          audience: clientID,
+          audience: process.env["GOOGLE_CLIENT_ID"],
         });
         const payload = ticket.getPayload();
         const user = await User(academy.dbName).findOne({
