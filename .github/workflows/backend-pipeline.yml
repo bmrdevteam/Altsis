@@ -58,7 +58,6 @@ jobs:
       - name: Build and push
         id: docker-build
         uses: docker/build-push-action@v2
-
         with:
           context: backend
           file: ./backend/Dockerfile
@@ -73,6 +72,12 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # 이전 이미지 삭제
+      - name: Prune images
+        run: |
+          docker image prune -f
+          docker images
 
       # 슬랙 알림
       - name: Send Slack Notification
