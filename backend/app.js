@@ -1,6 +1,4 @@
 require("dotenv").config();
-console.log("process.env... ");
-console.log(process.env);
 
 const express = require("express");
 const cookieParser = require("cookie-parser");
