@@ -1,6 +1,7 @@
 /node_modules
 ecosystem.config.js
 .env
+/config
 
 #If you're using Zero-Installs:
  .yarn/*
