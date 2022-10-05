@@ -4,6 +4,7 @@ import style from "../editor.module.scss";
 import ParagraphBlock from "./ParagraphBlock";
 import TableBlock from "./table/TableBlock";
 import InputBlock from "./InputBlock";
+import DataTableBlock from "./dataTable/DataTableBlock";
 
 type Props = { index: number };
 
@@ -39,6 +40,12 @@ const Block = (props: Props) => {
       return (
         <Wrapper>
           <TableBlock index={props.index} />
+        </Wrapper>
+      );
+    case "dataTable":
+      return (
+        <Wrapper>
+          <DataTableBlock index={props.index} />
         </Wrapper>
       );
     case "input":
