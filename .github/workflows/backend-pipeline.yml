@@ -38,6 +38,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      # .env 파일 생성
+      - name: Set .env File
+        run: |
+          cd backend
+          echo "DB_URL= ${{secrets.DB_URL}}" >> .env
+          echo "REDIS_URL= ${{secrets.REDIS_URL}}" >> .env
+          echo "s3_accessKeyId = ${{secrets.S3_ACCESSKEYID}}" >> .env
+          echo "s3_secretAccessKey= ${{secrets.S3_SECRETACCESSKEY}}" >> .env
+          echo "s3_region=${{secrets.S3_REGION}}" >> .env
+          echo "s3_bucket=${{secrets.S3_BUCKET}}" >> .env
+          echo "saltRounts= ${{secrets.SALTROUNTS}}" >> .env
+          echo "session_key= ${{secrets.SESSION_KEY}}" >> .env
+          echo "GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}" >> .env
+          echo "URL= ${{secrets.URL}}" >> .env
+          echo "SERVER_PORT= ${{env.SERVER_PORT}}" >> .env
+
       # 빌드 후 푸쉬
       - name: Build and push
         id: docker-build
@@ -51,19 +67,6 @@ jobs:
           # (3)
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
-          build-args: |
-            DB_URL= ${{secrets.DB_URL}}
-            REDIS_URL= ${{secrets.REDIS_URL}}
-            s3_accessKeyId = ${{secrets.S3_ACCESSKEYID}}
-            s3_secretAccessKey= ${{secrets.S3_SECRETACCESSKEY}}
-            s3_region=${{secrets.S3_REGION}}
-            s3_bucket=${{secrets.S3_BUCKET}}
-            saltRounts= ${{secrets.SALTROUNTS}}
-            session_key= ${{secrets.SESSION_KEY}}
-            GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}
-            URL= ${{secrets.URL}}
-            SERVER_PORT= ${{env.SERVER_PORT}}
-            CLIENT_PORT=${{env.CLIENT_PORT}}
 
       # 이전 캐시 지우고 새로운 캐시 옮기기
       - name: Move cache

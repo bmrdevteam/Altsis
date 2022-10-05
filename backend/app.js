@@ -1,3 +1,7 @@
+require("dotenv").config();
+console.log("process.env... ");
+console.log(process.env);
+
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -8,7 +12,6 @@ const passportConfig = require("./passport");
 const routers = require("./routes/index");
 
 const app = express();
-console.log("test!");
 
 passportConfig();
 
