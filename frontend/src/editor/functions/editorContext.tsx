@@ -45,6 +45,7 @@ export function useEditor(): {
   result: () => Array<any>;
   getBlock: (blockIndex: number) => any;
   setCurrentCell: (id: string) => void;
+  setCurrentCellIndex: (row: number, col: number) => void;
   getCurrentCell: () => any;
 } {
   return useContext(EditorContext);
@@ -213,6 +214,50 @@ export const EditorProvider = (props: {
       type: blockType ? blockType : "paragraph",
       data: blockData ? blockData : { text: "" },
     };
+    if (blockType === "table") {
+      block = {
+        id: `${props.id}-${blockId}`,
+        type: "table",
+        data: {
+          table: {
+            0: [
+              {
+                id: `${blockId}-${generateId(12)}`,
+                data: { text: "" },
+                type: "paragraph",
+              },
+              {
+                id: `${blockId}-${generateId(12)}`,
+                data: { text: "" },
+                type: "paragraph",
+              },
+              {
+                id: `${blockId}-${generateId(12)}`,
+                data: { text: "" },
+                type: "paragraph",
+              },
+            ],
+            1: [
+              {
+                id: `${blockId}-${generateId(12)}`,
+                data: { text: "" },
+                type: "checkbox",
+              },
+              {
+                id: `${blockId}-${generateId(12)}`,
+                data: { text: "" },
+                type: "input",
+              },
+              {
+                id: `${blockId}-${generateId(12)}`,
+                data: { text: "" },
+                type: "select",
+              },
+            ],
+          },
+        },
+      };
+    }
     console.log("inserting after", insertIndex);
 
     const q = () => {
@@ -301,19 +346,31 @@ export const EditorProvider = (props: {
    * --------------------------------------------------------------------
    */
   const currentCellId = useRef<any>(null);
+  const currentCellRow = useRef<any>(null);
+  const currentCellCol = useRef<any>(null);
+
   function setCurrentCell(id: string) {
     currentCellId.current = id;
   }
+  function setCurrentCellIndex(row: number, col: number) {
+    console.log("row", row, "col", col);
+
+    currentCellRow.current = row;
+    currentCellCol.current = col;
+  }
 
   function getCurrentCell() {
-    if (currentCellId.current) {
-      const flattenedArray = getCurrentBlock().data.table?.flat();
-      if (flattenedArray) {
-        return flattenedArray.filter(
-          (val: any) => val.id === currentCellId.current
-        )[0];
-      }
+    if (!(currentCellRow.current && currentCellCol.current)) {
+      currentCellRow.current = 0;
+      currentCellCol.current = 0;
     }
+    console.log(
+      getCurrentBlock().data?.table[currentCellRow.current][
+        parseInt(currentCellCol.current)
+      ]
+    );
+
+    return;
   }
 
   /**
@@ -357,6 +414,7 @@ export const EditorProvider = (props: {
     changeBlockData,
 
     setCurrentCell,
+    setCurrentCellIndex,
     getCurrentCell,
 
     result,

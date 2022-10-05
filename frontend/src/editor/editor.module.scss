@@ -158,6 +158,82 @@
             }
         }
 
+        .popup_container {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+            font-weight: 500;
+
+            .controls {
+                display: flex;
+                margin: 12px 0;
+                align-items: center;
+
+                .title {
+                    font-weight: 600;
+                }
+            }
+
+            .column_settings {
+                display: flex;
+                overflow-y: auto;
+                gap: 4px;
+
+                .item {
+                    width: 100%;
+                    min-width: 42px;
+                    flex: 1 1 0;
+                    background-color: var(--component-color);
+                    border: none;
+                    outline: none;
+                    padding: 4px 6px;
+                    border-radius: 4px;
+                }
+
+            }
+
+            .table_container {
+overflow-y: auto;
+
+                table {
+                    width: 100%;
+                    border-color: var(--accent-5);
+
+                    tr {
+                        height: 26px;
+
+                        td {
+                            table-layout: fixed;
+                            height: inherit;
+                            border: var(--border-default);
+                        }
+                    }
+
+                    thead,
+                    tbody {
+
+                        .item {
+                            outline: none;
+                            padding: 4px 6px;
+
+
+                        }
+
+                        .item:empty:before {
+                            content: attr(placeholder);
+                            color: rgb(171, 171, 171);
+                            display: block;
+                            cursor: text;
+                        }
+
+                    }
+                }
+            }
+
+        }
+
+
     }
 }
 
@@ -239,10 +315,11 @@
     td {
         border: var(--border-default);
         border-width: 2px;
-        .cell{
+
+        .cell {
             outline: none;
             padding: 4px 6px;
         }
-        
+
     }
 }
