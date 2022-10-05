@@ -130,6 +130,7 @@ const Login = () => {
      */
     if (pid !== undefined && pid !== "undefined" && pid !== "0") {
       if (cookies.academyId === undefined) {
+        
         /**
          * if the cookie is not yet set, set the cookie with the pid
          */
@@ -137,7 +138,7 @@ const Login = () => {
           path: "/",
           expires: date,
         });
-
+        
         /**
          * set the current academy
          */
@@ -194,6 +195,7 @@ const Login = () => {
      */
     if (pid === undefined) {
       removeCookie("academyId");
+      
     }
 
     return () => {};
@@ -228,7 +230,7 @@ const Login = () => {
       });
   };
 
-  if (academy === undefined) {
+  if (academy === undefined || academy === "") {
     let options: { text: string; value: string }[] = [{ text: "", value: "" }];
     academies?.map((value, index) => {
       options.push({ text: value.academyName, value: value.academyId });

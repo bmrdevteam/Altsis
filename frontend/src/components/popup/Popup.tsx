@@ -41,35 +41,34 @@ import style from "./popup.module.scss";
  *
  * @returns
  */
-const Popup = ({
-  children,
-  setState,
-  title,
-  closeBtn,
-  borderRadius,
-}: {
+
+type Props = {
   children: JSX.Element | JSX.Element[];
   setState: any;
   title?: string;
+  style?: any;
   closeBtn?: boolean;
   borderRadius?: string;
-}) => {
+};
+const Popup = (props: Props) => {
   /**
    * return the component
    */
   return (
     <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 2024,
-      }}
+      style={
+        {
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 2024,
+        }
+      }
     >
       <div
         style={{
@@ -80,28 +79,28 @@ const Popup = ({
           backdropFilter: "blur(1px)",
         }}
         onClick={() => {
-          setState(false);
+          props.setState(false);
         }}
       ></div>
 
       <div
         className={style.popup_container}
-        style={{ borderRadius: borderRadius ?? "0px" }}
+        style={props.style}
       >
         <div className={style.popup}>
-          <div className={style.title}>{title}</div>
-          {closeBtn && (
+          <div className={style.title}>{props.title}</div>
+          {props.closeBtn && (
             <div
               className={style.x}
               onClick={() => {
-                setState(false);
+                props.setState(false);
               }}
             >
               <Svg type="x" width="24px" height="24px" />
             </div>
           )}
         </div>
-        {children}
+        {props.children}
       </div>
     </div>
   );

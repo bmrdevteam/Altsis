@@ -106,7 +106,7 @@ export default function useDatabase() {
    *
    * @returns retrived data or throws an error
    *
-   * @example R(location: {"/users/list"}})
+   * @example R({location: "users/list"})
    *
    * @version 1.0 initial version
    *

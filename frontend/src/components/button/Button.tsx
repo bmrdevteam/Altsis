@@ -26,7 +26,7 @@
  *
  */
 
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import style from "./button.module.scss";
 
 type Props = {
@@ -36,7 +36,7 @@ type Props = {
   round?: boolean;
   disabled?: boolean;
   disableOnclick?: boolean;
-  styles?: object;
+  styles?: CSSProperties;
 };
 
 /**
