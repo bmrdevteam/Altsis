@@ -7,10 +7,7 @@ type Props = {
         value: string | number;
       }[];
 
-  style?: {
-    minWidth?: string;
-    width?: string;
-  };
+  style?: any;
   ref?: any;
   label?: string;
   required?: boolean;
@@ -66,6 +63,7 @@ const Autofill = (props: Props) => {
 
   return (
     <div
+      style={props.style}
       className={`${style.input_container} ${
         props.appearence === "flat" && style.flat
       }`}
