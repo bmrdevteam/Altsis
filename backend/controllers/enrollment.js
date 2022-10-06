@@ -193,12 +193,17 @@ const createBulk = async (req, res) => {
 };
 
 const getAll = async (req, res) => {
-  const enrollments = await Enrollment(req.user.dbName).find({
-    userId: req.query.userId,
-    "syllabus.year": req.query.year,
-    "syllabus.term": req.query.term,
-    "syllabus.schoolId": req.query.schoolId,
-  });
+  queries = _.pickBy(
+    {
+      userId: req.query.userId,
+      "syllabus.year": req.query.year,
+      "syllabus.term": req.query.term,
+      "syllabus.schoolId": req.query.schoolId,
+    },
+    (v) => v !== undefined
+  );
+
+  const enrollments = await Enrollment(req.user.dbName).find(queries);
   return res.status(200).send({
     enrollments: enrollments.map((enrollment) => {
       console.log(enrollment["syllabus"]["classTitle"]);
