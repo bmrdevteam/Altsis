@@ -16,7 +16,7 @@ const _findById = async (dbName, _id) => {
 
 /* create */
 
-exports.create = async (req, res) => {
+module.exports.create = async (req, res) => {
   try {
     const _School = School(req.user.dbName);
 
@@ -31,13 +31,81 @@ exports.create = async (req, res) => {
     /* create and save document */
     const school = new _School(req.body);
     await school.save();
-    return res.status(200).send({ school });
+    return res.status(200).send(school);
   } catch (err) {
-    return res.status(500).send({ err: err.message });
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
 
-exports.pushField = async (req, res) => {
+module.exports.find = async (req, res) => {
+  try {
+    if (req.params._id) {
+      const school = await School(req.user.dbName).findById(req.params._id);
+      // const seasons = await Season(req.user.dbName).find({schoolId:school.schoolId});
+      const seasons = [
+        { year: "2022학년도", term: "1쿼터" },
+        { year: "2022학년도", term: "2쿼터" },
+      ];
+      return res
+        .status(200)
+        .send(_.merge(school.toObject(), { seasons: seasons }));
+    }
+    const schools = (await School(req.user.dbName).find({})).map((school) => {
+      return {
+        _id: school._id,
+        schoolId: school.schoolId,
+        schoolName: school.schoolName,
+      };
+    });
+    return res.status(200).send(schools);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.updateSubjects = async (req, res) => {
+  try {
+    const school = await School(req.user.dbName).findById(req.params._id);
+    if (!school) {
+      return res.status(404).send({ message: "school not found" });
+    }
+    school.subjects = req.body.new;
+    await school.save();
+    return res.status(200).send(school);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.updateClassrooms = async (req, res) => {
+  try {
+    const school = await School(req.user.dbName).findById(req.params._id);
+    if (!school) {
+      return res.status(404).send({ message: "school not found" });
+    }
+    school.classrooms = req.body.new;
+    await school.save();
+    return res.status(200).send(school);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.updateFormArchive = async (req, res) => {
+  try {
+    const school = await School(req.user.dbName).findById(req.params._id);
+    if (!school) {
+      return res.status(404).send({ message: "school not found" });
+    }
+    school.formArchive = req.body.new;
+    await school.save();
+    return res.status(200).send(school);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.pushField = async (req, res) => {
   try {
     /* validaton */
     if (_.isEmpty(req.body.new)) {
