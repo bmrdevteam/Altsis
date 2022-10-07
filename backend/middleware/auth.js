@@ -73,3 +73,14 @@ exports.isOwnerOrAdmin = (req, res, next) => {
     res.status(403).send({ message: "You are not logged in." });
   }
 };
+
+authRank = {
+  owner: 1,
+  admin: 2,
+  manager: 3,
+  member: 4,
+};
+
+exports.isLower = (auth1, auth2) => {
+  return authRank[auth1] > authRank[auth2];
+};
