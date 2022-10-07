@@ -1,31 +1,15 @@
-const { OAuth2Client } = require("google-auth-library");
 const passport = require("passport");
 const _ = require("lodash");
-const { User, SchoolUser, School, Academy } = require("../models/models");
-
-// utils
-
-const update = async (user, field, val) => {
-  /* update user document & check validation */
-  user[field] = val;
-  if (!user.checkValidation(field)) {
-    const err = new Error("validation failed");
-    err.status = 400;
-    throw err;
-  }
-  /* save document */
-  await user.save();
-};
+const { User, Academy } = require("../models/models");
+const { getPayload } = require("../utils/payload");
+const { isLower } = require("../middleware/auth");
 
 // ____________ common ____________
 
-exports.loginLocal = async (req, res) => {
-  /* authenticate */
-  passport.authenticate("local2", (err, user, dbName) => {
+module.exports.loginLocal = async (req, res) => {
+  passport.authenticate("local2", (authError, user, dbName) => {
     try {
-      if (err) throw err;
-
-      /* login */
+      if (authError) throw authError;
       return req.login({ user, dbName }, (loginError) => {
         if (loginError) throw loginError;
 
@@ -33,23 +17,18 @@ exports.loginLocal = async (req, res) => {
         if (req.body.persist === "true") {
           req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
         }
-        return res.status(200).send({
-          user,
-        });
+        return res.status(200).send(user);
       });
     } catch (err) {
-      return res.status(err.status || 500).send({ err: err.message });
+      return res.status(err.status || 500).send({ message: err.message });
     }
   })(req, res);
 };
 
-exports.loginGoogle = async (req, res) => {
-  /* authenticate */
-  passport.authenticate("google2", (err, user, dbName) => {
+module.exports.loginGoogle = async (req, res) => {
+  passport.authenticate("google2", (authErr, user, dbName) => {
     try {
-      if (err) throw err;
-
-      /* login */
+      if (authErr) throw authErr;
       return req.login({ user, dbName }, (loginError) => {
         if (loginError) throw loginError;
 
@@ -57,82 +36,15 @@ exports.loginGoogle = async (req, res) => {
         if (req.body.persist === "true") {
           req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
         }
-        return res.status(200).send({
-          user,
-        });
+        return res.status(200).send(user);
       });
     } catch (err) {
-      return res.status(err.status || 500).send({ err: err.message });
+      return res.status(err.status || 500).send({ message: err.message });
     }
   })(req, res);
 };
 
-exports.connectGoogle = async (req, res) => {
-  try {
-    const user = req.user;
-
-    /* set snsId using credential */
-    const client = new OAuth2Client(process.env["GOOGLE_CLIENT_ID"]);
-    const ticket = await client.verifyIdToken({
-      idToken: req.body.credential,
-      audience: process.env["GOOGLE_CLIENT_ID"],
-    });
-    const payload = ticket.getPayload();
-    const snsId = {
-      "snsId.provider": "google",
-      "snsId.email": payload.email,
-    };
-
-    /* check email duplication */
-    const exUser = await User(user.dbName).findOne(snsId);
-    if (exUser)
-      return res.status(409).send({
-        message: `email '${payload.email}'is already in use`,
-      });
-
-    /* check google duplication */
-    if (!user.snsId.some((snsId) => snsId.provider === "google")) {
-      snsId;
-    } else {
-      return res.status(409).send({
-        message: "google email is already connected",
-      });
-    }
-
-    /* save document */
-    user.snsId.push({ snsId });
-    await user.save();
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.disconnectGoogle = async (req, res) => {
-  try {
-    const user = req.user;
-
-    /* find google snsId idx */
-    const idx = user.snsId.findIndex((snsId) => snsId.provider === "google");
-    if (idx == -1) {
-      return res.status(404).send({
-        message: "google email not found",
-      });
-    }
-
-    /* delete google snsId */
-    user.snsId.splice(idx, 1);
-
-    /* save document */
-    await user.save();
-    return res.status(200).send();
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.logout = (req, res) => {
-  /* logout */
+module.exports.logout = (req, res) => {
   req.logout((err) => {
     if (err) return res.status(500).send({ err });
     req.session.destroy();
@@ -143,323 +55,302 @@ exports.logout = (req, res) => {
 
 // ____________ create ____________
 
-exports.createOwner = async (req, res) => {
-  try {
-    const _User = User("root");
+module.exports.create = async (req, res) => {
+  switch (req.user.auth) {
+    case "owner":
+      if (req.body.auth == "owner" || req.body.auth == "admin") break;
+    case "admin":
+      if (req.body.auth == "manager" || req.body.auth == "member") break;
+      break;
+    case "manager":
+      if (req.body.auth == "member") break;
+    default:
+      return res.status(401).send({ message: "You are not authorized." });
+  }
 
-    /* check duplication */
-    const exUser = await _User.findOne({ userId: req.body.userId });
+  const _User = User(req.user.dbName);
+
+  /* check duplication */
+  const exUser = await _User.findOne({ userId: req.body.userId });
+  if (exUser)
+    return res.status(409).send({
+      message: `userId '${req.body.userId}' is already in use`,
+    });
+
+  /* create document */
+  const user = new _User(req.body);
+  user.academyId = req.user.academyId;
+  user.academyName = req.user.academyName;
+
+  /* check validation */
+  if (!user.checkValidation()) {
+    return res.status(400).send({ message: "validation failed" });
+  }
+
+  /* save document */
+  await user.save();
+  user.password = undefined;
+  return res.status(200).send(user);
+};
+
+module.exports.createBulk = async (req, res) => {
+  switch (req.user.auth) {
+    case "admin":
+      break;
+    case "manager":
+      break;
+    default:
+      return res.status(401).send({ message: "You are not authorized." });
+  }
+
+  const _User = User(req.user.dbName);
+  const users = [];
+
+  /* check userId duplication */
+  const mergedUserIds = _.merge(
+    (await _User.find({})).map((_user) => _user.userId), //exUserIds
+    req.body.map((_user) => _user.userId) //newUserIds
+  );
+  const duplicatedUserIds = [];
+  const counter = _.countBy(mergedUserIds);
+  for (const userId in counter) {
+    if (counter[userId] != 1) {
+      duplicatedUserIds.push(userId);
+    }
+  }
+
+  if (!_.isEmpty(duplicatedUserIds)) {
+    return res
+      .status(409)
+      .send({ message: `userId '${duplicatedUserIds}' is already in use` });
+  }
+
+  for (let _user of req.body) {
+    /* create document */
+    const user = new _User(_user);
+    /* validate */
+    if (!user.checkValidation()) {
+      return res.status(400).send({ message: "validation failed" });
+    }
+
+    user.academyId = req.user.academyId;
+    user.academyName = req.user.academyName;
+    user.auth = "member";
+    users.push(user);
+  }
+
+  /* save documents */
+  await Promise.all([users.map((user) => user.save())]);
+  return res.status(200).send(users);
+};
+
+// ____________ find ____________
+
+module.exports.find = async (req, res) => {
+  try {
+    /* query가 없으면 자기 자신을 읽음 */
+    console.log("debug: req.query is ", req.query);
+    if (_.isEmpty(req.query)) {
+      /* include registrations */
+      const registrations = [
+        { year: "2022년", term: "1쿼터" },
+        { year: "2022년", term: "2쿼터" },
+      ];
+
+      /*
+      const registrations=await Promise.all(
+        user.schools.map((school) =>
+        Registration(user.dbName).findOne({
+            userId: user.userId,
+            schoolId: school.schoolId,
+          })
+        )
+      );
+      */
+
+      return res
+        .status(200)
+        .send(_.merge(req.user.toObject(), { registrations }));
+    }
+
+    /* owner만 다른 아카데미 유저 정보 조회 가능 */
+
+    let _User = null;
+    if (req.user.academyId == req.query.academyId) {
+      _User = User(req.user.dbName);
+    } else if (req.user.auth == "owner") {
+      const academy = await Academy.findOne({ academyId: req.query.academyId });
+      _User = User(academy.dbName);
+    } else {
+      return res.status(401).send({ message: "You are not authorized." });
+    }
+
+    /* find by userId or userName */
+    if (req.query.userId) {
+      const user = await _User.findOne({ userId: req.query.userId });
+      return res.status(200).send(user);
+    }
+    if (req.query.userName) {
+      const user = await _User.findOne({ userName: req.query.userName });
+      return res.status(200).send(user);
+    }
+
+    /* find by auth, schoolId, schoolName */
+    let users = null;
+    if (req.query.auth) {
+      /* auth가 낮은 유저는 조회 권한이 없음 */
+      if (isLower(req.user.auth, req.query.auth)) {
+        return res.status(401).send({ message: "You are not authorized." });
+      }
+      users = await _User.find({ auth: req.query.auth });
+    } else if (req.query.schoolId) {
+      users = await _User.find({ "schools.schoolId": req.query.schoolId });
+    } else if (req.query.schoolName) {
+      users = await _User.find({
+        "schools.schoolName": req.query.schoolName,
+      });
+    } else {
+      users = await _User.find();
+    }
+    return res.status(200).send(users);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+// ____________ update(myself) ____________
+
+module.exports.updatePassword = async (req, res) => {
+  try {
+    req.user.password = req.body.new;
+    if (!req.user.checkValidation("password")) {
+      return res.status(400).send({ message: "validation failed" });
+    }
+    await req.user.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.updateEmail = async (req, res) => {
+  try {
+    req.user.email = req.body.new;
+    if (!req.user.checkValidation("email")) {
+      return res.status(400).send({ message: "validation failed" });
+    }
+    await req.user.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.connectGoogle = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    /* get payload */
+    const payload = await getPayload(credential);
+
+    /* check email duplication */
+    const exUser = await User(req.user.dbName).findOne({
+      "snsId.google": payload.email,
+    });
     if (exUser)
       return res.status(409).send({
-        message: `userId '${req.body.userId}' is already in use`,
+        message: `email '${payload.email}'is already in use`,
       });
 
-    /* create document */
-    const user = new _User(req.body);
-    user.auth = "owner";
-    // generate password
-    const password = _User.generatePassword();
-    user.password = password;
+    /* update document */
+    req.user["snsId.google"] = payload.email;
+    req.user.markModified(field);
+    await req.user.save();
 
-    /* save document */
-    await user.save();
-
-    user.password = password;
-    return res.status(200).send({
-      user,
-    });
+    return res.status(200).send();
   } catch (err) {
-    return res.status(500).send({ err: err.message });
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
 
-exports.createMembers = async (req, res) => {
-  try {
-    const _User = User(req.user.dbName);
-    const _SchoolUser = SchoolUser(req.user.dbName);
+module.exports.disconnectGoogle = async (req, res) => {
+  delete req.user.snsId.google;
+  req.user.markModified("snsId");
+  await req.user.save();
 
-    /* get userId list */
-    const exUserIds = (await _User.find({})).map((user) => user.userId);
-
-    for (let _user of req.body.users) {
-      /* check userId duplication */
-      if (exUserIds.includes(_user.userId)) {
-        return res
-          .status(409)
-          .send({ message: `userId '${_user.userId}' is already in use` });
-      }
-
-      /* check validation */
-      if (!_User.checkValidation(_user)) {
-        return res.status(400).send({ message: "validation failed" });
-      }
-    }
-
-    /* create user & schoolUser document */
-    const users = [];
-    const schoolUsers = [];
-    for (const _user of req.body.users) {
-      const user = new _User(_user);
-      user.academyId = req.user.academyId;
-      user.academyName = req.user.academyName;
-
-      /* register school if requested */
-      if (_user.schoolId) {
-        user["schools"] = [
-          {
-            schoolId: _user.schoolId,
-            schoolName: _user.schoolName,
-          },
-        ];
-
-        const schoolUser = new _SchoolUser(user);
-        schoolUser.schoolId = _user.schoolId;
-        schoolUser.schoolName = _user.schoolName;
-        schoolUser.role = _user.role;
-        schoolUsers.push(schoolUser);
-      }
-
-      users.push(user);
-    }
-
-    /* save documents */
-    await Promise.all([
-      users.map((user) => user.save()),
-      schoolUsers.map((schoolUser) => schoolUser.save()),
-    ]);
-    return res.status(200).send({ users, schoolUsers });
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
-// ____________ read ____________
-
-exports.read = async (req, res) => {
-  try {
-    /* find user and schoolUser */
-    const user = req.user;
-    const schoolUsers = await Promise.all(
-      user.schools.map((school) =>
-        SchoolUser(req.user.dbName).findOne({
-          userId: user.userId,
-          schoolId: school.schoolId,
-        })
-      )
-    );
-    res.status(200).send({
-      user,
-      schoolUsers,
-    });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.readOwners = async (req, res) => {
-  try {
-    /* find users */
-    const users = await User("root").find({});
-    return res.status(200).send({ users });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.readAdmin = async (req, res) => {
-  try {
-    /* find admin */
-    const academy = await Academy.findOne({ academyId: req.query.academyId });
-    const user = await User(academy.dbName).findOne({
-      userId: academy.adminId,
-    });
-    return res.status(200).send({ user });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.readMembers = async (req, res) => {
-  try {
-    /* find members */
-    const users = await User(req.user.dbName).find({});
-    return res.status(200).send({ users });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
+  return res.status(200).send();
 };
 
 // ____________ update ____________
 
-exports.updateField = async (req, res) => {
+module.exports.updateAuth = async (req, res) => {
   try {
-    const user = req.user;
-    await update(user, req.params.field, req.body.new);
-    user.password = undefined;
-    return res.status(200).send({ user });
+    const _User = User(req.user.dbName);
+    const user = await _User.findById(req.params._id);
+
+    switch (req.user.auth) {
+      case "admin":
+        // admin은 member를 manager로 승격시킬 수 있다.
+        if (req.body.new == "manager" && user.auth == "member") break;
+        // admin은 manager를 member로 만들 수 있다.
+        if (req.body.new == "member" && user.auth == "manager") break;
+      default:
+        return res.status(401).send({ message: "You are not authorized." });
+    }
+    user.auth = req.body.new;
+    await user.save();
+    return res.status(200).send(user);
   } catch (err) {
-    if (err) return res.status(err.status || 500).send({ err: err.message });
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
 
-exports.updateMemberField = async (req, res) => {
+module.exports.updateSchools = async (req, res) => {
   try {
     const _User = User(req.user.dbName);
-
-    /* find user */
     const user = await _User.findById(req.params._id);
-    if (!user) {
-      return res.status(409).send({ message: "user not found" });
-    }
 
-    /* check if user is a member */
-    if (user.auth != "member") {
-      return res.status(401).send({ message: "user is not a member" });
+    switch (req.user.auth) {
+      case "admin":
+        // admin은 member 또는 manager의 school 정보를 수정할 수 있다.
+        if (user.auth == "member" || user.auth == "manager") break;
+      case "manager":
+        // manager는 member의 school 정보를 수정할 수 있다.
+        if (user.auth == "member") break;
+      default:
+        return res.status(401).send({ message: "You are not authorized." });
     }
-
-    /* update document & check validation */
-    await update(user, req.params.field, req.body.new);
-    return res.status(200).send({ user });
+    user.schools = req.body.new;
+    await user.save();
+    return res.status(200).send(user);
   } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
 
 // ____________ delete ____________
 
-exports.deleteMember = async (req, res) => {
-  try {
-    /* delete user & schoolUsers */
-    const exUser = await User(req.user.dbName).findByIdAndDelete({
-      _id: req.params._id,
-      auth: "member",
-    });
-
-    await SchoolUser(req.user.dbName).deleteMany({
-      userId: exUser.userId,
-    });
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
-// ____________ etc. ____________
-
-exports.enterMembers = async (req, res) => {
+module.exports.delete = async (req, res) => {
   try {
     const _User = User(req.user.dbName);
-    const _School = School(req.user.dbName);
-    const _SchoolUser = SchoolUser(req.user.dbName);
-
-    /* find school */
-    const school = await _School.findOne({
-      schoolId: req.body.schoolId,
-    });
-    if (!school) {
-      return res.status(404).send({ message: "school not found" });
-    }
-
-    const users = [];
-    const schoolUsers = [];
-    for (const _user of req.body.users) {
-      /* find user */
-      const user = await _User.findOne({
-        userId: _user.userId,
-      });
-      if (!user) {
-        return res
-          .status(404)
-          .send({ message: `user '${_user.userId}' not found` });
-      }
-
-      /* check if user is already entered */
-      if (
-        _.findIndex(user.schools, {
-          schoolId: school.schoolId,
-        }) !== -1
-      ) {
-        return res.status(409).send({
-          message: `user ${user.userId} is already entered`,
-        });
-      }
-
-      /* update user document */
-      user.schools.push({
-        schoolId: school.schoolId,
-        schoolName: school.schoolName,
-      });
-      users.push(user);
-
-      /* create schoolUser document */
-      const schoolUser = new _SchoolUser({
-        schoolId: school.schoolId,
-        schoolName: school.schoolName,
-        userId: user.userId,
-        userName: user.userName,
-        role: _user.role,
-        info: _user.info,
-      });
-      schoolUsers.push(schoolUser);
-    }
-
-    await Promise.all([
-      users.map((user) => user.save()),
-      schoolUsers.map((schoolUser) => schoolUser.save()),
-    ]);
-
-    return res.status(200).send({ schoolUsers });
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.appointManager = async (req, res) => {
-  try {
-    /* find user */
-    const user = await User(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
+    const user = await _User.findById(req.params._id);
     if (!user) {
-      return res.status(409).send({ message: `user not found` });
+      return res.status(404).send();
     }
 
-    /* check if user is a member */
-    if (user.auth != "member") {
-      return res.status(401).send({ message: "user is not a member" });
+    switch (req.user.auth) {
+      case "admin":
+        if (user.auth == "member") break;
+      case "manager":
+        if (user.auth == "member") break;
+      default:
+        return res.status(401).send({ message: "You are not authorized." });
     }
 
-    /* update & save document */
-    user.auth = "manager";
-    await user.save();
-
-    return res.status(200).send();
+    /* delete document */
+    const doc = await _User.findByIdAndDelete(req.params._id);
+    return res.status(200).send(doc);
   } catch (err) {
-    return res.status(500).send({ err: err.message });
-  }
-};
-
-exports.cancelManager = async (req, res) => {
-  try {
-    /* find user */
-    const user = await User(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!user) {
-      return res.status(409).send({ message: `user not found` });
-    }
-
-    /* check if user is a manager */
-    if (user.auth != "manager") {
-      return res.status(401).send({ message: "user is not a manager" });
-    }
-
-    /* update & save user document */
-    user.auth = "member";
-    await user.save();
-
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };

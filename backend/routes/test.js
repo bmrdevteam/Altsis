@@ -14,6 +14,18 @@ const client = require("../caches/redis");
 //         data
 //     })
 // })
+router.get("/lodash/countBy", (req, res) => {
+  const arr1 = ["a", "b", "b"];
+  const duplication = [];
+  const counter = _.countBy(arr1);
+  for (const userId in counter) {
+    if (counter[userId] != 1) {
+      duplication.push(userId);
+    }
+  }
+
+  return res.status(200).send(duplication);
+});
 
 router.get("/lodash/findIndex", (req, res) => {
   const user = {
