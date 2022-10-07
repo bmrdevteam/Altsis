@@ -348,8 +348,8 @@ module.exports.delete = async (req, res) => {
     }
 
     /* delete document */
-    const doc = await _User.findByIdAndDelete(req.params._id);
-    return res.status(200).send(doc);
+    user.remove();
+    return res.status(200).send();
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

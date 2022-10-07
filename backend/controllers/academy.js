@@ -2,9 +2,8 @@ const mongoose = require("mongoose");
 
 const { addConnection, deleteConnection } = require("../databases/connection");
 const { User, Academy } = require("../models/models");
-const { wrapWithErrorHandler } = require("../utils/errorHandler");
 
-const create = async (req, res) => {
+module.exports.create = async (req, res) => {
   /* check duplication */
   const exAcademy = await Academy.findOne({ academyId: req.body.academyId });
   if (exAcademy) {
@@ -15,7 +14,7 @@ const create = async (req, res) => {
 
   /* create academy document & check validation */
   const academy = new Academy(req.body);
-  if (!Academy.checkValidation(academy)) {
+  if (!academy.checkValidation()) {
     return res.status(400).send({ message: "validation failed" });
   }
 
@@ -45,7 +44,7 @@ const create = async (req, res) => {
   });
 };
 
-const getAll = async (req, res) => {
+module.exports.find = async (req, res) => {
   const academies = await Academy.find({});
   /* if user is owner: return full info */
   if (req.isAuthenticated() && req.user.auth == "owner") {
@@ -62,39 +61,40 @@ const getAll = async (req, res) => {
   });
 };
 
-const update = async (req, res) => {
+module.exports.updateEmail = async (req, res) => {
   /* find document */
   const academy = await Academy.findById(req.params._id);
   if (!academy) {
     return res.status(404).send({ message: "academy not found" });
   }
-
-  /* update document */
-  academy[req.params.field] = req.body.new;
-
-  /* if updated filed is adminId, find admin and update adminName */
-  if (req.params.field == "adminId") {
-    const admin = await User(academy.dbName).findOne({
-      userId: academy.adminId,
-    });
-    if (!admin) {
-      return res.status(404).send({ message: "admin not found" });
-    }
-    academy.adminName = admin.userName;
+  academy.email = req.body.new;
+  if (!academy.checkValidation("email")) {
+    return res.status(400).send({ message: "validation failed" });
   }
-
-  /* save document */
   await academy.save();
   return res.status(200).send({ academy });
 };
 
-const remove = async (req, res) => {
+module.exports.updateTel = async (req, res) => {
   /* find document */
   const academy = await Academy.findById(req.params._id);
   if (!academy) {
-    return res.status(404).send({ message: "not found academy" });
+    return res.status(404).send({ message: "academy not found" });
   }
+  academy.tel = req.body.new;
+  if (!academy.checkValidation("tel")) {
+    return res.status(400).send({ message: "validation failed" });
+  }
+  await academy.save();
+  return res.status(200).send({ academy });
+};
 
+module.exports.delete = async (req, res) => {
+  /* find document */
+  const academy = await Academy.findById(req.params._id);
+  if (!academy) {
+    return res.status(404).send({ message: "academy not found" });
+  }
   /* delete document */
   academy.remove();
 
@@ -102,10 +102,3 @@ const remove = async (req, res) => {
   await deleteConnection(academy.dbName);
   return res.status(200).send();
 };
-
-module.exports = wrapWithErrorHandler({
-  create,
-  getAll,
-  update,
-  remove,
-});

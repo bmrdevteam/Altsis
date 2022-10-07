@@ -28,14 +28,14 @@ router.get("/", isLoggedIn, user.find);
 router.delete("/:_id", isLoggedIn, user.delete);
 
 // ___________ update _____________
-router.post("/:_id/auth", isLoggedIn, user.updateAuth);
-router.post("/:_id/schools", isLoggedIn, user.updateSchools);
+router.put("/:_id/auth", isLoggedIn, user.updateAuth);
+router.put("/:_id/schools", isLoggedIn, user.updateSchools);
 
 // ___________ update(myself) _____________
 
-router.post("/password", isLoggedIn, user.updatePassword);
-router.post("/email", isLoggedIn, user.updateEmail);
-router.post("/google", isLoggedIn, user.connectGoogle);
+router.put("/password", isLoggedIn, user.updatePassword);
+router.put("/email", isLoggedIn, user.updateEmail);
+router.put("/google", isLoggedIn, user.connectGoogle);
 router.delete("/google", isLoggedIn, user.disconnectGoogle);
 
 // // profile 보류
