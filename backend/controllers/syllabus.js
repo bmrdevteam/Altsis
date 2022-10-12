@@ -1,359 +1,383 @@
-const User = require("../models/User");
 const Syllabus = require("../models/Syllabus");
 const Enrollment = require("../models/Enrollment");
-const School = require("../models/School");
-const SchoolUser = require("../models/SchoolUser");
-const {
-  findSeasonIdx,
-  findRegistrationIdx,
-  checkPermission,
-} = require("../utils/util");
-const {
-  classroomsTable,
-  checkClassroomAvailable,
-  isEqual,
-} = require("../utils/util");
-const { wrapWithErrorHandler } = require("../utils/errorHandler");
+const Season = require("../models/Season");
+const Registration = require("../models/Registration");
+const _ = require("lodash");
 
-const check = async (user, syllabus) => {
-  // 1. find school
-  const school = await School(user.dbName).findOne({
-    schoolId: syllabus.schoolId,
-  });
-  if (!school) {
-    const error = new Error("not existing school...");
-    error.code = 404;
-    throw error;
-  }
-
-  // 2. check if season is activated
-  const seasonIdx = findSeasonIdx(school, syllabus.year, syllabus.term);
-  if (seasonIdx == -1) {
-    const error = new Error("not existing season...");
-    error.code = 404;
-    throw error;
-  }
-  if (!school["seasons"][seasonIdx]["activated"]) {
-    const error = new Error("season is not activated...");
-    error.code = 409;
-    throw error;
-  }
-
-  // 3. check if user is registered in requrested season
-  const schoolUser = await SchoolUser(user.dbName).findOne({
-    userId: user.userId,
-  });
-  const registrationIdx = findRegistrationIdx(
-    schoolUser,
-    syllabus.year,
-    syllabus.term
+const getUnavailableTimeLabels = async (dbName, syllabus) => {
+  const { schoolId, year, term, classroom, time } = syllabus;
+  const syllabuses = await Syllabus(dbName).find(
+    {
+      schoolId,
+      year,
+      term,
+      classroom,
+      _id: { $ne: syllabus._id },
+    },
+    "time"
   );
-  if (registrationIdx["year"] == -1) {
-    const error = new Error("you are not registered in this year");
-    error.code = 409;
-    throw error;
-  }
-  if (registrationIdx["term"] == -1) {
-    const error = new Error("you are not registered in this term");
-    error.code = 409;
-    throw error;
-  }
-
-  // 4. check if user's role has permission
-  if (!checkPermission(school, seasonIdx, "syllabus", schoolUser)) {
-    const error = new Error("you have no permission!");
-    error.code = 401;
-    throw error;
-  }
+  const unavailableTime = _.flatten(
+    syllabuses.map((syllabus) => syllabus.time)
+  );
+  const unavailableTimeLabels = _([...unavailableTime, ...time])
+    .groupBy((x) => x.label)
+    .pickBy((x) => x.length > 1)
+    .keys()
+    .value();
+  return unavailableTimeLabels;
 };
 
-const create = async (req, res) => {
-  const user = req.user;
-  const { schoolId, year, term, classroom } = req.body;
-
-  // 1. find school
-  const school = await School(user.dbName).findOne({
-    schoolId,
-  });
-  if (!school) {
-    return res.status(404).send({ message: "school not found" });
-  }
-
-  // 2. check if season is activated
-  const seasonIdx = school.findSeasonIdx(year, term);
-  if (seasonIdx == -1) {
-    return res.status(404).send({ message: "season not found" });
-  }
-  if (!school["seasons"][seasonIdx]["activated"]) {
-    return res.status(409).send({ message: "season not activated" });
-  }
-
-  // 3. check if user is registered in requrested season
-  const schoolUser = await SchoolUser(user.dbName).findOne({
-    userId: user.userId,
-    schoolId,
-  });
-  if (!schoolUser) {
-    return res.status(404).send({ message: "schoolUser not found" });
-  }
-  const { yearIdx, termIdx } = schoolUser.findRegistrationIdx(year, term);
-  if (yearIdx == -1 || termIdx == -1) {
-    return res
-      .status(409)
-      .send({ message: "user is not registered in this season" });
-  }
-
-  // 4. check if user's role has permission
-  if (!checkPermission(school, seasonIdx, "syllabus", schoolUser)) {
-    return res
-      .status(409)
-      .send({ message: "not permitted to create a syllabus" });
-  }
-
-  const _Syllabus = Syllabus(user.dbName);
-  const syllabus = new _Syllabus(req.body);
-  syllabus.userId = user.userId;
-  syllabus.userName = user.userName;
-  syllabus.schoolName = school.schoolName;
-
-  // check if classroom is available
-  const syllabuses = await Syllabus(user.dbName).find({
-    schoolId,
-    year,
-    term,
-    classroom,
-  });
-  await checkClassroomAvailable(syllabuses, syllabus);
-
-  await syllabus.save();
-  return res.status(200).send({ syllabus });
-};
-
-const list = async (req, res) => {
+module.exports.create = async (req, res) => {
   try {
-    const query = {
-      schoolId: req.query.schoolId,
-      year: req.query.year,
-      term: req.query.term,
+    const seasonKey = {
+      schoolId: req.body.schoolId,
+      year: req.body.year,
+      term: req.body.term,
     };
-    if (req.query.userId) {
-      query["userId"] = req.query.userId;
-    }
-    if (req.query.teacherId) {
-      query["teachers.userId"] = req.query.teacherId;
+
+    // 유저의 학기 등록 정보 확인
+    const registration = await Registration(req.user.dbName).findOne({
+      ...seasonKey,
+      userId: req.user.userId,
+    });
+    if (!registration) {
+      return res.status(404).send({ message: "registration not found" });
     }
 
-    const syllabuses = await Syllabus(req.user.dbName).find(query);
+    // 유저 권한 확인
+    const season = await Season(req.user.dbName).findOne(seasonKey);
+    if (!season) {
+      return res.status(404).send({ message: "season not found" });
+    }
+    if (
+      !season.checkPermissionSyllabus(registration.userId, registration.role)
+    ) {
+      return res.status(409).send({ message: "you have no permission" });
+    }
+
+    const _Syllabus = Syllabus(req.user.dbName);
+    const syllabus = new _Syllabus(req.body);
+
+    // classroom 시간 확인
+    const unavailableTimeLabels = await getUnavailableTimeLabels(
+      req.user.dbName,
+      syllabus
+    );
+    if (!_.isEmpty(unavailableTimeLabels)) {
+      return res.status(409).send({
+        message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
+      });
+    }
+
+    syllabus.userId = registration.userId;
+    syllabus.userName = registration.userName;
+    syllabus.schoolName = registration.schoolName;
+
+    await syllabus.save();
+    return res.status(200).send(syllabus);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.find = async (req, res) => {
+  try {
+    if (req.params._id) {
+      const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+      return res.status(200).send(syllabus);
+    }
+
+    const query = _.pickBy(
+      {
+        schoolId: req.query.schoolId,
+        year: req.query.year,
+        term: req.query.term,
+        userId: req.query.userId,
+        userName: req.query.userName,
+        "teachers.userId": req.query.teacherId,
+        "teachers.userName": req.query.teacherName,
+        classTitle: req.query.classTitle,
+        classroom: req.query.classroom,
+      },
+      (v) => v !== undefined
+    );
+
+    const syllabuses = await Syllabus(req.user.dbName).find(query, [
+      "classTitle",
+      "userId",
+      "userName",
+      "teachers",
+      "time",
+      "classroom",
+      "subject",
+      "confirmed",
+    ]);
     return res.status(200).send({ syllabuses });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
 };
 
-const read = async (req, res) => {
-  try {
-    const syllabus = await Syllabus(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    return res.status(200).send({ syllabus });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
+// module.exports.students = async (req, res) => {
+//   try {
+//     const syllabus = await Syllabus(req.user.dbName).findOne({
+//       _id: req.params._id,
+//     });
+//     if (!syllabus) {
+//       return res.status(404).send({ message: "no syllabus!" });
+//     }
+//     const students = await Enrollment(req.user.dbName).find({
+//       "syllabus._id": syllabus._id,
+//     });
+//     return res.status(200).send({
+//       students: students.map((student) => {
+//         return {
+//           userId: student.userId,
+//           userName: student.userName,
+//         };
+//       }),
+//     });
+//   } catch (err) {
+//     if (err) return res.status(500).send({ err: err.message });
+//   }
+// };
 
-const students = async (req, res) => {
-  try {
-    const syllabus = await Syllabus(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!syllabus) {
-      return res.status(404).send({ message: "no syllabus!" });
-    }
-    const students = await Enrollment(req.user.dbName).find({
-      "syllabus._id": syllabus._id,
-    });
-    return res.status(200).send({
-      students: students.map((student) => {
-        return {
-          userId: student.userId,
-          userName: student.userName,
-        };
-      }),
-    });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
+// const time = async (req, res) => {
+//   try {
+//     const syllabus = await Syllabus(req.user.dbName).findOne({
+//       _id: req.params._id,
+//     });
+//     if (!syllabus) {
+//       return res.status(404).send({ message: "no syllabus!" });
+//     }
+//     const students = await Enrollment(req.user.dbName).find({
+//       "syllabus._id": syllabus._id,
+//     });
+//     return res.status(200).send({
+//       students: students.map((student) => {
+//         return {
+//           userId: student.userId,
+//           userName: student.userName,
+//         };
+//       }),
+//     });
+//   } catch (err) {
+//     if (err) return res.status(500).send({ err: err.message });
+//   }
+// };
 
-const classrooms = async (req, res) => {
-  try {
-    const schoolId = req.query.schoolId;
-    const year = req.query.year;
-    const term = req.query.term;
-
-    const syllabuses = await Syllabus(req.user.dbName).find({
-      schoolId,
-      year,
-      term,
-    });
-
-    const table = await classroomsTable(syllabuses);
-    res.status(200).json({ table });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-const time = async (req, res) => {
-  try {
-    const syllabus = await Syllabus(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
-    if (!syllabus) {
-      return res.status(404).send({ message: "no syllabus!" });
-    }
-    const students = await Enrollment(req.user.dbName).find({
-      "syllabus._id": syllabus._id,
-    });
-    return res.status(200).send({
-      students: students.map((student) => {
-        return {
-          userId: student.userId,
-          userName: student.userName,
-        };
-      }),
-    });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-const confirm = async (req, res) => {
+module.exports.confirm = async (req, res) => {
   try {
     // authentication
-    const syllabus = await Syllabus(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
+    const syllabus = await Syllabus(req.user.dbName).findById(
+      req.params._id,
+      "teachers"
+    );
 
-    if (
-      !syllabus.teachers.some((teacher) => teacher.userId === req.user.userId)
-    ) {
-      return res
-        .status(403)
-        .send({ message: "you cannot confirm this syllabus" });
+    for (let i = 0; i < syllabus.teachers.length; i++) {
+      if (syllabus.teachers[i].userId == req.user.userId) {
+        syllabus.teachers[i].confirmed = true;
+        await syllabus.save();
+        return res.status(200).send(syllabus);
+      }
     }
-    syllabus["confirmed"] = req.body.data;
-    await syllabus.save();
-    return res.status(200).send({ syllabus });
+    return res
+      .status(403)
+      .send({ message: "you cannot confirm this syllabus" });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
 };
 
-const update = async (req, res) => {
+module.exports.unconfirm = async (req, res) => {
+  try {
+    // authentication
+    const syllabus = await Syllabus(req.user.dbName).findById(
+      req.params._id,
+      "teachers"
+    );
+
+    for (let i = 0; i < syllabus.teachers.length; i++) {
+      if (syllabus.teachers[i].userId == req.user.userId) {
+        const enrollments = await Enrollment(req.user.dbName).find({
+          syllabus: syllabus._id,
+        });
+        if (!_.isEmpty(enrollments)) {
+          return res.status(409).send({
+            message:
+              "you cannot unconfirm this syllabus because there are students who have enrolled to it",
+          });
+        }
+        syllabus.teachers[i].confirmed = false;
+        await syllabus.save();
+        return res.status(200).send(syllabus);
+      }
+    }
+    return res
+      .status(403)
+      .send({ message: "you cannot unconfirm this syllabus" });
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+module.exports.updateTime = async (req, res) => {
   try {
     // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.dbName).findOne({
-      _id: req.params._id,
-    });
+    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
     if (req.user.userId != syllabus.userId) {
       return res
         .status(403)
         .send({ message: "you cannot update this syllabus" });
     }
 
-    await check(req.user, syllabus);
-
-    // 어떤게 수정 가능한 필드지?
-    const fields = [
-      "classTitle",
-      "time",
-      "point",
-      "classroom",
-      "subject",
-      "teachers",
-      "info",
-      "limit",
-    ];
-
-    // confirmed 상태에서 time과 teachers를 수정할 수 없다.
-    if (syllabus.confirmed) {
-      if (
-        (req.params.field === "time" && syllabus.isTimeEqual(req.body.new)) ||
-        (!req.params.field && !isEqual(syllabus.time, req.body.new["time"]))
-      ) {
+    // confirmed 상태에서는 수정할 수 없다.
+    for (let i = 0; i < syllabus.teachers.length; i++) {
+      if (syllabus.teachers[i].confirmed) {
         return res.status(409).send({
-          message: "time can't be updated after it is confirmed",
-        });
-      }
-      if (
-        (req.params.field === "teachers" &&
-          syllabus.isTeachersEqual(req.body.new)) ||
-        (!req.params.field &&
-          !isEqual(syllabus.teachers, req.body.new["teachers"]))
-      ) {
-        return res.status(409).send({
-          message: "teachers can't be updated after it is confirmed",
+          message: "you cannot update this syllabus becuase it is confirmed",
         });
       }
     }
 
-    // field를 설정해서 수정하는 경우
-    if (req.params.field) {
-      if (fields.includes(req.params.field)) {
-        syllabus[req.params.field] = req.body.new;
-      } else {
-        return res.status(400).send({
-          message: `field '${req.params.field}' does not exist or cannot be updated`,
-        });
-      }
-    }
-    // 전체로 수정하는 경우
-    else {
-      fields.forEach((field) => {
-        syllabus[field] = req.body.new[field];
+    syllabus.time = req.body.new;
+
+    // classroom 시간 확인
+    const unavailableTimeLabels = await getUnavailableTimeLabels(
+      req.user.dbName,
+      syllabus
+    );
+    console.log("unavailableTimeLabels is ", unavailableTimeLabels);
+    if (!_.isEmpty(unavailableTimeLabels)) {
+      return res.status(409).send({
+        message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
       });
     }
 
     await syllabus.save();
-
-    // update enrollments cascade
-    const subdocument = syllabus.getSubdocument();
-    const enrollments = await Enrollment(req.user.dbName).find({
-      "syllabus._id": syllabus._id,
-    });
-    await Promise.all(
-      enrollments.map((enrollment) => {
-        enrollment["syllabus"] = subdocument;
-        enrollment.save();
-      })
-    );
-    return res.status(200).send({ syllabus, enrollments });
+    return res.status(200).send(syllabus);
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
 };
 
-const remove = async (req, res) => {
+module.exports.updateClassroom = async (req, res) => {
+  try {
+    // 내가 만든 syllabus인가?
+    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    if (req.user.userId != syllabus.userId) {
+      return res
+        .status(403)
+        .send({ message: "you cannot update this syllabus" });
+    }
+
+    // confirmed 상태에서는 수정할 수 없다.
+    for (let i = 0; i < syllabus.teachers.length; i++) {
+      if (syllabus.teachers[i].confirmed) {
+        return res.status(409).send({
+          message: "you cannot update this syllabus becuase it is confirmed",
+        });
+      }
+    }
+
+    syllabus.classroom = req.body.new;
+
+    // classroom 시간 확인
+    const unavailableTimeLabels = await getUnavailableTimeLabels(
+      req.user.dbName,
+      syllabus
+    );
+    if (!_.isEmpty(unavailableTimeLabels)) {
+      return res.status(409).send({
+        message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
+      });
+    }
+
+    await syllabus.save();
+    return res.status(200).send(syllabus);
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+module.exports.update = async (req, res) => {
+  try {
+    // 내가 만든 syllabus인가?
+    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    if (!syllabus) {
+      return res.status(404).send({ message: "syllabus not found" });
+    }
+
+    if (req.user.userId != syllabus.userId) {
+      return res
+        .status(403)
+        .send({ message: "you cannot update this syllabus" });
+    }
+
+    // confirmed 상태에서는 수정할 수 없다.
+    for (let i = 0; i < syllabus.teachers.length; i++) {
+      if (syllabus.teachers[i].confirmed) {
+        return res.status(409).send({
+          message: "you cannot update this syllabus becuase it is confirmed",
+        });
+      }
+    }
+
+    // 전체로 수정하는 경우
+    if (!req.params.field) {
+      [
+        "classTitle",
+        "time",
+        "point",
+        "classroom",
+        "subject",
+        "teachers",
+        "info",
+        "limit",
+      ].forEach((field) => {
+        syllabus[field] = req.body.new[field];
+      });
+
+      console.log(syllabus);
+
+      // classroom 중복 확인
+      const unavailableTimeLabels = await getUnavailableTimeLabels(
+        req.user.dbName,
+        syllabus
+      );
+
+      if (!_.isEmpty(unavailableTimeLabels)) {
+        return res.status(409).send({
+          message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
+        });
+      }
+    }
+
+    // field를 설정해서 수정하는 경우
+    else if (
+      _.indexOf(
+        ["classTitle", "point", "subject", "teachers", "info", "limit"],
+        req.params.field
+      ) != -1
+    ) {
+      syllabus[req.params.field] = req.body.new;
+    } else {
+      return res.status(409).send({ message: "you cannot update this field" });
+    }
+    await syllabus.save();
+    return res.status(200).send(syllabus);
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+module.exports.remove = async (req, res) => {
   try {
     const doc = await Syllabus(req.user.dbName).findByIdAndDelete(
       req.params._id
     );
-    return res.status(200).send({ success: !!doc });
+    return res.status(200).send();
   } catch (err) {
-    return res.status(500).send({ err: err.message });
+    return res.status(500).send();
   }
 };
-
-module.exports = wrapWithErrorHandler({
-  check,
-  create,
-  list,
-  read,
-  students,
-  classrooms,
-  time,
-  confirm,
-  update,
-  remove,
-});
