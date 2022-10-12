@@ -11,7 +11,7 @@ var syllabusSchema = mongoose.Schema(
     year: String,
     term: String,
     classTitle: String,
-    time: [TimeBlock],
+    time: [],
     point: Number,
     subject: Array,
   },
