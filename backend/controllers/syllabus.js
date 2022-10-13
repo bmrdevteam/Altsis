@@ -50,7 +50,11 @@ module.exports.create = async (req, res) => {
       return res.status(404).send({ message: "season not found" });
     }
     if (
-      !season.checkPermissionSyllabus(registration.userId, registration.role)
+      !season.checkPermission(
+        "syllabus",
+        registration.userId,
+        registration.role
+      )
     ) {
       return res.status(409).send({ message: "you have no permission" });
     }

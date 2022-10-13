@@ -1,31 +1,31 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
 const TimeBlock = require("./TimeBlock");
-
+const syllabus = require("./Syllabus");
 //subdocument
-var syllabusSchema = mongoose.Schema(
+var syllabusSchema = mongoose.Schema({}, { _id: false });
+
+const enrollmentSchema = mongoose.Schema(
   {
-    _id: String,
+    // syllabus data
+    syllabus: String,
     schoolId: String,
     schoolName: String,
     year: String,
     term: String,
-    classTitle: String,
-    time: [],
-    point: Number,
-    subject: Array,
-  },
-  { _id: false }
-);
-
-const enrollmentSchema = mongoose.Schema(
-  {
     userId: String,
     userName: String,
-    schoolId: String,
-    year: String,
-    term: String,
-    syllabus: syllabusSchema,
+    classTitle: String,
+    time: [TimeBlock],
+    classroom: String,
+    subject: [String],
+    point: Number,
+    limit: Number,
+    info: Object,
+    teachers: Object,
+    // enrollment data
+    studentId: String,
+    studentName: String,
     evaluation: Object,
   },
   { timestamps: true }
