@@ -30,8 +30,9 @@ const seasonSchema = mongoose.Schema({
     required: true,
   },
   period: String,
-  permissionSyllabus: [[String]],
-  permissionEnrollment: [[String]],
+  permissionSyllabus: [[]],
+  permissionEnrollment: [[]],
+  permissionEvaluation: [[]],
   formTimetable: Object,
   formSyllabus: Object,
   formEvaluation: Object,
@@ -46,8 +47,16 @@ seasonSchema.index(
   { unique: true }
 );
 
-seasonSchema.methods.checkPermissionSyllabus = function (userId, role) {
-  const permission = this.permissionSyllabus;
+seasonSchema.methods.checkPermission = function (permissionType, userId, role) {
+  console.log("checkPermission(", permissionType, userId, role, ")");
+  let permission = null;
+  if (permissionType == "syllabus") permission = this.permissionSyllabus;
+  else if (permissionType == "enrollment")
+    permission = this.permissionEnrollment;
+  else if (permissionType == "evaluation")
+    permission = this.permissionEvaluation;
+  console.log("permission is ", permission);
+
   for (let i = 0; i < permission?.length; i++) {
     if (permission[i][0] == "userId" && permission[i][1] == userId) {
       return permission[i][2];

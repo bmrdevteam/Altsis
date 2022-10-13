@@ -84,6 +84,43 @@ const syllabusSchema = mongoose.Schema(
   { timestamps: true }
 );
 
+syllabusSchema.methods.getSubdocument = function () {
+  const {
+    userId,
+    userName,
+    schoolId,
+    schoolName,
+    year,
+    term,
+    classTitle,
+    time,
+    classroom,
+    subject,
+    point,
+    limit,
+    info,
+    teachers,
+  } = this;
+
+  return {
+    syllabus: this._id,
+    userId,
+    userName,
+    schoolId,
+    schoolName,
+    year,
+    term,
+    classTitle,
+    time,
+    classroom,
+    subject,
+    point,
+    limit,
+    info,
+    teachers,
+  };
+};
+
 module.exports = (dbName) => {
   return conn[dbName].model("Syllabus", syllabusSchema);
 };
