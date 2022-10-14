@@ -5,24 +5,16 @@ const Season = require("../models/Season");
 
 /* create */
 
-module.exports.create = async (req, res) => {
+module.exports.register = async (req, res) => {
   try {
     const _Registration = Registration(req.user.dbName);
-    const { userId, schoolId, year, term } = req.body;
 
-    console.log("debug: req.body is ", req.body);
     const [user, season, exRegistration] = await Promise.all([
-      User(req.user.dbName).findOne({ userId }),
-      Season(req.user.dbName).findOne({
-        schoolId,
-        year,
-        term,
-      }),
+      User(req.user.dbName).findOne({ userId: req.body.userId }),
+      Season(req.user.dbName).findById(req.body.season),
       _Registration.findOne({
-        userId,
-        schoolId,
-        year,
-        term,
+        season: req.body.season,
+        userId: req.body.userId,
       }),
     ]);
     if (!user) {
@@ -31,21 +23,53 @@ module.exports.create = async (req, res) => {
     if (!season) {
       return res.status(404).send({ message: "season not found" });
     }
-
-    /* check duplication */
     if (exRegistration) {
-      return res.status(409).send({
-        message: `registration(${req.body.userId},${req.body.schoolId},${req.body.year},${req.body.term}) is already in use`,
-      });
+      return res.status(409).send({ message: "user is already registered" });
     }
 
     /* create and save document */
-
-    const registration = new _Registration(req.body);
-    registration.userName = user.userName;
-    registration.schoolName = season.schoolName;
+    const registration = new _Registration({
+      ...season.getSubdocument(),
+      userId: user.userId,
+      userName: user.userName,
+      role: req.body.role,
+      grade: req.body.grade,
+      group: req.body.group,
+      teaches: req.body.teachers,
+    });
     await registration.save();
     return res.status(200).send(registration);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.registerBulk = async (req, res) => {
+  try {
+    const season = await Season(req.user.dbName).findById(req.body.season);
+    if (!season) {
+      return res.status(404).send({ message: "season is not found" });
+    }
+
+    const registerations = [];
+    const seasonSubdocument = season.getSubdocument();
+
+    for (let user of req.body.users) {
+      registerations.push({
+        ...seasonSubdocument,
+        userId: user.userId,
+        userName: user.userName,
+        role: user.role,
+        grade: user.grade,
+        group: user.group,
+        teacherId: user.teacherId,
+        teacherName: user.teacherName,
+      });
+    }
+    const newRegistrations = await Registration(req.user.dbName).insertMany(
+      registerations
+    );
+    return res.status(200).send({ registerations: newRegistrations });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -53,15 +77,7 @@ module.exports.create = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    const _Registration = Registration(req.user.dbName);
-
-    if (req.params._id) {
-      const registration = await _Registration.findById(req.params._id);
-      return res.status(200).send(registration);
-    }
-
-    const registrations = await _Registration.find(req.query);
-
+    const registrations = await Registration(req.user.dbName).find(req.query);
     return res.status(200).send(registrations);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
@@ -69,51 +85,18 @@ module.exports.find = async (req, res) => {
 };
 
 /**
- * update teacherId, teacherName
- * @param {*} req
- * @param {*} res
- * @returns
- */
-module.exports.updateTeacher = async (req, res) => {
-  try {
-    const registration = await Registration(req.user.dbName).findById(
-      req.params._id
-    );
-    if (!registration) {
-      return res.status(404).send({ message: "registration not found" });
-    }
-
-    const teacherRegistration = await Registration(req.user.dbName).findOne({
-      userId: req.body.new,
-      schoolId: registration.schoolId,
-      year: registration.year,
-      term: registration.term,
-      role: "teacher",
-    });
-    if (!teacherRegistration) {
-      return res
-        .status(404)
-        .send({ message: "teacher  is not registered in this season" });
-    }
-
-    registration.teacherId = teacherRegistration.userId;
-    registration.teacherName = teacherRegistration.userName;
-    await registration.save();
-    return res.status(200).send(registration);
-  } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
-  }
-};
-
-/**
- * update role, grade, group
+ * update grade, group,teacherId,teacherName
  * @param {*} req
  * @param {*} res
  * @returns
  */
 module.exports.update = async (req, res) => {
   try {
-    if (["grade", "group"].indexOf(req.params.field) == -1) {
+    if (
+      ["grade", "group", "teacherId", "teacherName"].indexOf(
+        req.params.field
+      ) == -1
+    ) {
       return res.status(409).send({ message: "field cannot be updated" });
     }
     const registration = await Registration(req.user.dbName).findById(
@@ -129,11 +112,17 @@ module.exports.update = async (req, res) => {
     return res.status(err.status || 500).send({ message: err.message });
   }
 };
-/* delete */
 
+/* delete */
 exports.delete = async (req, res) => {
   try {
-    await Registration(req.user.dbName).findByIdAndDelete(req.params._id);
+    const registration = await Registration(req.user.dbName).findById(
+      req.params._id
+    );
+    if (!registration) {
+      return res.status(404).send({ message: "registration not found" });
+    }
+    await registration.delete();
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });

@@ -1,14 +1,11 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
-const TimeBlock = require("./TimeBlock");
-const syllabus = require("./Syllabus");
-//subdocument
-var syllabusSchema = mongoose.Schema({}, { _id: false });
 
 const enrollmentSchema = mongoose.Schema(
   {
     // syllabus data
-    syllabus: String,
+    syllabus: { type: String, required: true },
+    season: { type: String, required: true },
     schoolId: String,
     schoolName: String,
     year: String,
@@ -16,7 +13,7 @@ const enrollmentSchema = mongoose.Schema(
     userId: String,
     userName: String,
     classTitle: String,
-    time: [TimeBlock],
+    time: [],
     classroom: String,
     subject: [String],
     point: Number,
@@ -30,6 +27,19 @@ const enrollmentSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
+
+enrollmentSchema.index(
+  {
+    syllabus: 1,
+    studentId: 1,
+  },
+  { unique: true }
+);
+
+enrollmentSchema.index({
+  season: 1,
+  studentId: 1,
+});
 
 enrollmentSchema.methods.isTimeOverlapped = function (time) {
   for (let block1 of this.syllabus.time) {

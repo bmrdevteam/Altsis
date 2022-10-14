@@ -10,10 +10,6 @@ const { isAdmin, isLoggedIn } = require("../middleware/auth");
 router.post("/", isLoggedIn, syllabus.create);
 router.get("/:_id?", isLoggedIn, syllabus.find);
 
-//router.get("/time", isLoggedIn, syllabus.time); //내가 수강하는 것
-// router.get("/:_id/students", isLoggedIn, syllabus.students); // 이 syllabus를 듣는 학생들
-// 이건 enrollments에 들어가야 함
-
 router.put("/:_id/confirmed", isLoggedIn, syllabus.confirm);
 router.delete("/:_id/confirmed", isLoggedIn, syllabus.unconfirm);
 
