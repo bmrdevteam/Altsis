@@ -7,11 +7,11 @@ const { isAdManager } = require("../middleware/auth");
 //             Registration
 //=================================
 
-router.post("/", isAdManager, registration.create);
+router.post("/", isAdManager, registration.register);
+router.post("/bulk", isAdManager, registration.registerBulk);
 
-router.get("/:_id?", isAdManager, registration.find);
+router.get("/", isAdManager, registration.find);
 
-router.put("/:_id/teacher", isAdManager, registration.updateTeacher);
 router.put("/:_id/:field", isAdManager, registration.update);
 
 router.delete("/:_id", isAdManager, registration.delete);

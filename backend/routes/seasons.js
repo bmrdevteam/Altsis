@@ -23,6 +23,11 @@ router.put(
   isAdManager,
   season.updatePermissionEnrollment
 );
+router.put(
+  "/:_id/permissions/evaluation",
+  isAdManager,
+  season.updatePermissionEvaluation
+);
 
 /* _______ subjects, classrooms _______ */
 router.put("/:_id/subjects", isAdManager, season.updateSubjects);

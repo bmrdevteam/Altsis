@@ -4,28 +4,15 @@ const TimeBlock = require("./TimeBlock");
 
 const syllabusSchema = mongoose.Schema(
   {
-    schoolId: {
+    season: {
       type: String,
       required: true,
     },
-    schoolName: {
-      type: String,
-      required: true,
-    },
-
-    year: {
-      type: String,
-      required: true,
-    },
-    term: {
-      type: String,
-      required: true,
-    },
+    schoolId: String,
+    schoolName: String,
+    year: String,
+    term: String,
     userId: {
-      type: String,
-      required: true,
-    },
-    userName: {
       type: String,
       required: true,
     },
@@ -84,40 +71,28 @@ const syllabusSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-syllabusSchema.methods.getSubdocument = function () {
-  const {
-    userId,
-    userName,
-    schoolId,
-    schoolName,
-    year,
-    term,
-    classTitle,
-    time,
-    classroom,
-    subject,
-    point,
-    limit,
-    info,
-    teachers,
-  } = this;
+syllabusSchema.index({
+  season: 1,
+});
 
+syllabusSchema.methods.getSubdocument = function () {
   return {
     syllabus: this._id,
-    userId,
-    userName,
-    schoolId,
-    schoolName,
-    year,
-    term,
-    classTitle,
-    time,
-    classroom,
-    subject,
-    point,
-    limit,
-    info,
-    teachers,
+    userId: this.userId,
+    userName: this.userName,
+    season: this.season,
+    schoolId: this.schoolId,
+    schoolName: this.schoolName,
+    year: this.year,
+    term: this.term,
+    classTitle: this.classTitle,
+    time: this.time,
+    classroom: this.classroom,
+    subject: this.subject,
+    point: this.point,
+    limit: this.limit,
+    info: this.info,
+    teachers: this.teachers,
   };
 };
 

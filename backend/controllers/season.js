@@ -2,8 +2,7 @@ const _ = require("lodash");
 const Season = require("../models/Season");
 const School = require("../models/School");
 const Syllabus = require("../models/Syllabus");
-const Evaluation = require("../models/Evaluation");
-
+const Enrollment = require("../models/Enrollment");
 /* create */
 
 module.exports.create = async (req, res) => {
@@ -32,6 +31,8 @@ module.exports.create = async (req, res) => {
     /* create and save document */
     const season = new _Season(req.body);
     season.schoolName = school.schoolName;
+    season.classrooms = school.classrooms;
+    season.subjects = school.subjects;
     await season.save();
     return res.status(200).send(season);
   } catch (err) {
@@ -85,6 +86,20 @@ module.exports.updatePermissionEnrollment = async (req, res) => {
       return res.status(404).send({ message: "season not found" });
     }
     season.permissionEnrollment = req.body.new;
+    await season.save();
+    return res.status(200).send(season);
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.updatePermissionEvaluation = async (req, res) => {
+  try {
+    const season = await Season(req.user.dbName).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: "season not found" });
+    }
+    season.permissionEvaluation = req.body.new;
     await season.save();
     return res.status(200).send(season);
   } catch (err) {
@@ -154,9 +169,7 @@ module.exports.updateFormTimetable = async (req, res) => {
     }
     /* it can't be updated  if syllabuses created in this season */
     const syllabus = await Syllabus(req.user.dbName).findOne({
-      schoolId: season.schoolId,
-      year: season.year,
-      term: season.term,
+      season: season._id,
     });
     if (syllabus) {
       return res.status(409).send({
@@ -181,9 +194,7 @@ module.exports.updateFormSyllabus = async (req, res) => {
     }
     /* it can't be updated  if syllabuses created in this season */
     const syllabus = await Syllabus(req.user.dbName).findOne({
-      schoolId: season.schoolId,
-      year: season.year,
-      term: season.term,
+      season: season._id,
     });
     if (syllabus) {
       return res.status(409).send({
@@ -206,18 +217,17 @@ module.exports.updateFormEvaluation = async (req, res) => {
       return res.status(404).send({ message: "season not found" });
     }
     /* it can't be updated  if syllabuses created in this season */
-    const evaluation = await Evaluation(req.user.dbName).findOne({
-      schoolId: season.schoolId,
-      year: season.year,
-      term: season.term,
+    const enrollment = await Enrollment(req.user.dbName).findOne({
+      season: season._id,
+      evaluation: { $ne: null },
     });
-    if (evaluation) {
+    if (enrollment) {
       return res.status(409).send({
         message:
-          "it can't be changed because there's a syllabus created in this season",
+          "it can't be changed because there's a evaluation created in this season",
       });
     }
-    season.formEvaluation = req.body.new;
+    season.formSyllabus = req.body.new;
     await season.save();
     return res.status(200).send(season);
   } catch (err) {

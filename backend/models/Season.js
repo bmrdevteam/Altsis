@@ -67,6 +67,16 @@ seasonSchema.methods.checkPermission = function (permissionType, userId, role) {
   return false;
 };
 
+seasonSchema.methods.getSubdocument = function () {
+  return {
+    season: this._id,
+    schoolId: this.schoolId,
+    schoolName: this.schoolName,
+    year: this.year,
+    term: this.term,
+  };
+};
+
 module.exports = (dbName) => {
   return conn[dbName].model("Season", seasonSchema);
 };

@@ -29,15 +29,9 @@ const getUnavailableTimeLabels = async (dbName, syllabus) => {
 
 module.exports.create = async (req, res) => {
   try {
-    const seasonKey = {
-      schoolId: req.body.schoolId,
-      year: req.body.year,
-      term: req.body.term,
-    };
-
     // 유저의 학기 등록 정보 확인
     const registration = await Registration(req.user.dbName).findOne({
-      ...seasonKey,
+      season: req.body.season,
       userId: req.user.userId,
     });
     if (!registration) {
@@ -45,7 +39,7 @@ module.exports.create = async (req, res) => {
     }
 
     // 유저 권한 확인
-    const season = await Season(req.user.dbName).findOne(seasonKey);
+    const season = await Season(req.user.dbName).findById(req.body.season);
     if (!season) {
       return res.status(404).send({ message: "season not found" });
     }
@@ -60,7 +54,19 @@ module.exports.create = async (req, res) => {
     }
 
     const _Syllabus = Syllabus(req.user.dbName);
-    const syllabus = new _Syllabus(req.body);
+    const syllabus = new _Syllabus({
+      ...season.getSubdocument(),
+      userId: req.user.userId,
+      userName: req.user.userName,
+      classTitle: req.body.classTitle,
+      time: req.body.time,
+      classroom: req.body.classroom,
+      subject: req.body.subject,
+      point: req.body.point,
+      limit: req.body.limit,
+      info: req.body.info,
+      teachers: req.body.teachers,
+    });
 
     // classroom 시간 확인
     const unavailableTimeLabels = await getUnavailableTimeLabels(
@@ -72,10 +78,6 @@ module.exports.create = async (req, res) => {
         message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
       });
     }
-
-    syllabus.userId = registration.userId;
-    syllabus.userName = registration.userName;
-    syllabus.schoolName = registration.schoolName;
 
     await syllabus.save();
     return res.status(200).send(syllabus);
@@ -93,9 +95,7 @@ module.exports.find = async (req, res) => {
 
     const query = _.pickBy(
       {
-        schoolId: req.query.schoolId,
-        year: req.query.year,
-        term: req.query.term,
+        season: req.query.season,
         userId: req.query.userId,
         userName: req.query.userName,
         "teachers.userId": req.query.teacherId,
@@ -106,78 +106,17 @@ module.exports.find = async (req, res) => {
       (v) => v !== undefined
     );
 
-    const syllabuses = await Syllabus(req.user.dbName).find(query, [
-      "classTitle",
-      "userId",
-      "userName",
-      "teachers",
-      "time",
-      "classroom",
-      "subject",
-      "confirmed",
-    ]);
-    return res.status(200).send({ syllabuses });
+    const syllabuses = await Syllabus(req.user.dbName).find(query);
+    return res.status(200).send(syllabuses);
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
 };
 
-// module.exports.students = async (req, res) => {
-//   try {
-//     const syllabus = await Syllabus(req.user.dbName).findOne({
-//       _id: req.params._id,
-//     });
-//     if (!syllabus) {
-//       return res.status(404).send({ message: "no syllabus!" });
-//     }
-//     const students = await Enrollment(req.user.dbName).find({
-//       "syllabus._id": syllabus._id,
-//     });
-//     return res.status(200).send({
-//       students: students.map((student) => {
-//         return {
-//           userId: student.userId,
-//           userName: student.userName,
-//         };
-//       }),
-//     });
-//   } catch (err) {
-//     if (err) return res.status(500).send({ err: err.message });
-//   }
-// };
-
-// const time = async (req, res) => {
-//   try {
-//     const syllabus = await Syllabus(req.user.dbName).findOne({
-//       _id: req.params._id,
-//     });
-//     if (!syllabus) {
-//       return res.status(404).send({ message: "no syllabus!" });
-//     }
-//     const students = await Enrollment(req.user.dbName).find({
-//       "syllabus._id": syllabus._id,
-//     });
-//     return res.status(200).send({
-//       students: students.map((student) => {
-//         return {
-//           userId: student.userId,
-//           userName: student.userName,
-//         };
-//       }),
-//     });
-//   } catch (err) {
-//     if (err) return res.status(500).send({ err: err.message });
-//   }
-// };
-
 module.exports.confirm = async (req, res) => {
   try {
     // authentication
-    const syllabus = await Syllabus(req.user.dbName).findById(
-      req.params._id,
-      "teachers"
-    );
-
+    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
     for (let i = 0; i < syllabus.teachers.length; i++) {
       if (syllabus.teachers[i].userId == req.user.userId) {
         syllabus.teachers[i].confirmed = true;
@@ -196,10 +135,7 @@ module.exports.confirm = async (req, res) => {
 module.exports.unconfirm = async (req, res) => {
   try {
     // authentication
-    const syllabus = await Syllabus(req.user.dbName).findById(
-      req.params._id,
-      "teachers"
-    );
+    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
 
     for (let i = 0; i < syllabus.teachers.length; i++) {
       if (syllabus.teachers[i].userId == req.user.userId) {
