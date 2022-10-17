@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const school = require("../controllers/school");
 const season = require("../controllers/season");
-const { isAdManager } = require("../middleware/auth");
+const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             Season
@@ -10,7 +10,7 @@ const { isAdManager } = require("../middleware/auth");
 
 router.post("/", isAdManager, season.create);
 
-router.get("/:_id?", isAdManager, season.find);
+router.get("/:_id?", isLoggedIn, season.find);
 
 /* _______ permissions _______ */
 // type: syllabus, enrollment, evaluation
