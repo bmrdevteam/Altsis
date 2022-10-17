@@ -35,7 +35,7 @@ module.exports.find = async (req, res) => {
     const schools = await School(req.user.dbName)
       .find({})
       .select(["schoolId", "schoolName"]);
-    return res.status(200).send(schools);
+    return res.status(200).send({ schools });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

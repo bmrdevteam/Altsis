@@ -92,7 +92,7 @@ module.exports.find = async (req, res) => {
     }
 
     const syllabuses = await Syllabus(req.user.dbName).find(req.query);
-    return res.status(200).send(syllabuses);
+    return res.status(200).send({ syllabuses });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }

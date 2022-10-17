@@ -143,7 +143,7 @@ module.exports.createBulk = async (req, res) => {
       }),
     ]);
 
-    return res.status(200).send(users);
+    return res.status(200).send({ users });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -161,7 +161,6 @@ module.exports.current = async (req, res) => {
       .select(["season", "year", "term"]);
 
     user.registrations = registrations;
-    console.log(registrations);
 
     return res.status(200).send({ ...user.toObject(), registrations });
   } catch (err) {
@@ -202,7 +201,7 @@ module.exports.find = async (req, res) => {
       delete queries.schoolName;
     }
     const users = await _User.find(queries);
-    return res.status(200).send(users);
+    return res.status(200).send({ users });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
