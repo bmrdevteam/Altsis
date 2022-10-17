@@ -219,7 +219,7 @@ module.exports.updateEvaluation = async (req, res) => {
 
     for (let i = 0; i < enrollment.teachers.length; i++) {
       if (enrollment.teachers[i].userId == req.user.userId) {
-        enrollment.evaluation = req.body;
+        enrollment.evaluation = req.body.new;
         await enrollment.save();
         return res.status(200).send(enrollment);
       }
