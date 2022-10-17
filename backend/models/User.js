@@ -36,7 +36,7 @@ const userSchema = mongoose.Schema(
       validate: validate({ validator: "isEmail" }),
     },
     tel: String,
-    snsId: Object,
+    snsId: { type: Object, select: false },
     schools: [
       mongoose.Schema(
         {
@@ -58,7 +58,7 @@ const check = {
     validator.isLength(val, { min: 4, max: 20 }) &&
     validator.isAlphanumeric(val),
   userName: (val) => validator.isLength(val, { min: 2, max: 20 }),
-  email: (val) => validator.isEmail(val),
+  email: (val) => !val || validator.isEmail(val),
   password: (val) =>
     validator.isLength(val, { min: 8, max: 20 }) &&
     validator.matches(val, specialRegExp),

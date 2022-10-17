@@ -1,10 +1,7 @@
 const _ = require("lodash");
-const Registration = require("../models/Registration");
-const User = require("../models/User");
-const Season = require("../models/Season");
+const { User, Registration, Season } = require("../models/models");
 
 /* create */
-
 module.exports.register = async (req, res) => {
   try {
     const _Registration = Registration(req.user.dbName);
@@ -17,15 +14,12 @@ module.exports.register = async (req, res) => {
         userId: req.body.userId,
       }),
     ]);
-    if (!user) {
-      return res.status(404).send({ message: "user not found" });
-    }
-    if (!season) {
-      return res.status(404).send({ message: "season not found" });
-    }
-    if (exRegistration) {
+    if (!user) return res.status(404).send({ message: "user not found" });
+
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    if (exRegistration)
       return res.status(409).send({ message: "user is already registered" });
-    }
 
     /* create and save document */
     const registration = new _Registration({
@@ -40,7 +34,7 @@ module.exports.register = async (req, res) => {
     await registration.save();
     return res.status(200).send(registration);
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -71,7 +65,7 @@ module.exports.registerBulk = async (req, res) => {
     );
     return res.status(200).send({ registerations: newRegistrations });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -80,7 +74,7 @@ module.exports.find = async (req, res) => {
     const registrations = await Registration(req.user.dbName).find(req.query);
     return res.status(200).send(registrations);
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -96,32 +90,32 @@ module.exports.update = async (req, res) => {
       ["grade", "group", "teacherId", "teacherName"].indexOf(
         req.params.field
       ) == -1
-    ) {
+    )
       return res.status(409).send({ message: "field cannot be updated" });
-    }
+
     const registration = await Registration(req.user.dbName).findById(
       req.params._id
     );
-    if (!registration) {
+    if (!registration)
       return res.status(404).send({ message: "registration not found" });
-    }
+
     registration[req.params.field] = req.body.new;
     await registration.save();
     return res.status(200).send(registration);
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
 /* delete */
-exports.delete = async (req, res) => {
+exports.remove = async (req, res) => {
   try {
     const registration = await Registration(req.user.dbName).findById(
       req.params._id
     );
-    if (!registration) {
+    if (!registration)
       return res.status(404).send({ message: "registration not found" });
-    }
+
     await registration.delete();
     return res.status(200).send();
   } catch (err) {

@@ -13,31 +13,21 @@ router.post("/", isAdManager, season.create);
 router.get("/:_id?", isAdManager, season.find);
 
 /* _______ permissions _______ */
+// type: syllabus, enrollment, evaluation
 router.put(
-  "/:_id/permissions/syllabus",
+  "/:_id/permissions/:permissionType",
   isAdManager,
-  season.updatePermissionSyllabus
-);
-router.put(
-  "/:_id/permissions/enrollment",
-  isAdManager,
-  season.updatePermissionEnrollment
-);
-router.put(
-  "/:_id/permissions/evaluation",
-  isAdManager,
-  season.updatePermissionEvaluation
+  season.updatePermission
 );
 
-/* _______ subjects, classrooms _______ */
-router.put("/:_id/subjects", isAdManager, season.updateSubjects);
-router.put("/:_id/classrooms", isAdManager, season.updateClassrooms);
-
-/* _______ forms _______ */
-
-router.put("/:_id/forms/timetable", isAdManager, season.updateFormTimetable);
-router.put("/:_id/forms/syllabus", isAdManager, season.updateFormSyllabus);
+//formEvaluation
 router.put("/:_id/forms/evaluation", isAdManager, season.updateFormEvaluation);
+
+// formType: formTimetable, formSyllabus
+router.put("/:_id/forms/:formType", isAdManager, season.updateForm);
+
+// field: subjects, classrooms
+router.put("/:_id/:field", isAdManager, season.updateField);
 
 router.delete("/:_id", isAdManager, season.delete);
 

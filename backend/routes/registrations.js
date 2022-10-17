@@ -14,6 +14,6 @@ router.get("/", isAdManager, registration.find);
 
 router.put("/:_id/:field", isAdManager, registration.update);
 
-router.delete("/:_id", isAdManager, registration.delete);
+router.delete("/:_id", isAdManager, registration.remove);
 
 module.exports = router;

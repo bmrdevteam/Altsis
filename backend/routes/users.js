@@ -22,6 +22,7 @@ router.post("/", isLoggedIn, user.create);
 router.post("/bulk", isLoggedIn, user.createBulk);
 
 // ___________ find _____________
+router.get("/current", isLoggedIn, user.current);
 router.get("/", isLoggedIn, user.find);
 
 // ___________ delete _____________
@@ -33,10 +34,9 @@ router.put("/:_id/schools", isLoggedIn, user.updateSchools);
 
 // ___________ update(myself) _____________
 
-router.put("/password", isLoggedIn, user.updatePassword);
-router.put("/email", isLoggedIn, user.updateEmail);
 router.put("/google", isLoggedIn, user.connectGoogle);
 router.delete("/google", isLoggedIn, user.disconnectGoogle);
+router.put("/:field", isLoggedIn, user.updateField);
 
 // // profile 보류
 // router.post("/profile", isLoggedIn, profile.upload);

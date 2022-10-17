@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const school = require("../controllers/school");
-const { isAdManager } = require("../middleware/auth");
+const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             School
@@ -9,11 +9,10 @@ const { isAdManager } = require("../middleware/auth");
 
 router.post("/", isAdManager, school.create);
 
-router.get("/:_id?/:field?", isAdManager, school.find);
+router.get("/:_id?/:field?", isLoggedIn, school.find);
 
-router.put("/:_id/subjects", isAdManager, school.updateSubjects);
-router.put("/:_id/classrooms", isAdManager, school.updateClassrooms);
-router.put("/:_id/formArchive", isAdManager, school.updateFormArchive);
+// update subjects, classrooms, formArchive
+router.put("/:_id/:field", isAdManager, school.updateField);
 
 router.delete("/:_id", isAdManager, school.delete);
 
