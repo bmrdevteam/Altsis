@@ -8,9 +8,10 @@ const { isOwner } = require("../middleware/auth");
 //=================================
 
 router.post("/", isOwner, academy.create);
-router.get("/", academy.getAll);
+router.get("/:_id?", academy.find);
 
-router.put("/:_id/:field", isOwner, academy.update);
+// update email, tel
+router.put("/:_id/:field", isOwner, academy.updateField);
 
 router.delete("/:_id", isOwner, academy.remove);
 

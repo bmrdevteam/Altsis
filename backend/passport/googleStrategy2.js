@@ -2,7 +2,7 @@ const passport = require("passport");
 const CustomStrategy = require("passport-custom").Strategy;
 const User = require("../models/User");
 const Academy = require("../models/Academy");
-const { OAuth2Client } = require("google-auth-library");
+const { getPayload } = require("../utils/payload");
 
 module.exports = () => {
   passport.use(
@@ -11,30 +11,31 @@ module.exports = () => {
       try {
         const { academyId, credential } = req.body;
 
-        const academy = await Academy.findOne({
-          academyId,
-        });
+        const [payload, academy] = await Promise.all([
+          getPayload(credential),
+          Academy.findOne({
+            academyId,
+          }),
+        ]);
+
         if (!academy) {
-          const err = new Error("No academy!");
+          const err = new Error("Academy Not found");
           err.status = 404;
           throw err;
         }
 
-        const client = new OAuth2Client(process.env["GOOGLE_CLIENT_ID"]);
-        const ticket = await client.verifyIdToken({
-          idToken: credential,
-          audience: process.env["GOOGLE_CLIENT_ID"],
-        });
-        const payload = ticket.getPayload();
-        const user = await User(academy.dbName).findOne({
-          "snsId.provider": "google",
-          "snsId.email": payload["email"],
-        });
+        const user = await User(academy.dbName)
+          .findOne({
+            "snsId.google": payload.email,
+          })
+          .select("+snsId");
+
         if (!user) {
-          const err = new Error("User doesn't exists with such google account");
+          const err = new Error("User not found");
           err.status = 409;
           throw err;
         }
+
         return done(null, user, academy.dbName);
       } catch (err) {
         return done(err, null, null);
