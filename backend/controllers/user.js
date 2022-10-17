@@ -297,7 +297,7 @@ module.exports.updateField = async (req, res) => {
     if (["password", "email"].indexOf(req.params.field) == -1)
       return res.status(400);
 
-    req.user[req.params.field] = req.body;
+    req.user[req.params.field] = req.body.new;
     if (!req.user.checkValidation(req.params.field))
       return res.status(400).send({ message: "validation failed" });
 
