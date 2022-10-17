@@ -3,8 +3,8 @@ module.exports = {
   Enrollment: require("./Enrollment"),
   Form: require("./Form"),
   School: require("./School"),
-  SchoolUser: require("./SchoolUser"),
+  Registration: require("./Registration"),
   Syllabus: require("./Syllabus"),
-  TimeBlock: require("./TimeBlock"),
   User: require("./User"),
+  Season: require("./Season"),
 };

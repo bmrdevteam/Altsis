@@ -19,17 +19,19 @@ module.exports = () => {
         ]);
 
         if (!academy) {
-          const err = new Error("No academy!");
+          const err = new Error("Academy Not found");
           err.status = 404;
           throw err;
         }
 
-        const user = await User(academy.dbName).findOne({
-          "snsId.google": payload.email,
-        });
+        const user = await User(academy.dbName)
+          .findOne({
+            "snsId.google": payload.email,
+          })
+          .select("+snsId");
 
         if (!user) {
-          const err = new Error("User doesn't exists with such google account");
+          const err = new Error("User not found");
           err.status = 409;
           throw err;
         }

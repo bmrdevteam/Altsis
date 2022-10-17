@@ -1,20 +1,17 @@
-const Enrollment = require("../models/Enrollment");
-const Syllabus = require("../models/Syllabus");
-const Registration = require("../models/Registration");
-const Season = require("../models/Season");
-
+const {
+  Enrollment,
+  Syllabus,
+  Registration,
+  Season,
+} = require("../models/models");
 const _ = require("lodash");
 
 const isTimeOverlapped = async (user, syllabus) => {
-  const enrollments = await Enrollment(user.dbName).find(
-    {
-      studentId: user.userId,
-      year: syllabus.year,
-      term: syllabus.term,
-    },
-    "time"
-  );
-  console.log("your enrollments: ", enrollments);
+  const enrollments = await Enrollment(user.dbName).find({
+    studentId: user.userId,
+    season: syllabus.season,
+  });
+
   const unavailableTime = _.flatten(
     enrollments.map((enrollment) => enrollment.time)
   );
@@ -33,35 +30,29 @@ module.exports.enroll = async (req, res) => {
     const syllabus = await Syllabus(req.user.dbName).findById(
       req.body.syllabus
     );
-    if (!syllabus) {
+    if (!syllabus)
       return res.status(404).send({ message: "syllabus is not found" });
-    }
-    for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (!syllabus.teachers[i].confirmed) {
+
+    for (let i = 0; i < syllabus.teachers.length; i++)
+      if (!syllabus.teachers[i].confirmed)
         return res.status(404).send({ message: "syllabus is not confirmed" });
-      }
-    }
 
     // 1. 수강정원 확인
     const exEnrollments = await _Enrollment.find({
       syllabus: syllabus._id,
     });
-    if (syllabus.limit != 0 && exEnrollments.length >= syllabus.limit) {
+    if (syllabus.limit != 0 && exEnrollments.length >= syllabus.limit)
       return res.status(409).send({ message: "수강정원이 다 찼습니다." });
-    }
 
     // 2. 수강신청 가능한 시간인가?
-    if (await isTimeOverlapped(req.user, syllabus)) {
+    if (await isTimeOverlapped(req.user, syllabus))
       return res.status(409).send({
         message: `시간표가 중복되었습니다.`,
       });
-    }
 
     // 3. 유저의 학기 등록 정보 확인
     const registration = await Registration(req.user.dbName).findOne({
-      schoolId: syllabus.schoolId,
-      year: syllabus.year,
-      term: syllabus.term,
+      season: syllabus.season,
       userId: req.user.userId,
     });
     if (!registration) {
@@ -69,19 +60,12 @@ module.exports.enroll = async (req, res) => {
     }
 
     // 유저 권한 확인
-    const season = await Season(req.user.dbName).findOne({
-      schoolId: syllabus.schoolId,
-      year: syllabus.year,
-      term: syllabus.term,
-    });
-    if (!season) {
-      return res.status(404).send({ message: "season not found" });
-    }
+    const season = await Season(req.user.dbName).findById(syllabus.season);
+    if (!season) return res.status(404).send({ message: "season not found" });
     if (
       !season.checkPermission("enrollment", req.user.userId, registration.role)
-    ) {
+    )
       return res.status(409).send({ message: "you have no permission" });
-    }
 
     // 수강신청 완료 (도큐먼트 저장)
     const enrollment = new _Enrollment({
@@ -92,39 +76,45 @@ module.exports.enroll = async (req, res) => {
     await enrollment.save();
     return res.status(200).send(enrollment);
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
 module.exports.enrollbulk = async (req, res) => {
-  const syllabus = await Syllabus(req.user.dbName).findById(req.body.syllabus);
-  if (!syllabus) {
-    return res.status(404).send({ message: "syllabus is not found" });
-  }
-  for (let i = 0; i < syllabus.teachers.length; i++) {
-    if (!syllabus.teachers[i].confirmed) {
-      return res.status(409).send({ message: "syllabus is not confirmed" });
+  try {
+    const syllabus = await Syllabus(req.user.dbName).findById(
+      req.body.syllabus
+    );
+    if (!syllabus)
+      return res.status(404).send({ message: "syllabus is not found" });
+
+    for (let i = 0; i < syllabus.teachers.length; i++) {
+      if (!syllabus.teachers[i].confirmed)
+        return res.status(409).send({ message: "syllabus is not confirmed" });
     }
-  }
 
-  const enrollments = [];
-  const syllabusSubdocument = syllabus.getSubdocument();
+    const enrollments = [];
+    const syllabusSubdocument = syllabus.getSubdocument();
 
-  for (let student of req.body.students) {
-    enrollments.push({
-      ...syllabusSubdocument,
-      studentId: student.userId,
-      studentName: student.userName,
-    });
+    for (let student of req.body.students) {
+      enrollments.push({
+        ...syllabusSubdocument,
+        studentId: student.userId,
+        studentName: student.userName,
+      });
+    }
+    const newEnrollments = await Enrollment(req.user.dbName).insertMany(
+      enrollments
+    );
+    return res.status(200).send(newEnrollments);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
   }
-  const newEnrollments = await Enrollment(req.user.dbName).insertMany(
-    enrollments
-  );
-  return res.status(200).send({ enrollments: newEnrollments });
 };
 
 module.exports.find = async (req, res) => {
   try {
+    // find by enrollment _id (only student can view)
     if (req.params._id) {
       const enrollment = await Enrollment(req.user.dbName).findById(
         req.params._id
@@ -132,19 +122,23 @@ module.exports.find = async (req, res) => {
       if (!enrollment)
         return res.status(404).send({ message: "enrollment not found" });
 
-      // 수강생 본인만 확인 가능
       if (enrollment.studentId != req.user.userId)
-        return res.status(401).send({ message: "you have no permission" });
+        return res.status(401).send();
 
       return res.status(200).send(enrollment);
     }
+
     const { season, studentId, syllabus } = req.query;
+
+    // find by season & studentId
     if (season && studentId) {
       const enrollments = await Enrollment(req.user.dbName)
         .find({ season, studentId })
         .select("-evaluation");
       return res.status(200).send(enrollments);
     }
+
+    // find by syllabus
     if (syllabus) {
       const enrollments = await Enrollment(req.user.dbName)
         .find({ syllabus })
@@ -153,7 +147,7 @@ module.exports.find = async (req, res) => {
     }
     return res.status(400);
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -161,15 +155,17 @@ module.exports.findEvaluations = async (req, res) => {
   try {
     const { season, studentId, syllabus } = req.query;
 
+    // find by season & studentId
     if (season && studentId) {
-      if (req.user.userId != studentId)
-        return res.status(401).send({ message: "you have no permission" });
+      if (req.user.userId != studentId) return res.status(401).send();
       const enrollments = await Enrollment(req.user.dbName).find({
         season,
         studentId,
       });
       return res.status(200).send(enrollments);
     }
+
+    // find by syllabus
     if (syllabus) {
       const _syllabus = await Syllabus(req.user.dbName).findById(
         req.query.syllabus
@@ -188,12 +184,12 @@ module.exports.findEvaluations = async (req, res) => {
           return res.status(200).send(enrollments);
         }
       }
-      return res.status(401).send({ message: "you have no permission" });
+      return res.status(401).send();
     }
 
     return res.status(400).send();
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -202,9 +198,8 @@ module.exports.updateEvaluation = async (req, res) => {
     const enrollment = await Enrollment(req.user.dbName).findById(
       req.params._id
     );
-    if (!enrollment) {
+    if (!enrollment)
       return res.status(404).send({ message: "enrollment not found" });
-    }
 
     // 유저 권한 확인
     const season = await Season(req.user.dbName).findById(enrollment.season);
@@ -224,16 +219,14 @@ module.exports.updateEvaluation = async (req, res) => {
 
     for (let i = 0; i < enrollment.teachers.length; i++) {
       if (enrollment.teachers[i].userId == req.user.userId) {
-        enrollment.evaluation = req.body.new;
+        enrollment.evaluation = req.body;
         await enrollment.save();
         return res.status(200).send(enrollment);
       }
     }
-    return res
-      .status(401)
-      .send({ message: "only teacher of syllabus can update evaluation!" });
+    return res.status(401).send();
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -245,9 +238,12 @@ module.exports.remove = async (req, res) => {
     if (!enrollment)
       return res.status(404).send({ message: "enrollment not found" });
 
-    console.log("enrollment is ", enrollment);
-    if (enrollment.studentId != req.user.userId)
-      return res.status(401).send({ message: "you have no permission" });
+    if (req.user.auth == "admin" || req.user.auth == "manager") {
+      await enrollment.remove();
+      return res.status(200).send();
+    }
+
+    if (enrollment.studentId != req.user.userId) return res.status(401).send();
 
     // 유저 권한 확인
     const season = await Season(req.user.dbName).findById(enrollment.season);
@@ -263,11 +259,11 @@ module.exports.remove = async (req, res) => {
     if (
       !season.checkPermission("enrollment", req.user.userId, registration.role)
     )
-      return res.status(401).send({ message: "you have no permission" });
+      return res.status(401).send();
 
     await enrollment.remove();
     return res.status(200).send();
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };

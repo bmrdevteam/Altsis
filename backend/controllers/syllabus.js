@@ -1,7 +1,9 @@
-const Syllabus = require("../models/Syllabus");
-const Enrollment = require("../models/Enrollment");
-const Season = require("../models/Season");
-const Registration = require("../models/Registration");
+const {
+  Season,
+  Registration,
+  Syllabus,
+  Enrollment,
+} = require("../models/models");
 const _ = require("lodash");
 
 const getUnavailableTimeLabels = async (dbName, syllabus) => {
@@ -34,24 +36,21 @@ module.exports.create = async (req, res) => {
       season: req.body.season,
       userId: req.user.userId,
     });
-    if (!registration) {
+    if (!registration)
       return res.status(404).send({ message: "registration not found" });
-    }
 
     // 유저 권한 확인
     const season = await Season(req.user.dbName).findById(req.body.season);
-    if (!season) {
-      return res.status(404).send({ message: "season not found" });
-    }
+    if (!season) return res.status(404).send({ message: "season not found" });
+
     if (
       !season.checkPermission(
         "syllabus",
         registration.userId,
         registration.role
       )
-    ) {
+    )
       return res.status(409).send({ message: "you have no permission" });
-    }
 
     const _Syllabus = Syllabus(req.user.dbName);
     const syllabus = new _Syllabus({
@@ -73,16 +72,15 @@ module.exports.create = async (req, res) => {
       req.user.dbName,
       syllabus
     );
-    if (!_.isEmpty(unavailableTimeLabels)) {
+    if (!_.isEmpty(unavailableTimeLabels))
       return res.status(409).send({
         message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
       });
-    }
 
     await syllabus.save();
     return res.status(200).send(syllabus);
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -93,20 +91,7 @@ module.exports.find = async (req, res) => {
       return res.status(200).send(syllabus);
     }
 
-    const query = _.pickBy(
-      {
-        season: req.query.season,
-        userId: req.query.userId,
-        userName: req.query.userName,
-        "teachers.userId": req.query.teacherId,
-        "teachers.userName": req.query.teacherName,
-        classTitle: req.query.classTitle,
-        classroom: req.query.classroom,
-      },
-      (v) => v !== undefined
-    );
-
-    const syllabuses = await Syllabus(req.user.dbName).find(query);
+    const syllabuses = await Syllabus(req.user.dbName).find(req.query);
     return res.status(200).send(syllabuses);
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
@@ -313,9 +298,9 @@ module.exports.update = async (req, res) => {
 
 module.exports.remove = async (req, res) => {
   try {
-    const doc = await Syllabus(req.user.dbName).findByIdAndDelete(
-      req.params._id
-    );
+    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    if (!syllabus) return res.status(404).send();
+    await syllabus.delete();
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send();
