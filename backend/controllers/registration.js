@@ -72,7 +72,7 @@ module.exports.registerBulk = async (req, res) => {
 module.exports.find = async (req, res) => {
   try {
     const registrations = await Registration(req.user.dbName).find(req.query);
-    return res.status(200).send(registrations);
+    return res.status(200).send({ registrations });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

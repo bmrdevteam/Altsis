@@ -34,7 +34,7 @@ module.exports.find = async (req, res) => {
       return res.status(200).send(form);
     }
     const forms = await Form(req.user.dbName).find(req.query).select("-data");
-    return res.status(200).send(forms);
+    return res.status(200).send({ forms });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

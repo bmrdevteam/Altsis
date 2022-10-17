@@ -106,7 +106,7 @@ module.exports.enrollbulk = async (req, res) => {
     const newEnrollments = await Enrollment(req.user.dbName).insertMany(
       enrollments
     );
-    return res.status(200).send(newEnrollments);
+    return res.status(200).send({ enrollments: newEnrollments });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -135,7 +135,7 @@ module.exports.find = async (req, res) => {
       const enrollments = await Enrollment(req.user.dbName)
         .find({ season, studentId })
         .select("-evaluation");
-      return res.status(200).send(enrollments);
+      return res.status(200).send({ enrollments });
     }
 
     // find by syllabus
@@ -143,7 +143,7 @@ module.exports.find = async (req, res) => {
       const enrollments = await Enrollment(req.user.dbName)
         .find({ syllabus })
         .select(["studentId", "studentName"]);
-      return res.status(200).send(enrollments);
+      return res.status(200).send({ enrollments });
     }
     return res.status(400);
   } catch (err) {
@@ -162,7 +162,7 @@ module.exports.findEvaluations = async (req, res) => {
         season,
         studentId,
       });
-      return res.status(200).send(enrollments);
+      return res.status(200).send({ enrollments });
     }
 
     // find by syllabus
@@ -181,7 +181,7 @@ module.exports.findEvaluations = async (req, res) => {
               syllabus,
             })
             .select(["studentId", "studentName", "evaluation"]);
-          return res.status(200).send(enrollments);
+          return res.status(200).send({ enrollments });
         }
       }
       return res.status(401).send();

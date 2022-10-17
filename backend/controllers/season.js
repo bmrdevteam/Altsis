@@ -45,7 +45,7 @@ module.exports.find = async (req, res) => {
       .find(req.query)
       .select(["schoolId", "schoolName", "year", "term"]);
 
-    return res.status(200).send(seasons);
+    return res.status(200).send({ seasons });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -118,7 +118,8 @@ module.exports.updateForm = async (req, res) => {
           "it can't be updated because there's a syllabus created in this season",
       });
     }
-    if (req.paramsv.formType == "timetable") season.formTimetable = req.body.new;
+    if (req.paramsv.formType == "timetable")
+      season.formTimetable = req.body.new;
     else season.formSyllabus = req.body.new;
     await season.save();
     return res.status(200).send(season);

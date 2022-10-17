@@ -62,14 +62,14 @@ module.exports.find = async (req, res) => {
     /* if user is owner: return full info */
     if (req.isAuthenticated() && req.user.auth == "owner") {
       const academies = await Academy.find(req.query);
-      return res.status(200).send(academies);
+      return res.status(200).send({ academies });
     }
     /* else: return filtered info */
     const academies = await Academy.find(req.query).select([
       "academyId",
       "academyName",
     ]);
-    return res.status(200).send(academies);
+    return res.status(200).send({ academies });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
