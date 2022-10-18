@@ -36,15 +36,7 @@ const userSchema = mongoose.Schema(
       validate: validate({ validator: "isEmail" }),
     },
     tel: String,
-    snsId: [
-      mongoose.Schema(
-        {
-          provider: String,
-          email: String,
-        },
-        { _id: false }
-      ),
-    ],
+    snsId: { type: Object, select: false },
     schools: [
       mongoose.Schema(
         {
@@ -66,25 +58,13 @@ const check = {
     validator.isLength(val, { min: 4, max: 20 }) &&
     validator.isAlphanumeric(val),
   userName: (val) => validator.isLength(val, { min: 2, max: 20 }),
-  email: (val) => validator.isEmail(val),
+  email: (val) => !val || validator.isEmail(val),
   password: (val) =>
     validator.isLength(val, { min: 8, max: 20 }) &&
     validator.matches(val, specialRegExp),
 };
 
-userSchema.statics.checkValidation = function (user, key) {
-  if (key) {
-    return check[key](user[key]);
-  }
-  for (const key in check) {
-    if (!check[key](user[key])) return false;
-  }
-  return true;
-};
-
 userSchema.methods.checkValidation = function (key) {
-  console.log("this is ", this);
-  console.log("key is ", key);
   if (key) {
     return check[key](this[key]);
   }
@@ -98,7 +78,7 @@ userSchema.pre("save", function (next) {
   var user = this;
   if (user.isModified("password")) {
     //비밀번호가 바뀔때만 암호화
-    bcrypt.genSalt(process.env["saltRounds"], function (err, salt) {
+    bcrypt.genSalt(parseInt(process.env["saltRounds"]), function (err, salt) {
       if (err) return next(err);
       bcrypt.hash(user.password, salt, function (err, hash) {
         if (err) return next(err);
