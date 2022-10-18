@@ -8,6 +8,7 @@ import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
 import Popup from "../../components/popup/Popup";
 import Select from "../../components/select/Select";
 import { useAuth } from "../../contexts/authContext";
+import EditorParser from "../../editor/EditorParser";
 import useDatabase from "../../hooks/useDatabase";
 import style from "../../style/pages/courses/courseDesign.module.scss";
 type Props = {};
@@ -103,6 +104,7 @@ const CourseDesign = (props: Props) => {
             />
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
+          <EditorParser id={"63057ebb49c14b8ece07bfa3"} />
         </div>
       </div>
 

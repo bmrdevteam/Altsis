@@ -36,10 +36,20 @@
             }
         }
 
-        .save {
+
+        .preview {
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
+
+        }
+
+        .save {
+
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+
         }
     }
 
@@ -49,6 +59,7 @@
 
 .sidebar_container {
     z-index: 1;
+    overflow-y: scroll;
     background-color: var(--background-color);
     position: absolute;
     right: 0;
@@ -115,6 +126,21 @@
                     input[type=text],
                     input[type=number] {
                         height: 30px;
+                        flex: 1 1 0;
+                        width: 100%;
+                        font-size: 12px;
+                        background-color: var(--component-color);
+                        border: none;
+                        border-radius: 8px;
+                        appearance: none;
+                        -webkit-appearance: none;
+                        padding: 0 12px;
+                    }
+
+                    input[type=time] {
+                        outline: none;
+                        height: 30px;
+                        width: 100%;
                         flex: 1 1 0;
                         font-size: 12px;
                         background-color: var(--component-color);
@@ -231,9 +257,31 @@
                 }
             }
 
+            .card_container {
+                position: relative;
+
+                .card {
+                    border: 1px solid;
+                    position: absolute;
+                    bottom: 0;
+                    width: 320px;
+                    height: 400px;
+                    background-color: var(--background-color);
+                }
+            }
+
         }
 
 
+    }
+}
+
+.content_container.preview {
+    width: 100%;
+
+    .block:hover {
+        border: none;
+        padding: 6px;
     }
 }
 
@@ -312,14 +360,87 @@
 }
 
 .block .table {
+    width: 100%;
+    table-layout: fixed;
+    overflow: hidden;
+
     td {
         border: var(--border-default);
-        border-width: 2px;
+        border-width: 1px;
 
         .cell {
             outline: none;
             padding: 4px 6px;
+            position: relative;
+
+
         }
+
+
+    }
+
+    th {
+        border: var(--border-default);
+        border-width: 1px;
+        font-weight: 600;
+        background-color: var(--component-color);
+
+        .cell {
+            outline: none;
+            padding: 4px 6px;
+            position: relative;
+
+
+        }
+
+
+    }
+}
+
+.parsed_block {
+    padding: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Pretendard';
+    outline: none;
+    min-height: 29px;
+
+}
+
+.parsed_block .table {
+    width: 100%;
+    table-layout: fixed;
+    overflow: hidden;
+
+    td {
+        border: var(--border-default);
+        border-width: 1px;
+
+        .cell {
+            outline: none;
+            padding: 4px 6px;
+            position: relative;
+
+
+        }
+
+
+    }
+
+    th {
+        border: var(--border-default);
+        border-width: 1px;
+        font-weight: 600;
+        background-color: var(--component-color);
+
+        .cell {
+            outline: none;
+            padding: 4px 6px;
+            position: relative;
+
+
+        }
+
 
     }
 }

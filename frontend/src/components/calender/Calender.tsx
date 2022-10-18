@@ -17,7 +17,7 @@
  * IN DEVELOPMENT
  * onclick function when selecting with the calendar component
  * more flexabilty with selecting dates useing inputs maybe
- * 
+ *
  * -------------------------------------------------------
  *
  * DEPRECATED
@@ -32,7 +32,12 @@ import React, { useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./calender.module.scss";
 
-type Props = {};
+type Props = {
+  /**
+   * gets the clicked date value in strings "1900-01-01"
+   */
+  onDateSelect?: (date: any) => void;
+};
 
 /**
  * calendar component
@@ -160,8 +165,8 @@ const Calender = (props: Props) => {
       }
     }
   }
-  /** 
-   * return the component    
+  /**
+   * return the component
    */
 
   return (
@@ -202,6 +207,9 @@ const Calender = (props: Props) => {
                   }`}
                   key={index}
                   data-value={dateStr}
+                  onClick={()=>{
+                    props.onDateSelect && props.onDateSelect(dateStr)
+                  }}
                 >
                   {value}
                 </div>

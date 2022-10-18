@@ -61,7 +61,7 @@ const Forms = (props: Props) => {
         data: {
           title: inputFormTitle,
           type: selectFormType,
-          data: [{ id: "initialBlock", type: "timetable", data: {} }],
+          data: [],
         },
       })
       .then(() => {
@@ -105,12 +105,14 @@ const Forms = (props: Props) => {
       case "syllabus":
         fileColor = "rgb(255, 128, 128)";
         break;
+      case "print":
+        fileColor = "rgb(255, 212, 94)";
+        break;
       default:
         fileColor = "rgb(200, 200, 200)";
         break;
     }
 
-  
     return (
       <div className={style.item} title={data.title}>
         <div
@@ -174,7 +176,7 @@ const Forms = (props: Props) => {
             onClick={() => {
               setAddFormPopupActive(true);
             }}
-            style={{height:"160px"}}
+            style={{ height: "160px" }}
           >
             <div className={style.icon} style={{ height: "100%" }}>
               <Svg type="plus" width="32px" height="32px" />
@@ -183,8 +185,8 @@ const Forms = (props: Props) => {
           {search
             .result()
             .filter((value: any) => {
-              if(type === undefined){
-                return true
+              if (type === undefined) {
+                return true;
               }
               return value.type === type;
             })
@@ -259,6 +261,29 @@ const Forms = (props: Props) => {
                     <Table
                       data={search.result().filter((value: any) => {
                         return value.type === "evaluation";
+                      })}
+                      header={[
+                        { type: "index", key: "", text: "ID", width: "48px" },
+                        { type: "string", key: "title", text: "제목" },
+                        {
+                          type: "string",
+                          key: "type",
+                          text: "종류",
+                          width: "240px",
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
+              ),
+              출력: (
+                <div style={{ marginTop: "24px" }}>
+                  {view === "grid" ? (
+                    <FormItems type={"print"} />
+                  ) : (
+                    <Table
+                      data={search.result().filter((value: any) => {
+                        return value.type === "print";
                       })}
                       header={[
                         { type: "index", key: "", text: "ID", width: "48px" },
@@ -364,12 +389,15 @@ const Forms = (props: Props) => {
                   ? 1
                   : decodeURI(location.hash) === "#평가"
                   ? 2
-                  : 3
+                  : decodeURI(location.hash) === "#출력"
+                  ? 3
+                  : 4
               }
               options={[
                 { text: "시간표", value: "timetable" },
                 { text: "강의계획서", value: "syllabus" },
                 { text: "평가", value: "evaluation" },
+                { text: "출력", value: "print" },
                 { text: "기타", value: "" },
               ]}
               onChange={(e: any) => {
@@ -383,6 +411,9 @@ const Forms = (props: Props) => {
                     break;
                   case "evaluation":
                     navigate("#평가");
+                    break;
+                  case "print":
+                    navigate("#출력");
                     break;
                   case "":
                     navigate("#전체");

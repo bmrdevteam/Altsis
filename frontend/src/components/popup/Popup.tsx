@@ -27,6 +27,7 @@
  *
  */
 
+import { CSSProperties } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./popup.module.scss";
 
@@ -46,7 +47,7 @@ type Props = {
   children: JSX.Element | JSX.Element[];
   setState: any;
   title?: string;
-  style?: any;
+  style?: CSSProperties;
   closeBtn?: boolean;
   borderRadius?: string;
 };

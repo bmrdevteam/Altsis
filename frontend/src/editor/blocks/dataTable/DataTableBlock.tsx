@@ -9,8 +9,6 @@ type Props = {
 const DataTableBlock = (props: Props) => {
   const { getBlock } = useEditor();
 
-  console.log(getBlock(props.index));
-
   return <div className={style.block}>DataTableBlock</div>;
 };
 

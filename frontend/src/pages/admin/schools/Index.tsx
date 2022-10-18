@@ -7,6 +7,7 @@ import Table from "../../../components/table/Table";
 import useDatabase from "../../../hooks/useDatabase";
 import style from "../../../style/pages/admin/schools/schools.module.scss";
 
+
 const Schools = () => {
   const navigate = useNavigate();
   const database = useDatabase();

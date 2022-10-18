@@ -14,7 +14,6 @@ import BasicInfo from "./tab/BasicInfo";
 import Classroom from "./tab/Classroom";
 import Season from "./tab/Season";
 import Subject from "./tab/Subject";
-import Form from "./tab/Form";
 import useDatabase from "../../../hooks/useDatabase";
 import Setting from "./tab/Setting";
 import Skeleton from "../../../components/skeleton/Skeleton";
@@ -102,7 +101,6 @@ const School = (props: Props) => {
           강의실: (
             <Classroom school={schoolData} resetData={setResetSchoolData} />
           ),
-          "양식(beta)": <Form />,
         }}
       />
     </div>

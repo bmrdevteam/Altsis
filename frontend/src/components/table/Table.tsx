@@ -270,7 +270,7 @@ const Table = (props: Props) => {
         border: props.style?.border,
       }}
     >
-      <TableFilter />
+      {props.filter && <TableFilter />}
       <TableHeader />
       <TableBody />
     </div>

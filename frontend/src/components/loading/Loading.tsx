@@ -1,9 +1,39 @@
-import React from "react";
+/**
+ * @file Loading Component
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
 import Svg from "../../assets/svg/Svg";
 import style from "./loading.module.scss";
-type Props = {};
-
-const Loading = (props: Props) => {
+/**
+ * Loading Component
+ * 
+ * displays a loading screen while preparing components
+ * 
+ * @returns Loading Component
+ */
+const Loading = () => {
   return (
     <div className={style.loading}>
       <div className={style.icon}>
