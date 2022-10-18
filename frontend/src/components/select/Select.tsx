@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./select.module.scss";
 type Props = {
@@ -6,18 +6,13 @@ type Props = {
     text: string;
     value: string | number;
   }[];
-  style?: {
-    minWidth?: string;
-    width?: string;
-    height?: string;
-    fontSize?: string;
-  };
+  style?: CSSProperties
   ref?: any;
   label?: string;
   required?: boolean;
 
   defaultSelected?: number;
-  selectedValue?: string;
+  selectedValue?: string | number;
 
   setValue?: any;
   onChange?: any;

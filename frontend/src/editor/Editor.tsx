@@ -39,6 +39,7 @@ import { useState } from "react";
 
 import style from "./editor.module.scss";
 import { EditorProvider } from "./functions/editorContext";
+import useEditorStore from "./functions/useEditorStore";
 import useReload from "./functions/useReload";
 import Content from "./layout/Content";
 import Header from "./layout/Header";
@@ -54,12 +55,13 @@ type Props = { id: string };
  */
 function Editor(props: Props) {
   const { callPageReload, _init } = useReload();
+  const { preview } = useEditorStore();
 
   return (
     <EditorProvider id={props.id}>
       <div className={style.editor}>
-        <Header />
-        <Sidebar callPageReload={callPageReload} />
+        <Header/>
+        {!preview && <Sidebar callPageReload={callPageReload} />}
         <Content reloadHook={_init} />
       </div>
     </EditorProvider>

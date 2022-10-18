@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Block from "../blocks/Block";
 import style from "../editor.module.scss";
 import { useEditor } from "../functions/editorContext";
+import useEditorStore from "../functions/useEditorStore";
 type Props = {
   reloadHook: (
     setCounterState: React.Dispatch<React.SetStateAction<any>>
@@ -10,12 +11,13 @@ type Props = {
 
 const Content = (props: Props) => {
   const { result, editorPageRef } = useEditor();
+  const { preview } = useEditorStore();
 
   const [counter, setCounter] = useState<number>(0);
   props.reloadHook(setCounter);
 
   return (
-    <div className={style.content_container}>
+    <div className={`${style.content_container} ${preview && style.preview}`}>
       {/* {!reloadEditorData && ( */}
       {/* <div>{counter}</div> */}
 

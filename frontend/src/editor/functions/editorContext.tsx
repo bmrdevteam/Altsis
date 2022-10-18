@@ -1,4 +1,4 @@
-import _, { isArray } from "lodash";
+import _, { isArray, isEmpty } from "lodash";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Loading from "../../components/loading/Loading";
 import useDatabase from "../../hooks/useDatabase";
@@ -38,15 +38,36 @@ export function useEditor(): {
   handleChangeEditorType: (e: any) => void;
   setCurrentBlock: (id: string) => void;
   getCurrentBlock: () => any;
+  removeCurrentBlock: () => void;
   changeCurrentBlockType: (type: string) => void;
-  changetCurrentBlockData: (data: any) => void;
+  changeCurrentBlockData: (data: any) => void;
   addBlockAfterCurrentBlock: (blockType: string) => void;
   changeBlockData: (blockIndex: number, data: any) => void;
   result: () => Array<any>;
   getBlock: (blockIndex: number) => any;
+  changeCurrentCell: (data: any) => {};
+  changeCurrentCellType: () => void;
+  setCurrentCellColumn: (ratio: number) => void;
   setCurrentCell: (id: string) => void;
   setCurrentCellIndex: (row: number, col: number) => void;
+  getCurrentCellColumn: () => number;
   getCurrentCell: () => any;
+  saveCell: (
+    blockIndex: number,
+    row: number,
+    column: number,
+    data: any
+  ) => void;
+  getCell: (blockIndex: number, row: number, column: number) => any;
+  getCurrentCellIndex: () => {
+    id: any;
+    row: any;
+    column: any;
+  };
+  addToCurrentRow: () => void;
+  addToCurrentColumn: () => void;
+  removeCurrentColumn: () => void;
+  removeCurrentRow: () => void;
 } {
   return useContext(EditorContext);
 }
@@ -66,10 +87,18 @@ export const EditorProvider = (props: {
   const database = useDatabase();
   const generateId = useGenerateId;
 
+  /**
+   * loading state for the whole element
+   */
   const [loading, setLoading] = useState<boolean>(true);
 
   const [editorTitle, setEditorTitle] = useState<string>();
   const [editorType, setEditorType] = useState<string>();
+
+  /**
+   * set preview state
+   */
+  const [previewActivated, setPreviewActivated] = useState<boolean>(false);
 
   /**
    * editor data
@@ -212,15 +241,30 @@ export const EditorProvider = (props: {
     let block = {
       id: `${props.id}-${blockId}`,
       type: blockType ? blockType : "paragraph",
-      data: blockData ? blockData : { text: "" },
+      data: blockData
+        ? blockData
+        : {
+            text: "",
+
+            table: [
+              [
+                {
+                  id: `${blockId}-${generateId(12)}`,
+                  data: { text: "" },
+                  type: "paragraph",
+                },
+              ],
+            ],
+          },
     };
     if (blockType === "table") {
       block = {
         id: `${props.id}-${blockId}`,
         type: "table",
         data: {
-          table: {
-            0: [
+          columns: [1, 1, 1],
+          table: [
+            [
               {
                 id: `${blockId}-${generateId(12)}`,
                 data: { text: "" },
@@ -237,24 +281,24 @@ export const EditorProvider = (props: {
                 type: "paragraph",
               },
             ],
-            1: [
+            [
               {
                 id: `${blockId}-${generateId(12)}`,
                 data: { text: "" },
-                type: "checkbox",
+                type: "paragraph",
               },
               {
                 id: `${blockId}-${generateId(12)}`,
                 data: { text: "" },
-                type: "input",
+                type: "paragraph",
               },
               {
                 id: `${blockId}-${generateId(12)}`,
                 data: { text: "" },
-                type: "select",
+                type: "paragraph",
               },
             ],
-          },
+          ],
         },
       };
     }
@@ -297,6 +341,7 @@ export const EditorProvider = (props: {
       console.log("updated", editorData.current);
     }
   }
+
   /**
    * --------------------------------------------------------------------
    *
@@ -320,20 +365,23 @@ export const EditorProvider = (props: {
   function getCurrentBlock() {
     return editorData.current[getCurrentBlockIndex()];
   }
+  function removeCurrentBlock() {
+    editorData.current.splice(getCurrentBlockIndex(), 1);
+    setReloadEditorData(true);
+  }
   function changeCurrentBlockType(type: string) {
     if (type !== editorData.current[getCurrentBlockIndex()].type) {
       editorData.current[getCurrentBlockIndex()].type = type;
       setReloadEditorData(true);
     }
   }
-  function changetCurrentBlockData(data: any, update?: boolean) {
+  function changeCurrentBlockData(data: any, update?: boolean) {
     Object.assign(editorData.current[getCurrentBlockIndex()].data, data);
   }
 
   function addBlockAfterCurrentBlock(blockType: string) {
     addBlock({
       insertIndex: getCurrentBlockIndex() + 1,
-      blockData: { text: "" },
       blockType: blockType,
     });
   }
@@ -353,24 +401,111 @@ export const EditorProvider = (props: {
     currentCellId.current = id;
   }
   function setCurrentCellIndex(row: number, col: number) {
-    console.log("row", row, "col", col);
-
     currentCellRow.current = row;
     currentCellCol.current = col;
   }
+  function getCurrentCellIndex() {
+    return {
+      id: currentBlockId.current,
+      row: currentCellRow.current,
+      column: currentCellCol.current,
+    };
+  }
 
   function getCurrentCell() {
-    if (!(currentCellRow.current && currentCellCol.current)) {
-      currentCellRow.current = 0;
-      currentCellCol.current = 0;
-    }
-    console.log(
-      getCurrentBlock().data?.table[currentCellRow.current][
-        parseInt(currentCellCol.current)
-      ]
-    );
 
-    return;
+    if (currentCellCol.current === null && currentCellRow.current === null) {
+      currentCellCol.current = 0;
+      currentCellRow.current = 0;
+    } else {
+      return getCurrentBlock().data.table[parseInt(currentCellRow.current)][
+        parseInt(currentCellCol.current)
+      ];
+    }
+  }
+  function setCurrentCellColumn(ratio: number) {
+    const block = getCurrentBlock();
+    block.data.columns.splice(currentCellCol.current, 1, ratio);
+  }
+
+  function getCurrentCellColumn() {
+    const block = getCurrentBlock();
+    if (block.data?.columns) {
+      return block.data?.columns[currentCellCol.current];
+    } else {
+      changeCurrentBlockData({ columns: [1] });
+    }
+  }
+
+  function getCell(blockIndex: number, row: number, column: number) {
+    return editorData.current[blockIndex].data.table[row][column];
+  }
+  function saveCell(
+    blockIndex: number,
+    row: number,
+    column: number,
+    data: any
+  ) {
+    Object.assign(editorData.current[blockIndex].data.table[row][column], data);
+    console.log(editorData.current[blockIndex]);
+  }
+
+  function addToCurrentRow() {
+    let newRow: any = [];
+    for (
+      let i = 0;
+      i < editorData.current[getCurrentBlockIndex()].data.table[0].length;
+      i++
+    ) {
+      newRow.push({ id: generateId(12), type: "paragraph" });
+    }
+    if (!isEmpty(newRow)) {
+      editorData.current[getCurrentBlockIndex()].data.table.splice(
+        currentCellRow.current + 1,
+        0,
+        newRow
+      );
+    }
+  }
+
+  function addToCurrentColumn() {
+    const block = getCurrentBlock();
+    block.data.columns.splice(currentCellCol.current, 0, 1);
+    const table = editorData.current[getCurrentBlockIndex()].data.table;
+
+    for (let i = 0; i < table.length; i++) {
+      table[i].splice(currentCellCol.current + 1, 0, {
+        id: generateId(12),
+        type: "paragraph",
+      });
+    }
+  }
+
+  function removeCurrentRow() {
+    const table = editorData.current[getCurrentBlockIndex()].data.table;
+    if (table.length > 1) {
+      table.splice(currentCellRow.current, 1);
+    }
+  }
+  function removeCurrentColumn() {
+    const block = getCurrentBlock();
+    const table = block.data.table;
+    if (table[0].length > 1) {
+      block.data.columns.splice(currentCellCol.current, 1);
+
+      for (let i = 0; i < table.length; i++) {
+        table[i].splice(currentCellCol.current, 1);
+      }
+    }
+  }
+
+  function changeCurrentCell(data: any) {
+    Object.assign(
+      editorData.current[getCurrentBlockIndex()].data.table[
+        parseInt(currentCellRow.current)
+      ][parseInt(currentCellCol.current)],
+      data
+    );
   }
 
   /**
@@ -397,6 +532,8 @@ export const EditorProvider = (props: {
     reloadEditorData,
     editorPageRef,
     setReloadEditorData,
+    setPreviewActivated,
+    previewActivated,
 
     addBlock,
     saveBlock,
@@ -406,16 +543,27 @@ export const EditorProvider = (props: {
 
     setCurrentBlock,
     getCurrentBlock,
+    removeCurrentBlock,
     changeCurrentBlockType,
-    changetCurrentBlockData,
+    changeCurrentBlockData,
     addBlockAfterCurrentBlock,
 
     getBlock,
     changeBlockData,
 
     setCurrentCell,
+    setCurrentCellColumn,
     setCurrentCellIndex,
+    getCurrentCellColumn,
     getCurrentCell,
+    changeCurrentCell,
+    saveCell,
+    getCell,
+    addToCurrentRow,
+    addToCurrentColumn,
+    removeCurrentColumn,
+    removeCurrentRow,
+    getCurrentCellIndex,
 
     result,
   };

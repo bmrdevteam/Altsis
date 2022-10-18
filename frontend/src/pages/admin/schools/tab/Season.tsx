@@ -1,14 +1,33 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../../../components/button/Button";
+import Input from "../../../../components/input/Input";
+import Popup from "../../../../components/popup/Popup";
 import Table from "../../../../components/table/Table";
+import useDatabase from "../../../../hooks/useDatabase";
+import style from "../../../../style/pages/admin/schools/schools.module.scss";
 
 type Props = {};
 
 const Season = (props: Props) => {
   const navigate = useNavigate();
+  const database = useDatabase();
+  const {pid} = useParams();
+  console.log(pid);
+
+  async function getSeasons() {
+    const result = await database.R({ location: `seasons/${pid}` });
+    return result;
+  }
+
+  useEffect(() => {
+    getSeasons();
+  }, []);
+
+  const [addSeasonPopupActive, setAddSeasonPopupActive] =
+    useState<boolean>(false);
   return (
-    <div>
+    <div className={style.seasons_tab}>
       <div style={{ height: "24px" }}></div>
       <Button
         type={"ghost"}
@@ -17,7 +36,9 @@ const Season = (props: Props) => {
           height: "32px",
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
-        onClick={() => {}}
+        onClick={() => {
+          setAddSeasonPopupActive(true);
+        }}
       >
         + 새로운 학기 추가
       </Button>
@@ -62,6 +83,33 @@ const Season = (props: Props) => {
           ]}
         />
       </div>
+
+      {addSeasonPopupActive && (
+        <Popup
+          setState={setAddSeasonPopupActive}
+          style={{ borderRadius: "8px", maxWidth: "800px", width: "100%" }}
+          closeBtn
+          title={"학기"}
+        >
+          <div className={style.popup}>
+            <div style={{ height: "24px" }}></div>
+
+            <Input inputStyle="flat" label="학기 이름" required />
+            <Input inputStyle="flat" label="학기 이름" required />
+          </div>
+          <div style={{ height: "24px" }}></div>
+          <Button
+            type={"ghost"}
+            styles={{
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+          >
+            저장
+          </Button>
+        </Popup>
+      )}
     </div>
   );
 };
