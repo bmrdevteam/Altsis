@@ -1,10 +1,11 @@
 module.exports = [
-    "academies",
-    "users",
-    "schools",
-    "schoolUsers",
-    "forms",
-    "enrollments",
-    "syllabuses",
-    "test"
+  "academies",
+  "users",
+  "schools",
+  "forms",
+  "enrollments",
+  "syllabuses",
+  "test",
+  "seasons",
+  "registrations",
 ];

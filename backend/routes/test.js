@@ -4,8 +4,8 @@ const Syllabus = require("../models/Syllabus");
 const router = express.Router();
 const { classroomsTable } = require("../utils/util");
 const _ = require("lodash");
-
 const client = require("../caches/redis");
+const TimeBlock = require("../models/TimeBlock");
 
 // const {data,add}=require('../databases/connection')
 // router.post('/test2', (req, res) => {
@@ -14,6 +14,28 @@ const client = require("../caches/redis");
 //         data
 //     })
 // })
+
+router.get("/syllabus", (req, res) => {
+  const duplicatedLabels = _([...req.body.time1, ...req.body.time2])
+    .groupBy((x) => x.label)
+    .pickBy((x) => x.length > 1)
+    .keys()
+    .value();
+
+  return res.status(200).send({ duplicatedLabels });
+});
+router.get("/lodash/countBy", (req, res) => {
+  const arr1 = ["a", "b", "b"];
+  const duplication = [];
+  const counter = _.countBy(arr1);
+  for (const userId in counter) {
+    if (counter[userId] != 1) {
+      duplication.push(userId);
+    }
+  }
+
+  return res.status(200).send(duplication);
+});
 
 router.get("/lodash/findIndex", (req, res) => {
   const user = {

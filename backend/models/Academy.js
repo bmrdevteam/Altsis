@@ -19,7 +19,9 @@ const academySchema = mongoose.Schema(
       type: String,
       validate: validate({ validator: "isEmail" }),
     },
-    tel: String,
+    tel: {
+      type: String,
+    },
     adminId: {
       type: String,
       minLength: 4,
@@ -51,18 +53,19 @@ const check = {
     validator.isLength(val, { min: 3, max: 20 }) &&
     validator.isAlphanumeric(val),
   email: (val) => validator.isEmail(val),
+  tel: (val) => true,
   adminId: (val) =>
     validator.isLength(val, { min: 4, max: 20 }) &&
     validator.isAlphanumeric(val),
   adminName: (val) => validator.isLength(val, { min: 2, max: 20 }),
 };
 
-academySchema.statics.checkValidation = function (user, key) {
+academySchema.methods.checkValidation = function (key) {
   if (key) {
-    return check[key](user[key]);
+    return check[key](this[key]);
   }
   for (const key in check) {
-    if (!check[key](user[key])) return false;
+    if (!check[key](this[key])) return false;
   }
   return true;
 };
