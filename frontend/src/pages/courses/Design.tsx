@@ -14,7 +14,7 @@ import style from "../../style/pages/courses/courseDesign.module.scss";
 type Props = {};
 
 const CourseDesign = (props: Props) => {
-  const { currentSchoolUser } = useAuth();
+  const { currentSchool ,currentUser} = useAuth();
   const database = useDatabase();
   const navigate = useNavigate();
 
@@ -22,19 +22,19 @@ const CourseDesign = (props: Props) => {
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
   async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools/list" });
+    const { schools: res } = await database.R({ location: "schools" });
     return res;
   }
   useEffect(() => {
     getSchoolList().then((res) =>
       setSchoolData(
         res.filter(
-          (val: any) => val.schoolId === currentSchoolUser?.schoolId
+          (val: any) => val.schoolId === currentSchool
         )[0]
       )
     );
 
-    if (currentSchoolUser === null || currentSchoolUser === undefined) {
+    if (currentSchool === null || currentSchool === undefined) {
       setAlertPopupActive(true);
     }
   }, []);
@@ -61,7 +61,7 @@ const CourseDesign = (props: Props) => {
               label="작성자"
               required={true}
               disabled
-              defaultValue={currentSchoolUser?.userName}
+              defaultValue={currentUser?.userName}
             />
             <Select
               appearence="flat"
