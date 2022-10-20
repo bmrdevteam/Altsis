@@ -16,7 +16,7 @@ import style from "../../style/pages/enrollment.module.scss";
 type Props = {};
 
 const Enrollment = (props: Props) => {
-  const { currentSchoolUser } = useAuth();
+  const { currentSchool } = useAuth();
   const search = useSearch(courseData);
   const database = useDatabase();
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ const Enrollment = (props: Props) => {
     return res;
   }
   useEffect(() => {
-    if (currentSchoolUser === null || currentSchoolUser === undefined) {
+    if (currentSchool === null || currentSchool === undefined) {
       setAlertPopupActive(true);
     }
     getCourseList().then((res) => {
