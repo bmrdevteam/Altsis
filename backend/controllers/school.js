@@ -26,11 +26,16 @@ module.exports.find = async (req, res) => {
   try {
     if (req.params._id) {
       const school = await School(req.user.dbName).findById(req.params._id);
+      if (!school) return res.status(404).send({ message: "school not found" });
+
       const seasons = await Season(req.user.dbName)
         .find({ schoolId: school.schoolId })
         .select(["year", "term"]);
-      school.seasons = seasons;
-      return res.status(200).send(school);
+
+      return res.status(200).send({
+        ...school.toObject(),
+        seasons,
+      });
     }
     const schools = await School(req.user.dbName)
       .find({})
@@ -41,17 +46,39 @@ module.exports.find = async (req, res) => {
   }
 };
 
+module.exports.updateActivatedSeason = async (req, res) => {
+  try {
+    const school = await School(req.user.dbName).findById(req.params._id);
+    if (!school) return res.status(404).send({ message: "school not found" });
+
+    const season = await Season(req.user.dbName).findOne({
+      _id: req.body.new,
+      schoolId: school.schoolId,
+    });
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    school.activatedSeason = req.body.new;
+    await school.save();
+    return res.status(200).send(school);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.updateField = async (req, res) => {
   try {
-    if (
-      ["subjects", "classrooms", "formArchive"].indexOf(req.params.field) == -1
-    )
+    if (["subjects", "classrooms", "form"].indexOf(req.params.field) == -1)
       return res.status(400).send();
 
     const school = await School(req.user.dbName).findById(req.params._id);
     if (!school) return res.status(404).send({ message: "school not found" });
 
-    school[req.params.field] = req.body.new;
+    let field = req.params.field;
+    if (req.params.fieldType)
+      field +=
+        req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
+
+    school[field] = req.body.new;
     await school.save();
     return res.status(200).send(school);
   } catch (err) {
