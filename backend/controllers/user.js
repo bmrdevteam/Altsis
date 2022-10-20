@@ -2,6 +2,7 @@ const passport = require("passport");
 const _ = require("lodash");
 const { User, Academy, Registration } = require("../models/models");
 const { getPayload } = require("../utils/payload");
+const School = require("../models/School");
 
 // ____________ common ____________
 
@@ -156,13 +157,21 @@ module.exports.current = async (req, res) => {
   try {
     const user = req.user;
 
+    // school의 activatedSeason
+    const schools = await Promise.all(
+      user.schools.map((school) =>
+        School(user.dbName)
+          .findOne({ schoolId: school.schoolId })
+          .select(["schoolId", "schoolName", "activatedSeason"])
+      )
+    );
+
+    // registrations
     const registrations = await Registration(user.dbName)
       .find({ userId: user.userId })
       .select(["season", "year", "term"]);
 
-    user.registrations = registrations;
-
-    return res.status(200).send({ ...user.toObject(), registrations });
+    return res.status(200).send({ ...user.toObject(), schools, registrations });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
