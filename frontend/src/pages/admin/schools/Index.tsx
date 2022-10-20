@@ -90,7 +90,7 @@ const Schools = () => {
             },
             {
               text: "자세히",
-              key: "_id",
+              key: "schoolId",
               type: "button",
               onClick: (e: any) => {
                 navigate(`${e.target.dataset.value}`);
