@@ -1,4 +1,4 @@
-import React from "react";
+import React, { CSSProperties } from "react";
 import style from "./input.module.scss";
 type Props = {
   defaultValue?: string;
@@ -9,15 +9,17 @@ type Props = {
   disabled?: boolean;
   onChange?: any;
   onKeyDown?: any;
-  invalid?:boolean;
+  invalid?: boolean;
   ref?: any;
-  style?: any;
+  style?: CSSProperties;
   inputStyle?: "flat";
 };
 
 const Input = (props: Props) => {
   return (
-    <div className={`${style.input_container} ${props.inputStyle && style.flat}`}>
+    <div
+      className={`${style.input_container} ${props.inputStyle && style.flat}`}
+    >
       {props.label && (
         <label className={style.label}>
           {props.label}
@@ -27,7 +29,7 @@ const Input = (props: Props) => {
       <input
         ref={props.ref}
         type={props.type ? props.type : "text"}
-        className={`${style.input} ${props.invalid && style.invalid }`}
+        className={`${style.input} ${props.invalid && style.invalid}`}
         defaultValue={props.defaultValue}
         placeholder={props.placeholder}
         onChange={props.onChange}
