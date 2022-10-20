@@ -43,7 +43,7 @@ import useEditorStore from "./functions/useEditorStore";
 import useReload from "./functions/useReload";
 import Content from "./layout/Content";
 import Header from "./layout/Header";
-import Sidebar from "./layout/Sidebar";
+import Sidebar from "./layout/sidebar/Sidebar";
 
 type Props = { id: string };
 
