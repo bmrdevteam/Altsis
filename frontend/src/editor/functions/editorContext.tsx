@@ -115,11 +115,12 @@ export const EditorProvider = (props: {
    * @async
    */
   async function getEditorData() {
-    const { form: result } = await database.R({
+    const result = await database.R({
       location: `forms/${props.id}`,
     });
     return result;
   }
+  
   /**
    * save the form data to the backend
    */
