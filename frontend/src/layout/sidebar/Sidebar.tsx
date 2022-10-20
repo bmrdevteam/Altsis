@@ -35,7 +35,7 @@ const Sidebar = (props: Props) => {
     }
   }, [sidebarClose]);
 
-  const { currentUser, currentSchoolUser } = useAuth();
+  const { currentUser } = useAuth();
 
   return (
     <Nav close={sidebarClose}>
