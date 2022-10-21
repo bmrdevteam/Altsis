@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import Svg from "../../assets/svg/Svg";
-import Button from "../../components/button/Button";
-import Popup from "../../components/popup/Popup";
-import Select from "../../components/select/Select";
-import ToggleSwitch from "../../components/toggleSwitch/ToggleSwitch";
-import style from "../editor.module.scss";
-import { useEditor } from "../functions/editorContext";
-import useEditorStore from "../functions/useEditorStore";
-import DatatableMenu from "./sidebar/DatatableMenu";
-import Menu from "./sidebar/Menu";
+import Svg from "../../../assets/svg/Svg";
+import Button from "../../../components/button/Button";
+import Popup from "../../../components/popup/Popup";
+import Select from "../../../components/select/Select";
+import ToggleSwitch from "../../../components/toggleSwitch/ToggleSwitch";
+import style from "../../editor.module.scss";
+import { useEditor } from "../../functions/editorContext";
+import useEditorStore from "../../functions/useEditorStore";
+import DatatableMenu from "./DatatableMenu";
+import Menu from "./Menu";
 
 type Props = {
   callPageReload: () => void;
@@ -53,12 +53,13 @@ const Sidebar = (props: Props) => {
   const [addNewBlockType, setAddNewBlockType] = useState<string>("paragraph");
   const blockTypes = [
     { text: "텍스트", value: "paragraph" },
+    { text: "Data 텍스트", value: "dataText" },
     { text: "테이블", value: "table" },
     { text: "Data 테이블", value: "dataTable" },
-    { text: "시간표", value: "timetable" },
+    { text: "select", value: "select" },
+    { text: "Data select", value: "dataSelect" },
     { text: "선", value: "divider" },
     { text: "[input]", value: "input" },
-    { text: "[select]", value: "select" },
   ];
 
   const AddBlockMenu = () => {

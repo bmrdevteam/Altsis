@@ -235,7 +235,7 @@ const Table = (props: Props) => {
       >
         <div className={style.table_body_container}>
           {/* map through rows */}
-          {props.data?.map((data: any, dataIndex: number) => {
+          {props.data && props.data?.map((data: any, dataIndex: number) => {
             return (
               <div
                 key={dataIndex}

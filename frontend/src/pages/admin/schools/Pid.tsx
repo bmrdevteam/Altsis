@@ -66,10 +66,10 @@ const School = (props: Props) => {
   useEffect(() => {
     if (resetSchoolData) {
       getSchoolList().then((res) => {
-        if (res.filter((val: any) => val._id === pid).length === 0) {
+        if (res.filter((val: any) => val.schoolId === pid).length === 0) {
           setIsSchool(false);
         }
-        setSchoolData(res.filter((val: any) => val._id === pid)[0]);
+        setSchoolData(res.filter((val: any) => val.schoolId === pid)[0]);
       });
       console.log("reset");
 

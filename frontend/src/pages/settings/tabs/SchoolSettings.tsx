@@ -35,11 +35,11 @@ import style from "../../../style/pages/settings/settings.module.scss";
 type Props = {};
 
 const SchoolSettings = (props: Props) => {
-  const { schoolUsers } = useAuth();
+  const { registeredSchools } = useAuth();
   return (
     <div className={style.settings_container}>
       <div className={style.container_title}>등록된 학교</div>
-      {schoolUsers?.map((value: any, index: number) => {
+      {registeredSchools?.map((value: any, index: number) => {
         return (
           <div
             key={index}
@@ -52,7 +52,7 @@ const SchoolSettings = (props: Props) => {
           >
             <div className={style.info}>
               <label className={style.label}>{value?.schoolName}</label>
-              <span className={style.description}>{value?.role}</span>
+              <span className={style.description}>{value?.schoolId}</span>
             </div>
             <div
               className={style.controls}
