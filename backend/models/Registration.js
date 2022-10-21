@@ -3,9 +3,10 @@ const { conn } = require("../databases/connection");
 
 const registrationSchema = mongoose.Schema({
   season: {
-    type: String,
+    type: mongoose.Types.ObjectId,
     required: true,
   },
+  school: mongoose.Types.ObjectId,
   schoolId: String,
   schoolName: String,
   year: String,

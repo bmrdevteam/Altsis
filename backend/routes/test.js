@@ -6,6 +6,10 @@ const { classroomsTable } = require("../utils/util");
 const _ = require("lodash");
 const client = require("../caches/redis");
 const TimeBlock = require("../models/TimeBlock");
+const Season = require("../models/Season");
+const Registration = require("../models/Registration");
+const Enrollment = require("../models/Enrollment");
+const mongoose = require("mongoose");
 
 // const {data,add}=require('../databases/connection')
 // router.post('/test2', (req, res) => {
@@ -14,6 +18,47 @@ const TimeBlock = require("../models/TimeBlock");
 //         data
 //     })
 // })
+
+const id = {
+  ms: "634cba616a42d475ca80f011",
+  hs: "634cba5a6a42d475ca80f00c",
+};
+
+router.get("/mongoose", async (req, res) => {
+  const Model = Enrollment("bmr4-db");
+  const msdocs = await Model.find({ schoolId: "ms" });
+  Promise.all(
+    msdocs.map((doc) => {
+      doc.school = id.ms;
+      const newId = mongoose.Types.ObjectId(doc.season);
+      doc.season = undefined;
+      doc.season = newId;
+
+      const newSyllabus = mongoose.Types.ObjectId(doc.season);
+      doc.syllabus = undefined;
+      doc.syllabus = newSyllabus;
+
+      doc.save();
+    })
+  );
+  const hsdocs = await Model.find({ schoolId: "hs" });
+  Promise.all(
+    hsdocs.map((doc) => {
+      doc.school = id.hs;
+      const newId = mongoose.Types.ObjectId(doc.season);
+      doc.season = undefined;
+      doc.season = newId;
+
+      const newSyllabus = mongoose.Types.ObjectId(doc.season);
+      doc.syllabus = undefined;
+      doc.syllabus = newSyllabus;
+
+      doc.save();
+    })
+  );
+
+  return res.status(200).send({ msdocs, hsdocs });
+});
 
 router.get("/syllabus", (req, res) => {
   const duplicatedLabels = _([...req.body.time1, ...req.body.time2])
