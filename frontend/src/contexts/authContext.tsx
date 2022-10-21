@@ -4,25 +4,33 @@ import useDatabase from "../hooks/useDatabase";
 
 const AuthContext = createContext<any>(null);
 
-export function useAuth() {
+export function useAuth(): {
+  setCurrentUser: React.Dispatch<any>;
+  registeredSchools: any[];
+  currentUser: any;
+  currentSchool: any;
+  loading: boolean;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+} {
   return useContext(AuthContext);
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const database = useDatabase();
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [schoolUsers, setSchoolUsers] = useState<any>(null);
-  const [currentSchoolUser, setCurrentSchoolUser] = useState<any>(null);
+  const [currentSchool, setCurrentSchool] = useState<any>();
+  const [registeredSchools, setRegisteredSchools] = useState<any[]>();
   const [loading, setLoading] = useState<boolean>(true);
 
   async function getLoggedInUser() {
-    const { user: res, schoolUsers: users } = await database.R({
-      location: "users",
+    const res = await database.R({
+      location: "users/current",
     });
-    
+
     setCurrentUser(res);
-    setSchoolUsers(users);
-    setCurrentSchoolUser(users[0]);
+    setCurrentSchool(res.schools[0]);
+    setRegisteredSchools(res.schools);
+
     return res;
   }
 
@@ -43,8 +51,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentUser,
     currentUser,
     loading,
+    registeredSchools,
     setLoading,
-    currentSchoolUser,schoolUsers
+    currentSchool,
   };
   return (
     <AuthContext.Provider value={value}>

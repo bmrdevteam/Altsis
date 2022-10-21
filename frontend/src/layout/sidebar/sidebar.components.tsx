@@ -33,7 +33,7 @@ const Nav = ({
 const NavLogo = ({ onClick }: { onClick: any }) => {
   const navigate = useNavigate();
 
-  const { currentSchoolUser, currentUser } = useAuth();
+  const { currentUser,currentSchool } = useAuth();
   return (
     <div className={style.nav_logo}>
       <span className={style.icon} onClick={onClick}>
@@ -45,11 +45,11 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
           // navigate("/", { replace: true });
         }}
       >
-        {currentSchoolUser?.schoolName
-          ? `${currentSchoolUser.schoolName} - `
+        {currentSchool?.schoolName
+          ? `${currentSchool.schoolName} - `
           : ""}
-        {currentSchoolUser?.academyName
-          ? currentSchoolUser.academyName
+        {currentUser?.academyName
+          ? currentUser.academyName
           : currentUser?.academyName}
       </div>
       <div className={style.caret}>
