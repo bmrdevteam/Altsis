@@ -157,21 +157,21 @@ module.exports.current = async (req, res) => {
   try {
     const user = req.user;
 
-    // school의 activatedSeason
-    const schools = await Promise.all(
-      user.schools.map((school) =>
-        School(user.dbName)
-          .findOne({ schoolId: school.schoolId })
-          .select(["schoolId", "schoolName", "activatedSeason"])
-      )
-    );
+    // // school의 activatedSeason
+    // const schools = await Promise.all(
+    //   user.schools.map((school) =>
+    //     School(user.dbName)
+    //       .findOne({ schoolId: school.schoolId })
+    //       .select(["schoolId", "schoolName", "activatedSeason"])
+    //   )
+    // );
 
     // registrations
     const registrations = await Registration(user.dbName)
       .find({ userId: user.userId })
-      .select(["season", "year", "term"]);
+      .select(["school", "schoolId", "schoolName", "season", "year", "term"]);
 
-    return res.status(200).send({ ...user.toObject(), schools, registrations });
+    return res.status(200).send({ ...user.toObject(), registrations });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

@@ -11,6 +11,10 @@ const subjectSchema = mongoose.Schema(
 );
 
 const seasonSchema = mongoose.Schema({
+  school: {
+    type: mongoose.Types.ObjectId,
+    required: true,
+  },
   schoolId: {
     type: String,
     required: true,
@@ -40,7 +44,7 @@ const seasonSchema = mongoose.Schema({
 
 seasonSchema.index(
   {
-    schoolId: 1,
+    school: 1,
     year: 1,
     term: 1,
   },
@@ -70,6 +74,7 @@ seasonSchema.methods.checkPermission = function (permissionType, userId, role) {
 seasonSchema.methods.getSubdocument = function () {
   return {
     season: this._id,
+    school: this.school,
     schoolId: this.schoolId,
     schoolName: this.schoolName,
     year: this.year,

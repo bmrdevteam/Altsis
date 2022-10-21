@@ -49,26 +49,25 @@ const checkEvaluation = async (dbName, season) => {
 
 module.exports.create = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findOne({
-      schoolId: req.body.schoolId,
-    });
+    const school = await School(req.user.dbName).findById(req.body.school);
     if (!school) return res.status(404).send();
 
     const _Season = Season(req.user.dbName);
 
     /* check duplication */
     const exSeason = await _Season.findOne({
-      schoolId: school.schoolId,
+      school: req.body.school,
       year: req.body.year,
       term: req.body.term,
     });
     if (exSeason)
       return res.status(409).send({
-        message: `season(${req.body.schoolId},${req.body.year},${req.body.term}) is already in use`,
+        message: `season(${req.body.school},${req.body.year},${req.body.term}) is already in use`,
       });
 
     /* create and save document */
     const season = new _Season(req.body);
+    season.schoolId = school.schoolId;
     season.schoolName = school.schoolName;
     season.classrooms = school.classrooms;
     season.subjects = school.subjects;
