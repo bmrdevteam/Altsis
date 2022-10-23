@@ -4,8 +4,9 @@ const { conn } = require("../databases/connection");
 const enrollmentSchema = mongoose.Schema(
   {
     // syllabus data
-    syllabus: { type: String, required: true },
-    season: { type: String, required: true },
+    syllabus: { type: mongoose.Types.ObjectId, required: true },
+    season: mongoose.Types.ObjectId,
+    school: mongoose.Types.ObjectId,
     schoolId: String,
     schoolName: String,
     year: String,

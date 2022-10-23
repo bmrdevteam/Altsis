@@ -5,9 +5,10 @@ const TimeBlock = require("./TimeBlock");
 const syllabusSchema = mongoose.Schema(
   {
     season: {
-      type: String,
+      type: mongoose.Types.ObjectId,
       required: true,
     },
+    school: mongoose.Types.ObjectId,
     schoolId: String,
     schoolName: String,
     year: String,
@@ -81,6 +82,7 @@ syllabusSchema.methods.getSubdocument = function () {
     userId: this.userId,
     userName: this.userName,
     season: this.season,
+    school: this.school,
     schoolId: this.schoolId,
     schoolName: this.schoolName,
     year: this.year,
