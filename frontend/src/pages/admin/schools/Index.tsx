@@ -12,7 +12,8 @@ const Schools = () => {
   const navigate = useNavigate();
   const database = useDatabase();
 
-  const [schoolsList, setSchoolsList] = useState();
+
+  const [schoolsList, setSchoolsList] = useState<any>();
   const [isLoading, setIsLoading] = useState(true);
 
   async function getSchoolList() {
@@ -63,7 +64,7 @@ const Schools = () => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
-        filter
+          filter
           data={!isLoading ? schoolsList : []}
           header={[
             {
@@ -90,9 +91,10 @@ const Schools = () => {
             },
             {
               text: "자세히",
-              key: "schoolId",
+              key: "_id",
               type: "button",
               onClick: (e: any) => {
+                
                 navigate(`${e.target.dataset.value}`);
               },
               width: "80px",
