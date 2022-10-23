@@ -292,6 +292,7 @@ __metadata:
     express-validator: ^6.14.2
     google-auth-library: ^8.1.0
     http-errors: ^2.0.0
+    json2csv: ^5.0.7
     jsonwebtoken: ^8.5.1
     lodash: ^4.17.21
     moment: ^2.29.4
@@ -524,6 +525,13 @@ __metadata:
   bin:
     color-support: bin.js
   checksum: 9b7356817670b9a13a26ca5af1c21615463b500783b739b7634a0c2047c16cef4b2865d7576875c31c3cddf9dd621fa19285e628f20198b233a5cfdda6d0793b
+  languageName: node
+  linkType: hard
+
+"commander@npm:^6.1.0":
+  version: 6.2.1
+  resolution: "commander@npm:6.2.1"
+  checksum: d7090410c0de6bc5c67d3ca41c41760d6d268f3c799e530aafb73b7437d1826bbf0d2a3edac33f8b57cc9887b4a986dce307fa5557e109be40eadb7c43b21742
   languageName: node
   linkType: hard
 
@@ -1554,6 +1562,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"json2csv@npm:^5.0.7":
+  version: 5.0.7
+  resolution: "json2csv@npm:5.0.7"
+  dependencies:
+    commander: ^6.1.0
+    jsonparse: ^1.3.1
+    lodash.get: ^4.4.2
+  bin:
+    json2csv: bin/json2csv.js
+  checksum: 81b511e4f5abba1dcda90593c193d15e5f05f1def91377b6289536e31fdb629889da6a2b4612b9ff699116a29b1758d20c0d71f7921fcfb09863da5b2d883139
+  languageName: node
+  linkType: hard
+
 "jsonfile@npm:^4.0.0":
   version: 4.0.0
   resolution: "jsonfile@npm:4.0.0"
@@ -1563,6 +1584,13 @@ __metadata:
     graceful-fs:
       optional: true
   checksum: 6447d6224f0d31623eef9b51185af03ac328a7553efcee30fa423d98a9e276ca08db87d71e17f2310b0263fd3ffa6c2a90a6308367f661dc21580f9469897c9e
+  languageName: node
+  linkType: hard
+
+"jsonparse@npm:^1.3.1":
+  version: 1.3.1
+  resolution: "jsonparse@npm:1.3.1"
+  checksum: 6514a7be4674ebf407afca0eda3ba284b69b07f9958a8d3113ef1005f7ec610860c312be067e450c569aab8b89635e332cee3696789c750692bb60daba627f4d
   languageName: node
   linkType: hard
 
@@ -1639,6 +1667,13 @@ __metadata:
   dependencies:
     asn1.js: ^5.4.1
   checksum: b4f082edf184d2b54b323b059b8bb0fd26aed84743740cda8a8352a09bc7346981565dbb81ecc4d67b7c9a52f1be264be1a59b02c746ba32c6dd0439c88b7cf0
+  languageName: node
+  linkType: hard
+
+"lodash.get@npm:^4.4.2":
+  version: 4.4.2
+  resolution: "lodash.get@npm:4.4.2"
+  checksum: e403047ddb03181c9d0e92df9556570e2b67e0f0a930fcbbbd779370972368f5568e914f913e93f3b08f6d492abc71e14d4e9b7a18916c31fa04bd2306efe545
   languageName: node
   linkType: hard
 
