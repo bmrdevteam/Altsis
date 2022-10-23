@@ -10,11 +10,12 @@ import Select from "../../components/select/Select";
 import { useAuth } from "../../contexts/authContext";
 import EditorParser from "../../editor/EditorParser";
 import useDatabase from "../../hooks/useDatabase";
+
 import style from "../../style/pages/courses/courseDesign.module.scss";
 type Props = {};
 
 const CourseDesign = (props: Props) => {
-  const { currentSchool ,currentUser} = useAuth();
+  const { currentSchool, currentUser } = useAuth();
   const database = useDatabase();
   const navigate = useNavigate();
 
@@ -27,11 +28,7 @@ const CourseDesign = (props: Props) => {
   }
   useEffect(() => {
     getSchoolList().then((res) =>
-      setSchoolData(
-        res.filter(
-          (val: any) => val.schoolId === currentSchool
-        )[0]
-      )
+      setSchoolData(res.filter((val: any) => val.schoolId === currentSchool)[0])
     );
 
     if (currentSchool === null || currentSchool === undefined) {
