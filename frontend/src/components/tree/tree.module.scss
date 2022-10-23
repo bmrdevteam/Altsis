@@ -1,0 +1,22 @@
+.tree {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    .item {
+        cursor: pointer;
+        width: 240px;
+        display: flex;
+        gap: 4px;
+        padding: 8px 6px;
+        background-color: var(--component-color);
+        border-radius: 4px;
+        align-items: center;
+        .icon {
+        }
+
+        .text {
+            font-size: 12px;
+            font-weight: 600;
+        }
+    }
+}
