@@ -45,6 +45,7 @@ import style from "./popup.module.scss";
 
 type Props = {
   children: JSX.Element | JSX.Element[];
+  footer?: JSX.Element | JSX.Element[];
   setState: any;
   title?: string;
   style?: CSSProperties;
@@ -57,37 +58,20 @@ const Popup = (props: Props) => {
    */
   return (
     <div
-      style={
-        {
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 2024,
-        }
-      }
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "calc(100vw - 48px)",
+        height: "calc(100vh - 48px)",
+        display: "flex",
+        margin: "24px",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 2024,
+      }}
     >
-      <div
-        style={{
-          width: "100vw",
-          height: "100vh",
-          zIndex: 2025,
-          backgroundColor: "rgba(0,0,0,0.3)",
-          backdropFilter: "blur(1px)",
-        }}
-        onClick={() => {
-          props.setState(false);
-        }}
-      ></div>
-
-      <div
-        className={style.popup_container}
-        style={props.style}
-      >
+      <div className={style.popup_container} style={props.style}>
         <div className={style.popup}>
           <div className={style.title}>{props.title}</div>
           {props.closeBtn && (
@@ -101,8 +85,15 @@ const Popup = (props: Props) => {
             </div>
           )}
         </div>
-        {props.children}
+        <div className={style.content} style={{ overflowX: "scroll" }}>{props.children}</div>
+       {props.footer && <div className={style.footer}>{props.footer}</div>}
       </div>
+      <div
+        className={style.popup_background}
+        onClick={() => {
+          props.setState(false);
+        }}
+      ></div>
     </div>
   );
 };
