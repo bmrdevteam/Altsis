@@ -59,7 +59,7 @@ jobs:
       # 빌드 후 푸쉬
       - name: Build and push
         id: docker-build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: backend
           file: ./backend/Dockerfile
