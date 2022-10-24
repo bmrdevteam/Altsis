@@ -12,7 +12,7 @@ import Tab from "../../../components/tab/Tab";
 // tab elements
 import BasicInfo from "./tab/BasicInfo";
 import Classroom from "./tab/Classroom";
-import Season from "./tab/Season";
+import Season from "./tab/seasons/Season";
 import Subject from "./tab/Subject";
 import useDatabase from "../../../hooks/useDatabase";
 import Setting from "./tab/Setting";
