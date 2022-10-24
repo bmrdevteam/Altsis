@@ -1,8 +1,19 @@
 import _, { isArray } from "lodash";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import Svg from "../../../assets/svg/Svg";
 import style from "../table.module.scss";
+
+export type ITableItemType =
+  | "index"
+  | "string"
+  | "button"
+  | "dateTime"
+  | "date"
+  | "time"
+  | "select"
+  | "checkbox"
+  | "arrText"
+  | "input";
 
 interface ITableItem {
   header: {
@@ -10,17 +21,7 @@ interface ITableItem {
     key: string | string[];
     value?: string;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-    type:
-      | "index"
-      | "string"
-      | "button"
-      | "dateTime"
-      | "date"
-      | "time"
-      | "select"
-      | "checkbox"
-      | "arrText"
-      | "input";
+    type: ITableItemType;
     link?: string;
     align?: "left" | "center" | "right";
     width?: string;
@@ -32,10 +33,11 @@ interface ITableItem {
     border?: string;
     backgroundColor?: string;
   };
+  append: (item: any) => void;
+  delete: (item: any) => void;
 }
 
 const TableItem = (props: ITableItem) => {
-  const navigate = useNavigate();
   const [checked, setChecked] = useState<boolean>(false);
   // const [output, setOutput] = useState("");
   let output = "";
@@ -46,7 +48,7 @@ const TableItem = (props: ITableItem) => {
   if (typeof d === "object") {
     output = JSON.stringify(d);
     if (isArray(d) && d.length === 1) {
-      output = _.values(d[0]).join(",")
+      output = _.values(d[0]).join(",");
     }
     if (isArray(d) && d.length > 1) {
       output = d.join(",");
@@ -77,31 +79,16 @@ const TableItem = (props: ITableItem) => {
             padding: "12px",
             border: props.style?.border,
           }}
+          onClick={() => {
+            setChecked((prev) => !prev);
+          }}
         >
-          <input
-            type="checkbox"
-            className="checkbox"
-            style={{
-              width: "24px",
-              height: "24px",
-              appearance: "none",
-              position: "absolute",
-              cursor: "pointer",
-            }}
-            onChange={(e) => {
-              if (e.target.checked) {
-                setChecked(true);
-              } else {
-                setChecked(false);
-              }
-            }}
-          />
           {checked ? (
             <Svg
               type={"checkboxChecked"}
               height={"24px"}
               width={"24px"}
-              fill={"#0062c7"}
+              style={{ fill: "#0062c7" }}
             />
           ) : (
             <Svg type={"checkbox"} height={"24px"} width={"24px"} />
