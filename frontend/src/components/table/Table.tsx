@@ -4,13 +4,16 @@
  *
  */
 
-import React from "react";
-import Svg from "../../assets/svg/Svg";
-import useOutsideClick from "../../hooks/useOutsideClick";
-import useSearch from "../../hooks/useSearch";
+import React, { useState } from "react";
+
+import useOutsideClick from "hooks/useOutsideClick";
 import Button from "../button/Button";
 import style from "./table.module.scss";
-import { TableItem } from "./tableItems/TableItem";
+import { ITableItemType, TableItem } from "./tableItems/TableItem";
+import Svg from "assets/svg/Svg";
+import { useEffect } from "react";
+import useSearch from "hooks/useSearch";
+import { useRef } from "react";
 
 type Props = {
   data: any;
@@ -19,17 +22,7 @@ type Props = {
     key: string | string[];
     value?: string;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-    type:
-      | "index"
-      | "string"
-      | "button"
-      | "dateTime"
-      | "date"
-      | "time"
-      | "select"
-      | "checkbox"
-      | "arrText"
-      | "input";
+    type: ITableItemType;
     link?: string;
     align?: "left" | "center" | "right";
     width?: string;
@@ -41,6 +34,7 @@ type Props = {
     bodyHeight?: string;
   };
   filter?: boolean;
+  filterSearch?: boolean;
 };
 
 /**
@@ -115,7 +109,7 @@ const TableFilterItem = () => {
  * @version 1.0 design + close and open
  *
  */
-const TableControls = () => {
+const TableControls = (props: { selectedItems: any[] }) => {
   // implement close on clicked somewhere else
   const outsideClick = useOutsideClick();
 
@@ -131,6 +125,20 @@ const TableControls = () => {
           <div className={style.item}>json 다운로드</div>
         </div>
       )}
+    </div>
+  );
+};
+/**
+ * table search component
+ *
+ * @returns {JSX.Element}
+ *
+ * @version 1.0
+ */
+const TableSearch = () => {
+  return (
+    <div className={style.search}>
+      <input className={style.input} type="text" placeholder="검색" />
     </div>
   );
 };
@@ -168,7 +176,25 @@ const TableControls = () => {
  */
 const Table = (props: Props) => {
   const search = useSearch({});
+  const selectedItems = useRef<any>([]);
+  const [tableData, setTableData] = useState<any>(props.data);
 
+  useEffect(() => {
+    setTableData(props.data);
+  }, [props.data]);
+
+  function appendItemToSelect(item: any) {
+    if (!selectedItems.current?.includes(item)) {
+      selectedItems.current.push(item);
+      console.log(selectedItems.current);
+    }
+  }
+  function deleteItemFromSelect(item: any) {
+    selectedItems.current = selectedItems.current.filter(
+      (val: any) => val !== item
+    );
+    console.log(selectedItems.current);
+  }
   /**
    * filter component
    *
@@ -180,10 +206,9 @@ const Table = (props: Props) => {
   const TableFilter = () => {
     return (
       <div className={style.table_filter}>
-        <div className={style.filters}>
-          <TableFilterItem />
-        </div>
-        <TableControls />
+        {props.filterSearch && <TableSearch />}
+        <div className={style.filters}>{/* <TableFilterItem /> */}</div>
+        <TableControls selectedItems={selectedItems.current} />
       </div>
     );
   };
@@ -201,7 +226,7 @@ const Table = (props: Props) => {
     return (
       <div className={style.table_header}>
         {props.header.map((value: any, index: number) => {
-          return (
+          return value.type !== "checkbox" ? (
             <div
               className={style.table_header_item}
               key={index}
@@ -212,6 +237,28 @@ const Table = (props: Props) => {
               }}
             >
               {value.text}
+            </div>
+          ) : (
+            <div
+              className={style.table_header_item}
+              key={index}
+              style={{
+                justifyContent: value.align,
+                maxWidth: value.width,
+                border: props.style?.border,
+                padding: "12px",
+              }}
+            >
+              {false ? (
+                <Svg
+                  type={"checkboxChecked"}
+                  height={"24px"}
+                  width={"24px"}
+                  style={{ fill: "#0062c7" }}
+                />
+              ) : (
+                <Svg type={"checkbox"} height={"24px"} width={"24px"} />
+              )}
             </div>
           );
         })}
@@ -235,28 +282,31 @@ const Table = (props: Props) => {
       >
         <div className={style.table_body_container}>
           {/* map through rows */}
-          {props.data && props.data?.map((data: any, dataIndex: number) => {
-            return (
-              <div
-                key={dataIndex}
-                className={style.table_row}
-                style={{ height: props.style?.rowHeight }}
-              >
-                {/* map through the header to display the right output with the data */}
-                {props.header.map((value, index) => {
-                  return (
-                    <TableItem
-                      key={index}
-                      header={value}
-                      data={data}
-                      index={dataIndex}
-                      style={props.style}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
+          {tableData &&
+            tableData?.map((data: any, dataIndex: number) => {
+              return (
+                <div
+                  key={dataIndex}
+                  className={style.table_row}
+                  style={{ height: props.style?.rowHeight }}
+                >
+                  {/* map through the header to display the right output with the data */}
+                  {props.header.map((value, index) => {
+                    return (
+                      <TableItem
+                        append={appendItemToSelect}
+                        delete={deleteItemFromSelect}
+                        key={index}
+                        header={value}
+                        data={data}
+                        index={dataIndex}
+                        style={props.style}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
         </div>
       </div>
     );
