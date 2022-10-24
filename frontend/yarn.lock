@@ -8658,6 +8658,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"module-alias@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "module-alias@npm:2.2.2"
+  checksum: 4b5543f834b484033e5bd184096ca8276b9195e32e88883ee6ea8d3a4789d97c470d26f5fa7271bd7a26588bf67e4d27dbdb594ee327aef1c9619d855dc78342
+  languageName: node
+  linkType: hard
+
 "ms@npm:2.0.0":
   version: 2.0.0
   resolution: "ms@npm:2.0.0"
@@ -10695,6 +10702,7 @@ __metadata:
     "@types/react-dom": ^18.0.0
     axios: ^0.27.2
     lodash: ^4.17.21
+    module-alias: ^2.2.2
     react: ^18.2.0
     react-cookie: ^4.1.1
     react-dom: ^18.2.0
