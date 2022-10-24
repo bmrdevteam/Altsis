@@ -17,6 +17,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # docker build 세팅
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v2.0.0
+
+      # 캐시 받아오기
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       # GitHub 컨테이너 레지스트리에 로그인
       - name: Login to ghcr
         uses: docker/login-action@v2.0.0
@@ -40,8 +53,8 @@ jobs:
           echo "GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}" >> .env
           echo "URL= ${{secrets.URL}}" >> .env
           echo "SERVER_PORT= ${{env.SERVER_PORT}}" >> .env
-          echo "ENCKEY= ${{secrets.ENCKEY}}" >> .env
-          echo "SIGKEY= ${{secrets.SIGKEY}}" >> .env
+          echo "ENCKEY= ${{secrets.ENCKEY}}"" >> .env
+          echo "SIGKEY= ${{secrets.SIGKEY}}"" >> .env
 
       # 빌드 후 푸쉬
       - name: Build and push
@@ -52,6 +65,15 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: "ghcr.io/bmrdevteam/bsis-dev_backend:latest"
+          # (3)
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # 이전 캐시 지우고 새로운 캐시 옮기기
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
       # 슬랙 알림
       - name: Send Slack Notification
