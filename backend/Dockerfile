@@ -7,7 +7,7 @@ WORKDIR /app
 # 의존성 설치
 COPY package*.json ./
 COPY yarn.lock ./
-RUN yarn install
+RUN yarn
 
 COPY ./ ./
 
