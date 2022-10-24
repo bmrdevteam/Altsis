@@ -1,3 +1,4 @@
+import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../../../components/button/Button";
@@ -5,14 +6,17 @@ import Input from "../../../../components/input/Input";
 import Popup from "../../../../components/popup/Popup";
 import Select from "../../../../components/select/Select";
 import Table from "../../../../components/table/Table";
+import Tree from "../../../../components/tree/Tree";
 import useDatabase from "../../../../hooks/useDatabase";
 import style from "../../../../style/pages/admin/schools/schools.module.scss";
+
 
 type Props = {};
 
 const Season = (props: Props) => {
   const navigate = useNavigate();
   const database = useDatabase();
+
   const { pid } = useParams();
 
   const [seasons, setSeasons] = useState();
@@ -21,15 +25,16 @@ const Season = (props: Props) => {
   const [selectedYear, setSelectedYear] = useState();
   const [termName, setTermName] = useState<string>();
 
-  console.log(seasons);
-
   const [addSeasonPopupActive, setAddSeasonPopupActive] =
     useState<boolean>(false);
   const [editSeasonPopupActive, setEditSeasonPopupActive] =
     useState<boolean>(false);
+
+    
+
   async function getSeasons() {
-    const { seasons: result } = await database.R({
-      location: `seasons?schoolId=${pid}`,
+    const result = await database.R({
+      location: `seasons/${pid}`,
     });
     return result;
   }
@@ -37,6 +42,7 @@ const Season = (props: Props) => {
     const result = await database.R({ location: `seasons/${id}` });
     return result;
   }
+  
   async function addSeason() {
     const result = await database.C({
       location: `seasons`,
@@ -51,6 +57,8 @@ const Season = (props: Props) => {
 
   useEffect(() => {
     getSeasons().then((res) => {
+      console.log(res);
+
       setSeasons(res);
     });
   }, []);
@@ -67,20 +75,35 @@ const Season = (props: Props) => {
     return result;
   };
   function subjects(subjectObj: any) {
-    let result = [];
-    console.log(subjectObj);
-    for (let i = 0; i < subjectObj.data.length; i++) {
-      const obj = {};
-      for (let index = 0; index < subjectObj.label.length; index++) {
-        Object.defineProperty(obj, subjectObj.label[index], {
-          value: subjectObj.data[i][index],
-          writable: false,
-        });
-      }
-      result.push(obj);
+    const unique: any = Array.from(
+      new Set(subjectObj.data.map((val: any) => val[0]))
+    );
+    let sub1: any = {};
+    for (let i = 0; i < unique.length; i++) {
+      sub1[unique[i]] = Array.from(
+        new Set(
+          subjectObj.data
+            .filter((val: any) => val[0] === unique[i])
+            .map((val: string[]) => val[1])
+        )
+      );
     }
-    console.log(result);
-
+    let sub2: any = {};
+    for (let i = 0; i < unique.length; i++) {
+      for (let index = 0; index < sub1[unique[i]].length; index++) {
+        sub2[`${unique[i]}/${sub1[unique[i]][index]}`] = Array.from(
+          new Set(
+            subjectObj.data
+              .filter(
+                (val: any) =>
+                  val[0] === unique[i] && val[1] === sub1[unique[i]][index]
+              )
+              .map((val: string[]) => val[2])
+          )
+        );
+      }
+    }
+    return [unique, sub1, sub2];
   }
 
   return (
@@ -222,8 +245,8 @@ const Season = (props: Props) => {
               />
             </div>
             <div className={style.title}>교과 과목</div>
-            <div className={style.tree}>
-              {subjects(selectedSeason.subjects)}
+            <div style={{ margin: "12px 0" }}>
+              {/* <Tree data={subjects(selectedSeason.subjects)} /> */}
             </div>
             <Button
               type={"ghost"}

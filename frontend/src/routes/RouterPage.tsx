@@ -6,7 +6,6 @@ import Academies from "../pages/owner/Academies";
 //admin pages
 import Academy from "../pages/admin/Index";
 import Users from "../pages/admin/users/Index";
-import User from "../pages/admin/users/Pid";
 import Schools from "../pages/admin/schools/Index";
 import School from "../pages/admin/schools/Pid";
 import SchoolAdd from "../pages/admin/schools/Add";
@@ -113,7 +112,6 @@ function RouterPage() {
                     </RequireAuth>
                   }
                 ></Route>
-                <Route path="users/:pid" element={<User />}></Route>
                 <Route path="users/add" element={<Schools />}></Route>
 
                 <Route

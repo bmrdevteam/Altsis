@@ -28,9 +28,21 @@
 }
 
 .popup {
-    margin-top: 24px;
     width: 50vw;
     display: flex;
     flex-direction: column;
-    gap: 20px
+
+    .row {
+        margin: 12px 0;
+        display: flex;
+        gap: 12px;
+    }
+
+    .title {
+        margin-top: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent-1);
+
+    }
 }
