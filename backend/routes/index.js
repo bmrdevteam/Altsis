@@ -8,4 +8,5 @@ module.exports = [
   "test",
   "seasons",
   "registrations",
+  "archives",
 ];
