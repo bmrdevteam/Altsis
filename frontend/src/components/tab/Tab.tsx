@@ -25,6 +25,7 @@
  * NOTES
  *
  */
+import { useState } from "react";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import style from "./tab.module.scss";
@@ -69,20 +70,34 @@ const Tab = (props: {
   children?: JSX.Element[] | JSX.Element;
   items: object;
   align?: "flex-start" | "center" | "flex-end";
+  dontUsePaths?: boolean;
 }) => {
   /**
    * import hooks
    */
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [activeKey, setActiveKey] = useState<string>();
+
   /**
    * if the location.hash is "" navigate to the first elemnt in the tab
    */
   useEffect(() => {
-    if (location.hash === "") {
+    if (location.hash === "" && !props.dontUsePaths) {
       navigate(`#${Object.keys(props.items)[0]}`);
     }
-  }, [location.hash, navigate, props.items]);
+    if (props.dontUsePaths) {
+      setActiveKey(Object.keys(props.items)[0])
+    }
+  }, [location.hash, navigate, props.items, props.dontUsePaths]);
+
+  useEffect(() => {
+    if(!props.dontUsePaths){
+
+      setActiveKey(decodeURI(location.hash).replace("#", ""));
+    }
+  }, [location.hash]);
 
   /**
    * Tab Header
@@ -102,11 +117,14 @@ const Tab = (props: {
                 <div
                   key={index}
                   className={`${style.tab_menu_item} ${
-                    decodeURI(location.hash).replace("#", "") === value &&
-                    style.active
+                    activeKey === value && style.active
                   }`}
                   onClick={() => {
-                    navigate(`#${value}`, { replace: true });
+
+                    
+                    setActiveKey(value);
+                    !props.dontUsePaths &&
+                      navigate(`#${value}`, { replace: true });
                   }}
                 >
                   {value}
@@ -131,12 +149,7 @@ const Tab = (props: {
           /**
            * display the corresponding item based on the location.hash
            */
-          props.items[
-            decodeURI(location.hash).replace(
-              "#",
-              ""
-            ) as keyof typeof props.items
-          ]
+          props.items[activeKey as keyof typeof props.items]
         }
       </div>
     </>
