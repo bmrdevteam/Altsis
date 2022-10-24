@@ -6,7 +6,6 @@ const AuthContext = createContext<any>(null);
 
 export function useAuth(): {
   setCurrentUser: React.Dispatch<any>;
-  registeredSchools: any[];
   currentUser: any;
   currentSchool: any;
   loading: boolean;
@@ -19,7 +18,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const database = useDatabase();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentSchool, setCurrentSchool] = useState<any>();
-  const [registeredSchools, setRegisteredSchools] = useState<any[]>();
+  const [currentSeason, setCurrentSeason] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
   async function getLoggedInUser() {
@@ -29,7 +28,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     setCurrentUser(res);
     setCurrentSchool(res.schools[0]);
-    setRegisteredSchools(res.schools);
 
     return res;
   }
@@ -51,7 +49,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentUser,
     currentUser,
     loading,
-    registeredSchools,
     setLoading,
     currentSchool,
   };
