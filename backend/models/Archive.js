@@ -29,8 +29,8 @@ archiveSchema.index(
 );
 
 archiveSchema.plugin(encrypt, {
-  encryptionKey: process.env.ENCKEY,
-  signingKey: process.env.SIGKEY,
+  encryptionKey: process.env["ENCKEY"],
+  signingKey: process.env["SIGKEY"],
 });
 
 module.exports = (dbName) => {
