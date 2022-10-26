@@ -79,11 +79,11 @@ const CourseDesign = (props: Props) => {
         <div className={style.design_form}>
           <div className={style.title}>수업 개설</div>
           <div style={{ display: "flex", gap: "24px" }}>
-            <Input inputStyle="flat" label="수업명" required={true} />
+            <Input appearence="flat" label="수업명" required={true} />
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
-              inputStyle="flat"
+              appearence="flat"
               label="작성자"
               required={true}
               disabled
