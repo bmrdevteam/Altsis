@@ -27,9 +27,9 @@
  *
  */
 import Button from "components/button/Button";
-import Input from "../../../../../../components/input/Input";
-import Select from "../../../../../../components/select/Select";
-import style from "style/pages/admin/schools/schools.module.scss";
+import Input from "components/input/Input";
+import Select from "components/select/Select";
+import style from "style/pages/admin/schools.module.scss";
 
 type Props = {
   seasonData: any;
@@ -62,7 +62,7 @@ function Basic(props: Props) {
           <Input
             style={{ maxHeight: "30px" }}
             defaultValue={props.seasonData.term}
-            inputStyle="flat"
+            appearence="flat"
             label="학기"
             onChange={(e: any) => {
               //   setTermName(e.target.value);
