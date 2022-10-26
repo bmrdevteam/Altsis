@@ -36,9 +36,9 @@ import Table from "components/table/Table";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import Tree from "../../../../../components/tree/Tree";
-import useDatabase from "../../../../../hooks/useDatabase";
-import style from "../../../../../style/pages/admin/schools/schools.module.scss";
+import Tree from "components/tree/Tree";
+import useDatabase from "hooks/useDatabase";
+import style from "style/pages/admin/schools.module.scss";
 import Basic from "./tab/Basic";
 import Classroom from "./tab/Classroom";
 import Form from "./tab/Form";
@@ -224,7 +224,7 @@ const Season = (props: Props) => {
               />
               <Input
                 style={{ maxHeight: "30px" }}
-                inputStyle="flat"
+                appearence="flat"
                 label="학기"
                 onChange={(e: any) => {
                   setTermName(e.target.value);
