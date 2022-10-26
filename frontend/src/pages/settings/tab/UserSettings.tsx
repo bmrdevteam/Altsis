@@ -48,14 +48,14 @@ const UserSettings = (props: Props) => {
         <Input
           label="이름"
           placeholder="이름"
-          inputStyle="flat"
+          appearence="flat"
           style={{ fontSize: "14px" }}
           defaultValue={currentUser.userName}
         />
         <Input
           label="아이디"
           placeholder="아이디"
-          inputStyle="flat"
+          appearence="flat"
           style={{ fontSize: "14px" }}
           defaultValue={currentUser.userId}
           disabled
