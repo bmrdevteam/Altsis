@@ -28,12 +28,12 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../../../components/button/Button";
-import Divider from "../../../components/divider/Divider";
-import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
-import Table from "../../../components/table/Table";
-import useDatabase from "../../../hooks/useDatabase";
-import style from "../../../style/pages/admin/schools/schools.module.scss";
+import Button from "components/button/Button";
+import Divider from "components/divider/Divider";
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Table from "components/table/Table";
+import useDatabase from "hooks/useDatabase";
+import style from "style/pages/admin/schools.module.scss";
 
 const Schools = () => {
   const navigate = useNavigate();
