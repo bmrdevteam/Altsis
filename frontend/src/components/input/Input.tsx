@@ -12,13 +12,15 @@ type Props = {
   invalid?: boolean;
   ref?: any;
   style?: CSSProperties;
-  inputStyle?: "flat";
+  appearence?: "flat";
 };
 
 const Input = (props: Props) => {
   return (
     <div
-      className={`${style.input_container} ${props.inputStyle && style.flat}`}
+      className={`${style.input_container} ${
+        props.appearence === "flat" && style.flat
+      }`}
     >
       {props.label && (
         <label className={style.label}>
