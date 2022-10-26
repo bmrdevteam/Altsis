@@ -36,7 +36,6 @@ import Academy from "../pages/admin/Index";
 import Users from "../pages/admin/users/Index";
 import Schools from "../pages/admin/schools/Index";
 import School from "../pages/admin/schools/Pid";
-import SchoolAdd from "../pages/admin/schools/Add";
 
 //dev pages
 import Test from "../pages/dev/Test";
@@ -65,6 +64,7 @@ import CourseDesign from "../pages/courses/Design";
 import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
+import List from "pages/admin/List/Index";
 
 // import Http404 from "./pages/error/404";
 
@@ -151,14 +151,6 @@ function RouterPage() {
                   }
                 ></Route>
                 <Route
-                  path="schools/add"
-                  element={
-                    <RequireAuth>
-                      <SchoolAdd />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route
                   path="schools/:pid"
                   element={
                     <RequireAuth>
@@ -179,7 +171,15 @@ function RouterPage() {
                   path="forms/:pid"
                   element={
                     <RequireAuth>
-                        <Form />
+                      <Form />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="list"
+                  element={
+                    <RequireAuth>
+                      <List />
                     </RequireAuth>
                   }
                 ></Route>
