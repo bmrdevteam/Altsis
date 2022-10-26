@@ -31,18 +31,6 @@ import { CSSProperties } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./popup.module.scss";
 
-/**
- * Popup component
- *
- *
- * @param children
- * @param setState
- * @param title
- * @param closeBtn
- *
- * @returns
- */
-
 type Props = {
   children: JSX.Element | JSX.Element[];
   footer?: JSX.Element | JSX.Element[];
@@ -52,6 +40,40 @@ type Props = {
   closeBtn?: boolean;
   borderRadius?: string;
 };
+/**
+ * Popup component
+ *
+ *
+ * @param children
+ * @param setState
+ * @param title
+ * @param closeBtn
+ *
+ * @returns Popup component
+ *
+ * @example 
+ * 
+ * {popupActive && <Popup
+     title="pop"
+     setState={setPopupActive}
+     style={{ borderRadius: "4px", maxWidth: "800px", width: "100%" }}
+     closeBtn
+      footer={
+        <Button
+          type={"ghost"}
+          onClick={() => {
+            //close the popup
+            setPopupActive(false)
+          }}
+        >
+          저장
+        </Button>
+      }
+   >
+    <div>content</div>
+  </Popup>
+  }
+ */
 const Popup = (props: Props) => {
   /**
    * return the component
@@ -85,8 +107,10 @@ const Popup = (props: Props) => {
             </div>
           )}
         </div>
-        <div className={style.content} style={{ overflowY: "scroll" }}>{props.children}</div>
-       {props.footer && <div className={style.footer}>{props.footer}</div>}
+        <div className={style.content} style={{ overflowY: "scroll" }}>
+          {props.children}
+        </div>
+        {props.footer && <div className={style.footer}>{props.footer}</div>}
       </div>
       <div
         className={style.popup_background}
