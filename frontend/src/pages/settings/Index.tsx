@@ -1,14 +1,38 @@
-import React from "react";
-import Input from "../../components/input/Input";
-import Textarea from "../../components/textarea/Textarea";
-import { useAuth } from "../../contexts/authContext";
+/**
+ * @file Settings Index Page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 import style from "../../style/pages/settings/settings.module.scss";
-import ResetSettings from "./tabs/ResetSettings";
-import SchoolSettings from "./tabs/SchoolSettings";
-import SecuritySettings from "./tabs/SecuritySettings";
-import SocialLoginSettings from "./tabs/SocialLoginSettings";
-import ThemeSettings from "./tabs/ThemeSettings";
-import UserSettings from "./tabs/UserSettings";
+import ResetSettings from "./tab/ResetSettings";
+import SchoolSettings from "./tab/SchoolSettings";
+import SecuritySettings from "./tab/SecuritySettings";
+import SocialLoginSettings from "./tab/SocialLoginSettings";
+import ThemeSettings from "./tab/ThemeSettings";
+import UserSettings from "./tab/UserSettings";
 
 type Props = {};
 

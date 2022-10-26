@@ -1,3 +1,32 @@
+/**
+ * @file Register Page
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * 
+ * - Register Page
+ * 
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import style from "../style/pages/login.module.scss";
 import axios from "axios";

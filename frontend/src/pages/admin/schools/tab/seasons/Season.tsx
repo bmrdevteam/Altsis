@@ -1,3 +1,32 @@
+/**
+ * @file Schools Pid Page Tab Item - Season
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
@@ -12,6 +41,7 @@ import useDatabase from "../../../../../hooks/useDatabase";
 import style from "../../../../../style/pages/admin/schools/schools.module.scss";
 import Basic from "./tab/Basic";
 import Classroom from "./tab/Classroom";
+import Form from "./tab/Form";
 import Permission from "./tab/Permission";
 import Subjects from "./tab/Subjects";
 import Users from "./tab/Users";
@@ -119,7 +149,7 @@ const Season = (props: Props) => {
       <div style={{ height: "24px" }}></div>
       <Button
         type={"ghost"}
-        styles={{
+        style={{
           borderRadius: "4px",
           height: "32px",
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
@@ -212,7 +242,7 @@ const Season = (props: Props) => {
                   setAddSeasonPopupActive(false);
                 });
               }}
-              styles={{
+              style={{
                 borderRadius: "4px",
                 height: "32px",
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
@@ -236,6 +266,7 @@ const Season = (props: Props) => {
               "기본 정보": <Basic seasonData={selectedSeason} />,
               강의실: <Classroom seasonData={selectedSeason} />,
               "교과 과목": <Subjects seasonData={selectedSeason} />,
+              "양식": <Form seasonData={selectedSeason} />,
               시용자: <Users seasonData={selectedSeason} />,
               권한: <Permission seasonData={selectedSeason} />,
             }}

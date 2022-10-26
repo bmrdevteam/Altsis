@@ -33,6 +33,7 @@ type Props = {
     rowHeight?: string;
     bodyHeight?: string;
   };
+  onSelectChange?: (value: any) => void;
   filter?: boolean;
   filterSearch?: boolean;
 };
@@ -73,7 +74,7 @@ const TableFilterItem = () => {
           <div style={{ display: "flex", margin: "24px 0 0 auto" }}>
             <Button
               type="hover"
-              styles={{
+              style={{
                 fontSize: "14px",
                 padding: "0 18px",
                 borderRadius: "4px",
@@ -83,7 +84,7 @@ const TableFilterItem = () => {
             </Button>
             <Button
               type="hover"
-              styles={{
+              style={{
                 fontSize: "14px",
                 padding: "0 18px",
                 borderRadius: "4px",
@@ -177,6 +178,7 @@ const TableSearch = () => {
 const Table = (props: Props) => {
   const search = useSearch({});
   const selectedItems = useRef<any>([]);
+
   const [tableData, setTableData] = useState<any>(props.data);
 
   useEffect(() => {
@@ -186,14 +188,15 @@ const Table = (props: Props) => {
   function appendItemToSelect(item: any) {
     if (!selectedItems.current?.includes(item)) {
       selectedItems.current.push(item);
-      console.log(selectedItems.current);
+      props.onSelectChange && props.onSelectChange(selectedItems.current);
     }
   }
   function deleteItemFromSelect(item: any) {
     selectedItems.current = selectedItems.current.filter(
       (val: any) => val !== item
     );
-    console.log(selectedItems.current);
+    props.onSelectChange && props.onSelectChange(selectedItems.current);
+
   }
   /**
    * filter component

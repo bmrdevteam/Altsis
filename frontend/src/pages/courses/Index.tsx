@@ -1,3 +1,32 @@
+/**
+ * @file Courses Index Page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Table from "../../components/table/Table";
@@ -12,7 +41,7 @@ const Courses = (props: Props) => {
   const navigate = useNavigate();
 
   async function getCourseList() {
-    const res = await database.R({ location: "api/syllabuses/list" });
+    const res = await database.R({ location: "syllabuses/list" });
 
     // setCourseList(res);
     return res;

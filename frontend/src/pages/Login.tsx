@@ -1,5 +1,5 @@
 /**
- * @file login page
+ * @file login Page
  *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
@@ -317,7 +317,7 @@ const Login = () => {
                 password === ""
               }
               onClick={onLoginSubmit}
-              styles={{ borderRadius: "8px" }}
+              style={{ borderRadius: "8px" }}
             >
               로그인
             </Button>
@@ -329,7 +329,7 @@ const Login = () => {
             onClick={() => {
               navigate("/register", { replace: true });
             }}
-            styles={{ borderRadius: "8px" }}
+            style={{ borderRadius: "8px" }}
           >
             회원가입
           </Button>

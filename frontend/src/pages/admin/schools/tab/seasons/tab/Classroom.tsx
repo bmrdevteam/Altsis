@@ -1,3 +1,31 @@
+/**
+ * @file Seasons Page Tab Item - Classroom
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 import Button from "components/button/Button";
 import Table from "components/table/Table";
 import React from "react";
@@ -12,7 +40,7 @@ const Classroom = (props: Props) => {
     <div>
         <Button
         type={"ghost"}
-        styles={{
+        style={{
           borderRadius: "4px",
           height: "32px",margin:"24px 0",
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",

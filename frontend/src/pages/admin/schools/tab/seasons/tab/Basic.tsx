@@ -1,3 +1,31 @@
+/**
+ * @file Seasons Page Tab Item - Basic
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 import Button from "components/button/Button";
 import Input from "../../../../../../components/input/Input";
 import Select from "../../../../../../components/select/Select";
@@ -46,7 +74,7 @@ function Basic(props: Props) {
           type={"ghost"}
           disableOnclick
           onClick={() => {}}
-          styles={{
+          style={{
             borderRadius: "4px",
             marginTop: "24px",
             height: "32px",

@@ -8,6 +8,7 @@ export function useAuth(): {
   setCurrentUser: React.Dispatch<any>;
   currentUser: any;
   currentSchool: any;
+  currentSeason: any;
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 } {
@@ -25,10 +26,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const res = await database.R({
       location: "users/current",
     });
-
+    /**
+     * sets the current user
+     */
     setCurrentUser(res);
+    /** if there is a registration, set the season */
+    res.registrations[0] && setCurrentSeason(res.registrations[0]);
     setCurrentSchool(res.schools[0]);
 
+    console.log(res);
     return res;
   }
 
@@ -49,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentUser,
     currentUser,
     loading,
+    currentSeason,
     setLoading,
     currentSchool,
   };

@@ -14,8 +14,9 @@ const Nav = ({
   children?: JSX.Element[] | JSX.Element;
   close: boolean;
 }) => {
+  const { currentSchool } = useAuth();
   useEffect(() => {
-    document.title = "별무리힉교";
+    document.title = currentSchool.schoolName;
 
     return () => {};
   }, []);
@@ -33,7 +34,7 @@ const Nav = ({
 const NavLogo = ({ onClick }: { onClick: any }) => {
   const navigate = useNavigate();
 
-  const { currentUser,currentSchool } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   return (
     <div className={style.nav_logo}>
       <span className={style.icon} onClick={onClick}>
@@ -45,9 +46,7 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
           // navigate("/", { replace: true });
         }}
       >
-        {currentSchool?.schoolName
-          ? `${currentSchool.schoolName} - `
-          : ""}
+        {currentSchool?.schoolName ? `${currentSchool.schoolName} - ` : ""}
         {currentUser?.academyName
           ? currentUser.academyName
           : currentUser?.academyName}

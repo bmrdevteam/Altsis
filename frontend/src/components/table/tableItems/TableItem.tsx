@@ -1,5 +1,6 @@
 import _, { isArray } from "lodash";
 import React, { useState } from "react";
+import { useEffect } from "react";
 import Svg from "../../../assets/svg/Svg";
 import style from "../table.module.scss";
 
@@ -33,12 +34,19 @@ interface ITableItem {
     border?: string;
     backgroundColor?: string;
   };
+  checked?: boolean;
   append: (item: any) => void;
   delete: (item: any) => void;
 }
 
 const TableItem = (props: ITableItem) => {
-  const [checked, setChecked] = useState<boolean>(false);
+  const [checked, setChecked] = useState<boolean>(
+    props.checked !== undefined ? props.checked : false
+  );
+  useEffect(() => {
+    props.checked && console.log(props.checked);
+  }, [props.checked]);
+
   // const [output, setOutput] = useState("");
   let output = "";
   const d = _.get(props?.data, props.header.key);
@@ -80,7 +88,16 @@ const TableItem = (props: ITableItem) => {
             border: props.style?.border,
           }}
           onClick={() => {
-            setChecked((prev) => !prev);
+            setChecked((prev) => {
+              //if prev was true
+              if (prev) {
+                props.delete(props.data);
+                //was false
+              } else {
+                props.append(props.data);
+              }
+              return !prev;
+            });
           }}
         >
           {checked ? (

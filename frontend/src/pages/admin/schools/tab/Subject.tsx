@@ -1,8 +1,36 @@
+/**
+ * @file Schools Pid Page Tab Item - Subject
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 import React, { useEffect, useState } from "react";
 import DragAndDrop, {
   Drag,
   Drop,
-} from "../../../../components/dragAndDrop/DragAndDrop";
+} from "components/dragAndDrop/DragAndDrop";
 type Props = {
   school: any;
 };

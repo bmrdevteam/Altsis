@@ -27,7 +27,7 @@
  */
 
 import { CSSProperties, useState } from "react";
-import style from "./button.module.scss";
+import btnStyle from "./button.module.scss";
 
 type Props = {
   children?: string;
@@ -36,7 +36,7 @@ type Props = {
   round?: boolean;
   disabled?: boolean;
   disableOnclick?: boolean;
-  styles?: CSSProperties;
+  style?: CSSProperties;
 };
 
 /**
@@ -79,39 +79,39 @@ const Button = ({
   round,
   disabled,
   disableOnclick,
-  styles,
+  style,
 }: Props) => {
   // button state
   const [disable, setDisable] = useState<boolean>(false);
 
   // button class
-  let btnClass = style.btn;
+  let btnClass = btnStyle.btn;
 
   //ghost class
   if (type === "ghost") {
-    btnClass += " " + style.ghost;
+    btnClass += " " + btnStyle.ghost;
   }
 
   //hover class
   if (type === "hover") {
-    btnClass += " " + style.hover;
+    btnClass += " " + btnStyle.hover;
   }
 
   //round class
   if (round) {
-    btnClass += " " + style.round;
+    btnClass += " " + btnStyle.round;
   }
 
   //disabled class
   if (disabled || disable) {
-    btnClass += " " + style.disabled;
+    btnClass += " " + btnStyle.disabled;
   }
 
   //return button component
   return (
     <div
       className={`${btnClass} `}
-      style={styles}
+      style={style}
       onClick={(e) => {
         if (!disable && !disabled) {
           onClick && onClick(e);

@@ -79,7 +79,7 @@ const Sidebar = (props: Props) => {
         </div>
         <Button
           type="ghost"
-          styles={{
+          style={{
             marginTop: "8px",
             borderRadius: "4px",
             height: "32px",
@@ -120,7 +120,7 @@ const Sidebar = (props: Props) => {
         </div>
         <Button
           type="ghost"
-          styles={{
+          style={{
             marginTop: "8px",
             borderRadius: "4px",
             height: "32px",
@@ -185,7 +185,7 @@ const Sidebar = (props: Props) => {
         <div style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
-            styles={{
+            style={{
               flex: "1 1 0",
               marginTop: "8px",
               borderRadius: "4px",
@@ -201,7 +201,7 @@ const Sidebar = (props: Props) => {
           </Button>
           <Button
             type="ghost"
-            styles={{
+            style={{
               flex: "1 1 0",
               marginTop: "8px",
               borderRadius: "4px",
@@ -333,7 +333,7 @@ const Sidebar = (props: Props) => {
         <div style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
-            styles={{
+            style={{
               flex: "1 1 0",
               marginTop: "8px",
               borderRadius: "4px",
@@ -349,7 +349,7 @@ const Sidebar = (props: Props) => {
           </Button>
           <Button
             type="ghost"
-            styles={{
+            style={{
               flex: "1 1 0",
               marginTop: "8px",
               borderRadius: "4px",

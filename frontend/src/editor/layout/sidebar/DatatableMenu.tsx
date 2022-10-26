@@ -88,7 +88,7 @@ const DatatableMenu = (props: Props) => {
           <div style={{ flex: "1 1 0" }}></div>
           <Button
             type="ghost"
-            styles={{
+            style={{
               width: "30px",
               marginTop: "6px",
               height: "100%",
@@ -166,7 +166,7 @@ const DatatableMenu = (props: Props) => {
         </div>
         <Button
           type="ghost"
-          styles={{
+          style={{
             marginTop: "6px",
             height: "100%",
             borderRadius: "4px",
@@ -225,7 +225,7 @@ const DatatableMenu = (props: Props) => {
       <Menu name="Data 테이블">
         <Button
           type="ghost"
-          styles={{
+          style={{
             marginTop: "8px",
             borderRadius: "4px",
             height: "32px",
@@ -257,7 +257,7 @@ const DatatableMenu = (props: Props) => {
             <div style={{ marginTop: "24px" }}>
               <Button
                 type="ghost"
-                styles={{ borderRadius: "4px" }}
+                style={{ borderRadius: "4px" }}
                 onClick={() => {
                   save();
                   // setDataTableMenuOpen(false);

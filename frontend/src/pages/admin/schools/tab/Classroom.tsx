@@ -1,3 +1,32 @@
+/**
+ * @file Schools Pid Page Tab Item - Classroom
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+
 import { useState } from "react";
 import Button from "../../../../components/button/Button";
 import Input from "../../../../components/input/Input";
@@ -47,7 +76,7 @@ const Classroom = (props: Props) => {
     <div style={{ marginTop: "24px" }}>
      <Button
         type={"ghost"}
-        styles={{
+        style={{
           borderRadius: "4px",
           height: "32px",
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
