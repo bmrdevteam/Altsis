@@ -55,6 +55,12 @@ export const SidebarData = (role: string): any => {
               path: "/admin/users",
               icon: <Svg type="file" />,
             },
+            {
+              title: "list",
+              name: "리스트",
+              path: "/admin/list",
+              icon: <Svg type="file" />,
+            },
           ],
         },
         {
