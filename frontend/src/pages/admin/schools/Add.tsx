@@ -32,8 +32,8 @@
  */
 
 import React from "react";
-import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
-import style from "../../../style/pages/admin/schools/schools.module.scss";
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import style from "style/pages/admin/schools.module.scss";
 type Props = {};
 
 const SchoolAdd = (props: Props) => {
