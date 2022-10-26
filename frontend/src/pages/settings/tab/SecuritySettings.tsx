@@ -1,5 +1,5 @@
 /**
- * @file SecuritySettings Page
+ * @file Settings Page tab - SecuritySettings
  * 
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *

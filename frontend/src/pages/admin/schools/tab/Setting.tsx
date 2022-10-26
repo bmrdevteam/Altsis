@@ -1,3 +1,32 @@
+/**
+ * @file Schools Pid Page Tab Item - Setting
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+
 import React from "react";
 import Divider from "../../../../components/divider/Divider";
 import ToggleSwitch from "../../../../components/toggleSwitch/ToggleSwitch";

@@ -1,3 +1,32 @@
+/**
+ * @file Settings Page tab - ThemeSettings
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * 
+ * - ThemeSettings Page
+ * 
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import ToggleSwitch from "../../../components/toggleSwitch/ToggleSwitch";
 import { useAuth } from "../../../contexts/authContext";
 import { useTheme } from "../../../contexts/themeContext";

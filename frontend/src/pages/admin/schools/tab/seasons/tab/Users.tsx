@@ -1,8 +1,37 @@
+/**
+ * @file Seasons Page Tab Item - Users
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
 import useDatabase from "hooks/useDatabase";
 import React from "react";
+import { useRef } from "react";
 import { useState } from "react";
 import { useEffect } from "react";
 
@@ -13,6 +42,8 @@ const Users = (props: Props) => {
   const database = useDatabase();
   const [registrations, setRegistrations] = useState<any>();
   const [schoolUsers, setSchoolUsers] = useState<any>();
+  const selectedSchoolUsers = useRef<any>(null);
+
   console.log(schoolUsers);
 
   const [registerUserPopupActive, setRegisterUserPopupActive] =
@@ -22,6 +53,14 @@ const Users = (props: Props) => {
     const { registrations: result } = await database.R({
       location: `registrations?schoolId=${props.seasonData.schoolId}`,
     });
+    setRegistrations(result);
+    return result;
+  }
+  async function deleteRegistration(id: string) {
+    const result = await database.D({
+      location: `registrations/${id}`,
+    });
+    getRegistrations();
     return result;
   }
   async function getSchoolUsers() {
@@ -30,11 +69,19 @@ const Users = (props: Props) => {
     });
     return result;
   }
+  async function registerSelectedUsers() {
+    const result = await database.C({
+      location: `registrations/bulk`,
+      data: {
+        season: props.seasonData._id,
+        users: selectedSchoolUsers.current,
+      },
+    });
+    return result;
+  }
 
   useEffect(() => {
-    getRegistrations().then((res) => {
-      setRegistrations(res);
-    });
+    getRegistrations();
     getSchoolUsers().then((res) => {
       setSchoolUsers(res);
     });
@@ -44,14 +91,14 @@ const Users = (props: Props) => {
     <div>
       <Button
         type={"ghost"}
-        styles={{
+        style={{
           margin: "24px 0",
         }}
         onClick={() => {
           setRegisterUserPopupActive(true);
         }}
       >
-       학기에 유저 등록
+        학기에 유저 등록
       </Button>
       <Table
         data={registrations}
@@ -74,10 +121,17 @@ const Users = (props: Props) => {
             type: "string",
           },
           {
+            text: "사용자 역활",
+            key: "role",
+            type: "string",
+          },
+          {
             text: "삭제",
-            key: "index",
+            key: "_id",
             type: "button",
-            onClick: (e: any) => {},
+            onClick: (e: any) => {
+              deleteRegistration(e.target.dataset.value);
+            },
             width: "80px",
             align: "center",
             textStyle: {
@@ -99,7 +153,15 @@ const Users = (props: Props) => {
             <Button
               type={"ghost"}
               onClick={() => {
-                setRegisterUserPopupActive(true);
+                registerSelectedUsers()
+                  .then(() => {
+                    getRegistrations();
+                    setRegisterUserPopupActive(false);
+                  })
+                  .catch(() => {
+                    getRegistrations();
+                    setRegisterUserPopupActive(false);
+                  });
               }}
             >
               + 학기에 유저 등록
@@ -108,6 +170,17 @@ const Users = (props: Props) => {
         >
           <div style={{ height: "100%" }}>
             <Table
+              onSelectChange={(value) => {
+                selectedSchoolUsers.current = value.map((val: any) => {
+                  return {
+                    userId: val.userId,
+                    userName: val.userName,
+                    role: "student",
+                  };
+                });
+
+                console.log(selectedSchoolUsers.current);
+              }}
               filter
               filterSearch
               data={schoolUsers}

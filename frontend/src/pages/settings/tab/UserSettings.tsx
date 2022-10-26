@@ -1,3 +1,32 @@
+/**
+ * @file Settings Page tab - UserSettings
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * 
+ * - UserSettings Page
+ * 
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
 import React from "react";
 import Divider from "../../../components/divider/Divider";
 import Input from "../../../components/input/Input";

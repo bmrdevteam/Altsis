@@ -1,22 +1,50 @@
+/**
+ * @file Enrollment Index Page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../../components/button/Button";
-import Divider from "../../components/divider/Divider";
-import Input from "../../components/input/Input";
-import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
-import Popup from "../../components/popup/Popup";
-import Select from "../../components/select/Select";
-import Table from "../../components/table/Table";
-import { useAuth } from "../../contexts/authContext";
-import { courseData } from "../../dummyData/coursesData";
-import useDatabase from "../../hooks/useDatabase";
-import useSearch from "../../hooks/useSearch";
-import style from "../../style/pages/enrollment.module.scss";
+import Button from "components/button/Button";
+import Divider from "components/divider/Divider";
+import Input from "components/input/Input";
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Popup from "components/popup/Popup";
+import Select from "components/select/Select";
+import Table from "components/table/Table";
+import { useAuth } from "contexts/authContext";
+import { courseData } from "dummyData/coursesData";
+import useDatabase from "hooks/useDatabase";
+import useSearch from "hooks/useSearch";
+import style from "style/pages/enrollment.module.scss";
 
 type Props = {};
 
 const Enrollment = (props: Props) => {
-  const { currentSchool } = useAuth();
+  const { currentSchool, currentSeason } = useAuth();
   const search = useSearch(courseData);
   const database = useDatabase();
   const navigate = useNavigate();
@@ -27,7 +55,9 @@ const Enrollment = (props: Props) => {
   }
 
   async function getCourseList() {
-    const res = await database.R({ location: "api/syllabuses/list?" });
+    const { syllabuses: res } = await database.R({
+      location: `syllabuses`,
+    });
 
     // setCourseList(res);
     return res;

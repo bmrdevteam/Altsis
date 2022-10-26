@@ -1,3 +1,32 @@
+/**
+ * @file Settings Page tab - ResetSettings
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+
 import React from "react";
 import Button from "../../../components/button/Button";
 import style from "../../../style/pages/settings/settings.module.scss";
@@ -20,7 +49,7 @@ const ResetSettings = (props: Props) => {
         <div className={style.controls} style={{ alignItems: "center" }}>
           <Button
             type={"ghost"}
-            styles={{
+            style={{
               borderRadius: "4px",
               height: "32px",
               background: "var(--color-r3)",

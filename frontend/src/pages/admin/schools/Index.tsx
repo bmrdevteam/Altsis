@@ -1,3 +1,31 @@
+/**
+ * @file Schools Index Page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../../components/button/Button";
@@ -7,11 +35,9 @@ import Table from "../../../components/table/Table";
 import useDatabase from "../../../hooks/useDatabase";
 import style from "../../../style/pages/admin/schools/schools.module.scss";
 
-
 const Schools = () => {
   const navigate = useNavigate();
   const database = useDatabase();
-
 
   const [schoolsList, setSchoolsList] = useState<any>();
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +77,7 @@ const Schools = () => {
       <Divider />
       <Button
         type={"ghost"}
-        styles={{
+        style={{
           borderRadius: "4px",
           height: "32px",
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
@@ -94,7 +120,6 @@ const Schools = () => {
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                
                 navigate(`${e.target.dataset.value}`);
               },
               width: "80px",

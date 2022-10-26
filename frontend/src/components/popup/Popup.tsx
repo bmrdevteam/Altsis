@@ -85,7 +85,7 @@ const Popup = (props: Props) => {
             </div>
           )}
         </div>
-        <div className={style.content} style={{ overflowX: "scroll" }}>{props.children}</div>
+        <div className={style.content} style={{ overflowY: "scroll" }}>{props.children}</div>
        {props.footer && <div className={style.footer}>{props.footer}</div>}
       </div>
       <div

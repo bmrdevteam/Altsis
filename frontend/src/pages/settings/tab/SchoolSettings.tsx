@@ -1,6 +1,6 @@
 /**
- * @file SchoolSettings Page
- * 
+ * @file Settings Page tab - ResetSettings
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -67,7 +67,7 @@ const SchoolSettings = (props: Props) => {
       })}
       <Button
         type={"ghost"}
-        styles={{
+        style={{
           borderRadius: "4px",
           height: "32px",
         }}

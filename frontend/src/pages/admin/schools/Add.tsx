@@ -1,3 +1,36 @@
+/**
+ * @file School Add Page
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ * 
+ * - School Add Page -> move to popup component in <Schools Index Page>
+ * 
+ * -------------------------------------------------------
+ *
+ * NOTES
+ * 
+ * 
+ * 
+ * @version 1.0
+ *
+ */
+
 import React from "react";
 import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
 import style from "../../../style/pages/admin/schools/schools.module.scss";

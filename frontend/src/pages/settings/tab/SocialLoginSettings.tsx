@@ -1,3 +1,33 @@
+/**
+ * @file Settings Page tab - SocialLoginSettings
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * 
+ * - SocialLoginSettings Page
+ * 
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
+
 import Svg from "../../../assets/svg/Svg";
 import Button from "../../../components/button/Button";
 import { useAuth } from "../../../contexts/authContext";
@@ -41,7 +71,7 @@ const SocialLoginSettings = (props: Props) => {
       })}
       <Button
         type={"ghost"}
-        styles={{
+        style={{
           borderRadius: "4px",
           height: "32px",
         }}

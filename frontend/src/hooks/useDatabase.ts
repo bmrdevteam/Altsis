@@ -8,6 +8,7 @@
  * IN PRODUCTION
  *  - useDataBase.C function
  *  - useDataBase.R function
+ *  - useDataBase.D function
  *
  * -------------------------------------------------------
  *
@@ -17,7 +18,6 @@
  *
  * IN DEVELOPMENT
  *  - useDataBase.U function
- *  - useDataBase.D function
  *
  * -------------------------------------------------------
  *
