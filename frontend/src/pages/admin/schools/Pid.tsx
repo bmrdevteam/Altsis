@@ -31,7 +31,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import style from "../../../style/pages/admin/schools/schools.module.scss";
+import style from "style/pages/admin/schools.module.scss";
 
 // NavigationLinks component
 import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
