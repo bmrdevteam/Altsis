@@ -28,11 +28,16 @@
  */
 import Button from "components/button/Button";
 import React from "react";
-import style from "style/pages/admin/schools/schools.module.scss";
+import { useState } from "react";
+import style from "style/pages/admin/schools.module.scss";
 type Props = {
   seasonData: any;
 };
 const Form = (props: Props) => {
+  const [selectFormPopupActive, SetSelectFormPopupActive] =
+    useState<boolean>(false);
+  const [selectFormType, SetSelectFormType] = useState<string>();
+
   return (
     <div className={style.form}>
       <div className={style.item}>
