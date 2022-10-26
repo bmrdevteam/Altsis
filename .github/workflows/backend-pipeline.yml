@@ -53,11 +53,13 @@ jobs:
           echo "GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}" >> .env
           echo "URL= ${{secrets.URL}}" >> .env
           echo "SERVER_PORT= ${{env.SERVER_PORT}}" >> .env
+          echo "ENCKEY= ${{secrets.ENCKEY}}" >> .env
+          echo "SIGKEY= ${{secrets.SIGKEY}}" >> .env
 
       # 빌드 후 푸쉬
       - name: Build and push
         id: docker-build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: backend
           file: ./backend/Dockerfile

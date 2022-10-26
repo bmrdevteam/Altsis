@@ -10,6 +10,7 @@ const Season = require("../models/Season");
 const Registration = require("../models/Registration");
 const Enrollment = require("../models/Enrollment");
 const mongoose = require("mongoose");
+const User = require("../models/User");
 
 // const {data,add}=require('../databases/connection')
 // router.post('/test2', (req, res) => {
@@ -18,6 +19,18 @@ const mongoose = require("mongoose");
 //         data
 //     })
 // })
+
+const json2csv = require("json2csv").parse;
+router.get("/csv", async (req, res) => {
+  if (!req.user) return res.status(404).send();
+
+  const users = await User(req.user.dbName).find({});
+  const fields = ["userId", "userName"];
+  csv = json2csv(users, { fields });
+  console.log(csv);
+  res.set("Content-Type", "text/csv");
+  return res.status(200).send(csv);
+});
 
 const id = {
   ms: "634cba616a42d475ca80f011",
