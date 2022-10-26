@@ -1,0 +1,21 @@
+.section {
+
+    margin: 24px;
+
+    .title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--accent-1);
+
+
+    }
+
+    .description {
+        font-size: 13px;
+        font-family: 'Pretendard';
+        font-weight: 500;
+        color: var(--accent-3);
+    }
+
+}
