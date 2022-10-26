@@ -7,4 +7,5 @@ module.exports = {
   Syllabus: require("./Syllabus"),
   User: require("./User"),
   Season: require("./Season"),
+  Archive: require("./Archive"),
 };
