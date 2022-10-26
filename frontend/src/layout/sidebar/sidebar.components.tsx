@@ -16,7 +16,7 @@ const Nav = ({
 }) => {
   const { currentSchool } = useAuth();
   useEffect(() => {
-    document.title = currentSchool.schoolName;
+    document.title = currentSchool?.schoolName;
 
     return () => {};
   }, []);
