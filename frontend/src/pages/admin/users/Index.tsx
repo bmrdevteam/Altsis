@@ -159,7 +159,7 @@ const Users = (props: Props) => {
             <div className={style.title}>기본 정보</div>
             <div className={style.row}>
               <Input
-                inputStyle="flat"
+                appearence="flat"
                 label="이름"
                 required
                 defaultValue={user.userName}
@@ -168,12 +168,12 @@ const Users = (props: Props) => {
                 label="Id"
                 required
                 defaultValue={user.userId}
-                inputStyle="flat"
+                appearence="flat"
               />
             </div>
             <div className={style.row}>
               <Input
-                inputStyle="flat"
+                appearence="flat"
                 label="이메일"
                 required
                 defaultValue={user.email}
@@ -182,7 +182,7 @@ const Users = (props: Props) => {
                 label="tel"
                 required
                 defaultValue={user.tel}
-                inputStyle="flat"
+                appearence="flat"
               />
             </div>
             <Button
