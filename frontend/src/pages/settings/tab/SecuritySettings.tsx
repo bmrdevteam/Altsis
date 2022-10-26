@@ -105,14 +105,14 @@ const SecuritySettings = (props: Props) => {
         >
           <div style={{ width: "500px", marginTop: "24px" }}>
             <Input
-              inputStyle="flat"
+              appearence="flat"
               label="기존 비밀번호 입력"
               placeholder="기존 비밀번호 입력"
               type="password"
             />
             <div style={{ margin: "24px" }}></div>
             <Input
-              inputStyle="flat"
+              appearence="flat"
               label="새로운 비밀번호 입력"
               placeholder="새로운 비밀번호 입력"
               type="password"
