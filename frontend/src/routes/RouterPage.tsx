@@ -211,7 +211,6 @@ function RouterPage() {
               {/* ----------------------------------------------------- */}
 
               {/* idk(some kInd of school function routes) routes */}
-
               <Route
                 path="enrollment"
                 element={
