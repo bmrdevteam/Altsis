@@ -1,6 +1,6 @@
 /**
  * @file Schools Pid Page
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -22,11 +22,10 @@
  * -------------------------------------------------------
  *
  * NOTES
- * 
+ *
  * @version 1.0
  *
  */
-
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -84,28 +83,26 @@ const School = (props: Props) => {
 
   const [schoolData, setSchoolData] = useState<any>();
   const [resetSchoolData, setResetSchoolData] = useState<boolean>(true);
-  const [schoolsList, setSchoolsList] = useState<any>([]);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
-  async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools" });
-    setSchoolsList(res);
+  async function getSchool() {
+    const res = await database.R({ location: `schools/${pid}` });
     return res;
   }
 
   useEffect(() => {
     if (resetSchoolData) {
-      getSchoolList().then((res) => {
-        if (res.filter((val: any) => val._id === pid).length === 0) {
+      getSchool()
+        .then((res) => {
+          console.log(res);
+          setSchoolData(res)
+        })
+        .catch(() => {
           setIsSchool(false);
-        }
-        setSchoolData(res.filter((val: any) => val._id === pid)[0]);
-      });
-      console.log("reset");
+        });
 
       setResetSchoolData(false);
     }
-    return () => {};
   }, [resetSchoolData]);
 
   if (!isSchool) {
@@ -131,6 +128,7 @@ const School = (props: Props) => {
           강의실: (
             <Classroom school={schoolData} resetData={setResetSchoolData} />
           ),
+          // 설정: <Setting />,
         }}
       />
     </div>
