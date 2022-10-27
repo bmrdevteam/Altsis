@@ -32,7 +32,7 @@
  * - add examples to the js doc
  */
 
-import _ from "lodash";
+import _, { add } from "lodash";
 import { useCallback, useState } from "react";
 
 interface IFilterItem {
@@ -123,11 +123,11 @@ export default function useSearch(data: any) {
 
   /**
    * function that adds a filter
-   * 
+   *
    * @param {IFilterItem} item
-   * 
+   *
    * @returns
-   * 
+   *
    * @example
    */
   function addFilterItem(item: IFilterItem) {
@@ -144,11 +144,11 @@ export default function useSearch(data: any) {
   /**
    *
    * function that deletes a filter
-   * 
+   *
    * @param {IFilterItem} item
-   * 
+   *
    * @returns
-   * 
+   *
    * @example
    */
   function deleteFilterItem(item: IFilterItem) {
@@ -159,6 +159,23 @@ export default function useSearch(data: any) {
      */
     setFilters((prev) => prev.filter((value) => value.id !== item.id));
 
+    return filters;
+  }
+
+  function addANDFilterItem(item: IFilterItem) {
+    /**
+     * set AND filters
+     */
+  }
+  function addORFilterItem(item: IFilterItem) {
+    /**
+     * set OR filters
+     *
+     * if filter has the same id, delete the filter then add the new filter - updating filters
+     * if there is no matching id the function will just add the new filter
+     */
+
+    setFilters((prev) => [...prev.filter((val) => val.id !== item.id), item]);
     return filters;
   }
 
