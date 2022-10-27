@@ -1,11 +1,11 @@
 import React, { ReactElement, useEffect, useState } from "react";
-import Svg from "../../assets/svg/Svg";
+import Svg from "assets/svg/Svg";
 import style from "./sidebar.module.scss";
-import dummmyProfilePic from "../../assets/img/sponge.jpeg";
+import dummmyProfilePic from "assets/img/sponge.jpeg";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/authContext";
-import Popup from "../../components/popup/Popup";
-import Button from "../../components/button/Button";
+import { useAuth } from "contexts/authContext";
+import Popup from "components/popup/Popup";
+import Button from "components/button/Button";
 
 const Nav = ({
   children,
