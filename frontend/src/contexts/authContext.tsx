@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     res.registrations[0] && setCurrentSeason(res.registrations[0]);
     setCurrentSchool(res.schools[0]);
 
-    console.log(res);
+
     return res;
   }
 
