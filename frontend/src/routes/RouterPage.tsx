@@ -64,9 +64,8 @@ import CourseDesign from "../pages/courses/Design";
 import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
-import List from "pages/admin/List/Index";
-
-// import Http404 from "./pages/error/404";
+import Lists from "pages/admin/lists/Index";
+import List from "pages/admin/lists/Pid";
 
 function RouterPage() {
   // authenticate path with simple userlogin check
@@ -176,7 +175,15 @@ function RouterPage() {
                   }
                 ></Route>
                 <Route
-                  path="list"
+                  path="lists"
+                  element={
+                    <RequireAuth>
+                      <Lists />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="lists/:pid"
                   element={
                     <RequireAuth>
                       <List />
