@@ -58,7 +58,7 @@ export const SidebarData = (role: string): any => {
             {
               title: "list",
               name: "리스트",
-              path: "/admin/list",
+              path: "/admin/lists",
               icon: <Svg type="file" />,
             },
           ],
