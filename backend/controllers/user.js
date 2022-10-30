@@ -112,7 +112,7 @@ module.exports.createBulk = async (req, res) => {
 
     /* check userId duplication */
     const exUsers = await _User.find({});
-    const duplicatedUserIds = _([...exUsers, ...req.body])
+    const duplicatedUserIds = _([...exUsers, ...req.body.users])
       .groupBy((x) => x.userId)
       .pickBy((x) => x.length > 1)
       .keys()
@@ -124,12 +124,13 @@ module.exports.createBulk = async (req, res) => {
         .send({ message: `userId '${duplicatedUserIds}' are already in use` });
     }
 
-    for (let _user of req.body) {
+    for (let _user of req.body.users) {
       /* create document */
       const user = new _User(_user);
+      console.log(user);
       /* validate */
       if (!user.checkValidation())
-        return res.status(400).send({ message: "validation failed" });
+        return res.status(400).send({ message: "validation failed", user });
 
       user.academyId = req.user.academyId;
       user.academyName = req.user.academyName;

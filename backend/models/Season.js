@@ -10,37 +10,41 @@ const subjectSchema = mongoose.Schema(
   { _id: false }
 );
 
-const seasonSchema = mongoose.Schema({
-  school: {
-    type: mongoose.Types.ObjectId,
-    required: true,
+const seasonSchema = mongoose.Schema(
+  {
+    school: {
+      type: mongoose.Types.ObjectId,
+      required: true,
+    },
+    schoolId: {
+      type: String,
+      required: true,
+    },
+    schoolName: {
+      type: String,
+      required: true,
+    },
+    classrooms: [String],
+    subjects: subjectSchema,
+    year: {
+      type: String,
+      required: true,
+    },
+    term: {
+      type: String,
+      required: true,
+    },
+    period: String,
+    permissionSyllabus: [[]],
+    permissionEnrollment: [[]],
+    permissionEvaluation: [[]],
+    formTimetable: Object,
+    formSyllabus: Object,
+    formEvaluation: Object,
+    temp: Object,
   },
-  schoolId: {
-    type: String,
-    required: true,
-  },
-  schoolName: {
-    type: String,
-    required: true,
-  },
-  classrooms: [String],
-  subjects: subjectSchema,
-  year: {
-    type: String,
-    required: true,
-  },
-  term: {
-    type: String,
-    required: true,
-  },
-  period: String,
-  permissionSyllabus: [[]],
-  permissionEnrollment: [[]],
-  permissionEvaluation: [[]],
-  formTimetable: Object,
-  formSyllabus: Object,
-  formEvaluation: Object,
-});
+  { timestamps: true }
+);
 
 seasonSchema.index(
   {

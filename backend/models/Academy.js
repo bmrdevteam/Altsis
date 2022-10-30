@@ -52,7 +52,7 @@ const check = {
   academyId: (val) =>
     validator.isLength(val, { min: 3, max: 20 }) &&
     validator.isAlphanumeric(val),
-  email: (val) => validator.isEmail(val),
+  email: (val) => !val || validator.isEmail(val),
   tel: (val) => true,
   adminId: (val) =>
     validator.isLength(val, { min: 4, max: 20 }) &&
