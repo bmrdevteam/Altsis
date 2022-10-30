@@ -41,6 +41,7 @@ const seasonSchema = mongoose.Schema(
     formTimetable: Object,
     formSyllabus: Object,
     formEvaluation: Object,
+    temp: Object,
   },
   { timestamps: true }
 );
