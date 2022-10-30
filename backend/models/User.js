@@ -23,7 +23,7 @@ const userSchema = mongoose.Schema(
     password: {
       type: String,
       min: 8,
-      max: 20,
+      max: 26,
       match: specialRegExp,
       select: false, //alwasy exclude password in user document
     },
@@ -60,7 +60,7 @@ const check = {
   userName: (val) => validator.isLength(val, { min: 2, max: 20 }),
   email: (val) => !val || validator.isEmail(val),
   password: (val) =>
-    validator.isLength(val, { min: 8, max: 20 }) &&
+    validator.isLength(val, { min: 8, max: 26 }) &&
     validator.matches(val, specialRegExp),
 };
 

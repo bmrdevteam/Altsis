@@ -12,6 +12,121 @@ const Enrollment = require("../models/Enrollment");
 const mongoose = require("mongoose");
 const User = require("../models/User");
 
+//______________________________DB____________
+
+router.get("/db/seasons", async (req, res) => {
+  try {
+    const _Season = Season(req.user.dbName);
+    const sample = await _Season.findById("635c89a962ebbaf625f4bea9");
+    const base = sample.toObject();
+    delete base._id;
+
+    const bs_seasons = [
+      { year: "2016학년도", term: "4쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2016학년도", term: "3쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2017학년도", term: "1쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2017학년도", term: "2쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2018학년도", term: "1쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2017학년도", term: "3쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2017학년도", term: "4쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2018학년도", term: "2쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2016학년도", term: "1쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2016학년도", term: "2쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2018학년도", term: "3쿼터", "temp.createdAt": "2000-01-01" },
+      { year: "2018학년도", term: "4쿼터", "temp.createdAt": "2000-01-01" },
+      {
+        year: "2019학년도",
+        term: "1쿼터",
+        "temp.createdAt": "2019-02-11 06:30:30",
+      },
+      {
+        year: "2019학년도",
+        term: "2쿼터",
+        "temp.createdAt": "2019-04-08 01:54:48",
+      },
+      {
+        year: "2019학년도",
+        term: "4쿼터",
+        "temp.createdAt": "2019-09-26 07:42:17",
+      },
+      {
+        year: "2019학년도",
+        term: "3쿼터",
+        "temp.createdAt": "2019-06-19 08:22:00",
+      },
+      {
+        year: "2020학년도",
+        term: "1쿼터",
+        "temp.createdAt": "2020-02-25 11:57:15",
+      },
+      {
+        year: "2020학년도",
+        term: "3쿼터",
+        "temp.createdAt": "2020-06-29 09:36:30",
+      },
+      {
+        year: "2020학년도",
+        term: "2쿼터",
+        "temp.createdAt": "2020-04-22 12:06:53",
+      },
+      {
+        year: "2020학년도",
+        term: "4쿼터",
+        "temp.createdAt": "2020-09-21 08:34:53",
+      },
+      {
+        year: "2021학년도",
+        term: "3쿼터",
+        "temp.createdAt": "2021-06-17 15:32:01",
+      },
+      {
+        year: "2021학년도",
+        term: "2쿼터",
+        "temp.createdAt": "2021-04-08 16:00:07",
+      },
+      {
+        year: "2021학년도",
+        term: "1쿼터",
+        "temp.createdAt": "2021-06-17 15:31:34",
+      },
+      {
+        year: "2021학년도",
+        term: "4쿼터",
+        "temp.createdAt": "2021-09-27 14:49:40",
+      },
+      {
+        year: "2022학년도",
+        term: "1쿼터",
+        "temp.createdAt": "2022-02-03 10:00:00",
+      },
+      {
+        year: "2022학년도",
+        term: "2쿼터",
+        "temp.createdAt": "2022-04-07 15:30:06",
+      },
+      {
+        year: "2022학년도",
+        term: "3쿼터",
+        "temp.createdAt": "2022-06-16 17:01:31",
+      },
+      {
+        year: "2022학년도",
+        term: "4쿼터",
+        "temp.createdAt": "2022-09-22 16:00:17",
+      },
+    ];
+
+    for (let i = 0; i < bs_seasons.length; i++) {
+      const season = new _Season(_.merge(base, bs_seasons[i]));
+      await season.save();
+    }
+
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
 // const {data,add}=require('../databases/connection')
 // router.post('/test2', (req, res) => {
 //     add({key:req.body.key,val:req.body.val});
