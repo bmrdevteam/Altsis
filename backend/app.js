@@ -1,5 +1,4 @@
 require("dotenv").config();
-console.log("debug: process.env\n", process.env);
 
 const express = require("express");
 const cookieParser = require("cookie-parser");
@@ -14,8 +13,8 @@ const app = express();
 
 passportConfig();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limie: "10mb" }));
 app.use(cookieParser());
 app.use(
   cors({
