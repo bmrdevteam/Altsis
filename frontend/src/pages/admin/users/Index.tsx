@@ -67,32 +67,17 @@ const Users = (props: Props) => {
     });
   }, []);
 
-  const search = useSearch(academyUsers);
-
   return (
     <>
       <div className={style.section}>
         <NavigationLinks />
         <div className={style.title}>아카데미 유저 관리</div>
-        <div className={style.filter_container}>
-          <div>
-            <Input
-              placeholder="검색"
-              onChange={(e: any) => {
-                search.addFilterItem({
-                  id: "search",
-                  key: "userName",
-                  operator: "=",
-                  value: e.target.value,
-                });
-              }}
-            />
-          </div>
-        </div>
         <div style={{ height: "24px" }}></div>
         <div>
           <Table
-            data={search.result()}
+            filter
+            filterSearch
+            data={academyUsers}
             header={[
               {
                 text: "",
@@ -112,7 +97,7 @@ const Users = (props: Props) => {
               { text: "Id", key: "userId", type: "string" },
               {
                 text: "학교",
-                key: ["schools"],
+                key: ["schools", "schooolName"],
                 type: "string",
                 align: "center",
               },
