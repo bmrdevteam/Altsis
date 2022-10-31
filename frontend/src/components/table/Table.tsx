@@ -14,6 +14,7 @@ import Svg from "assets/svg/Svg";
 import { useEffect } from "react";
 import useSearch from "hooks/useSearch";
 import { useRef } from "react";
+import Select from "components/select/Select";
 
 type Props = {
   data: any;
@@ -111,21 +112,72 @@ const TableFilterItem = () => {
  *
  */
 const TableControls = (props: { selectedItems: any[] }) => {
+
+  // const search = useSearch()
   // implement close on clicked somewhere else
-  const outsideClick = useOutsideClick();
+  const outsideClickForFilter = useOutsideClick();
+  const outsideClickForExport = useOutsideClick();
 
   // return
   return (
     <div className={style.controls}>
-      <div className={style.icon} onClick={outsideClick.handleOnClick}>
-        <Svg type="horizontalDots" />
-      </div>
-      {outsideClick.active && (
-        <div className={style.control} ref={outsideClick.RefObject}>
-          <div className={style.item}>csv 다운로드</div>
-          <div className={style.item}>json 다운로드</div>
+      <div ref={outsideClickForFilter.RefObject}>
+        <div
+          className={style.icon}
+          onClick={() => outsideClickForFilter.setActive((prev) => !prev)}
+        >
+          <Svg type="filter" />
         </div>
-      )}
+        {outsideClickForFilter.active && (
+          <div className={style.filters}>
+            <div>AND</div>
+            <div className={style.item}>
+              <div className={style.content}>
+                <span style={{ flex: "1 1 0" }}>item1</span>
+                <Select options={[{ text: "<", value: "" }]} />
+                <span style={{ flex: "1 1 0", textAlign: "center" }}>12</span>
+              </div>
+              <Svg type="x" />
+            </div>
+
+            <div>OR</div>
+            <div className={style.item}>
+              <div className={style.content}>
+                <span style={{ flex: "1 1 0" }}>item1</span>
+                <Select options={[{ text: "<", value: "" }]} />
+                <span style={{ flex: "1 1 0", textAlign: "center" }}>12</span>
+              </div>
+              <Svg type="x" />
+            </div>
+            <div className={style.cons}>
+              <div>
+                <Button type="hover" style={{ borderRadius: "4px" }}>
+                  지우기
+                </Button>
+              </div>
+              <div>
+                <Button type="hover" style={{ borderRadius: "4px" }}>
+                  추가
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div ref={outsideClickForExport.RefObject}>
+        <div
+          className={style.icon}
+          onClick={() => outsideClickForExport.setActive((prev) => !prev)}
+        >
+          <Svg type="horizontalDots" />
+        </div>
+        {outsideClickForExport.active && (
+          <div className={style.control}>
+            <div className={style.item}>csv 다운로드</div>
+            <div className={style.item}>json 다운로드</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -196,7 +248,6 @@ const Table = (props: Props) => {
       (val: any) => val !== item
     );
     props.onSelectChange && props.onSelectChange(selectedItems.current);
-
   }
   /**
    * filter component
@@ -210,7 +261,6 @@ const Table = (props: Props) => {
     return (
       <div className={style.table_filter}>
         {props.filterSearch && <TableSearch />}
-        <div className={style.filters}>{/* <TableFilterItem /> */}</div>
         <TableControls selectedItems={selectedItems.current} />
       </div>
     );
