@@ -59,7 +59,7 @@ const Sidebar = (props: Props) => {
     { text: "select", value: "select" },
     { text: "Data select", value: "dataSelect" },
     { text: "선", value: "divider" },
-    { text: "[input]", value: "input" },
+    { text: "입력", value: "input" },
   ];
 
   const AddBlockMenu = () => {
@@ -234,12 +234,12 @@ const Sidebar = (props: Props) => {
             selectedValue={getCurrentCell()?.type}
             appearence="flat"
             options={[
-              { text: "텍스트", value: "paragraph" },
-              { text: "time", value: "time" },
-              { text: "timeRange", value: "timeRange" },
-              { text: "체크박스", value: "checkbox" },
-              { text: "[input]", value: "input" },
-              { text: "[select]", value: "select" },
+              { text: "텍스트셀", value: "paragraph" },
+              { text: "시간셀", value: "time" },
+              { text: "시간범위셀", value: "timeRange" },
+              { text: "체크박스셀", value: "checkbox" },
+              { text: "입력셀", value: "input" },
+              { text: "선택셀", value: "select" },
             ]}
           />
         </div>
@@ -247,7 +247,7 @@ const Sidebar = (props: Props) => {
           <label>헤더</label>
           <ToggleSwitch
             defaultChecked={getCurrentCell()?.isHeader}
-            onChange={(e:any) => {
+            onChange={(e: any) => {
               changeCurrentCell({ isHeader: e.target.checked });
 
               props.callPageReload();
@@ -328,6 +328,19 @@ const Sidebar = (props: Props) => {
           <div className={style.item}>
             <label>시간</label>
             <input type="time" />
+          </div>
+        )}
+        {getCurrentCell()?.type === "input" && (
+          <div className={style.item}>
+            <label>placeholder</label>
+            <input
+              type="text"
+              defaultValue={getCurrentCell()?.placeholder}
+              onChange={(e) => {
+                changeCurrentCell({ placeholder: e.target.value });
+                props.callPageReload();
+              }}
+            />
           </div>
         )}
         <div style={{ display: "flex", gap: "4px" }}>
