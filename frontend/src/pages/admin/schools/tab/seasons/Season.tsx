@@ -78,7 +78,6 @@ const Season = (props: Props) => {
     const result = await database.R({ location: `seasons/${id}` });
     return result;
   }
-  
 
   async function addSeason() {
     const result = await database.C({
@@ -98,7 +97,6 @@ const Season = (props: Props) => {
 
       setSeasons(res);
     });
-  
   }, []);
 
   const years = () => {
@@ -266,7 +264,7 @@ const Season = (props: Props) => {
               "기본 정보": <Basic seasonData={selectedSeason} />,
               강의실: <Classroom seasonData={selectedSeason} />,
               "교과 과목": <Subjects seasonData={selectedSeason} />,
-              "양식": <Form seasonData={selectedSeason} />,
+              양식: <Form seasonData={selectedSeason} />,
               시용자: <Users seasonData={selectedSeason} />,
               권한: <Permission seasonData={selectedSeason} />,
             }}
