@@ -376,6 +376,13 @@
 
         }
 
+        .cell.input:before {
+            content: attr(placeholder);
+            color: rgb(171, 171, 171);
+            display: block;
+            cursor: text;
+        }
+
 
     }
 
@@ -393,10 +400,20 @@
 
         }
 
+        .cell.input:before {
+            content: attr(placeholder);
+            color: rgb(171, 171, 171);
+            display: block;
+            cursor: text;
+        }
+
 
     }
 }
 
+/*
+parsed block
+*/
 .parsed_block {
     padding: 6px;
     font-size: 14px;
@@ -423,6 +440,7 @@
 
 
         }
+
 
 
     }

@@ -1,5 +1,6 @@
+import { useEditor } from "editor/functions/editorContext";
 import React from "react";
-import { useEditor } from "../../functions/editorContext";
+
 import style from "../../editor.module.scss";
 
 type Props = {

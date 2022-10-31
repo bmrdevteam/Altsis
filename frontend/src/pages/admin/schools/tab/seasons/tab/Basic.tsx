@@ -70,6 +70,26 @@ function Basic(props: Props) {
             required
           />
         </div>
+        <div className={style.row}>
+          <Input
+            style={{ maxHeight: "30px" }}
+            appearence="flat"
+            label="학기 시작"
+            onChange={(e: any) => {
+              //   setTermName(e.target.value);
+            }}
+            required
+          />
+          <Input
+            style={{ maxHeight: "30px" }}
+            appearence="flat"
+            label="학기 끝"
+            onChange={(e: any) => {
+              //   setTermName(e.target.value);
+            }}
+            required
+          />
+        </div>
         <Button
           type={"ghost"}
           disableOnclick

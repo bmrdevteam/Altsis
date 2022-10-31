@@ -12,12 +12,9 @@ type Props = {};
 
 function List(props: Props) {
   const { pid } = useParams();
-  const database = useDatabase()
-  
-  async function getList() {
-    
-  }
-  const [headerData, setHeaderData] = useState();
+  const database = useDatabase();
+
+  async function getList() {}
 
   return (
     <div className={style.section}>
@@ -26,7 +23,7 @@ function List(props: Props) {
       <Tab
         items={{
           데이터베이스: <Body />,
-          데이터: <Header />,
+          헤더: <Header  />,
           설정: <Settings />,
         }}
         align={"flex-start"}
