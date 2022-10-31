@@ -1,8 +1,8 @@
 import { isArray } from "lodash";
-import { useEffect } from "react";
 import style from "../../editor.module.scss";
 import { useEditor } from "../../functions/editorContext";
 import CheckBoxCell from "./CheckBoxCell";
+import InputCell from "./InputCell";
 import ParagraphCell from "./ParagraphCell";
 import TimeCell from "./TimeCell";
 import TimeRangeCell from "./TimeRangeCell";
@@ -47,6 +47,10 @@ const TableBlock = (props: Props) => {
         case "timeRange":
           return (
             <TimeRangeCell column={col} row={row} blockIndex={props.index} />
+          );
+        case "input":
+          return (
+            <InputCell column={col} row={row} blockIndex={props.index} />
           );
         case "checkbox":
           return (
