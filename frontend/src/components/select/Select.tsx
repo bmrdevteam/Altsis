@@ -48,7 +48,7 @@ type Props = {
 const Select = (props: Props) => {
   const [selected, setSelected] = useState<number>(
     props.defaultSelectedValue
-      ? props.options.findIndex((e) => e.value === props.defaultSelectedValue)
+      ? props.options?.findIndex((e) => e.value === props.defaultSelectedValue)
       : props.defaultSelectedIndex
       ? props.defaultSelectedIndex
       : 0
