@@ -97,7 +97,7 @@ const Login = () => {
    * react-router navigation
    */
   const navigate = useNavigate();
- 
+
   /**
    * database hook
    */
@@ -130,7 +130,6 @@ const Login = () => {
      */
     if (pid !== undefined && pid !== "undefined" && pid !== "0") {
       if (cookies.academyId === undefined) {
-        
         /**
          * if the cookie is not yet set, set the cookie with the pid
          */
@@ -138,7 +137,7 @@ const Login = () => {
           path: "/",
           expires: date,
         });
-        
+
         /**
          * set the current academy
          */
@@ -195,7 +194,6 @@ const Login = () => {
      */
     if (pid === undefined) {
       removeCookie("academyId");
-      
     }
 
     return () => {};
@@ -241,6 +239,7 @@ const Login = () => {
           <div className={style.container}>
             <div className={style.title}> 로그인 아카데미 선택</div>
             <Select
+              appearence="flat"
               onChange={(e: any) => {
                 if (e !== "") {
                   setCookie("academyId", e, {
