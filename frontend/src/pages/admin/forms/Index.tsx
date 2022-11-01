@@ -410,7 +410,7 @@ const Forms = (props: Props) => {
             <Select
               label="양식 종류"
               required
-              defaultSelected={
+              defaultSelectedIndex={
                 decodeURI(location.hash) === "#시간표"
                   ? 0
                   : decodeURI(location.hash) === "#강의계획서"
