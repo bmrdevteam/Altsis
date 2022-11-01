@@ -214,7 +214,7 @@ const Season = (props: Props) => {
               <Select
                 style={{ minHeight: "30px" }}
                 label="년도 선택"
-                defaultSelected={new Date().getFullYear() - 2000}
+                defaultSelectedValue={new Date().getFullYear()}
                 required
                 options={years()}
                 setValue={setSelectedYear}
