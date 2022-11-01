@@ -1,4 +1,10 @@
-import React, { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./select.module.scss";
 type Props = {
@@ -6,17 +12,17 @@ type Props = {
     text: string;
     value: string | number;
   }[];
-  style?: CSSProperties
+  style?: CSSProperties;
   ref?: any;
   label?: string;
   required?: boolean;
 
-  defaultSelected?: number;
+  defaultSelectedIndex?: number;
+  defaultSelectedValue?: number | string;
   selectedValue?: string | number;
 
   setValue?: any;
   onChange?: any;
-  onChangeWithClick?: any;
   appearence?: "flat";
 };
 
@@ -41,7 +47,11 @@ type Props = {
 
 const Select = (props: Props) => {
   const [selected, setSelected] = useState<number>(
-    props.defaultSelected ? props.defaultSelected : 0
+    props.defaultSelectedValue
+      ? props.options.findIndex((e) => e.value === props.defaultSelectedValue)
+      : props.defaultSelectedIndex
+      ? props.defaultSelectedIndex
+      : 0
   );
 
   const [edit, setEdit] = useState<boolean>(false);
@@ -54,7 +64,6 @@ const Select = (props: Props) => {
   }
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    // props.defaultSelected && setSelected(props.defaultSelected);
     props.setValue && props.setValue(props.options[selected].value);
 
     return () => {
@@ -70,11 +79,12 @@ const Select = (props: Props) => {
     }
   }, [props.selectedValue]);
 
-  useEffect(() => {
-    if (selected >= 0 && typeof selected === "number") {
-      props.onChange?.(props.options[selected].value);
-    }
-  }, [selected]);
+  // useEffect(() => {
+  //   if (selected >= 0 && typeof selected === "number") {
+  //     props.onChange?.(props.options[selected].value);
+  //   }
+  //   console.log(selected);
+  // }, [selected]);
 
   const Options = () => {
     return (
@@ -83,8 +93,10 @@ const Select = (props: Props) => {
           return (
             <div
               onClick={() => {
+                if (props.onChange && index !== selected) {
+                  props.onChange(value.value);
+                }
                 setSelected(index);
-                props.onChangeWithClick && props.onChangeWithClick(value.value);
                 props.setValue && props.setValue(props.options[index].value);
               }}
               data-value={value?.value}
