@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [currentSeason, setCurrentSeason] = useState<any>();
-  const [registrations, setRegistration] = useState<any>();
+  const [registrations, setRegistration] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   async function getLoggedInUser() {
