@@ -40,11 +40,14 @@ import { courseData } from "dummyData/coursesData";
 import useDatabase from "hooks/useDatabase";
 import useSearch from "hooks/useSearch";
 import style from "style/pages/enrollment.module.scss";
+import Nav from "layout/sidebar/sidebar.components";
+import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
 const Enrollment = (props: Props) => {
-  const { currentSchool, currentSeason, registrations,setCurrentSeason } = useAuth();
+  const { currentSchool, currentSeason, registrations, setCurrentSeason } =
+    useAuth();
   const search = useSearch(courseData);
   const database = useDatabase();
   const navigate = useNavigate();
@@ -74,24 +77,13 @@ const Enrollment = (props: Props) => {
 
   return (
     <>
+        <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
-        <Select
-          appearence="flat"
-          options={registrations.map((value: any, index: number) => {
-            return { text: `${value.year} ${value.term}`, value: value._id };
-          })}
-          defaultSelectedValue={currentSeason._id}
-          onChange={(value:any)=>{
-            console.log(value);
-            // setCurrentSeason()
-            console.log();
-          }}
-        />
-        <div style={{ height: "24px" }}></div>
-        <div className={style.title}>수강신청</div>
 
-        {/* <div className={style.search_container}>
+        <div className={style.title}>수강신청</div>
+        <div style={{ height: "24px" }}></div>
+
+        <div className={style.search_container}>
           <Input
             placeholder={"수업명으로 검색"}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,7 +134,7 @@ const Enrollment = (props: Props) => {
               ]}
             />
           </div>
-        </div> */}
+        </div>
         {/* <Divider />
         <Table
           data={search.result()}
