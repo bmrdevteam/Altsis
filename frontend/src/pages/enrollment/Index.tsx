@@ -53,6 +53,7 @@ const Enrollment = (props: Props) => {
   function handleTableOnClick(e: any) {
     console.log(e.target.dataset.value);
   }
+  
 
   async function getCourseList() {
     const { syllabuses: res } = await database.R({
