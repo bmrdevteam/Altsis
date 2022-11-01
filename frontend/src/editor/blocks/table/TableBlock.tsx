@@ -4,6 +4,7 @@ import { useEditor } from "../../functions/editorContext";
 import CheckBoxCell from "./CheckBoxCell";
 import InputCell from "./InputCell";
 import ParagraphCell from "./ParagraphCell";
+import SelectCell from "./SelectCell";
 import TimeCell from "./TimeCell";
 import TimeRangeCell from "./TimeRangeCell";
 
@@ -49,9 +50,9 @@ const TableBlock = (props: Props) => {
             <TimeRangeCell column={col} row={row} blockIndex={props.index} />
           );
         case "input":
-          return (
-            <InputCell column={col} row={row} blockIndex={props.index} />
-          );
+          return <InputCell column={col} row={row} blockIndex={props.index} />;
+        case "select":
+          return <SelectCell column={col} row={row} blockIndex={props.index} />;
         case "checkbox":
           return (
             <CheckBoxCell column={col} row={row} blockIndex={props.index} />
