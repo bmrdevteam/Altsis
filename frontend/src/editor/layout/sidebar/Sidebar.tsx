@@ -343,13 +343,40 @@ const Sidebar = (props: Props) => {
             />
           </div>
         )}
+        {getCurrentCell()?.type === "select" && (
+          <div>
+            <label style={{ flex: "1 1 0" }} className={style.name}>
+              옵션
+            </label>
+            <Button
+              type="ghost"
+              style={{
+                flex: "1 1 0",
+                marginTop: "8px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+              }}
+              onClick={() => {
+                changeCurrentCell({
+                  options: [
+                    ...getCurrentCell()?.options,
+                    { text: "선택", value: "" },
+                  ],
+                });
+
+                console.log(getCurrentCell()?.options);
+              }}
+            >
+              option 추가
+            </Button>
+          </div>
+        )}
         <div style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
             style={{
               flex: "1 1 0",
               marginTop: "8px",
-              borderRadius: "4px",
               height: "32px",
               boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
             }}
