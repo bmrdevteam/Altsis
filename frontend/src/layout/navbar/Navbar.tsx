@@ -73,7 +73,8 @@ type Props = { title?: string };
  * @returns Navbar component
  */
 const Navbar = (props: Props) => {
-  const { registrations, currentSeason } = useAuth();
+  const { registrations, currentSeason, setCurrentSeason } = useAuth();
+
   return (
     <div className={style.navbar_container}>
       {props.title && <div className={style.title}>{props.title}</div>}
@@ -82,12 +83,11 @@ const Navbar = (props: Props) => {
         <Select
           appearence="flat"
           options={registrations?.map((value: any, index: number) => {
-            return { text: `${value.year} ${value.term}`, value: value._id };
+            return { text: `${value.year} ${value.term}`, value: value };
           })}
-          defaultSelectedValue={currentSeason?._id}
+          defaultSelectedValue={currentSeason}
           onChange={(value: any) => {
-            console.log(value);
-            // setCurrentSeason()
+            setCurrentSeason(value);
           }}
         />
       </div>
