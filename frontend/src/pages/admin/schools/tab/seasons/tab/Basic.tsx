@@ -54,7 +54,7 @@ function Basic(props: Props) {
           <Select
             style={{ minHeight: "30px" }}
             label="년도 선택"
-            defaultSelected={parseInt(props.seasonData.year) - 2000}
+            defaultSelectedValue={parseInt(props.seasonData.year)}
             required
             options={years()}
             appearence={"flat"}

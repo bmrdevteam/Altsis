@@ -70,7 +70,7 @@ const Sidebar = (props: Props) => {
           <Select
             style={{ fontSize: "12px" }}
             appearence="flat"
-            onChangeWithClick={(value: string) => {
+            onChange={(value: string) => {
               setAddNewBlockType(value);
             }}
             selectedValue={addNewBlockType}
@@ -104,7 +104,7 @@ const Sidebar = (props: Props) => {
         <div className={style.item}>
           <label>타입</label>
           <Select
-            onChangeWithClick={(value: any) => {
+            onChange={(value: any) => {
               changeCurrentBlockType(value);
               forcefullyReloadSidebar();
             }}
@@ -151,7 +151,7 @@ const Sidebar = (props: Props) => {
         <div className={style.item}>
           <label>column 비율</label>
           <Select
-            onChangeWithClick={(value: any) => {
+            onChange={(value: any) => {
               setCurrentCellColumn(value);
               props.callPageReload();
             }}
@@ -225,7 +225,7 @@ const Sidebar = (props: Props) => {
         <div className={style.item}>
           <label>셀 타입</label>
           <Select
-            onChangeWithClick={(value: any) => {
+            onChange={(value: any) => {
               changeCurrentCell({ type: value });
               props.callPageReload();
               forcefullyReloadSidebar();
@@ -258,7 +258,7 @@ const Sidebar = (props: Props) => {
         <div className={style.item}>
           <label>셀 정렬</label>
           <Select
-            onChangeWithClick={(value: any) => {
+            onChange={(value: any) => {
               changeCurrentCell({ align: value });
               props.callPageReload();
             }}
