@@ -367,23 +367,6 @@
     td {
         border: var(--border-default);
         border-width: 1px;
-
-        .cell {
-            outline: none;
-            padding: 4px 6px;
-            position: relative;
-
-
-        }
-
-        .cell.input:before {
-            content: attr(placeholder);
-            color: rgb(171, 171, 171);
-            display: block;
-            cursor: text;
-        }
-
-
     }
 
     th {
@@ -391,22 +374,30 @@
         border-width: 1px;
         font-weight: 600;
         background-color: var(--component-color);
+    }
 
-        .cell {
+    .cell {
+        outline: none;
+        padding: 4px 6px;
+        position: relative;
+
+
+    }
+
+    .cell.input:before {
+        content: attr(placeholder);
+        color: rgb(171, 171, 171);
+        display: block;
+        cursor: text;
+    }
+
+    .cell.select {
+        select {
             outline: none;
-            padding: 4px 6px;
-            position: relative;
-
-
+            border: none;
+            width: 100%;
+            background-color: transparent;
         }
-
-        .cell.input:before {
-            content: attr(placeholder);
-            color: rgb(171, 171, 171);
-            display: block;
-            cursor: text;
-        }
-
 
     }
 }
