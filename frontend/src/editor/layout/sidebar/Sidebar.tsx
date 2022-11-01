@@ -1,3 +1,5 @@
+import useGenerateId from "hooks/useGenerateId";
+import { isArray } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import Svg from "../../../assets/svg/Svg";
 import Button from "../../../components/button/Button";
@@ -34,6 +36,7 @@ const Sidebar = (props: Props) => {
     editorPageRef,
   } = useEditor();
   const { preview } = useEditorStore();
+  const generateId = useGenerateId;
   /**
    * reloader
    */
@@ -331,23 +334,90 @@ const Sidebar = (props: Props) => {
           </div>
         )}
         {getCurrentCell()?.type === "input" && (
-          <div className={style.item}>
-            <label>placeholder</label>
-            <input
-              type="text"
-              defaultValue={getCurrentCell()?.placeholder}
-              onChange={(e) => {
-                changeCurrentCell({ placeholder: e.target.value });
-                props.callPageReload();
-              }}
-            />
-          </div>
+          <>
+            <div className={style.item}>
+              <label>placeholder</label>
+              <input
+                type="text"
+                defaultValue={getCurrentCell()?.placeholder}
+                onChange={(e) => {
+                  changeCurrentCell({ placeholder: e.target.value });
+                  props.callPageReload();
+                }}
+              />
+            </div>
+            <div className={style.item}>
+              <label>이름</label>
+              <input
+                type="text"
+                defaultValue={getCurrentCell()?.name}
+                onChange={(e) => {
+                  changeCurrentCell({ name: e.target.value });
+                  props.callPageReload();
+                }}
+              />
+            </div>
+          </>
         )}
         {getCurrentCell()?.type === "select" && (
           <div>
             <label style={{ flex: "1 1 0" }} className={style.name}>
               옵션
             </label>
+            <div className={style.options}>
+              {getCurrentCell()?.options?.map((value: any) => {
+                return (
+                  <div className={style.item} key={value.id}>
+                    <span>
+                      <input
+                        type="text"
+                        defaultValue={value.text}
+                        onChange={(e) => {
+                          const index = getCurrentCell().options.findIndex(
+                            (obj: any) => obj.id === value.id
+                          );
+                          getCurrentCell().options[index] = Object.assign(
+                            getCurrentCell().options[index],
+                            { text: e.target.value }
+                          );
+                          props.callPageReload();
+                        }}
+                      />
+                    </span>
+                    <span>|</span>
+                    <span>
+                      <input
+                        type="text"
+                        defaultValue={value.value}
+                        onChange={(e) => {
+                          const index = getCurrentCell().options.findIndex(
+                            (obj: any) => obj.id === value.id
+                          );
+                          getCurrentCell().options[index] = Object.assign(
+                            getCurrentCell().options[index],
+                            { value: e.target.value }
+                          );
+                          props.callPageReload();
+                        }}
+                      />
+                    </span>
+                    <span
+                      style={{ minWidth: "24px" }}
+                      onClick={() => {
+                        getCurrentCell().options =
+                          getCurrentCell()?.options?.filter(
+                            (val: any) => val.id !== value.id
+                          );
+                        props.callPageReload();
+                        forcefullyReloadSidebar();
+                      }}
+                    >
+                      <Svg width="24px" type={"x"} />
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
             <Button
               type="ghost"
               style={{
@@ -357,14 +427,25 @@ const Sidebar = (props: Props) => {
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
               }}
               onClick={() => {
-                changeCurrentCell({
-                  options: [
-                    ...getCurrentCell()?.options,
-                    { text: "선택", value: "" },
-                  ],
-                });
+                if (isArray(getCurrentCell().options)) {
+                  getCurrentCell().options.push({
+                    id: generateId(12),
+                    text: "필드",
+                    value: "값",
+                  });
+                } else {
+                  getCurrentCell().options = [
+                    {
+                      id: generateId(12),
+                      text: "필드",
+                      value: "값",
+                    },
+                  ];
+                }
 
                 console.log(getCurrentCell()?.options);
+                props.callPageReload();
+                forcefullyReloadSidebar();
               }}
             >
               option 추가
