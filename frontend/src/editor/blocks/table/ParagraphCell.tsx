@@ -21,6 +21,7 @@ const ParagraphCell = (props: Props) => {
           data: { text: e.currentTarget.textContent },
         });
       }}
+     
     >
       {cell.data?.text}
     </div>
