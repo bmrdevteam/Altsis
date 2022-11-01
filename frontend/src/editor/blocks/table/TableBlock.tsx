@@ -67,7 +67,14 @@ const TableBlock = (props: Props) => {
   };
 
   return (
-    <div className={style.block}>
+    <div
+      className={style.block}
+      onKeyDown={(e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+        }
+      }}
+    >
       <table className={style.table}>
         <SetColumn />
         <tbody>
