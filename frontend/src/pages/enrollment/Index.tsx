@@ -44,7 +44,7 @@ import style from "style/pages/enrollment.module.scss";
 type Props = {};
 
 const Enrollment = (props: Props) => {
-  const { currentSchool, currentSeason } = useAuth();
+  const { currentSchool, currentSeason, registrations,setCurrentSeason } = useAuth();
   const search = useSearch(courseData);
   const database = useDatabase();
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ const Enrollment = (props: Props) => {
       setAlertPopupActive(true);
     }
     getCourseList().then((res) => {
-      console.log(res);
+      // console.log(res);
     });
     return () => {};
   }, []);
@@ -76,9 +76,22 @@ const Enrollment = (props: Props) => {
     <>
       <div className={style.section}>
         <NavigationLinks />
+        <Select
+          appearence="flat"
+          options={registrations.map((value: any, index: number) => {
+            return { text: `${value.year} ${value.term}`, value: value._id };
+          })}
+          defaultSelectedValue={currentSeason._id}
+          onChange={(value:any)=>{
+            console.log(value);
+            // setCurrentSeason()
+            console.log();
+          }}
+        />
+        <div style={{ height: "24px" }}></div>
         <div className={style.title}>수강신청</div>
 
-        <div className={style.search_container}>
+        {/* <div className={style.search_container}>
           <Input
             placeholder={"수업명으로 검색"}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,8 +142,8 @@ const Enrollment = (props: Props) => {
               ]}
             />
           </div>
-        </div>
-        <Divider />
+        </div> */}
+        {/* <Divider />
         <Table
           data={search.result()}
           header={[
@@ -179,7 +192,7 @@ const Enrollment = (props: Props) => {
             },
           ]}
           style={{ bodyHeight: "calc(100vh - 300px)" }}
-        />
+        /> */}
       </div>
       {alertPopupActive && (
         <Popup setState={() => {}} title="가입된 학교가 없습니다">
