@@ -15,17 +15,15 @@ const SelectCell = (props: Props) => {
     <div
       className={`${style.cell} ${style.select}`}
       style={{ textAlign: cell?.align }}
-      placeholder={
-        cell?.placeholder || cell?.placeholder === " "
-          ? cell?.placeholder
-          : "입력"
-      }
     >
       <select>
-        <option value=""></option>
-        <option value=""></option>
-        <option value=""></option>
-        <option value=""></option>
+        {cell?.options?.map((value: any) => {
+          return (
+            <option key={value.id} value={value.value}>
+              {value.text}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
