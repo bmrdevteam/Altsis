@@ -57,18 +57,18 @@ const Enrollment = (props: Props) => {
 
   async function getCourseList() {
     const { syllabuses: res } = await database.R({
-      location: `syllabuses?season=${currentSeason._id}`,
+      location: `syllabuses?season=${currentSeason.season}`,
     });
-    // setCourseList(res);
     return res;
   }
   useEffect(() => {
-    if (currentSchool === null || currentSchool === undefined) {
+    if (currentSeason === null || currentSeason === undefined) {
       setAlertPopupActive(true);
+    } else {
+      getCourseList().then((res) => {
+        setCourses(res);
+      });
     }
-    getCourseList().then((res) => {
-      setCourses(res);
-    });
   }, [currentSeason]);
 
   return (
@@ -97,7 +97,7 @@ const Enrollment = (props: Props) => {
             },
             {
               text: "수업 명",
-              key: "courseName",
+              key: "classTitle",
               type: "string",
             },
             {
@@ -109,6 +109,19 @@ const Enrollment = (props: Props) => {
             {
               text: "강의실",
               key: "classroom",
+              type: "string",
+              width: "120px",
+            },
+            {
+              text: "멘토",
+              key: "teachers",
+              returnFunction: (e: any) => {
+                let result = e.map((val: any) => val.userName);
+                return result;
+              },
+              onClick: (value) => {
+                console.log(value);
+              },
               type: "string",
               width: "120px",
             },
@@ -129,7 +142,7 @@ const Enrollment = (props: Props) => {
         />
       </div>
       {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 학교가 없습니다">
+        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
           <div style={{ marginTop: "12px" }}>
             <Button
               type="ghost"
