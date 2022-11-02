@@ -58,10 +58,16 @@ export const SidebarData = (role: string): any => {
             {
               title: "list",
               name: "리스트",
-              path: "/admin/list",
+              path: "/admin/lists",
               icon: <Svg type="file" />,
             },
           ],
+        },
+        {
+          title: "myaccount",
+          name: "내 정보",
+          path: "/myaccount",
+          icon: <Svg type="gear" />,
         },
         {
           title: "settings",
@@ -84,6 +90,12 @@ export const SidebarData = (role: string): any => {
           name: "수업 개설",
           path: "/courses/design",
           icon: <Svg type="bookOpen" />,
+        },
+        {
+          title: "myaccount",
+          name: "내 정보",
+          path: "/myaccount",
+          icon: <Svg type="gear" />,
         },
         {
           title: "settings",

@@ -1,9 +1,10 @@
 import { isArray } from "lodash";
-import { useEffect } from "react";
 import style from "../../editor.module.scss";
 import { useEditor } from "../../functions/editorContext";
 import CheckBoxCell from "./CheckBoxCell";
+import InputCell from "./InputCell";
 import ParagraphCell from "./ParagraphCell";
+import SelectCell from "./SelectCell";
 import TimeCell from "./TimeCell";
 import TimeRangeCell from "./TimeRangeCell";
 
@@ -48,6 +49,10 @@ const TableBlock = (props: Props) => {
           return (
             <TimeRangeCell column={col} row={row} blockIndex={props.index} />
           );
+        case "input":
+          return <InputCell column={col} row={row} blockIndex={props.index} />;
+        case "select":
+          return <SelectCell column={col} row={row} blockIndex={props.index} />;
         case "checkbox":
           return (
             <CheckBoxCell column={col} row={row} blockIndex={props.index} />
@@ -62,7 +67,14 @@ const TableBlock = (props: Props) => {
   };
 
   return (
-    <div className={style.block}>
+    <div
+      className={style.block}
+      onKeyDown={(e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+        }
+      }}
+    >
       <table className={style.table}>
         <SetColumn />
         <tbody>

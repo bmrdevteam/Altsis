@@ -8,13 +8,15 @@
     .input {
         background-color: inherit;
         color: var(--accent-1);
-        padding: 8.5px 14px;
         font-size: 14px;
         outline: none;
         border: var(--border-default);
         width: 100%;
+        min-height: 30px;
+        padding: 0 18px;
     }
-    .input:disabled{
+
+    .input:disabled {
         cursor: not-allowed;
 
     }
@@ -27,7 +29,7 @@
         font-size: 12px;
         font-family: 'Pretendard';
         font-weight: 500;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         color: var(--accent-1);
 
 
@@ -51,7 +53,7 @@
         font-size: 12px;
         color: var(--accent-2);
         font-weight: 600;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
 
         .required {
             padding-left: 1px;
@@ -61,19 +63,21 @@
     }
 
     .input {
-        margin-top: 5px;
         outline: none;
         border: none;
         border-radius: 8px;
         background-color: var(--component-color);
-        padding: 8px 18px;
+
+        display: flex;
+        align-items: center;
         width: 100%;
 
     }
-    .input:disabled{
+
+    .input:disabled {
         color: var(--accent-4);
 
-        
+
     }
 
     .input.invalid {

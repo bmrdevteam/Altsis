@@ -72,7 +72,7 @@ const DatatableMenu = (props: Props) => {
           options={[{ text: "수강 Data", value: "enrollments" }]}
           setValue={setDataFrom}
           selectedValue={dataFrom}
-          onChangeWithClick={(value: any) => {
+          onChange={(value: any) => {
             changeCurrentBlockData({ dataTableFrom: value });
           }}
         />
@@ -205,7 +205,7 @@ const DatatableMenu = (props: Props) => {
                 style={{ flex: `${value} 1 0%` }}
                 key={index}
                 selectedValue={body[index]}
-                onChangeWithClick={(val: any) => {
+                onChange={(val: any) => {
                   setBody((prev: any[]) => [
                     ...prev.slice(0, index),
                     val,

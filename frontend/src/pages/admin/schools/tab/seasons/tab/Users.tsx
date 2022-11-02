@@ -51,7 +51,7 @@ const Users = (props: Props) => {
 
   async function getRegistrations() {
     const { registrations: result } = await database.R({
-      location: `registrations?schoolId=${props.seasonData.schoolId}`,
+      location: `registrations?season=${props.seasonData._id}`,
     });
     setRegistrations(result);
     return result;

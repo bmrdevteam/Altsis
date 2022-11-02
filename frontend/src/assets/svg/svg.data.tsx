@@ -149,4 +149,5 @@ export const svgData = {
   alignRight: (
     <path d="M4 19h16v2H4zm5-4h11v2H9zm-5-4h16v2H4zm0-8h16v2H4zm5 4h11v2H9z"></path>
   ),
+  filter: <path d="M7 11h10v2H7zM4 7h16v2H4zm6 8h4v2h-4z"></path>,
 };

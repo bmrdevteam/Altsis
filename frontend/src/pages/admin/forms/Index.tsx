@@ -28,17 +28,17 @@
  */
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Svg from "../../../assets/svg/Svg";
-import Button from "../../../components/button/Button";
-import Input from "../../../components/input/Input";
-import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
-import Popup from "../../../components/popup/Popup";
-import Select from "../../../components/select/Select";
-import Tab from "../../../components/tab/Tab";
-import Table from "../../../components/table/Table";
-import useDatabase from "../../../hooks/useDatabase";
-import useSearch from "../../../hooks/useSearch";
-import style from "../../../style/pages/admin/forms/forms.module.scss";
+import Svg from "assets/svg/Svg";
+import Button from "components/button/Button";
+import Input from "components/input/Input";
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Popup from "components/popup/Popup";
+import Select from "components/select/Select";
+import Tab from "components/tab/Tab";
+import Table from "components/table/Table";
+import useDatabase from "hooks/useDatabase";
+import useSearch from "hooks/useSearch";
+import style from "style/pages/admin/forms.module.scss";
 
 type Props = {};
 
@@ -410,7 +410,7 @@ const Forms = (props: Props) => {
             <Select
               label="양식 종류"
               required
-              defaultSelected={
+              defaultSelectedIndex={
                 decodeURI(location.hash) === "#시간표"
                   ? 0
                   : decodeURI(location.hash) === "#강의계획서"
