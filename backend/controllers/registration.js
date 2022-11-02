@@ -69,18 +69,8 @@ module.exports.registerBulk = async (req, res) => {
   }
 };
 
-const json2csv = require("json2csv").parse;
 module.exports.find = async (req, res) => {
   try {
-    if (req.query.format == "csv") {
-      req.query.format = undefined;
-
-      const registrations = await Registration(req.user.dbName).find(req.query);
-      const fields = Object.keys(Registration(req.user.dbName).schema.obj);
-      csv = json2csv(registrations, { fields });
-      res.set("Content-Type", "text/csv");
-      return res.status(200).send(csv);
-    }
     const registrations = await Registration(req.user.dbName).find(req.query);
     return res.status(200).send({ registrations });
   } catch (err) {
