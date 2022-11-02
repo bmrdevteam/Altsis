@@ -36,6 +36,7 @@ registrationSchema.index({
 registrationSchema.index(
   {
     season: 1,
+    role: 1,
     userId: 1,
   },
   { unique: true }
