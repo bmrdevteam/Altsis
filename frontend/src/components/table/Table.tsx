@@ -22,6 +22,7 @@ type Props = {
     text: string;
     key: string | string[];
     value?: string;
+    returnFunction?: (value: any) => string;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
     type: ITableItemType;
     link?: string;
@@ -112,7 +113,6 @@ const TableFilterItem = () => {
  *
  */
 const TableControls = (props: { selectedItems: any[] }) => {
-
   // const search = useSearch()
   // implement close on clicked somewhere else
   const outsideClickForFilter = useOutsideClick();
@@ -331,7 +331,9 @@ const Table = (props: Props) => {
     return (
       <div
         className={style.table_body}
-        style={{ height: props.style?.bodyHeight }}
+        style={{
+          height: props.filter ? "calc(100% - 96px)" : "calc(100% - 48px)",
+        }}
       >
         <div className={style.table_body_container}>
           {/* map through rows */}
