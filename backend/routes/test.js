@@ -11,6 +11,7 @@ const Registration = require("../models/Registration");
 const Enrollment = require("../models/Enrollment");
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const { range } = require("lodash");
 
 //______________________________DB____________
 
@@ -137,6 +138,51 @@ router.post("/db/syllabuses", async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send(err);
+  }
+});
+
+router.get("/db/syllabuses/subjects/1", async (req, res) => {
+  try {
+    console.log("test");
+    const seasonIds = [
+      "635c8d0697f8ea04e03a5ea6",
+      "635c8d0697f8ea04e03a5eaa",
+      "635c8d0697f8ea04e03a5eac",
+      "635c8d0697f8ea04e03a5eb0",
+    ];
+    for (let idx = 0; idx < seasonIds.length; idx++) {
+      const syllabuses = await Syllabus("bmr-db").find({
+        season: seasonIds[idx],
+        "subject.1": { $exists: true },
+      });
+
+      for (let idx2 = 0; idx2 < syllabuses.length; idx2++) {
+        const s = syllabuses[idx2];
+        s["subject"] = [s["subject"][0] + "/" + s["subject"][1]];
+        s.save();
+      }
+    }
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+});
+
+router.post("/db/seasons/update", async (req, res) => {
+  try {
+    for (let key in req.body) {
+      // key = season._id
+      const season = await Season("bmr-db").findById(key);
+      season.subjects = req.body[key]["subjects"];
+      season.classrooms = req.body[key]["classrooms"];
+      // season.markModified("subjects.label");
+      // season.markModified("subject.label");
+      // season.markModified("classroom");
+      await season.save();
+    }
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
   }
 });
 
