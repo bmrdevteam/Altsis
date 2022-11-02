@@ -128,12 +128,26 @@ module.exports.find = async (req, res) => {
       return res.status(200).send(enrollment);
     }
 
-    const { season, studentId, syllabus } = req.query;
+    const { season, year, studentId, syllabus } = req.query;
 
     // find by season & studentId
     if (season && studentId) {
       const enrollments = await Enrollment(req.user.dbName)
         .find({ season, studentId })
+        .select("-evaluation");
+      return res.status(200).send({ enrollments });
+    }
+
+    if (year && studentId) {
+      const enrollments = await Enrollment(req.user.dbName)
+        .find({ year, studentId })
+        .select("-evaluation");
+      return res.status(200).send({ enrollments });
+    }
+
+    if (studentId) {
+      const enrollments = await Enrollment(req.user.dbName)
+        .find({ studentId })
         .select("-evaluation");
       return res.status(200).send({ enrollments });
     }
@@ -145,7 +159,7 @@ module.exports.find = async (req, res) => {
         .select(["studentId", "studentName"]);
       return res.status(200).send({ enrollments });
     }
-    return res.status(400);
+    return res.status(400).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
