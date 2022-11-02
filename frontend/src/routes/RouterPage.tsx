@@ -66,6 +66,7 @@ import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
 import Lists from "pages/admin/lists/Index";
 import List from "pages/admin/lists/Pid";
+import Myaccount from "pages/myaccount/Index";
 
 function RouterPage() {
   // authenticate path with simple userlogin check
