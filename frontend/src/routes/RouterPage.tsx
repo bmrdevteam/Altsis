@@ -65,6 +65,7 @@ import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
 import List from "pages/admin/List/Index";
+import Myaccount from "pages/myaccount/Index";
 
 // import Http404 from "./pages/error/404";
 
@@ -205,6 +206,14 @@ function RouterPage() {
 
               {/* idk(some kInd of school function routes) routes */}
 
+              <Route
+                path="myaccount"
+                element={
+                  <RequireAuth>
+                    <Myaccount />
+                  </RequireAuth>
+                }
+              ></Route>
               <Route
                 path="enrollment"
                 element={
