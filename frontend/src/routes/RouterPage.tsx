@@ -212,6 +212,14 @@ function RouterPage() {
 
               {/* school routes */}
               <Route
+                path="myaccount"
+                element={
+                  <RequireAuth>
+                    <Myaccount />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
                 path="enrollment"
                 element={
                   <RequireAuth>
