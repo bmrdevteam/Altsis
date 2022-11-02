@@ -27,6 +27,7 @@
  *
  */
 
+import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -74,6 +75,7 @@ const CourseDesign = (props: Props) => {
 
   return (
     <>
+      <Navbar />
       <div className={style.section}>
         <NavigationLinks />
         <div className={style.design_form}>
