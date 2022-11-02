@@ -293,7 +293,8 @@
 }
 
 .table_body {
-    height: auto;
+    border-radius: 0 0 4px 4px  ;
+    height: calc(100% - 48px);
     overflow: auto scroll;
     background-color: var(--background-color);
     -ms-overflow-style: none;
