@@ -127,6 +127,19 @@ router.get("/db/seasons", async (req, res) => {
   }
 });
 
+router.post("/db/syllabuses", async (req, res) => {
+  try {
+    const _Syllabus = Syllabus("bmr-db");
+    const _syllabuses = req.body.syllabuses.map((s) => {
+      return new _Syllabus(s);
+    });
+    await _Syllabus.insertMany(_syllabuses);
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send(err);
+  }
+});
+
 // const {data,add}=require('../databases/connection')
 // router.post('/test2', (req, res) => {
 //     add({key:req.body.key,val:req.body.val});

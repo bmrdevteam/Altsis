@@ -17,24 +17,24 @@ const syllabusSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    userName: {
+      type: String,
+      required: true,
+    },
     classTitle: {
       type: String,
       required: true,
     },
     time: {
       type: [TimeBlock],
-      required: true,
     },
-    classroom: String,
+    classroom: {
+      type: String,
+      default: "undefined",
+    },
     subject: {
       type: [String],
-      required: true,
     },
-    confirmed: {
-      type: Boolean,
-      default: false,
-    },
-
     point: {
       type: Number,
       default: 0,
@@ -68,6 +68,7 @@ const syllabusSchema = mongoose.Schema(
       validate: (v) => Array.isArray(v) && v.length > 0,
       required: true,
     },
+    temp: Object,
   },
   { timestamps: true }
 );
