@@ -54,7 +54,7 @@ function Basic(props: Props) {
           <Select
             style={{ minHeight: "30px" }}
             label="년도 선택"
-            defaultSelected={parseInt(props.seasonData.year) - 2000}
+            defaultSelectedValue={parseInt(props.seasonData.year)}
             required
             options={years()}
             appearence={"flat"}
@@ -64,6 +64,26 @@ function Basic(props: Props) {
             defaultValue={props.seasonData.term}
             appearence="flat"
             label="학기"
+            onChange={(e: any) => {
+              //   setTermName(e.target.value);
+            }}
+            required
+          />
+        </div>
+        <div className={style.row}>
+          <Input
+            style={{ maxHeight: "30px" }}
+            appearence="flat"
+            label="학기 시작"
+            onChange={(e: any) => {
+              //   setTermName(e.target.value);
+            }}
+            required
+          />
+          <Input
+            style={{ maxHeight: "30px" }}
+            appearence="flat"
+            label="학기 끝"
             onChange={(e: any) => {
               //   setTermName(e.target.value);
             }}

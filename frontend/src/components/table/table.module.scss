@@ -20,62 +20,61 @@
         box-sizing: border-box;
         border-bottom: var(--border-default);
 
-        .filters {
-            flex: 1 1 0;
-            display: flex;
-            gap: 18px;
-            margin-left: 12px;
+        // .filters {
+        //     position: absolute;
+        //     background-color: var(--background-color);
+        //     flex: 1 1 0;
+        //     display: flex;
+        //     padding: 10px;
+        //     .item {
+        //         position: relative;
+        //         border: var(--border-default);
+        //         padding: 4px 12px;
+        //         font-size: 13px;
+        //         font-weight: 500;
+        //         display: flex;
+        //         align-items: center;
+        //         border-radius: 24px;
+        //         font-family: 'Pretendard';
+        //         cursor: pointer;
+
+        //         .emphasis {
+        //             font-weight: 700;
+        //             font-size: 12px;
+        //             padding: 2px 4px;
+
+        //             border-radius: 2px;
+        //             margin: 0 4px;
+        //             background-color: var(--color-b6);
+        //             color: var(--color-b2);
+        //         }
+
+        //         .emphasis.number {
+        //             color: var(--accent-1);
+        //             background-color: var(--color-g6);
 
 
-            .item {
-                position: relative;
-                border: var(--border-default);
-                padding: 4px 12px;
-                font-size: 13px;
-                font-weight: 500;
-                display: flex;
-                align-items: center;
-                border-radius: 24px;
-                font-family: 'Pretendard';
-                cursor: pointer;
+        //         }
 
-                .emphasis {
-                    font-weight: 700;
-                    font-size: 12px;
-                    padding: 2px 4px;
+        //         .cancel {
+        //             border-radius: 16px;
+        //         }
 
-                    border-radius: 2px;
-                    margin: 0 4px;
-                    background-color: var(--color-b6);
-                    color: var(--color-b2);
-                }
+        //         .cancel:hover {
+        //             background-color: var(--background-hover-color);
+        //         }
+        //     }
 
-                .emphasis.number {
-                    color: var(--accent-1);
-                    background-color: var(--color-g6);
+        //     .item:hover {
+        //         background-color: var(--color-b6);
+        //         border-color: var(--primary-background-color);
 
+        //         .emphasis {
+        //             background-color: transparent;
+        //         }
 
-                }
-
-                .cancel {
-                    border-radius: 16px;
-                }
-
-                .cancel:hover {
-                    background-color: var(--background-hover-color);
-                }
-            }
-
-            .item:hover {
-                background-color: var(--color-b6);
-                border-color: var(--primary-background-color);
-
-                .emphasis {
-                    background-color: transparent;
-                }
-
-            }
-        }
+        //     }
+        // }
 
         .controls {
 
@@ -130,6 +129,49 @@
 
 
             }
+
+            .filters {
+                font-size: 14px;
+                font-family: 'Pretendard';
+                font-weight: 500;
+                z-index: 1;
+                position: absolute;
+                box-shadow: var(--component-box-shadow);
+                background-color: var(--background-color);
+                right: 4px;
+                top: 44px;
+                padding: 12px;
+                gap: 8px;
+                display: flex;
+                flex-direction: column;
+                width: 500px;
+
+
+                .item {
+                    cursor: pointer;
+                    padding: 8px 16px;
+                    border: var(--border-default);
+                    border-radius: 4px;
+                    display: flex;
+                    align-items: center;
+
+                    .content {
+                        flex: 1 1 0;
+                        display: flex;
+                        align-items: center;
+                    }
+
+                    .x {}
+                }
+
+                .cons {
+                    float: right;
+                    display: flex;
+                    flex-direction: row-reverse;
+                    gap: 4px;
+                }
+            }
+
         }
 
         .search {
@@ -251,7 +293,8 @@
 }
 
 .table_body {
-    height: auto;
+    border-radius: 0 0 4px 4px  ;
+    height: calc(100% - 48px);
     overflow: auto scroll;
     background-color: var(--background-color);
     -ms-overflow-style: none;

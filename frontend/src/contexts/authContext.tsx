@@ -8,6 +8,8 @@ export function useAuth(): {
   currentUser: any;
   currentSchool: any;
   currentSeason: any;
+  setCurrentSeason: React.Dispatch<any>;
+  registrations: any;
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 } {
@@ -19,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [currentSeason, setCurrentSeason] = useState<any>();
+  const [registrations, setRegistration] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   async function getLoggedInUser() {
@@ -29,11 +32,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * sets the current user
      */
     setCurrentUser(res);
-    /** if there is a registration, set the season */
-    res.registrations[0] && setCurrentSeason(res.registrations[0]);
     setCurrentSchool(res.schools[0]);
+    /** if there is a registration, set the season */
+    if (res.registrations) {
+      setRegistration(res.registrations);
+      setCurrentSeason(res.registrations[0]);
+    }
 
-    console.log(res);
     return res;
   }
 
@@ -55,6 +60,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentUser,
     loading,
     currentSeason,
+    registrations,
+    setCurrentSeason,
     setLoading,
     currentSchool,
   };

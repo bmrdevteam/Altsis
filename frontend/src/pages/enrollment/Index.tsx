@@ -40,99 +40,46 @@ import { courseData } from "dummyData/coursesData";
 import useDatabase from "hooks/useDatabase";
 import useSearch from "hooks/useSearch";
 import style from "style/pages/enrollment.module.scss";
+import Nav from "layout/sidebar/sidebar.components";
+import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
 const Enrollment = (props: Props) => {
   const { currentSchool, currentSeason } = useAuth();
-  const search = useSearch(courseData);
   const database = useDatabase();
   const navigate = useNavigate();
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
-
+  const [courses, setCourses] = useState<any[]>([]);
   function handleTableOnClick(e: any) {
     console.log(e.target.dataset.value);
   }
 
   async function getCourseList() {
     const { syllabuses: res } = await database.R({
-      location: `syllabuses`,
+      location: `syllabuses?season=${currentSeason.season}`,
     });
-
-    // setCourseList(res);
     return res;
   }
   useEffect(() => {
-    if (currentSchool === null || currentSchool === undefined) {
+    if (currentSeason === null || currentSeason === undefined) {
       setAlertPopupActive(true);
+    } else {
+      getCourseList().then((res) => {
+        setCourses(res);
+      });
     }
-    getCourseList().then((res) => {
-      console.log(res);
-    });
-    return () => {};
-  }, []);
+  }, [currentSeason]);
 
   return (
     <>
+      <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
         <div className={style.title}>수강신청</div>
+        <div style={{ height: "24px" }}></div>
 
-        <div className={style.search_container}>
-          <Input
-            placeholder={"수업명으로 검색"}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              search.addFilterItem({
-                id: "courseName",
-                key: "courseName",
-                operator: "=",
-                value: e.target.value,
-              });
-              console.log(e.target.value);
-            }}
-          />
-          <div style={{ height: "8px" }}></div>
-          <div style={{ display: "flex" }}>
-            <Select
-              options={[
-                { text: "", value: "" },
-                { text: "월", value: "mon" },
-                { text: "화", value: "tue" },
-                { text: "수", value: "wed" },
-                { text: "목", value: "thur" },
-                { text: "금", value: "fri" },
-                { text: "토", value: "sat" },
-                { text: "일", value: "sun" },
-              ]}
-            />
-            <Select
-              options={[
-                { text: "", value: "" },
-                { text: "수학", value: "mon" },
-                { text: "영어", value: "tue" },
-                { text: "국어", value: "wed" },
-                { text: "체육", value: "thur" },
-                { text: "미술", value: "fri" },
-                { text: "외국어 1", value: "sat" },
-                { text: "외국어 2", value: "sun" },
-              ]}
-            />
-            <Select
-              options={[
-                { text: "", value: "" },
-                { text: "1 학점", value: "mon" },
-                { text: "2 학점", value: "tue" },
-                { text: "3 학점", value: "wed" },
-                { text: "4 학점", value: "thur" },
-                { text: "5 학점", value: "fri" },
-                { text: "6 학점", value: "sat" },
-              ]}
-            />
-          </div>
-        </div>
-        <Divider />
         <Table
-          data={search.result()}
+          data={courses}
           header={[
             {
               text: "신청",
@@ -150,7 +97,7 @@ const Enrollment = (props: Props) => {
             },
             {
               text: "수업 명",
-              key: "courseName",
+              key: "classTitle",
               type: "string",
             },
             {
@@ -162,6 +109,19 @@ const Enrollment = (props: Props) => {
             {
               text: "강의실",
               key: "classroom",
+              type: "string",
+              width: "120px",
+            },
+            {
+              text: "멘토",
+              key: "teachers",
+              returnFunction: (e: any) => {
+                let result = e.map((val: any) => val.userName);
+                return result;
+              },
+              onClick: (value) => {
+                console.log(value);
+              },
               type: "string",
               width: "120px",
             },
@@ -182,8 +142,8 @@ const Enrollment = (props: Props) => {
         />
       </div>
       {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 학교가 없습니다">
-          <div style={{ marginTop: "24px" }}>
+        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
+          <div style={{ marginTop: "12px" }}>
             <Button
               type="ghost"
               onClick={() => {

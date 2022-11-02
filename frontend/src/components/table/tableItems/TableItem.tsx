@@ -21,6 +21,7 @@ interface ITableItem {
     text: string;
     key: string | string[];
     value?: string;
+    returnFunction?: (value: any) => string;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
     type: ITableItemType;
     link?: string;
@@ -53,13 +54,17 @@ const TableItem = (props: ITableItem) => {
   if (typeof d === "string") {
     output = d;
   }
-  if (typeof d === "object") {
-    output = JSON.stringify(d);
-    if (isArray(d) && d.length === 1) {
-      output = _.values(d[0]).join(",");
-    }
-    if (isArray(d) && d.length > 1) {
-      output = d.join(",");
+  if (props.header.returnFunction) {
+    output = props.header.returnFunction(d);
+  } else {
+    if (typeof d === "object") {
+      output = JSON.stringify(d);
+      if (isArray(d) && d.length === 1) {
+        output = _.values(d[0]).join(",");
+      }
+      if (isArray(d) && d.length > 1) {
+        output = d.join(",");
+      }
     }
   }
 

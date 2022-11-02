@@ -1,3 +1,5 @@
+import Select from "components/select/Select";
+import { useAuth } from "contexts/authContext";
 import React, { useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./navbar.module.scss";
@@ -71,11 +73,24 @@ type Props = { title?: string };
  * @returns Navbar component
  */
 const Navbar = (props: Props) => {
+  const { registrations, currentSeason, setCurrentSeason } = useAuth();
+
   return (
     <div className={style.navbar_container}>
       {props.title && <div className={style.title}>{props.title}</div>}
       <input className={style.search} type="text" placeholder="검색" />
-      <div className={style.menu_item}></div>
+      <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
+        <Select
+          appearence="flat"
+          options={registrations?.map((value: any, index: number) => {
+            return { text: `${value.year} ${value.term}`, value: value };
+          })}
+          defaultSelectedValue={currentSeason}
+          onChange={(value: any) => {
+            setCurrentSeason(value);
+          }}
+        />
+      </div>
       <div className={style.controls}>
         <Notification />
       </div>

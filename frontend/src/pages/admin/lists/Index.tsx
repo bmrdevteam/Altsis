@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import style from "style/pages/admin/list.module.scss";
 type Props = {};
 
-const List = (props: Props) => {
+const Lists = (props: Props) => {
   const navigate = useNavigate();
   const [addDatabasePopupActive, setAddDatabasePopupActive] =
     useState<boolean>(false);
@@ -58,7 +58,7 @@ const List = (props: Props) => {
           },
           {
             text: "자세히",
-            key: "id",
+            key: "_id",
             width: "72px",
             type: "button",
             align: "center",
@@ -100,4 +100,4 @@ const List = (props: Props) => {
   );
 };
 
-export default List;
+export default Lists;
