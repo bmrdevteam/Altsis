@@ -1,16 +1,52 @@
 import Button from 'components/button/Button';
+import React, { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import Table from 'components/table/Table';
 import style from "style/pages/myaccount/myaccount.module.scss";
-import React from 'react'
+import useDatabase from "hooks/useDatabase";
 
-type Props = {  
-  usersData?: any;
-}
+const Overview = () => {
+  const {currentUser, currentSeason} = useAuth()
+  const database = useDatabase();
+  const [Enrollments, setEnrollments] = useState<any>();
+  const [courses, setCourses] = useState<any>();
+  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
-const Overview = (props: Props) => {
-  const {currentUser} = useAuth()
+  async function getEnrollments() {
+    const { enrollments: res } = await database.R({
+      location: `enrollments?season=${currentSeason.season}&studentId=${currentUser.userId}`,
+    });
+    return res;
+  }
+  useEffect(() => {
+    if (currentSeason === null || currentSeason === undefined) {
+      setAlertPopupActive(true);
+    } else {
+      getEnrollments().then((res) => {
+        setEnrollments(res);
+      });
+    }
+  }, [currentSeason]);
+
+  async function getCourseList() {
+    const { syllabuses: res } = await database.R({
+      location: `syllabuses?season=${currentSeason.season}&userId=${currentUser.userId}`,
+    });
+    return res;
+  }
+  useEffect(() => {
+    if (currentSeason === null || currentSeason === undefined) {
+      setAlertPopupActive(true);
+    } else {
+      getCourseList().then((res) => {
+        setCourses(res);
+      });
+    }
+  }, [currentSeason]);
+
   console.log(currentUser)
+  console.log(currentSeason)
+  console.log(Enrollments)
   return (
     <div>
       <div className={style.settings_container}>
@@ -38,9 +74,9 @@ const Overview = (props: Props) => {
         </div>
       </div>
     <div className={style.settings_container}>
-      <div className={style.container_title}>수업개설현황</div>
-      {/* <Table
-        data={props}
+      <div className={style.container_title}>수강신청현황 [{currentSeason.year} {currentSeason.term}]</div>
+      <Table
+        data={Enrollments}
         header={[
         {
           text: "id",
@@ -50,13 +86,117 @@ const Overview = (props: Props) => {
           align: "center",
         },
         { 
-          text: "이름",
-          key: "userName",
+          text: "교과",
+          key: "subject",
           type: "string",
-          align: "right" 
+          align: "left" 
         },
+        { 
+          text: "수업명",
+          key: "classTitle",
+          type: "string",
+          align: "left" 
+        },
+        { 
+          text: "학점",
+          key: "point",
+          type: "string",
+          align: "left",
+          width: "100px",
+        },
+        { 
+          text: "교사",
+          key: "teachers",
+          returnFunction: (e: any) => {
+            let result = e.map((val: any) => val.userName);
+            return result;
+          },
+          onClick: (value) => {
+            console.log(value);
+          },
+          type: "string",
+          align: "left",
+          width: "100px",
+        },
+        { 
+          text: "시간",
+          key: "time",
+          returnFunction: (e: any) => {
+            let result = e.map((val: any) => val.label);
+            return result;
+          },
+          onClick: (value) => {
+            console.log(value);
+          },
+          type: "string",
+          align: "left",
+          width: "100px",
+        }
         ]}
-      /> */}
+      />
+
+    </div>
+    <div className={style.settings_container}>
+      <div className={style.container_title}>수업개설현황 [{currentSeason.year} {currentSeason.term}]</div>
+      <Table
+        data={courses}
+        header={[
+        {
+          text: "id",
+          key: "",
+          type: "index",
+          width: "48px",
+          align: "center",
+        },
+        { 
+          text: "교과",
+          key: "subject",
+          type: "string",
+          align: "left" 
+        },
+        { 
+          text: "수업명",
+          key: "classTitle",
+          type: "string",
+          align: "left" 
+        },
+        { 
+          text: "학점",
+          key: "point",
+          type: "string",
+          align: "left",
+          width: "100px",
+        },
+        { 
+          text: "교사",
+          key: "teachers",
+          returnFunction: (e: any) => {
+            let result = e.map((val: any) => val.userName);
+            return result;
+          },
+          onClick: (value) => {
+            console.log(value);
+          },
+          type: "string",
+          align: "left",
+          width: "100px", 
+        },
+        { 
+          text: "시간",
+          key: "time",
+          returnFunction: (e: any) => {
+            let result = e.map((val: any) => val.label);
+            return result;
+          },
+          onClick: (value) => {
+            console.log(value);
+          },
+          type: "string",
+          align: "left",
+          width: "100px", 
+        }
+        ]}
+      />
 
     </div>
   </div>
