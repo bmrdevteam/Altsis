@@ -118,7 +118,7 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
-          <label>분할</label>
+          <label>Width</label>
           <input onChange={(e) => {}} type="text" defaultValue={"100%"} />
         </div>
         <Button
@@ -336,23 +336,23 @@ const Sidebar = (props: Props) => {
         {getCurrentCell()?.type === "input" && (
           <>
             <div className={style.item}>
-              <label>placeholder</label>
-              <input
-                type="text"
-                defaultValue={getCurrentCell()?.placeholder}
-                onChange={(e) => {
-                  changeCurrentCell({ placeholder: e.target.value });
-                  props.callPageReload();
-                }}
-              />
-            </div>
-            <div className={style.item}>
               <label>이름</label>
               <input
                 type="text"
                 defaultValue={getCurrentCell()?.name}
                 onChange={(e) => {
                   changeCurrentCell({ name: e.target.value });
+                  props.callPageReload();
+                }}
+              />
+            </div>
+            <div className={style.item}>
+              <label>placeholder</label>
+              <input
+                type="text"
+                defaultValue={getCurrentCell()?.placeholder}
+                onChange={(e) => {
+                  changeCurrentCell({ placeholder: e.target.value });
                   props.callPageReload();
                 }}
               />
@@ -364,6 +364,17 @@ const Sidebar = (props: Props) => {
             <label style={{ flex: "1 1 0" }} className={style.name}>
               옵션
             </label>
+            <div className={style.item}>
+              <label>이름</label>
+              <input
+                type="text"
+                defaultValue={getCurrentCell()?.name}
+                onChange={(e) => {
+                  changeCurrentCell({ name: e.target.value });
+                  props.callPageReload();
+                }}
+              />
+            </div>
             <div className={style.options}>
               {getCurrentCell()?.options?.map((value: any) => {
                 return (
@@ -492,6 +503,16 @@ const Sidebar = (props: Props) => {
     return (
       <Menu name="input">
         <div className={style.item}>
+          <label>Name</label>
+          <input
+            type="text"
+            defaultValue={getCurrentBlock().data.name}
+            onChange={(e) => {
+              changeCurrentBlockData({ name: e.target.value });
+            }}
+          />
+        </div>
+        <div className={style.item}>
           <label>레이블</label>
           <input
             type="text"
@@ -506,7 +527,7 @@ const Sidebar = (props: Props) => {
           <label>placeholder</label>
           <input
             type="text"
-            defaultValue={getCurrentBlock().data.placeholder}
+            defaultValue={getCurrentBlock().data?.placeholder}
             onChange={(e) => {
               changeCurrentBlockData({ placeholder: e.target.value });
               props.callPageReload();
@@ -516,7 +537,7 @@ const Sidebar = (props: Props) => {
         <div className={style.item}>
           <label>필수</label>
           <ToggleSwitch
-            defaultChecked={getCurrentBlock().data.required}
+            defaultChecked={getCurrentBlock().data?.required}
             onChange={(e: any) => {
               changeCurrentBlockData({ required: e.target.checked });
               props.callPageReload();
