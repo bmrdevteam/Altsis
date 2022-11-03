@@ -120,7 +120,7 @@ export const EditorProvider = (props: {
     });
     return result;
   }
-  
+
   /**
    * save the form data to the backend
    */
@@ -414,7 +414,6 @@ export const EditorProvider = (props: {
   }
 
   function getCurrentCell() {
-
     if (currentCellCol.current === null && currentCellRow.current === null) {
       currentCellCol.current = 0;
       currentCellRow.current = 0;
