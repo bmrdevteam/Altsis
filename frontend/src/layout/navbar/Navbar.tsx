@@ -73,7 +73,7 @@ type Props = { title?: string };
  * @returns Navbar component
  */
 const Navbar = (props: Props) => {
-  const { registrations, currentSeason, setCurrentSeason } = useAuth();
+  const { registrations, currentSeason, changeCurrentSeason } = useAuth();
 
   return (
     <div className={style.navbar_container}>
@@ -87,7 +87,7 @@ const Navbar = (props: Props) => {
           })}
           defaultSelectedValue={currentSeason}
           onChange={(value: any) => {
-            setCurrentSeason(value);
+            changeCurrentSeason(value);
           }}
         />
       </div>
