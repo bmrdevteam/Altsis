@@ -426,7 +426,6 @@
 parsed block
 */
 .parsed_block {
-    padding: 6px;
     font-size: 14px;
     font-weight: 500;
     font-family: 'Pretendard';
@@ -440,19 +439,32 @@ parsed block
     table-layout: fixed;
     overflow: hidden;
 
+    .cell {
+        outline: none;
+        padding: 4px 6px;
+        position: relative;
+
+
+    }
+
+    .cell.input:empty:before {
+        content: attr(placeholder);
+        color: rgb(171, 171, 171);
+        display: block;
+        cursor: text;
+    }
+    .cell.select {
+        select {
+            outline: none;
+            border: none;
+            width: 100%;
+            background-color: transparent;
+        }
+
+    }
     td {
         border: var(--border-default);
         border-width: 1px;
-
-        .cell {
-            outline: none;
-            padding: 4px 6px;
-            position: relative;
-
-
-        }
-
-
 
     }
 
@@ -461,15 +473,5 @@ parsed block
         border-width: 1px;
         font-weight: 600;
         background-color: var(--component-color);
-
-        .cell {
-            outline: none;
-            padding: 4px 6px;
-            position: relative;
-
-
-        }
-
-
     }
 }
