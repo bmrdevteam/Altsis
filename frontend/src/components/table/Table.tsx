@@ -188,10 +188,15 @@ const TableControls = (props: { selectedItems: any[] }) => {
  *
  * @version 1.0
  */
-const TableSearch = () => {
+const TableSearch = ({ search }: { search: any }) => {
   return (
     <div className={style.search}>
-      <input className={style.input} type="text" placeholder="검색" />
+      <input
+        className={style.input}
+        type="text"
+        placeholder="검색"
+        onChange={(e) => {}}
+      />
     </div>
   );
 };
@@ -257,10 +262,10 @@ const Table = (props: Props) => {
    * @version 1.0 design
    */
 
-  const TableFilter = () => {
+  const TableFilter = ({ search }: { search: any }) => {
     return (
       <div className={style.table_filter}>
-        {props.filterSearch && <TableSearch />}
+        {props.filterSearch && <TableSearch search={search} />}
         <TableControls selectedItems={selectedItems.current} />
       </div>
     );
@@ -375,7 +380,7 @@ const Table = (props: Props) => {
         border: props.style?.border,
       }}
     >
-      {props.filter && <TableFilter />}
+      {props.filter && <TableFilter search={search} />}
       <TableHeader />
       <TableBody />
     </div>
