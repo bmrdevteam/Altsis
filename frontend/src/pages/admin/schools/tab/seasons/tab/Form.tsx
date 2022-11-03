@@ -42,6 +42,7 @@ const Form = (props: Props) => {
     useState<boolean>(false);
   const [selectFormType, setSelectFormType] = useState<string>();
   const [forms, setForms] = useState<any>();
+  const [season, setSeason] = useState<any>();
 
   async function getForms() {
     const { forms: result } = await database.R({ location: "forms" });
@@ -49,6 +50,12 @@ const Form = (props: Props) => {
   }
   async function getForm(id: string) {
     const result = await database.R({ location: `forms/${id}` });
+    return result;
+  }
+  async function getSeason() {
+    const result = await database.R({
+      location: `seasons/${props.seasonData._id}`,
+    });
     return result;
   }
 
@@ -78,6 +85,9 @@ const Form = (props: Props) => {
       console.log(res);
       setForms(res);
     });
+    getSeason().then((res) => {
+      setSeason(res);
+    });
   }, []);
 
   return (
@@ -94,7 +104,7 @@ const Form = (props: Props) => {
               setSelectFormPopupActive(true);
             }}
           >
-            시간표1
+            {season?.formTimetable.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
@@ -107,7 +117,7 @@ const Form = (props: Props) => {
               setSelectFormPopupActive(true);
             }}
           >
-            선택
+            {season?.formSyllabus.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
@@ -120,14 +130,20 @@ const Form = (props: Props) => {
               setSelectFormPopupActive(true);
             }}
           >
-            선택
+            {season?.formEvaluation.title ?? "선택"}
           </Button>
         </div>
       </div>
       {selectFormPopupActive && (
         <Popup
           style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
-          title={`${"시간표"} 양식 선택`}
+          title={`${
+            selectFormType === "timetable"
+              ? "시간표"
+              : selectFormType === "syllabus"
+              ? "강의계획서"
+              : "평가"
+          } 양식 선택`}
           setState={setSelectFormPopupActive}
           closeBtn
         >
@@ -142,16 +158,32 @@ const Form = (props: Props) => {
                 type: "button",
                 onClick: (e: any) => {
                   const id = e.target.dataset.value;
+
                   getForm(id).then((res) => {
                     switch (selectFormType) {
                       case "timetable":
-                        updateSeasonFormTimetable(res);
+                        updateSeasonFormTimetable(res).then(() => {
+                          getSeason().then((res) => {
+                            setSeason(res);
+                          });
+                        });
+                        setSelectFormPopupActive(false);
                         break;
                       case "syllabus":
-                        updateSeasonFormSyllabus(res);
+                        updateSeasonFormSyllabus(res).then(() => {
+                          getSeason().then((res) => {
+                            setSeason(res);
+                          });
+                        });
+                        setSelectFormPopupActive(false);
                         break;
                       case "evaluation":
-                        updateSeasonFormEvaluation(res);
+                        updateSeasonFormEvaluation(res).then(() => {
+                          getSeason().then((res) => {
+                            setSeason(res);
+                          });
+                        });
+                        setSelectFormPopupActive(false);
                         break;
                       default:
                         break;
