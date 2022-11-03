@@ -50,6 +50,8 @@ const CourseDesign = (props: Props) => {
   const navigate = useNavigate();
 
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
+  const [timeSelectPopupActive, setTimeSelectPopupActive] =
+    useState<boolean>(false);
 
   async function getSchoolList() {
     const { schools: res } = await database.R({ location: "schools" });
@@ -105,30 +107,25 @@ const CourseDesign = (props: Props) => {
                 label="학점"
                 required
               />
-              <Autofill
-                appearence="flat"
-                options={[
-                  { text: "상", value: "1" },
-                  { text: "중", value: "3" },
-                  { text: "하", value: "4" },
-                ]}
-                label="난의도"
-                required
-              />
             </div>
           </div>
-          <div style={{ display: "flex", marginTop: "24px" }}>
-            <Select
-              options={getClassrooms()}
-              label="강의실 선택"
-              required
-              appearence="flat"
-            />
+          <div style={{ display: "flex", marginTop: "24px", gap: "24px" }}>
+            <Button
+              style={{ flex: "1 1 0 " }}
+              type="ghost"
+              onClick={() => {
+                setTimeSelectPopupActive(true);
+              }}
+            >
+              시간 선택
+            </Button>
+            <Button style={{ flex: "1 1 0 " }} type="ghost">
+              강의실 선택
+            </Button>
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           {/* <EditorParser data={currentSeason?.formTimetable} /> */}
-          <EditorParser data={currentSeason?.formSyllabus} />
-
+          <EditorParser auth="edit" data={currentSeason?.formSyllabus} />
         </div>
       </div>
 
@@ -144,6 +141,17 @@ const CourseDesign = (props: Props) => {
               메인 화면으로 돌아가기
             </Button>
           </div>
+        </Popup>
+      )}
+      {timeSelectPopupActive && (
+        <Popup
+          setState={setTimeSelectPopupActive}
+          title="시간 선택"
+          closeBtn
+          style={{ borderRadius: "4px", width: "900px" }}
+          footer={<Button type="ghost">선택</Button>}
+        >
+          <EditorParser auth="edit" data={currentSeason?.formTimetable} />
         </Popup>
       )}
     </>
