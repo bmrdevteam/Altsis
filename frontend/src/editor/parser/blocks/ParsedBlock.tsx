@@ -4,6 +4,7 @@ import ParsedDataTableBlock from "./ParsedDataTableBlock";
 import ParsedTableBlock from "./ParsedTableBlock";
 type Props = {
   blockData: any;
+  onChange?: (data: any) => void;
 };
 
 const ParsedBlock = (props: Props) => {
