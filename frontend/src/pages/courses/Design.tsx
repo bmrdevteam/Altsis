@@ -45,11 +45,10 @@ import style from "../../style/pages/courses/courseDesign.module.scss";
 type Props = {};
 
 const CourseDesign = (props: Props) => {
-  const { currentSchool, currentUser } = useAuth();
+  const { currentSchool, currentUser, currentSeason } = useAuth();
   const database = useDatabase();
   const navigate = useNavigate();
 
-  const [schoolData, setSchoolData] = useState<any>();
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
   async function getSchoolList() {
@@ -57,17 +56,13 @@ const CourseDesign = (props: Props) => {
     return res;
   }
   useEffect(() => {
-    getSchoolList().then((res) =>
-      setSchoolData(res.filter((val: any) => val.schoolId === currentSchool)[0])
-    );
-
     if (currentSchool === null || currentSchool === undefined) {
       setAlertPopupActive(true);
     }
   }, []);
   function getClassrooms() {
     let result: any[] = [];
-    schoolData?.classrooms?.map((value: string, index: number) => {
+    currentSeason?.classrooms?.map((value: string, index: number) => {
       result.push({ text: value, value: index });
     });
     return result;
@@ -77,7 +72,6 @@ const CourseDesign = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
         <div className={style.design_form}>
           <div className={style.title}>수업 개설</div>
           <div style={{ display: "flex", gap: "24px" }}>
@@ -132,7 +126,9 @@ const CourseDesign = (props: Props) => {
             />
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
-          <EditorParser id={"63057ebb49c14b8ece07bfa3"} />
+          {/* <EditorParser data={currentSeason?.formTimetable} /> */}
+          <EditorParser data={currentSeason?.formSyllabus} />
+
         </div>
       </div>
 
