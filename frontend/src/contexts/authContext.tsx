@@ -9,6 +9,7 @@ export function useAuth(): {
   currentSchool: any;
   currentSeason: any;
   changeCurrentSeason: (season: any) => void;
+  currentRegistration: any;
   registrations: any;
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -38,11 +39,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (res.registrations) {
       setRegistration(res.registrations);
       setCurrentRegistration(res.registrations[0]);
-      changeCurrentSeason(res.registrations[0]);
+      changeCurrentSeason(res.registrations[0])
     }
 
     return res;
   }
+  console.log("regist", registrations);
 
   useEffect(() => {
     loading &&
@@ -59,10 +61,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
-    const res = await database.R({
-      location: `seasons/${registration.season}`,
-    });
-    setCurrentSeason(res);
+    const result = await database
+      .R({
+        location: `seasons/${registration.season}`,
+      })
+      .then((res) => {
+        setCurrentSeason(res);
+      });
+    return result;
   }
 
   const value = {
@@ -72,6 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentSeason,
     registrations,
     changeCurrentSeason,
+    currentRegistration,
     setLoading,
     currentSchool,
   };
