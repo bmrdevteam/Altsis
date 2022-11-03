@@ -73,7 +73,8 @@ type Props = { title?: string };
  * @returns Navbar component
  */
 const Navbar = (props: Props) => {
-  const { registrations, currentSeason, changeCurrentSeason } = useAuth();
+  const { registrations, currentRegistration, changeCurrentSeason } = useAuth();
+  console.log(currentRegistration);
 
   return (
     <div className={style.navbar_container}>
@@ -85,8 +86,9 @@ const Navbar = (props: Props) => {
           options={registrations?.map((value: any, index: number) => {
             return { text: `${value.year} ${value.term}`, value: value };
           })}
-          defaultSelectedValue={currentSeason}
+          defaultSelectedValue={currentRegistration}
           onChange={(value: any) => {
+            console.log(value);
             changeCurrentSeason(value);
           }}
         />
