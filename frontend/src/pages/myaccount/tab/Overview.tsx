@@ -27,7 +27,7 @@ const Overview = () => {
       });
     }
   }, [currentSeason]);
-
+// 테스트
   async function getCourseList() {
     const { syllabuses: res } = await database.R({
       location: `syllabuses?season=${currentSeason.season}&userId=${currentUser.userId}`,
