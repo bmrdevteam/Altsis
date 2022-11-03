@@ -49,11 +49,9 @@ const TableItem = (props: ITableItem) => {
   }, [props.checked]);
 
   // const [output, setOutput] = useState("");
-  let output = "";
   const d = _.get(props?.data, props.header.key);
-  if (typeof d === "string") {
-    output = d;
-  }
+  let output = d;
+
   if (props.header.returnFunction) {
     output = props.header.returnFunction(d);
   } else {
