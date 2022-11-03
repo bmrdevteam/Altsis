@@ -183,7 +183,7 @@
 
                         justify-content: space-between;
 
-                        .options {
+                        .align_options {
                             height: 30px;
                             display: flex;
                             align-items: center;
@@ -320,7 +320,7 @@
         max-width: 1000px;
         width: 100%;
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
         height: 100%;
         padding: 24px;
     }
@@ -347,6 +347,7 @@
 
 
 .block {
+    width: 100%;
     padding: 6px;
     font-size: 14px;
     font-weight: 500;
@@ -461,6 +462,9 @@ parsed block
             background-color: transparent;
         }
 
+    }
+    tr{
+        height: 28px;
     }
     td {
         border: var(--border-default);
