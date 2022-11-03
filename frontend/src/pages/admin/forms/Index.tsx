@@ -1,6 +1,6 @@
 /**
  * @file Form Index Page
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -22,7 +22,7 @@
  * -------------------------------------------------------
  *
  * NOTES
- * 
+ *
  * @version 1.0
  *
  */
@@ -62,8 +62,7 @@ const Forms = (props: Props) => {
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
 
   const [inputFormTitle, setInputFormTitle] = useState<string>("");
-  const [selectFormType, setSelectFormType] = useState();
-  const [isValid, setIsValid] = useState(false);
+  const [selectFormType, setSelectFormType] = useState<any>();
 
   /**
    * fetches the form list from the database
@@ -110,12 +109,6 @@ const Forms = (props: Props) => {
         setUpdateFormList(false);
       });
   }, [updateFormList]);
-  console.log(formList);
-
-  useEffect(() => {
-    inputFormTitle !== "" ? setIsValid(true) : setIsValid(false);
-  }, [inputFormTitle]);
-
   /**
    * form item container
    * @param {any} data
@@ -203,6 +196,18 @@ const Forms = (props: Props) => {
             className={style.item}
             onClick={() => {
               setAddFormPopupActive(true);
+              setInputFormTitle("");
+              setSelectFormType(
+                decodeURI(location.hash).replace("#", "") === "시간표"
+                  ? "timetable"
+                  : decodeURI(location.hash).replace("#", "") === "강의계획서"
+                  ? "syllabus"
+                  : decodeURI(location.hash).replace("#", "") === "평가"
+                  ? "evalutation"
+                  : decodeURI(location.hash).replace("#", "") === "출력"
+                  ? "print"
+                  : "other"
+              );
             }}
             style={{ height: "160px" }}
           >
@@ -391,7 +396,24 @@ const Forms = (props: Props) => {
         </div>
       </div>
       {addFormPopupActive && (
-        <Popup setState={setAddFormPopupActive} title="양식 추가">
+        <Popup
+          setState={setAddFormPopupActive}
+          title="양식 추가"
+          footer={
+            <Button
+              disabled={inputFormTitle === ""}
+              disableOnclick
+              onClick={() => {
+                addForm().catch((err) => {
+                  console.log(err);
+                });
+                setAddFormPopupActive(false);
+              }}
+            >
+              추가
+            </Button>
+          }
+        >
           <div
             style={{
               marginTop: "12px",
@@ -452,19 +474,6 @@ const Forms = (props: Props) => {
                 }
               }}
             />
-          </div>
-          <div style={{ marginTop: "24px" }}>
-            <Button
-              disabled={!isValid}
-              disableOnclick
-              onClick={() => {
-                addForm().catch((err) => {
-                  console.log(err);
-                });
-              }}
-            >
-              추가
-            </Button>
           </div>
         </Popup>
       )}
