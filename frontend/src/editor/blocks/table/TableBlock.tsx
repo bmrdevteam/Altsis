@@ -97,6 +97,7 @@ const TableBlock = (props: Props) => {
                         }}
                         colSpan={val?.colSpan}
                         rowSpan={val?.rowSpan}
+                        style={{ fontSize: val?.fontSize }}
                       >
                         <Cell type={val.type} row={index} col={ind} />
                       </th>
@@ -114,6 +115,7 @@ const TableBlock = (props: Props) => {
                         }}
                         colSpan={val?.colSpan}
                         rowSpan={val?.rowSpan}
+                        style={{ fontSize: val?.fontSize }}
                       >
                         <Cell type={val.type} row={index} col={ind} />
                       </td>
