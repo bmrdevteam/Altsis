@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import useDatabase from "../../../hooks/useDatabase";
 import style from "../../editor.module.scss";
 
-type Props = { blockData: any };
+type Props = { blockData: any; auth: "edit" | "view" };
 
 function ParsedDataTableBlock(props: Props) {
   const database = useDatabase();
@@ -42,13 +42,15 @@ function ParsedDataTableBlock(props: Props) {
           {data?.map((value, index) => {
             return (
               <tr key={index}>
-                {props.blockData.data.dataTableColumns?.map((v: any, i: number) => {
-                  return (
-                    <td key={i}>
-                      {value[props.blockData.data.dataTableBody[i]]}
-                    </td>
-                  );
-                })}
+                {props.blockData.data.dataTableColumns?.map(
+                  (v: any, i: number) => {
+                    return (
+                      <td key={i}>
+                        {value[props.blockData.data.dataTableBody[i]]}
+                      </td>
+                    );
+                  }
+                )}
               </tr>
             );
           })}
