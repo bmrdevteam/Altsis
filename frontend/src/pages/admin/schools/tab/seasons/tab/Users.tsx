@@ -168,7 +168,7 @@ const Users = (props: Props) => {
             </Button>
           }
         >
-          <div style={{ height: "100%" }}>
+          <div style={{ height: "calc(100vh - 300px)" }}>
             <Table
               onSelectChange={(value) => {
                 selectedSchoolUsers.current = value.map((val: any) => {
