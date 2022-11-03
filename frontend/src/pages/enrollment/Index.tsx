@@ -103,6 +103,10 @@ const Enrollment = (props: Props) => {
             {
               text: "과목",
               key: "subject",
+              returnFunction: (e: any) => {
+                let result = e.map((val: any) => val);
+                return result;
+              },
               type: "string",
               width: "240px",
             },
