@@ -27,6 +27,34 @@ const ParsedTableBlock = (props: Props) => {
             {data.data?.text}
           </div>
         );
+      case "input":
+        return (
+          <div
+            className={`${style.cell} ${style.input}`}
+            style={{ textAlign: data.align }}
+            placeholder={data.placeholder ?? "입력"}
+            contentEditable
+            suppressContentEditableWarning
+          ></div>
+        );
+      case "select":
+        return (
+          <div
+            className={`${style.cell} ${style.select}`}
+            style={{ textAlign: data.align }}
+            placeholder={data.placeholder ?? "입력"}
+          >
+            <select>
+              {data.options.map((val: any) => {
+                return (
+                  <option key={val.id} value={val.value}>
+                    {val.text}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        );
       case "timeRange":
         return (
           <div className={style.cell} style={{ textAlign: data.align }}>
