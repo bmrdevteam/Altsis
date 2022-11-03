@@ -326,11 +326,13 @@ const Login = () => {
           <Button
             type="ghost"
             onClick={() => {
-              navigate("/register", { replace: true });
+              navigate("/login", { replace: false });
+              navigate(0);
             }}
+
             style={{ borderRadius: "8px" }}
           >
-            회원가입
+            다른 아카데미에 로그인
           </Button>
           <div style={{ height: "4px" }}></div>
           <GoogleLoginBtn academyId={academy} />
