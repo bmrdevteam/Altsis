@@ -104,7 +104,7 @@ const Form = (props: Props) => {
               setSelectFormPopupActive(true);
             }}
           >
-            {season?.formTimetable.title ?? "선택"}
+            {season?.formTimetable?.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
@@ -117,7 +117,7 @@ const Form = (props: Props) => {
               setSelectFormPopupActive(true);
             }}
           >
-            {season?.formSyllabus.title ?? "선택"}
+            {season?.formSyllabus?.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
@@ -130,7 +130,7 @@ const Form = (props: Props) => {
               setSelectFormPopupActive(true);
             }}
           >
-            {season?.formEvaluation.title ?? "선택"}
+            {season?.formEvaluation?.title ?? "선택"}
           </Button>
         </div>
       </div>
