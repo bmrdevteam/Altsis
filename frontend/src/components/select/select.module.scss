@@ -4,7 +4,7 @@
     display: flex;
     flex-direction: column;
     flex: 1 1 0;
-    
+
 
 
 
@@ -12,7 +12,7 @@
         font-size: 12px;
         font-family: 'Pretendard';
         font-weight: 500;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         color: var(--accent-1);
 
         .required {
@@ -24,7 +24,8 @@
     .selected {
         position: relative;
         border: var(--border-default);
-        height: 40px;
+        max-height: 30px;
+        min-height: 30px;
         display: flex;
         align-items: center;
         padding: 8.5px 14px;
