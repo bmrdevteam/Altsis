@@ -24,6 +24,7 @@ const Block = (props: Props) => {
         onFocus={() => {
           //
         }}
+        style={{ width: `${block.data.width ?? 100}%` }}
       >
         {children}
       </div>
