@@ -46,7 +46,7 @@ import Navbar from "layout/navbar/Navbar";
 type Props = {};
 
 const Enrollment = (props: Props) => {
-  const { currentSchool, currentSeason } = useAuth();
+  const { registrations, currentRegistration } = useAuth();
   const database = useDatabase();
   const navigate = useNavigate();
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
@@ -57,19 +57,21 @@ const Enrollment = (props: Props) => {
 
   async function getCourseList() {
     const { syllabuses: res } = await database.R({
-      location: `syllabuses?season=${currentSeason.season}`,
+      location: `syllabuses?season=${currentRegistration?.season}`,
     });
     return res;
   }
   useEffect(() => {
-    if (currentSeason === null || currentSeason === undefined) {
+    if (registrations.length <= 0) {
+      console.log("no season", registrations);  
+
       setAlertPopupActive(true);
     } else {
       getCourseList().then((res) => {
         setCourses(res);
       });
     }
-  }, [currentSeason]);
+  }, [currentRegistration]);
 
   return (
     <>
