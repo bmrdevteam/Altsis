@@ -2,7 +2,11 @@ import { isArray } from "lodash";
 import React from "react";
 import style from "../../editor.module.scss";
 
-type Props = { blockData: any };
+type Props = {
+  blockData: any;
+  auth: "edit" | "view";
+  returnData: any;
+};
 const ParsedTableBlock = (props: Props) => {
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
@@ -23,28 +27,52 @@ const ParsedTableBlock = (props: Props) => {
     switch (data.type) {
       case "paragraph":
         return (
-          <div className={style.cell} style={{ textAlign: data.align }}>
+          <div
+            className={style.cell}
+            style={{ textAlign: data.align, fontSize: data.fontSize }}
+          >
             {data.data?.text}
           </div>
         );
       case "input":
-        return (
+        return props.auth === "edit" ? (
           <div
             className={`${style.cell} ${style.input}`}
             style={{ textAlign: data.align }}
             placeholder={data.placeholder ?? "입력"}
             contentEditable
             suppressContentEditableWarning
+            onInput={(e) => {
+              if (data?.name === undefined) {
+                props.returnData[data?.id] = e.currentTarget.textContent;
+              } else {
+                props.returnData[data?.name] = e.currentTarget.textContent;
+              }
+            }}
           ></div>
+        ) : (
+          <div>
+            <div className={style.cell} style={{ textAlign: data.align }}>
+              {data.data?.text}
+            </div>
+          </div>
         );
       case "select":
         return (
           <div
             className={`${style.cell} ${style.select}`}
-            style={{ textAlign: data.align }}
             placeholder={data.placeholder ?? "입력"}
           >
-            <select>
+            <select
+              style={{ textAlign: data.align, fontSize: data.fontSize }}
+              onChange={(e) => {
+                if (data?.name === undefined) {
+                  props.returnData[data?.id] = e.target.value;
+                } else {
+                  props.returnData[data?.name] = e.target.value;
+                }
+              }}
+            >
               {data.options.map((val: any) => {
                 return (
                   <option key={val.id} value={val.value}>
@@ -53,6 +81,21 @@ const ParsedTableBlock = (props: Props) => {
                 );
               })}
             </select>
+          </div>
+        );
+      case "checkbox":
+        return (
+          <div className={style.cell} style={{ textAlign: data.align }}>
+            <input
+              type="checkbox"
+              onChange={(e) => {
+                if (data?.name === undefined) {
+                  props.returnData[data?.id] = e.target.checked;
+                } else {
+                  props.returnData[data?.name] = e.target.checked;
+                }
+              }}
+            />
           </div>
         );
       case "timeRange":
@@ -83,11 +126,21 @@ const ParsedTableBlock = (props: Props) => {
               <tr key={index}>
                 {value.map((val, ind: number) => {
                   return val?.isHeader ? (
-                    <th key={ind} colSpan={val?.colSpan} rowSpan={val?.rowSpan}>
+                    <th
+                      key={ind}
+                      colSpan={val?.colSpan}
+                      rowSpan={val?.rowSpan}
+                      style={{ fontSize: val?.fontSize }}
+                    >
                       <Cell data={val} />
                     </th>
                   ) : (
-                    <td key={ind} colSpan={val?.colSpan} rowSpan={val?.rowSpan}>
+                    <td
+                      key={ind}
+                      colSpan={val?.colSpan}
+                      rowSpan={val?.rowSpan}
+                      style={{ fontSize: val?.fontSize }}
+                    >
                       <Cell data={val} />
                     </td>
                   );
