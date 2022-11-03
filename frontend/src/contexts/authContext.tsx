@@ -8,7 +8,7 @@ export function useAuth(): {
   currentUser: any;
   currentSchool: any;
   currentSeason: any;
-  setCurrentSeason: React.Dispatch<any>;
+  changeCurrentSeason: (season: any) => void;
   registrations: any;
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -20,8 +20,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const database = useDatabase();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentSchool, setCurrentSchool] = useState<any>();
-  const [currentSeason, setCurrentSeason] = useState<any>();
   const [registrations, setRegistration] = useState<any>([]);
+  const [currentRegistration, setCurrentRegistration] = useState<any>();
+  const [currentSeason, setCurrentSeason] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
   async function getLoggedInUser() {
@@ -36,7 +37,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     /** if there is a registration, set the season */
     if (res.registrations) {
       setRegistration(res.registrations);
-      setCurrentSeason(res.registrations[0]);
+      setCurrentRegistration(res.registrations[0]);
+      changeCurrentSeason(res.registrations[0]);
     }
 
     return res;
@@ -55,13 +57,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {};
   }, [loading]);
 
+  async function changeCurrentSeason(registration: any) {
+    setCurrentRegistration(registration);
+    const res = await database.R({
+      location: `seasons/${registration.season}`,
+    });
+    setCurrentSeason(res);
+  }
+
   const value = {
     setCurrentUser,
     currentUser,
     loading,
     currentSeason,
     registrations,
-    setCurrentSeason,
+    changeCurrentSeason,
     setLoading,
     currentSchool,
   };
