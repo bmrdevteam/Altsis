@@ -39,6 +39,7 @@ type Props = {
   style?: CSSProperties;
   closeBtn?: boolean;
   borderRadius?: string;
+  contentScroll?: boolean;
 };
 /**
  * Popup component
@@ -107,7 +108,10 @@ const Popup = (props: Props) => {
             </div>
           )}
         </div>
-        <div className={style.content} style={{ overflowY: "scroll" }}>
+        <div
+          className={style.content}
+          style={{ overflowY: props.contentScroll ? "scroll" : "visible" }}
+        >
           {props.children}
         </div>
         {props.footer && <div className={style.footer}>{props.footer}</div>}
