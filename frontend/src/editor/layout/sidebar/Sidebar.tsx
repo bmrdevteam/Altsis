@@ -119,7 +119,15 @@ const Sidebar = (props: Props) => {
         </div>
         <div className={style.item}>
           <label>Width</label>
-          <input onChange={(e) => {}} type="text" defaultValue={"100%"} />
+
+          <input
+            onChange={(e) => {
+              changeCurrentBlockData({ width: parseFloat(e.target.value) });
+              props.callPageReload();
+            }}
+            type="number"
+            defaultValue={getCurrentBlock().data.width ?? 100}
+          />
         </div>
         <Button
           type="ghost"
@@ -252,7 +260,6 @@ const Sidebar = (props: Props) => {
             defaultChecked={getCurrentCell()?.isHeader}
             onChange={(e: any) => {
               changeCurrentCell({ isHeader: e.target.checked });
-
               props.callPageReload();
             }}
           />
@@ -273,6 +280,17 @@ const Sidebar = (props: Props) => {
               { text: "가운데", value: "center" },
               { text: "오른쪽", value: "right" },
             ]}
+          />
+        </div>
+        <div className={style.item}>
+          <label>텍스트 크기</label>
+          <input
+            onChange={(e) => {
+              changeCurrentCell({ fontSize: e.target.value });
+              props.callPageReload();
+            }}
+            type="text"
+            defaultValue={getCurrentCell()?.fontSize}
           />
         </div>
         <div className={style.item}>
@@ -301,6 +319,19 @@ const Sidebar = (props: Props) => {
             defaultValue={getCurrentCell()?.갲Span}
           />
         </div>
+        {getCurrentCell()?.type === "checkbox" && (
+          <div className={style.item}>
+            <label>이름</label>
+            <input
+              type="text"
+              defaultValue={getCurrentCell()?.name}
+              onChange={(e) => {
+                changeCurrentCell({ name: e.target.value });
+                props.callPageReload();
+              }}
+            />
+          </div>
+        )}
         {getCurrentCell()?.type === "timeRange" && (
           <>
             <div className={style.item}>
@@ -552,20 +583,19 @@ const Sidebar = (props: Props) => {
       <Menu name="텍스트">
         <div className={style.item}>
           <label>크기</label>
-          <select onChange={(e) => {}}>
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-          </select>
+          <input
+            type="text"
+            defaultValue={getCurrentBlock()?.data?.fontSize}
+            onChange={(e) => {
+              changeCurrentBlockData({ fontSize: e.target.value });
+              props.callPageReload();
+            }}
+          />
         </div>
         <div className={style.item}>
           <label>정렬</label>
           <div className={style.align}>
-            <div className={style.options}>
+            <div className={style.align_options}>
               <div
                 className={style.option}
                 onClick={() => {
@@ -617,7 +647,7 @@ const Sidebar = (props: Props) => {
         )}
         {getCurrentBlock()?.type === "dataTable" && <DatatableMenu />}
         {getCurrentBlock()?.type === "input" && <InputBlockMenu />}
-        <TextMenu />
+        {getCurrentBlock() && <TextMenu />}
       </div>
     </div>
   );
