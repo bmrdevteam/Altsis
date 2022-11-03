@@ -1,37 +1,24 @@
-import React, { useEffect, useState } from "react";
-import useDatabase from "../hooks/useDatabase";
+import { isArray } from "lodash";
 import ParsedBlock from "./parser/blocks/ParsedBlock";
 
 type Props = {
-  id: string;
+  data: any;
+  onChange?: (data: any) => {};
 };
 
 const EditorParser = (props: Props) => {
-  const database = useDatabase();
-  const [data, setData] = useState<any>();
-
-  async function getEditorData() {
-    const { form: result } = await database.R({
-      location: `forms/${props.id}`,
-    });
-    return result;
-  }
-  useEffect(() => {
-    getEditorData().then((res) => {
-      setData(res);
-      console.log(res);
-    });
-  }, []);
+  console.log(props.data);
 
   return (
     <div>
-      {data?.data?.map((value: any, index: number) => {
-        return (
-          <div key={index}>
-            <ParsedBlock blockData={value}/>
-          </div>
-        );
-      })}
+      {isArray(props?.data?.data) &&
+        props?.data?.data?.map((value: any, index: number) => {
+          return (
+            <div key={index}>
+              <ParsedBlock blockData={value} onChange={props.onChange} />
+            </div>
+          );
+        })}
     </div>
   );
 };
