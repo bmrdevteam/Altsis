@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const registration = require("../controllers/registration");
-const { isAdManager } = require("../middleware/auth");
+const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             Registration
@@ -10,7 +10,7 @@ const { isAdManager } = require("../middleware/auth");
 router.post("/", isAdManager, registration.register);
 router.post("/bulk", isAdManager, registration.registerBulk);
 
-router.get("/", isAdManager, registration.find);
+router.get("/", isLoggedIn, registration.find);
 
 router.put("/:_id/:field", isAdManager, registration.update);
 
