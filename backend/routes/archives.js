@@ -9,9 +9,10 @@ const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
 
 router.post("/", isLoggedIn, archive.create);
 
-router.get("/:_id?", isLoggedIn, archive.find);
+router.get("/", isLoggedIn, archive.find);
+router.get("/:_id", isLoggedIn, archive.findById);
 
-router.put("/:_id/data", isLoggedIn, archive.updateData);
+router.put("/:_id/data/:field", isLoggedIn, archive.updateDataField);
 
 router.delete("/:_id", isLoggedIn, archive.remove);
 
