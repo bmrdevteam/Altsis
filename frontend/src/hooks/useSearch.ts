@@ -32,7 +32,7 @@
  * - add examples to the js doc
  */
 
-import _, { add } from "lodash";
+import _ from "lodash";
 import { useCallback, useState } from "react";
 
 interface IFilterItem {
@@ -83,34 +83,36 @@ export default function useSearch(data: any) {
        * map through the filters and check if theres a valid value and ++ the counter
        */
       filters?.map((filter) => {
-        /**
-         * switch according to the operator in the filter item
-         */
-        switch (filter.operator) {
+        if (_.get(value, filter.key) !== undefined) {
           /**
-           * case '=' ++ the counter if the given-value matches the filter-value
+           * switch according to the operator in the filter item
            */
-          case "=":
-            counter += _.get(value, filter.key)
-              .replaceAll(" ", "")
-              .includes(filter.value.replaceAll(" ", ""))
-              ? 1
-              : 0;
-            break;
-          /**
-           * case '=' ++ the counter if the given-value is smaller than the filter-value
-           */
-          case "<":
-            counter +=
-              parseFloat(_.get(value, filter.key)) < parseFloat(filter.value)
+          switch (filter.operator) {
+            /**
+             * case '=' ++ the counter if the given-value matches the filter-value
+             */
+            case "=":
+              counter += _.get(value, filter.key)
+                .replaceAll(" ", "")
+                .includes(filter.value.replaceAll(" ", ""))
                 ? 1
                 : 0;
-            break;
-          /**
-           * default do nothing
-           */
-          default:
-            break;
+              break;
+            /**
+             * case '=' ++ the counter if the given-value is smaller than the filter-value
+             */
+            case "<":
+              counter +=
+                parseFloat(_.get(value, filter.key)) < parseFloat(filter.value)
+                  ? 1
+                  : 0;
+              break;
+            /**
+             * default do nothing
+             */
+            default:
+              break;
+          }
         }
       });
 
@@ -162,22 +164,22 @@ export default function useSearch(data: any) {
     return filters;
   }
 
-  function addANDFilterItem(item: IFilterItem) {
-    /**
-     * set AND filters
-     */
-  }
-  function addORFilterItem(item: IFilterItem) {
-    /**
-     * set OR filters
-     *
-     * if filter has the same id, delete the filter then add the new filter - updating filters
-     * if there is no matching id the function will just add the new filter
-     */
+  // function addANDFilterItem(item: IFilterItem) {
+  //   /**
+  //    * set AND filters
+  //    */
+  // }
+  // function addORFilterItem(item: IFilterItem) {
+  //   /**
+  //    * set OR filters
+  //    *
+  //    * if filter has the same id, delete the filter then add the new filter - updating filters
+  //    * if there is no matching id the function will just add the new filter
+  //    */
 
-    setFilters((prev) => [...prev.filter((val) => val.id !== item.id), item]);
-    return filters;
-  }
+  //   setFilters((prev) => [...prev.filter((val) => val.id !== item.id), item]);
+  //   return filters;
+  // }
 
   return { addFilterItem, filters, result };
 }
