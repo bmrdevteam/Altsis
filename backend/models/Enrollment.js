@@ -25,6 +25,7 @@ const enrollmentSchema = mongoose.Schema(
     studentId: String,
     studentName: String,
     evaluation: Object,
+    temp: Object,
   },
   { timestamps: true }
 );
