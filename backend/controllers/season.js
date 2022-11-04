@@ -100,7 +100,7 @@ module.exports.update = async (req, res) => {
     const season = await Season(req.user.dbName).findById(req.params._id);
     if (!season) return res.status(404).send({ message: "season not found" });
 
-    // 해당 시즌의 syllabus가 존재면 season을 수정할 수 없다.
+    // 해당 시즌의 syllabus가 존재하면 season을 수정할 수 없다.
     await checkSyllabus(req.user.dbName, season);
 
     let registrations = [];
@@ -184,11 +184,11 @@ module.exports.updateField = async (req, res) => {
       case "subjects":
       case "formTimetable":
       case "formSyllabus":
-        await checkSyllabus(req.user.dbName, season);
+        // await checkSyllabus(req.user.dbName, season); -> !TEMP!
         break;
       // formEvaluation => 해당 시즌에 evaluation이 존재하면 수정할 수 없다.
       case "formEvaluation":
-        await checkEvaluation(req.user.dbName, season);
+        // await checkEvaluation(req.user.dbName, season); -> !TEMP!
         break;
       // permissionSyllabus, permissionEnrollment, permissionEvaluation, period => 수정 제약 없음
       case "permissionSyllabus":
