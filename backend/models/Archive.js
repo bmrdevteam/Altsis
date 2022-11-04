@@ -31,7 +31,7 @@ archiveSchema.index(
 archiveSchema.plugin(encrypt, {
   encryptionKey: process.env["ENCKEY"],
   signingKey: process.env["SIGKEY"],
-  encryptedFields: ["data"],
+  excludeFromEncryption: ["userId", "school"],
 });
 
 module.exports = (dbName) => {
