@@ -181,25 +181,6 @@ const TableControls = (props: { selectedItems: any[] }) => {
     </div>
   );
 };
-/**
- * table search component
- *
- * @returns {JSX.Element}
- *
- * @version 1.0
- */
-const TableSearch = ({ search }: { search: any }) => {
-  return (
-    <div className={style.search}>
-      <input
-        className={style.input}
-        type="text"
-        placeholder="검색"
-        onChange={(e) => {}}
-      />
-    </div>
-  );
-};
 
 /**
  * a table component
@@ -233,10 +214,13 @@ const TableSearch = ({ search }: { search: any }) => {
  * @version 1.0 initial version - created the table component
  */
 const Table = (props: Props) => {
-  const search = useSearch({});
+  const [searchKey, setSearchKey] = useState<string>("");
+  const [searchKeyName, setSearchKeyName] = useState<string>("");
+  const [searchValue, setSearchValue] = useState<string>("");
   const selectedItems = useRef<any>([]);
 
   const [tableData, setTableData] = useState<any>(props.data);
+  const search = useSearch(tableData);
 
   useEffect(() => {
     setTableData(props.data);
@@ -254,6 +238,38 @@ const Table = (props: Props) => {
     );
     props.onSelectChange && props.onSelectChange(selectedItems.current);
   }
+
+  /**
+   * table search component
+   *
+   * @returns {JSX.Element}
+   *
+   * @version 1.0
+   */
+  const TableSearch = () => {
+    console.log(searchValue);
+    
+    return (
+      <div className={style.search}>
+        <input
+          className={style.input}
+          type="text"
+          placeholder={`${searchKeyName} 검색`}
+          value={searchValue}
+          onChange={(e) => {
+            setSearchValue(e.target.value);
+            // search.addFilterItem({
+            //   id: "mainSearch",
+            //   key: searchKey,
+            //   operator: "=",
+            //   value: e.target.value,
+            // });
+          }}
+        />
+      </div>
+    );
+  };
+
   /**
    * filter component
    *
@@ -261,11 +277,10 @@ const Table = (props: Props) => {
    *
    * @version 1.0 design
    */
-
   const TableFilter = ({ search }: { search: any }) => {
     return (
       <div className={style.table_filter}>
-        {props.filterSearch && <TableSearch search={search} />}
+        {props.filterSearch && <TableSearch />}
         <TableControls selectedItems={selectedItems.current} />
       </div>
     );
@@ -292,6 +307,10 @@ const Table = (props: Props) => {
                 justifyContent: value.align,
                 maxWidth: value.width,
                 border: props.style?.border,
+              }}
+              onClick={() => {
+                setSearchKey(value.key);
+                setSearchKeyName(value.text);
               }}
             >
               {value.text}
@@ -343,7 +362,7 @@ const Table = (props: Props) => {
         <div className={style.table_body_container}>
           {/* map through rows */}
           {tableData &&
-            tableData?.map((data: any, dataIndex: number) => {
+            search?.result()?.map((data: any, dataIndex: number) => {
               return (
                 <div
                   key={dataIndex}
