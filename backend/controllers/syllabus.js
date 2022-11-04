@@ -65,6 +65,7 @@ module.exports.create = async (req, res) => {
       limit: req.body.limit,
       info: req.body.info,
       teachers: req.body.teachers,
+      temp: req.body.temp,
     });
 
     // classroom 시간 확인
