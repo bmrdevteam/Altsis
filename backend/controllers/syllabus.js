@@ -13,7 +13,7 @@ const getUnavailableTimeLabels = async (dbName, syllabus) => {
       schoolId,
       year,
       term,
-      classroom,
+      classroom: { $ne: null },
       _id: { $ne: syllabus._id },
     },
     "time"
