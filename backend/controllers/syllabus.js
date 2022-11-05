@@ -8,12 +8,13 @@ const _ = require("lodash");
 
 const getUnavailableTimeLabels = async (dbName, syllabus) => {
   const { schoolId, year, term, classroom, time } = syllabus;
+  if (!classroom) return [];
   const syllabuses = await Syllabus(dbName).find(
     {
       schoolId,
       year,
       term,
-      classroom: { $ne: null },
+      classroom,
       _id: { $ne: syllabus._id },
     },
     "time"
