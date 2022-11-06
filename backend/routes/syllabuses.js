@@ -15,6 +15,7 @@ router.delete("/:_id/confirmed", isLoggedIn, syllabus.unconfirm);
 
 router.put("/:_id/time", isLoggedIn, syllabus.updateTime);
 router.put("/:_id/classroom", isLoggedIn, syllabus.updateClassroom);
+router.delete("/:_id/classroom", isLoggedIn, syllabus.removeClassroom);
 router.put("/:_id/:field?", isLoggedIn, syllabus.update);
 
 router.delete("/:_id", isLoggedIn, syllabus.remove);

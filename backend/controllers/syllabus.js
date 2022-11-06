@@ -8,6 +8,7 @@ const _ = require("lodash");
 
 const getUnavailableTimeLabels = async (dbName, syllabus) => {
   const { schoolId, year, term, classroom, time } = syllabus;
+  if (!classroom) return [];
   const syllabuses = await Syllabus(dbName).find(
     {
       schoolId,
@@ -219,6 +220,33 @@ module.exports.updateClassroom = async (req, res) => {
       });
     }
 
+    await syllabus.save();
+    return res.status(200).send(syllabus);
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+module.exports.removeClassroom = async (req, res) => {
+  try {
+    // 내가 만든 syllabus인가?
+    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    if (req.user.userId != syllabus.userId) {
+      return res
+        .status(403)
+        .send({ message: "you cannot update this syllabus" });
+    }
+
+    // confirmed 상태에서는 수정할 수 없다.
+    for (let i = 0; i < syllabus.teachers.length; i++) {
+      if (syllabus.teachers[i].confirmed) {
+        return res.status(409).send({
+          message: "you cannot update this syllabus becuase it is confirmed",
+        });
+      }
+    }
+
+    syllabus.classroom = undefined;
     await syllabus.save();
     return res.status(200).send(syllabus);
   } catch (err) {
