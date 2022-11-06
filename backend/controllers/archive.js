@@ -41,26 +41,39 @@ module.exports.create = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    if (req.params._id) {
-      const archive = await Archive(req.user.dbName).findById(req.params._id);
-      if (!archive)
-        return res.status(404).send({ message: "archive not found" });
-
-      return res.status(200).send(archive);
+    const { userId, school } = req.query;
+    if (!userId || !school) {
+      return res.status(400).send();
     }
-    const archives = await Archive(req.user.dbName).find(req.query);
-    return res.status(200).send({ archives });
+    const archive = await Archive(req.user.dbName).findOne({
+      userId,
+      school,
+    });
+    if (!archive) return res.status(404).send({ message: "archive not found" });
+    return res.status(200).send(archive);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
 };
 
-module.exports.updateData = async (req, res) => {
+module.exports.findById = async (req, res) => {
   try {
     const archive = await Archive(req.user.dbName).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
 
-    archive.data = req.body.new;
+    return res.status(200).send(archive);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updateDataField = async (req, res) => {
+  try {
+    const archive = await Archive(req.user.dbName).findById(req.params._id);
+    if (!archive) return res.status(404).send({ message: "archive not found" });
+
+    const field = req.params.field;
+    archive.data[field] = req.body.new;
     await archive.save();
     return res.status(200).send(archive);
   } catch (err) {
@@ -73,8 +86,8 @@ module.exports.updateData = async (req, res) => {
 exports.remove = async (req, res) => {
   try {
     const archive = await Archive(req.user.dbName).findById(req.params._id);
-    if (!archive) return res.status(404).send();
-    await school.delete();
+    if (!archive) return res.status(404).send({ message: "archive not found" });
+    await archive.delete();
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });

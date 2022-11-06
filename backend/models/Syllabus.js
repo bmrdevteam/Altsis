@@ -28,10 +28,7 @@ const syllabusSchema = mongoose.Schema(
     time: {
       type: [TimeBlock],
     },
-    classroom: {
-      type: String,
-      default: "undefined",
-    },
+    classroom: String,
     subject: {
       type: [String],
     },
