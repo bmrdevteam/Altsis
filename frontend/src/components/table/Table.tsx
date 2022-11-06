@@ -15,6 +15,8 @@ import { useEffect } from "react";
 import useSearch from "hooks/useSearch";
 import { useRef } from "react";
 import Select from "components/select/Select";
+import objectDownloadAsJson from "functions/objectDownloadAsJson";
+import objectDownloadAsCSV from "functions/objectDownloadAsCSV";
 
 type Props = {
   data: any;
@@ -112,7 +114,7 @@ const TableFilterItem = () => {
  * @version 1.0 design + close and open
  *
  */
-const TableControls = (props: { selectedItems: any[] }) => {
+const TableControls = (props: { selectedItems: any[]; data: any }) => {
   // const search = useSearch()
   // implement close on clicked somewhere else
   const outsideClickForFilter = useOutsideClick();
@@ -130,7 +132,7 @@ const TableControls = (props: { selectedItems: any[] }) => {
         </div>
         {outsideClickForFilter.active && (
           <div className={style.filters}>
-            <div>AND</div>
+            <div>필터</div>
             <div className={style.item}>
               <div className={style.content}>
                 <span style={{ flex: "1 1 0" }}>item1</span>
@@ -140,7 +142,6 @@ const TableControls = (props: { selectedItems: any[] }) => {
               <Svg type="x" />
             </div>
 
-            <div>OR</div>
             <div className={style.item}>
               <div className={style.content}>
                 <span style={{ flex: "1 1 0" }}>item1</span>
@@ -173,11 +174,71 @@ const TableControls = (props: { selectedItems: any[] }) => {
         </div>
         {outsideClickForExport.active && (
           <div className={style.control}>
-            <div className={style.item}>csv 다운로드</div>
-            <div className={style.item}>json 다운로드</div>
+            <div
+              className={style.item}
+              onClick={() => {
+                objectDownloadAsCSV(props.data);
+              }}
+            >
+              csv 다운로드
+            </div>
+            <div
+              className={style.item}
+              onClick={() => {
+                objectDownloadAsJson(props.data);
+              }}
+            >
+              json 다운로드
+            </div>
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+/**
+ * table search component
+ *
+ * @returns {JSX.Element}
+ *
+ * @version 1.0
+ */
+const TableSearch = ({
+  searchKeyName,
+  searchKey,
+  search,
+}: {
+  searchKeyName: any;
+  searchKey: any;
+  search: any;
+}) => {
+  const [searchValue, setSearchValue] = useState<string>(
+    search.filters.filter((f: any) => {
+      return f.id === "mainSearch";
+    })[0]?.value ?? ""
+  );
+  return (
+    <div className={style.search}>
+      <input
+        className={style.input}
+        type="text"
+        value={searchValue}
+        placeholder={`${searchKeyName} 검색`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            search.addFilterItem({
+              id: "mainSearch",
+              value: searchValue,
+              key: searchKey,
+              operator: "=",
+            });
+          }
+        }}
+        onChange={(e) => {
+          setSearchValue(e.target.value);
+        }}
+      />
     </div>
   );
 };
@@ -216,7 +277,6 @@ const TableControls = (props: { selectedItems: any[] }) => {
 const Table = (props: Props) => {
   const [searchKey, setSearchKey] = useState<string>("");
   const [searchKeyName, setSearchKeyName] = useState<string>("");
-  const [searchValue, setSearchValue] = useState<string>("");
   const selectedItems = useRef<any>([]);
 
   const [tableData, setTableData] = useState<any>(props.data);
@@ -240,48 +300,23 @@ const Table = (props: Props) => {
   }
 
   /**
-   * table search component
-   *
-   * @returns {JSX.Element}
-   *
-   * @version 1.0
-   */
-  const TableSearch = () => {
-    console.log(searchValue);
-    
-    return (
-      <div className={style.search}>
-        <input
-          className={style.input}
-          type="text"
-          placeholder={`${searchKeyName} 검색`}
-          value={searchValue}
-          onChange={(e) => {
-            setSearchValue(e.target.value);
-            // search.addFilterItem({
-            //   id: "mainSearch",
-            //   key: searchKey,
-            //   operator: "=",
-            //   value: e.target.value,
-            // });
-          }}
-        />
-      </div>
-    );
-  };
-
-  /**
    * filter component
    *
    * @returns {JSX.Element}
    *
    * @version 1.0 design
    */
-  const TableFilter = ({ search }: { search: any }) => {
+  const TableFilter = () => {
     return (
       <div className={style.table_filter}>
-        {props.filterSearch && <TableSearch />}
-        <TableControls selectedItems={selectedItems.current} />
+        {props.filterSearch && (
+          <TableSearch
+            searchKey={searchKey}
+            search={search}
+            searchKeyName={searchKeyName}
+          />
+        )}
+        <TableControls data={tableData} selectedItems={selectedItems.current} />
       </div>
     );
   };
@@ -399,7 +434,7 @@ const Table = (props: Props) => {
         border: props.style?.border,
       }}
     >
-      {props.filter && <TableFilter search={search} />}
+      {props.filter && <TableFilter />}
       <TableHeader />
       <TableBody />
     </div>
