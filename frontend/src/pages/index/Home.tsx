@@ -46,7 +46,6 @@ const Home = () => {
       <QuickSearch />
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>일정</div>
 
         <Schedule />
       </div>
