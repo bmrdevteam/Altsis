@@ -52,7 +52,12 @@ const Enrollment = (props: Props) => {
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
   const [courses, setCourses] = useState<any[]>([]);
   function handleTableOnClick(e: any) {
-    console.log(e.target.dataset.value);
+    database.C({
+      location: "enrollments",
+      data: {
+        syllabus: e.target.dataset.value,
+      },
+    });
   }
 
   async function getCourseList() {
@@ -63,7 +68,7 @@ const Enrollment = (props: Props) => {
   }
   useEffect(() => {
     if (registrations.length <= 0) {
-      console.log("no season", registrations);  
+      console.log("no season", registrations);
 
       setAlertPopupActive(true);
     } else {
@@ -85,7 +90,7 @@ const Enrollment = (props: Props) => {
           header={[
             {
               text: "신청",
-              key: "subject",
+              key: "_id",
               onClick: handleTableOnClick,
               type: "button",
               width: "80px",
