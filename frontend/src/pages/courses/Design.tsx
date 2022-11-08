@@ -27,9 +27,10 @@
  *
  */
 
+import Tab from "components/tab/Tab";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/button/Button";
 import Autofill from "../../components/input/Autofill";
@@ -69,6 +70,24 @@ const CourseDesign = (props: Props) => {
     });
     return result;
   }
+  async function submit() {
+    const res = await database.C({
+      location: "syllabuses",
+      data: {
+        season: currentSeason._id,
+        classTitle: courseTitle,
+        point: coursePoint,
+      },
+    });
+    return res;
+  }
+
+  const [courseTitle, setCourseTitle] = useState<string>();
+  const [courseMentor, setCourseMentor] = useState<string>();
+  const [coursePoint, setCoursePoint] = useState<string>();
+  const [courseTime, setCourseTime] = useState<any>();
+  const courseTimeRef = useRef<any>({});
+  const [courseClassroom, setCourseClassroom] = useState<string>();
 
   return (
     <>
@@ -77,7 +96,14 @@ const CourseDesign = (props: Props) => {
         <div className={style.design_form}>
           <div className={style.title}>수업 개설</div>
           <div style={{ display: "flex", gap: "24px" }}>
-            <Input appearence="flat" label="수업명" required={true} />
+            <Input
+              appearence="flat"
+              label="수업명"
+              required={true}
+              onChange={(e: any) => {
+                setCourseTitle(e.target.value);
+              }}
+            />
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -98,14 +124,13 @@ const CourseDesign = (props: Props) => {
             />
 
             <div style={{ display: "flex", flex: "1 1 0", gap: "24px" }}>
-              <Autofill
+              <Input
                 appearence="flat"
-                options={[
-                  { text: "1", value: "1" },
-                  { text: "2", value: "2  " },
-                ]}
                 label="학점"
-                required
+                required={true}
+                onChange={(e: any) => {
+                  setCoursePoint(e.target.value);
+                }}
               />
             </div>
           </div>
@@ -117,15 +142,15 @@ const CourseDesign = (props: Props) => {
                 setTimeSelectPopupActive(true);
               }}
             >
-              시간 선택
-            </Button>
-            <Button style={{ flex: "1 1 0 " }} type="ghost">
-              강의실 선택
+              강의실 및 시간 선택
             </Button>
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           {/* <EditorParser data={currentSeason?.formTimetable} /> */}
           <EditorParser auth="edit" data={currentSeason?.formSyllabus} />
+          <Button style={{ marginTop: "24px" }} type="ghost">
+            제출
+          </Button>
         </div>
       </div>
 
@@ -146,12 +171,49 @@ const CourseDesign = (props: Props) => {
       {timeSelectPopupActive && (
         <Popup
           setState={setTimeSelectPopupActive}
-          title="시간 선택"
+          title="강의실 및 시간 선택"
           closeBtn
           style={{ borderRadius: "4px", width: "900px" }}
-          footer={<Button type="ghost">선택</Button>}
+          footer={
+            <Button
+              type="ghost"
+              onClick={() => {
+                setCourseTime(
+                  Object.keys(
+                    Object.fromEntries(
+                      Object.entries(courseTimeRef.current).filter(
+                        ([key, value]) => value
+                      )
+                    )
+                  )
+                );
+                console.log(courseTime);
+              }}
+            >
+              선택
+            </Button>
+          }
         >
-          <EditorParser auth="edit" data={currentSeason?.formTimetable} />
+          <Select
+            appearence="flat"
+            options={[
+              { text: "이세찬", value: "1" },
+              { text: "나도몰라", value: "2" },
+            ]}
+            label="강의실 선택"
+            required
+          />
+          <div style={{ height: "24px" }}></div>
+          <EditorParser
+            auth="edit"
+            onChange={(data) => {
+              Object.assign(courseTimeRef.current, data);
+
+              console.log(data);
+            }}
+            defaultValues={courseTimeRef.current}
+            data={currentSeason?.formTimetable}
+          />
         </Popup>
       )}
     </>
