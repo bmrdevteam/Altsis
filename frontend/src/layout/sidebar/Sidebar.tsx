@@ -48,7 +48,7 @@ const Sidebar = (props: Props) => {
       />
 
       <NavLinks>
-        <Search />
+        {/* <Search /> */}
 
         {SidebarData(currentUser?.auth).map((data: INavLink, index: number) => {
           return (
