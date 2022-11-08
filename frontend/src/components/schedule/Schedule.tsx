@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import style from "./schedule.module.scss";
 import create from "zustand";
 import useGenerateId from "hooks/useGenerateId";
+import Svg from "assets/svg/Svg";
 
 type TEvent = {
   id: string;
@@ -153,7 +154,7 @@ const CurrentTime = () => {
       update({});
     }, 10000);
     return () => {
-      clearInterval(timer)
+      clearInterval(timer);
     };
   }, []);
 
@@ -188,11 +189,32 @@ function Schedule() {
   const dayArray = ["일", "월", "화", "수", "목", "금", "토"];
   return (
     <div className={style.calendar_container}>
-      <div className={style.day_lable}>
-        <div style={{ minWidth: "80px", maxWidth: "80px" }}></div>
-        {dayArray.map((val) => {
-          return <div key={val}>{val}</div>;
-        })}
+      <div className={style.header}>
+        <div className={style.controls}>
+          <div className={style.title}>일정</div>
+          <div style={{ flex: "1 1 0" }}></div>
+          <div className={style.btn}>일정추가</div>
+          <div>
+            <Svg type={"chevronLeft"} width={"24px"} height={"24px"} />
+          </div>
+          <div>2022/12/5</div>
+          <div>
+            <Svg type={"chevronRight"} width={"24px"} height={"24px"} />
+          </div>
+          <div>
+            <Svg type={"horizontalDots"} width={"24px"} height={"18px"}/>
+          </div>
+        </div>
+        <div className={style.days}>
+          <div style={{ minWidth: "80px", maxWidth: "80px" }}></div>
+          {dayArray.map((val) => {
+            return (
+              <div key={val} className={style.day}>
+                {val}
+              </div>
+            );
+          })}
+        </div>
       </div>
       <div className={style.calendar}>
         <div className={style.time_labels}>
