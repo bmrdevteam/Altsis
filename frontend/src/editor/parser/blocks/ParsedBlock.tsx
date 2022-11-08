@@ -4,14 +4,12 @@ import ParsedDataTableBlock from "./ParsedDataTableBlock";
 import ParsedTableBlock from "./ParsedTableBlock";
 type Props = {
   blockData: any;
-  onChange?: (data: any) => void;
   auth: "edit" | "view";
   returnData: any;
+  defaultValues?: any;
 };
 
 const ParsedBlock = (props: Props) => {
-  console.log(props.blockData);
-
   switch (props.blockData.type) {
     case "paragraph":
       return (
@@ -22,6 +20,7 @@ const ParsedBlock = (props: Props) => {
         <ParsedTableBlock
           blockData={props.blockData}
           auth={props.auth}
+          defaultValues={props.defaultValues}
           returnData={props.returnData}
         />
       );
