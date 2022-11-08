@@ -6,6 +6,7 @@ type Props = {
   blockData: any;
   auth: "edit" | "view";
   returnData: any;
+  defaultValues?: any;
 };
 const ParsedTableBlock = (props: Props) => {
   const SetColumn = () => {
@@ -88,6 +89,10 @@ const ParsedTableBlock = (props: Props) => {
           <div className={style.cell} style={{ textAlign: data.align }}>
             <input
               type="checkbox"
+              defaultChecked={
+                props.defaultValues?.[data?.id] === true ||
+                props.defaultValues?.[data?.name] === true
+              }
               onChange={(e) => {
                 if (data?.name === undefined) {
                   props.returnData[data?.id] = e.target.checked;
