@@ -15,6 +15,7 @@ type TEvent = {
 interface ICalendarState {
   events: TEvent[];
   addEvent: (day: string, startTime: string, endTime: string) => void;
+  setEvents: (events: TEvent[]) => void;
   editor: boolean;
   setEditor: (to: boolean) => void;
   currentEvent: TEvent | undefined;
@@ -43,6 +44,10 @@ const useStore = create<ICalendarState>()((set) => {
           },
         ],
       })),
+    setEvents: (events) =>
+      set((state) => ({
+        events:  events,
+      })),
     currentEvent: undefined,
     setCurrentEvent: (id: string) =>
       set((state) => ({
@@ -60,7 +65,7 @@ const RowFunction = ({ day }: { day: string }) => {
             key={val}
             className={style.block}
             onClick={() => {
-              addEvent(day, `${val}:00`, `${val + 1}:00`);
+              // addEvent(day, `${val}:00`, `${val + 1}:00`);
             }}
           ></div>
         );
@@ -160,7 +165,6 @@ const CurrentTime = () => {
 
   const today = new Date();
   const currentTime = today.getHours() + today.getMinutes() / 60;
-  console.log(currentTime);
 
   return (
     <div
@@ -182,8 +186,14 @@ const RowGrid = ({ day }: { day: string }) => {
     </div>
   );
 };
-function Schedule() {
-  const { events } = useStore();
+function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
+  const { setEvents } = useStore();
+
+  useEffect(() => {
+    defaultEvents && setEvents(defaultEvents);
+  }, [defaultEvents]);
+  
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const dayArray = ["일", "월", "화", "수", "목", "금", "토"];
@@ -202,7 +212,7 @@ function Schedule() {
             <Svg type={"chevronRight"} width={"24px"} height={"24px"} />
           </div>
           <div>
-            <Svg type={"horizontalDots"} width={"24px"} height={"18px"}/>
+            <Svg type={"horizontalDots"} width={"24px"} height={"18px"} />
           </div>
         </div>
         <div className={style.days}>
@@ -254,8 +264,8 @@ function Schedule() {
               </div>
             );
           })}
-          <EventEditor />
         </div>
+        <EventEditor />
       </div>
     </div>
   );
