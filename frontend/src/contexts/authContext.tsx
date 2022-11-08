@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return res;
   }
-  console.log("regist", registrations);
+  console.log("쳑ㄱ둣", currentSeason);
 
   useEffect(() => {
     loading &&
