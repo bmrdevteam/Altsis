@@ -125,13 +125,27 @@
           height: 0px;
 
           .event {
+            margin: 0 4px;
             cursor: pointer;
             position: absolute;
-            width: 100%;
+            width: calc(100% - 8px);
             font-size: 12px;
             padding: 4px;
             border-radius: 4px;
-            background-color: aquamarine;
+            background-color: rgb(202, 222, 255);
+
+            .title {
+              font-weight: 600;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+            }
+
+            .time {
+              margin-top: 1px;
+            }
           }
 
 
@@ -154,39 +168,40 @@
         }
       }
 
-      .editor_background {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        z-index: 200;
-        width: 100vw;
+    }
+
+    .editor_background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      z-index: 200;
+      width: 100vw;
+    }
+
+    .editor_container {
+      padding: 24px;
+      z-index: 2022;
+      position: fixed;
+      top: 50%;
+      right: 50%;
+      transform: translate(50%, -50%);
+      background-color: #fff;
+      width: 400px;
+      height: 500px;
+      box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+      border-radius: 4px;
+
+      .title {
+        font-size: 16px;
+        font-weight: 600;
       }
 
-      .editor_container {
-        padding: 24px;
-        z-index: 2022;
-        position: fixed;
-        top: 50%;
-        right: 50%;
-        transform: translate(50%, -50%);
-        background-color: #fff;
-        width: 400px;
-        height: 500px;
-        box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-        border-radius: 4px;
-
-        .title {
-          font-size: 16px;
-          font-weight: 600;
-        }
-
-        .title_input {
-          font-size: 16px;
-          margin-top: 24px;
-          border: none;
-          outline: none;
-        }
+      .title_input {
+        font-size: 16px;
+        margin-top: 24px;
+        border: none;
+        outline: none;
       }
     }
   }
