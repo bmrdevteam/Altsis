@@ -1,15 +1,15 @@
 import { isArray } from "lodash";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import ParsedBlock from "./parser/blocks/ParsedBlock";
 
 type Props = {
   data: any;
-  onChange?: (data: any) => {};
+  onChange?: (data: any) => void;
   auth: "edit" | "view";
+  defaultValues?: any;
 };
 
 const EditorParser = (props: Props) => {
-  console.log(props.data);
   const returnData = useRef<any>({});
 
   return (
@@ -27,7 +27,7 @@ const EditorParser = (props: Props) => {
                 returnData={returnData.current}
                 blockData={value}
                 auth={props.auth}
-                onChange={props.onChange}
+                defaultValues={props.defaultValues}
               />
             </div>
           );
