@@ -1,8 +1,8 @@
 .section {
-    margin: 24px;
-
-
-
+    /* margin: 24px; */
+    padding: 24px;
+    height: calc(100% - 56px);
+    overflow: hidden;
     .title {
         font-size: 18px;
         font-weight: 600;
