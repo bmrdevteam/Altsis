@@ -1,21 +1,46 @@
 .calendar_container {
   // border: 1px solid rgb(225, 225, 225);
   overflow-y: scroll;
-  height: inherit;
+  height: 100%;
   -ms-overflow-style: none;
   scrollbar-width: none;
 
-  .day_lable {
+  .header {
     z-index: 12;
-    display: flex;
     position: sticky;
+    background-color: #fff;
     top: 0;
     border-bottom: 1px solid rgb(225, 225, 225);
+    font-size: 14px;
+    font-weight: 600;
 
-    div {
-      flex: 1 1 0;
-      text-align: center;
-      background-color: #fff;
+    .title {
+      font-size: 18px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+
+      .btn {
+        border: 1px solid rgb(225, 225, 225);
+        border-radius: 4px;
+        padding: 4px 6px;
+        cursor: pointer;
+      }
+    }
+
+    .days {
+      margin-top: 12px;
+      display: flex;
+
+      .day {
+        font-weight: 500;
+        flex: 1 1 0;
+        text-align: center;
+
+      }
     }
   }
 
@@ -57,7 +82,6 @@
         min-width: 80px;
         max-width: 80px;
         text-align: right;
-        background: #fff;
         color: red;
 
       }
