@@ -20,6 +20,12 @@ export const SidebarData = (role: string): any => {
     case "admin":
       return [
         {
+          title: "dashboard",
+          name: "대시보드",
+          path: "/",
+          icon: <Svg type="school" />,
+        },
+        {
           title: "enrollment",
           name: "수강신청",
           path: "/enrollment",
@@ -79,6 +85,12 @@ export const SidebarData = (role: string): any => {
 
     default:
       return [
+        {
+          title: "dashboard",
+          name: "대시보드",
+          path: "/",
+          icon: <Svg type="school" />,
+        },
         {
           title: "enrollment",
           name: "수강신청",
