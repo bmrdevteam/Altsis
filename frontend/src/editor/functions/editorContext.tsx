@@ -125,17 +125,56 @@ export const EditorProvider = (props: {
    * save the form data to the backend
    */
   async function saveEditorData() {
-    await database.U({
-      location: `forms/${props.id}`,
-      data: {
-        new: {
-          title: editorTitle,
-          type: editorType,
-          data: result(),
+    if (!(editorType === "timetable")) {
+      await database.U({
+        location: `forms/${props.id}`,
+        data: {
+          new: {
+            title: editorTitle,
+            type: editorType,
+            data: result(),
+          },
         },
-      },
-    });
+      });
+    } else {
+      parseTimeBlocks();
+
+      await database.U({
+        location: `forms/${props.id}`,
+        data: {
+          new: {
+            title: editorTitle,
+            type: editorType,
+            data: result(),
+            timeBlocks: parseTimeBlocks(),
+          },
+        },
+      });
+    }
   }
+
+  /** timeBlock parsing */
+  function parseTimeBlocks() {
+    let timeBlockOutputarr = [];
+    const tableData: any[] = result().filter((block: any) => {
+      return block.type === "table";
+    })[0].data.table;
+    for (let i = 0; i < tableData.length; i++) {
+      const row = tableData[i];
+      for (let ii = 0; ii < row.length; ii++) {
+        const cell = row[ii];
+        if (cell.type === "checkbox") {
+          timeBlockOutputarr.push({
+            label: cell.name,
+            start: row[0].timeRangeStart,
+            end: row[0].timeRangeEnd,
+          });
+        }
+      }
+    }
+    return timeBlockOutputarr;
+  }
+
   /**
    * --------------------------------------------------------------------
    *
