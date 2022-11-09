@@ -53,7 +53,7 @@ const Season = (props: Props) => {
 
   const { pid } = useParams();
 
-  const [seasons, setSeasons] = useState();
+  const [seasons, setSeasons] = useState<any[]>();
   const [selectedSeason, setSelectedSeason] = useState<any>();
 
   const [selectedYear, setSelectedYear] = useState();
@@ -160,7 +160,9 @@ const Season = (props: Props) => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
-          data={seasons}
+          data={seasons?.sort((a, b) => {
+            return new Date(b.period?.start).getTime() - new Date(a.period?.start).getTime();
+          })}
           header={[
             {
               text: "ID",
