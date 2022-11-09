@@ -29,6 +29,8 @@
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
+import useDatabase from "hooks/useDatabase";
+import { useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
 
 type Props = {
@@ -36,6 +38,20 @@ type Props = {
 };
 
 function Basic(props: Props) {
+  const database = useDatabase();
+  const [year, setYear] = useState<number>(parseInt(props.seasonData.year));
+  const [term, setTerm] = useState<string>(props.seasonData.term);
+  const [seasonStart, setSeasonStart] = useState<string>(
+    props.seasonData?.period?.start ?? ""
+  );
+  const [seasonEnd, setSeasonEnd] = useState<string>(
+    props.seasonData?.period?.end ?? ""
+  );
+
+  async function updateSeason(data: any) {
+    const result = database.U({location:"l",data:""})
+  }
+
   const years = () => {
     let result: { text: string; value: number }[] = [];
     const date = new Date();
@@ -54,14 +70,14 @@ function Basic(props: Props) {
           <Select
             style={{ minHeight: "30px" }}
             label="년도 선택"
-            defaultSelectedValue={parseInt(props.seasonData.year)}
+            defaultSelectedValue={year}
             required
             options={years()}
             appearence={"flat"}
           />
           <Input
             style={{ maxHeight: "30px" }}
-            defaultValue={props.seasonData.term}
+            defaultValue={term}
             appearence="flat"
             label="학기"
             onChange={(e: any) => {
