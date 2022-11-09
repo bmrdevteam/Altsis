@@ -34,7 +34,10 @@ const seasonSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    period: String,
+    period: {
+      start: String,
+      end: String,
+    },
     permissionSyllabus: [[]],
     permissionEnrollment: [[]],
     permissionEvaluation: [[]],
