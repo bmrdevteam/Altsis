@@ -82,6 +82,8 @@ module.exports.enroll = async (req, res) => {
 
 module.exports.enrollbulk = async (req, res) => {
   try {
+    const _Enrollment = Enrollment(req.user.dbName);
+
     const syllabus = await Syllabus(req.user.dbName).findById(
       req.body.syllabus
     );
@@ -97,16 +99,18 @@ module.exports.enrollbulk = async (req, res) => {
     const syllabusSubdocument = syllabus.getSubdocument();
 
     for (let student of req.body.students) {
-      enrollments.push({
+      const enrollment = new _Enrollment({
         ...syllabusSubdocument,
         studentId: student.userId,
         studentName: student.userName,
       });
+      await enrollment.save();
+      enrollments.push(enrollment);
     }
-    const newEnrollments = await Enrollment(req.user.dbName).insertMany(
-      enrollments
-    );
-    return res.status(200).send({ enrollments: newEnrollments });
+    // const newEnrollments = await Enrollment(req.user.dbName).insertMany(
+    //   enrollments
+    // );
+    return res.status(200).send({ enrollments });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
