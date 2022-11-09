@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
+const encrypt = require("mongoose-encryption");
 
 const enrollmentSchema = mongoose.Schema(
   {
@@ -53,6 +54,12 @@ enrollmentSchema.methods.isTimeOverlapped = function (time) {
   }
   return null;
 };
+
+enrollmentSchema.plugin(encrypt, {
+  encryptionKey: process.env["ENCKEY"],
+  signingKey: process.env["SIGKEY"],
+  encryptedFields: ["evaluation"],
+});
 
 module.exports = (dbName) => {
   return conn[dbName].model("Enrollment", enrollmentSchema);
