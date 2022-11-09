@@ -39,17 +39,27 @@ type Props = {
 
 function Basic(props: Props) {
   const database = useDatabase();
-  const [year, setYear] = useState<number>(parseInt(props.seasonData.year));
-  const [term, setTerm] = useState<string>(props.seasonData.term);
+  const [seasonYear, setSeasonYear] = useState<string>(props.seasonData.year);
+  const [seasonTerm, setSeasonTerm] = useState<string>(props.seasonData.term);
   const [seasonStart, setSeasonStart] = useState<string>(
     props.seasonData?.period?.start ?? ""
   );
   const [seasonEnd, setSeasonEnd] = useState<string>(
     props.seasonData?.period?.end ?? ""
   );
+  const [databaseLoading, setDatabaseLoading] = useState<boolean>(false);
 
-  async function updateSeason(data: any) {
-    const result = database.U({location:"l",data:""})
+  async function updateSeason() {
+    const result = database.U({
+      location: `seasons/${props.seasonData._id}/period`,
+      data: {
+        new: {
+          start: seasonStart,
+          end: seasonEnd,
+        },
+      },
+    });
+    return result;
   }
 
   const years = () => {
@@ -67,21 +77,34 @@ function Basic(props: Props) {
     <div>
       <div className={style.popup}>
         <div className={style.row}>
-          <Select
+          {/* <Select
             style={{ minHeight: "30px" }}
             label="년도 선택"
-            defaultSelectedValue={year}
+            defaultSelectedValue={seasonYear}
             required
             options={years()}
             appearence={"flat"}
+            onChange={(e: any) => {
+              setSeasonYear(e.target.value);
+            }}
+          /> */}
+
+          <Input
+            style={{ maxHeight: "30px" }}
+            disabled
+            defaultValue={seasonYear}
+            appearence="flat"
+            label="년도 선택"
+            required
           />
           <Input
             style={{ maxHeight: "30px" }}
-            defaultValue={term}
+            defaultValue={seasonTerm}
+            disabled
             appearence="flat"
             label="학기"
             onChange={(e: any) => {
-              //   setTermName(e.target.value);
+              setSeasonTerm(e.target.value);
             }}
             required
           />
@@ -89,27 +112,40 @@ function Basic(props: Props) {
         <div className={style.row}>
           <Input
             style={{ maxHeight: "30px" }}
-            appearence="flat"
+            type="date"
             label="학기 시작"
+            appearence="flat"
+            defaultValue={seasonStart}
             onChange={(e: any) => {
-              //   setTermName(e.target.value);
+              setSeasonStart(e.target.value);
             }}
             required
           />
           <Input
             style={{ maxHeight: "30px" }}
+            type="date"
             appearence="flat"
             label="학기 끝"
+            defaultValue={seasonEnd}
             onChange={(e: any) => {
-              //   setTermName(e.target.value);
+              setSeasonEnd(e.target.value);
             }}
             required
           />
         </div>
         <Button
           type={"ghost"}
-          disableOnclick
-          onClick={() => {}}
+          disabled={databaseLoading}
+          onClick={() => {
+            setDatabaseLoading(true);
+            updateSeason()
+              .then(() => {
+                setDatabaseLoading(false);
+              })
+              .catch(() => {
+                setDatabaseLoading(false);
+              });
+          }}
           style={{
             borderRadius: "4px",
             marginTop: "24px",
@@ -117,7 +153,7 @@ function Basic(props: Props) {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
         >
-          저장
+          {databaseLoading ? "저장중" : "저장"}
         </Button>
       </div>
     </div>
