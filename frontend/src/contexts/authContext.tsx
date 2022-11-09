@@ -63,11 +63,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentRegistration(registration);
     const result = await database
       .R({
-        location: `seasons/${registration.season}`,
+        location: `seasons/${registration?.season}`,
       })
       .then((res) => {
         setCurrentSeason(res);
-      });
+      }).catch(()=>{})
     return result;
   }
 
