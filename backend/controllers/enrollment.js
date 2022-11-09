@@ -122,8 +122,8 @@ module.exports.find = async (req, res) => {
       if (!enrollment)
         return res.status(404).send({ message: "enrollment not found" });
 
-      if (enrollment.studentId != req.user.userId)
-        return res.status(401).send();
+      // if (enrollment.studentId != req.user.userId)
+      //   return res.status(401).send(); 임시적으로 권한 허용
 
       return res.status(200).send(enrollment);
     }
@@ -132,31 +132,33 @@ module.exports.find = async (req, res) => {
 
     // find by season & studentId
     if (season && studentId) {
-      const enrollments = await Enrollment(req.user.dbName)
-        .find({ season, studentId })
-        .select("-evaluation");
+      const enrollments = await Enrollment(req.user.dbName).find({
+        season,
+        studentId,
+      });
+      //  .select("-evaluation"); 임시적으로 권한 허용
       return res.status(200).send({ enrollments });
     }
 
     if (year && studentId) {
-      const enrollments = await Enrollment(req.user.dbName)
-        .find({ year, studentId })
-        .select("-evaluation");
+      const enrollments = await Enrollment(req.user.dbName).find({
+        year,
+        studentId,
+      });
+      //   .select("-evaluation"); // 임시적으로 권한 허용
       return res.status(200).send({ enrollments });
     }
 
     if (studentId) {
-      const enrollments = await Enrollment(req.user.dbName)
-        .find({ studentId })
-        .select("-evaluation");
+      const enrollments = await Enrollment(req.user.dbName).find({ studentId });
+      //  .select("-evaluation"); 임시적으로 권한 허용
       return res.status(200).send({ enrollments });
     }
 
     // find by syllabus
     if (syllabus) {
-      const enrollments = await Enrollment(req.user.dbName)
-        .find({ syllabus })
-        .select(["studentId", "studentName"]);
+      const enrollments = await Enrollment(req.user.dbName).find({ syllabus });
+      // .select(["studentId", "studentName"]); 임시적으로 권한 허용
       return res.status(200).send({ enrollments });
     }
     return res.status(400).send();
@@ -188,16 +190,19 @@ module.exports.findEvaluations = async (req, res) => {
         return res.status(404).send({ message: "syllabus not found" });
 
       // 권한 확인 - only teacher can accss evaluations
-      for (let i = 0; i < _syllabus.teachers.length; i++) {
-        if (_syllabus.teachers[i].userId == req.user.userId) {
-          const enrollments = await Enrollment(req.user.dbName)
-            .find({
-              syllabus,
-            })
-            .select(["studentId", "studentName", "evaluation"]);
-          return res.status(200).send({ enrollments });
-        }
-      }
+      const enrollments = await Enrollment(req.user.dbName).find({
+        syllabus,
+      }); //임시 허용
+      return res.status(200).send({ enrollments });
+
+      // for (let i = 0; i < _syllabus.teachers.length; i++) {
+      //   if (_syllabus.teachers[i].userId == req.user.userId) {
+      //     const enrollments = await Enrollment(req.user.dbName).find({
+      //       syllabus,
+      //     }).select(["studentId", "studentName", "evaluation"]);
+      //     return res.status(200).send({ enrollments });
+      //   }
+      // }
       return res.status(401).send();
     }
 
