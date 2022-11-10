@@ -10,13 +10,15 @@ module.exports.loginLocal = async (req, res) => {
   passport.authenticate("local2", (authError, user, dbName) => {
     try {
       if (authError) throw authError;
+      console.log("DEBUG: authentication is over");
       return req.login({ user, dbName }, (loginError) => {
         if (loginError) throw loginError;
-
+        console.log("DEBUG: login is over");
         /* set maxAge as 1 year if auto login is requested */
         if (req.body.persist === "true") {
           req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
         }
+        console.log("DEBUG: sending response");
         return res.status(200).send(user);
       });
     } catch (err) {
