@@ -11,6 +11,7 @@ const registrationSchema = mongoose.Schema({
   schoolName: String,
   year: String,
   term: String,
+  period: Object,
   userId: {
     type: String,
     required: true,
