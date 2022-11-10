@@ -50,34 +50,36 @@ const CourseDesign = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
 
+  const [teachers, setTeachers] = useState<any>();
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
     useState<boolean>(false);
 
-  async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools" });
+  async function getTeachers() {
+    const { registrations: res } = await database.R({
+      location: `registrations?role=teacher`,
+    });
     return res;
   }
   useEffect(() => {
     if (currentSchool === null || currentSchool === undefined) {
       setAlertPopupActive(true);
     }
-  }, []);
-  function getClassrooms() {
-    let result: any[] = [];
-    currentSeason?.classrooms?.map((value: string, index: number) => {
-      result.push({ text: value, value: index });
+    getTeachers().then((res) => {
+      console.log(res);
+      setTeachers(res);
     });
-    return result;
-  }
+  }, []);
   async function submit() {
+    let submitObject = {
+      season: currentSeason._id,
+      classTitle: courseTitle,
+      point: coursePoint,
+    };
+    Object.assign(submitObject, courseMoreInfo);
     const res = await database.C({
       location: "syllabuses",
-      data: {
-        season: currentSeason._id,
-        classTitle: courseTitle,
-        point: coursePoint,
-      },
+      data: submitObject,
     });
     return res;
   }
@@ -86,6 +88,7 @@ const CourseDesign = (props: Props) => {
   const [courseMentor, setCourseMentor] = useState<string>();
   const [coursePoint, setCoursePoint] = useState<string>();
   const [courseTime, setCourseTime] = useState<any>();
+  const [courseMoreInfo, setCourseMoreInfo] = useState<any>({});
   const courseTimeRef = useRef<any>({});
   const [courseClassroom, setCourseClassroom] = useState<string>();
 
@@ -115,16 +118,19 @@ const CourseDesign = (props: Props) => {
             />
             <Select
               appearence="flat"
-              options={[
-                { text: "이세찬", value: "1" },
-                { text: "나도몰라", value: "2" },
-              ]}
+              options={
+                teachers?.map((val: any) => ({
+                  value: val?.userName,
+                  text: val?.userId,
+                })) ?? []
+              }
               label="멘토 선택"
               required
             />
 
             <div style={{ display: "flex", flex: "1 1 0", gap: "24px" }}>
               <Input
+                type="number"
                 appearence="flat"
                 label="학점"
                 required={true}
@@ -134,20 +140,41 @@ const CourseDesign = (props: Props) => {
               />
             </div>
           </div>
-          <div style={{ display: "flex", marginTop: "24px", gap: "24px" }}>
-            <Button
-              style={{ flex: "1 1 0 " }}
-              type="ghost"
-              onClick={() => {
-                setTimeSelectPopupActive(true);
-              }}
-            >
-              강의실 및 시간 선택
-            </Button>
+          <Button
+            style={{ flex: "1 1 0 ", marginTop: "24px" }}
+            type="ghost"
+            onClick={() => {
+              setTimeSelectPopupActive(true);
+            }}
+          >
+            강의실 및 시간 선택
+          </Button>
+          <div style={{ display: "flex", marginTop: "20px", gap: "24px" }}>
+            <Input
+              appearence="flat"
+              label="강의실"
+              defaultValue={courseClassroom}
+              required={true}
+              disabled
+            />
+            <Input
+              appearence="flat"
+              label="시간"
+              defaultValue={courseTime}
+              required={true}
+              disabled
+            />
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           {/* <EditorParser data={currentSeason?.formTimetable} /> */}
-          <EditorParser auth="edit" data={currentSeason?.formSyllabus} />
+          <EditorParser
+            auth="edit"
+            // onChange={(data) => {
+            //   setCourseMoreInfo(data);
+            // }}
+            defaultValues={courseMoreInfo}
+            data={currentSeason?.formSyllabus}
+          />
           <Button style={{ marginTop: "24px" }} type="ghost">
             제출
           </Button>
@@ -187,7 +214,7 @@ const CourseDesign = (props: Props) => {
                     )
                   )
                 );
-                console.log(courseTime);
+                setTimeSelectPopupActive(false);
               }}
             >
               선택
@@ -197,9 +224,14 @@ const CourseDesign = (props: Props) => {
           <Select
             appearence="flat"
             options={[
-              { text: "이세찬", value: "1" },
-              { text: "나도몰라", value: "2" },
+              { value: "", text: "" },
+              ...currentSeason.classrooms?.map((val: any) => {
+                return { value: val, text: val };
+              }),
             ]}
+            onChange={(e: any) => {
+              setCourseClassroom(e);
+            }}
             label="강의실 선택"
             required
           />
@@ -208,7 +240,6 @@ const CourseDesign = (props: Props) => {
             auth="edit"
             onChange={(data) => {
               Object.assign(courseTimeRef.current, data);
-
               console.log(data);
             }}
             defaultValues={courseTimeRef.current}
