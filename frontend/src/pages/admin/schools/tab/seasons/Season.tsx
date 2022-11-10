@@ -161,7 +161,10 @@ const Season = (props: Props) => {
       <div style={{ marginTop: "24px" }}>
         <Table
           data={seasons?.sort((a, b) => {
-            return new Date(b.period?.start).getTime() - new Date(a.period?.start).getTime();
+            return (
+              new Date(b.period?.start).getTime() -
+              new Date(a.period?.start).getTime()
+            );
           })}
           header={[
             {
@@ -185,6 +188,17 @@ const Season = (props: Props) => {
               text: "학기",
               key: "term",
               type: "string",
+            },
+            {
+              text: "period",
+              key: "period",
+              type: "string",
+              returnFunction: (value) => {
+                if ((value?.start || value?.end) === undefined) {
+                  return "없음";
+                }
+                return `${value?.start} ~ ${value?.end}`;
+              },
             },
             {
               text: "자세히",
