@@ -42,6 +42,10 @@ const ParsedTableBlock = (props: Props) => {
             style={{ textAlign: data.align }}
             placeholder={data.placeholder ?? "입력"}
             contentEditable
+            onClick={() => {
+              console.log(props.returnData[data?.name]);
+            }}
+            defaultValue={props.returnData[data?.name]}
             suppressContentEditableWarning
             onInput={(e) => {
               if (data?.name === undefined) {
@@ -50,7 +54,9 @@ const ParsedTableBlock = (props: Props) => {
                 props.returnData[data?.name] = e.currentTarget.textContent;
               }
             }}
-          ></div>
+          >
+            {props.returnData[data?.name] ?? props.returnData[data?.id] ?? ""}
+          </div>
         ) : (
           <div>
             <div className={style.cell} style={{ textAlign: data.align }}>
