@@ -22,7 +22,7 @@ const myMulter = multer({
     acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      cb(null, `original/${req.user.academyId}_${req.user._id}`);
+      cb(null, `${req.user.academyId}/${req.user._id}/${file.originalname}`);
     },
   }),
   fileFilter: (req, file, cb) => {
@@ -41,28 +41,27 @@ exports.upload = async (req, res) => {
   myMulter.single("img")(req, {}, async (err) => {
     if (err) {
       if (err.code == "LIMIT_FILE_SIZE" || err.code == "INVALID_FILE_TYPE")
-        return res.status(409).send({ err });
-      return res.status(500).send({ err });
+        return res.status(409).send({ message: err.message });
+      return res.status(500).send({ message: err.message });
     }
-
-    const originalUrl = req.file.location;
-    const url = originalUrl.replace(/\/original\//, "/thumb/");
 
     if (user.profile) {
-      try {
-        await s3.deleteObject({
+      s3.deleteObject(
+        {
           Bucket: bucket,
-          Key: `thumb/${user.academyId}_${user._id}`,
-        });
-      } catch (err) {
-        return res.status(500).send({ err: err.message });
-      }
-    } else {
-      user.profile = url;
-      await user.save();
+          Key: `${user.academyId}/${user._id}/${user.profile.split("/").pop()}`,
+        },
+        async (err, data) => {
+          if (err) {
+            return res.status(500).send({ err: err.message });
+          }
+        }
+      );
     }
+    user.profile = req.file.location;
+    await user.save();
 
-    return res.status(200).send({ url, originalUrl });
+    return res.status(200).send({ profile: user.profile });
   });
 };
 
@@ -76,9 +75,11 @@ exports.delete = (req, res) => {
   if (!user.profile) {
     return res.status(404).send({ message: "no profile!" });
   }
-
   s3.deleteObject(
-    { Bucket: bucket, Key: `original/${user.academy.academyId}_${user._id}` },
+    {
+      Bucket: bucket,
+      Key: `${user.academyId}/${user._id}/${user.profile.split("/").pop()}`,
+    },
     async (err, data) => {
       if (err) {
         return res.status(500).send({ err: err.message });
@@ -86,7 +87,7 @@ exports.delete = (req, res) => {
       user.profile = undefined;
       await user.save();
 
-      return res.status(200).send({ success: true });
+      return res.status(200).send();
     }
   );
 };

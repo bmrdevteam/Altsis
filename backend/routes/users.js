@@ -8,6 +8,12 @@ const profile = require("../controllers/profile");
 //             User
 //=================================
 
+// ___________ update(myself) _____________
+// profile
+router.post("/profile", isLoggedIn, profile.upload);
+// router.get("/profile", isLoggedIn, profile.read);
+router.delete("/profile", isLoggedIn, profile.delete);
+
 // ____________ common ____________
 
 /* local & google login */
@@ -37,10 +43,5 @@ router.put("/:_id/schools", isLoggedIn, user.updateSchools);
 router.put("/google", isLoggedIn, user.connectGoogle);
 router.delete("/google", isLoggedIn, user.disconnectGoogle);
 router.put("/:field", isLoggedIn, user.updateField);
-
-// // profile 보류
-// router.post("/profile", isLoggedIn, profile.upload);
-// router.get("/profile", isLoggedIn, profile.read);
-// router.delete("/profile", isLoggedIn, profile.delete);
 
 module.exports = router;
