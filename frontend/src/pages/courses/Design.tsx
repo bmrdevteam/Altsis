@@ -51,13 +51,14 @@ const CourseDesign = (props: Props) => {
   const navigate = useNavigate();
 
   const [teachers, setTeachers] = useState<any>();
+  const [syllabus, setSyllabus] = useState<any>();
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
     useState<boolean>(false);
 
-  async function getTeachers() {
+  async function getTeachers(id: string) {
     const { registrations: res } = await database.R({
-      location: `registrations?role=teacher`,
+      location: `registrations?role=teacher&season=${id}`,
     });
     return res;
   }
@@ -65,11 +66,38 @@ const CourseDesign = (props: Props) => {
     if (currentSchool === null || currentSchool === undefined) {
       setAlertPopupActive(true);
     }
-    getTeachers().then((res) => {
-      console.log(res);
-      setTeachers(res);
-    });
   }, []);
+  async function getSyllabusByClassroom(classroom: string) {
+    const { syllabuses: res } = await database.R({
+      location: `syllabuses?season=${currentSeason._id}&classroom=${classroom}`,
+    });
+    return res;
+  }
+
+  useEffect(() => {
+    getTeachers(currentSeason?._id).then((res) => {
+      setTeachers(res);
+      console.log(res);
+      
+    });
+  }, [currentSeason]);
+
+  function syllabusToTime(s: any) {
+    let result = {};
+    if (s) {
+      for (let i = 0; i < s.length; i++) {
+        const element = s[i];
+        for (let ii = 0; ii < element.time.length; ii++) {
+          Object.assign(result, {
+            [element.time[ii].label]: element.classTitle,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
   async function submit() {
     let submitObject = {
       season: currentSeason._id,
@@ -120,8 +148,8 @@ const CourseDesign = (props: Props) => {
               appearence="flat"
               options={
                 teachers?.map((val: any) => ({
-                  value: val?.userName,
-                  text: val?.userId,
+                  value: val?.userId,
+                  text: val?.userName,
                 })) ?? []
               }
               label="멘토 선택"
@@ -231,6 +259,10 @@ const CourseDesign = (props: Props) => {
             ]}
             onChange={(e: any) => {
               setCourseClassroom(e);
+              getSyllabusByClassroom(e).then((res) => {
+                setSyllabus(res);
+                console.log(res);
+              });
             }}
             label="강의실 선택"
             required
@@ -242,6 +274,7 @@ const CourseDesign = (props: Props) => {
               Object.assign(courseTimeRef.current, data);
               console.log(data);
             }}
+            defaultTimetable={syllabusToTime(syllabus)}
             defaultValues={courseTimeRef.current}
             data={currentSeason?.formTimetable}
           />
