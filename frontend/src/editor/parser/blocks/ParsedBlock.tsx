@@ -7,6 +7,7 @@ type Props = {
   auth: "edit" | "view";
   returnData: any;
   defaultValues?: any;
+  defaultTimetable?: any;
 };
 
 const ParsedBlock = (props: Props) => {
@@ -22,6 +23,7 @@ const ParsedBlock = (props: Props) => {
           auth={props.auth}
           defaultValues={props.defaultValues}
           returnData={props.returnData}
+          defaultTimetable={props.defaultTimetable}
         />
       );
     case "dataTable":
