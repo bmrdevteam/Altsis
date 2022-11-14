@@ -7,6 +7,7 @@ type Props = {
   auth: "edit" | "view";
   returnData: any;
   defaultValues?: any;
+  defaultTimetable?: any;
 };
 const ParsedTableBlock = (props: Props) => {
   const SetColumn = () => {
@@ -91,8 +92,25 @@ const ParsedTableBlock = (props: Props) => {
           </div>
         );
       case "checkbox":
+        if (
+          props.defaultTimetable?.[data?.name] ||
+          props.defaultTimetable?.[data?.id]
+        ) {
+          return (
+            <div
+              className={style.cell}
+              style={{ textAlign: data.align, fontSize: data.fontSize }}
+            >
+              {props.defaultTimetable?.[data?.name] ??
+                props.defaultTimetable?.[data?.id]}
+            </div>
+          );
+        }
         return (
-          <div className={style.cell} style={{ textAlign: data.align }}>
+          <div
+            className={style.cell}
+            style={{ textAlign: data.align, fontSize: data.fontSize }}
+          >
             <input
               type="checkbox"
               defaultChecked={
