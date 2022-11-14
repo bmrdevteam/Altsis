@@ -74,8 +74,6 @@ type Props = { title?: string };
  */
 const Navbar = (props: Props) => {
   const { registrations, currentRegistration, changeCurrentSeason } = useAuth();
-  console.log(registrations);
-
   return (
     <div className={style.navbar_container}>
       {props.title && <div className={style.title}>{props.title}</div>}
