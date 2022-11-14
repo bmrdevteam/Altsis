@@ -161,8 +161,9 @@ module.exports.find = async (req, res) => {
 
     // find by syllabus
     if (syllabus) {
-      const enrollments = await Enrollment(req.user.dbName).find({ syllabus });
-      // .select(["studentId", "studentName"]); 임시적으로 권한 허용
+      const enrollments = await Enrollment(req.user.dbName)
+        .find({ syllabus })
+        .select(["studentId", "studentName"]);
       return res.status(200).send({ enrollments });
     }
     return res.status(400).send();
@@ -194,10 +195,21 @@ module.exports.findEvaluations = async (req, res) => {
         return res.status(404).send({ message: "syllabus not found" });
 
       // 권한 확인 - only teacher can accss evaluations
-      const enrollments = await Enrollment(req.user.dbName).find({
-        syllabus,
-      }); //임시 허용
-      return res.status(200).send({ enrollments });
+      const enrollments = await Enrollment(req.user.dbName)
+        .find({
+          syllabus,
+        })
+        .select([
+          "_id",
+          "studentId",
+          "studentName",
+          "createdAt",
+          "updatedAt",
+          "evaluation",
+        ]); //임시 허용
+      return res
+        .status(200)
+        .send({ syllabus: _syllabus.getSubdocument(), enrollments });
 
       // for (let i = 0; i < _syllabus.teachers.length; i++) {
       //   if (_syllabus.teachers[i].userId == req.user.userId) {

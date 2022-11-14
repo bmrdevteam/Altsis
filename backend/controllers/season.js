@@ -103,19 +103,25 @@ module.exports.update = async (req, res) => {
     // 해당 시즌의 syllabus가 존재하면 season을 수정할 수 없다.
     await checkSyllabus(req.user.dbName, season);
 
-    let registrations = [];
-
+    const isUpdated = {
+      year: req.body.new.year != season.year,
+      term: req.body.new.term != season.term,
+      period: !_.isEqual(req.body.period, season.period),
+    };
+    const doc = {};
     // year, term => (schoolId, year, term)은 unique해야 한다.
-    if (req.body.new.year != season.year || req.body.new.term != season.term) {
+    if (isUpdated["year"] || isUpdated["Term"]) {
       await checkDuplication(
         req.user.dbName,
         season.schoolId,
         req.body.new.year,
         req.body.new.term
       );
-      registrations = await Registration(req.user.dbName).find({
-        season: season._id,
-      });
+      doc["year"] = req.body.new.year;
+      doc["term"] = req.body.new.term;
+    }
+    if (isUpdated["period"]) {
+      doc["period"] = req.body.new.period;
     }
 
     [
@@ -133,17 +139,13 @@ module.exports.update = async (req, res) => {
     ].forEach((field) => {
       season[field] = req.body.new[field];
     });
-
     await season.save();
-    // year 또는 term이 변경되면
+
+    // year, term, period가 변경되면
     // registration 일괄 수정
-    await Promise.all(
-      registrations.map((registration) => {
-        registration.year = season.year;
-        registration.term = season.term;
-        registration.save();
-      })
-    );
+    if (!_.isEmpty(doc)) {
+      await Registration(req.user.dbName).update({ season: season._id }, doc);
+    }
 
     return res.status(200).send(season);
   } catch (err) {
@@ -161,6 +163,7 @@ module.exports.updateField = async (req, res) => {
       field +=
         req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
 
+    const doc = {};
     switch (field) {
       // year, term => (schoolId, year, term)은 unique해야 한다.
       case "year":
@@ -170,6 +173,8 @@ module.exports.updateField = async (req, res) => {
           req.body.new,
           season.term
         );
+        // await checkSyllabus(req.user.dbName, season); -> !TEMP!
+        doc["year"] = req.body.new;
         break;
       case "term":
         await checkDuplication(
@@ -178,6 +183,11 @@ module.exports.updateField = async (req, res) => {
           season.year,
           req.body.new
         );
+        // await checkSyllabus(req.user.dbName, season); -> !TEMP!
+        doc["term"] = req.body.new;
+        break;
+      case "period":
+        doc["period"] = req.body.new;
         break;
       // classrooms, subjects, formTimetable, formSyllabus => 해당 시즌에 syllabus가 존재하면 수정할 수 없다.
       case "classrooms":
@@ -202,6 +212,13 @@ module.exports.updateField = async (req, res) => {
 
     season[field] = req.body.new;
     await season.save();
+
+    // year, term, period가 변경되면
+    // registration 일괄 수정
+    if (!_.isEmpty(doc)) {
+      await Registration(req.user.dbName).update({ season: season._id }, doc);
+    }
+
     return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
