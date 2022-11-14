@@ -7,16 +7,19 @@ type Props = {
   onChange?: (data: any) => void;
   auth: "edit" | "view";
   defaultValues?: any;
+  defaultTimetable?: any;
 };
 
 const EditorParser = (props: Props) => {
   const returnData = useRef<any>({});
+  console.log(props.defaultTimetable);
+  
 
   return (
     <div
       onInput={() => {
         console.log(returnData.current);
-        
+
         props.onChange && props.onChange(returnData.current);
       }}
     >
@@ -28,6 +31,7 @@ const EditorParser = (props: Props) => {
                 returnData={returnData.current}
                 blockData={value}
                 auth={props.auth}
+                defaultTimetable={props.defaultTimetable}
                 defaultValues={props.defaultValues}
               />
             </div>
