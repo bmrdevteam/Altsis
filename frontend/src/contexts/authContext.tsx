@@ -44,7 +44,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return res;
   }
-  console.log("쳑ㄱ둣", currentSeason);
 
   useEffect(() => {
     loading &&
@@ -55,8 +54,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .catch((err) => {
           setLoading(false);
         });
-
-    return () => {};
   }, [loading]);
 
   async function changeCurrentSeason(registration: any) {
