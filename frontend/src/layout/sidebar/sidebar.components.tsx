@@ -159,7 +159,7 @@ const NavProfile = () => {
       <div className={style.nav_profile_container}>
         <div className={style.nav_profile}>
           <div className={style.profile_img}>
-            <img src={currentUser.profile || dummmyProfilePic} alt="profile" />
+            <img src={currentUser?.profile || dummmyProfilePic} alt="profile" />
           </div>
           <div className={style.profile_info}>
             <div
