@@ -12,13 +12,14 @@
     height: 100%;
 
     .table_filter {
+        background-color: var(--background-color);
         display: flex;
         height: 48px;
         width: 100%;
         -webkit-box-align: center;
         align-items: center;
         box-sizing: border-box;
-        border-bottom: var(--border-default);
+        border: var(--border-default);
 
         // .filters {
         //     position: absolute;
@@ -223,6 +224,9 @@
     }
 
     .table_header {
+        position: sticky;
+        top: 0;
+        border-top: var(--border-default);
         background-color: var(--component-color);
         display: flex;
         height: 48px;
@@ -293,7 +297,7 @@
 }
 
 .table_body {
-    border-radius: 0 0 4px 4px  ;
+    border-radius: 0 0 4px 4px;
     height: calc(100% - 48px);
     overflow: auto scroll;
     background-color: var(--background-color);
