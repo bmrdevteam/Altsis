@@ -46,6 +46,8 @@ import Subject from "./tab/Subject";
 import useDatabase from "../../../hooks/useDatabase";
 import Setting from "./tab/Setting";
 import Skeleton from "../../../components/skeleton/Skeleton";
+import Timetable from "./tab/Timetable";
+import Archive from "./tab/Archive";
 
 type Props = {};
 
@@ -95,7 +97,7 @@ const School = (props: Props) => {
       getSchool()
         .then((res) => {
           console.log(res);
-          setSchoolData(res)
+          setSchoolData(res);
         })
         .catch(() => {
           setIsSchool(false);
@@ -128,7 +130,8 @@ const School = (props: Props) => {
           강의실: (
             <Classroom school={schoolData} resetData={setResetSchoolData} />
           ),
-          // 설정: <Setting />,
+          "시간표(beta)": <Timetable />,
+          "학생정보 관리(archive)": <Archive />,
         }}
       />
     </div>
