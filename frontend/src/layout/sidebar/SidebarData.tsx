@@ -1,3 +1,4 @@
+import { archiveTestData } from "archiveTest";
 import Svg from "../../assets/svg/Svg";
 
 export interface INavLink {
@@ -32,10 +33,38 @@ export const SidebarData = (role: string): any => {
           icon: <Svg type="school" />,
         },
         {
-          title: "courses/design",
-          name: "수업 개설",
-          path: "/courses/design",
+          title: "courses",
+          name: "수업",
+          path: "/courses",
           icon: <Svg type="bookOpen" />,
+          subLink: [
+            {
+              title: "design",
+              name: "수업개설",
+              path: "/courses/design",
+              icon: <Svg type="file" />,
+            },
+            {
+              title: "design",
+              name: "수업관리",
+              path: "/courses/manage",
+              icon: <Svg type="file" />,
+            },
+          ],
+        },
+        {
+          title: "archive",
+          name: "학생생활",
+          path: "/archive",
+          icon: <Svg type="bookOpen" />,
+          subLink: archiveTestData.map((val) => {
+            return {
+              title: val.label,
+              name: val.label,
+              path: `/archive/${val.label}`,
+              icon: <Svg type="file" />,
+            };
+          }),
         },
         {
           title: "admin",
@@ -98,10 +127,24 @@ export const SidebarData = (role: string): any => {
           icon: <Svg type="school" />,
         },
         {
-          title: "courses/design",
-          name: "수업 개설",
-          path: "/courses/design",
+          title: "courses",
+          name: "수업",
+          path: "/courses",
           icon: <Svg type="bookOpen" />,
+          subLink: [
+            {
+              title: "design",
+              name: "수업개설",
+              path: "/courses/design",
+              icon: <Svg type="file" />,
+            },
+            {
+              title: "design",
+              name: "수업관리",
+              path: "/courses/manage",
+              icon: <Svg type="file" />,
+            },
+          ],
         },
         {
           title: "myaccount",
