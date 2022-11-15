@@ -67,6 +67,8 @@ import Form from "../pages/admin/forms/Pid";
 import Lists from "pages/admin/lists/Index";
 import List from "pages/admin/lists/Pid";
 import Myaccount from "pages/myaccount/Index";
+import Archive from "pages/archive/Index";
+import ArchiveField from "pages/archive/Pid";
 
 function RouterPage() {
   // authenticate path with simple userlogin check
@@ -111,7 +113,7 @@ function RouterPage() {
 
               {/* ----------------------------------------------------- */}
 
-              {/* admin routes */}
+              {/* owner routes */}
               <Route path="owner">
                 {/* <Route index element={<>}></Route>  */}
                 <Route path="academy" element={<Academies />}></Route>
@@ -120,7 +122,6 @@ function RouterPage() {
               {/* ----------------------------------------------------- */}
 
               {/* academy admin routes */}
-
               <Route path="admin">
                 {/* [!make!] an hook to identify the number of */}
                 <Route
@@ -191,6 +192,13 @@ function RouterPage() {
                     </RequireAuth>
                   }
                 ></Route>
+              </Route>
+
+              {/* ----------------------------------------------------- */}
+              {/* teacher routes */}
+              <Route path="archive">
+                <Route path="" element={<Archive />}></Route>
+                <Route path=":pid" element={<ArchiveField />}></Route>
               </Route>
 
               {/* ----------------------------------------------------- */}
