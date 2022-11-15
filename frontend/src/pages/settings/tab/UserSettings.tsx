@@ -96,8 +96,15 @@ const UserSettings = (props: Props) => {
         <div className={style.profile_img}>
           <img
             src={currentUser.profile || dummmyProfilePic}
-            alt="profile"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = currentUser?.profile.replace(
+                "/thumb/",
+                "/original/"
+              );
+            }}
             width={128}
+            alt="profile"
           />
         </div>
         <React.Fragment>

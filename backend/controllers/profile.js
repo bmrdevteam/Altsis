@@ -22,7 +22,10 @@ const myMulter = multer({
     acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
-      cb(null, `${req.user.academyId}/${req.user._id}/${file.originalname}`);
+      cb(
+        null,
+        `original/${req.user.academyId}/${req.user._id}/${file.originalname}`
+      );
     },
   }),
   fileFilter: (req, file, cb) => {
@@ -49,7 +52,9 @@ exports.upload = async (req, res) => {
       s3.deleteObject(
         {
           Bucket: bucket,
-          Key: `${user.academyId}/${user._id}/${user.profile.split("/").pop()}`,
+          Key: `original/${user.academyId}/${user._id}/${user.profile
+            .split("/")
+            .pop()}`,
         },
         async (err, data) => {
           if (err) {
@@ -58,7 +63,7 @@ exports.upload = async (req, res) => {
         }
       );
     }
-    user.profile = req.file.location;
+    user.profile = req.file.location.replace("/original/", "/thumb/");
     await user.save();
 
     return res.status(200).send({ profile: user.profile });
@@ -78,7 +83,9 @@ exports.delete = (req, res) => {
   s3.deleteObject(
     {
       Bucket: bucket,
-      Key: `${user.academyId}/${user._id}/${user.profile.split("/").pop()}`,
+      Key: `original/${user.academyId}/${user._id}/${user.profile
+        .split("/")
+        .pop()}`,
     },
     async (err, data) => {
       if (err) {
