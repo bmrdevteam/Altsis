@@ -47,7 +47,7 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 
 //ummm naming,,??
-import Enrollment from "../pages/enrollment/Index";
+import Enrollment from "../pages/courses/Enroll";
 import Courses from "../pages/courses/Index";
 import Course from "../pages/courses/Pid";
 
@@ -69,6 +69,7 @@ import List from "pages/admin/lists/Pid";
 import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
+import CourseList from "pages/courses/List";
 
 function RouterPage() {
   // authenticate path with simple userlogin check
@@ -229,18 +230,18 @@ function RouterPage() {
                 }
               ></Route>
               <Route
-                path="enrollment"
-                element={
-                  <RequireAuth>
-                    <Enrollment />
-                  </RequireAuth>
-                }
-              ></Route>
-              <Route
                 path="courses"
                 element={
                   <RequireAuth>
                     <Courses />
+                  </RequireAuth>
+                }
+              ></Route>
+               <Route
+                path="courses/enroll"
+                element={
+                  <RequireAuth>
+                    <Enrollment />
                   </RequireAuth>
                 }
               ></Route>
@@ -249,6 +250,14 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <CourseDesign />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/list"
+                element={
+                  <RequireAuth>
+                    <CourseList />
                   </RequireAuth>
                 }
               ></Route>
