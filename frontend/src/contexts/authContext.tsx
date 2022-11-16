@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [registrations, setRegistration] = useState<any>([]);
+  console.log("🚀 ~ file: authContext.tsx ~ line 25 ~ AuthProvider ~ registrations", registrations)
   const [currentRegistration, setCurrentRegistration] = useState<any>();
   const [currentSeason, setCurrentSeason] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
