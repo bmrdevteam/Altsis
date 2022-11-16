@@ -27,12 +27,6 @@ export const SidebarData = (role: string): any => {
           icon: <Svg type="school" />,
         },
         {
-          title: "enrollment",
-          name: "수강신청",
-          path: "/enrollment",
-          icon: <Svg type="school" />,
-        },
-        {
           title: "courses",
           name: "수업",
           path: "/courses",
@@ -43,11 +37,16 @@ export const SidebarData = (role: string): any => {
               name: "수업개설",
               path: "/courses/design",
               icon: <Svg type="file" />,
+            }, {
+              title: "enroll",
+              name: "수강신청",
+              path: "/courses/enroll",
+              icon: <Svg type="school" />,
             },
             {
-              title: "design",
-              name: "수업관리",
-              path: "/courses/manage",
+              title: "list",
+              name: "개설 목록",
+              path: "/courses/list",
               icon: <Svg type="file" />,
             },
           ],
