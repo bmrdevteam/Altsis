@@ -20,7 +20,7 @@ const Autofill = (props: Props) => {
   const [selected, setSelected] = useState<number>(
     props.defaultSelected ? props.defaultSelected : 0
   );
-  const [inputValue, setInputValue] = useState(props.options[selected].text);
+  const [inputValue, setInputValue] = useState(props.options[selected]?.text);
   const [valid, setValid] = useState(true);
 
   const [edit, setEdit] = useState<boolean>(false);
@@ -69,10 +69,12 @@ const Autofill = (props: Props) => {
       }`}
       ref={selectRef}
     >
-      <label className={style.label}>
-        {props.label}
-        {props.required && <span className={style.required}>*</span>}
-      </label>
+      {props.label && (
+        <label className={style.label}>
+          {props.label}
+          {props.required && <span className={style.required}>*</span>}
+        </label>
+      )}
       <input
         style={{
           borderColor: !valid
