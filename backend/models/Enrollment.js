@@ -56,8 +56,8 @@ enrollmentSchema.methods.isTimeOverlapped = function (time) {
 };
 
 enrollmentSchema.plugin(encrypt, {
-  encryptionKey: process.env["ENCKEY"],
-  signingKey: process.env["SIGKEY"],
+  encryptionKey: process.env["ENCKEY_E"],
+  signingKey: process.env["SIGKEY_E"],
   encryptedFields: ["evaluation"],
 });
 
