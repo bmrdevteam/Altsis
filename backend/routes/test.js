@@ -2,8 +2,10 @@ const express = require("express");
 const router = express.Router();
 const _ = require("lodash");
 const client = require("../caches/redis");
+const Archive = require("../models/Archive");
 const Registration = require("../models/Registration");
 const Season = require("../models/Season");
+const User = require("../models/User");
 
 router.get("/db", async (req, res) => {
   const _seasons = await Season(req.user.dbName).find({});
@@ -21,6 +23,13 @@ router.get("/db", async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "hello world! this is db/test",
+  });
+});
+
+router.post("/archives", async (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "hello world! this is /archives",
   });
 });
 

@@ -1,6 +1,6 @@
 .yarn
 /node_modules
 ecosystem.config.js
-.env
+.env*
 /config
 
