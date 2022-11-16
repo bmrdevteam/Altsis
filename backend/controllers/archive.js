@@ -50,6 +50,7 @@ module.exports.find = async (req, res) => {
       school,
     });
     if (!archive) return res.status(404).send({ message: "archive not found" });
+    archive.clean(); //DEVELOPMENT MODE
     return res.status(200).send(archive);
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -60,7 +61,7 @@ module.exports.findById = async (req, res) => {
   try {
     const archive = await Archive(req.user.dbName).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
-
+    archive.clean(); //DEVELOPMENT MODE
     return res.status(200).send(archive);
   } catch (err) {
     return res.status(500).send({ message: err.message });
