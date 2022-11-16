@@ -33,7 +33,7 @@ import Input from "../../../components/input/Input";
 import Textarea from "../../../components/textarea/Textarea";
 import { useAuth } from "../../../contexts/authContext";
 import style from "../../../style/pages/settings/settings.module.scss";
-import dummmyProfilePic from "assets/img/default_profile.png";
+import defaultProfilePic from "assets/img/default_profile.png";
 import Button from "components/button/Button";
 import useDatabase from "../../../hooks/useDatabase";
 
@@ -50,11 +50,21 @@ const UserSettings = (props: Props) => {
   ) => {
     if (fileInput.current) fileInput.current.click();
   };
+  const correctForm = /(jpeg|jpg|webp|png)$/;
 
   const handleProfileChange = async (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    if (!e.target.files) return;
+    if (!e.target.files || e.target.files?.length === 0) return;
+    if (!e.target.files[0].type.match(correctForm)) {
+      alert("지원되지 않는 파일 형식입니다.");
+      return;
+    }
+    if (e.target.files[0].size > 2 * 1024 * 1024) {
+      alert("크기가 2MB 이하인 사진만 등록할 수 있습니다.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("img", e.target.files[0]);
 
@@ -84,18 +94,18 @@ const UserSettings = (props: Props) => {
         deleteUserProfile("");
       })
       .catch((error) => {
-        alert(error);
+        alert(error.message);
       });
   };
 
   return (
     <div className={style.settings_container}>
       <div className={style.container_title}>사용자 정보</div>
-      <div>
-        <label className={style.container_subtitle}>프로필 사진</label>
-        <div className={style.profile_img}>
+
+      <div className={style.profile_upload}>
+        <div className={style.profile_boxed}>
           <img
-            src={currentUser.profile || dummmyProfilePic}
+            src={currentUser.profile || defaultProfilePic}
             onError={(e) => {
               e.currentTarget.onerror = null;
               e.currentTarget.src = currentUser?.profile.replace(
@@ -103,40 +113,35 @@ const UserSettings = (props: Props) => {
                 "/original/"
               );
             }}
-            width={128}
             alt="profile"
           />
+          <React.Fragment>
+            <Button
+              type={"ghost"}
+              style={{
+                backgroundColor: "rgba(33,37,41,.64)",
+                color: "white",
+                position: "absolute",
+                bottom: "0",
+                height: "20%",
+                width: "100%",
+                border: "none",
+              }}
+              onClick={handleProfileUploadButtonClick}
+            >
+              변경
+            </Button>
+            <input
+              type="file"
+              ref={fileInput}
+              style={{ display: "none" }}
+              onChange={handleProfileChange}
+            />
+          </React.Fragment>
         </div>
-        <React.Fragment>
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-            }}
-            onClick={handleProfileUploadButtonClick}
-          >
-            사진 업로드
-          </Button>
-          <input
-            type="file"
-            ref={fileInput}
-            style={{ display: "none" }}
-            onChange={handleProfileChange}
-          />
-        </React.Fragment>
-        <Button
-          type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-          }}
-          onClick={handleProfileDeleteButtonClick}
-        >
-          사진 삭제
-        </Button>
       </div>
-      <div style={{ display: "flex", gap: "12px", marginTop: "12px" }}>
+
+      <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
         <Input
           label="이름"
           placeholder="이름"
