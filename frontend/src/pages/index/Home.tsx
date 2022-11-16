@@ -86,7 +86,6 @@ const Home = () => {
     getEnrollments()
       .then((res) => {
         setEnrollments(res);
-        console.log("🚀 ~ file: Home.tsx ~ line 89 ~ .then ~ res", res);
       })
       .catch(() => {});
   }, [currentSeason]);
