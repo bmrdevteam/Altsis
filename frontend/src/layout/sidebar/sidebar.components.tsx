@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useState } from "react";
 import Svg from "assets/svg/Svg";
 import style from "./sidebar.module.scss";
-import dummmyProfilePic from "assets/img/default_profile.png";
+import defaultProfilePic from "assets/img/default_profile.png";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 import Popup from "components/popup/Popup";
@@ -160,7 +160,7 @@ const NavProfile = () => {
         <div className={style.nav_profile}>
           <div className={style.profile_img}>
             <img
-              src={currentUser?.profile || dummmyProfilePic}
+              src={currentUser?.profile || defaultProfilePic}
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = currentUser?.profile.replace(
