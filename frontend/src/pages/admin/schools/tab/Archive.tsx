@@ -50,11 +50,11 @@ function Archive({}: Props) {
             },
             {
               text: "자세히",
-              key: "label",
+              key: "",
               type: "button",
-              onClick: (e: any) => {
+              onClick: (value: any) => {
                 setEditArchivePopupActive(true);
-                setEditArchivefield(e.target.dataset.value);
+                setEditArchivefield(value.label);
               },
               width: "80px",
               align: "center",
