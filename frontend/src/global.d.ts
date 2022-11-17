@@ -3,6 +3,7 @@ declare module "*.scss" {
   export = content;
 }
 declare module "*.jpeg";
+declare module "*.png";
 declare module "*.data.tsx";
 
 interface Window {
