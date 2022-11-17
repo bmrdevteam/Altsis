@@ -28,12 +28,12 @@
  */
 
 import { useState } from "react";
-import Button from "../../../../components/button/Button";
-import Input from "../../../../components/input/Input";
-import Popup from "../../../../components/popup/Popup";
-import Table from "../../../../components/table/Table";
-import useDatabase from "../../../../hooks/useDatabase";
-import useGenerateId from "../../../../hooks/useGenerateId";
+import Button from "components/button/Button";
+import Input from "components/input/Input";
+import Popup from "components/popup/Popup";
+import Table from "components/table/Table";
+import useDatabase from "hooks/useDatabase";
+import useGenerateId from "hooks/useGenerateId";
 type Props = {
   school: any;
   resetData: any;
@@ -105,19 +105,11 @@ const Classroom = (props: Props) => {
             type: "arrText",
           },
           {
-            text: "자세히",
-            key: "schoolId",
-            type: "button",
-            onClick: () => {},
-            width: "80px",
-            align: "center",
-          },
-          {
             text: "삭제",
             key: "index",
             type: "button",
-            onClick: (e: any) => {
-              setDeleteClassroomIndex(parseInt(e.target.dataset.rowindex));
+            onClick: (value: any) => {
+              setDeleteClassroomIndex(parseInt(value.rowindex));
               setDeleteClassRoomPopupActive(true);
             },
             width: "80px",
