@@ -13,6 +13,8 @@ export function useAuth(): {
   registrations: any;
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  updateUserProfile: React.Dispatch<any>;
+  deleteUserProfile: React.Dispatch<any>;
 } {
   return useContext(AuthContext);
 }
@@ -40,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (res.registrations) {
       setRegistration(res.registrations);
       setCurrentRegistration(res.registrations[0]);
-      changeCurrentSeason(res.registrations[0])
+      changeCurrentSeason(res.registrations[0]);
     }
 
     return res;
@@ -65,9 +67,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       })
       .then((res) => {
         setCurrentSeason(res);
-      }).catch(()=>{})
+      })
+      .catch(() => {});
     return result;
   }
+
+  const updateUserProfile = (profile: string) => {
+    setCurrentUser({ ...currentUser, profile });
+  };
+  const deleteUserProfile = () => {
+    setCurrentUser({ ...currentUser, profile: undefined });
+  };
 
   const value = {
     setCurrentUser,
@@ -79,6 +89,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentRegistration,
     setLoading,
     currentSchool,
+    updateUserProfile,
+    deleteUserProfile,
   };
   return (
     <AuthContext.Provider value={value}>
