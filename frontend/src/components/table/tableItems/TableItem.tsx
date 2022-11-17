@@ -22,7 +22,7 @@ interface ITableItem {
     key: string | string[];
     value?: string;
     returnFunction?: (value: any) => string;
-    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+    onClick?: (value: any) => void;
     type: ITableItemType;
     link?: string;
     align?: "left" | "center" | "right";
@@ -132,7 +132,9 @@ const TableItem = (props: ITableItem) => {
       return (
         <div
           className={style.table_item}
-          onClick={props.header.onClick}
+          onClick={() => {
+            props.header.onClick && props.header.onClick(props.data);
+          }}
           data-value={props.header.value ? props.header.value : output}
           data-rowindex={props.index}
           style={{
