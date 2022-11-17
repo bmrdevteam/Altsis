@@ -117,10 +117,10 @@ const Schools = () => {
             },
             {
               text: "자세히",
-              key: "_id",
+              key: "",
               type: "button",
-              onClick: (e: any) => {
-                navigate(`${e.target.dataset.value}`);
+              onClick: (value: any) => {
+                navigate(`${value._id}`);
               },
               width: "80px",
               align: "center",
