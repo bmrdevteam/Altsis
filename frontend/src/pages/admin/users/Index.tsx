@@ -97,9 +97,20 @@ const Users = (props: Props) => {
               { text: "Id", key: "userId", type: "string" },
               {
                 text: "학교",
-                key: ["schools", "schooolName"],
+                key: "schools",
                 type: "string",
                 align: "center",
+                returnFunction: (val) => {
+                  let result = "";
+
+                  for (let i = 0; i < val.length; i++) {
+                    result = result.concat(val[i].schoolName);
+                    if (i >= 1) {
+                      result = result.concat(",");
+                    }
+                  }
+                  return result;
+                },
               },
               {
                 text: "auth",
