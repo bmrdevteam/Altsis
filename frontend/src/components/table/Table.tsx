@@ -17,6 +17,7 @@ import { useRef } from "react";
 import Select from "components/select/Select";
 import objectDownloadAsJson from "functions/objectDownloadAsJson";
 import objectDownloadAsCSV from "functions/objectDownloadAsCSV";
+import _ from "lodash";
 
 type Props = {
   data: any;
@@ -277,10 +278,26 @@ const TableSearch = ({
 const Table = (props: Props) => {
   const [searchKey, setSearchKey] = useState<string>("");
   const [searchKeyName, setSearchKeyName] = useState<string>("");
+
+  const [orderBy, setOrderBy] = useState<string>();
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
   const selectedItems = useRef<any>([]);
 
   const [tableData, setTableData] = useState<any>(props.data);
   const search = useSearch(tableData);
+
+  function tableDataResult() {
+    if (orderBy && orderBy !== "" && orderBy !== " " && tableData) {
+      if (sortOrder === "asc") return _.sortBy(search?.result(), orderBy);
+      if (sortOrder === "desc")
+        return _.sortBy(search?.result(), orderBy).reverse();
+    }
+    if (tableData) {
+      return search?.result();
+    }
+    return [];
+  }
 
   useEffect(() => {
     setTableData(props.data);
@@ -344,11 +361,31 @@ const Table = (props: Props) => {
                 border: props.style?.border,
               }}
               onClick={() => {
+                if (orderBy === value.key) {
+                  if (sortOrder === "asc") {
+                    setSortOrder("desc");
+                  } else {
+                    setSortOrder("asc");
+                    setOrderBy("");
+                  }
+                } else {
+                  setSortOrder("asc");
+                  setOrderBy(value.key);
+                }
                 setSearchKey(value.key);
                 setSearchKeyName(value.text);
               }}
             >
               {value.text}
+              {orderBy && orderBy === value.key ? (
+                sortOrder === "asc" ? (
+                  <Svg type={"arrowDown"} />
+                ) : (
+                  <Svg type={"arrowUp"} />
+                )
+              ) : (
+                ""
+              )}
             </div>
           ) : (
             <div
@@ -396,31 +433,30 @@ const Table = (props: Props) => {
       >
         <div className={style.table_body_container}>
           {/* map through rows */}
-          {tableData &&
-            search?.result()?.map((data: any, dataIndex: number) => {
-              return (
-                <div
-                  key={dataIndex}
-                  className={style.table_row}
-                  style={{ height: props.style?.rowHeight }}
-                >
-                  {/* map through the header to display the right output with the data */}
-                  {props.header.map((value, index) => {
-                    return (
-                      <TableItem
-                        append={appendItemToSelect}
-                        delete={deleteItemFromSelect}
-                        key={index}
-                        header={value}
-                        data={data}
-                        index={dataIndex}
-                        style={props.style}
-                      />
-                    );
-                  })}
-                </div>
-              );
-            })}
+          {tableDataResult().map((data: any, dataIndex: number) => {
+            return (
+              <div
+                key={dataIndex}
+                className={style.table_row}
+                style={{ height: props.style?.rowHeight }}
+              >
+                {/* map through the header to display the right output with the data */}
+                {props.header.map((value, index) => {
+                  return (
+                    <TableItem
+                      append={appendItemToSelect}
+                      delete={deleteItemFromSelect}
+                      key={index}
+                      header={value}
+                      data={data}
+                      index={dataIndex}
+                      style={props.style}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
