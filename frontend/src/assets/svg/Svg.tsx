@@ -13,10 +13,16 @@ const Svg = ({ type, width, height, style }: Props) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={width ?? "16"}
-      height={height ?? "16"}
+      width={width ?? "16px"}
+      height={height ?? "16px"}
       viewBox="0 0 24 24"
-      style={style}
+      style={Object.assign(
+        {
+          minWidth: width ?? "16px",
+          minHeight: height ?? "16px",
+        },
+        style
+      )}
     >
       {svgData[type as keyof typeof svgData]}
     </svg>
