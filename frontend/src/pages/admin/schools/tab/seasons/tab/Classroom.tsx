@@ -38,20 +38,20 @@ const Classroom = (props: Props) => {
 
   return (
     <div>
-        <Button
+      <Button
         type={"ghost"}
         style={{
           borderRadius: "4px",
-          height: "32px",margin:"24px 0",
+          height: "32px",
+          margin: "24px 0",
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
-        onClick={() => {
-
-        }}
+        onClick={() => {}}
       >
         + 새로운 강의실 추가
       </Button>
       <Table
+        type="string-array"
         data={props.seasonData.classrooms}
         header={[
           {
@@ -63,15 +63,14 @@ const Classroom = (props: Props) => {
           },
           {
             text: "강의실",
-            key: "",
-            type: "arrText",
+            key: 0,
+            type: "string",
           },
           {
             text: "삭제",
             key: "index",
             type: "button",
-            onClick: (e: any) => {
-            },
+            onClick: (e: any) => {},
             width: "80px",
             align: "center",
             textStyle: {
