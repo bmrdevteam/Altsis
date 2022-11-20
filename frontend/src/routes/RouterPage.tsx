@@ -197,10 +197,23 @@ function RouterPage() {
 
               {/* ----------------------------------------------------- */}
               {/* teacher routes */}
-              <Route path="archive">
-                <Route path="" element={<Archive />}></Route>
-                <Route path=":pid" element={<ArchiveField />}></Route>
-              </Route>
+
+              <Route
+                path="archive"
+                element={
+                  <RequireAuth>
+                    <Archive />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="archive/:pid"
+                element={
+                  <RequireAuth>
+                    <ArchiveField />
+                  </RequireAuth>
+                }
+              ></Route>
 
               {/* ----------------------------------------------------- */}
 
@@ -237,7 +250,7 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
-               <Route
+              <Route
                 path="courses/enroll"
                 element={
                   <RequireAuth>
