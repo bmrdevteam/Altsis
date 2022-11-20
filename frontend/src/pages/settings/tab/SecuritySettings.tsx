@@ -28,13 +28,13 @@
  */
 
 import React, { useState } from "react";
-import style from "../../../style/pages/settings/settings.module.scss";
-import ToggleSwitch from "../../../components/toggleSwitch/ToggleSwitch";
-import Svg from "../../../assets/svg/Svg";
-import Divider from "../../../components/divider/Divider";
-import Popup from "../../../components/popup/Popup";
-import Input from "../../../components/input/Input";
-import Button from "../../../components/button/Button";
+import style from "style/pages/settings/settings.module.scss";
+import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
+import Svg from "assets/svg/Svg";
+import Divider from "components/divider/Divider";
+import Popup from "components/popup/Popup";
+import Input from "components/input/Input";
+import Button from "components/button/Button";
 
 type Props = {};
 
@@ -86,7 +86,7 @@ const SecuritySettings = (props: Props) => {
           <div className={style.controls} style={{ alignItems: "center" }}>
             <Button
               type={"ghost"}
-              styles={{
+              style={{
                 borderRadius: "4px",
                 height: "32px",
               }}
