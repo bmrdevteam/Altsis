@@ -78,8 +78,8 @@ const CourseDesign = (props: Props) => {
     getTeachers(currentSeason?._id).then((res) => {
       setTeachers(res);
       console.log(res);
-      
     });
+    setCourseTime("");
   }, [currentSeason]);
 
   function syllabusToTime(s: any) {
@@ -103,13 +103,18 @@ const CourseDesign = (props: Props) => {
       season: currentSeason._id,
       classTitle: courseTitle,
       point: coursePoint,
+      teachers: [courseMentor],
     };
     Object.assign(submitObject, courseMoreInfo);
-    const res = await database.C({
-      location: "syllabuses",
-      data: submitObject,
-    });
-    return res;
+
+    console.log(submitObject);
+
+    // const res = await database.C({
+    //   location: "syllabuses",
+    //   data: submitObject,
+    // });
+
+    // return res;
   }
 
   const [courseTitle, setCourseTitle] = useState<string>();
@@ -144,15 +149,17 @@ const CourseDesign = (props: Props) => {
               disabled
               defaultValue={currentUser?.userName}
             />
-            <Select
+            <Autofill
               appearence="flat"
-              options={
-                teachers?.map((val: any) => ({
-                  value: val?.userId,
-                  text: val?.userName,
-                })) ?? []
-              }
+              options={[
+                { text: "", value: "" },
+                ...(teachers?.map((val: any) => ({
+                  value: val,
+                  text: `${val?.userName} / ${val?.userId}`,
+                })) ?? ""),
+              ]}
               label="멘토 선택"
+              setState={setCourseMentor}
               required
             />
 
@@ -203,7 +210,13 @@ const CourseDesign = (props: Props) => {
             defaultValues={courseMoreInfo}
             data={currentSeason?.formSyllabus}
           />
-          <Button style={{ marginTop: "24px" }} type="ghost">
+          <Button
+            style={{ marginTop: "24px" }}
+            type="ghost"
+            onClick={() => {
+              submit();
+            }}
+          >
             제출
           </Button>
         </div>
