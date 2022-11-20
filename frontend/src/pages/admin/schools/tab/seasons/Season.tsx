@@ -110,37 +110,37 @@ const Season = (props: Props) => {
 
     return result;
   };
-  function subjects(subjectObj: any) {
-    const unique: any = Array.from(
-      new Set(subjectObj.data.map((val: any) => val[0]))
-    );
-    let sub1: any = {};
-    for (let i = 0; i < unique.length; i++) {
-      sub1[unique[i]] = Array.from(
-        new Set(
-          subjectObj.data
-            .filter((val: any) => val[0] === unique[i])
-            .map((val: string[]) => val[1])
-        )
-      );
-    }
-    let sub2: any = {};
-    for (let i = 0; i < unique.length; i++) {
-      for (let index = 0; index < sub1[unique[i]].length; index++) {
-        sub2[`${unique[i]}/${sub1[unique[i]][index]}`] = Array.from(
-          new Set(
-            subjectObj.data
-              .filter(
-                (val: any) =>
-                  val[0] === unique[i] && val[1] === sub1[unique[i]][index]
-              )
-              .map((val: string[]) => val[2])
-          )
-        );
-      }
-    }
-    return [unique, sub1, sub2];
-  }
+  // function subjects(subjectObj: any) {
+  //   const unique: any = Array.from(
+  //     new Set(subjectObj.data.map((val: any) => val[0]))
+  //   );
+  //   let sub1: any = {};
+  //   for (let i = 0; i < unique.length; i++) {
+  //     sub1[unique[i]] = Array.from(
+  //       new Set(
+  //         subjectObj.data
+  //           .filter((val: any) => val[0] === unique[i])
+  //           .map((val: string[]) => val[1])
+  //       )
+  //     );
+  //   }
+  //   let sub2: any = {};
+  //   for (let i = 0; i < unique.length; i++) {
+  //     for (let index = 0; index < sub1[unique[i]].length; index++) {
+  //       sub2[`${unique[i]}/${sub1[unique[i]][index]}`] = Array.from(
+  //         new Set(
+  //           subjectObj.data
+  //             .filter(
+  //               (val: any) =>
+  //                 val[0] === unique[i] && val[1] === sub1[unique[i]][index]
+  //             )
+  //             .map((val: string[]) => val[2])
+  //         )
+  //       );
+  //     }
+  //   }
+  //   return [unique, sub1, sub2];
+  // }
 
   return (
     <div className={style.seasons_tab}>
@@ -160,6 +160,7 @@ const Season = (props: Props) => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
+          type="object-array"
           data={seasons?.sort((a, b) => {
             return (
               new Date(b.period?.start).getTime() -
