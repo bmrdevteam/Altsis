@@ -19,29 +19,29 @@ type Props = {};
 
 const Sidebar = (props: Props) => {
   const location = useLocation();
-  const [sidebarClose, setSidebarClose] = useState<boolean>(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    setSidebarClose(
-      window.localStorage.getItem("AppSidebarStatus") === "close"
+    setSidebarOpen(
+      window.localStorage.getItem("AppSidebarStatus") === "open"
     );
   }, []);
 
   useEffect(() => {
-    if (sidebarClose) {
-      window.localStorage.setItem("AppSidebarStatus", "close");
-    } else {
+    if (sidebarOpen) {
       window.localStorage.setItem("AppSidebarStatus", "open");
+    } else {
+      window.localStorage.setItem("AppSidebarStatus", "close");
     }
-  }, [sidebarClose]);
+  }, [sidebarOpen]);
 
   const { currentUser } = useAuth();
 
   return (
-    <Nav close={sidebarClose}>
+    <Nav open={sidebarOpen}>
       <NavLogo
         onClick={() => {
-          setSidebarClose((prev: boolean) => {
+          setSidebarOpen((prev: boolean) => {
             return !prev;
           });
         }}
@@ -71,7 +71,7 @@ const Sidebar = (props: Props) => {
                           path={sbData.path}
                           active={
                             location.pathname !== "/" &&
-                            location.pathname.includes(sbData.path)
+                            decodeURI(location.pathname).includes(sbData.path)
                           }
                         >
                           {sbData.name}
