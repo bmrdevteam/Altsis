@@ -35,6 +35,7 @@ const CourseList = (props: Props) => {
         <div className={style.title}>개설 수업 목록</div>
 
         <Table
+          type="object-array"
           style={{ bodyHeight: "calc(100vh - 141px)" }}
           data={courses}
           header={[
