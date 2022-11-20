@@ -36,6 +36,7 @@ const Lists = (props: Props) => {
       </Button>
       <div style={{ height: "24px" }}></div>
       <Table
+        type="object-array"
         data={[
           { _id: "abwqe43cas", dbName: "DB1", data: [] },
           { _id: "abcadfas423", dbName: "DB2", data: [] },
