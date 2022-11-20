@@ -75,6 +75,7 @@ const Users = (props: Props) => {
         <div style={{ height: "24px" }}></div>
         <div>
           <Table
+            type="object-array"
             filter
             filterSearch
             data={academyUsers}
