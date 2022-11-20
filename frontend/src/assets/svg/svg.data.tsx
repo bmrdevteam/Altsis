@@ -76,6 +76,7 @@ export const svgData = {
     <path d="M5 8h2V6h3.252L7.68 18H5v2h8v-2h-2.252L13.32 6H17v2h2V4H5z"></path>
   ),
   plus: <path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z"></path>,
+  minus: <path d="M5 11h14v2H5z"></path>,
   horizontalDots: (
     <path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
   ),
