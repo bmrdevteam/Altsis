@@ -27,6 +27,7 @@ function Archive({}: Props) {
         <div style={{ marginTop: "24px" }}></div>
 
         <Table
+          type="object-array"
           filter
           filterSearch
           data={archiveTestData}
@@ -47,6 +48,14 @@ function Archive({}: Props) {
               text: "업데이트 사이클..?",
               key: "cycle",
               type: "string",
+            },
+            {
+              text: "데이터 형식",
+              key: "dataType",
+              type: "string",
+              returnFunction: (value: any) => {
+                return value === "single" ? "단일" : "누적";
+              },
             },
             {
               text: "자세히",
@@ -93,6 +102,7 @@ function Archive({}: Props) {
             필드 추가
           </Button>
           <Table
+            type="object-array"
             filter
             filterSearch
             data={
