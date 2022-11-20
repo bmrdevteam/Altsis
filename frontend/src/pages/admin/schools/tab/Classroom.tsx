@@ -74,7 +74,7 @@ const Classroom = (props: Props) => {
   //
   return (
     <div style={{ marginTop: "24px" }}>
-     <Button
+      <Button
         type={"ghost"}
         style={{
           borderRadius: "4px",
@@ -90,6 +90,7 @@ const Classroom = (props: Props) => {
       <div style={{ marginTop: "24px" }}></div>
 
       <Table
+        type="string-array"
         data={props.school?.classrooms}
         header={[
           {
@@ -101,8 +102,8 @@ const Classroom = (props: Props) => {
           },
           {
             text: "강의실",
-            key: "",
-            type: "arrText",
+            key: 0,
+            type: "string",
           },
           {
             text: "삭제",
@@ -122,7 +123,6 @@ const Classroom = (props: Props) => {
             },
           },
         ]}
-
       />
       {addClassroomPopupActive && (
         <Popup setState={setAddClassRoomPopupActive} title="강의실 추가">
