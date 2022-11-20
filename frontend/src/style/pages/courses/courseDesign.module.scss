@@ -1,5 +1,7 @@
 .section {
-    margin: 24px;
+    padding: 24px;
+    height: calc(100vh - 56px);
+    overflow-y: scroll;
 
     .title {
         font-size: 18px;
