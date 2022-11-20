@@ -17,13 +17,14 @@ import { useRef } from "react";
 import Select from "components/select/Select";
 import objectDownloadAsJson from "functions/objectDownloadAsJson";
 import objectDownloadAsCSV from "functions/objectDownloadAsCSV";
-import _ from "lodash";
+import _, { isNumber } from "lodash";
 
 type Props = {
   data: any;
+  type: "object-array" | "string-array";
   header: {
     text: string;
-    key: string | string[];
+    key: string | number;
     value?: string;
     returnFunction?: (value: any) => string;
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
@@ -33,6 +34,7 @@ type Props = {
     width?: string;
     textStyle?: object;
   }[];
+
   style?: {
     border?: string;
     rowHeight?: string;
@@ -279,7 +281,7 @@ const Table = (props: Props) => {
   const [searchKey, setSearchKey] = useState<string>("");
   const [searchKeyName, setSearchKeyName] = useState<string>("");
 
-  const [orderBy, setOrderBy] = useState<string>();
+  const [orderBy, setOrderBy] = useState<string | number>();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const selectedItems = useRef<any>([]);
@@ -288,14 +290,24 @@ const Table = (props: Props) => {
   const search = useSearch(tableData);
 
   function tableDataResult() {
-    if (orderBy && orderBy !== "" && orderBy !== " " && tableData) {
-      if (sortOrder === "asc") return _.sortBy(search?.result(), orderBy);
-      if (sortOrder === "desc")
-        return _.sortBy(search?.result(), orderBy).reverse();
+    if (props.type === "object-array") {
+      if (orderBy && orderBy !== "" && orderBy !== " " && tableData) {
+        if (sortOrder === "asc") return _.sortBy(search?.result(), orderBy);
+        if (sortOrder === "desc")
+          return _.sortBy(search?.result(), orderBy).reverse();
+      }
+    }
+    if (props.type === "string-array") {
+      if (isNumber(orderBy) && tableData) {
+        if (sortOrder === "asc") return _.sortBy(search?.result(), orderBy);
+        if (sortOrder === "desc")
+          return _.sortBy(search?.result(), orderBy).reverse();
+      }
     }
     if (tableData) {
       return search?.result();
     }
+
     return [];
   }
 
@@ -377,7 +389,7 @@ const Table = (props: Props) => {
               }}
             >
               {value.text}
-              {orderBy && orderBy === value.key ? (
+              {(orderBy || orderBy === 0) && orderBy === value.key ? (
                 sortOrder === "asc" ? (
                   <Svg type={"arrowDown"} />
                 ) : (
@@ -448,6 +460,7 @@ const Table = (props: Props) => {
                       delete={deleteItemFromSelect}
                       key={index}
                       header={value}
+                      type={props.type}
                       data={data}
                       index={dataIndex}
                       style={props.style}
