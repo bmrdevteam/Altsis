@@ -90,6 +90,7 @@ const Schools = () => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
+          type="object-array"
           filter
           data={!isLoading ? schoolsList : []}
           header={[
