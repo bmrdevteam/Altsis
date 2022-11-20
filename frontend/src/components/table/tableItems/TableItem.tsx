@@ -13,13 +13,13 @@ export type ITableItemType =
   | "time"
   | "select"
   | "checkbox"
-  | "arrText"
   | "input";
 
 interface ITableItem {
+  type: "object-array" | "string-array";
   header: {
     text: string;
-    key: string | string[];
+    key: string | number;
     value?: string;
     returnFunction?: (value: any) => string;
     onClick?: (value: any) => void;
@@ -29,6 +29,7 @@ interface ITableItem {
     width?: string;
     textStyle?: object;
   };
+
   index: number;
   data: any;
   style?: {
@@ -48,20 +49,39 @@ const TableItem = (props: ITableItem) => {
     props.checked && console.log(props.checked);
   }, [props.checked]);
 
-  // const [output, setOutput] = useState("");
-  const d = _.get(props?.data, props.header.key);
-  let output = d;
+  let output;
+  if (props.type === "object-array") {
+    const d = _.get(props?.data, props.header.key);
+    output = d;
 
-  if (props.header.returnFunction) {
-    output = props.header.returnFunction(d);
-  } else {
-    if (typeof d === "object") {
-      output = JSON.stringify(d);
-      if (isArray(d) && d.length === 1) {
-        output = _.values(d[0]).join(",");
+    if (props.header.returnFunction) {
+      output = props.header.returnFunction(d);
+    } else {
+      if (typeof d === "object") {
+        output = JSON.stringify(d);
+        if (isArray(d) && d.length === 1) {
+          output = _.values(d[0]).join(",");
+        }
+        if (isArray(d) && d.length > 1) {
+          output = d.join(",");
+        }
       }
-      if (isArray(d) && d.length > 1) {
-        output = d.join(",");
+    }
+  }
+  if (props.type === "string-array") {
+    const d = props?.data[props.header.key];
+    output = d;
+    if (props.header.returnFunction) {
+      output = props.header.returnFunction(d);
+    } else {
+      if (typeof d === "object") {
+        output = JSON.stringify(d);
+        if (isArray(d) && d.length === 1) {
+          output = _.values(d[0]).join(",");
+        }
+        if (isArray(d) && d.length > 1) {
+          output = d.join(",");
+        }
       }
     }
   }
@@ -150,23 +170,6 @@ const TableItem = (props: ITableItem) => {
           >
             {props.header.text}
           </div>
-        </div>
-      );
-
-    case "arrText":
-      return (
-        <div
-          className={style.table_item}
-          onClick={props.header.onClick}
-          data-value={props.header.value ? props.header.value : props.data}
-          data-rowindex={props.index}
-          style={{
-            justifyContent: props.header.align,
-            maxWidth: props.header.width,
-            border: props.style?.border,
-          }}
-        >
-          {props.data ? props.data : null}
         </div>
       );
 
