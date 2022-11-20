@@ -22,7 +22,7 @@ const One = (props: Props) => {
       return val.label === props.archive;
     })[0];
   }
-console.log(props.userId);
+  console.log(props.userId);
 
   return (
     <>
@@ -54,16 +54,14 @@ console.log(props.userId);
       </Button>
       {archiveData().dataType === "single" ? (
         <div className={style.content}>
-          <div className={style.labels}>
-            {archiveData().fields?.map((val) => {
-              return <div className={style.label}>{val.label}</div>;
-            })}
-          </div>
-          <div className={style.inputs}>
-            {archiveData().fields?.map((val) => {
-              return <Input placeholder={val.label} />;
-            })}
-          </div>
+          {archiveData().fields?.map((val) => {
+            return (
+              <div className={style.field}>
+                <div className={style.label}>{val.label}</div>
+                <textarea className={style.input} rows={1} />
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div style={{ marginTop: "24px" }}>
