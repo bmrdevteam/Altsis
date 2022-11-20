@@ -9,10 +9,10 @@ import Button from "components/button/Button";
 
 const Nav = ({
   children,
-  close,
+  open,
 }: {
   children?: JSX.Element[] | JSX.Element;
-  close: boolean;
+  open: boolean;
 }) => {
   const { currentSchool } = useAuth();
   useEffect(() => {
@@ -24,7 +24,7 @@ const Nav = ({
   return (
     <nav
       id="Sidebar"
-      className={`${style.nav_container} ${close && style.close}`}
+      className={`${style.nav_container} ${open ? style.open :style.close}`}
     >
       {children}
     </nav>
