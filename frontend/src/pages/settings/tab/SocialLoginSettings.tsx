@@ -28,15 +28,17 @@
  */
 
 
-import Svg from "../../../assets/svg/Svg";
-import Button from "../../../components/button/Button";
-import { useAuth } from "../../../contexts/authContext";
-import style from "../../../style/pages/settings/settings.module.scss";
+import Svg from "assets/svg/Svg";
+import Button from "components/button/Button";
+import { useAuth } from "contexts/authContext";
+import style from "style/pages/settings/settings.module.scss";
 
 type Props = {};
 
 const SocialLoginSettings = (props: Props) => {
   const { currentUser } = useAuth();
+  console.log("🚀 ~ file: SocialLoginSettings.tsx ~ line 40 ~ SocialLoginSettings ~ currentUser", currentUser)
+  
   return (
     <div className={style.settings_container}>
       <div className={style.container_title}>소셜 로그인 연동</div>
