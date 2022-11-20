@@ -72,9 +72,9 @@ const Enrollment = (props: Props) => {
 
     //   setAlertPopupActive(true);
     // } else {
-      getCourseList().then((res) => {
-        setCourses(res);
-      });
+    getCourseList().then((res) => {
+      setCourses(res);
+    });
     // }
   }, [currentRegistration]);
 
@@ -86,6 +86,7 @@ const Enrollment = (props: Props) => {
         <div style={{ height: "24px" }}></div>
 
         <Table
+          type="object-array"
           data={courses}
           header={[
             {
