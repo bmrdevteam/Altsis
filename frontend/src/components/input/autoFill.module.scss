@@ -11,7 +11,7 @@
         background-color: var(--background-color);
         color: var(--accent-1);
 
-        height: 40px;
+        height: 30px;
         outline: none;
         border: var(--border-default);
         width: 100%;
@@ -43,7 +43,10 @@
         z-index: 2022;
         position: absolute;
 
-        top: 58px;
+        overflow: auto;
+        max-height: 165px;
+
+        top: 30px;
         left: 0px;
 
         background-color: var(--component-color);
@@ -51,7 +54,7 @@
         .option {
             font-size: 14px;
             color: var(--accent-1);
-            height: 40px;
+            height: 30px;
             display: flex;
             padding: 0 14px;
             white-space: nowrap;
@@ -88,7 +91,7 @@
     }
 
     .input {
-        height: auto;
+        height: 30px;
         outline: none;
         border: none;
         border-radius: 8px;
@@ -126,7 +129,7 @@
 
         .option {
             border-radius: 8px;
-            height: 38px;
+            height: 30px;
             display: flex;
             padding: 0 14px;
             white-space: nowrap;
