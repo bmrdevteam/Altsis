@@ -26,15 +26,14 @@
     }
 }
 
+
+
 .nav_container {
     border-right: var(--border-default);
     background-color: var(--component-color);
     color: var(--accent-1);
     display: flex;
     flex-direction: column;
-    max-width: 240px;
-    transition: max-width 0.3s;
-    min-width: 240px;
     width: 100%;
     overflow-y: hidden;
     height: 100vh;
@@ -361,6 +360,11 @@
 
 }
 
+.nav_container.open {
+    max-width: 240px;
+    transition: max-width 0.3s;
+    min-width: 240px;
+}
 
 .nav_container.close {
     max-width: 56px;
