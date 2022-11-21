@@ -36,19 +36,20 @@ const Autofill = (props: Props) => {
   }
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    props.setValue &&
-      props.setValue(
-        props.defaultValue &&
+    if (props.options) {
+      props.setValue &&
+        props.setValue(
           props.options.filter((val) => {
-            return val.value.toString() === props.defaultValue.toString();
-          })[0]?.value
-      );
+            return val.value && val.value.toString() === props.defaultValue.toString();
+          })[0]?.value ?? props.defaultValue
+        );
 
-    setInputValue(
-      props.options.filter((val) => {
-        return val.value.toString() === props.defaultValue.toString();
-      })[0]?.text ?? ""
-    );
+      setInputValue(
+        props.options.filter((val) => {
+          return val.value && val.value.toString() === props.defaultValue.toString();
+        })[0]?.text ?? ""
+      );
+    }
 
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
