@@ -58,7 +58,11 @@ const One = (props: Props) => {
             return (
               <div className={style.field}>
                 <div className={style.label}>{val.label}</div>
-                <textarea className={style.input} rows={1} />
+                <textarea
+                  defaultValue={props.userId}
+                  className={style.input}
+                  rows={1}
+                />
               </div>
             );
           })}
