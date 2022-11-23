@@ -17,6 +17,29 @@ interface INavSubLink {
 }
 export const SidebarData = (role: string): any => {
   switch (role) {
+    case "owner":
+      return [
+        {
+          title: "dashboard",
+          name: " 대시보드",
+          path: "/",
+          icon: <Svg type="school" />,
+        },
+        {
+          title: "owner",
+          name: "소유자",
+          path: "/owner",
+          icon: <Svg type="school" />,
+          subLink: [
+            {
+              title: "academies",
+              name: "아카데미 관리",
+              path: "/owner/academies",
+              icon: <Svg type="file" />,
+            },
+          ],
+        },
+      ];
     case "manager":
     case "admin":
       return [
@@ -37,7 +60,8 @@ export const SidebarData = (role: string): any => {
               name: "수업개설",
               path: "/courses/design",
               icon: <Svg type="file" />,
-            }, {
+            },
+            {
               title: "enroll",
               name: "수강신청",
               path: "/courses/enroll",
@@ -120,12 +144,6 @@ export const SidebarData = (role: string): any => {
           icon: <Svg type="school" />,
         },
         {
-          title: "enrollment",
-          name: "수강신청",
-          path: "/enrollment",
-          icon: <Svg type="school" />,
-        },
-        {
           title: "courses",
           name: "수업",
           path: "/courses",
@@ -138,9 +156,15 @@ export const SidebarData = (role: string): any => {
               icon: <Svg type="file" />,
             },
             {
-              title: "design",
-              name: "수업관리",
-              path: "/courses/manage",
+              title: "enroll",
+              name: "수강신청",
+              path: "/courses/enroll",
+              icon: <Svg type="school" />,
+            },
+            {
+              title: "list",
+              name: "개설 목록",
+              path: "/courses/list",
               icon: <Svg type="file" />,
             },
           ],

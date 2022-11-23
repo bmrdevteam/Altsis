@@ -26,13 +26,6 @@ router.get("/db", async (req, res) => {
   });
 });
 
-router.post("/archives", async (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "hello world! this is /archives",
-  });
-});
-
 router.get("/test1", (req, res) => {
   res.status(200).json({
     success: true,
