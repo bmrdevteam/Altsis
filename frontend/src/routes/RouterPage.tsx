@@ -29,10 +29,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 //owner pages
-import Academies from "../pages/owner/Academies";
+import Owner from "../pages/owner/Index";
+import Academies from "../pages/owner/academies/Index";
+import Academy from "../pages/owner/academies/Pid";
 
 //admin pages
-import Academy from "../pages/admin/Index";
+import Admin from "../pages/admin/Index";
 import Users from "../pages/admin/users/Index";
 import Schools from "../pages/admin/schools/Index";
 import School from "../pages/admin/schools/Pid";
@@ -116,10 +118,31 @@ function RouterPage() {
 
               {/* owner routes */}
               <Route path="owner">
-                {/* <Route index element={<>}></Route>  */}
-                <Route path="academy" element={<Academies />}></Route>
+                <Route
+                  path=""
+                  element={
+                    <RequireAuth>
+                      <Owner />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="academies"
+                  element={
+                    <RequireAuth>
+                      <Academies />
+                    </RequireAuth>
+                  }
+                ></Route>
+                <Route
+                  path="academies/:pid"
+                  element={
+                    <RequireAuth>
+                      <Academy />
+                    </RequireAuth>
+                  }
+                ></Route>
               </Route>
-
               {/* ----------------------------------------------------- */}
 
               {/* academy admin routes */}
@@ -129,7 +152,7 @@ function RouterPage() {
                   path=""
                   element={
                     <RequireAuth>
-                      <Academy />
+                      <Admin />
                     </RequireAuth>
                   }
                 ></Route>
@@ -237,7 +260,7 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
-               <Route
+              <Route
                 path="courses/enroll"
                 element={
                   <RequireAuth>
