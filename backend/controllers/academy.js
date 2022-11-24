@@ -231,7 +231,11 @@ module.exports.createUser = async (req, res) => {
     if (exUser)
       return res.status(409).send({ message: "userId is already in use" });
 
-    const user = new _User(req.body);
+    const user = new _User({
+      ...req.body,
+      academyId: academy.academyId,
+      academyName: academy.academyName,
+    });
     await user.save();
 
     return res.status(200).send();

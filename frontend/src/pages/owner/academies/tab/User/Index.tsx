@@ -41,6 +41,8 @@ import Select from "components/select/Select";
 // tab elements
 import Basic from "./tab/Basic";
 
+import _ from "lodash";
+
 type Props = {
   academy: string;
 };
@@ -53,6 +55,10 @@ const User = (props: Props) => {
   const [documentList, setDocumentList] = useState<any>();
   const [doc, setDoc] = useState<any>();
 
+  /* additional document list */
+  const [schoolList, setSchoolList] = useState<any>();
+  const [school, setSchool] = useState<any>();
+
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState(false);
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
@@ -62,6 +68,8 @@ const User = (props: Props) => {
   const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [schoolId, setSchoolId] = useState<string>("");
+  const [schoolName, setSchoolName] = useState<string>("");
   const [email, setEmail] = useState<any>(undefined);
   const [tel, setTel] = useState<any>(undefined);
 
@@ -79,6 +87,13 @@ const User = (props: Props) => {
     return result;
   }
 
+  async function getSchoolList() {
+    const { documents } = await database.R({
+      location: `academies/${props.academy}/schools`,
+    });
+    return documents;
+  }
+
   async function addDocument() {
     const result = await database.C({
       location: `academies/${props.academy}/users`,
@@ -89,12 +104,13 @@ const User = (props: Props) => {
         password,
         tel,
         email,
+        schools: [{ school, schoolId, schoolName }],
       },
     });
     return result;
   }
 
-  async function deleteDoc(id: string) {
+  async function deleteDocument(id: string) {
     if (window.confirm("정말 삭제하시겠습니까?") === true) {
       const result = database.D({
         location: `academies/${props.academy}/users/${id}`,
@@ -105,20 +121,67 @@ const User = (props: Props) => {
     }
   }
 
+  const schools = () => {
+    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
+
+    for (let i = 0; i < schoolList?.length; i++) {
+      result.push({
+        text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
+        value: schoolList[i]._id,
+      });
+    }
+
+    return result;
+  };
+
   useEffect(() => {
-    getDocumentList()
+    getSchoolList()
       .then((res) => {
-        setDocumentList(res);
+        setSchoolList(res);
       })
       .catch(() => {
         alert("failed to load data");
       });
     setIsLoading(false);
+
+    // getDocumentList()
+    //   .then((res) => {
+    //     setDocumentList(res);
+    //   })
+    //   .catch(() => {
+    //     alert("failed to load data");
+    //   });
+    // setIsLoading(false);
     return () => {};
-  }, [isLoading]);
+  }, []);
+
+  useEffect(() => {
+    if (!school) {
+      setDocumentList([]);
+    } else {
+      getDocumentList()
+        .then((res) => {
+          setDocumentList(res);
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
+    setIsLoading(false);
+    return () => {};
+  }, [school]);
 
   return (
     <div style={{ marginTop: "24px" }}>
+      <Select
+        style={{ minHeight: "30px" }}
+        required
+        label={"학교 선택"}
+        options={!isLoading ? schools() : []}
+        setValue={setSchool}
+        appearence={"flat"}
+      />
+
       <Button
         type={"ghost"}
         style={{
@@ -128,7 +191,12 @@ const User = (props: Props) => {
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
         onClick={async () => {
-          setAddPopupActive(true);
+          if (school) {
+            const schoolDoc = _.find(schoolList, { _id: school });
+            setSchoolId(schoolDoc.schoolId);
+            setSchoolName(schoolDoc.schoolName);
+            setAddPopupActive(true);
+          }
         }}
       >
         + 사용자 생성
@@ -178,11 +246,13 @@ const User = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              deleteDoc(e.target.dataset.value)
-                .then((res) => {
-                  if (res) {
-                    setIsLoading(true);
-                  }
+              deleteDocument(e.target.dataset.value)
+                .then(() => {
+                  getDocumentList().then((res) => {
+                    setDocumentList(res);
+                    setAddPopupActive(false);
+                    alert("success");
+                  });
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
@@ -218,9 +288,26 @@ const User = (props: Props) => {
           title={"Creaet Document"}
         >
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+            <Input
+              appearence="flat"
+              label="학교 ID"
+              required={true}
+              disabled={true}
+              defaultValue={schoolId}
+            />
+            <Input
+              appearence="flat"
+              label="학교 이름"
+              required={true}
+              disabled={true}
+              defaultValue={schoolName}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Select
               style={{ minHeight: "30px" }}
-              label="학교"
+              label="auth"
               required
               options={[
                 { text: "member", value: "member" },
@@ -240,6 +327,14 @@ const User = (props: Props) => {
                 setUserId(e.target.value);
               }}
             />
+            <Input
+              appearence="flat"
+              label="password"
+              required={true}
+              onChange={(e: any) => {
+                setPassword(e.target.value);
+              }}
+            />
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -248,17 +343,6 @@ const User = (props: Props) => {
               required={true}
               onChange={(e: any) => {
                 setUserName(e.target.value);
-              }}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Input
-              appearence="flat"
-              label="password"
-              required={true}
-              onChange={(e: any) => {
-                setPassword(e.target.value);
               }}
             />
           </div>
@@ -286,9 +370,12 @@ const User = (props: Props) => {
             type={"ghost"}
             onClick={() => {
               addDocument()
-                .then((res) => {
-                  setAddPopupActive(false);
-                  setIsLoading(true);
+                .then(() => {
+                  getDocumentList().then((res) => {
+                    setDocumentList(res);
+                    setAddPopupActive(false);
+                    alert("success");
+                  });
                 })
                 .catch((err) => {
                   alert(err.response.data.message);

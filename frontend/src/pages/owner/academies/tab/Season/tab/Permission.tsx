@@ -75,6 +75,8 @@ const Permission = (props: Props) => {
   const [selectedIsAllowed, setSelectedIsAllowed] = useState<boolean>(true);
 
   const parsePermission = (permission: Array<Array<any>>) => {
+    setIsTeacherAllowed(false);
+    setIsStudentAllowed(false);
     const _exceptions = [];
 
     for (let i = 0; i < permission.length; i++) {
@@ -152,9 +154,6 @@ const Permission = (props: Props) => {
               };
             }),
         ]);
-        setSelectedUserId(
-          registrationList.length !== 0 ? registrationList[0]["value"] : ""
-        );
       });
     }
   }, [editPopupActive]);
