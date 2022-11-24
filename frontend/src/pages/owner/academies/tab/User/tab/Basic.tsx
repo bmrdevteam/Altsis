@@ -83,14 +83,32 @@ function Basic(props: Props) {
         <div className={style.row}>
           <Input
             style={{ maxHeight: "30px" }}
+            defaultValue={props.userData.schools[0]?.schoolId}
+            appearence="flat"
+            label="학교 ID"
+            required
+            disabled
+          />
+          <Input
+            style={{ maxHeight: "30px" }}
+            defaultValue={props.userData.schools[0]?.schoolName}
+            appearence="flat"
+            label="학교 이름"
+            required
+            disabled
+          />
+        </div>
+
+        <div className={style.row}>
+          <Input
+            style={{ maxHeight: "30px" }}
             defaultValue={props.userData.userId}
             appearence="flat"
             label="사용자 ID"
             required
             disabled
           />
-        </div>
-        <div className={style.row}>
+
           <Input
             style={{ maxHeight: "30px" }}
             defaultValue={props.userData.userName}
@@ -100,7 +118,6 @@ function Basic(props: Props) {
             disabled
           />
         </div>
-
         <div className={style.row}>
           <Input
             style={{ maxHeight: "30px" }}
