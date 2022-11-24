@@ -60,7 +60,6 @@ const Registration = (props: Props) => {
   const [seasonList, setSeasonList] = useState<any>();
   const [season, setSeason] = useState<any>();
   const [userList, setUserList] = useState<any>();
-  const [user, setUser] = useState<any>();
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState(false);
@@ -72,7 +71,6 @@ const Registration = (props: Props) => {
   const [year, setYear] = useState<string>("");
   const [term, setTerm] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
   const [role, setRole] = useState<string>("");
 
   async function getDocumentList() {
@@ -122,7 +120,7 @@ const Registration = (props: Props) => {
     return result;
   }
 
-  async function deleteDoc(id: string) {
+  async function deleteDocument(id: string) {
     if (window.confirm("정말 삭제하시겠습니까?") === true) {
       const result = database.D({
         location: `academies/${props.academy}/registrations/${id}`,
@@ -151,7 +149,7 @@ const Registration = (props: Props) => {
 
     for (let i = 0; i < seasonList?.length; i++) {
       result.push({
-        text: `${seasonList[i].year}(${seasonList[i].term})`,
+        text: `${seasonList[i].year}/${seasonList[i].term}`,
         value: seasonList[i]._id,
       });
     }
@@ -180,6 +178,7 @@ const Registration = (props: Props) => {
       .catch(() => {
         alert("failed to load data");
       });
+    setIsLoading(false);
     return () => {};
   }, []);
 
@@ -196,6 +195,7 @@ const Registration = (props: Props) => {
           alert("faled to load data");
         });
     }
+    setIsLoading(false);
     return () => {};
   }, [school]);
 
@@ -211,7 +211,7 @@ const Registration = (props: Props) => {
           alert("faled to load data");
         });
     }
-
+    setIsLoading(false);
     return () => {};
   }, [season]);
 
@@ -264,7 +264,7 @@ const Registration = (props: Props) => {
           }
         }}
       >
-        + 등록 생성
+        + 등록
       </Button>
       <div style={{ marginTop: "24px" }} />
 
@@ -313,11 +313,13 @@ const Registration = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              deleteDoc(e.target.dataset.value)
-                .then((res) => {
-                  if (res) {
-                    setIsLoading(true);
-                  }
+              deleteDocument(e.target.dataset.value)
+                .then(() => {
+                  getDocumentList().then((res) => {
+                    setDocumentList(res);
+                    setAddPopupActive(false);
+                    alert("success");
+                  });
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
@@ -414,9 +416,12 @@ const Registration = (props: Props) => {
             type={"ghost"}
             onClick={() => {
               addDocument()
-                .then((res) => {
-                  setAddPopupActive(false);
-                  setIsLoading(true);
+                .then(() => {
+                  getDocumentList().then((res) => {
+                    setDocumentList(res);
+                    setAddPopupActive(false);
+                    alert("success");
+                  });
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
