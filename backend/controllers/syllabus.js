@@ -93,9 +93,41 @@ module.exports.find = async (req, res) => {
       return res.status(200).send(syllabus);
     }
 
-    const syllabuses = await Syllabus(req.user.dbName)
-      .find(req.query)
-      .select("-info");
+    const season = await Season(req.user.dbName).findById(req.query.season);
+    if (!season) {
+      return res.status(404).send({ message: "season not found" });
+    }
+
+    let syllabuses = [];
+    const { userId, classroom, teacherId } = req.query;
+
+    if (userId) {
+      syllabuses = await Syllabus(req.user.dbName)
+        .find({ season, userId })
+        .select("-info");
+    } else if (classroom) {
+      /* GET /api/syllabuses?season=1234&classroom101호 */
+      // season + classroom 쿼리
+
+      // 1. 기존 방식 (약 11.09KB)
+      // syllabuses = await Syllabus(req.user.dbName)
+      //   .find({ season, classroom })
+      //   .select("-info");
+
+      // 2. {_id, classTitle, time}만 불러오는 방식 (약 3.07KB)
+      syllabuses = await Syllabus(req.user.dbName)
+        .find({ season, classroom })
+        .select(["classTitle", "time"]);
+    } else if (teacherId) {
+      syllabuses = await Syllabus(req.user.dbName)
+        .find({ season, teacherId })
+        .select("-info");
+    } else {
+      syllabuses = await Syllabus(req.user.dbName)
+        .find({ season })
+        .select("-info");
+    }
+
     return res.status(200).send({ syllabuses });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
