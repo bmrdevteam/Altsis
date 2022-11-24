@@ -26,7 +26,7 @@
  * @version 1.0
  *
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -46,11 +46,22 @@ type Props = {
 const Permission = (props: Props) => {
   const database = useDatabase();
 
+  /* document list */
+  const [permissionSyllabus, setPermissionSyllabus] = useState<any>(
+    props.seasonData.permissionSyllabus
+  );
+  const [permissionEnrollment, setPermissionEnrollment] = useState<any>(
+    props.seasonData.permissionEnrollment
+  );
+  const [permissionEvaluation, setPermissionEvaluation] = useState<any>(
+    props.seasonData.permissionEvaluation
+  );
+
   /* additional document list */
   const [registrationList, setRegistrationList] = useState<any>([]);
 
   /* popup activation */
-  const [editPopupActive, setPermissionPopupActive] = useState<boolean>(false);
+  const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
 
   /* permission type */
   const [permissionType, setPermissionType] = useState<string>("");
@@ -63,20 +74,20 @@ const Permission = (props: Props) => {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedIsAllowed, setSelectedIsAllowed] = useState<boolean>(true);
 
-  const parsePermission = (permissions: Array<Array<any>>) => {
+  const parsePermission = (permission: Array<Array<any>>) => {
     const _exceptions = [];
 
-    for (let i = 0; i < permissions.length; i++) {
-      if (permissions[i][0] === "role") {
-        if (permissions[i][1] === "teacher") {
-          setIsTeacherAllowed(permissions[i][2]);
-        } else if (permissions[i][1] === "student") {
-          setIsStudentAllowed(permissions[i][2]);
+    for (let i = 0; i < permission.length; i++) {
+      if (permission[i][0] === "role") {
+        if (permission[i][1] === "teacher") {
+          setIsTeacherAllowed(permission[i][2]);
+        } else if (permission[i][1] === "student") {
+          setIsStudentAllowed(permission[i][2]);
         }
       } else {
         _exceptions.push({
-          userId: permissions[i][1],
-          allowed: permissions[i][2],
+          userId: permission[i][1],
+          allowed: permission[i][2],
         });
       }
     }
@@ -84,25 +95,32 @@ const Permission = (props: Props) => {
     setExceptions(_exceptions);
   };
 
-  async function updatePermission() {
-    const _permissions = [];
+  const zipPermission = () => {
+    const _permission = [];
 
     for (let i = 0; i < exceptions.length; i++) {
-      _permissions.push([
+      _permission.push([
         "userId",
         exceptions[i]["userId"],
         exceptions[i]["allowed"],
       ]);
     }
-    _permissions.push(["role", "teacher", isTeacherAllowed]);
-    _permissions.push(["role", "student", isStudentAllowed]);
+    _permission.push(["role", "teacher", isTeacherAllowed]);
+    _permission.push(["role", "student", isStudentAllowed]);
+
+    return _permission;
+  };
+
+  async function updatePermission(_permission: any) {
+    _permission.push(["role", "student", isStudentAllowed]);
 
     const result = await database.U({
       location: `academies/${props.academy}/seasons/${props.seasonData?._id}/permission/${permissionType}`,
       data: {
-        new: _permissions,
+        new: _permission,
       },
     });
+
     return result;
   }
 
@@ -114,6 +132,33 @@ const Permission = (props: Props) => {
     return documents;
   }
 
+  useEffect(() => {
+    if (editPopupActive) {
+      getRegistrationList().then((res) => {
+        setRegistrationList([
+          {
+            text: "",
+            value: "",
+          },
+          ...res
+            ?.filter((r: any) => {
+              if (!r["userId"]) return false;
+              return true;
+            })
+            .map((r: any) => {
+              return {
+                text: `${r["userName"]}(${r["userId"]})`,
+                value: r["userId"],
+              };
+            }),
+        ]);
+        setSelectedUserId(
+          registrationList.length !== 0 ? registrationList[0]["value"] : ""
+        );
+      });
+    }
+  }, [editPopupActive]);
+
   return (
     <>
       <div className={style.form}>
@@ -123,33 +168,9 @@ const Permission = (props: Props) => {
             style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
-              parsePermission(props.seasonData.permissionSyllabus);
+              parsePermission(permissionSyllabus);
               setPermissionType("syllabus");
-              getRegistrationList().then((res) => {
-                setRegistrationList([
-                  {
-                    text: "",
-                    value: "",
-                  },
-                  ...res
-                    ?.filter((r: any) => {
-                      if (!r["userId"]) return false;
-                      return true;
-                    })
-                    .map((r: any) => {
-                      return {
-                        text: `${r["userName"]}(${r["userId"]})`,
-                        value: r["userId"],
-                      };
-                    }),
-                ]);
-                setSelectedUserId(
-                  registrationList.length !== 0
-                    ? registrationList[0]["value"]
-                    : ""
-                );
-                setPermissionPopupActive(true);
-              });
+              setEditPopupActive(true);
             }}
           >
             Syllabus
@@ -161,9 +182,9 @@ const Permission = (props: Props) => {
             style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
-              parsePermission(props.seasonData.permissionEnrollment);
+              parsePermission(permissionEnrollment);
               setPermissionType("enrollment");
-              setPermissionPopupActive(true);
+              setEditPopupActive(true);
             }}
           >
             Enrollment
@@ -175,9 +196,9 @@ const Permission = (props: Props) => {
             style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
-              parsePermission(props.seasonData.permissionEvaluation);
+              parsePermission(permissionEvaluation);
               setPermissionType("evaluation");
-              setPermissionPopupActive(true);
+              setEditPopupActive(true);
             }}
           >
             Evaluation
@@ -194,7 +215,7 @@ const Permission = (props: Props) => {
               ? "수강신청"
               : "평가"
           } 권한 설정`}
-          setState={setPermissionPopupActive}
+          setState={setEditPopupActive}
           closeBtn
         >
           <div className={style.popup}>
@@ -316,9 +337,16 @@ const Permission = (props: Props) => {
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
               }}
               onClick={(e: any) => {
-                updatePermission()
+                const _permission = zipPermission();
+                updatePermission(_permission)
                   .then(() => {
                     alert("success");
+                    if (permissionType === "syllabus")
+                      setPermissionSyllabus(_permission);
+                    else if (permissionType === "enrollment")
+                      setPermissionEnrollment(_permission);
+                    else if (permissionType === "evaluation")
+                      setPermissionEvaluation(_permission);
                   })
                   .catch((err) => {
                     alert(err.response.data.message);

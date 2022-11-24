@@ -45,6 +45,8 @@ import Subject from "./tab/Subject";
 import Permission from "./tab/Permission";
 import Form from "./tab/Form";
 
+import _ from "lodash";
+
 type Props = {
   academy: string;
 };
@@ -59,13 +61,15 @@ const Season = (props: Props) => {
 
   /* additional document list */
   const [schoolList, setSchoolList] = useState<any>();
-  const [school, setSchool] = useState<any>();
+  const [school, setSchool] = useState<string>();
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState(false);
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
 
   /* document fields */
+  const [schoolId, setSchoolId] = useState<string>("");
+  const [schoolName, setSchoolName] = useState<string>("");
   const [year, setYear] = useState<string>();
   const [term, setTerm] = useState<string>();
   const [start, setStart] = useState<string>();
@@ -73,7 +77,7 @@ const Season = (props: Props) => {
 
   async function getDocumentList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/seasons`,
+      location: `academies/${props.academy}/seasons?school=${school}`,
     });
     return documents;
   }
@@ -96,9 +100,9 @@ const Season = (props: Props) => {
     const result = await database.C({
       location: `academies/${props.academy}/seasons`,
       data: {
-        school: schoolList[school]._id,
-        schoolId: schoolList[school].schoolId,
-        schoolName: schoolList[school].schoolName,
+        school,
+        schoolId,
+        schoolName,
         year,
         term,
         period: {
@@ -122,12 +126,12 @@ const Season = (props: Props) => {
   }
 
   const schools = () => {
-    let result: { text: string; value: number }[] = [];
+    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
 
-    for (let i = 0; i < schoolList.length; i++) {
+    for (let i = 0; i < schoolList?.length; i++) {
       result.push({
         text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
-        value: i,
+        value: schoolList[i]._id,
       });
     }
 
@@ -147,20 +151,44 @@ const Season = (props: Props) => {
   };
 
   useEffect(() => {
-    getDocumentList()
+    getSchoolList()
       .then((res) => {
-        setDocumentList(res);
+        setSchoolList(res);
       })
       .catch(() => {
         alert("failed to load data");
       });
     setIsLoading(false);
     return () => {};
-  }, [isLoading]);
+  }, []);
 
-  //
+  useEffect(() => {
+    if (!school) {
+      setDocumentList([]);
+    } else {
+      getDocumentList()
+        .then((res) => {
+          setDocumentList(res);
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
+    setIsLoading(false);
+    return () => {};
+  }, [school]);
+
   return (
     <div style={{ marginTop: "24px" }}>
+      <Select
+        style={{ minHeight: "30px" }}
+        required
+        label={"학교 선택"}
+        options={!isLoading ? schools() : []}
+        setValue={setSchool}
+        appearence={"flat"}
+      />
+
       <Button
         type={"ghost"}
         style={{
@@ -170,10 +198,12 @@ const Season = (props: Props) => {
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
         onClick={async () => {
-          getSchoolList().then((res) => {
-            setSchoolList(res);
+          if (school) {
+            const schoolDoc = _.find(schoolList, { _id: school });
+            setSchoolId(schoolDoc.schoolId);
+            setSchoolName(schoolDoc.schoolName);
             setAddPopupActive(true);
-          });
+          }
         }}
       >
         + 시즌 생성
@@ -228,10 +258,12 @@ const Season = (props: Props) => {
             type: "button",
             onClick: (e: any) => {
               deleteDocument(e.target.dataset.value)
-                .then((res) => {
-                  if (res) {
-                    setIsLoading(true);
-                  }
+                .then(() => {
+                  getDocumentList().then((res) => {
+                    setDocumentList(res);
+                    setAddPopupActive(false);
+                    alert("success");
+                  });
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
@@ -275,13 +307,19 @@ const Season = (props: Props) => {
           title={"Creaet Document"}
         >
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Select
-              style={{ minHeight: "30px" }}
-              label="학교"
-              required
-              options={schools()}
-              setValue={setSchool}
-              appearence={"flat"}
+            <Input
+              appearence="flat"
+              label="학교 ID"
+              required={true}
+              disabled={true}
+              defaultValue={schoolId}
+            />
+            <Input
+              appearence="flat"
+              label="학교 이름"
+              required={true}
+              disabled={true}
+              defaultValue={schoolName}
             />
           </div>
 
@@ -332,9 +370,12 @@ const Season = (props: Props) => {
             type={"ghost"}
             onClick={() => {
               addDocument()
-                .then((res) => {
-                  setAddPopupActive(false);
-                  setIsLoading(true);
+                .then(() => {
+                  getDocumentList().then((res) => {
+                    setDocumentList(res);
+                    setAddPopupActive(false);
+                    alert("success");
+                  });
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
