@@ -146,6 +146,7 @@ const Subject = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
+        type="string-array"
         data={!isLoading ? subjectLabelList : []}
         header={[
           {
@@ -158,7 +159,7 @@ const Subject = (props: Props) => {
           {
             text: "Label",
             key: "",
-            type: "arrText",
+            type: "string",
           },
           {
             text: "삭제",
@@ -217,6 +218,8 @@ const Subject = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
+        type="object-array"
+
         data={!isLoading ? subjectDataList : []}
         header={[
           {
