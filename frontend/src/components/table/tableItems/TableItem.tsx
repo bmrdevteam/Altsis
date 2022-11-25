@@ -71,6 +71,9 @@ const TableItem = (props: ITableItem) => {
   if (props.type === "string-array") {
     const d = props?.data[props.header.key];
     output = d;
+    if (typeof props?.data !== "object") {
+      output = props?.data;
+    }
     if (props.header.returnFunction) {
       output = props.header.returnFunction(d);
     } else {
