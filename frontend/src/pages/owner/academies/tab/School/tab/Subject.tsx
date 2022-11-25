@@ -147,7 +147,7 @@ const Subject = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
-        data={!isLoading ? subjectLabelList : []}
+        data={subjectLabelList || []}
         type="string-array"
         header={[
           {

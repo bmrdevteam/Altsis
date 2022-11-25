@@ -105,7 +105,7 @@ const Classroom = (props: Props) => {
           },
           {
             text: "classroom",
-            key: "0",
+            key: "",
             type: "string",
           },
           {
