@@ -27,6 +27,7 @@ function Archive({}: Props) {
         <div style={{ marginTop: "24px" }}></div>
 
         <Table
+          type="object-array"
           filter
           filterSearch
           data={archiveTestData}
@@ -93,6 +94,7 @@ function Archive({}: Props) {
             필드 추가
           </Button>
           <Table
+            type="object-array"
             filter
             filterSearch
             data={
