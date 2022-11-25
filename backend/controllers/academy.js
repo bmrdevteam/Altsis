@@ -48,28 +48,67 @@ module.exports.create = async (req, res) => {
   }
 };
 
+module.exports.activate = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    /* activate academy */
+    academy.isActivated = true;
+    await academy.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.inactivate = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    /* activate academy */
+    academy.isActivated = false;
+    await academy.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.find = async (req, res) => {
   try {
-    /* if user is admin/magager/member of academy: return full info */
+    /* if one academy info is requested */
     if (req.params._id) {
-      if (!req.isAuthenticated()) return res.status(401).send();
+      if (!req.isAuthenticated())
+        return res.status(401).send({ message: "You are not logged in" });
 
-      const academy = await Academy.findById(req.params._id);
-
+      const academy = await Academy.findById(req.params._id).select("-dbName");
       if (req.user.auth == "owner") {
         return res.status(200).send(academy);
       }
-      if (req.user.dbName != academy.dbName) return res.status(401).send();
-      delete academy.dbName;
+
+      if (req.user.dbName != academy.dbName)
+        return res
+          .status(401)
+          .send({ message: "You are not a member of this academy" });
+
+      if (!academy.isActivated) {
+        return res.status(401).send({ message: "This academy is blocked." });
+      }
+
       return res.status(200).send(academy);
     }
+
     /* if user is owner: return full info but exclude root */
     if (req.isAuthenticated() && req.user.auth == "owner") {
       const academies = await Academy.find({ academyId: { $ne: "root" } });
       return res.status(200).send({ academies });
     }
     /* else: return filtered info */
-    const academies = await Academy.find(req.query).select([
+    const academies = await Academy.find({ isActivated: true }).select([
       "academyId",
       "academyName",
     ]);
