@@ -11,6 +11,11 @@ const ParagraphBlock = (props: Props) => {
 
   return (
     <div
+      style={{
+        fontSize: block.data?.fontSize,
+        textAlign: block.data?.textAlign,
+        fontWeight:block.data?.fontWeight
+      }}
       onInput={(e: any) => {
         console.log(e.target.textContent);
         saveBlock({
@@ -28,8 +33,6 @@ const ParagraphBlock = (props: Props) => {
       suppressContentEditableWarning
     >
       {block.data?.text}
-
-
     </div>
   );
 };
