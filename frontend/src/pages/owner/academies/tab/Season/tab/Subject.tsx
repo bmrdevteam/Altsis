@@ -158,7 +158,7 @@ const Subject = (props: Props) => {
           },
           {
             text: "Label",
-            key: "",
+            key: "0",
             type: "string",
           },
           {
@@ -219,7 +219,6 @@ const Subject = (props: Props) => {
       <div style={{ marginTop: "24px" }} />
       <Table
         type="object-array"
-
         data={!isLoading ? subjectDataList : []}
         header={[
           {

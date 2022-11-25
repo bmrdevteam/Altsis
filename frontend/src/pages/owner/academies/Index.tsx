@@ -127,7 +127,7 @@ const Academies = (props: Props) => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
-        type="object-array"
+          type="object-array"
           filter
           data={!isLoading ? documentList : []}
           header={[
@@ -158,7 +158,7 @@ const Academies = (props: Props) => {
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                navigate(`${e.target.dataset.value}`);
+                navigate(`${e._id}`);
               },
               width: "80px",
               align: "center",

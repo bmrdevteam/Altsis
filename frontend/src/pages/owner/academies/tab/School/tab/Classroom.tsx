@@ -60,6 +60,19 @@ const Classroom = (props: Props) => {
     return result;
   }
 
+  const classrooms = () => {
+    let result: { text: string; index: number }[] = [];
+
+    for (let i = 0; i < classroomList?.length; i++) {
+      result.push({
+        text: classroomList[i],
+        index: i,
+      });
+    }
+
+    return result;
+  };
+
   return (
     <div className={style.popup}>
       <div className={style.title} style={{ marginTop: "24px" }}>
@@ -92,8 +105,8 @@ const Classroom = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
-        data={classroomList || []}
-        type="string-array"
+        data={classrooms() || []}
+        type="object-array"
         header={[
           {
             text: "ID",
@@ -104,7 +117,7 @@ const Classroom = (props: Props) => {
           },
           {
             text: "classroom",
-            key: 0,
+            key: "text",
             type: "string",
           },
           {
@@ -112,7 +125,7 @@ const Classroom = (props: Props) => {
             key: "index",
             type: "button",
             onClick: (e: any) => {
-              classroomList.splice(e.target.dataset.rowindex, 1);
+              classroomList.splice(e.index, 1);
               setClassroomList([...classroomList]);
             },
             width: "80px",
