@@ -102,7 +102,7 @@ const Classroom = (props: Props) => {
           },
           {
             text: "강의실",
-            key: 0,
+            key: "",
             type: "string",
           },
           {
