@@ -104,7 +104,10 @@ export const EditorProvider = (props: {
    * editor data
    */
   const editorData = useRef<any>(null);
-
+  /**
+   * editor data Moves
+   */
+  const editorDataMoves = useRef<any>([]);
   /**
    * editor page ref
    */
@@ -363,8 +366,8 @@ export const EditorProvider = (props: {
       return [...editorData.current, block];
     };
     editorData.current = q();
-
     setReloadEditorData(true);
+    saveMoves();
   }
 
   function saveBlock({ block, update }: { block: IBlock; update?: boolean }) {
@@ -379,6 +382,7 @@ export const EditorProvider = (props: {
       }
       console.log("updated", editorData.current);
     }
+    saveMoves();
   }
 
   /**
@@ -407,15 +411,18 @@ export const EditorProvider = (props: {
   function removeCurrentBlock() {
     editorData.current.splice(getCurrentBlockIndex(), 1);
     setReloadEditorData(true);
+    saveMoves();
   }
   function changeCurrentBlockType(type: string) {
     if (type !== editorData.current[getCurrentBlockIndex()].type) {
       editorData.current[getCurrentBlockIndex()].type = type;
       setReloadEditorData(true);
     }
+    saveMoves();
   }
   function changeCurrentBlockData(data: any, update?: boolean) {
     Object.assign(editorData.current[getCurrentBlockIndex()].data, data);
+    saveMoves();
   }
 
   function addBlockAfterCurrentBlock(blockType: string) {
@@ -486,6 +493,7 @@ export const EditorProvider = (props: {
   ) {
     Object.assign(editorData.current[blockIndex].data.table[row][column], data);
     console.log(editorData.current[blockIndex]);
+    saveMoves();
   }
 
   function addToCurrentRow() {
@@ -504,6 +512,7 @@ export const EditorProvider = (props: {
         newRow
       );
     }
+    saveMoves();
   }
 
   function addToCurrentColumn() {
@@ -517,6 +526,7 @@ export const EditorProvider = (props: {
         type: "paragraph",
       });
     }
+    saveMoves();
   }
 
   function removeCurrentRow() {
@@ -524,6 +534,7 @@ export const EditorProvider = (props: {
     if (table.length > 1) {
       table.splice(currentCellRow.current, 1);
     }
+    saveMoves();
   }
   function removeCurrentColumn() {
     const block = getCurrentBlock();
@@ -535,9 +546,11 @@ export const EditorProvider = (props: {
         table[i].splice(currentCellCol.current, 1);
       }
     }
+    saveMoves();
   }
 
   function changeCurrentCell(data: any) {
+    saveMoves();
     Object.assign(
       editorData.current[getCurrentBlockIndex()].data.table[
         parseInt(currentCellRow.current)
@@ -555,7 +568,34 @@ export const EditorProvider = (props: {
   function changeBlockData(blockIndex: number, data: any) {
     Object.assign(editorData.current[blockIndex].data, data);
     setReloadEditorData(true);
+    saveMoves();
   }
+
+  /**
+   * --------------------------------------------------------------------
+   * handle key presses
+   */
+  function saveMoves() {
+    editorDataMoves.current.push([...editorData.current]);
+    editorDataMoves.current.length > 20 && editorDataMoves.current.shift();
+  }
+  function handleKeyPress(e: KeyboardEvent) {
+    if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      console.log(editorDataMoves.current);
+    }
+  }
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, []);
+
+  /**
+   * --------------------------------------------------------------------
+   */
 
   /**
    * --------------------------------------------------------------------
