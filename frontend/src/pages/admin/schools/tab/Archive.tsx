@@ -33,13 +33,6 @@ function Archive({}: Props) {
           data={archiveTestData}
           header={[
             {
-              text: "ID",
-              key: "",
-              type: "index",
-              width: "48px",
-              align: "center",
-            },
-            {
               text: "label",
               key: "label",
               type: "string",
@@ -111,16 +104,9 @@ function Archive({}: Props) {
             }
             header={[
               {
-                text: "ID",
-                key: "",
-                type: "index",
-                width: "48px",
-                align: "center",
-              },
-              {
                 text: "필드 이름",
                 key: "label",
-                type: "string",
+                type: "input",
               },
 
               {
