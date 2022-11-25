@@ -35,6 +35,7 @@ import style from "style/pages/admin/schools.module.scss";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Table from "components/table/Table";
+import _ from "lodash";
 
 type Props = {
   academy: any;
@@ -59,19 +60,6 @@ const Classroom = (props: Props) => {
     });
     return result;
   }
-
-  const classrooms = () => {
-    let result: { text: string; index: number }[] = [];
-
-    for (let i = 0; i < classroomList?.length; i++) {
-      result.push({
-        text: classroomList[i],
-        index: i,
-      });
-    }
-
-    return result;
-  };
 
   return (
     <div className={style.popup}>
@@ -105,8 +93,8 @@ const Classroom = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
-        data={classrooms() || []}
-        type="object-array"
+        data={classroomList || []}
+        type="string-array"
         header={[
           {
             text: "ID",
@@ -117,7 +105,7 @@ const Classroom = (props: Props) => {
           },
           {
             text: "classroom",
-            key: "text",
+            key: "",
             type: "string",
           },
           {
