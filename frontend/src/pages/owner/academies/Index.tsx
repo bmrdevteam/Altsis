@@ -127,6 +127,7 @@ const Academies = (props: Props) => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
+        type="object-array"
           filter
           data={!isLoading ? documentList : []}
           header={[
