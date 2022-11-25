@@ -93,6 +93,7 @@ const Classroom = (props: Props) => {
       <div style={{ marginTop: "24px" }} />
       <Table
         data={classroomList || []}
+        type="string-array"
         header={[
           {
             text: "ID",
@@ -103,8 +104,8 @@ const Classroom = (props: Props) => {
           },
           {
             text: "classroom",
-            key: "",
-            type: "arrText",
+            key: 0,
+            type: "string",
           },
           {
             text: "삭제",
