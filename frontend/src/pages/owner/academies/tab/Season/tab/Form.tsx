@@ -270,6 +270,7 @@ const Form = (props: Props) => {
             </div>
 
             <Table
+              type="object-array"
               data={exceptions || []}
               header={[
                 {
