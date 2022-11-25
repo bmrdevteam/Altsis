@@ -127,8 +127,8 @@ module.exports.findUsers = async (req, res) => {
     const academy = await Academy.findById(req.params._id);
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
-    if (req.params.docId) {
-      const document = await User(academy.dbName).findById(req.params.docId);
+    if (req.params.user) {
+      const document = await User(academy.dbName).findById(req.params.user);
       return res.status(200).send(document);
     }
 
