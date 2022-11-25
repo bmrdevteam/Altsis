@@ -11,7 +11,34 @@ router.post("/", isOwner, academy.create);
 router.get("/:_id?", academy.find);
 
 // update email, tel
-router.put("/:_id/:field", isOwner, academy.updateField);
+router.put("/:_id", isOwner, academy.updateField);
+// router.put("/:_id/:field", isOwner, academy.updateField);
+
+/* OWNER */
+router.get("/:_id/:docType/:docId?", isOwner, academy.findDocuments);
+router.delete("/:_id/:docType/:docId?", isOwner, academy.deleteDocument);
+
+router.post("/:_id/schools", isOwner, academy.createSchool);
+router.post("/:_id/seasons", isOwner, academy.createSeason);
+router.post("/:_id/users", isOwner, academy.createUser);
+router.post("/:_id/registrations", isOwner, academy.createRegistration);
+// router.post("/:_id/forms", isOwner, academy.createForm);
+
+router.put(
+  "/:_id/schools/:school/classrooms",
+  isOwner,
+  academy.updateClassrooms
+);
+
+router.put("/:_id/schools/:school/subjects", isOwner, academy.updateSubjects);
+
+router.put(
+  "/:_id/seasons/:season/:field?/:fieldType?",
+  isOwner,
+  academy.updateSeasonField
+);
+
+router.put("/:_id/users/:user", isOwner, academy.updateUser);
 
 router.delete("/:_id", isOwner, academy.remove);
 

@@ -36,7 +36,7 @@ const userSchema = mongoose.Schema(
       validate: validate({ validator: "isEmail" }),
     },
     tel: String,
-    snsId: { type: Object, select: false },
+    snsId: Object,
     schools: [
       mongoose.Schema(
         {
