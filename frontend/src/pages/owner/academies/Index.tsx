@@ -154,6 +154,15 @@ const Academies = (props: Props) => {
               type: "string",
             },
             {
+              text: "상태",
+              key: "isActivated",
+              type: "string",
+
+              returnFunction: (e: boolean) => {
+                return e ? "활성화됨" : "비활성화됨";
+              },
+            },
+            {
               text: "자세히",
               key: "_id",
               type: "button",

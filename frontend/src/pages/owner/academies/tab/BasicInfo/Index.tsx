@@ -36,25 +36,54 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 
 type Props = {
-  academy?: any;
+  academyData: any;
 };
 
 const Academy = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState<any>();
-  const [tel, setTel] = useState<any>();
+  const [isActivated, setIsActivated] = useState<boolean>(
+    props.academyData.isActivated
+  );
+  const [email, setEmail] = useState<string>(props.academyData.email);
+  const [tel, setTel] = useState<any>(props.academyData.tel);
 
   async function updateAcademy() {
     const result = await database.U({
-      location: `academies/${props.academy?._id}`,
+      location: `academies/${props.academyData._id}`,
       data: {
         email,
         tel,
       },
     });
     return result;
+  }
+
+  async function activateAcademy() {
+    if (window.confirm("정말 활성화하시겠습니까?") === true) {
+      // 확인
+      const result = await database.C({
+        location: `academies/${props.academyData._id}/activate`,
+        data: {},
+      });
+      return result;
+    }
+    // 취소
+    return false;
+  }
+
+  async function inactivateAcademy() {
+    if (window.confirm("정말 비활성화하시겠습니까?") === true) {
+      // 확인
+      const result = await database.C({
+        location: `academies/${props.academyData._id}/inactivate`,
+        data: {},
+      });
+      return result;
+    }
+    // 취소
+    return false;
   }
 
   async function deleteAcademy() {
@@ -82,13 +111,13 @@ const Academy = (props: Props) => {
       >
         <Input
           label="아카데미 ID"
-          defaultValue={props.academy?.academyId}
+          defaultValue={props.academyData.academyId}
           required
           disabled
         />
         <Input
           label="아카데미 이름"
-          defaultValue={props.academy?.academyName}
+          defaultValue={props.academyData.academyName}
           required
           disabled
         />
@@ -103,7 +132,7 @@ const Academy = (props: Props) => {
       >
         <Input
           label="email"
-          defaultValue={props.academy?.email}
+          defaultValue={email}
           onChange={(e: any) => {
             setEmail(e.target.value);
           }}
@@ -118,7 +147,7 @@ const Academy = (props: Props) => {
       >
         <Input
           label="tel"
-          defaultValue={props.academy?.tel}
+          defaultValue={tel}
           onChange={(e: any) => {
             setTel(e.target.value);
           }}
@@ -128,7 +157,7 @@ const Academy = (props: Props) => {
         <Input
           appearence="flat"
           label="생성 날짜"
-          defaultValue={props.academy?.createdAt}
+          defaultValue={props.academyData.createdAt}
           disabled
         />
       </div>
@@ -136,7 +165,7 @@ const Academy = (props: Props) => {
         <Input
           appearence="flat"
           label="수정 날짜"
-          defaultValue={props.academy?.updatedAt}
+          defaultValue={props.academyData.updatedAt}
           disabled
         />
       </div>
@@ -168,17 +197,28 @@ const Academy = (props: Props) => {
           height: "32px",
         }}
         onClick={() => {
-          deleteAcademy()
-            .then((res) => {
-              if (res) navigate("/owner/academies");
-            })
-            .catch((err) => {
-              alert(err.response.data.message);
-            });
+          if (isActivated) {
+            inactivateAcademy()
+              .then((res) => {
+                alert("success");
+                setIsActivated(false);
+              })
+              .catch((err) => {
+                alert(err.response.data.message);
+              });
+          } else {
+            activateAcademy()
+              .then((res) => {
+                alert("success");
+                setIsActivated(true);
+              })
+              .catch((err) => {
+                alert(err.response.data.message);
+              });
+          }
         }}
-        disabled={true}
       >
-        삭제하기
+        {isActivated ? "비활성화" : "활성화"}
       </Button>
     </div>
   );
