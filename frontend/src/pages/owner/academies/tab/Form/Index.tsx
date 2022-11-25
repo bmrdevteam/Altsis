@@ -120,6 +120,7 @@ const Form = (props: Props) => {
         + 양식 생성
       </Button>
       <Table
+      type="object-array"
         filter
         data={!isLoading ? documentList : []}
         header={[
