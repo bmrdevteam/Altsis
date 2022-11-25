@@ -203,7 +203,6 @@ const User = (props: Props) => {
       </Button>
       <Table
         type="object-array"
-
         filter
         data={!isLoading ? documentList : []}
         header={[
@@ -235,7 +234,7 @@ const User = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              getDocument(e.target.dataset.value).then((res) => {
+              getDocument(e._id).then((res) => {
                 setDoc(res);
                 setEditPopupActive(true);
               });

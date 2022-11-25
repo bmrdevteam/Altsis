@@ -88,6 +88,7 @@ const Permission = (props: Props) => {
         }
       } else {
         _exceptions.push({
+          index: i,
           userId: permission[i][1],
           allowed: permission[i][2],
         });
@@ -312,7 +313,7 @@ const Permission = (props: Props) => {
                   key: "index",
                   type: "button",
                   onClick: (e: any) => {
-                    exceptions.splice(e.target.dataset.rowindex, 1);
+                    exceptions.splice(e.index, 1);
                     setExceptions([...exceptions]);
                   },
                   width: "80px",

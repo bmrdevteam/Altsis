@@ -127,7 +127,7 @@ const School = (props: Props) => {
           + 학교 생성
         </Button>
         <Table
-        type="object-array"
+          type="object-array"
           filter
           data={!isLoading ? documentList : []}
           header={[
@@ -154,7 +154,7 @@ const School = (props: Props) => {
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                getDocument(e.target.dataset.value).then((res) => {
+                getDocument(e._id).then((res) => {
                   setDoc(res);
                   setEditPopupActive(true);
                 });
@@ -167,7 +167,7 @@ const School = (props: Props) => {
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                deleteDocument(e.target.dataset.value)
+                deleteDocument(e._id)
                   .then((res) => {
                     if (res) {
                       setIsLoading(true);
