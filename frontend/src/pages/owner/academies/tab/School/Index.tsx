@@ -127,6 +127,7 @@ const School = (props: Props) => {
           + 학교 생성
         </Button>
         <Table
+        type="object-array"
           filter
           data={!isLoading ? documentList : []}
           header={[
