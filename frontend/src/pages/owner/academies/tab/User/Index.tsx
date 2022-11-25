@@ -75,7 +75,9 @@ const User = (props: Props) => {
 
   async function getDocumentList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/users`,
+      location: `academies/${props.academy}/users?${
+        school ? `schools.school=${school}` : `no-school=true`
+      }`,
     });
     return documents;
   }
@@ -95,6 +97,7 @@ const User = (props: Props) => {
   }
 
   async function addDocument() {
+    console.log("DEBUG: ", { school, schoolId, schoolName });
     const result = await database.C({
       location: `academies/${props.academy}/users`,
       data: {
@@ -104,7 +107,8 @@ const User = (props: Props) => {
         password,
         tel,
         email,
-        schools: [{ school, schoolId, schoolName }],
+
+        schools: school ? [{ school, schoolId, schoolName }] : [],
       },
     });
     return result;
@@ -156,17 +160,13 @@ const User = (props: Props) => {
   }, []);
 
   useEffect(() => {
-    if (!school) {
-      setDocumentList([]);
-    } else {
-      getDocumentList()
-        .then((res) => {
-          setDocumentList(res);
-        })
-        .catch(() => {
-          alert("failed to load data");
-        });
-    }
+    getDocumentList()
+      .then((res) => {
+        setDocumentList(res);
+      })
+      .catch(() => {
+        alert("failed to load data");
+      });
     setIsLoading(false);
     return () => {};
   }, [school]);
@@ -191,12 +191,10 @@ const User = (props: Props) => {
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
         onClick={async () => {
-          if (school) {
-            const schoolDoc = _.find(schoolList, { _id: school });
-            setSchoolId(schoolDoc.schoolId);
-            setSchoolName(schoolDoc.schoolName);
-            setAddPopupActive(true);
-          }
+          const schoolDoc = _.find(schoolList, { _id: school });
+          setSchoolId(schoolDoc?.schoolId);
+          setSchoolName(schoolDoc?.schoolName);
+          setAddPopupActive(true);
         }}
       >
         + 사용자 생성
@@ -247,7 +245,7 @@ const User = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              deleteDocument(e.target.dataset.value)
+              deleteDocument(e._id)
                 .then(() => {
                   getDocumentList().then((res) => {
                     setDocumentList(res);

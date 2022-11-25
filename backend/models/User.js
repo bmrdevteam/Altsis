@@ -40,6 +40,7 @@ const userSchema = mongoose.Schema(
     schools: [
       mongoose.Schema(
         {
+          school: mongoose.Types.ObjectId,
           schoolId: String,
           schoolName: String,
         },

@@ -103,7 +103,7 @@ const Registration = (props: Props) => {
 
   async function getUserList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/users`,
+      location: `academies/${props.academy}/users?schools.school=${school}`,
     });
     return documents;
   }
