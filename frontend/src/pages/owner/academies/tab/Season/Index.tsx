@@ -209,6 +209,7 @@ const Season = (props: Props) => {
         + 시즌 생성
       </Button>
       <Table
+      type="object-array"
         filter
         data={!isLoading ? documentList : []}
         header={[
