@@ -22,7 +22,6 @@ const One = (props: Props) => {
       return val.label === props.archive;
     })[0];
   }
-  console.log(props.userId);
 
   return (
     <>
