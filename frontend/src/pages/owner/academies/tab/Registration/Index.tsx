@@ -269,6 +269,7 @@ const Registration = (props: Props) => {
       <div style={{ marginTop: "24px" }} />
 
       <Table
+      type="object-array"
         filter
         data={!isLoading ? documentList : []}
         header={[
