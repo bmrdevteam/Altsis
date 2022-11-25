@@ -15,6 +15,7 @@ router.put("/:_id", isOwner, academy.updateField);
 // router.put("/:_id/:field", isOwner, academy.updateField);
 
 /* OWNER */
+router.get("/:_id/users/:user?", isOwner, academy.findUsers);
 router.get("/:_id/:docType/:docId?", isOwner, academy.findDocuments);
 router.delete("/:_id/:docType/:docId?", isOwner, academy.deleteDocument);
 
