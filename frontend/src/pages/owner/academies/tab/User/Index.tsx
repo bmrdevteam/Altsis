@@ -202,6 +202,8 @@ const User = (props: Props) => {
         + 사용자 생성
       </Button>
       <Table
+        type="object-array"
+
         filter
         data={!isLoading ? documentList : []}
         header={[
