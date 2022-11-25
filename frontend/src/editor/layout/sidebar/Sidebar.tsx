@@ -1,3 +1,4 @@
+import Tree from "components/tree/Tree";
 import useGenerateId from "hooks/useGenerateId";
 import { isArray } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
@@ -146,7 +147,8 @@ const Sidebar = (props: Props) => {
       </Menu>
     );
   };
-
+  const [tableBlockMenuPopup, setTableBlockMenuPopup] =
+    useState<boolean>(false);
   const TableBlockMenu = () => {
     return (
       <Menu name="테이블">
@@ -227,11 +229,45 @@ const Sidebar = (props: Props) => {
             열 추가
           </Button>
         </div>
+        <div style={{ display: "flex", gap: "4px" }}>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              removeCurrentColumn();
+              props.callPageReload();
+            }}
+          >
+            행 삭제
+          </Button>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              removeCurrentRow();
+              props.callPageReload();
+            }}
+          >
+            열 삭제
+          </Button>
+        </div>
       </Menu>
     );
   };
   const TableCellMenu = () => {
     return (
+      <>
       <Menu name="셀">
         <div className={style.item}>
           <label>셀 타입</label>
@@ -494,40 +530,22 @@ const Sidebar = (props: Props) => {
             </Button>
           </div>
         )}
-        <div style={{ display: "flex", gap: "4px" }}>
-          <Button
-            type="ghost"
-            style={{
-              flex: "1 1 0",
-              marginTop: "8px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-            }}
-            onClick={() => {
-              removeCurrentColumn();
-              props.callPageReload();
-            }}
-          >
-            행 삭제
-          </Button>
-          <Button
-            type="ghost"
-            style={{
-              flex: "1 1 0",
-              marginTop: "8px",
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-            }}
-            onClick={() => {
-              removeCurrentRow();
-              props.callPageReload();
-            }}
-          >
-            열 삭제
-          </Button>
-        </div>
+
+        <Button
+          type="ghost"
+          style={{ height: "32px", marginTop: "8px" }}
+          onClick={() => {
+            setTableBlockMenuPopup(true);
+          }}
+        >
+          데이터 연결
+        </Button>
       </Menu>
+      {tableBlockMenuPopup&& <Popup setState={setTableBlockMenuPopup} title="데이터 연결" closeBtn style={{borderRadius:"4px"}}>
+       <Tree></Tree>
+
+      </Popup>}
+      </>
     );
   };
   const InputBlockMenu = () => {
@@ -599,7 +617,8 @@ const Sidebar = (props: Props) => {
               <div
                 className={style.option}
                 onClick={() => {
-                  // editor.align("left");
+                  changeCurrentBlockData({ textAlign: "left" });
+                  props.callPageReload();
                 }}
               >
                 <Svg type={"alignLeft"} />
@@ -607,7 +626,8 @@ const Sidebar = (props: Props) => {
               <div
                 className={style.option}
                 onClick={() => {
-                  // editor.align("center");
+                  changeCurrentBlockData({ textAlign: "center" });
+                  props.callPageReload();
                 }}
               >
                 <Svg type={"alignCenter"} />
@@ -615,7 +635,8 @@ const Sidebar = (props: Props) => {
               <div
                 className={style.option}
                 onClick={() => {
-                  // editor.align("right");
+                  changeCurrentBlockData({ textAlign: "right" });
+                  props.callPageReload();
                 }}
               >
                 <Svg type={"alignRight"} />
@@ -624,14 +645,32 @@ const Sidebar = (props: Props) => {
           </div>
         </div>
         <div className={style.item}>
-          <label></label>
+          <label>볼드</label>
+          <Select
+            onChange={(value: any) => {
+              changeCurrentBlockData({ fontWeight: value });
+              props.callPageReload();
+            }}
+            style={{ fontSize: "12px" }}
+            selectedValue={getCurrentBlock().data.fontWeight}
+            appearence="flat"
+            options={[
+              { text: "100", value: 100 },
+              { text: "200", value: 200 },
+              { text: "300", value: 300 },
+              { text: "400", value: 400 },
+              { text: "500", value: 500 },
+              { text: "600", value: 600 },
+              { text: "700", value: 700 },
+              { text: "800", value: 800 },
+              { text: "900", value: 900 },
+            ]}
+          />
         </div>
-        <div className={style.item}>
+        {/* <div className={style.item}>
           <label>배경색</label>
         </div>
-        <div className={style.item}>
-          <label>크기</label>
-        </div>
+        */}
       </Menu>
     );
   };
