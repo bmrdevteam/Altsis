@@ -286,6 +286,7 @@ const Permission = (props: Props) => {
             </div>
 
             <Table
+              type="object-array"
               data={exceptions || []}
               header={[
                 {
