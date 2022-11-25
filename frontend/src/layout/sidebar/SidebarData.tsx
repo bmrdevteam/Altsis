@@ -17,6 +17,29 @@ interface INavSubLink {
 }
 export const SidebarData = (role: string): any => {
   switch (role) {
+    case "owner":
+      return [
+        {
+          title: "dashboard",
+          name: " 대시보드",
+          path: "/",
+          icon: <Svg type="school" />,
+        },
+        {
+          title: "owner",
+          name: "소유자",
+          path: "/owner",
+          icon: <Svg type="school" />,
+          subLink: [
+            {
+              title: "academies",
+              name: "아카데미 관리",
+              path: "/owner/academies",
+              icon: <Svg type="file" />,
+            },
+          ],
+        },
+      ];
     case "manager":
     case "admin":
       return [
@@ -118,12 +141,6 @@ export const SidebarData = (role: string): any => {
           title: "dashboard",
           name: "대시보드",
           path: "/",
-          icon: <Svg type="school" />,
-        },
-        {
-          title: "enrollment",
-          name: "수강신청",
-          path: "/enrollment",
           icon: <Svg type="school" />,
         },
         {
