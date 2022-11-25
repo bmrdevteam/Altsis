@@ -41,7 +41,6 @@ import Tab from "components/tab/Tab";
 
 // tab elements
 import BasicInfo from "./tab/BasicInfo/Index";
-import Form from "./tab/Form/Index";
 import User from "./tab/User/Index";
 import Season from "./tab/Season/Index";
 import School from "./tab/School/Index";
@@ -130,7 +129,6 @@ const Academy = (props: Props) => {
           시즌: <Season academy={academyData?._id} />,
           사용자: <User academy={academyData?._id} />,
           등록: <Registration academy={academyData?._id} />,
-          양식: <Form academy={academyData?._id} />,
         }}
       />
     </div>
