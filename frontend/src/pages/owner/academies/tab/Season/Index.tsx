@@ -43,7 +43,6 @@ import Basic from "./tab/Basic";
 import Classroom from "./tab/Classroom";
 import Subject from "./tab/Subject";
 import Permission from "./tab/Permission";
-import Form from "./tab/Form";
 
 import _ from "lodash";
 
@@ -209,7 +208,7 @@ const Season = (props: Props) => {
         + 시즌 생성
       </Button>
       <Table
-      type="object-array"
+        type="object-array"
         filter
         data={!isLoading ? documentList : []}
         header={[
@@ -245,7 +244,7 @@ const Season = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              getDocument(e.target.dataset.value).then((res) => {
+              getDocument(e._id).then((res) => {
                 setDoc(res);
                 setEditPopupActive(true);
               });
@@ -258,7 +257,7 @@ const Season = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              deleteDocument(e.target.dataset.value)
+              deleteDocument(e._id)
                 .then(() => {
                   getDocumentList().then((res) => {
                     setDocumentList(res);
@@ -294,7 +293,6 @@ const Season = (props: Props) => {
               permissions: (
                 <Permission academy={props.academy} seasonData={doc} />
               ),
-              forms: <Form academy={props.academy} seasonData={doc} />,
             }}
             align={"flex-start"}
           />

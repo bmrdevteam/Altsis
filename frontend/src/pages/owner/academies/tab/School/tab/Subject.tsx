@@ -219,7 +219,7 @@ const Subject = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
-      type="object-array"
+        type="object-array"
         data={!isLoading ? subjectDataList : []}
         header={[
           {

@@ -122,8 +122,34 @@ const typeToModel = (docType, dbName) => {
   if (docType === "forms") return Form(dbName);
 };
 
+module.exports.findUsers = async (req, res) => {
+  try {
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    if (req.params.user) {
+      const document = await User(academy.dbName).findById(req.params.user);
+      return res.status(200).send(document);
+    }
+
+    if (req.query["no-school"]) {
+      const documents = await User(academy.dbName).find({
+        schools: { $size: 0 },
+      });
+
+      return res.status(200).send({ documents });
+    }
+    const documents = await User(academy.dbName).find(req.query);
+
+    return res.status(200).send({ documents });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.findDocuments = async (req, res) => {
   try {
+    console.log("DEBUG: ", req.query);
     const academy = await Academy.findById(req.params._id);
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
@@ -135,7 +161,6 @@ module.exports.findDocuments = async (req, res) => {
       return res.status(200).send(document);
     }
 
-    console.log("req.query is ", req.query);
     const documents = await typeToModel(
       req.params.docType,
       academy.dbName
