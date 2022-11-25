@@ -16,14 +16,14 @@ type Props = {};
 const ArchiveField = (props: Props) => {
   const database = useDatabase();
   const { pid } = useParams();
-  const { currentSchool } = useAuth();
+  const { currentSchool, currentUser } = useAuth();
 
   const [users, setUsers] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
 
   async function getUserArchive(userId: string) {
     const result = await database.R({
-      location: `archives/schoolId=${currentSchool.schoolId}&userId=${userId}`,
+      location: `archives?school=${currentSchool.school}&userId=${userId}`,
     });
     return result;
   }
