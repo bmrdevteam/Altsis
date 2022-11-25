@@ -86,6 +86,8 @@ const Enrollment = (props: Props) => {
         <div style={{ height: "24px" }}></div>
 
         <Table
+        filter
+        filterSearch
           type="object-array"
           data={courses}
           header={[
