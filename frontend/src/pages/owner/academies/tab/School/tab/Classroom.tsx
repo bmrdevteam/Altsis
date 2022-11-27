@@ -113,7 +113,10 @@ const Classroom = (props: Props) => {
             key: "index",
             type: "button",
             onClick: (e: any) => {
-              classroomList.splice(e.index, 1);
+              classroomList.splice(
+                _.findIndex(classroomList, (x) => x === e),
+                1
+              );
               setClassroomList([...classroomList]);
             },
             width: "80px",
