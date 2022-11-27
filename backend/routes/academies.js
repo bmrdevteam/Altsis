@@ -15,7 +15,6 @@ router.get("/:_id?", academy.find);
 
 // update email, tel
 router.put("/:_id", isOwner, academy.updateField);
-// router.put("/:_id/:field", isOwner, academy.updateField);
 
 /* OWNER */
 router.get("/:_id/users/:user?", isOwner, academy.findUsers);
@@ -26,7 +25,6 @@ router.post("/:_id/schools", isOwner, academy.createSchool);
 router.post("/:_id/seasons", isOwner, academy.createSeason);
 router.post("/:_id/users", isOwner, academy.createUser);
 router.post("/:_id/registrations", isOwner, academy.createRegistration);
-// router.post("/:_id/forms", isOwner, academy.createForm);
 
 router.put(
   "/:_id/schools/:school/classrooms",
@@ -36,10 +34,12 @@ router.put(
 
 router.put("/:_id/schools/:school/subjects", isOwner, academy.updateSubjects);
 
-router.put(
-  "/:_id/seasons/:season/:field?/:fieldType?",
+router.put("/:_id/seasons/:season", isOwner, academy.updateSeason);
+router.post("/:_id/seasons/:season/activate", isOwner, academy.activateSeason);
+router.post(
+  "/:_id/seasons/:season/inactivate",
   isOwner,
-  academy.updateSeasonField
+  academy.inactivateSeason
 );
 
 router.put("/:_id/users/:user", isOwner, academy.updateUser);

@@ -36,6 +36,7 @@ import style from "style/pages/admin/schools.module.scss";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Table from "components/table/Table";
+import _ from "lodash";
 
 type Props = {
   academy: string;
@@ -167,7 +168,7 @@ const Subject = (props: Props) => {
             key: "index",
             type: "button",
             onClick: (e: any) => {
-              subjectLabelList.splice(e.target.dataset.rowindex, 1);
+              subjectLabelList.splice(e.index, 1);
               setSubjectLabelList([...subjectLabelList]);
               updateSubjectDataHeader();
             },
@@ -235,7 +236,10 @@ const Subject = (props: Props) => {
             key: "index",
             type: "button",
             onClick: (e: any) => {
-              subjectDataList.splice(e.target.dataset.rowindex, 1);
+              subjectDataList.splice(
+                _.findIndex(subjectDataList, (x) => _.isEqual(x, e)),
+                1
+              );
               setSubjectDataList([...subjectDataList]);
             },
             width: "80px",

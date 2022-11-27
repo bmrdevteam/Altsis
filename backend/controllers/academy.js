@@ -355,29 +355,50 @@ module.exports.updateSeason = async (req, res) => {
   }
 };
 
-module.exports.updateSeasonField = async (req, res) => {
+module.exports.activateSeason = async (req, res) => {
   try {
+    /* find document */
     const academy = await Academy.findById(req.params._id);
     if (!academy) return res.status(404).send({ message: "academy not found" });
-
     const season = await Season(academy.dbName).findById(req.params.season);
+    if (!season) return res.status(404).send({ message: "season not found" });
 
-    if (!req.params.field) {
-      season.year = req.body.year;
-      season.term = req.body.term;
-      season.period = req.body.period;
-    } else {
-      let field = req.params.field;
-      if (req.params.fieldType)
-        field +=
-          req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
-
-      season[field] = req.body.new;
-    }
-
+    /* activate season */
+    season.isActivated = true;
     await season.save();
 
-    return res.status(200).send(season);
+    /* activate registrations */
+    await Registration(academy.dbName).updateMany(
+      { season },
+      { isActivated: true }
+    );
+
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+  season;
+};
+
+module.exports.inactivateSeason = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+    const season = await Season(academy.dbName).findById(req.params.season);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    /* activate academy */
+    season.isActivated = false;
+    await season.save();
+
+    /* activate registrations */
+    await Registration(academy.dbName).updateMany(
+      { season },
+      { isActivated: false }
+    );
+
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -416,6 +437,7 @@ module.exports.createRegistration = async (req, res) => {
       userId: user.userId,
       userName: user.userName,
       role: req.body.role,
+      isActivated: season.isActivated,
     });
 
     await registration.save();

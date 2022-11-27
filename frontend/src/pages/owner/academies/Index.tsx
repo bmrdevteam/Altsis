@@ -100,7 +100,7 @@ const Academies = (props: Props) => {
       setIsLoading(false);
     });
     return () => {};
-  }, [isLoading]);
+  }, []);
 
   return (
     <div className={style.section}>

@@ -175,7 +175,7 @@ const Season = (props: Props) => {
     }
     setIsLoading(false);
     return () => {};
-  }, [school]);
+  }, [school, editPopupActive]);
 
   return (
     <div style={{ marginTop: "24px" }}>
@@ -240,6 +240,15 @@ const Season = (props: Props) => {
             type: "string",
           },
           {
+            text: "상태",
+            key: "isActivated",
+            type: "string",
+
+            returnFunction: (e: boolean) => {
+              return e ? "활성화됨" : "비활성화됨";
+            },
+          },
+          {
             text: "자세히",
             key: "_id",
             type: "button",
@@ -258,12 +267,14 @@ const Season = (props: Props) => {
             type: "button",
             onClick: (e: any) => {
               deleteDocument(e._id)
-                .then(() => {
-                  getDocumentList().then((res) => {
-                    setDocumentList(res);
-                    setAddPopupActive(false);
-                    alert("success");
-                  });
+                .then((res) => {
+                  if (res) {
+                    getDocumentList().then((res) => {
+                      if (res) setDocumentList(res);
+                      setAddPopupActive(false);
+                      alert("success");
+                    });
+                  }
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
