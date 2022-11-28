@@ -172,7 +172,15 @@ module.exports.current = async (req, res) => {
     // registrations
     const registrations = await Registration(user.dbName)
       .find({ userId: user.userId })
-      .select(["school", "schoolId", "schoolName", "season", "year", "term"]);
+      .select([
+        "school",
+        "schoolId",
+        "schoolName",
+        "season",
+        "year",
+        "term",
+        "isActivated",
+      ]);
 
     return res.status(200).send({ ...user.toObject(), registrations });
   } catch (err) {
