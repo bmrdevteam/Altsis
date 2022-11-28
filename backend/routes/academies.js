@@ -35,6 +35,11 @@ router.put(
 router.put("/:_id/schools/:school/subjects", isOwner, academy.updateSubjects);
 
 router.put("/:_id/seasons/:season", isOwner, academy.updateSeason);
+router.put(
+  "/:_id/seasons/:season/permission/:permissionType",
+  isOwner,
+  academy.updateSeasonPermission
+);
 router.post("/:_id/seasons/:season/activate", isOwner, academy.activateSeason);
 router.post(
   "/:_id/seasons/:season/inactivate",

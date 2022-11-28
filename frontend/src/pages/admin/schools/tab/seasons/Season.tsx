@@ -206,7 +206,7 @@ const Season = (props: Props) => {
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                getSelectedSeason(e.target.dataset.value).then((res) => {
+                getSelectedSeason(e._id).then((res) => {
                   setSelectedSeason(res);
                   setEditSeasonPopupActive(true);
                   console.log(res);

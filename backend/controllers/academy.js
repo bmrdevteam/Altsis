@@ -355,6 +355,27 @@ module.exports.updateSeason = async (req, res) => {
   }
 };
 
+module.exports.updateSeasonPermission = async (req, res) => {
+  try {
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    const season = await Season(academy.dbName).findById(req.params.season);
+    if (req.params.permissionType === "syllabus")
+      season.permissionSyllabus = req.body.new;
+    else if (req.params.permissionType === "evaluation")
+      season.permissionEvaluation = req.body.new;
+    else if (req.params.permissionType === "enrollment")
+      season.permissionEnrollment = req.body.new;
+    else return res.status(403).send();
+
+    await season.save();
+    return res.status(200).send(season);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.activateSeason = async (req, res) => {
   try {
     /* find document */
