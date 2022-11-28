@@ -38,6 +38,8 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 
+import _ from "lodash";
+
 type Props = {
   academy: string;
   seasonData: any;
@@ -72,7 +74,7 @@ const Permission = (props: Props) => {
   const [exceptions, setExceptions] = useState<any>([]);
 
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [selectedIsAllowed, setSelectedIsAllowed] = useState<boolean>(true);
+  const [selectedIsAllowed, setSelectedIsAllowed] = useState<string>("");
 
   const parsePermission = (permission: Array<Array<any>>) => {
     setIsTeacherAllowed(false);
@@ -90,7 +92,7 @@ const Permission = (props: Props) => {
         _exceptions.push({
           index: i,
           userId: permission[i][1],
-          allowed: permission[i][2],
+          isAllowed: permission[i][2],
         });
       }
     }
@@ -105,7 +107,7 @@ const Permission = (props: Props) => {
       _permission.push([
         "userId",
         exceptions[i]["userId"],
-        exceptions[i]["allowed"],
+        exceptions[i]["isAllowed"],
       ]);
     }
     _permission.push(["role", "teacher", isTeacherAllowed]);
@@ -115,8 +117,6 @@ const Permission = (props: Props) => {
   };
 
   async function updatePermission(_permission: any) {
-    _permission.push(["role", "student", isStudentAllowed]);
-
     const result = await database.U({
       location: `academies/${props.academy}/seasons/${props.seasonData?._id}/permission/${permissionType}`,
       data: {
@@ -253,8 +253,8 @@ const Permission = (props: Props) => {
               <Select
                 style={{ minHeight: "30px" }}
                 options={[
-                  { text: "허용", value: 0 },
-                  { text: "비허용", value: 1 },
+                  { text: "허용", value: "허용" },
+                  { text: "비허용", value: "비허용" },
                 ]}
                 setValue={setSelectedIsAllowed}
                 appearence={"flat"}
@@ -267,7 +267,7 @@ const Permission = (props: Props) => {
                       ...exceptions,
                       {
                         userId: selectedUserId,
-                        isAllowed: selectedIsAllowed,
+                        isAllowed: selectedIsAllowed === "허용",
                       },
                     ]);
                   }
@@ -304,7 +304,7 @@ const Permission = (props: Props) => {
                 },
                 {
                   text: "허용/비허용",
-                  key: "allowed",
+                  key: "isAllowed",
                   type: "string",
                   returnFunction: (value: any) => (value ? "허용" : "비허용"),
                 },
@@ -313,7 +313,10 @@ const Permission = (props: Props) => {
                   key: "index",
                   type: "button",
                   onClick: (e: any) => {
-                    exceptions.splice(e.index, 1);
+                    exceptions.splice(
+                      _.findIndex(exceptions, (x) => x === e),
+                      1
+                    );
                     setExceptions([...exceptions]);
                   },
                   width: "80px",
