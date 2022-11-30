@@ -24,8 +24,7 @@ const ArchiveField = (props: Props) => {
   const [users, setUsers] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
   const [archiveData, setArchiveData] = useState<any>();
-
- 
+  const [archiveForm, setArchiveForm] = useState<any>();
 
   async function getUsers(schoolId: string) {
     const { users: result } = await database.R({
@@ -38,6 +37,14 @@ const ArchiveField = (props: Props) => {
     getUsers(currentSchool.schoolId).then((res) => {
       setUsers(res);
     });
+    database
+      .R({
+        location: `schools/${currentSchool.school}`,
+      })
+      .then((res) => {
+        console.log(res);
+        setArchiveForm(res);
+      });
   }, [currentSchool]);
 
   useEffect(() => {
@@ -51,10 +58,7 @@ const ArchiveField = (props: Props) => {
         });
     }
   }, [userId]);
-  console.log(
-  archiveData
-
-);
+  console.log(archiveData);
 
   return (
     <>
@@ -93,7 +97,7 @@ const ArchiveField = (props: Props) => {
                   archive={pid}
                   setUserId={setUserId}
                   userId={userId}
-                  userArchiveData={archiveData?.[pid??""]}
+                  userArchiveData={archiveData?.[pid ?? ""]}
                 />
               </>
             ),
