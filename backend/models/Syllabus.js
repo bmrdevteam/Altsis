@@ -74,6 +74,23 @@ syllabusSchema.index({
   season: 1,
 });
 
+const days = { 월: 0, 화: 1, 수: 2, 목: 3, 금: 4, 토: 5, 일: 6 };
+const compare = (timeBlock1, timeBlock2) => {
+  if (timeBlock1["day"] === timeBlock2["day"])
+    return timeBlock1["start"] < timeBlock2["start"] ? -1 : 1;
+  return days[timeBlock1["day"]] - days[timeBlock2["day"]];
+};
+
+syllabusSchema.pre("save", function (next) {
+  var syllabus = this;
+
+  //timeBlock 정렬해서 저장
+  if (syllabus.isModified("time")) {
+    syllabus.time.sort(compare);
+  }
+  next();
+});
+
 syllabusSchema.methods.getSubdocument = function () {
   return {
     syllabus: this._id,

@@ -45,6 +45,10 @@ const seasonSchema = mongoose.Schema(
     formSyllabus: Object,
     formEvaluation: Object,
     temp: Object,
+    isActivated: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

@@ -41,7 +41,6 @@ import Tab from "components/tab/Tab";
 
 // tab elements
 import BasicInfo from "./tab/BasicInfo/Index";
-import Form from "./tab/Form/Index";
 import User from "./tab/User/Index";
 import Season from "./tab/Season/Index";
 import School from "./tab/School/Index";
@@ -96,13 +95,13 @@ const Academy = (props: Props) => {
     getAcademyData()
       .then((res) => {
         setAcademyData(res);
+        setIsLoading(false);
       })
       .catch(() => {
         alert("failed to load data");
         setIsAcademy(false);
       });
-    setIsLoading(false);
-  }, [isLoading]);
+  }, []);
 
   if (!isAcademy) {
     return <CannotFindAcademy />;
@@ -123,16 +122,19 @@ const Academy = (props: Props) => {
         </div>
       </div>
 
-      <Tab
-        items={{
-          아카데미: <BasicInfo academy={academyData} />,
-          학교: <School academy={academyData?._id} />,
-          시즌: <Season academy={academyData?._id} />,
-          사용자: <User academy={academyData?._id} />,
-          등록: <Registration academy={academyData?._id} />,
-          양식: <Form academy={academyData?._id} />,
-        }}
-      />
+      {!isLoading ? (
+        <Tab
+          items={{
+            아카데미: <BasicInfo academyData={academyData} />,
+            학교: <School academy={academyData?._id} />,
+            시즌: <Season academy={academyData?._id} />,
+            사용자: <User academy={academyData?._id} />,
+            등록: <Registration academy={academyData?._id} />,
+          }}
+        />
+      ) : (
+        <div />
+      )}
     </div>
   );
 };

@@ -45,11 +45,10 @@ function Basic(props: Props) {
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  /* additional document list */
-  const [schoolList, setSchoolList] = useState<any>();
-  const [school, setSchool] = useState<any>();
-
   /* document fields */
+  const [isActivated, setIsActivated] = useState<boolean>(
+    props.seasonData.isActivated
+  );
   const [year, setYear] = useState<string>(props.seasonData.year);
   const [term, setTerm] = useState<string>(props.seasonData.term);
   const [start, setStart] = useState<string>(
@@ -57,13 +56,36 @@ function Basic(props: Props) {
   );
   const [end, setEnd] = useState<string>(props.seasonData?.period?.end ?? "");
 
+  async function activateSeason() {
+    if (window.confirm("정말 활성화하시겠습니까?") === true) {
+      // 확인
+      const result = await database.C({
+        location: `academies/${props.academy}/seasons/${props.seasonData._id}/activate`,
+        data: {},
+      });
+      return result;
+    }
+    // 취소
+    return false;
+  }
+
+  async function inactivateSeason() {
+    if (window.confirm("정말 비활성화하시겠습니까?") === true) {
+      // 확인
+      const result = await database.C({
+        location: `academies/${props.academy}/seasons/${props.seasonData._id}/inactivate`,
+        data: {},
+      });
+      return result;
+    }
+    // 취소
+    return false;
+  }
+
   async function updateSeason() {
     const result = database.U({
-      location: `seasons/${props.seasonData._id}`,
+      location: `academies/${props.academy}/seasons/${props.seasonData._id}`,
       data: {
-        school: schoolList[school]._id,
-        schoolId: schoolList[school].schoolId,
-        schoolName: schoolList[school].schoolName,
         year,
         term,
         period: {
@@ -170,6 +192,7 @@ function Basic(props: Props) {
                 alert("success");
               })
               .catch((err) => {
+                console.log(err);
                 alert(err.response.data.message);
               });
             setIsLoading(false);
@@ -182,6 +205,41 @@ function Basic(props: Props) {
           }}
         >
           수정하기
+        </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            marginTop: "12px",
+          }}
+          onClick={() => {
+            if (isActivated) {
+              inactivateSeason()
+                .then((res) => {
+                  if (res) {
+                    alert("success");
+                    setIsActivated(false);
+                  }
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
+            } else {
+              activateSeason()
+                .then((res) => {
+                  if (res) {
+                    alert("success");
+                    setIsActivated(true);
+                  }
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
+            }
+          }}
+        >
+          {isActivated ? "비활성화" : "활성화"}
         </Button>
       </div>
     </div>
