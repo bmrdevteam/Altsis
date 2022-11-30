@@ -1,4 +1,4 @@
-import { isArray } from "lodash";
+import _, { isArray } from "lodash";
 import React from "react";
 import style from "../../editor.module.scss";
 
@@ -8,6 +8,7 @@ type Props = {
   returnData: any;
   defaultValues?: any;
   defaultTimetable?: any;
+  dbData?: any;
 };
 const ParsedTableBlock = (props: Props) => {
   const SetColumn = () => {
@@ -24,6 +25,7 @@ const ParsedTableBlock = (props: Props) => {
     }
     return <colgroup></colgroup>;
   };
+  console.log(props.dbData);
 
   const Cell = ({ data }: { data: any }) => {
     switch (data.type) {
@@ -34,6 +36,32 @@ const ParsedTableBlock = (props: Props) => {
             style={{ textAlign: data.align, fontSize: data.fontSize }}
           >
             {data.data?.text}
+          </div>
+        );
+
+      case "data":
+        return (
+          <div
+            className={style.cell}
+            style={{ textAlign: data.align, fontSize: data.fontSize }}
+          >
+            {data?.dataText?.map((dataTextElement: any,index:number) => {
+              if (typeof dataTextElement === "object") {
+                if (dataTextElement.tag === "DATA") {
+                  return _.get(
+                    props.dbData,
+                    dataTextElement.location.split("/"),
+                    ""
+                  );
+                }
+                if (dataTextElement.tag === "BR") {
+                  return <br key={index}/>;
+                }
+              }else{
+
+                return dataTextElement;
+              }
+            })}
           </div>
         );
       case "input":
