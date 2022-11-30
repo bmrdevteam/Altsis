@@ -158,7 +158,7 @@ const Form = (props: Props) => {
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  const id = e.target.dataset.value;
+                  const id = e._id;
 
                   getForm(id).then((res) => {
                     switch (selectFormType) {
