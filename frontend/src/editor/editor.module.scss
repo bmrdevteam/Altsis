@@ -204,6 +204,67 @@
             }
         }
 
+        .cell_data_conn_popup {
+            .content {
+                display: flex;
+                gap: 12px;
+                flex-direction: row;
+
+                .title {
+                    font-weight: 600;
+                    font-size: 14px;
+                    margin-bottom: 12px;
+
+
+                }
+
+                .select_data {
+                    flex: 1 1 0;
+                }
+
+                .divider {
+                    width: 1px;
+                    background-color: var(--accent-5);
+                }
+
+                .text {
+                    padding: 12px;
+                    resize: vertical;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    display:inline-block;
+                    width: 100%;
+                    outline: none;
+                    border: var(--border-default);
+                    line-height: 26px;
+
+                    .data {
+                        user-select: none;
+                        background-color: var(--component-color);
+                        border: var(--border-default);
+                        padding: 4px;
+                        border-radius: 4px;
+                    }
+                }
+
+
+                .text:empty:before {
+                    content: attr(placeholder);
+                    color: rgb(171, 171, 171);
+                    display: block;
+                    cursor: text;
+                }
+
+                .options {
+                    font-size: 12px;
+                    font-weight: 600;
+
+                }
+            }
+
+        }
+
         .popup_container {
             margin-top: 12px;
             display: flex;
@@ -402,6 +463,13 @@
         padding: 4px 6px;
         position: relative;
 
+        .data {
+            user-select: none;
+            background-color: var(--component-color);
+            border: var(--border-default);
+            padding: 2px;
+            border-radius: 4px;
+        }
 
     }
 
@@ -428,10 +496,12 @@ parsed block
 */
 .parsed_block {
     font-size: 14px;
+    padding: 6px;
     font-weight: 500;
     font-family: 'Pretendard';
     outline: none;
     min-height: 29px;
+    vertical-align:middle;
 
 }
 
@@ -454,6 +524,7 @@ parsed block
         display: block;
         cursor: text;
     }
+
     .cell.select {
         select {
             outline: none;
@@ -463,9 +534,11 @@ parsed block
         }
 
     }
-    tr{
+
+    tr {
         height: 28px;
     }
+
     td {
         border: var(--border-default);
         border-width: 1px;
