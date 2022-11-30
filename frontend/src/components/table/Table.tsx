@@ -236,13 +236,21 @@ const TableSearch = ({
       return f.id === "mainSearch";
     })[0]?.value ?? ""
   );
+  useEffect(() => {
+    setSearchValue(
+      search.filters.filter((f: any) => {
+        return f.id === "mainSearch";
+      })[0]?.value ?? ""
+    );
+  }, [searchKey]);
+
   return (
     <div className={style.search}>
       <input
         className={style.input}
         type="text"
         value={searchValue}
-        placeholder={`${searchKeyName} 검색`}
+        placeholder={searchKeyName ? `${searchKeyName} 검색` : "검색"}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             search.addFilterItem({
@@ -293,10 +301,9 @@ const TableSearch = ({
  * @version 1.0 initial version - created the table component
  */
 const Table = (props: Props) => {
-  const [searchKey, setSearchKey] = useState<string>("");
   const [searchKeyName, setSearchKeyName] = useState<string>("");
 
-  const [orderBy, setOrderBy] = useState<string | number>();
+  const [orderBy, setOrderBy] = useState<string | number>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const selectedItems = useRef<any>([]);
@@ -312,6 +319,12 @@ const Table = (props: Props) => {
           return _.sortBy(search?.result(), orderBy).reverse();
       }
     }
+    // search.addFilterItem({
+    //   id: "mainSearch",
+    //   value: orderBy,
+    //   key: searchKey,
+    //   operator: "=",
+    // });
     if (props.type === "string-array") {
       if (isNumber(orderBy) && tableData) {
         if (sortOrder === "asc") return _.sortBy(search?.result(), orderBy);
@@ -319,10 +332,12 @@ const Table = (props: Props) => {
           return _.sortBy(search?.result(), orderBy).reverse();
       }
     }
-    if (tableData) {
+    if (tableData && props.type === "object-array") {
       return search?.result();
     }
-
+    if(tableData){
+      return tableData
+    }
     return [];
   }
 
@@ -355,7 +370,7 @@ const Table = (props: Props) => {
       <div className={style.table_filter}>
         {props.filterSearch && (
           <TableSearch
-            searchKey={searchKey}
+            searchKey={orderBy}
             search={search}
             searchKeyName={searchKeyName}
           />
@@ -399,8 +414,9 @@ const Table = (props: Props) => {
                   setSortOrder("asc");
                   setOrderBy(value.key);
                 }
-                setSearchKey(value.key);
-                setSearchKeyName(value.text);
+                if (value.key) {
+                  setSearchKeyName(value.text);
+                }
               }}
             >
               {value.text}
