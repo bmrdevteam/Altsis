@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      */
     setCurrentUser(res);
     setCurrentSchool(res.schools[0]);
+    
     /** if there is a registration, set the season */
     if (res.registrations) {
       setRegistration(res.registrations);
