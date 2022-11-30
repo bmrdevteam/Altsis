@@ -4,15 +4,15 @@ const { Archive, School, User } = require("../models/models");
 /* create */
 module.exports.create = async (req, res) => {
   try {
-    const user = await User(req.user.dbName).findOne({
+    const user = await User(req.user.academyId).findOne({
       userId: req.body.userId,
     });
     if (!user) return res.status(404).send();
 
-    const school = await School(req.user.dbName).findById(req.body.school);
+    const school = await School(req.user.academyId).findById(req.body.school);
     if (!school) return res.status(404).send();
 
-    const _Archive = Archive(req.user.dbName);
+    const _Archive = Archive(req.user.academyId);
 
     /* check duplication */
     const exArchive = await _Archive.findOne({
@@ -45,7 +45,7 @@ module.exports.find = async (req, res) => {
     if (!userId || !school) {
       return res.status(400).send();
     }
-    const archive = await Archive(req.user.dbName).findOne({
+    const archive = await Archive(req.user.academyId).findOne({
       userId,
       school,
     });
@@ -59,7 +59,7 @@ module.exports.find = async (req, res) => {
 
 module.exports.findById = async (req, res) => {
   try {
-    const archive = await Archive(req.user.dbName).findById(req.params._id);
+    const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
     archive.clean(); //DEVELOPMENT MODE
     return res.status(200).send(archive);
@@ -70,7 +70,7 @@ module.exports.findById = async (req, res) => {
 
 module.exports.updateDataField = async (req, res) => {
   try {
-    const archive = await Archive(req.user.dbName).findById(req.params._id);
+    const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
 
     const field = req.params.field;
@@ -86,7 +86,7 @@ module.exports.updateDataField = async (req, res) => {
 
 exports.remove = async (req, res) => {
   try {
-    const archive = await Archive(req.user.dbName).findById(req.params._id);
+    const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
     await archive.delete();
     return res.status(200).send();

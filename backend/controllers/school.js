@@ -4,7 +4,7 @@ const { School, Season } = require("../models/models");
 /* create */
 module.exports.create = async (req, res) => {
   try {
-    const _School = School(req.user.dbName);
+    const _School = School(req.user.academyId);
 
     /* check duplication */
     const exSchool = await _School.findOne({ schoolId: req.body.schoolId });
@@ -25,10 +25,10 @@ module.exports.create = async (req, res) => {
 module.exports.find = async (req, res) => {
   try {
     if (req.params._id) {
-      const school = await School(req.user.dbName).findById(req.params._id);
+      const school = await School(req.user.academyId).findById(req.params._id);
       if (!school) return res.status(404).send({ message: "school not found" });
 
-      const seasons = await Season(req.user.dbName)
+      const seasons = await Season(req.user.academyId)
         .find({ schoolId: school.schoolId })
         .select(["year", "term"]);
 
@@ -37,7 +37,7 @@ module.exports.find = async (req, res) => {
         seasons,
       });
     }
-    const schools = await School(req.user.dbName)
+    const schools = await School(req.user.academyId)
       .find({})
       .select(["schoolId", "schoolName"]);
     return res.status(200).send({ schools });
@@ -48,10 +48,10 @@ module.exports.find = async (req, res) => {
 
 module.exports.updateActivatedSeason = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findById(req.params._id);
+    const school = await School(req.user.academyId).findById(req.params._id);
     if (!school) return res.status(404).send({ message: "school not found" });
 
-    const season = await Season(req.user.dbName).findOne({
+    const season = await Season(req.user.academyId).findOne({
       _id: req.body.new,
       schoolId: school.schoolId,
     });
@@ -70,7 +70,7 @@ module.exports.updateField = async (req, res) => {
     if (["subjects", "classrooms", "form"].indexOf(req.params.field) == -1)
       return res.status(400).send();
 
-    const school = await School(req.user.dbName).findById(req.params._id);
+    const school = await School(req.user.academyId).findById(req.params._id);
     if (!school) return res.status(404).send({ message: "school not found" });
 
     let field = req.params.field;
@@ -90,7 +90,7 @@ module.exports.updateField = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findById(req.params._id);
+    const school = await School(req.user.academyId).findById(req.params._id);
     if (!school) return res.status(404).send();
     await school.delete();
     return res.status(200).send();

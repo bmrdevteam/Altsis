@@ -7,11 +7,11 @@ const School = require("../models/School");
 // ____________ common ____________
 
 module.exports.loginLocal = async (req, res) => {
-  passport.authenticate("local2", (authError, user, dbName) => {
+  passport.authenticate("local2", (authError, user, academyId) => {
     try {
       if (authError) throw authError;
       console.log("DEBUG: authentication is over");
-      return req.login({ user, dbName }, (loginError) => {
+      return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
         console.log("DEBUG: login is over");
         /* set maxAge as 1 year if auto login is requested */
@@ -28,10 +28,10 @@ module.exports.loginLocal = async (req, res) => {
 };
 
 module.exports.loginGoogle = async (req, res) => {
-  passport.authenticate("google2", (authErr, user, dbName) => {
+  passport.authenticate("google2", (authErr, user, academyId) => {
     try {
       if (authErr) throw authErr;
-      return req.login({ user, dbName }, (loginError) => {
+      return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
 
         /* set maxAge as 1 year if auto login is requested */
@@ -71,7 +71,7 @@ module.exports.create = async (req, res) => {
         return res.status(401).send({ message: "You are not authorized." });
     }
 
-    const _User = User(req.user.dbName);
+    const _User = User(req.user.academyId);
 
     /* check duplication */
     const exUser = await _User.findOne({ userId: req.body.userId });
@@ -109,7 +109,7 @@ module.exports.createBulk = async (req, res) => {
         return res.status(401).send({ message: "You are not authorized." });
     }
 
-    const _User = User(req.user.dbName);
+    const _User = User(req.user.academyId);
     const users = [];
 
     /* check userId duplication */
@@ -163,14 +163,14 @@ module.exports.current = async (req, res) => {
     // // school의 activatedSeason
     // const schools = await Promise.all(
     //   user.schools.map((school) =>
-    //     School(user.dbName)
+    //     School(user.academyId)
     //       .findOne({ schoolId: school.schoolId })
     //       .select(["schoolId", "schoolName", "activatedSeason"])
     //   )
     // );
 
     // registrations
-    const registrations = await Registration(user.dbName)
+    const registrations = await Registration(user.academyId)
       .find({ userId: user.userId })
       .select([
         "school",
@@ -203,12 +203,12 @@ module.exports.find = async (req, res) => {
           academy = await Academy.findOne({
             academyName: req.query.academyName,
           });
-        _User = User(academy.dbName);
+        _User = User(academy.academyId);
       } else return res.status(401).send();
     }
     // owner, admin, manager, member => 본인 아카데미의 user 정보 조회 가능
     else {
-      _User = User(req.user.dbName);
+      _User = User(req.user.academyId);
     }
 
     const queries = req.query;
@@ -231,7 +231,7 @@ module.exports.find = async (req, res) => {
 
 module.exports.updateAuth = async (req, res) => {
   try {
-    const user = await User(req.user.dbName).findById(req.params._id);
+    const user = await User(req.user.academyId).findById(req.params._id);
 
     switch (req.user.auth) {
       case "admin":
@@ -252,7 +252,7 @@ module.exports.updateAuth = async (req, res) => {
 
 module.exports.updateSchools = async (req, res) => {
   try {
-    const user = await User(req.user.dbName).findById(req.params._id);
+    const user = await User(req.user.academyId).findById(req.params._id);
 
     switch (req.user.auth) {
       case "admin":
@@ -282,7 +282,7 @@ module.exports.connectGoogle = async (req, res) => {
     const payload = await getPayload(credential);
 
     /* check email duplication */
-    const exUser = await User(req.user.dbName)
+    const exUser = await User(req.user.academyId)
       .findOne({
         "snsId.google": payload.email,
       })
@@ -331,7 +331,7 @@ module.exports.updateField = async (req, res) => {
 
 module.exports.delete = async (req, res) => {
   try {
-    const user = await User(req.user.dbName).findById(req.params._id);
+    const user = await User(req.user.academyId).findById(req.params._id);
     if (!user) return res.status(404).send();
 
     switch (req.user.auth) {

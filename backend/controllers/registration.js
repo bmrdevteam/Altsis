@@ -4,11 +4,11 @@ const { User, Registration, Season } = require("../models/models");
 /* create */
 module.exports.register = async (req, res) => {
   try {
-    const _Registration = Registration(req.user.dbName);
+    const _Registration = Registration(req.user.academyId);
 
     const [user, season, exRegistration] = await Promise.all([
-      User(req.user.dbName).findOne({ userId: req.body.userId }),
-      Season(req.user.dbName).findById(req.body.season),
+      User(req.user.academyId).findOne({ userId: req.body.userId }),
+      Season(req.user.academyId).findById(req.body.season),
       _Registration.findOne({
         season: req.body.season,
         userId: req.body.userId,
@@ -40,7 +40,7 @@ module.exports.register = async (req, res) => {
 
 module.exports.registerBulk = async (req, res) => {
   try {
-    const season = await Season(req.user.dbName).findById(req.body.season);
+    const season = await Season(req.user.academyId).findById(req.body.season);
     if (!season) {
       return res.status(404).send({ message: "season is not found" });
     }
@@ -60,7 +60,7 @@ module.exports.registerBulk = async (req, res) => {
         teacherName: user.teacherName,
       });
     }
-    const newRegistrations = await Registration(req.user.dbName).insertMany(
+    const newRegistrations = await Registration(req.user.academyId).insertMany(
       registerations
     );
     return res.status(200).send({ registerations: newRegistrations });
@@ -71,7 +71,9 @@ module.exports.registerBulk = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    const registrations = await Registration(req.user.dbName).find(req.query);
+    const registrations = await Registration(req.user.academyId).find(
+      req.query
+    );
     return res.status(200).send({ registrations });
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -93,7 +95,7 @@ module.exports.update = async (req, res) => {
     )
       return res.status(409).send({ message: "field cannot be updated" });
 
-    const registration = await Registration(req.user.dbName).findById(
+    const registration = await Registration(req.user.academyId).findById(
       req.params._id
     );
     if (!registration)
@@ -110,7 +112,7 @@ module.exports.update = async (req, res) => {
 /* delete */
 exports.remove = async (req, res) => {
   try {
-    const registration = await Registration(req.user.dbName).findById(
+    const registration = await Registration(req.user.academyId).findById(
       req.params._id
     );
     if (!registration)

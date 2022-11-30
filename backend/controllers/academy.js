@@ -25,10 +25,10 @@ module.exports.create = async (req, res) => {
     await academy.save();
 
     /* create db */
-    addConnection(academy.dbName);
+    addConnection(academy.academyId);
 
     /* create & save admin document  */
-    const _User = User(academy.dbName);
+    const _User = User(academy.academyId);
     const password = _User.generatePassword();
     const admin = new _User({
       userId: academy.adminId,
@@ -51,7 +51,7 @@ module.exports.create = async (req, res) => {
 module.exports.activate = async (req, res) => {
   try {
     /* find document */
-    const academy = await Academy.findById(req.params._id);
+    const academy = await Academy.findOne({ academyId: req.params.academyId });
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
     /* activate academy */
@@ -66,7 +66,7 @@ module.exports.activate = async (req, res) => {
 module.exports.inactivate = async (req, res) => {
   try {
     /* find document */
-    const academy = await Academy.findById(req.params._id);
+    const academy = await Academy.findOne({ academyId: req.params.academyId });
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
     /* activate academy */
@@ -81,16 +81,22 @@ module.exports.inactivate = async (req, res) => {
 module.exports.find = async (req, res) => {
   try {
     /* if one academy info is requested */
-    if (req.params._id) {
+    if (req.params.academyId) {
       if (!req.isAuthenticated())
         return res.status(401).send({ message: "You are not logged in" });
 
-      const academy = await Academy.findById(req.params._id).select("-dbName");
+      const academy = await Academy.findOne({
+        academyId: req.params.academyId,
+      }).select("-dbName");
+
+      if (!academy) {
+        return res.status(404).send({ message: "Academy not found" });
+      }
       if (req.user.auth == "owner") {
         return res.status(200).send(academy);
       }
 
-      if (req.user.dbName != academy.dbName)
+      if (req.user.academyId != academy.academyId)
         return res
           .status(401)
           .send({ message: "You are not a member of this academy" });
@@ -121,7 +127,9 @@ module.exports.find = async (req, res) => {
 module.exports.updateField = async (req, res) => {
   try {
     /* find document */
-    const academy = await Academy.findById(req.params._id);
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
     academy["email"] = req.body.email;
@@ -153,32 +161,29 @@ module.exports.updateField = async (req, res) => {
 //   }
 // };
 
-const typeToModel = (docType, dbName) => {
-  if (docType === "schools") return School(dbName);
-  if (docType === "seasons") return Season(dbName);
-  if (docType === "users") return User(dbName);
-  if (docType === "registrations") return Registration(dbName);
-  if (docType === "forms") return Form(dbName);
+const typeToModel = (docType, academyId) => {
+  if (docType === "schools") return School(academyId);
+  if (docType === "seasons") return Season(academyId);
+  if (docType === "users") return User(academyId);
+  if (docType === "registrations") return Registration(academyId);
+  if (docType === "forms") return Form(academyId);
 };
 
 module.exports.findUsers = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
     if (req.params.user) {
-      const document = await User(academy.dbName).findById(req.params.user);
+      const document = await User(req.user.academyId).findById(req.params.user);
       return res.status(200).send(document);
     }
 
     if (req.query["no-school"]) {
-      const documents = await User(academy.dbName).find({
+      const documents = await User(req.user.academyId).find({
         schools: { $size: 0 },
       });
 
       return res.status(200).send({ documents });
     }
-    const documents = await User(academy.dbName).find(req.query);
+    const documents = await User(req.user.academyId).find(req.query);
 
     return res.status(200).send({ documents });
   } catch (err) {
@@ -188,21 +193,17 @@ module.exports.findUsers = async (req, res) => {
 
 module.exports.findDocuments = async (req, res) => {
   try {
-    console.log("DEBUG: ", req.query);
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
     if (req.params.docId) {
       const document = await typeToModel(
         req.params.docType,
-        academy.dbName
+        req.user.academyId
       ).findById(req.params.docId);
       return res.status(200).send(document);
     }
 
     const documents = await typeToModel(
       req.params.docType,
-      academy.dbName
+      req.user.academyId
     ).find(req.query);
 
     return res.status(200).send({ documents });
@@ -213,12 +214,9 @@ module.exports.findDocuments = async (req, res) => {
 
 module.exports.deleteDocument = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
     const document = await typeToModel(
       req.params.docType,
-      academy.dbName
+      req.user.academyId
     ).findById(req.params.docId);
     if (!document)
       return res.status(404).send({ message: "document not found" });
@@ -233,10 +231,7 @@ module.exports.deleteDocument = async (req, res) => {
 
 module.exports.createSchool = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const _School = School(academy.dbName);
+    const _School = School(req.user.academyId);
 
     const exSchool = await _School.findOne({ schoolId: req.body.schoolId });
     if (exSchool)
@@ -255,10 +250,7 @@ module.exports.createSchool = async (req, res) => {
 
 module.exports.createSeason = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const _Season = Season(academy.dbName);
+    const _Season = Season(req.user.academyId);
     const exSeason = await _Season.findOne({
       year: req.body.year,
       term: req.body.term,
@@ -268,7 +260,7 @@ module.exports.createSeason = async (req, res) => {
         .status(409)
         .send({ message: "(year, term) is already in use" });
 
-    const school = await School(academy.dbName).findById(req.body.school);
+    const school = await School(req.user.academyId).findById(req.body.school);
     if (!school) return res.status(404).send({ message: "school not found" });
 
     const season = new _Season({
@@ -287,18 +279,15 @@ module.exports.createSeason = async (req, res) => {
 
 module.exports.createUser = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const _User = User(academy.dbName);
+    const _User = User(req.user.academyId);
     const exUser = await _User.findOne({ userId: req.body.userId });
     if (exUser)
       return res.status(409).send({ message: "userId is already in use" });
 
     const user = new _User({
       ...req.body,
-      academyId: academy.academyId,
-      academyName: academy.academyName,
+      academyId: req.user.academyId,
+      academyName: req.user.academyName,
     });
     await user.save();
 
@@ -310,10 +299,7 @@ module.exports.createUser = async (req, res) => {
 
 module.exports.updateClassrooms = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const school = await School(academy.dbName).findById(req.params.school);
+    const school = await School(req.user.academyId).findById(req.params.school);
     school.classrooms = req.body.new;
     await school.save();
 
@@ -325,10 +311,7 @@ module.exports.updateClassrooms = async (req, res) => {
 
 module.exports.updateSubjects = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const school = await School(academy.dbName).findById(req.params.school);
+    const school = await School(req.user.academyId).findById(req.params.school);
     school.subjects = req.body.new;
     await school.save();
 
@@ -340,10 +323,7 @@ module.exports.updateSubjects = async (req, res) => {
 
 module.exports.updateSeason = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const season = await Season(academy.dbName).findById(req.params.season);
+    const season = await Season(req.user.academyId).findById(req.params.season);
     season.year = req.body.year;
     season.term = req.body.term;
     season.period = req.body.period;
@@ -357,10 +337,7 @@ module.exports.updateSeason = async (req, res) => {
 
 module.exports.updateSeasonPermission = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const season = await Season(academy.dbName).findById(req.params.season);
+    const season = await Season(req.user.academyId).findById(req.params.season);
     if (req.params.permissionType === "syllabus")
       season.permissionSyllabus = req.body.new;
     else if (req.params.permissionType === "evaluation")
@@ -379,9 +356,7 @@ module.exports.updateSeasonPermission = async (req, res) => {
 module.exports.activateSeason = async (req, res) => {
   try {
     /* find document */
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-    const season = await Season(academy.dbName).findById(req.params.season);
+    const season = await Season(req.user.academyId).findById(req.params.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
     /* activate season */
@@ -389,7 +364,7 @@ module.exports.activateSeason = async (req, res) => {
     await season.save();
 
     /* activate registrations */
-    await Registration(academy.dbName).updateMany(
+    await Registration(req.user.academyId).updateMany(
       { season },
       { isActivated: true }
     );
@@ -404,9 +379,7 @@ module.exports.activateSeason = async (req, res) => {
 module.exports.inactivateSeason = async (req, res) => {
   try {
     /* find document */
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-    const season = await Season(academy.dbName).findById(req.params.season);
+    const season = await Season(req.user.academyId).findById(req.params.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
     /* activate academy */
@@ -414,7 +387,7 @@ module.exports.inactivateSeason = async (req, res) => {
     await season.save();
 
     /* activate registrations */
-    await Registration(academy.dbName).updateMany(
+    await Registration(req.user.academyId).updateMany(
       { season },
       { isActivated: false }
     );
@@ -427,11 +400,8 @@ module.exports.inactivateSeason = async (req, res) => {
 
 module.exports.createRegistration = async (req, res) => {
   try {
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const _Registration = Registration(academy.dbName);
-    const exRegistration = await Registration(academy.dbName).findOne({
+    const _Registration = Registration(req.user.academyId);
+    const exRegistration = await Registration(req.user.academyId).findOne({
       season: req.body.season,
       userId: req.body.userId,
     });
@@ -440,10 +410,10 @@ module.exports.createRegistration = async (req, res) => {
         .status(404)
         .send({ message: "user is already registered in this season" });
 
-    const season = await Season(academy.dbName).findById(req.body.season);
+    const season = await Season(req.user.academyId).findById(req.body.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
-    const user = await User(academy.dbName).findOne({
+    const user = await User(req.user.academyId).findOne({
       userId: req.body.userId,
     });
     if (!user) return res.status(404).send({ message: "user not found" });
@@ -470,11 +440,7 @@ module.exports.createRegistration = async (req, res) => {
 
 module.exports.updateUser = async (req, res) => {
   try {
-    console.log("hello?");
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    const user = await User(academy.dbName).findById(req.params.user);
+    const user = await User(req.user.academyId).findById(req.params.user);
     user.auth = req.body.auth;
     user.email = req.body.email;
     user.tel = req.body.tel;
@@ -497,7 +463,7 @@ module.exports.remove = async (req, res) => {
     academy.remove();
 
     /* delete db */
-    await deleteConnection(academy.dbName);
+    await deleteConnection(academy.academyId);
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
