@@ -74,12 +74,12 @@ const User = (props: Props) => {
   const [tel, setTel] = useState<any>(undefined);
 
   async function getDocumentList() {
-    const { documents } = await database.R({
+    const { users } = await database.R({
       location: `academies/${props.academyId}/users?${
         school ? `schools.school=${school}` : `no-school=true`
       }`,
     });
-    return documents;
+    return users;
   }
 
   async function getDocument(id: string) {

@@ -46,25 +46,6 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.updateActivatedSeason = async (req, res) => {
-  try {
-    const school = await School(req.user.academyId).findById(req.params._id);
-    if (!school) return res.status(404).send({ message: "school not found" });
-
-    const season = await Season(req.user.academyId).findOne({
-      _id: req.body.new,
-      schoolId: school.schoolId,
-    });
-    if (!season) return res.status(404).send({ message: "season not found" });
-
-    school.activatedSeason = req.body.new;
-    await school.save();
-    return res.status(200).send(school);
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 module.exports.updateField = async (req, res) => {
   try {
     if (["subjects", "classrooms", "form"].indexOf(req.params.field) == -1)
