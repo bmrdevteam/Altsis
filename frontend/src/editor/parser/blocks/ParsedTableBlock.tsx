@@ -89,12 +89,12 @@ const ParsedTableBlock = (props: Props) => {
         ) : (
           <div>
             <div className={style.cell} style={{ textAlign: data.align }}>
-              {data.data?.text}
+              {props.defaultValues?.["info"]?.[data?.name]}
             </div>
           </div>
         );
       case "select":
-        return (
+        return props.auth === "edit" ? (
           <div
             className={`${style.cell} ${style.select}`}
             placeholder={data.placeholder ?? "입력"}
@@ -108,6 +108,32 @@ const ParsedTableBlock = (props: Props) => {
                   props.returnData[data?.name] = e.target.value;
                 }
               }}
+            >
+              {data.options.map((val: any) => {
+                return (
+                  <option key={val.id} value={val.value}>
+                    {val.text}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        ) : (
+          <div
+            className={`${style.cell} ${style.select}`}
+            placeholder={data.placeholder ?? "입력"}
+          >
+            <select
+              style={{ textAlign: data.align, fontSize: data.fontSize }}
+              onChange={(e) => {
+                if (data?.name === undefined) {
+                  props.returnData[data?.id] = e.target.value;
+                } else {
+                  props.returnData[data?.name] = e.target.value;
+                }
+              }}
+              defaultValue={props.defaultValues?.["info"]?.[data?.name]}
+              disabled={true}
             >
               {data.options.map((val: any) => {
                 return (
