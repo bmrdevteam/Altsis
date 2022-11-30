@@ -7,7 +7,7 @@ const {
 const _ = require("lodash");
 
 const isTimeOverlapped = async (user, syllabus) => {
-  const enrollments = await Enrollment(user.dbName).find({
+  const enrollments = await Enrollment(user.academyId).find({
     studentId: user.userId,
     season: syllabus.season,
   });
@@ -25,9 +25,9 @@ const isTimeOverlapped = async (user, syllabus) => {
 
 module.exports.enroll = async (req, res) => {
   try {
-    const _Enrollment = Enrollment(req.user.dbName);
+    const _Enrollment = Enrollment(req.user.academyId);
 
-    const syllabus = await Syllabus(req.user.dbName).findById(
+    const syllabus = await Syllabus(req.user.academyId).findById(
       req.body.syllabus
     );
     if (!syllabus)
@@ -51,7 +51,7 @@ module.exports.enroll = async (req, res) => {
       });
 
     // 3. 유저의 학기 등록 정보 확인
-    const registration = await Registration(req.user.dbName).findOne({
+    const registration = await Registration(req.user.academyId).findOne({
       season: syllabus.season,
       userId: req.user.userId,
     });
@@ -60,7 +60,7 @@ module.exports.enroll = async (req, res) => {
     }
 
     // 유저 권한 확인
-    const season = await Season(req.user.dbName).findById(syllabus.season);
+    const season = await Season(req.user.academyId).findById(syllabus.season);
     if (!season) return res.status(404).send({ message: "season not found" });
     if (
       !season.checkPermission("enrollment", req.user.userId, registration.role)
@@ -82,9 +82,9 @@ module.exports.enroll = async (req, res) => {
 
 module.exports.enrollbulk = async (req, res) => {
   try {
-    const _Enrollment = Enrollment(req.user.dbName);
+    const _Enrollment = Enrollment(req.user.academyId);
 
-    const syllabus = await Syllabus(req.user.dbName).findById(
+    const syllabus = await Syllabus(req.user.academyId).findById(
       req.body.syllabus
     );
     if (!syllabus)
@@ -107,7 +107,7 @@ module.exports.enrollbulk = async (req, res) => {
       await enrollment.save();
       enrollments.push(enrollment);
     }
-    // const newEnrollments = await Enrollment(req.user.dbName).insertMany(
+    // const newEnrollments = await Enrollment(req.user.academyId).insertMany(
     //   enrollments
     // );
     return res.status(200).send({ enrollments });
@@ -120,7 +120,7 @@ module.exports.find = async (req, res) => {
   try {
     // find by enrollment _id (only student can view)
     if (req.params._id) {
-      const enrollment = await Enrollment(req.user.dbName).findById(
+      const enrollment = await Enrollment(req.user.academyId).findById(
         req.params._id
       );
       if (!enrollment)
@@ -136,7 +136,7 @@ module.exports.find = async (req, res) => {
 
     // find by season & studentId
     if (season && studentId) {
-      const enrollments = await Enrollment(req.user.dbName).find({
+      const enrollments = await Enrollment(req.user.academyId).find({
         season,
         studentId,
       });
@@ -145,7 +145,7 @@ module.exports.find = async (req, res) => {
     }
 
     if (year && studentId) {
-      const enrollments = await Enrollment(req.user.dbName).find({
+      const enrollments = await Enrollment(req.user.academyId).find({
         year,
         studentId,
       });
@@ -154,14 +154,16 @@ module.exports.find = async (req, res) => {
     }
 
     if (studentId) {
-      const enrollments = await Enrollment(req.user.dbName).find({ studentId });
+      const enrollments = await Enrollment(req.user.academyId).find({
+        studentId,
+      });
       //  .select("-evaluation"); 임시적으로 권한 허용
       return res.status(200).send({ enrollments });
     }
 
     // find by syllabus
     if (syllabus) {
-      const enrollments = await Enrollment(req.user.dbName)
+      const enrollments = await Enrollment(req.user.academyId)
         .find({ syllabus })
         .select(["studentId", "studentName"]);
       return res.status(200).send({ enrollments });
@@ -179,7 +181,7 @@ module.exports.findEvaluations = async (req, res) => {
     // find by season & studentId
     if (season && studentId) {
       if (req.user.userId != studentId) return res.status(401).send();
-      const enrollments = await Enrollment(req.user.dbName).find({
+      const enrollments = await Enrollment(req.user.academyId).find({
         season,
         studentId,
       });
@@ -188,14 +190,14 @@ module.exports.findEvaluations = async (req, res) => {
 
     // find by syllabus
     if (syllabus) {
-      const _syllabus = await Syllabus(req.user.dbName).findById(
+      const _syllabus = await Syllabus(req.user.academyId).findById(
         req.query.syllabus
       );
       if (!_syllabus)
         return res.status(404).send({ message: "syllabus not found" });
 
       // 권한 확인 - only teacher can accss evaluations
-      const enrollments = await Enrollment(req.user.dbName)
+      const enrollments = await Enrollment(req.user.academyId)
         .find({
           syllabus,
         })
@@ -213,7 +215,7 @@ module.exports.findEvaluations = async (req, res) => {
 
       // for (let i = 0; i < _syllabus.teachers.length; i++) {
       //   if (_syllabus.teachers[i].userId == req.user.userId) {
-      //     const enrollments = await Enrollment(req.user.dbName).find({
+      //     const enrollments = await Enrollment(req.user.academyId).find({
       //       syllabus,
       //     }).select(["studentId", "studentName", "evaluation"]);
       //     return res.status(200).send({ enrollments });
@@ -230,17 +232,17 @@ module.exports.findEvaluations = async (req, res) => {
 
 module.exports.updateEvaluation = async (req, res) => {
   try {
-    const enrollment = await Enrollment(req.user.dbName).findById(
+    const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
     );
     if (!enrollment)
       return res.status(404).send({ message: "enrollment not found" });
 
     // 유저 권한 확인
-    const season = await Season(req.user.dbName).findById(enrollment.season);
+    const season = await Season(req.user.academyId).findById(enrollment.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
-    const registration = await Registration(req.user.dbName).findOne({
+    const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
       userId: req.user.userId,
     });
@@ -267,7 +269,7 @@ module.exports.updateEvaluation = async (req, res) => {
 
 module.exports.remove = async (req, res) => {
   try {
-    const enrollment = await Enrollment(req.user.dbName).findById(
+    const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
     );
     if (!enrollment)
@@ -281,10 +283,10 @@ module.exports.remove = async (req, res) => {
     if (enrollment.studentId != req.user.userId) return res.status(401).send();
 
     // 유저 권한 확인
-    const season = await Season(req.user.dbName).findById(enrollment.season);
+    const season = await Season(req.user.academyId).findById(enrollment.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
-    const registration = await Registration(req.user.dbName).findOne({
+    const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
       userId: req.user.userId,
     });

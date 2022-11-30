@@ -167,7 +167,7 @@ const Academies = (props: Props) => {
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                navigate(`${e._id}`);
+                navigate(`${e.academyId}`);
               },
               width: "80px",
               align: "center",
