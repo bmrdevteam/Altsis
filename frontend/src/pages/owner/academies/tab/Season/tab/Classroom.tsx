@@ -37,6 +37,8 @@ import Button from "components/button/Button";
 import Table from "components/table/Table";
 import Input from "components/input/Input";
 
+import _ from "lodash";
+
 type Props = {
   academy: any;
   seasonData: any;
@@ -105,7 +107,7 @@ const Classroom = (props: Props) => {
           },
           {
             text: "classroom",
-            key: "0",
+            key: "",
             type: "string",
           },
           {
@@ -113,7 +115,10 @@ const Classroom = (props: Props) => {
             key: "index",
             type: "button",
             onClick: (e: any) => {
-              classroomList.splice(e.target.dataset.rowindex, 1);
+              classroomList.splice(
+                _.findIndex(classroomList, (x) => x === e),
+                1
+              );
               setClassroomList([...classroomList]);
             },
             width: "80px",

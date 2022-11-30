@@ -103,7 +103,7 @@ const Registration = (props: Props) => {
 
   async function getUserList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/users`,
+      location: `academies/${props.academy}/users?schools.school=${school}`,
     });
     return documents;
   }
@@ -269,7 +269,7 @@ const Registration = (props: Props) => {
       <div style={{ marginTop: "24px" }} />
 
       <Table
-      type="object-array"
+        type="object-array"
         filter
         data={!isLoading ? documentList : []}
         header={[
@@ -301,7 +301,7 @@ const Registration = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              getDocument(e.target.dataset.value).then((res) => {
+              getDocument(e._id).then((res) => {
                 setDoc(res);
                 setEditPopupActive(true);
               });
@@ -314,7 +314,7 @@ const Registration = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              deleteDocument(e.target.dataset.value)
+              deleteDocument(e._id)
                 .then(() => {
                   getDocumentList().then((res) => {
                     setDocumentList(res);

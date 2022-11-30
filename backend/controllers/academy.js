@@ -48,28 +48,67 @@ module.exports.create = async (req, res) => {
   }
 };
 
+module.exports.activate = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    /* activate academy */
+    academy.isActivated = true;
+    await academy.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.inactivate = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    /* activate academy */
+    academy.isActivated = false;
+    await academy.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.find = async (req, res) => {
   try {
-    /* if user is admin/magager/member of academy: return full info */
+    /* if one academy info is requested */
     if (req.params._id) {
-      if (!req.isAuthenticated()) return res.status(401).send();
+      if (!req.isAuthenticated())
+        return res.status(401).send({ message: "You are not logged in" });
 
-      const academy = await Academy.findById(req.params._id);
-
+      const academy = await Academy.findById(req.params._id).select("-dbName");
       if (req.user.auth == "owner") {
         return res.status(200).send(academy);
       }
-      if (req.user.dbName != academy.dbName) return res.status(401).send();
-      delete academy.dbName;
+
+      if (req.user.dbName != academy.dbName)
+        return res
+          .status(401)
+          .send({ message: "You are not a member of this academy" });
+
+      if (!academy.isActivated) {
+        return res.status(401).send({ message: "This academy is blocked." });
+      }
+
       return res.status(200).send(academy);
     }
+
     /* if user is owner: return full info but exclude root */
     if (req.isAuthenticated() && req.user.auth == "owner") {
       const academies = await Academy.find({ academyId: { $ne: "root" } });
       return res.status(200).send({ academies });
     }
     /* else: return filtered info */
-    const academies = await Academy.find(req.query).select([
+    const academies = await Academy.find({ isActivated: true }).select([
       "academyId",
       "academyName",
     ]);
@@ -122,8 +161,34 @@ const typeToModel = (docType, dbName) => {
   if (docType === "forms") return Form(dbName);
 };
 
+module.exports.findUsers = async (req, res) => {
+  try {
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    if (req.params.user) {
+      const document = await User(academy.dbName).findById(req.params.user);
+      return res.status(200).send(document);
+    }
+
+    if (req.query["no-school"]) {
+      const documents = await User(academy.dbName).find({
+        schools: { $size: 0 },
+      });
+
+      return res.status(200).send({ documents });
+    }
+    const documents = await User(academy.dbName).find(req.query);
+
+    return res.status(200).send({ documents });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.findDocuments = async (req, res) => {
   try {
+    console.log("DEBUG: ", req.query);
     const academy = await Academy.findById(req.params._id);
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
@@ -135,7 +200,6 @@ module.exports.findDocuments = async (req, res) => {
       return res.status(200).send(document);
     }
 
-    console.log("req.query is ", req.query);
     const documents = await typeToModel(
       req.params.docType,
       academy.dbName
@@ -291,29 +355,71 @@ module.exports.updateSeason = async (req, res) => {
   }
 };
 
-module.exports.updateSeasonField = async (req, res) => {
+module.exports.updateSeasonPermission = async (req, res) => {
   try {
     const academy = await Academy.findById(req.params._id);
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
     const season = await Season(academy.dbName).findById(req.params.season);
-
-    if (!req.params.field) {
-      season.year = req.body.year;
-      season.term = req.body.term;
-      season.period = req.body.period;
-    } else {
-      let field = req.params.field;
-      if (req.params.fieldType)
-        field +=
-          req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
-
-      season[field] = req.body.new;
-    }
+    if (req.params.permissionType === "syllabus")
+      season.permissionSyllabus = req.body.new;
+    else if (req.params.permissionType === "evaluation")
+      season.permissionEvaluation = req.body.new;
+    else if (req.params.permissionType === "enrollment")
+      season.permissionEnrollment = req.body.new;
+    else return res.status(403).send();
 
     await season.save();
-
     return res.status(200).send(season);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.activateSeason = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+    const season = await Season(academy.dbName).findById(req.params.season);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    /* activate season */
+    season.isActivated = true;
+    await season.save();
+
+    /* activate registrations */
+    await Registration(academy.dbName).updateMany(
+      { season },
+      { isActivated: true }
+    );
+
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+  season;
+};
+
+module.exports.inactivateSeason = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findById(req.params._id);
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+    const season = await Season(academy.dbName).findById(req.params.season);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    /* activate academy */
+    season.isActivated = false;
+    await season.save();
+
+    /* activate registrations */
+    await Registration(academy.dbName).updateMany(
+      { season },
+      { isActivated: false }
+    );
+
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -352,6 +458,7 @@ module.exports.createRegistration = async (req, res) => {
       userId: user.userId,
       userName: user.userName,
       role: req.body.role,
+      isActivated: season.isActivated,
     });
 
     await registration.save();

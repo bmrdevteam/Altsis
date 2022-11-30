@@ -100,7 +100,7 @@ const Academies = (props: Props) => {
       setIsLoading(false);
     });
     return () => {};
-  }, [isLoading]);
+  }, []);
 
   return (
     <div className={style.section}>
@@ -127,7 +127,7 @@ const Academies = (props: Props) => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
-        type="object-array"
+          type="object-array"
           filter
           data={!isLoading ? documentList : []}
           header={[
@@ -154,11 +154,20 @@ const Academies = (props: Props) => {
               type: "string",
             },
             {
+              text: "상태",
+              key: "isActivated",
+              type: "string",
+
+              returnFunction: (e: boolean) => {
+                return e ? "활성화됨" : "비활성화됨";
+              },
+            },
+            {
               text: "자세히",
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                navigate(`${e.target.dataset.value}`);
+                navigate(`${e._id}`);
               },
               width: "80px",
               align: "center",

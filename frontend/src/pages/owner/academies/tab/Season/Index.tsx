@@ -43,7 +43,6 @@ import Basic from "./tab/Basic";
 import Classroom from "./tab/Classroom";
 import Subject from "./tab/Subject";
 import Permission from "./tab/Permission";
-import Form from "./tab/Form";
 
 import _ from "lodash";
 
@@ -176,7 +175,7 @@ const Season = (props: Props) => {
     }
     setIsLoading(false);
     return () => {};
-  }, [school]);
+  }, [school, editPopupActive]);
 
   return (
     <div style={{ marginTop: "24px" }}>
@@ -209,7 +208,7 @@ const Season = (props: Props) => {
         + 시즌 생성
       </Button>
       <Table
-      type="object-array"
+        type="object-array"
         filter
         data={!isLoading ? documentList : []}
         header={[
@@ -241,11 +240,20 @@ const Season = (props: Props) => {
             type: "string",
           },
           {
+            text: "상태",
+            key: "isActivated",
+            type: "string",
+
+            returnFunction: (e: boolean) => {
+              return e ? "활성화됨" : "비활성화됨";
+            },
+          },
+          {
             text: "자세히",
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              getDocument(e.target.dataset.value).then((res) => {
+              getDocument(e._id).then((res) => {
                 setDoc(res);
                 setEditPopupActive(true);
               });
@@ -258,13 +266,15 @@ const Season = (props: Props) => {
             key: "_id",
             type: "button",
             onClick: (e: any) => {
-              deleteDocument(e.target.dataset.value)
-                .then(() => {
-                  getDocumentList().then((res) => {
-                    setDocumentList(res);
-                    setAddPopupActive(false);
-                    alert("success");
-                  });
+              deleteDocument(e._id)
+                .then((res) => {
+                  if (res) {
+                    getDocumentList().then((res) => {
+                      if (res) setDocumentList(res);
+                      setAddPopupActive(false);
+                      alert("success");
+                    });
+                  }
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
@@ -294,7 +304,6 @@ const Season = (props: Props) => {
               permissions: (
                 <Permission academy={props.academy} seasonData={doc} />
               ),
-              forms: <Form academy={props.academy} seasonData={doc} />,
             }}
             align={"flex-start"}
           />
