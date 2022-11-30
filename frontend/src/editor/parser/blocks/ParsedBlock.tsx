@@ -8,13 +8,22 @@ type Props = {
   returnData: any;
   defaultValues?: any;
   defaultTimetable?: any;
+  dbData?: any;
 };
 
 const ParsedBlock = (props: Props) => {
   switch (props.blockData.type) {
     case "paragraph":
       return (
-        <div className={style.parsed_block}>{props.blockData.data.text}</div>
+        <div
+          className={style.parsed_block}
+          style={{
+            fontSize: props.blockData.data.fontSize,
+            fontWeight: props.blockData.data.fontWeight,
+          }}
+        >
+          {props.blockData.data.text}
+        </div>
       );
     case "table":
       return (
@@ -24,6 +33,7 @@ const ParsedBlock = (props: Props) => {
           defaultValues={props.defaultValues}
           returnData={props.returnData}
           defaultTimetable={props.defaultTimetable}
+          dbData={props.dbData}
         />
       );
     case "dataTable":
