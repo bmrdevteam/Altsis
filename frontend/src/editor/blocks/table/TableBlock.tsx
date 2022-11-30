@@ -2,6 +2,7 @@ import { isArray } from "lodash";
 import style from "../../editor.module.scss";
 import { useEditor } from "../../functions/editorContext";
 import CheckBoxCell from "./CheckBoxCell";
+import DataCell from "./DataCell";
 import InputCell from "./InputCell";
 import ParagraphCell from "./ParagraphCell";
 import SelectCell from "./SelectCell";
@@ -42,6 +43,10 @@ const TableBlock = (props: Props) => {
         case "paragraph":
           return (
             <ParagraphCell column={col} row={row} blockIndex={props.index} />
+          );
+        case "data":
+          return (
+            <DataCell column={col} row={row} blockIndex={props.index} />
           );
         case "time":
           return <TimeCell column={col} row={row} blockIndex={props.index} />;
