@@ -1,35 +1,15 @@
+import useOutsideClick from "hooks/useOutsideClick";
 import _, { isArray } from "lodash";
-import React, { useState } from "react";
+import E from "pages/dev/E";
+import React, { useRef, useState } from "react";
 import { useEffect } from "react";
 import Svg from "../../../assets/svg/Svg";
+import { TTableHeaderItem, TTableItemType } from "../Table";
 import style from "../table.module.scss";
-
-export type ITableItemType =
-  | "index"
-  | "string"
-  | "button"
-  | "dateTime"
-  | "date"
-  | "time"
-  | "select"
-  | "checkbox"
-  | "input";
 
 interface ITableItem {
   type: "object-array" | "string-array";
-  header: {
-    text: string;
-    key: string | number;
-    value?: string;
-    returnFunction?: (value: any) => string;
-    onClick?: (value: any) => void;
-    type: ITableItemType;
-    link?: string;
-    align?: "left" | "center" | "right";
-    width?: string;
-    textStyle?: object;
-  };
-
+  header: TTableHeaderItem;
   index: number;
   data: any;
   style?: {
@@ -45,6 +25,7 @@ const TableItem = (props: ITableItem) => {
   const [checked, setChecked] = useState<boolean>(
     props.checked !== undefined ? props.checked : false
   );
+  const outsideClick = useOutsideClick();
   useEffect(() => {
     props.checked && console.log(props.checked);
   }, [props.checked]);
@@ -139,16 +120,87 @@ const TableItem = (props: ITableItem) => {
         </div>
       );
     case "input":
-      return (
+      return outsideClick.active ? (
+        <textarea
+          ref={outsideClick.RefObject}
+          className={`${style.table_item} ${style.input}`}
+          defaultValue={output}
+          autoFocus
+          rows={1}
+          onInput={(e) => {
+            e.currentTarget.style.height = e.currentTarget.scrollHeight + "px";
+          }}
+          onFocus={(e) => {
+            e.target.style.height = e.target.scrollHeight + "px";
+          }}
+        />
+      ) : (
         <div
-          className={style.table_item}
+          className={`${style.table_item}`}
           style={{
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
           }}
+          ref={outsideClick.RefObject}
+          onDoubleClick={() => {
+            outsideClick.handleOnClick();
+          }}
         >
-          []
+          {output}
+        </div>
+      );
+      case "input-number":
+        return outsideClick.active ? (
+          <input
+          type={"number"}
+            ref={outsideClick.RefObject}
+            className={`${style.table_item} ${style.input_number}`}
+            defaultValue={output}
+            autoFocus
+          />
+        ) : (
+          <div
+            className={`${style.table_item}`}
+            style={{
+              justifyContent: props.header.align,
+              maxWidth: props.header.width,
+              border: props.style?.border,
+            }}
+            ref={outsideClick.RefObject}
+            onDoubleClick={() => {
+              outsideClick.handleOnClick();
+            }}
+          >
+            {output}
+          </div>
+        );
+    case "select":
+      return outsideClick.active ? (
+        <select
+          ref={outsideClick.RefObject}
+          className={`${style.table_item} ${style.select}`}
+          defaultValue={output}
+          autoFocus
+        >
+          {props.header.selectOptions?.map((val) => {
+            return <option value={val}>{val}</option>;
+          })}
+        </select>
+      ) : (
+        <div
+          className={`${style.table_item}`}
+          style={{
+            justifyContent: props.header.align,
+            maxWidth: props.header.width,
+            border: props.style?.border,
+          }}
+          ref={outsideClick.RefObject}
+          onClick={() => {
+            outsideClick.handleOnClick();
+          }}
+        >
+          {output}
         </div>
       );
     case "button":
