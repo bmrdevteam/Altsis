@@ -4,9 +4,10 @@ import Divider from "components/divider/Divider";
 import Autofill from "components/input/Autofill";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
-import Table from "components/table/Table";
+import Table, { TTableHeader, TTableItemType } from "components/table/Table";
 import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
+import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import style from "style/pages/archive.module.scss";
 type Props = {
@@ -14,51 +15,58 @@ type Props = {
   archive?: string;
   setUserId: React.Dispatch<React.SetStateAction<string>>;
   userId: string;
+  userArchiveData: any;
 };
 
 const One = (props: Props) => {
   function archiveData() {
-    return archiveTestData.filter((val) => {
-      return val.label === props.archive;
-    })[0];
+    return (
+      archiveTestData.filter((val) => {
+        return val.label === props.archive;
+      })[0] ?? { fields: [] }
+    );
+  }
+  function archiveHeader() {
+    let arr: TTableHeader = [];
+    archiveData().fields?.map((val: any) => {
+      if (val.type === "select") {
+        arr.push({
+          text: val.label,
+          key: val.label,
+          type: "select",
+          selectOptions: val.options,
+        });
+      } else {
+        arr.push({
+          text: val.label,
+          key: val.label,
+          type: val.type as TTableItemType,
+        });
+      }
+    });
+    arr.push({
+      text: "삭제",
+      key: "",
+      width: "72px",
+      align: "center",
+      type: "button",
+    });
+    return arr;
   }
 
   return (
     <>
-      <div className={style.search}>
-        <div className={style.label}>학생선택</div>
-        <Select
-          options={[{ text: "11학년", value: "11" }]}
-          style={{ borderRadius: "4px", maxWidth: "120px" }}
-        />
-        <Autofill
-          style={{ borderRadius: "4px" }}
-          setState={props.setUserId}
-          defaultValue={props.userId}
-          options={[
-            { text: "", value: "" },
-            ...props.users?.map((val) => {
-              return {
-                value: val.userId,
-                text: `${val.userName} / ${val.userId}`,
-              };
-            }),
-          ]}
-          placeholder={"검색"}
-        />
-      </div>
-      <Divider />
       <Button type="ghost" style={{ marginTop: "24px", height: "30px" }}>
         저장
       </Button>
-      {archiveData().dataType === "single" ? (
+      {archiveData().dataType === "object" ? (
         <div className={style.content}>
-          {archiveData().fields?.map((val) => {
+          {archiveData().fields?.map((val: any, index: number) => {
             return (
-              <div className={style.field}>
+              <div className={style.field} key={index}>
                 <div className={style.label}>{val.label}</div>
                 <textarea
-                  defaultValue={props.userId}
+                  defaultValue={props.userArchiveData?.[val.label]}
                   className={style.input}
                   rows={1}
                 />
@@ -70,16 +78,8 @@ const One = (props: Props) => {
         <div style={{ marginTop: "24px" }}>
           <Table
             type="object-array"
-            data={[]}
-            header={
-              archiveData().fields?.map((val, index) => {
-                return {
-                  text: val.label,
-                  key: index,
-                  type: "string",
-                };
-              }) ?? []
-            }
+            data={props.userArchiveData}
+            header={archiveHeader()}
           />
         </div>
       )}
