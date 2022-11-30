@@ -59,7 +59,7 @@ export default function useOutsideClick() {
   const [active, setActive] = useState<boolean>(false);
 
   /** @constant RefObject used for checking if click event contains self */
-  const RefObject = useRef<HTMLDivElement>(null);
+  const RefObject = useRef<any>(null);
 
   /**
    * function to set the state to false

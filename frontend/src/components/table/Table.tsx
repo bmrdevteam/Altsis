@@ -9,7 +9,7 @@ import React, { useState } from "react";
 import useOutsideClick from "hooks/useOutsideClick";
 import Button from "../button/Button";
 import style from "./table.module.scss";
-import { ITableItemType, TableItem } from "./tableItems/TableItem";
+import { TableItem } from "./tableItems/TableItem";
 import Svg from "assets/svg/Svg";
 import { useEffect } from "react";
 import useSearch from "hooks/useSearch";
@@ -19,22 +19,37 @@ import objectDownloadAsJson from "functions/objectDownloadAsJson";
 import objectDownloadAsCSV from "functions/objectDownloadAsCSV";
 import _, { isNumber } from "lodash";
 
+export type TTableHeaderItem = {
+  text: string;
+  key: string | number;
+  value?: string;
+  returnFunction?: (value: any) => string;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  type: TTableItemType;
+  link?: string;
+  align?: "left" | "center" | "right";
+  selectOptions?: string[];
+  width?: string;
+  textStyle?: object;
+};
+export type TTableHeader = TTableHeaderItem[];
+export type TTableItemType =
+  | "index"
+  | "string"
+  | "button"
+  | "dateTime"
+  | "date"
+  | "time"
+  | "select"
+  | "checkbox"
+  | "input"
+  | "input-number"
+  | "input-date";
+
 type Props = {
   data: any;
   type: "object-array" | "string-array";
-  header: {
-    text: string;
-    key: string | number;
-    value?: string;
-    returnFunction?: (value: any) => string;
-    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-    type: ITableItemType;
-    link?: string;
-    align?: "left" | "center" | "right";
-    width?: string;
-    textStyle?: object;
-  }[];
-
+  header: TTableHeader;
   style?: {
     border?: string;
     rowHeight?: string;

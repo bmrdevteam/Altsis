@@ -86,8 +86,8 @@ const Enrollment = (props: Props) => {
         <div style={{ height: "24px" }}></div>
 
         <Table
-        filter
-        filterSearch
+          filter
+          filterSearch
           type="object-array"
           data={courses}
           header={[
@@ -144,7 +144,7 @@ const Enrollment = (props: Props) => {
               key: "courseName",
               type: "button",
               onClick: (e: any) => {
-                navigate(`courses/${e.target.dataset.value}`, {
+                navigate(`../courses/${e._id}`, {
                   replace: true,
                 });
               },

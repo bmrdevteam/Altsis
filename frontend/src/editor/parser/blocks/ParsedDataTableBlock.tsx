@@ -17,7 +17,6 @@ function ParsedDataTableBlock(props: Props) {
   }
   useEffect(() => {
     getData().then((res) => {
-      console.log(res);
       setData(res.enrollments);
     });
   }, []);

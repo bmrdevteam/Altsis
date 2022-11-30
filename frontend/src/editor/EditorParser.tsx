@@ -8,12 +8,12 @@ type Props = {
   auth: "edit" | "view";
   defaultValues?: any;
   defaultTimetable?: any;
+  dbData?: any;
 };
 
 const EditorParser = (props: Props) => {
   const returnData = useRef<any>({});
-  console.log(props.defaultTimetable);
-  
+
 
   return (
     <div
@@ -26,15 +26,15 @@ const EditorParser = (props: Props) => {
       {isArray(props?.data?.data) &&
         props?.data?.data?.map((value: any, index: number) => {
           return (
-            <div key={index}>
-              <ParsedBlock
-                returnData={returnData.current}
-                blockData={value}
-                auth={props.auth}
-                defaultTimetable={props.defaultTimetable}
-                defaultValues={props.defaultValues}
-              />
-            </div>
+            <ParsedBlock
+              key={index}
+              returnData={returnData.current}
+              blockData={value}
+              auth={props.auth}
+              dbData={props.dbData}
+              defaultTimetable={props.defaultTimetable}
+              defaultValues={props.defaultValues}
+            />
           );
         })}
     </div>

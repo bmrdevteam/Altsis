@@ -226,6 +226,7 @@
     .table_header {
         position: sticky;
         top: 0;
+        z-index: 2;
         border-top: var(--border-default);
         background-color: var(--component-color);
         display: flex;
@@ -314,7 +315,7 @@
         width: 100%;
         display: flex;
         -webkit-box-align: center;
-        align-items: center;
+
         box-sizing: border-box;
 
         .table_item {
@@ -336,6 +337,7 @@
             line-height: 1.5rem;
             letter-spacing: 0.01071em;
             flex-direction: row;
+            font-size: 14px;
 
             //-------
             -webkit-touch-callout: none;
@@ -352,30 +354,56 @@
             /* Non-prefixed version, currently */
 
             white-space: nowrap;
+            position: relative;
         }
 
-        .table_item_select {
-            span {
-                padding: 0 8px;
-                font-size: 0.75rem;
-                border: 1px solid;
-            }
+        .table_item.input {
+            border: var(--border-default);
+            padding: 14px 15px;
+            width: 100%;
+            line-height: 18px;
+            text-align: left;
+            font-family: 'Pretendard';
+            white-space: normal;
+            resize: none;
+            display: block;
+            z-index: 1;
+            cursor: text;
+        }
 
-            .red {
-                color: rgb(255, 111, 111);
-            }
+        .table_item.input_number {
+            border: var(--border-default);
+            border-top: none;
+            padding: 15px;
+            width: 100%;
+            line-height: 16px;
+            text-align: left;
+            font-family: 'Pretendard';
+            display: block;
+            z-index: 1;
+            cursor: text;
+        }
 
-            .blue {
-                color: rgb(111, 173, 255);
-            }
 
-            .green {
-                color: rgb(51, 200, 113);
-            }
 
-            .dark_blue {
-                color: rgb(46, 57, 180);
-            }
+        .table_item.select {
+            font-family: 'Pretendard';
+            display: block;
+            padding: 0 16px;
+            outline: none;
+            text-align: inherit;
+            border: none;
+            border-bottom: var(--border-default);
+            width: 100%;
+
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background: transparent;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+            background-repeat: no-repeat;
+            background-position-x: 100%;
+            background-position-y: 50%;
+
         }
 
         .table_item:hover {
