@@ -141,54 +141,12 @@ module.exports.updateField = async (req, res) => {
   }
 };
 
-// module.exports.updateField = async (req, res) => {
-//   try {
-//     if (["email", "tel"].indexOf(req.params.field) == -1)
-//       return res.status(400).send();
-
-//     /* find document */
-//     const academy = await Academy.findById(req.params._id);
-//     if (!academy) return res.status(404).send({ message: "academy not found" });
-
-//     academy[req.params.field] = req.body.new;
-//     if (!academy.checkValidation(req.params.field))
-//       return res.status(400).send({ message: "validation failed" });
-
-//     await academy.save();
-//     return res.status(200).send(academy);
-//   } catch (err) {
-//     return res.status(500).send({ message: err.message });
-//   }
-// };
-
 const typeToModel = (docType, academyId) => {
   if (docType === "schools") return School(academyId);
   if (docType === "seasons") return Season(academyId);
   if (docType === "users") return User(academyId);
   if (docType === "registrations") return Registration(academyId);
   if (docType === "forms") return Form(academyId);
-};
-
-module.exports.findUsers = async (req, res) => {
-  try {
-    if (req.params.user) {
-      const document = await User(req.user.academyId).findById(req.params.user);
-      return res.status(200).send(document);
-    }
-
-    if (req.query["no-school"]) {
-      const documents = await User(req.user.academyId).find({
-        schools: { $size: 0 },
-      });
-
-      return res.status(200).send({ documents });
-    }
-    const documents = await User(req.user.academyId).find(req.query);
-
-    return res.status(200).send({ documents });
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
 };
 
 module.exports.findDocuments = async (req, res) => {
@@ -272,50 +230,6 @@ module.exports.createSeason = async (req, res) => {
     await season.save();
 
     return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-module.exports.createUser = async (req, res) => {
-  try {
-    const _User = User(req.user.academyId);
-    const exUser = await _User.findOne({ userId: req.body.userId });
-    if (exUser)
-      return res.status(409).send({ message: "userId is already in use" });
-
-    const user = new _User({
-      ...req.body,
-      academyId: req.user.academyId,
-      academyName: req.user.academyName,
-    });
-    await user.save();
-
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-module.exports.updateClassrooms = async (req, res) => {
-  try {
-    const school = await School(req.user.academyId).findById(req.params.school);
-    school.classrooms = req.body.new;
-    await school.save();
-
-    return res.status(200).send(school);
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-module.exports.updateSubjects = async (req, res) => {
-  try {
-    const school = await School(req.user.academyId).findById(req.params.school);
-    school.subjects = req.body.new;
-    await school.save();
-
-    return res.status(200).send(school);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

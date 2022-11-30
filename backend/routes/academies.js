@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const academy = require("../controllers/academy");
 const { isOwner } = require("../middleware/auth");
+
+const academy = require("../controllers/academy");
+const user = require("../controllers/user");
+const school = require("../controllers/school");
 
 //=================================
 //             Academy
@@ -16,27 +19,29 @@ router.get("/:academyId?", academy.find);
 router.put("/:academyId", isOwner, academy.updateField);
 router.delete("/:academyId", isOwner, academy.remove);
 
-/* OWNER */
-router.get("/:academyId/users/:user?", isOwner, academy.findUsers);
+/* get/delete academy documents*/
+router.get("/:academyId/users/:_id?", isOwner, user.find);
 router.get("/:academyId/:docType/:docId?", isOwner, academy.findDocuments);
 router.delete("/:academyId/:docType/:docId?", isOwner, academy.deleteDocument);
 
-router.post("/:academyId/schools", isOwner, academy.createSchool);
+/* create/update academy documents - users*/
+router.post("/:academyId/users", isOwner, user.create);
+// router.put("/:academyId/users/:user", isOwner, academy.updateUser);
+router.put("/:academyId/users/:_id/auth", isOwner, user.updateAuth);
+router.put("/:academyId/users/:_id/schools", isOwner, user.updateSchools);
+router.put("/:academyId/users/:_id", isOwner, user.update);
+
+/* create/update academy documents - schools*/
+router.post("/:academyId/schools", isOwner, school.create);
+
+router.put(
+  "/:academyId/schools/:_id/:field/:fieldType?",
+  isOwner,
+  school.updateField
+);
+
+/* create/update academy documents - seasons*/
 router.post("/:academyId/seasons", isOwner, academy.createSeason);
-router.post("/:academyId/users", isOwner, academy.createUser);
-router.post("/:academyId/registrations", isOwner, academy.createRegistration);
-
-router.put(
-  "/:academyId/schools/:school/classrooms",
-  isOwner,
-  academy.updateClassrooms
-);
-
-router.put(
-  "/:academyId/schools/:school/subjects",
-  isOwner,
-  academy.updateSubjects
-);
 
 router.put("/:academyId/seasons/:season", isOwner, academy.updateSeason);
 router.put(
@@ -55,6 +60,6 @@ router.post(
   academy.inactivateSeason
 );
 
-router.put("/:academyId/users/:user", isOwner, academy.updateUser);
+router.post("/:academyId/registrations", isOwner, academy.createRegistration);
 
 module.exports = router;
