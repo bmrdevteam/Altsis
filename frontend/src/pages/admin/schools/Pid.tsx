@@ -131,7 +131,7 @@ const School = (props: Props) => {
             <Classroom school={schoolData} resetData={setResetSchoolData} />
           ),
           "시간표(beta)": <Timetable />,
-          "학생정보 관리(archive)": <Archive />,
+          "학생정보 관리(archive)": <Archive school={schoolData}/>,
         }}
       />
     </div>
