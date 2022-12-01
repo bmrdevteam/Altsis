@@ -49,9 +49,6 @@ const checkEvaluation = async (academyId, season) => {
 
 module.exports.create = async (req, res) => {
   try {
-    const school = await School(req.user.academyId).findById(req.body.school);
-    if (!school) return res.status(404).send();
-
     const _Season = Season(req.user.academyId);
 
     /* check duplication */
@@ -65,12 +62,18 @@ module.exports.create = async (req, res) => {
         message: `season(${req.body.school},${req.body.year},${req.body.term}) is already in use`,
       });
 
+    const school = await School(req.user.academyId).findById(req.body.school);
+    if (!school) return res.status(404).send();
+
     /* create and save document */
-    const season = new _Season(req.body);
-    season.schoolId = school.schoolId;
-    season.schoolName = school.schoolName;
-    season.classrooms = school.classrooms;
-    season.subjects = school.subjects;
+    const season = new _Season({
+      ...req.body,
+      schoolId: school.schoolId,
+      schoolName: school.schoolName,
+      classrooms: school.classrooms,
+      subjects: school.subjects,
+    });
+
     await season.save();
     return res.status(200).send(season);
   } catch (err) {
@@ -156,6 +159,50 @@ module.exports.update = async (req, res) => {
   }
 };
 
+module.exports.activate = async (req, res) => {
+  try {
+    /* find document */
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    /* activate season */
+    season.isActivated = true;
+    await season.save();
+
+    /* activate registrations */
+    await Registration(req.user.academyId).updateMany(
+      { season },
+      { isActivated: true }
+    );
+
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.inactivate = async (req, res) => {
+  try {
+    /* find document */
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    /* activate season */
+    season.isActivated = false;
+    await season.save();
+
+    /* activate registrations */
+    await Registration(req.user.academyId).updateMany(
+      { season },
+      { isActivated: false }
+    );
+
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
 module.exports.updateField = async (req, res) => {
   try {
     const season = await Season(req.user.academyId).findById(req.params._id);
@@ -166,32 +213,7 @@ module.exports.updateField = async (req, res) => {
       field +=
         req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
 
-    const doc = {};
     switch (field) {
-      // year, term => (schoolId, year, term)은 unique해야 한다.
-      case "year":
-        await checkDuplication(
-          req.user.academyId,
-          season.schoolId,
-          req.body.new,
-          season.term
-        );
-        // await checkSyllabus(req.user.academyId, season); -> !TEMP!
-        doc["year"] = req.body.new;
-        break;
-      case "term":
-        await checkDuplication(
-          req.user.academyId,
-          season.schoolId,
-          season.year,
-          req.body.new
-        );
-        // await checkSyllabus(req.user.academyId, season); -> !TEMP!
-        doc["term"] = req.body.new;
-        break;
-      case "period":
-        doc["period"] = req.body.new;
-        break;
       // classrooms, subjects, formTimetable, formSyllabus => 해당 시즌에 syllabus가 존재하면 수정할 수 없다.
       case "classrooms":
       case "subjects":
@@ -216,12 +238,12 @@ module.exports.updateField = async (req, res) => {
     season[field] = req.body.new;
     await season.save();
 
-    // year, term, period가 변경되면
+    // period가 변경되면
     // registration 일괄 수정
-    if (!_.isEmpty(doc)) {
+    if (field === "period") {
       await Registration(req.user.academyId).update(
         { season: season._id },
-        doc
+        { preiod: season.period }
       );
     }
 

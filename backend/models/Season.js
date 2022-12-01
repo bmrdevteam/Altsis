@@ -90,6 +90,7 @@ seasonSchema.methods.getSubdocument = function () {
     schoolName: this.schoolName,
     year: this.year,
     term: this.term,
+    isActivated: this.isActivated,
   };
 };
 
