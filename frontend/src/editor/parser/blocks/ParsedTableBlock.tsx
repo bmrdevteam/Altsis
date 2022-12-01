@@ -45,7 +45,7 @@ const ParsedTableBlock = (props: Props) => {
             className={style.cell}
             style={{ textAlign: data.align, fontSize: data.fontSize }}
           >
-            {data?.dataText?.map((dataTextElement: any,index:number) => {
+            {data?.dataText?.map((dataTextElement: any, index: number) => {
               if (typeof dataTextElement === "object") {
                 if (dataTextElement.tag === "DATA") {
                   return _.get(
@@ -55,10 +55,9 @@ const ParsedTableBlock = (props: Props) => {
                   );
                 }
                 if (dataTextElement.tag === "BR") {
-                  return <br key={index}/>;
+                  return <br key={index} />;
                 }
-              }else{
-
+              } else {
                 return dataTextElement;
               }
             })}
@@ -89,7 +88,7 @@ const ParsedTableBlock = (props: Props) => {
         ) : (
           <div>
             <div className={style.cell} style={{ textAlign: data.align }}>
-              {props.defaultValues?.["info"]?.[data?.name]}
+              {props.defaultValues?.[data?.name]}
             </div>
           </div>
         );
@@ -132,7 +131,7 @@ const ParsedTableBlock = (props: Props) => {
                   props.returnData[data?.name] = e.target.value;
                 }
               }}
-              defaultValue={props.defaultValues?.["info"]?.[data?.name]}
+              defaultValue={props.defaultValues?.[data?.name]}
               disabled={true}
             >
               {data.options.map((val: any) => {
