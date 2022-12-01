@@ -82,7 +82,7 @@ module.exports.create = async (req, res) => {
     });
 
     /* check validation */
-    if (!user.checkValidation())
+    if (!user.checkValidation() || !user.checkValidation("password"))
       return res.status(400).send({ message: "validation failed" });
 
     /* save document */
@@ -199,7 +199,10 @@ module.exports.find = async (req, res) => {
     }
 
     const queries = req.query;
-    if (queries.schoolId) {
+    if (queries.school) {
+      queries["schools.school"] = queries.school;
+      delete queries.school;
+    } else if (queries.schoolId) {
       queries["schools.schoolId"] = queries.schoolId;
       delete queries.schoolId;
     } else if (queries["no-school"]) {
@@ -308,7 +311,7 @@ module.exports.updatePassword = async (req, res) => {
 
     if (req.user._id == req.params._id) {
       user = req.user;
-    } else if (req.user.auth in ["admin", "manager", "owner"]) {
+    } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
       user = await User(req.user.academyId).findById(req.params._id);
     } else {
       return res.status(401).send({ message: "You are not authorized." });
@@ -328,10 +331,10 @@ module.exports.updatePassword = async (req, res) => {
 module.exports.update = async (req, res) => {
   try {
     let user = undefined;
-    console.log("req.user.auth: ", req.user.auth);
-    if (req.user._id == req.params._id) {
+
+    if (req.user._id === req.params._id) {
       user = req.user;
-    } else if (req.user.auth in ["admin", "manager", "owner"]) {
+    } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
       user = await User(req.user.academyId).findById(req.params._id);
     } else {
       return res.status(401).send({ message: "You are not authorized." });
@@ -340,11 +343,10 @@ module.exports.update = async (req, res) => {
     if (req.body.auth && req.user.auth === "owner") {
       user.auth = req.body.auth;
     }
-
     user.email = req.body.email;
     user.tel = req.body.tel;
 
-    if (!user.checkValidation("password"))
+    if (!user.checkValidation())
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();

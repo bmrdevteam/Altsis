@@ -70,6 +70,7 @@ userSchema.methods.checkValidation = function (key) {
     return check[key](this[key]);
   }
   for (const key in check) {
+    if (key === "password") continue;
     if (!check[key](this[key])) return false;
   }
   return true;

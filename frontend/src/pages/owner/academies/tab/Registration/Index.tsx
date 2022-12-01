@@ -55,6 +55,8 @@ const Registration = (props: Props) => {
   const [doc, setDoc] = useState<any>();
 
   /* additional document list */
+  const [registrationListByUserId, setRegistrationListByUserId] =
+    useState<any>();
   const [schoolList, setSchoolList] = useState<any>();
   const [school, setSchool] = useState<any>();
   const [seasonList, setSeasonList] = useState<any>();
@@ -102,10 +104,10 @@ const Registration = (props: Props) => {
   }
 
   async function getUserList() {
-    const { documents } = await database.R({
-      location: `academies/${props.academyId}/users?schools.school=${school}`,
+    const { users } = await database.R({
+      location: `academies/${props.academyId}/users?school=${school}`,
     });
-    return documents;
+    return users;
   }
 
   async function addDocument() {
@@ -158,13 +160,16 @@ const Registration = (props: Props) => {
   };
 
   const users = () => {
+    const registeredUserIds = _.map(documentList, "userId");
+
     let result: { text: string; value: string }[] = [{ text: "", value: "" }];
 
     for (let i = 0; i < userList?.length; i++) {
-      result.push({
-        text: `${userList[i].userName}(${userList[i].userId})`,
-        value: userList[i].userId,
-      });
+      if (!registeredUserIds.includes(userList[i].userId))
+        result.push({
+          text: `${userList[i].userName}(${userList[i].userId})`,
+          value: userList[i].userId,
+        });
     }
 
     return result;
@@ -343,7 +348,7 @@ const Registration = (props: Props) => {
             dontUsePaths
             items={{
               "기본 정보": (
-                <Basic academy={props.academyId} registrationData={doc} />
+                <Basic academyId={props.academyId} registrationData={doc} />
               ),
             }}
             align={"flex-start"}
