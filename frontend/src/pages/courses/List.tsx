@@ -9,7 +9,7 @@ import Navbar from "layout/navbar/Navbar";
 type Props = {};
 
 const CourseList = (props: Props) => {
-  const { registrations, currentRegistration } = useAuth();
+  const { currentRegistration } = useAuth();
 
   const database = useDatabase();
   const navigate = useNavigate();

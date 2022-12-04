@@ -3,7 +3,7 @@
  *
  * more info on selected courses
  *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
+ * @author jessie129j <jessie129j@gmail.com>
  *
  * -------------------------------------------------------
  *
@@ -33,25 +33,24 @@ import { useNavigate, useParams } from "react-router-dom";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
 
-// components
-import Divider from "components/divider/Divider";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
-
-import style from "style/pages/courses/course.module.scss";
-import EditorParser from "editor/EditorParser";
-
-import _ from "lodash";
+// tab pages
+import View from "./tab/View";
+import Edit from "./tab/Edit";
 
 type Props = {};
 
 const Course = (props: Props) => {
   const { pid } = useParams<"pid">();
+  const { currentUser, currentRegistration, currentSeason } = useAuth();
   const navigate = useNavigate();
-  const { currentSeason } = useAuth();
+
+  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
+  const [alertMessage, setAlertMessage] = useState<string>("");
 
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const [mode, setMode] = useState<string>("view");
   const [courseData, setCourseData] = useState<any>();
 
   async function getCourseData() {
@@ -61,89 +60,64 @@ const Course = (props: Props) => {
     return result;
   }
 
-  const categories = () => {
-    const res = [];
-    for (let i = 0; i < currentSeason?.subjects.label.length; i++) {
-      res.push(
-        <div className={style.category}>
-          {currentSeason?.subjects.label[i]}: {courseData.subject[i]}
-        </div>
-      );
+  const checkPermission = () => {
+    const permission = currentSeason.permissionSyllabus;
+    for (let i = 0; i < permission.length; i++) {
+      if (
+        permission[i][0] === "userId" &&
+        permission[i][1] === currentUser.userId
+      ) {
+        return permission[i][2];
+      }
+      if (
+        permission[i][0] === "role" &&
+        permission[i][1] === currentRegistration.role
+      )
+        return permission[i][2];
     }
-
-    res.push(
-      <div className={style.category}>개설자: {courseData.userName}</div>
-    );
-
-    res.push(
-      <div className={style.category}>
-        멘토:{" "}
-        {_.join(
-          courseData?.teachers.map((teacher: any) => {
-            return teacher.userName;
-          }),
-          ", "
-        )}
-      </div>
-    );
-
-    res.push(
-      <div className={style.category}>
-        시간:{" "}
-        {_.join(
-          courseData?.time.map((timeBlock: any) => {
-            return timeBlock.label;
-          }),
-          ", "
-        )}
-      </div>
-    );
-    res.push(<div className={style.category}>학점: {courseData.point}</div>);
-    res.push(
-      <div className={style.category}>
-        강의실: {courseData.classroom || "없음"}
-      </div>
-    );
-    return res;
+    return false;
   };
 
   useEffect(() => {
-    navigate("#강의 계획");
-    getCourseData()
-      .then((result) => {
-        setCourseData(result);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        alert(err.response.data.message);
-        navigate("/courses");
-      });
+    if (!currentRegistration) {
+      setAlertMessage("등록된 학기가 없습니다.");
+      setAlertPopupActive(true);
+    }
+    if (!checkPermission()) {
+      setAlertMessage("수업 개설 권한이 없습니다.");
+      setAlertPopupActive(true);
+    }
+    if (isLoading) {
+      navigate("#강의 계획");
+      getCourseData()
+        .then((result) => {
+          setCourseData(result);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          alert(err.response.data.message);
+          navigate("/courses");
+        });
+    }
     return () => {};
-  }, []);
-
-  const ClassInfo = () => {
-    return (
-      <EditorParser
-        auth="view"
-        defaultValues={courseData}
-        data={currentSeason?.formSyllabus}
-      />
-    );
-  };
+  }, [isLoading]);
 
   return !isLoading ? (
-    <div className={style.section}>
-      <NavigationLinks />
-      <div className={style.title}>{courseData.classTitle}</div>
-      <div className={style.categories_container}>
-        <div className={style.categories}>{categories()}</div>
-      </div>
-      <Divider />
-
-      <ClassInfo />
-    </div>
+    mode === "view" ? (
+      <View
+        courseData={courseData}
+        setMode={setMode}
+        setCourseData={setCourseData}
+      />
+    ) : (
+      <Edit
+        courseData={courseData}
+        setCourseData={setCourseData}
+        setMode={setMode}
+      />
+    )
   ) : (
-    <div>로딩중</div>
+    <>로딩중</>
   );
 };
 
