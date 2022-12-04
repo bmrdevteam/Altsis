@@ -18,11 +18,7 @@ type Props = {
 
 const Autofill = (props: Props) => {
   const [inputValue, setInputValue] = useState<string>(
-    (props.defaultValue &&
-      props.options.filter((val) => {
-        return val.value.toString() === props.defaultValue.toString();
-      })[0].text) ??
-      ""
+    props.defaultValue || ""
   );
   const [valid, setValid] = useState(true);
 
@@ -37,16 +33,12 @@ const Autofill = (props: Props) => {
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
     if (props.options) {
-      props.setValue &&
-        props.setValue(
-          props.options.filter((val) => {
-            return val.value && val.value.toString() === props.defaultValue.toString();
-          })[0]?.value ?? props.defaultValue
-        );
-
+      props.setValue && props.setValue(props.defaultValue || "");
       setInputValue(
         props.options.filter((val) => {
-          return val.value && val.value.toString() === props.defaultValue.toString();
+          return (
+            val.value && val.value.toString() === props.defaultValue.toString()
+          );
         })[0]?.text ?? ""
       );
     }

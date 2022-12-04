@@ -176,6 +176,7 @@ module.exports.current = async (req, res) => {
         "year",
         "term",
         "isActivated",
+        "role",
       ]);
 
     return res.status(200).send({ ...user.toObject(), registrations });
