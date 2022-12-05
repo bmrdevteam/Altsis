@@ -339,7 +339,7 @@ const Sidebar = (props: Props) => {
                   props.callPageReload();
                 }
               }}
-              type="text"
+              type="number"
               defaultValue={getCurrentCell()?.colSpan}
             />
           </div>
@@ -352,7 +352,7 @@ const Sidebar = (props: Props) => {
                   props.callPageReload();
                 }
               }}
-              type="text"
+              type="number"
               defaultValue={getCurrentCell()?.갲Span}
             />
           </div>
@@ -666,12 +666,12 @@ const Sidebar = (props: Props) => {
   return (
     <div
       className={style.sidebar_container}
-      onMouseEnter={() => {
-        console.log("a");
-      }}
-      onMouseLeave={() => {
-        console.log("aa");
-      }}
+      // onMouseEnter={() => {
+      //   console.log("a");
+      // }}
+      // onMouseLeave={() => {
+      //   console.log("aa");
+      // }}
     >
       <div className={style.sidebar}>
         <AddBlockMenu />
