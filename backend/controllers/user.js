@@ -7,11 +7,11 @@ const School = require("../models/School");
 // ____________ common ____________
 
 module.exports.loginLocal = async (req, res) => {
-  passport.authenticate("local2", (authError, user, dbName) => {
+  passport.authenticate("local2", (authError, user, academyId) => {
     try {
       if (authError) throw authError;
       console.log("DEBUG: authentication is over");
-      return req.login({ user, dbName }, (loginError) => {
+      return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
         console.log("DEBUG: login is over");
         /* set maxAge as 1 year if auto login is requested */
@@ -28,10 +28,10 @@ module.exports.loginLocal = async (req, res) => {
 };
 
 module.exports.loginGoogle = async (req, res) => {
-  passport.authenticate("google2", (authErr, user, dbName) => {
+  passport.authenticate("google2", (authErr, user, academyId) => {
     try {
       if (authErr) throw authErr;
-      return req.login({ user, dbName }, (loginError) => {
+      return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
 
         /* set maxAge as 1 year if auto login is requested */
@@ -59,19 +59,13 @@ module.exports.logout = (req, res) => {
 
 module.exports.create = async (req, res) => {
   try {
-    switch (req.user.auth) {
-      case "owner":
-        if (req.body.auth == "owner" || req.body.auth == "admin") break;
-      case "admin":
-        if (req.body.auth == "manager" || req.body.auth == "member") break;
-        break;
-      case "manager":
-        if (req.body.auth == "member") break;
-      default:
-        return res.status(401).send({ message: "You are not authorized." });
-    }
+    // owner의 경우  => 타 아카데미의 user 생성 가능
+    const academyId =
+      req.user.auth == "owner" && req.params.academyId
+        ? req.params.academyId
+        : req.user.academyId;
 
-    const _User = User(req.user.dbName);
+    const _User = User(academyId);
 
     /* check duplication */
     const exUser = await _User.findOne({ userId: req.body.userId });
@@ -81,17 +75,19 @@ module.exports.create = async (req, res) => {
       });
 
     /* create document */
-    const user = new _User(req.body);
-    user.academyId = req.user.academyId;
-    user.academyName = req.user.academyName;
+    const user = new _User({
+      ...req.body,
+      academyId: req.user.academyId,
+      academyName: req.user.academyName,
+    });
 
     /* check validation */
-    if (!user.checkValidation())
+    if (!user.checkValidation() || !user.checkValidation("password"))
       return res.status(400).send({ message: "validation failed" });
 
     /* save document */
     await user.save();
-    user.password = undefined;
+    user.password = req.user.auth === "admin" ? user.password : undefined;
     return res.status(200).send(user);
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -109,7 +105,7 @@ module.exports.createBulk = async (req, res) => {
         return res.status(401).send({ message: "You are not authorized." });
     }
 
-    const _User = User(req.user.dbName);
+    const _User = User(req.user.academyId);
     const users = [];
 
     /* check userId duplication */
@@ -163,14 +159,14 @@ module.exports.current = async (req, res) => {
     // // school의 activatedSeason
     // const schools = await Promise.all(
     //   user.schools.map((school) =>
-    //     School(user.dbName)
+    //     School(user.academyId)
     //       .findOne({ schoolId: school.schoolId })
     //       .select(["schoolId", "schoolName", "activatedSeason"])
     //   )
     // );
 
     // registrations
-    const registrations = await Registration(user.dbName)
+    const registrations = await Registration(user.academyId)
       .find({ userId: user.userId })
       .select([
         "school",
@@ -190,37 +186,31 @@ module.exports.current = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    let _User = null;
-    if (req.query.academyId || req.query.academyName) {
-      // owner만이 타 아카데미의 user 정보 조회 가능
-      if (req.user.auth == "owner") {
-        let academy = null;
-        if (req.query.academyId)
-          academy = await Academy.findOne({
-            academyId: req.query.academyId,
-          });
-        else
-          academy = await Academy.findOne({
-            academyName: req.query.academyName,
-          });
-        _User = User(academy.dbName);
-      } else return res.status(401).send();
-    }
-    // owner, admin, manager, member => 본인 아카데미의 user 정보 조회 가능
-    else {
-      _User = User(req.user.dbName);
+    // owner의 경우  => 타 아카데미의 user 정보 조회 가능
+    const academyId =
+      req.user.auth == "owner" && req.params.academyId
+        ? req.params.academyId
+        : req.user.academyId;
+
+    // admin, manager, member => 본인 아카데미의 user 정보 조회 가능
+    if (req.params._id) {
+      const user = await User(academyId).findById(req.params._id);
+      return res.status(200).send(user);
     }
 
     const queries = req.query;
-    if (queries.schoolId) {
+    if (queries.school) {
+      queries["schools.school"] = queries.school;
+      delete queries.school;
+    } else if (queries.schoolId) {
       queries["schools.schoolId"] = queries.schoolId;
       delete queries.schoolId;
+    } else if (queries["no-school"]) {
+      queries["schools"] = { $size: 0 };
+      delete queries["no-school"];
     }
-    if (queries.schoolName) {
-      queries["schools.schoolName"] = queries.schoolName;
-      delete queries.schoolName;
-    }
-    const users = await _User.find(queries);
+
+    const users = await User(academyId).find(queries).select("-password");
     return res.status(200).send({ users });
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -231,9 +221,11 @@ module.exports.find = async (req, res) => {
 
 module.exports.updateAuth = async (req, res) => {
   try {
-    const user = await User(req.user.dbName).findById(req.params._id);
+    const user = await User(req.user.academyId).findById(req.params._id);
 
     switch (req.user.auth) {
+      case "owner":
+        break;
       case "admin":
         // admin은 member를 manager로 승격시킬 수 있다.
         if (req.body.new == "manager" && user.auth == "member") break;
@@ -252,9 +244,11 @@ module.exports.updateAuth = async (req, res) => {
 
 module.exports.updateSchools = async (req, res) => {
   try {
-    const user = await User(req.user.dbName).findById(req.params._id);
+    const user = await User(req.user.academyId).findById(req.params._id);
 
     switch (req.user.auth) {
+      case "owner":
+        break;
       case "admin":
         // admin은 member 또는 manager의 school 정보를 수정할 수 있다.
         if (user.auth == "member" || user.auth == "manager") break;
@@ -282,7 +276,7 @@ module.exports.connectGoogle = async (req, res) => {
     const payload = await getPayload(credential);
 
     /* check email duplication */
-    const exUser = await User(req.user.dbName)
+    const exUser = await User(req.user.academyId)
       .findOne({
         "snsId.google": payload.email,
       })
@@ -311,16 +305,51 @@ module.exports.disconnectGoogle = async (req, res) => {
   return res.status(200).send();
 };
 
-module.exports.updateField = async (req, res) => {
+module.exports.updatePassword = async (req, res) => {
   try {
-    if (["password", "email"].indexOf(req.params.field) == -1)
-      return res.status(400);
+    let user = undefined;
 
-    req.user[req.params.field] = req.body.new;
-    if (!req.user.checkValidation(req.params.field))
+    if (req.user._id == req.params._id) {
+      user = req.user;
+    } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
+      user = await User(req.user.academyId).findById(req.params._id);
+    } else {
+      return res.status(401).send({ message: "You are not authorized." });
+    }
+
+    user.password = req.body.new;
+    if (!user.checkValidation("password"))
       return res.status(400).send({ message: "validation failed" });
 
-    await req.user.save();
+    await user.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.update = async (req, res) => {
+  try {
+    let user = undefined;
+
+    if (req.user._id === req.params._id) {
+      user = req.user;
+    } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
+      user = await User(req.user.academyId).findById(req.params._id);
+    } else {
+      return res.status(401).send({ message: "You are not authorized." });
+    }
+
+    if (req.body.auth && req.user.auth === "owner") {
+      user.auth = req.body.auth;
+    }
+    user.email = req.body.email;
+    user.tel = req.body.tel;
+
+    if (!user.checkValidation())
+      return res.status(400).send({ message: "validation failed" });
+
+    await user.save();
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -331,7 +360,7 @@ module.exports.updateField = async (req, res) => {
 
 module.exports.delete = async (req, res) => {
   try {
-    const user = await User(req.user.dbName).findById(req.params._id);
+    const user = await User(req.user.academyId).findById(req.params._id);
     if (!user) return res.status(404).send();
 
     switch (req.user.auth) {

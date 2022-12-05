@@ -74,9 +74,11 @@ function Basic(props: Props) {
             options={[
               { text: "member", value: "member" },
               { text: "manager", value: "manager" },
+              { text: "admin", value: "admin" },
             ]}
             setValue={setAuth}
             appearence={"flat"}
+            defaultSelectedValue={auth}
           />
         </div>
 

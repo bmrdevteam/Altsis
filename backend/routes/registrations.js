@@ -12,7 +12,7 @@ router.post("/bulk", isAdManager, registration.registerBulk);
 
 router.get("/", isLoggedIn, registration.find);
 
-router.put("/:_id/:field", isAdManager, registration.update);
+router.put("/:_id", isAdManager, registration.update);
 
 router.delete("/:_id", isAdManager, registration.remove);
 

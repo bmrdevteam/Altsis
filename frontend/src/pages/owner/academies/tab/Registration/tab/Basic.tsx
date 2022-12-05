@@ -37,7 +37,7 @@ import Select from "components/select/Select";
 import style from "style/pages/admin/schools.module.scss";
 
 type Props = {
-  academy: string;
+  academyId: string;
   registrationData: any;
 };
 
@@ -45,13 +45,13 @@ function Basic(props: Props) {
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [auth, setAuth] = useState<string>(props.registrationData.auth);
+  const [role, setRole] = useState<string>(props.registrationData.role);
 
-  async function updateUser() {
+  async function updateRegistration() {
     const result = database.U({
-      location: `academies/${props.academy}/registrations/${props.registrationData._id}`,
+      location: `academies/${props.academyId}/registrations/${props.registrationData._id}`,
       data: {
-        auth,
+        role,
       },
     });
     return result;
@@ -117,14 +117,15 @@ function Basic(props: Props) {
         <div className={style.row}>
           <Select
             style={{ minHeight: "30px" }}
-            label="auth"
+            label="role"
             required
             options={[
-              { text: "member", value: "member" },
-              { text: "manager", value: "manager" },
+              { text: "student", value: "student" },
+              { text: "teacher", value: "teacher" },
             ]}
-            setValue={setAuth}
+            setValue={setRole}
             appearence={"flat"}
+            defaultSelectedValue={role}
           />
         </div>
 
@@ -133,15 +134,14 @@ function Basic(props: Props) {
           disabled={isLoading}
           onClick={() => {
             setIsLoading(true);
-            updateUser()
+            updateRegistration()
               .then(() => {
-                alert("저장 성공");
-                setIsLoading(false);
+                alert("success");
               })
-              .catch(() => {
-                alert("저장 실패");
-                setIsLoading(false);
+              .catch((err) => {
+                alert(err.response.data.message);
               });
+            setIsLoading(false);
           }}
           style={{
             borderRadius: "4px",

@@ -48,7 +48,6 @@ const Users = (props: Props) => {
   const [academyUsers, setAcademyUsers] = useState<any>();
   const [user, setUser] = useState<any>();
   const [userRegistrations, setUserRegistrations] = useState<any[]>();
-  console.log(user);
 
   const [userInfoPopupActive, setUserInfoPopupActive] =
     useState<boolean>(false);
@@ -125,14 +124,11 @@ const Users = (props: Props) => {
                 type: "button",
                 onClick: (e: any) => {
                   setUser(
-                    academyUsers?.filter(
-                      (val: any) => val._id === e.target.dataset.value
-                    )[0]
+                    academyUsers?.filter((val: any) => val._id === e._id)[0]
                   );
                   getUserRegistrations(
-                    academyUsers?.filter(
-                      (val: any) => val._id === e.target.dataset.value
-                    )[0].userId
+                    academyUsers?.filter((val: any) => val._id === e._id)[0]
+                      .userId
                   ).then((res) => {
                     setUserRegistrations(res);
                   });

@@ -43,7 +43,7 @@ import Classroom from "./tab/Classroom";
 import Subject from "./tab/Subject";
 
 type Props = {
-  academy: string;
+  academyId: string;
 };
 
 const School = (props: Props) => {
@@ -64,21 +64,21 @@ const School = (props: Props) => {
 
   async function getDocumentList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/schools`,
+      location: `academies/${props.academyId}/schools`,
     });
     return documents;
   }
 
   async function getDocument(id: string) {
     const result = await database.R({
-      location: `academies/${props.academy}/schools/${id}`,
+      location: `academies/${props.academyId}/schools/${id}`,
     });
     return result;
   }
 
   async function addDocument() {
     const result = await database.C({
-      location: `academies/${props.academy}/schools`,
+      location: `academies/${props.academyId}/schools`,
       data: {
         schoolId,
         schoolName,
@@ -90,7 +90,7 @@ const School = (props: Props) => {
   async function deleteDocument(id: string) {
     if (window.confirm("정말 삭제하시겠습니까?") === true) {
       const result = database.D({
-        location: `academies/${props.academy}/schools/${id}`,
+        location: `academies/${props.academyId}/schools/${id}`,
       });
       return result;
     }
@@ -195,11 +195,11 @@ const School = (props: Props) => {
           <Tab
             dontUsePaths
             items={{
-              "기본 정보": <Basic academy={props.academy} schoolData={doc} />,
+              "기본 정보": <Basic academy={props.academyId} schoolData={doc} />,
               classrooms: (
-                <Classroom academy={props.academy} schoolData={doc} />
+                <Classroom academy={props.academyId} schoolData={doc} />
               ),
-              subjects: <Subject academy={props.academy} schoolData={doc} />,
+              subjects: <Subject academy={props.academyId} schoolData={doc} />,
             }}
             align={"flex-start"}
           />

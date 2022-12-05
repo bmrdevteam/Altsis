@@ -51,7 +51,7 @@ const Academy = (props: Props) => {
 
   async function updateAcademy() {
     const result = await database.U({
-      location: `academies/${props.academyData._id}`,
+      location: `academies/${props.academyData.academyId}`,
       data: {
         email,
         tel,
@@ -64,7 +64,7 @@ const Academy = (props: Props) => {
     if (window.confirm("정말 활성화하시겠습니까?") === true) {
       // 확인
       const result = await database.C({
-        location: `academies/${props.academyData._id}/activate`,
+        location: `academies/${props.academyData.academyId}/activate`,
         data: {},
       });
       return result;
@@ -77,7 +77,7 @@ const Academy = (props: Props) => {
     if (window.confirm("정말 비활성화하시겠습니까?") === true) {
       // 확인
       const result = await database.C({
-        location: `academies/${props.academyData._id}/inactivate`,
+        location: `academies/${props.academyData.academyId}/inactivate`,
         data: {},
       });
       return result;
@@ -90,7 +90,7 @@ const Academy = (props: Props) => {
     if (window.confirm("정말 삭제하시겠습니까?") === true) {
       //확인
       // const result = await database.D({
-      //   location: `academies/${props.academy?._id}`,
+      //   location: `academies/${props.academy?.academyId}`,
       // });
       return true;
     } else {

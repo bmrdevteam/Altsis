@@ -43,7 +43,7 @@ import Basic from "./tab/Basic";
 import _ from "lodash";
 
 type Props = {
-  academy: string;
+  academyId: string;
 };
 
 const Registration = (props: Props) => {
@@ -55,6 +55,8 @@ const Registration = (props: Props) => {
   const [doc, setDoc] = useState<any>();
 
   /* additional document list */
+  const [registrationListByUserId, setRegistrationListByUserId] =
+    useState<any>();
   const [schoolList, setSchoolList] = useState<any>();
   const [school, setSchool] = useState<any>();
   const [seasonList, setSeasonList] = useState<any>();
@@ -75,42 +77,42 @@ const Registration = (props: Props) => {
 
   async function getDocumentList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/registrations?season=${season}`,
+      location: `academies/${props.academyId}/registrations?season=${season}`,
     });
     return documents;
   }
 
   async function getDocument(id: string) {
     const result = await database.R({
-      location: `academies/${props.academy}/registrations/${id}`,
+      location: `academies/${props.academyId}/registrations/${id}`,
     });
     return result;
   }
 
   async function getSchoolList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/schools`,
+      location: `academies/${props.academyId}/schools`,
     });
     return documents;
   }
 
   async function getSeasonList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/seasons?school=${school}`,
+      location: `academies/${props.academyId}/seasons?school=${school}`,
     });
     return documents;
   }
 
   async function getUserList() {
-    const { documents } = await database.R({
-      location: `academies/${props.academy}/users?schools.school=${school}`,
+    const { users } = await database.R({
+      location: `academies/${props.academyId}/users?school=${school}`,
     });
-    return documents;
+    return users;
   }
 
   async function addDocument() {
     const result = await database.C({
-      location: `academies/${props.academy}/registrations`,
+      location: `academies/${props.academyId}/registrations`,
       data: {
         season,
         userId,
@@ -123,7 +125,7 @@ const Registration = (props: Props) => {
   async function deleteDocument(id: string) {
     if (window.confirm("정말 삭제하시겠습니까?") === true) {
       const result = database.D({
-        location: `academies/${props.academy}/registrations/${id}`,
+        location: `academies/${props.academyId}/registrations/${id}`,
       });
       return result;
     } else {
@@ -158,13 +160,16 @@ const Registration = (props: Props) => {
   };
 
   const users = () => {
+    const registeredUserIds = _.map(documentList, "userId");
+
     let result: { text: string; value: string }[] = [{ text: "", value: "" }];
 
     for (let i = 0; i < userList?.length; i++) {
-      result.push({
-        text: `${userList[i].userName}(${userList[i].userId})`,
-        value: userList[i].userId,
-      });
+      if (!registeredUserIds.includes(userList[i].userId))
+        result.push({
+          text: `${userList[i].userName}(${userList[i].userId})`,
+          value: userList[i].userId,
+        });
     }
 
     return result;
@@ -343,7 +348,7 @@ const Registration = (props: Props) => {
             dontUsePaths
             items={{
               "기본 정보": (
-                <Basic academy={props.academy} registrationData={doc} />
+                <Basic academyId={props.academyId} registrationData={doc} />
               ),
             }}
             align={"flex-start"}

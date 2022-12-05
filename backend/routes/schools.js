@@ -11,8 +11,6 @@ router.post("/", isAdManager, school.create);
 
 router.get("/:_id?/:field?", isLoggedIn, school.find);
 
-// update activatedSeason
-router.put("/:_id/activated-season", isAdManager, school.updateActivatedSeason);
 // update subjects, classrooms, formArchive
 router.put("/:_id/:field/:fieldType?", isAdManager, school.updateField);
 

@@ -107,7 +107,7 @@ console.log(props.dbData);
         ) : (
           <div>
             <div className={style.cell} style={{ textAlign: data.align }}>
-              {props.defaultValues?.["info"]?.[data?.name]}
+              {props.defaultValues?.[data?.name]}
             </div>
           </div>
         );
@@ -150,7 +150,7 @@ console.log(props.dbData);
                   props.returnData[data?.name] = e.target.value;
                 }
               }}
-              defaultValue={props.defaultValues?.["info"]?.[data?.name]}
+              defaultValue={props.defaultValues?.[data?.name]}
               disabled={true}
             >
               {data.options.map((val: any) => {
