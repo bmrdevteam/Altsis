@@ -17,10 +17,15 @@ const Archive = (props: Props) => {
   }
 
   async function getDBData() {
-    const result = await database.R({
+    const archive = await database.R({
       location: `archives?school=${currentSchool.school}&userId=${191025}`,
     });
-    return result;
+    const evaluation = await database.R({
+      location: `enrollments/evaluations?userId=${191025}`,
+    });
+    return { [currentSchool.schoolId]: { archive: archive.data } };
+    console.log(evaluation);
+    
   }
 
   async function getFormData(id: string) {
@@ -38,8 +43,7 @@ const Archive = (props: Props) => {
       setFormData(res);
     });
     getDBData().then((res) => {
-      setDBData({ [currentSchool.schoolId]: { archive: res.data } });
-      console.log({ [currentSchool.schoolId]: { archive: res.data } });
+      setDBData(res);
     });
   }, []);
 
@@ -47,7 +51,7 @@ const Archive = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <EditorParser auth="edit" data={formData} dbData={DBData}/>
+        <EditorParser auth="edit" data={formData} dbData={DBData} />
       </div>
     </>
   );
