@@ -1,7 +1,25 @@
-export const archiveTestData:any[] = [
+export const archiveTestData: any[] = [
+  {
+    label: "등록",
+    dataType: "array",
+    fields: [
+      {
+        label: "학년/구분",
+        type: "select",
+        options: ["11학년", "12학년", "10학년"],
+      },
+      {
+        label: "학번",
+        type: "input",
+      },
+      {
+        label: "담임 성명",
+        type: "input",
+      },
+    ],
+  },
   {
     label: "인적 사항",
-    cycle: "unset",
     auth: "teacher / student / teacherID / admin",
     dataType: "object",
     fields: [
@@ -44,28 +62,94 @@ export const archiveTestData:any[] = [
     ],
   },
   {
-    label: "학적사항",
-    cycle: "unset",
+    label: "출결사항",
     dataType: "array",
+    fields: [
+      {
+        label: "학년/구분",
+        type: "select",
+        options: ["11학년", "12학년", "10학년"],
+      },
+      {
+        label: "수업일수",
+        type: "input-number",
+      },
+      {
+        label: "결석일수/질병",
+        type: "input-number",
+      },
+      {
+        label: "결석일수/미인정",
+        type: "input-number",
+      },
+      {
+        label: "결석일수/기타",
+        type: "input-number",
+      },
+      {
+        label: "조퇴/질병",
+        type: "input-number",
+      },
+      {
+        label: "조퇴/미인정",
+        type: "input-number",
+      },
+      {
+        label: "조퇴/기타",
+        type: "input-number",
+      },
+
+      {
+        label: "결과/질병",
+        type: "input-number",
+      },
+      {
+        label: "결과/미인정",
+        type: "input-number",
+      },
+      {
+        label: "결과/기타",
+        type: "input-number",
+      },
+      {
+        label: "특기사항",
+        type: "input",
+      },
+    ],
   },
   {
     label: "수상경력",
-    cycle: "unset",
     dataType: "array",
+    fields: [
+      {
+        label: "수상명",
+        type: "input",
+      },
+      {
+        label: "등위",
+        type: "input",
+      },
+      {
+        label: "수상년원일",
+        type: "date",
+      },
+      {
+        label: "수여기관",
+        type: "input",
+      },
+      {
+        label: "참가대상",
+        type: "input",
+      },
+    ],
   },
   {
     label: "자격증 및 취득사항",
-    cycle: "unset",
     dataType: "array",
   },
-  {
-    label: "독서 활동",
-    cycle: "unset",
-    dataType: "array",
-  },
+
   {
     label: "창의적 체험활동 상황",
-    cycle: "unset",
     dataType: "array",
     fields: [
       {
@@ -90,7 +174,6 @@ export const archiveTestData:any[] = [
   },
   {
     label: "봉사활동실적",
-    cycle: "unset",
     dataType: "array",
     fields: [
       {
@@ -113,6 +196,59 @@ export const archiveTestData:any[] = [
       {
         label: "시간",
         type: "input-number",
+      },
+    ],
+  },
+  {
+    label: "독서활동상황",
+    dataType: "array",
+    fields: [
+      {
+        label: "학년",
+        type: "select",
+        options: ["11학년", "12학년", "10학년"],
+      },
+      {
+        label: "과목 또는 공통",
+        type: "input",
+      },
+      {
+        label: "독서활동 상황",
+        type: "input",
+      },
+    ],
+  },
+  {
+    label: "행동특성 및 종합의견",
+    dataType: "array",
+    fields: [
+      {
+        label: "학년",
+        type: "select",
+        options: ["11학년", "12학년", "10학년"],
+      },
+      {
+        label: "담임의견란",
+        type: "input",
+      },
+    ],
+  },
+  {
+    label: "진로희망사항",
+    dataType: "array",
+    fields: [
+      {
+        label: "학년",
+        type: "select",
+        options: ["11학년", "12학년", "10학년"],
+      },
+      {
+        label: "진로희망",
+        type: "input",
+      },
+      {
+        label: "희망사유",
+        type: "input",
       },
     ],
   },
