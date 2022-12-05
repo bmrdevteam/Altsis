@@ -121,19 +121,20 @@ const School = (props: Props) => {
           <Skeleton height="22px" width="20%" />
         )}
       </div>
-
-      <Tab
-        items={{
-          "기본 정보": <BasicInfo school={schoolData} />,
-          학기: <Season />,
-          교과목: <Subject school={schoolData} />,
-          강의실: (
-            <Classroom school={schoolData} resetData={setResetSchoolData} />
-          ),
-          "시간표(beta)": <Timetable />,
-          "학생정보 관리(archive)": <Archive school={schoolData}/>,
-        }}
-      />
+      {schoolData && (
+        <Tab
+          items={{
+            "기본 정보": <BasicInfo school={schoolData} />,
+            학기: <Season />,
+            교과목: <Subject school={schoolData} />,
+            강의실: (
+              <Classroom school={schoolData} resetData={setResetSchoolData} />
+            ),
+            "시간표(beta)": <Timetable />,
+            "학생정보 관리(archive)": <Archive school={schoolData} />,
+          }}
+        />
+      )}
     </div>
   );
 };
