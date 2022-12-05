@@ -233,7 +233,7 @@
                     border-radius: 4px;
                     font-size: 12px;
                     font-weight: 600;
-                    display:inline-block;
+                    display: inline-block;
                     width: 100%;
                     outline: none;
                     border: var(--border-default);
@@ -249,6 +249,8 @@
                 }
 
 
+
+
                 .text:empty:before {
                     content: attr(placeholder);
                     color: rgb(171, 171, 171);
@@ -256,11 +258,7 @@
                     cursor: text;
                 }
 
-                .options {
-                    font-size: 12px;
-                    font-weight: 600;
 
-                }
             }
 
         }
@@ -461,6 +459,7 @@
     .cell {
         outline: none;
         padding: 4px 6px;
+        min-height: 24px;
         position: relative;
 
         .data {
@@ -501,7 +500,7 @@ parsed block
     font-family: 'Pretendard';
     outline: none;
     min-height: 29px;
-    vertical-align:middle;
+    vertical-align: middle;
 
 }
 
@@ -514,6 +513,14 @@ parsed block
         outline: none;
         padding: 4px 6px;
         position: relative;
+
+        table {
+            tbody {
+                tr {
+                    height: unset;
+                }
+            }
+        }
 
 
     }
