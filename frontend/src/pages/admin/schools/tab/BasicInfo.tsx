@@ -37,6 +37,7 @@ type Props = {
 };
 
 const BasicInfo = (props: Props) => {
+  console.log(props.school);
   return (
     <div>
       <div
