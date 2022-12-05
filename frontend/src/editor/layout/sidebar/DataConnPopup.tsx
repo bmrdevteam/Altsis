@@ -2,6 +2,7 @@ import { archiveTestData } from "archiveTest";
 import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
+import Select from "components/select/Select";
 import Tree, { TreeItem } from "components/tree/Tree";
 import { useEditor } from "editor/functions/editorContext";
 import useDatabase from "hooks/useDatabase";
@@ -14,23 +15,44 @@ type Props = {
 
 const DataConnPopup = (props: Props) => {
   const database = useDatabase();
-  const { changeCurrentCell, getCurrentCell } = useEditor();
+  const {
+    changeCurrentCell,
+    getCurrentCell,
+    changeCurrentBlockData,
+    getCurrentBlock,
+    getCurrentCellIndex,
+  } = useEditor();
   async function getSchools() {
     const { schools: result } = await database.R({ location: "schools" });
     return result;
   }
+
   const [schools, setSchools] = useState<any>();
+  const [archiveData, setArchiveData] = useState<any>();
+  const [evaluationData, setEvaluationData] = useState<any>();
   const textareaRef = useRef<HTMLDivElement>(null);
 
+  const repeat = useRef<any>({
+    by: getCurrentBlock()?.data?.dataRepeat?.by ?? "",
+    index: getCurrentBlock()?.data?.dataRepeat?.index ?? "",
+  });
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
 
   useEffect(() => {
     getSchools().then((res) => {
+      console.log(res);
+      res.map((val: any) => {
+        database.R({ location: `schools/${val._id}` }).then((v) => {
+          setArchiveData((prev: any) => ({
+            ...prev,
+            [val._id]: v.formArchive,
+          }));
+        });
+      });
       setSchools(res);
     });
   }, []);
-  console.log(getCurrentCell()?.dataText);
 
   return (
     <>
@@ -68,11 +90,13 @@ const DataConnPopup = (props: Props) => {
                     result.push({ tag: "BR" });
                   }
                 });
-                console.log(textareaRef.current?.childNodes);
                 changeCurrentCell({
-                  dataTextChildNodes: textareaRef.current?.childNodes,
+                  dataText: result,
                 });
-                changeCurrentCell({ dataText: result });
+                changeCurrentBlockData({
+                  dataRepeat: repeat.current,
+                });
+
                 props.callPageReload();
               }}
               type="ghost"
@@ -94,56 +118,65 @@ const DataConnPopup = (props: Props) => {
                         subItem={[
                           <TreeItem
                             text="아카이브"
-                            subItem={archiveTestData.map((archive) => {
-                              return (
-                                <TreeItem
-                                  key={archive.label}
-                                  text={archive.label}
-                                  subItem={
-                                    archive.fields &&
-                                    archive.fields?.map((v:any) => {
-                                      return (
-                                        <TreeItem
-                                          key={v.label}
-                                          text={v.label}
-                                          onClick={() => {
-                                            const data =
-                                              document.createElement("data");
-                                            data.contentEditable = "false";
-                                            data.innerText = `${v.label}`;
-                                            data.className = style.data;
-                                            // data.setAttribute("name", "DBData");
-                                            data.setAttribute(
-                                              "data-location",
-                                              `${school.schoolId}/archive/${archive.label}/${v.label}`
-                                            );
-                                            data.addEventListener(
-                                              "keydown",
-                                              (e) => {
-                                                e.key === "Backspace" &&
-                                                  e.preventDefault();
-                                              }
-                                            );
-                                            const selection = window
-                                              .getSelection()
-                                              ?.getRangeAt(0);
-                                            selection?.insertNode(
-                                              document.createTextNode(" ")
-                                            );
-                                            selection?.insertNode(data);
+                            subItem={archiveData[school._id]?.map(
+                              (archive: any) => {
+                                return (
+                                  <TreeItem
+                                    key={`${school.schoolId}//archive//${archive.label}`}
+                                    text={archive.label}
+                                    subItem={
+                                      archive.fields &&
+                                      archive.fields?.map((v: any) => {
+                                        return (
+                                          <TreeItem
+                                            key={`${school.schoolId}//archive//${archive.label}//${v.label}`}
+                                            text={`${v.label} - ${v.type}`}
+                                            onClick={() => {
+                                              const textarea =
+                                                document.getElementById(
+                                                  "textarea"
+                                                );
+                                              const data =
+                                                document.createElement("data");
+                                              data.contentEditable = "false";
+                                              data.innerText = `${v.label}`;
+                                              data.className = style.data;
+                                              // data.setAttribute("name", "DBData");
+                                              data.setAttribute(
+                                                "data-location",
+                                                `${school.schoolId}//archive//${archive.label}//${v.label}`
+                                              );
+                                              try {
+                                                const selection = window
+                                                  .getSelection()
+                                                  ?.getRangeAt(0);
 
-                                            setTimeout(() => {
-                                              textareaRef.current?.blur();
-                                              window.getSelection()?.empty();
-                                            });
-                                          }}
-                                        />
-                                      );
-                                    })
-                                  }
-                                />
-                              );
-                            })}
+                                                if (
+                                                  selection
+                                                    ?.commonAncestorContainer
+                                                    .parentElement?.id ===
+                                                  "textareaContainer"
+                                                ) {
+                                                  selection?.insertNode(
+                                                    document.createTextNode(" ")
+                                                  );
+                                                  selection?.insertNode(data);
+                                                }
+                                              } catch {}
+
+                                              setTimeout(() => {
+                                                textareaRef.current?.blur();
+                                                window.getSelection()?.empty();
+                                              });
+                                            }}
+                                          />
+                                        );
+                                      })
+                                    }
+                                  />
+                                );
+                              }
+                            )}
                           />,
                           //   <TreeItem text="평가" />,
                         ]}
@@ -159,6 +192,7 @@ const DataConnPopup = (props: Props) => {
                   style={{
                     borderRadius: "4px",
                   }}
+                  id="textareaContainer"
                 >
                   <div className={style.title}></div>
                   <div className={style.title}></div>
@@ -183,7 +217,7 @@ const DataConnPopup = (props: Props) => {
                       (dataTextElement: any, index: number) => {
                         if (typeof dataTextElement === "object") {
                           if (dataTextElement.tag === "DATA") {
-                            const arr = dataTextElement.location?.split("/");
+                            const arr = dataTextElement.location?.split("//");
                             return (
                               <data
                                 key={index}
@@ -207,8 +241,59 @@ const DataConnPopup = (props: Props) => {
                       }
                     )}
                   </div>
-                  <div className={style.options}>
-                    <label>반복 설정</label>
+                  <div>
+                    <div className={style.item}>
+                      <label>테이블 반복 설정</label>
+                      <select
+                        name=""
+                        id=""
+                        defaultValue={repeat.current.by}
+                        onChange={(e) => {
+                          repeat.current.by = e.target.value;
+                        }}
+                      >
+                        <option key={"none"} value="">없음</option>
+                        {schools.map((s: any, i: number) => {
+                          console.log(archiveData[s._id]);
+                          return archiveData[s._id]?.map(
+                            (val: any, index: number) => {
+                              return (
+                                <option
+                                  key={`${s}-${index}`}
+                                  value={`${s.schoolId}//archive//${val.label}`}
+                                >
+                                  {`${s.schoolName}-${val.label}`}
+                                </option>
+                              );
+                            }
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <div className={style.item}>
+                      <label>테이블 반복 시작 행</label>
+
+                      <select
+                        name=""
+                        id=""
+                        defaultValue={repeat.current.index}
+                        onChange={(e) => {
+                          repeat.current.index = parseInt(e.target.value);
+                        }}
+                      >
+                        {getCurrentBlock()?.data?.table?.map(
+                          (val: any, index: number) => {
+                            return (
+                              <option key={index} value={index}>
+                                {getCurrentCellIndex().row === index
+                                  ? `${index + 1} - 현재 셀`
+                                  : index + 1}
+                              </option>
+                            );
+                          }
+                        )}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
