@@ -1,26 +1,37 @@
-import { archiveTestData } from "archiveTest";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
 import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 type Props = {
-  school?: any;
+  school: any;
 };
 
 function Archive(props: Props) {
   const database = useDatabase();
+
+  const [archiveForm, setArchiveForm] = useState<any>();
   const [editArchivePopupActive, setEditArchivePopupActive] =
     useState<boolean>(false);
   const [editArchivefield, setEditArchivefield] = useState<string>();
+
   async function updateFormArchive() {
     const result = await database.U({
       location: `schools/${props.school._id}/form/archive`,
-      data: archiveTestData
+      data: { new: archiveForm },
     });
     return result;
   }
+  useEffect(() => {
+    database
+      .R({
+        location: `schools/${props.school._id}`,
+      })
+      .then((res) => {
+        setArchiveForm(res.formArchive);
+      });
+  }, []);
 
   return (
     <>
@@ -46,7 +57,7 @@ function Archive(props: Props) {
           type="object-array"
           filter
           filterSearch
-          data={archiveTestData}
+          data={archiveForm}
           header={[
             {
               text: "label",
@@ -54,16 +65,11 @@ function Archive(props: Props) {
               type: "string",
             },
             {
-              text: "업데이트 사이클..?",
-              key: "cycle",
-              type: "string",
-            },
-            {
               text: "데이터 형식",
               key: "dataType",
               type: "string",
               returnFunction: (value: any) => {
-                return value === "single" ? "단일" : "누적";
+                return value === "object" ? "단일" : "누적";
               },
             },
             {
@@ -115,8 +121,9 @@ function Archive(props: Props) {
             filter
             filterSearch
             data={
-              archiveTestData.filter((val) => val.label === editArchivefield)[0]
-                .fields
+              archiveForm?.filter(
+                (val: any) => val.label === editArchivefield
+              )[0].fields
             }
             header={[
               {
