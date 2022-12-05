@@ -1,4 +1,5 @@
-import _, { isArray } from "lodash";
+import { useAuth } from "contexts/authContext";
+import _, { isArray, isNumber } from "lodash";
 import React from "react";
 import style from "../../editor.module.scss";
 
@@ -11,6 +12,8 @@ type Props = {
   dbData?: any;
 };
 const ParsedTableBlock = (props: Props) => {
+console.log(props.dbData);
+
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
     if (columns && isArray(columns)) {
@@ -25,9 +28,19 @@ const ParsedTableBlock = (props: Props) => {
     }
     return <colgroup></colgroup>;
   };
-  console.log(props.dbData);
 
-  const Cell = ({ data }: { data: any }) => {
+  let repeat = _.get(
+    props.dbData,
+    props.blockData.data?.dataRepeat?.by.split("//")
+  );
+
+  const Cell = ({
+    data,
+    dataRepeatIndex,
+  }: {
+    data: any;
+    dataRepeatIndex?: number;
+  }) => {
     switch (data.type) {
       case "paragraph":
         return (
@@ -45,20 +58,27 @@ const ParsedTableBlock = (props: Props) => {
             className={style.cell}
             style={{ textAlign: data.align, fontSize: data.fontSize }}
           >
-            {data?.dataText?.map((dataTextElement: any,index:number) => {
+            {data?.dataText?.map((dataTextElement: any, index: number) => {
               if (typeof dataTextElement === "object") {
                 if (dataTextElement.tag === "DATA") {
-                  return _.get(
-                    props.dbData,
-                    dataTextElement.location.split("/"),
-                    ""
-                  );
+                  const locationArr = dataTextElement.location.split("//");
+                  if (
+                    isArray(_.get(props.dbData, locationArr.slice(0, -1), ""))
+                  ) {
+                    return (
+                      isNumber(dataRepeatIndex) &&
+                      _.get(props.dbData, locationArr.slice(0, -1), "")[
+                        dataRepeatIndex
+                      ][locationArr[locationArr.length - 1]]
+                    );
+                  } else {
+                    return _.get(props.dbData, locationArr, "");
+                  }
                 }
                 if (dataTextElement.tag === "BR") {
-                  return <br key={index}/>;
+                  return <br key={index} />;
                 }
-              }else{
-
+              } else {
                 return dataTextElement;
               }
             })}
@@ -71,9 +91,7 @@ const ParsedTableBlock = (props: Props) => {
             style={{ textAlign: data.align }}
             placeholder={data.placeholder ?? "입력"}
             contentEditable
-            onClick={() => {
-              console.log(props.returnData[data?.name]);
-            }}
+            onClick={() => {}}
             defaultValue={props.returnData[data?.name]}
             suppressContentEditableWarning
             onInput={(e) => {
@@ -205,31 +223,64 @@ const ParsedTableBlock = (props: Props) => {
         <SetColumn />
         <tbody>
           {props.blockData.data.table.map((value: any[], index: number) => {
-            return (
-              <tr key={index}>
-                {value.map((val, ind: number) => {
-                  return val?.isHeader ? (
-                    <th
-                      key={ind}
-                      colSpan={val?.colSpan}
-                      rowSpan={val?.rowSpan}
-                      style={{ fontSize: val?.fontSize }}
-                    >
-                      <Cell data={val} />
-                    </th>
-                  ) : (
-                    <td
-                      key={ind}
-                      colSpan={val?.colSpan}
-                      rowSpan={val?.rowSpan}
-                      style={{ fontSize: val?.fontSize }}
-                    >
-                      <Cell data={val} />
-                    </td>
+            if (props.blockData.data.dataRepeat?.index === index) {
+              return (
+                repeat &&
+                repeat.map((v: any, i: number) => {
+                  return (
+                    <tr key={`${index}-${i}`}>
+                      {value.map((val, ind: number) => {
+                        return val?.isHeader ? (
+                          <th
+                            key={`${i}-${ind}`}
+                            colSpan={val?.colSpan}
+                            rowSpan={val?.rowSpan}
+                            style={{ fontSize: val?.fontSize }}
+                          >
+                            <Cell data={val} dataRepeatIndex={i} />
+                          </th>
+                        ) : (
+                          <td
+                            key={`${i}-${ind}`}
+                            colSpan={val?.colSpan}
+                            rowSpan={val?.rowSpan}
+                            style={{ fontSize: val?.fontSize }}
+                          >
+                            <Cell data={val} dataRepeatIndex={i} />
+                          </td>
+                        );
+                      })}
+                    </tr>
                   );
-                })}
-              </tr>
-            );
+                })
+              );
+            } else {
+              return (
+                <tr key={index}>
+                  {value.map((val, ind: number) => {
+                    return val?.isHeader ? (
+                      <th
+                        key={ind}
+                        colSpan={val?.colSpan}
+                        rowSpan={val?.rowSpan}
+                        style={{ fontSize: val?.fontSize }}
+                      >
+                        <Cell data={val} />
+                      </th>
+                    ) : (
+                      <td
+                        key={ind}
+                        colSpan={val?.colSpan}
+                        rowSpan={val?.rowSpan}
+                        style={{ fontSize: val?.fontSize }}
+                      >
+                        <Cell data={val} />
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            }
           })}
         </tbody>
       </table>
