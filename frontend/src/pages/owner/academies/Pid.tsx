@@ -126,10 +126,10 @@ const Academy = (props: Props) => {
         <Tab
           items={{
             아카데미: <BasicInfo academyData={academyData} />,
-            학교: <School academy={academyData?._id} />,
-            시즌: <Season academy={academyData?._id} />,
-            사용자: <User academy={academyData?._id} />,
-            등록: <Registration academy={academyData?._id} />,
+            학교: <School academyId={academyData?.academyId} />,
+            시즌: <Season academyId={academyData?.academyId} />,
+            사용자: <User academyId={academyData?.academyId} />,
+            등록: <Registration academyId={academyData?.academyId} />,
           }}
         />
       ) : (

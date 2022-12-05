@@ -6,10 +6,10 @@ const {
 } = require("../models/models");
 const _ = require("lodash");
 
-const getUnavailableTimeLabels = async (dbName, syllabus) => {
+const getUnavailableTimeLabels = async (academyId, syllabus) => {
   const { schoolId, year, term, classroom, time } = syllabus;
   if (!classroom) return [];
-  const syllabuses = await Syllabus(dbName).find(
+  const syllabuses = await Syllabus(academyId).find(
     {
       schoolId,
       year,
@@ -33,7 +33,7 @@ const getUnavailableTimeLabels = async (dbName, syllabus) => {
 module.exports.create = async (req, res) => {
   try {
     // 유저의 학기 등록 정보 확인
-    const registration = await Registration(req.user.dbName).findOne({
+    const registration = await Registration(req.user.academyId).findOne({
       season: req.body.season,
       userId: req.user.userId,
     });
@@ -41,7 +41,7 @@ module.exports.create = async (req, res) => {
       return res.status(404).send({ message: "registration not found" });
 
     // 유저 권한 확인
-    const season = await Season(req.user.dbName).findById(req.body.season);
+    const season = await Season(req.user.academyId).findById(req.body.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
     if (
@@ -53,7 +53,7 @@ module.exports.create = async (req, res) => {
     )
       return res.status(409).send({ message: "you have no permission" });
 
-    const _Syllabus = Syllabus(req.user.dbName);
+    const _Syllabus = Syllabus(req.user.academyId);
     const syllabus = new _Syllabus({
       ...season.getSubdocument(),
       userId: req.user.userId,
@@ -71,7 +71,7 @@ module.exports.create = async (req, res) => {
 
     // classroom 시간 확인
     const unavailableTimeLabels = await getUnavailableTimeLabels(
-      req.user.dbName,
+      req.user.academyId,
       syllabus
     );
     if (!_.isEmpty(unavailableTimeLabels))
@@ -89,11 +89,13 @@ module.exports.create = async (req, res) => {
 module.exports.find = async (req, res) => {
   try {
     if (req.params._id) {
-      const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+      const syllabus = await Syllabus(req.user.academyId).findById(
+        req.params._id
+      );
       return res.status(200).send(syllabus);
     }
 
-    const season = await Season(req.user.dbName).findById(req.query.season);
+    const season = await Season(req.user.academyId).findById(req.query.season);
     if (!season) {
       return res.status(404).send({ message: "season not found" });
     }
@@ -102,7 +104,7 @@ module.exports.find = async (req, res) => {
     const { userId, classroom, teacherId } = req.query;
 
     if (userId) {
-      syllabuses = await Syllabus(req.user.dbName)
+      syllabuses = await Syllabus(req.user.academyId)
         .find({ season, userId })
         .select("-info");
     } else if (classroom) {
@@ -110,20 +112,20 @@ module.exports.find = async (req, res) => {
       // season + classroom 쿼리
 
       // 1. 기존 방식 (약 11.09KB)
-      // syllabuses = await Syllabus(req.user.dbName)
+      // syllabuses = await Syllabus(req.user.academyId)
       //   .find({ season, classroom })
       //   .select("-info");
 
       // 2. {_id, classTitle, time}만 불러오는 방식 (약 3.07KB)
-      syllabuses = await Syllabus(req.user.dbName)
+      syllabuses = await Syllabus(req.user.academyId)
         .find({ season, classroom })
         .select(["classTitle", "time"]);
     } else if (teacherId) {
-      syllabuses = await Syllabus(req.user.dbName)
+      syllabuses = await Syllabus(req.user.academyId)
         .find({ season, teacherId })
         .select("-info");
     } else {
-      syllabuses = await Syllabus(req.user.dbName)
+      syllabuses = await Syllabus(req.user.academyId)
         .find({ season })
         .select("-info");
     }
@@ -137,7 +139,9 @@ module.exports.find = async (req, res) => {
 module.exports.confirm = async (req, res) => {
   try {
     // authentication
-    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
     for (let i = 0; i < syllabus.teachers.length; i++) {
       if (syllabus.teachers[i].userId == req.user.userId) {
         syllabus.teachers[i].confirmed = true;
@@ -156,11 +160,13 @@ module.exports.confirm = async (req, res) => {
 module.exports.unconfirm = async (req, res) => {
   try {
     // authentication
-    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
 
     for (let i = 0; i < syllabus.teachers.length; i++) {
       if (syllabus.teachers[i].userId == req.user.userId) {
-        const enrollments = await Enrollment(req.user.dbName).find({
+        const enrollments = await Enrollment(req.user.academyId).find({
           syllabus: syllabus._id,
         });
         if (!_.isEmpty(enrollments)) {
@@ -185,7 +191,9 @@ module.exports.unconfirm = async (req, res) => {
 module.exports.updateTime = async (req, res) => {
   try {
     // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
     if (req.user.userId != syllabus.userId) {
       return res
         .status(403)
@@ -205,7 +213,7 @@ module.exports.updateTime = async (req, res) => {
 
     // classroom 시간 확인
     const unavailableTimeLabels = await getUnavailableTimeLabels(
-      req.user.dbName,
+      req.user.academyId,
       syllabus
     );
     console.log("unavailableTimeLabels is ", unavailableTimeLabels);
@@ -225,7 +233,9 @@ module.exports.updateTime = async (req, res) => {
 module.exports.updateClassroom = async (req, res) => {
   try {
     // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
     if (req.user.userId != syllabus.userId) {
       return res
         .status(403)
@@ -245,7 +255,7 @@ module.exports.updateClassroom = async (req, res) => {
 
     // classroom 시간 확인
     const unavailableTimeLabels = await getUnavailableTimeLabels(
-      req.user.dbName,
+      req.user.academyId,
       syllabus
     );
     if (!_.isEmpty(unavailableTimeLabels)) {
@@ -264,7 +274,9 @@ module.exports.updateClassroom = async (req, res) => {
 module.exports.removeClassroom = async (req, res) => {
   try {
     // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
     if (req.user.userId != syllabus.userId) {
       return res
         .status(403)
@@ -291,7 +303,9 @@ module.exports.removeClassroom = async (req, res) => {
 module.exports.update = async (req, res) => {
   try {
     // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
     if (!syllabus) {
       return res.status(404).send({ message: "syllabus not found" });
     }
@@ -330,7 +344,7 @@ module.exports.update = async (req, res) => {
 
       // classroom 중복 확인
       const unavailableTimeLabels = await getUnavailableTimeLabels(
-        req.user.dbName,
+        req.user.academyId,
         syllabus
       );
 
@@ -361,7 +375,9 @@ module.exports.update = async (req, res) => {
 
 module.exports.remove = async (req, res) => {
   try {
-    const syllabus = await Syllabus(req.user.dbName).findById(req.params._id);
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
     if (!syllabus) return res.status(404).send();
     await syllabus.delete();
     return res.status(200).send();

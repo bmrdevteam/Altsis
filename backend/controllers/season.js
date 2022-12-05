@@ -3,8 +3,8 @@ const { Season, School, Syllabus, Enrollment } = require("../models/models");
 const Registration = require("../models/Registration");
 
 // check schoolId&year&term duplication
-const checkDuplication = async (dbName, schoolId, year, term) => {
-  const exSeason = await Season(dbName).findOne({
+const checkDuplication = async (academyId, schoolId, year, term) => {
+  const exSeason = await Season(academyId).findOne({
     schoolId,
     year,
     term,
@@ -17,8 +17,8 @@ const checkDuplication = async (dbName, schoolId, year, term) => {
 };
 
 // check if syllabus exists in this season
-const checkSyllabus = async (dbName, season) => {
-  const syllabus = await Syllabus(dbName).findOne({
+const checkSyllabus = async (academyId, season) => {
+  const syllabus = await Syllabus(academyId).findOne({
     season: season._id,
   });
   if (syllabus) {
@@ -31,8 +31,8 @@ const checkSyllabus = async (dbName, season) => {
 };
 
 // check if evaluation exists in this season
-const checkEvaluation = async (dbName, season) => {
-  const enrollment = await Enrollment(dbName).findOne({
+const checkEvaluation = async (academyId, season) => {
+  const enrollment = await Enrollment(academyId).findOne({
     season: season._id,
     evaluation: { $ne: null },
   });
@@ -49,10 +49,7 @@ const checkEvaluation = async (dbName, season) => {
 
 module.exports.create = async (req, res) => {
   try {
-    const school = await School(req.user.dbName).findById(req.body.school);
-    if (!school) return res.status(404).send();
-
-    const _Season = Season(req.user.dbName);
+    const _Season = Season(req.user.academyId);
 
     /* check duplication */
     const exSeason = await _Season.findOne({
@@ -65,12 +62,18 @@ module.exports.create = async (req, res) => {
         message: `season(${req.body.school},${req.body.year},${req.body.term}) is already in use`,
       });
 
+    const school = await School(req.user.academyId).findById(req.body.school);
+    if (!school) return res.status(404).send();
+
     /* create and save document */
-    const season = new _Season(req.body);
-    season.schoolId = school.schoolId;
-    season.schoolName = school.schoolName;
-    season.classrooms = school.classrooms;
-    season.subjects = school.subjects;
+    const season = new _Season({
+      ...req.body,
+      schoolId: school.schoolId,
+      schoolName: school.schoolName,
+      classrooms: school.classrooms,
+      subjects: school.subjects,
+    });
+
     await season.save();
     return res.status(200).send(season);
   } catch (err) {
@@ -81,10 +84,10 @@ module.exports.create = async (req, res) => {
 module.exports.find = async (req, res) => {
   try {
     if (req.params._id) {
-      const season = await Season(req.user.dbName).findById(req.params._id);
+      const season = await Season(req.user.academyId).findById(req.params._id);
       return res.status(200).send(season);
     }
-    const seasons = await Season(req.user.dbName)
+    const seasons = await Season(req.user.academyId)
       .find(req.query)
       .select(["school", "schoolId", "schoolName", "year", "term", "period"]);
 
@@ -97,11 +100,11 @@ module.exports.find = async (req, res) => {
 /* update */
 module.exports.update = async (req, res) => {
   try {
-    const season = await Season(req.user.dbName).findById(req.params._id);
+    const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send({ message: "season not found" });
 
     // 해당 시즌의 syllabus가 존재하면 season을 수정할 수 없다.
-    await checkSyllabus(req.user.dbName, season);
+    await checkSyllabus(req.user.academyId, season);
 
     const isUpdated = {
       year: req.body.new.year != season.year,
@@ -112,7 +115,7 @@ module.exports.update = async (req, res) => {
     // year, term => (schoolId, year, term)은 unique해야 한다.
     if (isUpdated["year"] || isUpdated["Term"]) {
       await checkDuplication(
-        req.user.dbName,
+        req.user.academyId,
         season.schoolId,
         req.body.new.year,
         req.body.new.term
@@ -144,7 +147,10 @@ module.exports.update = async (req, res) => {
     // year, term, period가 변경되면
     // registration 일괄 수정
     if (!_.isEmpty(doc)) {
-      await Registration(req.user.dbName).update({ season: season._id }, doc);
+      await Registration(req.user.academyId).update(
+        { season: season._id },
+        doc
+      );
     }
 
     return res.status(200).send(season);
@@ -153,9 +159,53 @@ module.exports.update = async (req, res) => {
   }
 };
 
+module.exports.activate = async (req, res) => {
+  try {
+    /* find document */
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    /* activate season */
+    season.isActivated = true;
+    await season.save();
+
+    /* activate registrations */
+    await Registration(req.user.academyId).updateMany(
+      { season },
+      { isActivated: true }
+    );
+
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.inactivate = async (req, res) => {
+  try {
+    /* find document */
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    /* activate season */
+    season.isActivated = false;
+    await season.save();
+
+    /* activate registrations */
+    await Registration(req.user.academyId).updateMany(
+      { season },
+      { isActivated: false }
+    );
+
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
 module.exports.updateField = async (req, res) => {
   try {
-    const season = await Season(req.user.dbName).findById(req.params._id);
+    const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send({ message: "season not found" });
 
     let field = req.params.field;
@@ -163,42 +213,17 @@ module.exports.updateField = async (req, res) => {
       field +=
         req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
 
-    const doc = {};
     switch (field) {
-      // year, term => (schoolId, year, term)은 unique해야 한다.
-      case "year":
-        await checkDuplication(
-          req.user.dbName,
-          season.schoolId,
-          req.body.new,
-          season.term
-        );
-        // await checkSyllabus(req.user.dbName, season); -> !TEMP!
-        doc["year"] = req.body.new;
-        break;
-      case "term":
-        await checkDuplication(
-          req.user.dbName,
-          season.schoolId,
-          season.year,
-          req.body.new
-        );
-        // await checkSyllabus(req.user.dbName, season); -> !TEMP!
-        doc["term"] = req.body.new;
-        break;
-      case "period":
-        doc["period"] = req.body.new;
-        break;
       // classrooms, subjects, formTimetable, formSyllabus => 해당 시즌에 syllabus가 존재하면 수정할 수 없다.
       case "classrooms":
       case "subjects":
       case "formTimetable":
       case "formSyllabus":
-        // await checkSyllabus(req.user.dbName, season); -> !TEMP!
+        // await checkSyllabus(req.user.academyId, season); -> !TEMP!
         break;
       // formEvaluation => 해당 시즌에 evaluation이 존재하면 수정할 수 없다.
       case "formEvaluation":
-        // await checkEvaluation(req.user.dbName, season); -> !TEMP!
+        // await checkEvaluation(req.user.academyId, season); -> !TEMP!
         break;
       // permissionSyllabus, permissionEnrollment, permissionEvaluation, period => 수정 제약 없음
       case "permissionSyllabus":
@@ -213,10 +238,13 @@ module.exports.updateField = async (req, res) => {
     season[field] = req.body.new;
     await season.save();
 
-    // year, term, period가 변경되면
+    // period가 변경되면
     // registration 일괄 수정
-    if (!_.isEmpty(doc)) {
-      await Registration(req.user.dbName).update({ season: season._id }, doc);
+    if (field === "period") {
+      await Registration(req.user.academyId).update(
+        { season: season._id },
+        { preiod: season.period }
+      );
     }
 
     return res.status(200).send(season);
@@ -229,7 +257,7 @@ module.exports.updateField = async (req, res) => {
 
 exports.delete = async (req, res) => {
   try {
-    const season = await Season(req.user.dbName).findById(req.params._id);
+    const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send();
     await season.delete();
     return res.status(200).send();

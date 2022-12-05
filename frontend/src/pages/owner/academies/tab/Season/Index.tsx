@@ -47,7 +47,7 @@ import Permission from "./tab/Permission";
 import _ from "lodash";
 
 type Props = {
-  academy: string;
+  academyId: string;
 };
 
 const Season = (props: Props) => {
@@ -76,28 +76,28 @@ const Season = (props: Props) => {
 
   async function getDocumentList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/seasons?school=${school}`,
+      location: `academies/${props.academyId}/seasons?school=${school}`,
     });
     return documents;
   }
 
   async function getDocument(id: string) {
     const result = await database.R({
-      location: `academies/${props.academy}/seasons/${id}`,
+      location: `academies/${props.academyId}/seasons/${id}`,
     });
     return result;
   }
 
   async function getSchoolList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/schools`,
+      location: `academies/${props.academyId}/schools`,
     });
     return documents;
   }
 
   async function addDocument() {
     const result = await database.C({
-      location: `academies/${props.academy}/seasons`,
+      location: `academies/${props.academyId}/seasons`,
       data: {
         school,
         schoolId,
@@ -116,7 +116,7 @@ const Season = (props: Props) => {
   async function deleteDocument(id: string) {
     if (window.confirm("정말 삭제하시겠습니까?") === true) {
       const result = database.D({
-        location: `academies/${props.academy}/seasons/${id}`,
+        location: `academies/${props.academyId}/seasons/${id}`,
       });
       return result;
     } else {
@@ -296,13 +296,13 @@ const Season = (props: Props) => {
           <Tab
             dontUsePaths
             items={{
-              "기본 정보": <Basic academy={props.academy} seasonData={doc} />,
+              "기본 정보": <Basic academy={props.academyId} seasonData={doc} />,
               classrooms: (
-                <Classroom academy={props.academy} seasonData={doc} />
+                <Classroom academy={props.academyId} seasonData={doc} />
               ),
-              subjects: <Subject academy={props.academy} seasonData={doc} />,
+              subjects: <Subject academy={props.academyId} seasonData={doc} />,
               permissions: (
-                <Permission academy={props.academy} seasonData={doc} />
+                <Permission academy={props.academyId} seasonData={doc} />
               ),
             }}
             align={"flex-start"}

@@ -44,7 +44,7 @@ import Basic from "./tab/Basic";
 import _ from "lodash";
 
 type Props = {
-  academy: string;
+  academyId: string;
 };
 
 const User = (props: Props) => {
@@ -74,24 +74,24 @@ const User = (props: Props) => {
   const [tel, setTel] = useState<any>(undefined);
 
   async function getDocumentList() {
-    const { documents } = await database.R({
-      location: `academies/${props.academy}/users?${
+    const { users } = await database.R({
+      location: `academies/${props.academyId}/users?${
         school ? `schools.school=${school}` : `no-school=true`
       }`,
     });
-    return documents;
+    return users;
   }
 
   async function getDocument(id: string) {
     const result = await database.R({
-      location: `academies/${props.academy}/users/${id}`,
+      location: `academies/${props.academyId}/users/${id}`,
     });
     return result;
   }
 
   async function getSchoolList() {
     const { documents } = await database.R({
-      location: `academies/${props.academy}/schools`,
+      location: `academies/${props.academyId}/schools`,
     });
     return documents;
   }
@@ -99,7 +99,7 @@ const User = (props: Props) => {
   async function addDocument() {
     console.log("DEBUG: ", { school, schoolId, schoolName });
     const result = await database.C({
-      location: `academies/${props.academy}/users`,
+      location: `academies/${props.academyId}/users`,
       data: {
         auth,
         userId,
@@ -117,7 +117,7 @@ const User = (props: Props) => {
   async function deleteDocument(id: string) {
     if (window.confirm("정말 삭제하시겠습니까?") === true) {
       const result = database.D({
-        location: `academies/${props.academy}/users/${id}`,
+        location: `academies/${props.academyId}/users/${id}`,
       });
       return result;
     } else {
@@ -273,7 +273,7 @@ const User = (props: Props) => {
           <Tab
             dontUsePaths
             items={{
-              "기본 정보": <Basic academy={props.academy} userData={doc} />,
+              "기본 정보": <Basic academy={props.academyId} userData={doc} />,
             }}
             align={"flex-start"}
           />

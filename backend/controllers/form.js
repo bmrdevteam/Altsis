@@ -2,7 +2,7 @@ const { Form } = require("../models/models");
 
 module.exports.create = async (req, res) => {
   try {
-    const exForm = await Form(req.user.dbName).findOne({
+    const exForm = await Form(req.user.academyId).findOne({
       title: req.body.title,
       type: req.body.type,
     });
@@ -11,7 +11,7 @@ module.exports.create = async (req, res) => {
         message: "already existing form title and type",
       });
 
-    const _Form = Form(req.user.dbName);
+    const _Form = Form(req.user.academyId);
     const form = new _Form({
       type: req.body.type,
       title: req.body.title,
@@ -30,10 +30,12 @@ module.exports.create = async (req, res) => {
 module.exports.find = async (req, res) => {
   try {
     if (req.params._id) {
-      const form = await Form(req.user.dbName).findById(req.params._id);
+      const form = await Form(req.user.academyId).findById(req.params._id);
       return res.status(200).send(form);
     }
-    const forms = await Form(req.user.dbName).find(req.query).select("-data");
+    const forms = await Form(req.user.academyId)
+      .find(req.query)
+      .select("-data");
     return res.status(200).send({ forms });
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -42,7 +44,7 @@ module.exports.find = async (req, res) => {
 
 module.exports.update = async (req, res) => {
   try {
-    const form = await Form(req.user.dbName).findById(req.params._id);
+    const form = await Form(req.user.academyId).findById(req.params._id);
     if (!form) return res.status(404).send({ message: "form not found" });
 
     //const fields = ["type", "title", "contents"]; // temp-1.1: form의 data가 object type인 경우
@@ -71,7 +73,7 @@ module.exports.update = async (req, res) => {
 
 module.exports.remove = async (req, res) => {
   try {
-    const form = await Form(req.user.dbName).findById(req.params._id);
+    const form = await Form(req.user.academyId).findById(req.params._id);
     if (!form) return res.status(404).send();
     await form.remove();
     return res.status(200).send();
