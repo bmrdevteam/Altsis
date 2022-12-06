@@ -171,6 +171,7 @@ const Registration = (props: Props) => {
           value: userList[i].userId,
         });
     }
+    result = _.sortBy(result, "text");
 
     return result;
   };
@@ -410,8 +411,8 @@ const Registration = (props: Props) => {
               label="role"
               required
               options={[
-                { text: "member", value: "member" },
-                { text: "manager", value: "manager" },
+                { text: "student", value: "student" },
+                { text: "teacher", value: "teacher" },
               ]}
               setValue={setRole}
               appearence={"flat"}

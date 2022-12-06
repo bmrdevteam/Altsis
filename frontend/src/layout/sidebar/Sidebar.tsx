@@ -22,9 +22,7 @@ const Sidebar = (props: Props) => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    setSidebarOpen(
-      window.localStorage.getItem("AppSidebarStatus") === "open"
-    );
+    setSidebarOpen(window.localStorage.getItem("AppSidebarStatus") === "open");
   }, []);
 
   useEffect(() => {
@@ -35,7 +33,7 @@ const Sidebar = (props: Props) => {
     }
   }, [sidebarOpen]);
 
-  const { currentUser } = useAuth();
+  const { currentUser, currentRegistration } = useAuth();
 
   return (
     <Nav open={sidebarOpen}>
@@ -50,42 +48,44 @@ const Sidebar = (props: Props) => {
       <NavLinks>
         {/* <Search /> */}
 
-        {SidebarData(currentUser?.auth).map((data: INavLink, index: number) => {
-          return (
-            <NavLink
-              key={index}
-              path={data.path}
-              icon={data.icon}
-              active={
-                location.pathname !== "/" &&
-                data.title.includes(location.pathname.split("/")[1])
-              }
-              subLink={
-                data.subLink && (
-                  <SubLinks>
-                    {data.subLink.map((sbData, index) => {
-                      return (
-                        <SubLink
-                          key={index}
-                          icon={sbData.icon}
-                          path={sbData.path}
-                          active={
-                            location.pathname !== "/" &&
-                            decodeURI(location.pathname).includes(sbData.path)
-                          }
-                        >
-                          {sbData.name}
-                        </SubLink>
-                      );
-                    })}
-                  </SubLinks>
-                )
-              }
-            >
-              {data.name}
-            </NavLink>
-          );
-        })}
+        {SidebarData(currentUser?.auth, currentRegistration?.role).map(
+          (data: INavLink, index: number) => {
+            return (
+              <NavLink
+                key={index}
+                path={data.path}
+                icon={data.icon}
+                active={
+                  location.pathname !== "/" &&
+                  data.title.includes(location.pathname.split("/")[1])
+                }
+                subLink={
+                  data.subLink && (
+                    <SubLinks>
+                      {data.subLink.map((sbData, index) => {
+                        return (
+                          <SubLink
+                            key={index}
+                            icon={sbData.icon}
+                            path={sbData.path}
+                            active={
+                              location.pathname !== "/" &&
+                              decodeURI(location.pathname).includes(sbData.path)
+                            }
+                          >
+                            {sbData.name}
+                          </SubLink>
+                        );
+                      })}
+                    </SubLinks>
+                  )
+                }
+              >
+                {data.name}
+              </NavLink>
+            );
+          }
+        )}
       </NavLinks>
       <NavProfile />
     </Nav>

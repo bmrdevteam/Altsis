@@ -1,5 +1,5 @@
 /**
- * @file Course Index Page
+ * @file Courses MyList Page
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -42,20 +42,16 @@ import Table from "components/table/Table";
 import Button from "components/button/Button";
 
 import _ from "lodash";
-import EditorParser from "editor/EditorParser";
-import Divider from "components/divider/Divider";
 
 type Props = {};
 
-const Course = (props: Props) => {
+const CoursesMyList = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
-  const [createdCourseList, setCreatedCourseList] = useState<any[]>([]);
-  const [mentoringCourseList, setMentoringCourseList] = useState<any[]>([]);
-  const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
+  const [courseList, setCourseList] = useState<any[]>([]);
 
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
@@ -75,58 +71,10 @@ const Course = (props: Props) => {
     );
 
     for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id]}/${syllabus.limit}`;
-    }
-
-    return syllabuses;
-  }
-
-  async function getMentoringCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&teacherId=${currentUser?.userId}`,
-    });
-    if (syllabuses.length === 0) return [];
-
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id]}/${syllabus.limit}`;
-    }
-    return syllabuses;
-  }
-
-  async function getEnrolledCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
-    });
-    if (syllabuses.length === 0) return [];
-
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
-    for (let syllabus of syllabuses) {
       syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
     }
 
     return syllabuses;
-  }
-
-  async function getCourseList() {
-    const [createdCourseList, mentoringCourseList, enrolledCourseList] =
-      await Promise.all([
-        getCreatedCourseList(),
-        getMentoringCourseList(),
-        getEnrolledCourseList(),
-      ]);
-
-    return {
-      createdCourseList,
-      mentoringCourseList,
-      enrolledCourseList,
-    };
   }
 
   const labelling = (courseList: any[]) => {
@@ -163,12 +111,17 @@ const Course = (props: Props) => {
     },
 
     {
-      text: "개설자",
-      key: "userName",
+      text: "학점",
+      key: "point",
       type: "string",
-      width: "120px",
+      width: "80px",
     },
-
+    {
+      text: "수강/정원",
+      key: "count_limit",
+      type: "string",
+      width: "80px",
+    },
     {
       text: "멘토",
       key: "teachers",
@@ -182,18 +135,6 @@ const Course = (props: Props) => {
       },
       type: "string",
       width: "120px",
-    },
-    {
-      text: "학점",
-      key: "point",
-      type: "string",
-      width: "80px",
-    },
-    {
-      text: "수강/정원",
-      key: "count_limit",
-      type: "string",
-      width: "80px",
     },
     {
       text: "상태",
@@ -212,7 +153,7 @@ const Course = (props: Props) => {
       key: "courseName",
       type: "button",
       onClick: (e: any) => {
-        navigate(`/courses/${e._id}`, {
+        navigate(`../courses/${e._id}`, {
           replace: true,
         });
       },
@@ -225,10 +166,8 @@ const Course = (props: Props) => {
     if (!currentRegistration) {
       setAlertPopupActive(true);
     } else {
-      getCourseList().then((res: any) => {
-        setCreatedCourseList(labelling(res["createdCourseList"]));
-        setMentoringCourseList(labelling(res["mentoringCourseList"]));
-        setEnrolledCourseList(labelling(res["enrolledCourseList"]));
+      getCreatedCourseList().then((res: any) => {
+        setCourseList(labelling(res));
       });
       setSubjectLabelHeaderList([
         ...currentSeason?.subjects?.label.map((label: string) => {
@@ -243,49 +182,22 @@ const Course = (props: Props) => {
     }
   }, [currentRegistration]);
 
-  function syllabusToTime(s: any) {
-    let result = {};
-    if (s) {
-      for (let i = 0; i < s.length; i++) {
-        const element = s[i];
-        for (let ii = 0; ii < element.time.length; ii++) {
-          Object.assign(result, {
-            [element.time[ii].label]: element.classTitle,
-          });
-        }
-      }
-    }
-
-    return result;
-  }
-
   return (
     <>
       <Navbar />
-
       <div className={style.section}>
-        <div className={style.title}>시간표</div>
+        <div className={style.title}>개설한 수업 목록</div>
         <div style={{ height: "24px" }}></div>
-        <EditorParser
-          auth="view"
-          defaultTimetable={syllabusToTime(enrolledCourseList)}
-          data={currentSeason?.formTimetable}
-        />
-
-        <div style={{ height: "24px" }}></div>
-        <Divider />
-        <div style={{ height: "24px" }}></div>
-
-        <div className={style.title}>수강신청 현황</div>
 
         <Table
           filter
           type="object-array"
-          data={enrolledCourseList}
+          data={courseList}
           header={[...subjectLabelHeaderList, ...subjectHeaderList]}
           style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
+
       {alertPopupActive && (
         <Popup setState={() => {}} title="가입된 시즌이 없습니다">
           <div style={{ marginTop: "12px" }}>
@@ -304,4 +216,4 @@ const Course = (props: Props) => {
   );
 };
 
-export default Course;
+export default CoursesMyList;

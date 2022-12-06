@@ -13,7 +13,7 @@ type Props = {
 
 const EditorParser = (props: Props) => {
   const returnData = useRef<any>({});
-
+  returnData.current = props.defaultValues || {};
 
   return (
     <div
