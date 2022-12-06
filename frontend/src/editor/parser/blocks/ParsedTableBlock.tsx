@@ -219,7 +219,7 @@ console.log(props.dbData);
 
   return (
     <div className={style.parsed_block}>
-      <table className={style.table}>
+      <table className={style.table} style={{fontSize:props.blockData.data?.fontSize}}>
         <SetColumn />
         <tbody>
           {props.blockData.data.table.map((value: any[], index: number) => {
