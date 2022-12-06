@@ -45,9 +45,7 @@ const TableBlock = (props: Props) => {
             <ParagraphCell column={col} row={row} blockIndex={props.index} />
           );
         case "data":
-          return (
-            <DataCell column={col} row={row} blockIndex={props.index} />
-          );
+          return <DataCell column={col} row={row} blockIndex={props.index} />;
         case "time":
           return <TimeCell column={col} row={row} blockIndex={props.index} />;
         case "timeRange":
@@ -80,7 +78,7 @@ const TableBlock = (props: Props) => {
         }
       }}
     >
-      <table className={style.table}>
+      <table className={style.table} style={{ fontSize: block.data.fontSize }}>
         <SetColumn />
         <tbody>
           {block.data.table !== undefined &&
