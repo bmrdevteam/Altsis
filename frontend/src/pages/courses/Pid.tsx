@@ -39,13 +39,10 @@ import Edit from "./tab/Edit";
 
 type Props = {};
 
-const Course = (props: Props) => {
+const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentRegistration, currentSeason } = useAuth();
   const navigate = useNavigate();
-
-  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
-  const [alertMessage, setAlertMessage] = useState<string>("");
 
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -79,14 +76,6 @@ const Course = (props: Props) => {
   };
 
   useEffect(() => {
-    if (!currentRegistration) {
-      setAlertMessage("등록된 학기가 없습니다.");
-      setAlertPopupActive(true);
-    }
-    if (!checkPermission()) {
-      setAlertMessage("수업 개설 권한이 없습니다.");
-      setAlertPopupActive(true);
-    }
     if (isLoading) {
       navigate("#강의 계획");
       getCourseData()
@@ -121,4 +110,4 @@ const Course = (props: Props) => {
   );
 };
 
-export default Course;
+export default CoursePid;

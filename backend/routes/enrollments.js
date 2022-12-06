@@ -22,6 +22,6 @@ router.put("/:_id/evaluation", isLoggedIn, enrollment.updateEvaluation);
 // query syllabus -> syllabus 수강하는 학생 목록 (-evaluation)
 router.get("/:_id?", isLoggedIn, enrollment.find);
 
-router.delete("/:_id", isLoggedIn, enrollment.remove);
+router.delete("/:_id?", isLoggedIn, enrollment.remove);
 
 module.exports = router;

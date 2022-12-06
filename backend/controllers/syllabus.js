@@ -100,8 +100,29 @@ module.exports.find = async (req, res) => {
       queries["teachers.userId"] = queries.teacherId;
       delete queries.teacherId;
     }
+    if (queries.confirmed) {
+      queries["teachers.confirmed"] = { $ne: false };
+      delete queries.confirmed;
+    }
+    if (queries.matches) {
+      queries["classTitle"] = { $regex: queries.matches };
+      delete queries.matches;
+    }
+    if (queries.season && queries.studentId) {
+      const studentEnrollements = await Enrollment(req.user.academyId)
+        .find({
+          season: queries.season,
+          studentId: queries.studentId,
+        })
+        .select("syllabus");
+      console.log("studentEnrollments: ", studentEnrollements);
+      queries["_id"] = { $in: studentEnrollements.map((e) => e.syllabus) };
+      delete queries.studentId;
+    }
 
     let syllabuses = [];
+    let enrollments = [];
+
     if (queries.classrom) {
       syllabuses = await Syllabus(req.user.academyId)
         .find(queries)
@@ -110,9 +131,12 @@ module.exports.find = async (req, res) => {
       syllabuses = await Syllabus(req.user.academyId)
         .find(queries)
         .select("-info");
+      enrollments = await Enrollment(req.user.academyId)
+        .find({ syllabus: { $in: syllabuses.map((s) => s._id) } })
+        .select("syllabus");
     }
 
-    return res.status(200).send({ syllabuses });
+    return res.status(200).send({ syllabuses, enrollments });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }

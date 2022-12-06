@@ -15,8 +15,8 @@ interface INavSubLink {
   path: string;
   icon: JSX.Element;
 }
-export const SidebarData = (role: string): any => {
-  switch (role) {
+export const SidebarData = (auth: string, role?: string): any => {
+  switch (auth) {
     case "owner":
       return [
         {
@@ -54,26 +54,72 @@ export const SidebarData = (role: string): any => {
           name: "수업",
           path: "/courses",
           icon: <Svg type="bookOpen" />,
-          subLink: [
-            {
-              title: "design",
-              name: "수업개설",
-              path: "/courses/design",
-              icon: <Svg type="file" />,
-            },
-            {
-              title: "enroll",
-              name: "수강신청",
-              path: "/courses/enroll",
-              icon: <Svg type="school" />,
-            },
-            {
-              title: "list",
-              name: "개설 목록",
-              path: "/courses/list",
-              icon: <Svg type="file" />,
-            },
-          ],
+          subLink:
+            role === "teacher"
+              ? [
+                  {
+                    title: "design",
+                    name: "수업개설",
+                    path: "/courses/design",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "enroll",
+                    name: "수강신청",
+                    path: "/courses/enroll",
+                    icon: <Svg type="school" />,
+                  },
+                  {
+                    title: "list",
+                    name: "개설된 수업",
+                    path: "/courses/list",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "mylist",
+                    name: "개설한 수업",
+                    path: "/courses/mylist",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "mentoring",
+                    name: "멘토링 현황",
+                    path: "/courses/mentoring",
+                    icon: <Svg type="file" />,
+                  },
+                ]
+              : [
+                  {
+                    title: "design",
+                    name: "수업개설",
+                    path: "/courses/design",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "enroll",
+                    name: "수강신청",
+                    path: "/courses/enroll",
+                    icon: <Svg type="school" />,
+                  },
+                  {
+                    title: "list",
+                    name: "개설된 수업",
+                    path: "/courses/list",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "mylist",
+                    name: "개설한 수업",
+                    path: "/courses/mylist",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "mentoring",
+                    name: "멘토링 현황",
+                    path: "/courses/mentoring",
+                    icon: <Svg type="file" />,
+                  },
+                ],
         },
         {
           title: "archive",
@@ -148,26 +194,66 @@ export const SidebarData = (role: string): any => {
           name: "수업",
           path: "/courses",
           icon: <Svg type="bookOpen" />,
-          subLink: [
-            {
-              title: "design",
-              name: "수업개설",
-              path: "/courses/design",
-              icon: <Svg type="file" />,
-            },
-            {
-              title: "enroll",
-              name: "수강신청",
-              path: "/courses/enroll",
-              icon: <Svg type="school" />,
-            },
-            {
-              title: "list",
-              name: "개설 목록",
-              path: "/courses/list",
-              icon: <Svg type="file" />,
-            },
-          ],
+          subLink:
+            role === "teacher"
+              ? [
+                  {
+                    title: "design",
+                    name: "수업개설",
+                    path: "/courses/design",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "enroll",
+                    name: "수강신청",
+                    path: "/courses/enroll",
+                    icon: <Svg type="school" />,
+                  },
+                  {
+                    title: "list",
+                    name: "개설된 수업",
+                    path: "/courses/list",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "mylist",
+                    name: "개설한 수업",
+                    path: "/courses/mylist",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "mentoring",
+                    name: "멘토링 현황",
+                    path: "/courses/mentoring",
+                    icon: <Svg type="file" />,
+                  },
+                ]
+              : [
+                  {
+                    title: "design",
+                    name: "수업개설",
+                    path: "/courses/design",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "enroll",
+                    name: "수강신청",
+                    path: "/courses/enroll",
+                    icon: <Svg type="school" />,
+                  },
+                  {
+                    title: "list",
+                    name: "개설된 수업",
+                    path: "/courses/list",
+                    icon: <Svg type="file" />,
+                  },
+                  {
+                    title: "mylist",
+                    name: "개설한 수업",
+                    path: "/courses/mylist",
+                    icon: <Svg type="file" />,
+                  },
+                ],
         },
         {
           title: "myaccount",

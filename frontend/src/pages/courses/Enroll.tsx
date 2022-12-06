@@ -1,7 +1,7 @@
 /**
  * @file Enrollment Index Page
  *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
+ * @author jessie129j <jessie129j@gmail.com>
  *
  * -------------------------------------------------------
  *
@@ -26,75 +26,263 @@
  * @version 1.0
  *
  */
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
+import useDatabase from "hooks/useDatabase";
+
+import style from "style/pages/enrollment.module.scss";
+
+// Navigation Bar
+import Navbar from "layout/navbar/Navbar";
+
+// components
+import Popup from "components/popup/Popup";
+import Table from "components/table/Table";
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import Input from "components/input/Input";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
-import Popup from "components/popup/Popup";
-import Select from "components/select/Select";
-import Table from "components/table/Table";
-import { useAuth } from "contexts/authContext";
-import { courseData } from "dummyData/coursesData";
-import useDatabase from "hooks/useDatabase";
-import useSearch from "hooks/useSearch";
-import style from "style/pages/enrollment.module.scss";
-import Nav from "layout/sidebar/sidebar.components";
-import Navbar from "layout/navbar/Navbar";
+
+import _ from "lodash";
 
 type Props = {};
 
-const Enrollment = (props: Props) => {
-  const { registrations, currentRegistration } = useAuth();
+const CourseEnroll = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
+
+  const [courseTitle, setCourseTitle] = useState<string>("");
+
+  const [courseList, setCourseList] = useState<any[]>([]);
+  const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
+
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
-  const [courses, setCourses] = useState<any[]>([]);
-  function handleTableOnClick(e: any) {
-    database.C({
-      location: "enrollments",
-      data: {
-        syllabus: e.target.dataset.value,
-      },
-    });
-  }
+
+  /* subject label header list */
+  const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
+    []
+  );
 
   async function getCourseList() {
-    const { syllabuses: res } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}`,
+    const { syllabuses, enrollments } = await database.R({
+      location: `syllabuses?season=${currentRegistration?.season}&matches=${courseTitle}&confirmed=true`,
+    });
+    if (syllabuses.length === 0) return [];
+
+    const count = _.countBy(
+      enrollments.map((enrollment: any) => enrollment.syllabus)
+    );
+
+    for (let syllabus of syllabuses) {
+      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
+    }
+
+    return syllabuses;
+  }
+
+  async function getEnrolledCourseList() {
+    const { syllabuses, enrollments } = await database.R({
+      location: `syllabuses?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
+    });
+    if (syllabuses.length === 0) return [];
+
+    const count = _.countBy(
+      enrollments.map((enrollment: any) => enrollment.syllabus)
+    );
+
+    for (let syllabus of syllabuses) {
+      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
+    }
+
+    return syllabuses;
+  }
+
+  const labelling = (courseList: any[]) => {
+    return courseList.map((syllabus: any) => {
+      for (let idx = 0; idx < currentSeason.subjects?.label.length; idx++) {
+        syllabus[currentSeason.subjects?.label[idx]] = syllabus.subject[idx];
+      }
+      return syllabus;
+    });
+  };
+
+  async function enroll(e: any) {
+    const res = database.C({
+      location: "enrollments",
+      data: {
+        syllabus: e._id,
+      },
     });
     return res;
   }
-  useEffect(() => {
-    // if (registrations.length <= 0) {
-    //   console.log("no season", registrations);
 
-    //   setAlertPopupActive(true);
-    // } else {
-    getCourseList().then((res) => {
-      setCourses(res);
+  async function cancle(e: any) {
+    const res = database.D({
+      location: `enrollments?syllabus=${e._id}&studentId=${currentUser.userId}`,
     });
-    // }
+    return res;
+  }
+
+  const subjectHeaderList = [
+    {
+      text: "수업명",
+      key: "classTitle",
+      type: "string",
+    },
+
+    {
+      text: "시간",
+      key: "time",
+      type: "string",
+      returnFunction: (e: any) =>
+        _.join(
+          e.map((timeBlock: any) => timeBlock.label),
+          ", "
+        ),
+    },
+    {
+      text: "강의실",
+      key: "classroom",
+      type: "string",
+      width: "120px",
+    },
+
+    {
+      text: "학점",
+      key: "point",
+      type: "string",
+      width: "80px",
+    },
+    {
+      text: "수강/정원",
+      key: "count_limit",
+      type: "string",
+      width: "80px",
+    },
+    {
+      text: "개설자",
+      key: "userName",
+      type: "string",
+      width: "120px",
+    },
+    {
+      text: "멘토",
+      key: "teachers",
+      returnFunction: (e: any) => {
+        return _.join(
+          e.map((teacher: any) => {
+            return teacher.userName;
+          }),
+          ", "
+        );
+      },
+      type: "string",
+      width: "120px",
+    },
+    {
+      text: "자세히",
+      key: "courseName",
+      type: "button",
+      onClick: (e: any) => {
+        navigate(`../courses/${e._id}`, {
+          replace: true,
+        });
+      },
+      width: "80px",
+      align: "center",
+    },
+  ];
+
+  useEffect(() => {
+    if (!currentRegistration) {
+      setAlertPopupActive(true);
+    } else {
+      setSubjectLabelHeaderList([
+        ...currentSeason?.subjects?.label.map((label: string) => {
+          return {
+            text: label,
+            key: label,
+            type: "string",
+            width: "120px",
+          };
+        }),
+      ]);
+      setIsLoading(true);
+    }
   }, [currentRegistration]);
+
+  useEffect(() => {
+    if (isLoading) {
+      if (!currentRegistration) {
+        setAlertPopupActive(true);
+      } else {
+        if (courseTitle !== "") {
+          getCourseList().then((res: any) => {
+            setCourseList(labelling(res));
+          });
+        }
+        getEnrolledCourseList().then((res: any) => {
+          setEnrolledCourseList(labelling(res));
+        });
+      }
+      setIsLoading(false);
+    }
+  }, [isLoading]);
 
   return (
     <>
       <Navbar />
       <div className={style.section}>
         <div className={style.title}>수강신청</div>
-        <div style={{ height: "24px" }}></div>
+        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+          <Input
+            appearence="flat"
+            required={true}
+            placeholder="검색"
+            onKeyDown={(e: any) => {
+              if (courseTitle !== "" && e.key === "Enter") {
+                getCourseList().then((res: any) => {
+                  setCourseList(labelling(res));
+                });
+              }
+            }}
+            onChange={(e: any) => {
+              setCourseTitle(e.target.value);
+            }}
+          />
+          <Button
+            type="ghost"
+            onClick={() => {
+              getCourseList().then((res: any) => {
+                setCourseList(labelling(res));
+              });
+            }}
+          >
+            검색
+          </Button>
+        </div>
 
+        <div style={{ marginTop: "24px" }} />
         <Table
-          filter
-          filterSearch
           type="object-array"
-          data={courses}
+          data={courseList}
           header={[
             {
               text: "신청",
               key: "_id",
-              onClick: handleTableOnClick,
+              onClick: (e: any) => {
+                enroll(e)
+                  .then(() => {
+                    alert("success");
+                    setIsLoading(true);
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
+              },
               type: "button",
               width: "80px",
               align: "center",
@@ -105,56 +293,53 @@ const Enrollment = (props: Props) => {
                 borderColor: "rgba(200, 200, 255)",
               },
             },
+            ...subjectLabelHeaderList,
+            ...subjectHeaderList,
+          ]}
+          style={{ bodyHeight: "calc(100vh - 300px)" }}
+        />
+
+        <div style={{ height: "24px" }}></div>
+        <Divider />
+        <div style={{ height: "24px" }}></div>
+
+        <div className={style.title}>수강신청 현황</div>
+
+        <Table
+          filter
+          type="object-array"
+          data={enrolledCourseList}
+          header={[
             {
-              text: "수업 명",
-              key: "classTitle",
-              type: "string",
-            },
-            {
-              text: "과목",
-              key: "subject",
-              returnFunction: (e: any) => {
-                let result = e.map((val: any) => val);
-                return result;
-              },
-              type: "string",
-              width: "240px",
-            },
-            {
-              text: "강의실",
-              key: "classroom",
-              type: "string",
-              width: "120px",
-            },
-            {
-              text: "멘토",
-              key: "teachers",
-              returnFunction: (e: any) => {
-                let result = e.map((val: any) => val.userName);
-                return result;
-              },
-              onClick: (value) => {
-                console.log(value);
-              },
-              type: "string",
-              width: "120px",
-            },
-            {
-              text: "자세히",
-              key: "courseName",
-              type: "button",
+              text: "취소",
+              key: "_id",
               onClick: (e: any) => {
-                navigate(`../courses/${e._id}`, {
-                  replace: true,
-                });
+                cancle(e)
+                  .then(() => {
+                    alert("success");
+                    setIsLoading(true);
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
               },
+              type: "button",
               width: "80px",
               align: "center",
+              textStyle: {
+                padding: "0 10px",
+                border: "var(--border-default)",
+                background: "rgba(200, 200, 255, 0.25)",
+                borderColor: "rgba(200, 200, 255)",
+              },
             },
+            ...subjectLabelHeaderList,
+            ...subjectHeaderList,
           ]}
           style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
+
       {alertPopupActive && (
         <Popup setState={() => {}} title="가입된 시즌이 없습니다">
           <div style={{ marginTop: "12px" }}>
@@ -173,4 +358,4 @@ const Enrollment = (props: Props) => {
   );
 };
 
-export default Enrollment;
+export default CourseEnroll;

@@ -51,7 +51,7 @@ type Props = {
   setCourseData: any;
 };
 
-const CourseDesign = (props: Props) => {
+const CourseEdit = (props: Props) => {
   const { currentUser, currentSeason } = useAuth();
   const database = useDatabase();
   const navigate = useNavigate();
@@ -396,4 +396,4 @@ const CourseDesign = (props: Props) => {
   );
 };
 
-export default CourseDesign;
+export default CourseEdit;

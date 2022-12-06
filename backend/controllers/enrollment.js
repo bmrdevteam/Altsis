@@ -269,9 +269,20 @@ module.exports.updateEvaluation = async (req, res) => {
 
 module.exports.remove = async (req, res) => {
   try {
-    const enrollment = await Enrollment(req.user.academyId).findById(
-      req.params._id
-    );
+    let enrollment = undefined;
+    if (req.params._id) {
+      enrollment = await Enrollment(req.user.academyId).findById(
+        req.params._id
+      );
+    } else if (req.query.syllabus && req.query.studentId) {
+      enrollment = await Enrollment(req.user.academyId).findOne({
+        syllabus: req.query.syllabus,
+        studentId: req.query.studentId,
+      });
+    } else {
+      return res.status(400).send();
+    }
+
     if (!enrollment)
       return res.status(404).send({ message: "enrollment not found" });
 
