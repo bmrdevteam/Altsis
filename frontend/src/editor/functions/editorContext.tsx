@@ -108,6 +108,8 @@ export const EditorProvider = (props: {
    * editor data Moves
    */
   const editorDataMoves = useRef<any>([]);
+  const editorDataMovesTrack = useRef<number>(0);
+  const editorDataMovesLimit = 100;
   /**
    * editor page ref
    */
@@ -575,14 +577,41 @@ export const EditorProvider = (props: {
    * --------------------------------------------------------------------
    * handle key presses
    */
+
   function saveMoves() {
-    editorDataMoves.current.push([...editorData.current]);
-    editorDataMoves.current.length > 20 && editorDataMoves.current.shift();
+    if (
+      editorDataMovesTrack.current !== 0 &&
+      editorDataMovesTrack.current !== editorDataMoves.current.length
+    ) {
+      editorDataMoves.current = editorDataMoves.current.slice(
+        0,
+        editorDataMovesTrack.current
+      );
+    }
+    editorDataMoves.current.push(JSON.stringify(editorData.current));
+    editorDataMovesTrack.current = editorDataMoves.current.length;
+
+    editorDataMoves.current.length > editorDataMovesLimit &&
+      editorDataMoves.current.shift();
   }
   function handleKeyPress(e: KeyboardEvent) {
-    if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       e.preventDefault();
+      editorData.current = JSON.parse(
+        editorDataMoves.current[editorDataMovesTrack.current]
+      );
+      editorDataMovesTrack.current += 1;
       console.log(editorDataMoves.current);
+      setReloadEditorData(true);
+    } else if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      editorData.current = JSON.parse(
+        editorDataMoves.current[editorDataMovesTrack.current - 2]
+      );
+      editorDataMovesTrack.current -= 1;
+      console.log(editorDataMoves.current);
+
+      setReloadEditorData(true);
     }
   }
 
