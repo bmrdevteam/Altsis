@@ -20,9 +20,9 @@ const Archive = (props: Props) => {
     const archive = await database.R({
       location: `archives?school=${currentSchool.school}&userId=${191025}`,
     });
-    // const evaluation = await database.R({
-    //   location: `enrollments/evaluations?userId=${191025}`,
-    // });
+    const evaluation = await database.R({
+      location: `enrollments/evaluations?userId=${191025}`,
+    });
     return { [currentSchool.schoolId]: { archive: archive.data } };
     
   }
