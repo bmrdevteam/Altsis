@@ -51,7 +51,7 @@ type Props = {
   setMode: any;
 };
 
-const Course = (props: Props) => {
+const CourseView = (props: Props) => {
   const navigate = useNavigate();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
   const database = useDatabase();
@@ -343,4 +343,4 @@ const Course = (props: Props) => {
   );
 };
 
-export default Course;
+export default CourseView;

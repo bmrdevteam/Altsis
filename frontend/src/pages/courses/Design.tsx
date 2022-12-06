@@ -31,6 +31,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 
+// Navigation Bar
+import Navbar from "layout/navbar/Navbar";
+
 // components
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
@@ -70,15 +73,15 @@ const CourseDesign = (props: Props) => {
     if (!currentRegistration) {
       setAlertMessage("등록된 학기가 없습니다.");
       setAlertPopupActive(true);
-    }
-    if (!checkPermission()) {
+    } else if (!checkPermission()) {
       setAlertMessage("수업 개설 권한이 없습니다.");
       setAlertPopupActive(true);
     }
-  }, []);
+  }, [currentRegistration]);
 
   return (
     <>
+      <Navbar />
       <Add />
 
       {alertPopupActive && (

@@ -48,10 +48,14 @@ import Home from "../pages/index/Home";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 
-//ummm naming,,??
-import Enrollment from "../pages/courses/Enroll";
-import Courses from "../pages/courses/Index";
-import Course from "../pages/courses/Pid";
+// course pages
+import Course from "pages/courses/Index";
+import CoursePid from "pages/courses/Pid";
+import CourseDesign from "../pages/courses/Design";
+import CourseEnroll from "../pages/courses/Enroll";
+import CourseList from "pages/courses/List";
+import CourseMyList from "pages/courses/MyList";
+import CourseMentoring from "pages/courses/Mentoring";
 
 //error pages
 import Http404 from "../pages/error/404";
@@ -62,7 +66,6 @@ import Sidebar from "../layout/sidebar/Sidebar";
 //hooks
 import { useAuth } from "../contexts/authContext";
 
-import CourseDesign from "../pages/courses/Design";
 import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
@@ -71,7 +74,6 @@ import List from "pages/admin/lists/Pid";
 import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
-import CourseList from "pages/courses/List";
 
 function RouterPage() {
   // authenticate path with simple userlogin check
@@ -269,7 +271,7 @@ function RouterPage() {
                 path="courses"
                 element={
                   <RequireAuth>
-                    <Courses />
+                    <Course />
                   </RequireAuth>
                 }
               ></Route>
@@ -277,7 +279,7 @@ function RouterPage() {
                 path="courses/enroll"
                 element={
                   <RequireAuth>
-                    <Enrollment />
+                    <CourseEnroll />
                   </RequireAuth>
                 }
               ></Route>
@@ -298,10 +300,26 @@ function RouterPage() {
                 }
               ></Route>
               <Route
+                path="courses/mylist"
+                element={
+                  <RequireAuth>
+                    <CourseMyList />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/mentoring"
+                element={
+                  <RequireAuth>
+                    <CourseMentoring />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
                 path="courses/:pid"
                 element={
                   <RequireAuth>
-                    <Course />
+                    <CoursePid />
                   </RequireAuth>
                 }
               ></Route>
