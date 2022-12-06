@@ -114,6 +114,7 @@ const CourseEnroll = (props: Props) => {
       location: "enrollments",
       data: {
         syllabus: e._id,
+        registration: currentRegistration._id,
       },
     });
     return res;
