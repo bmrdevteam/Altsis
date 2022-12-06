@@ -189,55 +189,40 @@ module.exports.find = async (req, res) => {
 
 module.exports.findEvaluations = async (req, res) => {
   try {
-    const { season, studentId, syllabus } = req.query;
+    // evaluation 가져오는 권한 설정 필요
+    // if (req.user.userId != studentId) return res.status(401).send();
 
-    // find by season & studentId
-    if (season && studentId) {
-      if (req.user.userId != studentId) return res.status(401).send();
-      const enrollments = await Enrollment(req.user.academyId).find({
-        season,
-        studentId,
-      });
-      return res.status(200).send({ enrollments });
-    }
-
-    // find by syllabus
-    if (syllabus) {
-      const _syllabus = await Syllabus(req.user.academyId).findById(
+    if (req.query.syllabus) {
+      const syllabus = await Syllabus(req.user.academyId).findById(
         req.query.syllabus
       );
-      if (!_syllabus)
+      if (!syllabus)
         return res.status(404).send({ message: "syllabus not found" });
 
-      // 권한 확인 - only teacher can accss evaluations
       const enrollments = await Enrollment(req.user.academyId)
         .find({
-          syllabus,
+          syllabus: req.query.syllabus,
         })
-        .select([
-          "_id",
-          "studentId",
-          "studentName",
-          "createdAt",
-          "updatedAt",
-          "evaluation",
-        ]); //임시 허용
-      return res
-        .status(200)
-        .send({ syllabus: _syllabus.getSubdocument(), enrollments });
+        .select(["-info"]);
 
-      // for (let i = 0; i < _syllabus.teachers.length; i++) {
-      //   if (_syllabus.teachers[i].userId == req.user.userId) {
-      //     const enrollments = await Enrollment(req.user.academyId).find({
-      //       syllabus,
-      //     }).select(["studentId", "studentName", "evaluation"]);
-      //     return res.status(200).send({ enrollments });
-      //   }
-      // }
-      return res.status(401).send();
+      return res.status(200).send({
+        syllabus: syllabus.getSubdocument(),
+        enrollments: enrollments.map((eval) => {
+          return {
+            studentId: eval.studentId,
+            studentName: eval.studentName,
+            evaluation: eval.evaluation,
+            createdAt: eval.createdAt,
+            updatedAt: eval.updatedAt,
+          };
+        }),
+      });
     }
 
-    return res.status(400).send();
+    const enrollments = await Enrollment(req.user.academyId)
+      .find(req.query)
+      .select("-info");
+    return res.status(200).send({ enrollments });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
