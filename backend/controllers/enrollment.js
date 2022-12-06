@@ -6,12 +6,7 @@ const {
 } = require("../models/models");
 const _ = require("lodash");
 
-const isTimeOverlapped = async (user, syllabus) => {
-  const enrollments = await Enrollment(user.academyId).find({
-    studentId: user.userId,
-    season: syllabus.season,
-  });
-
+const isTimeOverlapped = (enrollments, syllabus) => {
   const unavailableTime = _.flatten(
     enrollments.map((enrollment) => enrollment.time)
   );
@@ -26,52 +21,70 @@ const isTimeOverlapped = async (user, syllabus) => {
 module.exports.enroll = async (req, res) => {
   try {
     const _Enrollment = Enrollment(req.user.academyId);
-
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.body.syllabus
     );
     if (!syllabus)
-      return res.status(404).send({ message: "syllabus is not found" });
+      return res.status(404).send({ message: "수업 정보를 찾을 수 없습니다." });
 
+    const registration = await Registration(req.user.academyId).findById(
+      req.body.registration
+    );
+    if (!registration) {
+      return res.status(404).send({ message: "등록 정보를 찾을 수 없습니다." });
+    }
+
+    if (req.user.auth === "member" && req.user.userId !== registration.userId) {
+      return res.status(401).send();
+    }
+
+    // 1. confirm 확인
     for (let i = 0; i < syllabus.teachers.length; i++)
       if (!syllabus.teachers[i].confirmed)
-        return res.status(404).send({ message: "syllabus is not confirmed" });
+        return res.status(404).send({ message: "승인되지 않은 수업입니다." });
 
-    // 1. 수강정원 확인
+    // 2. 이미 신청한 수업인가?
     const exEnrollments = await _Enrollment.find({
-      syllabus: syllabus._id,
+      studentId: registration.userId,
+      season: registration.season,
     });
-    if (syllabus.limit != 0 && exEnrollments.length >= syllabus.limit)
-      return res.status(409).send({ message: "수강정원이 다 찼습니다." });
 
-    // 2. 수강신청 가능한 시간인가?
-    if (await isTimeOverlapped(req.user, syllabus))
+    if (_.find(exEnrollments, { syllabus: syllabus._id })) {
+      return res.status(409).send({ message: "이미 신청한 수업입니다." });
+    }
+
+    // 2. 수강정원 확인
+    if (syllabus.limit != 0) {
+      const enrollmentsCnt = await _Enrollment.countDocuments({
+        syllabus: syllabus._id,
+      });
+      if (enrollmentsCnt >= syllabus.limit)
+        return res.status(409).send({ message: "수강정원이 다 찼습니다." });
+    }
+
+    // 3. 수강신청 가능한 시간인가?
+    if (isTimeOverlapped(exEnrollments, syllabus))
       return res.status(409).send({
         message: `시간표가 중복되었습니다.`,
       });
-
-    // 3. 유저의 학기 등록 정보 확인
-    const registration = await Registration(req.user.academyId).findOne({
-      season: syllabus.season,
-      userId: req.user.userId,
-    });
-    if (!registration) {
-      return res.status(404).send({ message: "registration not found" });
-    }
 
     // 유저 권한 확인
     const season = await Season(req.user.academyId).findById(syllabus.season);
     if (!season) return res.status(404).send({ message: "season not found" });
     if (
-      !season.checkPermission("enrollment", req.user.userId, registration.role)
+      !season.checkPermission(
+        "enrollment",
+        registration.userId,
+        registration.role
+      )
     )
       return res.status(409).send({ message: "you have no permission" });
 
     // 수강신청 완료 (도큐먼트 저장)
     const enrollment = new _Enrollment({
       ...syllabus.getSubdocument(),
-      studentId: req.user.userId,
-      studentName: req.user.userName,
+      studentId: registration.userId,
+      studentName: registration.userName,
     });
     await enrollment.save();
     return res.status(200).send(enrollment);
