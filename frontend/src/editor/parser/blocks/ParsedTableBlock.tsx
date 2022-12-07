@@ -12,7 +12,7 @@ type Props = {
   dbData?: any;
 };
 const ParsedTableBlock = (props: Props) => {
-console.log(props.dbData);
+console.log(props.blockData);
 
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
