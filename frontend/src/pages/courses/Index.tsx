@@ -93,8 +93,8 @@ const Course = (props: Props) => {
 
   const labelling = (courseList: any[]) => {
     return courseList.map((syllabus: any) => {
-      for (let idx = 0; idx < currentSeason.subjects?.label.length; idx++) {
-        syllabus[currentSeason.subjects?.label[idx]] = syllabus.subject[idx];
+      for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
+        syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
       }
       return syllabus;
     });
@@ -190,16 +190,18 @@ const Course = (props: Props) => {
       getEnrolledCourseList().then((res: any) => {
         setEnrolledCourseList(labelling(res));
       });
-      setSubjectLabelHeaderList([
-        ...currentSeason?.subjects?.label.map((label: string) => {
-          return {
-            text: label,
-            key: label,
-            type: "string",
-            width: "120px",
-          };
-        }),
-      ]);
+      if (currentSeason?.subjects?.label) {
+        setSubjectLabelHeaderList([
+          ...currentSeason?.subjects?.label?.map((label: string) => {
+            return {
+              text: label,
+              key: label,
+              type: "string",
+              width: "120px",
+            };
+          }),
+        ]);
+      }
     }
   }, [currentRegistration]);
 
@@ -222,7 +224,6 @@ const Course = (props: Props) => {
   return (
     <>
       <Navbar />
-      <a href="mailto:superman@test.com">메일보내기</a>
       <div className={style.section}>
         <div className={style.title}>시간표</div>
         <div style={{ height: "24px" }}></div>

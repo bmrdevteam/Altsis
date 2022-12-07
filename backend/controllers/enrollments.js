@@ -80,6 +80,7 @@ module.exports.enroll = async (req, res) => {
       ...syllabus.getSubdocument(),
       studentId: registration.userId,
       studentName: registration.userName,
+      studentGrade: registration.grade,
     });
     await enrollment.save();
     return res.status(200).send(enrollment);
@@ -111,6 +112,7 @@ module.exports.enrollbulk = async (req, res) => {
         ...syllabusSubdocument,
         studentId: student.userId,
         studentName: student.userName,
+        studentGrade: student.grade,
       });
       await enrollment.save();
       enrollments.push(enrollment);
@@ -173,7 +175,7 @@ module.exports.find = async (req, res) => {
     if (syllabus) {
       const enrollments = await Enrollment(req.user.academyId)
         .find({ syllabus })
-        .select(["studentId", "studentName"]);
+        .select(["studentId", "studentName", "studentGrade"]);
       return res.status(200).send({ enrollments });
     }
 
@@ -215,6 +217,7 @@ module.exports.findEvaluations = async (req, res) => {
           return {
             studentId: eval.studentId,
             studentName: eval.studentName,
+            studentGrade: eval.studentGrade,
             evaluation: eval.evaluation,
             createdAt: eval.createdAt,
             updatedAt: eval.updatedAt,

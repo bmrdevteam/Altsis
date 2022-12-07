@@ -79,8 +79,8 @@ const CoursesMentoring = (props: Props) => {
 
   const labelling = (courseList: any[]) => {
     return courseList.map((syllabus: any) => {
-      for (let idx = 0; idx < currentSeason.subjects?.label.length; idx++) {
-        syllabus[currentSeason.subjects?.label[idx]] = syllabus.subject[idx];
+      for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
+        syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
       }
       return syllabus;
     });
@@ -186,6 +186,18 @@ const CoursesMentoring = (props: Props) => {
           };
         }),
       ]);
+      if (currentSeason?.subjects?.label) {
+        setSubjectLabelHeaderList([
+          ...currentSeason?.subjects?.label.map((label: string) => {
+            return {
+              text: label,
+              key: label,
+              type: "string",
+              width: "120px",
+            };
+          }),
+        ]);
+      }
     }
   }, [currentRegistration]);
 

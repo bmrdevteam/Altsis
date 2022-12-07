@@ -89,7 +89,7 @@ const CourseAdd = (props: Props) => {
 
   async function getSyllabusByClassroom(classroom: string) {
     const { syllabuses: res } = await database.R({
-      location: `syllabuses?season=${currentSeason._id}&classroom=${classroom}`,
+      location: `syllabuses?season=${currentSeason?._id}&classroom=${classroom}`,
     });
     return res;
   }
@@ -117,7 +117,7 @@ const CourseAdd = (props: Props) => {
 
   async function submit() {
     let submitObject = {
-      season: currentSeason._id,
+      season: currentSeason?._id,
       classTitle: courseTitle,
       point: coursePoint,
       subject: courseSubject.split("/"),
@@ -332,7 +332,7 @@ const CourseAdd = (props: Props) => {
             appearence="flat"
             options={[
               { value: "", text: "" },
-              ...currentSeason.classrooms?.map((val: any) => {
+              ...currentSeason?.classrooms?.map((val: any) => {
                 return { value: val, text: val };
               }),
             ]}
