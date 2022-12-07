@@ -1,4 +1,3 @@
-const { forEach } = require("lodash");
 const _ = require("lodash");
 const { User, Registration, Season } = require("../models");
 

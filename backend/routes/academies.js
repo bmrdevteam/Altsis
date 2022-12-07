@@ -12,46 +12,50 @@ const registration = require("../controllers/registrations");
 //             Academy
 //=================================
 
-router.post("/", isOwner, academy.create);
-router.post("/:academyId/activate", isOwner, academy.activate);
-router.post("/:academyId/inactivate", isOwner, academy.inactivate);
-router.get("/:academyId?", academy.find);
+router.post("/", isOwner, academies.create);
+router.post("/:academyId/activate", isOwner, academies.activate);
+router.post("/:academyId/inactivate", isOwner, academies.inactivate);
+router.get("/:academyId?", academies.find);
 
 // update academy email, tel
-router.put("/:academyId", isOwner, academy.updateField);
-router.delete("/:academyId", isOwner, academy.remove);
+router.put("/:academyId", isOwner, academies.updateField);
+router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */
-router.get("/:academyId/users/:_id?", isOwner, user.find);
-router.get("/:academyId/:docType/:docId?", isOwner, academy.findDocuments);
-router.delete("/:academyId/:docType/:docId?", isOwner, academy.deleteDocument);
+router.get("/:academyId/users/:_id?", isOwner, users.find);
+router.get("/:academyId/:docType/:docId?", isOwner, academies.findDocuments);
+router.delete(
+  "/:academyId/:docType/:docId?",
+  isOwner,
+  academies.deleteDocument
+);
 
 /* create/update documents - users */
-router.post("/:academyId/users", isOwner, user.create);
-router.put("/:academyId/users/:_id/auth", isOwner, user.updateAuth);
-router.put("/:academyId/users/:_id/schools", isOwner, user.updateSchools);
-router.put("/:academyId/users/:_id", isOwner, user.update);
+router.post("/:academyId/users", isOwner, users.create);
+router.put("/:academyId/users/:_id/auth", isOwner, users.updateAuth);
+router.put("/:academyId/users/:_id/schools", isOwner, users.updateSchools);
+router.put("/:academyId/users/:_id", isOwner, users.update);
 
 /* create/update documents - schools */
-router.post("/:academyId/schools", isOwner, school.create);
+router.post("/:academyId/schools", isOwner, schools.create);
 router.put(
   "/:academyId/schools/:_id/:field/:fieldType?",
   isOwner,
-  school.updateField
+  schools.updateField
 );
 
 /* create/update documents - seasons */
-router.post("/:academyId/seasons", isOwner, season.create);
-router.post("/:academyId/seasons/:_id/activate", isOwner, season.activate);
-router.post("/:academyId/seasons/:_id/inactivate", isOwner, season.inactivate);
+router.post("/:academyId/seasons", isOwner, seasons.create);
+router.post("/:academyId/seasons/:_id/activate", isOwner, seasons.activate);
+router.post("/:academyId/seasons/:_id/inactivate", isOwner, seasons.inactivate);
 router.put(
   "/:academyId/seasons/:_id/:field/:fieldType?",
   isOwner,
-  season.updateField
+  seasons.updateField
 );
 
 /* create/update documents - registrations */
-router.post("/:academyId/registrations", isOwner, registration.register);
-router.put("/:academyId/registrations/:_id", isOwner, registration.update);
+router.post("/:academyId/registrations", isOwner, registrations.register);
+router.put("/:academyId/registrations/:_id", isOwner, registrations.update);
 
 module.exports = router;

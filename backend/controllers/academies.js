@@ -1,11 +1,12 @@
+const { addConnection, deleteConnection } = require("../databases/connection");
 const {
-  addConnection,
-  deleteConnection,
-  conn,
-} = require("../databases/connection");
-const Form = require("../models/Form");
-const { User, Academy, School, Season } = require("../models");
-const Registration = require("../models/Registration");
+  User,
+  Academy,
+  School,
+  Season,
+  Form,
+  Registration,
+} = require("../models");
 
 module.exports.create = async (req, res) => {
   try {

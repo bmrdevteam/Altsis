@@ -1,21 +1,21 @@
 const express = require("express");
 const router = express.Router();
-const season = require("../controllers/seasons");
+const seasons = require("../controllers/seasons");
 const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             Season
 //=================================
 
-router.post("/", isAdManager, season.create);
+router.post("/", isAdManager, seasons.create);
 
-router.get("/:_id?", isLoggedIn, season.find);
+router.get("/:_id?", isLoggedIn, seasons.find);
 
-router.post("/:_id/activate", isAdManager, season.activate);
-router.post("/:_id/inactivate", isAdManager, season.inactivate);
+router.post("/:_id/activate", isAdManager, seasons.activate);
+router.post("/:_id/inactivate", isAdManager, seasons.inactivate);
 
-router.put("/:_id/:field/:fieldType?", isAdManager, season.updateField);
+router.put("/:_id/:field/:fieldType?", isAdManager, seasons.updateField);
 
-router.delete("/:_id", isAdManager, season.delete);
+router.delete("/:_id", isAdManager, seasons.delete);
 
 module.exports = router;
