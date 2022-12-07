@@ -8,4 +8,5 @@ module.exports = {
   User: require("./User"),
   Season: require("./Season"),
   Archive: require("./Archive"),
+  TestData: require("./TestData"),
 };

@@ -66,6 +66,11 @@ const CourseView = (props: Props) => {
   const [mentorIdx, setMentorIdx] = useState<number>(-1);
   const [mentorConfirmed, setMentorConfirmed] = useState<boolean>();
 
+  const [enrollments, setEnrollments] = useState<any[]>();
+
+  /* evaluation header list */
+  const [evaluationHeaderList, setEvaluationHeaderList] = useState<any[]>([]);
+
   const checkPermission = () => {
     const permission = currentSeason.permissionSyllabus;
     for (let i = 0; i < permission.length; i++) {
@@ -152,6 +157,13 @@ const CourseView = (props: Props) => {
     return result;
   }
 
+  async function getEnrollments() {
+    const { enrollments } = await database.R({
+      location: `enrollments/evaluations?syllabus=${props.courseData._id}`,
+    });
+    return enrollments;
+  }
+
   useEffect(() => {
     navigate("#강의 계획");
 
@@ -178,6 +190,34 @@ const CourseView = (props: Props) => {
       }
     }
 
+    getEnrollments().then((res: any) => {
+      setEnrollments(res);
+      setEvaluationHeaderList([
+        ...Object.keys(res[0].evaluation).map((key: string) => {
+          return {
+            text: key,
+            key: `evaluation.${key}`,
+          };
+        }),
+        {
+          text: "평가",
+          key: "evaluation",
+          onClick: (e: any) => {
+            alert("clicked!");
+          },
+          type: "button",
+          width: "80px",
+          align: "center",
+          textStyle: {
+            padding: "0 10px",
+            border: "var(--border-default)",
+            background: "rgba(200, 200, 255, 0.25)",
+            borderColor: "rgba(200, 200, 255)",
+          },
+        },
+      ]);
+    });
+
     return () => {};
   }, []);
 
@@ -191,6 +231,7 @@ const CourseView = (props: Props) => {
       }
     }
     if (_confirmed !== confirmed) setConfirmed(_confirmed);
+
     return () => {};
   }, [mentorConfirmed]);
 
@@ -214,6 +255,32 @@ const CourseView = (props: Props) => {
       <Divider />
 
       <ClassInfo />
+      <div style={{ height: "24px" }}></div>
+      <Divider />
+      <div style={{ height: "24px" }}></div>
+      <div className={style.title}>수강생 목록</div>
+      <Table
+        filter
+        type="object-array"
+        data={enrollments}
+        header={[
+          {
+            text: "ID",
+            key: "studentId",
+            type: "string",
+            width: "80px",
+          },
+          {
+            text: "이름",
+            key: "studentName",
+            type: "string",
+            width: "80px",
+          },
+          ...evaluationHeaderList,
+        ]}
+        style={{ bodyHeight: "calc(100vh - 300px)" }}
+      />
+
       {confirmStatusPopupActive && (
         <Popup
           setState={setConfirmStatusPopupActive}
@@ -249,7 +316,7 @@ const CourseView = (props: Props) => {
           />
         </Popup>
       )}
-      {isMentor ? (
+      {isMentor && enrollments?.length === 0 && checkPermission() ? (
         <Button
           type={"ghost"}
           style={{

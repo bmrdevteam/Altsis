@@ -203,7 +203,7 @@ const Forms = (props: Props) => {
                   : decodeURI(location.hash).replace("#", "") === "강의계획서"
                   ? "syllabus"
                   : decodeURI(location.hash).replace("#", "") === "평가"
-                  ? "evalutation"
+                  ? "evaluation"
                   : decodeURI(location.hash).replace("#", "") === "출력"
                   ? "print"
                   : "other"
@@ -246,7 +246,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"timetable"} />
                   ) : (
                     <Table
-                    type="object-array"
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "timetable";
                       })}
@@ -270,7 +270,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"syllabus"} />
                   ) : (
                     <Table
-                    type="object-array"
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "syllabus";
                       })}
@@ -294,7 +294,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"evaluation"} />
                   ) : (
                     <Table
-                    type="object-array"
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "evaluation";
                       })}
@@ -318,7 +318,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"print"} />
                   ) : (
                     <Table
-                    type="object-array"
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "print";
                       })}
@@ -342,7 +342,7 @@ const Forms = (props: Props) => {
                     <FormItems />
                   ) : (
                     <Table
-                    type="object-array"
+                      type="object-array"
                       data={search.result()}
                       header={[
                         { type: "index", key: "", text: "ID", width: "48px" },

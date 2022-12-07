@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const { Season, School, Syllabus, Enrollment } = require("../models/models");
+const { Season, School, Syllabus, Enrollment } = require("../models");
 const Registration = require("../models/Registration");
 
 // check schoolId&year&term duplication

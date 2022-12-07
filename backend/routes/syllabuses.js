@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const syllabus = require("../controllers/syllabus");
+const syllabus = require("../controllers/syllabuses");
 const { isLoggedIn } = require("../middleware/auth");
 
 //=================================
