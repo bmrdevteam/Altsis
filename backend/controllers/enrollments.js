@@ -1,9 +1,4 @@
-const {
-  Enrollment,
-  Syllabus,
-  Registration,
-  Season,
-} = require("../models/models");
+const { Enrollment, Syllabus, Registration, Season } = require("../models");
 const _ = require("lodash");
 
 const isTimeOverlapped = (enrollments, syllabus) => {

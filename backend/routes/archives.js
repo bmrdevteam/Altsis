@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const archive = require("../controllers/archive");
+const archive = require("../controllers/archives");
 const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
 
 //=================================

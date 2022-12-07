@@ -1,7 +1,7 @@
 const passport = require("passport");
 const local2 = require("./localStrategy2");
 const google2 = require("./googleStrategy2");
-const { User } = require("../models/models");
+const { User } = require("../models");
 
 module.exports = () => {
   passport.serializeUser(({ user, academyId }, done) => {
