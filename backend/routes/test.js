@@ -1,12 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const {
-  isLoggedIn,
-  isAdManager,
-  forceNotLoggedIn,
-} = require("../middleware/auth");
-// const test = require("../controllers/test");
-const { test } = require("../controllers");
+const { isLoggedIn } = require("../middleware/auth");
+
+const test = require("../controllers/test");
 
 router.post("/testdata", isLoggedIn, test.createTestData);
 router.get("/testdata/:_id?", isLoggedIn, test.getTestData);

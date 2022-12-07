@@ -1,23 +1,23 @@
 const express = require("express");
 const router = express.Router();
-const syllabus = require("../controllers/syllabuses");
+const syllabuses = require("../controllers/syllabuses");
 const { isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             Syllabus
 //=================================
 
-router.post("/", isLoggedIn, syllabus.create);
-router.get("/:_id?", isLoggedIn, syllabus.find);
+router.post("/", isLoggedIn, syllabuses.create);
+router.get("/:_id?", isLoggedIn, syllabuses.find);
 
-router.put("/:_id/confirmed", isLoggedIn, syllabus.confirm);
-router.delete("/:_id/confirmed", isLoggedIn, syllabus.unconfirm);
+router.put("/:_id/confirmed", isLoggedIn, syllabuses.confirm);
+router.delete("/:_id/confirmed", isLoggedIn, syllabuses.unconfirm);
 
-router.put("/:_id/time", isLoggedIn, syllabus.updateTime);
-router.put("/:_id/classroom", isLoggedIn, syllabus.updateClassroom);
-router.delete("/:_id/classroom", isLoggedIn, syllabus.removeClassroom);
-router.put("/:_id/:field?", isLoggedIn, syllabus.update);
+router.put("/:_id/time", isLoggedIn, syllabuses.updateTime);
+router.put("/:_id/classroom", isLoggedIn, syllabuses.updateClassroom);
+router.delete("/:_id/classroom", isLoggedIn, syllabuses.removeClassroom);
+router.put("/:_id/:field?", isLoggedIn, syllabuses.update);
 
-router.delete("/:_id", isLoggedIn, syllabus.remove);
+router.delete("/:_id", isLoggedIn, syllabuses.remove);
 
 module.exports = router;

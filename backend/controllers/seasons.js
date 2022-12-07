@@ -1,6 +1,11 @@
 const _ = require("lodash");
-const { Season, School, Syllabus, Enrollment } = require("../models");
-const Registration = require("../models/Registration");
+const {
+  Season,
+  School,
+  Syllabus,
+  Enrollment,
+  Registration,
+} = require("../models");
 
 // check schoolId&year&term duplication
 const checkDuplication = async (academyId, schoolId, year, term) => {

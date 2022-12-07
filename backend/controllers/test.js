@@ -66,17 +66,6 @@ module.exports.db = async (req, res) => {
   }
 };
 
-module.exports.db = async (req, res) => {
-  try {
-    return res.status(200).json({
-      success: true,
-      message: "hello world! this is test/db",
-    });
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 module.exports.test1 = (req, res) => {
   return res.status(200).send({
     message: "hello world! this is test/test1",
@@ -90,13 +79,9 @@ module.exports.createRedis = (req, res) => {
 
 module.exports.getRedis = (req, res) => {
   client.keys("*", (err, keys) => {
-    keys.map((key) => {
-      client.del(key);
-    });
-    return res.status(200).send({ success: true });
+    return res.status(200).send({ keys });
   });
 };
-
 module.exports.removeRedis = (req, res) => {
   client.del(req.params.key);
   return res.status(200).send({ success: true });

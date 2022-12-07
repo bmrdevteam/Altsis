@@ -1,19 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const archive = require("../controllers/archives");
+const archives = require("../controllers/archives");
 const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
 
 //=================================
 //             Archive
 //=================================
 
-router.post("/", isLoggedIn, archive.create);
+router.post("/", isLoggedIn, archives.create);
 
-router.get("/", isLoggedIn, archive.find);
-router.get("/:_id", isLoggedIn, archive.findById);
+router.get("/", isLoggedIn, archives.find);
+router.get("/:_id", isLoggedIn, archives.findById);
 
-router.put("/:_id/data/:field", isLoggedIn, archive.updateDataField);
+router.put("/:_id/data/:field", isLoggedIn, archives.updateDataField);
 
-router.delete("/:_id", isLoggedIn, archive.remove);
+router.delete("/:_id", isLoggedIn, archives.remove);
 
 module.exports = router;

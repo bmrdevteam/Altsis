@@ -1,19 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const registration = require("../controllers/registrations");
+const registrations = require("../controllers/registrations");
 const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             Registration
 //=================================
 
-router.post("/", isAdManager, registration.register);
-router.post("/bulk", isAdManager, registration.registerBulk);
+router.post("/", isAdManager, registrations.register);
+router.post("/bulk", isAdManager, registrations.registerBulk);
 
-router.get("/", isLoggedIn, registration.find);
+router.get("/", isLoggedIn, registrations.find);
 
-router.put("/:_id", isAdManager, registration.update);
+router.put("/:_id", isAdManager, registrations.update);
 
-router.delete("/:_id", isAdManager, registration.remove);
+router.delete("/:_id", isAdManager, registrations.remove);
 
 module.exports = router;
