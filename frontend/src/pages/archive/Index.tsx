@@ -1,7 +1,9 @@
+import Loading from "components/loading/Loading";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 import useDatabase from "hooks/useDatabase";
 import Navbar from "layout/navbar/Navbar";
+import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import style from "style/pages/archive.module.scss";
 type Props = {};
@@ -9,8 +11,10 @@ type Props = {};
 const Archive = (props: Props) => {
   const database = useDatabase();
   const { currentSchool } = useAuth();
+  const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
   const [DBData, setDBData] = useState<any>();
+
   async function getPrintForms() {
     const { forms: result } = await database.R({ location: "forms" });
     return result;
@@ -20,11 +24,77 @@ const Archive = (props: Props) => {
     const archive = await database.R({
       location: `archives?school=${currentSchool.school}&userId=${191025}`,
     });
-    const evaluation = await database.R({
-      location: `enrollments/evaluations?userId=${191025}`,
+    let processedEvaluation: any[] = [];
+    let processedEvaluationByYear: any = [];
+    const { enrollments: evaluations } = await database.R({
+      location: `enrollments/evaluations?studentId=${191025}&school=${
+        currentSchool.school
+      }`,
     });
-    return { [currentSchool.schoolId]: { archive: archive.data } };
-    
+
+    for (let i = 0; i < evaluations.length; i++) {
+      const evaluation = evaluations[i];
+      const Id = `${evaluation.season}${evaluation.subject[0]}${evaluation.subject[1]}`;
+      const IdByYear = `${evaluation.year}${evaluation.subject[0]}${evaluation.subject[1]}`;
+
+      if (_.findIndex(processedEvaluation, ["id", Id]) === -1) {
+        processedEvaluation.push({
+          id: Id,
+          교과: evaluation?.subject[0],
+          과목: evaluation?.subject[1],
+          단위수: evaluation?.point,
+          "멘토 평가": evaluation.evaluation["멘토평가"],
+          "자기 평가": evaluation.evaluation["자기평가"],
+          점수: evaluation.evaluation["점수"],
+          평가: evaluation.evaluation["평가"],
+          년도: evaluation.year,
+          학기: evaluation.term,
+        });
+      } else {
+        processedEvaluation[
+          _.findIndex(processedEvaluation, ["id", Id])
+        ].단위수 += evaluation.point;
+      }
+      if (_.findIndex(processedEvaluationByYear, ["id", IdByYear]) === -1) {
+        processedEvaluationByYear.push({
+          id: IdByYear,
+          년도: evaluation.year,
+          교과: evaluation?.subject[0],
+          과목: evaluation?.subject[1],
+          [`${evaluation.term}/단위수`]: evaluation?.point,
+          [`${evaluation.term}/멘토 평가`]: evaluation.evaluation["멘토평가"],
+          [`${evaluation.term}/점수`]: evaluation.evaluation["점수"],
+          [`${evaluation.term}/평가`]: evaluation.evaluation["평가"],
+        });
+      } else {
+        Object.assign(
+          processedEvaluationByYear[
+            _.findIndex(processedEvaluationByYear, ["id", IdByYear])
+          ],
+          {
+            [`${evaluation.term}/단위수`]:
+              evaluation?.point +
+              parseInt(
+                _.find(processedEvaluationByYear, ["id", IdByYear])[
+                  `${evaluation.term}/단위수`
+                ] || 0
+              ),
+            [`${evaluation.term}/멘토 평가`]: evaluation.evaluation["멘토평가"],
+            [`${evaluation.term}/점수`]: evaluation.evaluation["점수"],
+            [`${evaluation.term}/평가`]: evaluation.evaluation["평가"],
+          }
+        );
+      }
+    }
+    console.log(evaluations);
+    console.log(processedEvaluation);
+    console.log(_.orderBy(processedEvaluationByYear, "년도"));
+    return {
+      [currentSchool.schoolId]: {
+        archive: archive.data,
+        evaluation: processedEvaluationByYear,
+      },
+    };
   }
 
   async function getFormData(id: string) {
@@ -43,15 +113,20 @@ const Archive = (props: Props) => {
     });
     getDBData().then((res) => {
       setDBData(res);
+      setLoading(false);
     });
   }, []);
 
   return (
     <>
       <Navbar />
-      <div className={style.section}>
-        <EditorParser auth="edit" data={formData} dbData={DBData} />
-      </div>
+      {!loading ? (
+        <div className={style.section}>
+          <EditorParser auth="edit" data={formData} dbData={DBData} />
+        </div>
+      ) : (
+        <Loading height={"calc(100vh - 55px)"} />
+      )}
     </>
   );
 };
