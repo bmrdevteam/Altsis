@@ -16,11 +16,13 @@
 
 }
 
-
-.loading {
+.cover_screen{
     width: 100vw;
-    height: 100vh;
     position: fixed;
+    height: 100vh;
+}
+.loading {
+    flex: 1 1 0;
     top: 0;
     left: 0;
     background-color: var(--background-color);
