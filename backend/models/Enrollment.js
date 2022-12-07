@@ -25,6 +25,7 @@ const enrollmentSchema = mongoose.Schema(
     // enrollment data
     studentId: String,
     studentName: String,
+    studentGrade: String,
     evaluation: Object,
     temp: Object,
   },

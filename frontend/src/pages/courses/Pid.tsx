@@ -58,11 +58,11 @@ const CoursePid = (props: Props) => {
   }
 
   const checkPermission = () => {
-    const permission = currentSeason.permissionSyllabus;
+    const permission = currentSeason?.permissionSyllabus;
     for (let i = 0; i < permission.length; i++) {
       if (
         permission[i][0] === "userId" &&
-        permission[i][1] === currentUser.userId
+        permission[i][1] === currentUser?.userId
       ) {
         return permission[i][2];
       }

@@ -52,17 +52,17 @@ const CourseDesign = (props: Props) => {
   const [alertMessage, setAlertMessage] = useState<string>("");
 
   const checkPermission = () => {
-    const permission = currentSeason.permissionSyllabus;
-    for (let i = 0; i < permission.length; i++) {
+    const permission = currentSeason?.permissionSyllabus;
+    for (let i = 0; i < permission?.length; i++) {
       if (
         permission[i][0] === "userId" &&
-        permission[i][1] === currentUser.userId
+        permission[i][1] === currentUser?.userId
       ) {
         return permission[i][2];
       }
       if (
         permission[i][0] === "role" &&
-        permission[i][1] === currentRegistration.role
+        permission[i][1] === currentRegistration?.role
       )
         return permission[i][2];
     }

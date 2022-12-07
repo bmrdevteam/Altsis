@@ -120,8 +120,8 @@ const CourseEnroll = (props: Props) => {
 
   const labelling = (courseList: any[]) => {
     return courseList.map((syllabus: any) => {
-      for (let idx = 0; idx < currentSeason.subjects?.label.length; idx++) {
-        syllabus[currentSeason.subjects?.label[idx]] = syllabus.subject[idx];
+      for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
+        syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
       }
       return syllabus;
     });
@@ -132,7 +132,7 @@ const CourseEnroll = (props: Props) => {
       location: "enrollments",
       data: {
         syllabus: e._id,
-        registration: currentRegistration._id,
+        registration: currentRegistration?._id,
       },
     });
     return res;
@@ -146,17 +146,17 @@ const CourseEnroll = (props: Props) => {
   }
 
   const checkPermission = () => {
-    const permission = currentSeason.permissionEnrollment;
-    for (let i = 0; i < permission.length; i++) {
+    const permission = currentSeason?.permissionEnrollment;
+    for (let i = 0; i < permission?.length; i++) {
       if (
         permission[i][0] === "userId" &&
-        permission[i][1] === currentUser.userId
+        permission[i][1] === currentUser?.userId
       ) {
         return permission[i][2];
       }
       if (
         permission[i][0] === "role" &&
-        permission[i][1] === currentRegistration.role
+        permission[i][1] === currentRegistration?.role
       )
         return permission[i][2];
     }
@@ -234,7 +234,6 @@ const CourseEnroll = (props: Props) => {
   ];
 
   useEffect(() => {
-    changeCurrentSeason(currentRegistration);
     if (!currentRegistration) {
       setAlertMessage("등록된 학기가 없습니다.");
       setAlertPopupActive(true);

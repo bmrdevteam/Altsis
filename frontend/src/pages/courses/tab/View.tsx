@@ -72,17 +72,17 @@ const CourseView = (props: Props) => {
   const [evaluationHeaderList, setEvaluationHeaderList] = useState<any[]>([]);
 
   const checkPermission = () => {
-    const permission = currentSeason.permissionSyllabus;
+    const permission = currentSeason?.permissionSyllabus;
     for (let i = 0; i < permission.length; i++) {
       if (
         permission[i][0] === "userId" &&
-        permission[i][1] === currentUser.userId
+        permission[i][1] === currentUser?.userId
       ) {
         return permission[i][2];
       }
       if (
         permission[i][0] === "role" &&
-        permission[i][1] === currentRegistration.role
+        permission[i][1] === currentRegistration?.role
       )
         return permission[i][2];
     }
@@ -176,12 +176,12 @@ const CourseView = (props: Props) => {
     }
 
     // Is this user the one who made this syllabus?
-    setIsUser(props.courseData.userId === currentUser.userId);
+    setIsUser(props.courseData.userId === currentUser?.userId);
 
     // Is this user is mentor of this syllabus?
-    if (currentRegistration.role === "teacher") {
+    if (currentRegistration?.role === "teacher") {
       const mentorIdx = _.findIndex(props.courseData.teachers, {
-        userId: currentUser.userId,
+        userId: currentUser?.userId,
       });
       if (mentorIdx !== -1) {
         setIsMentor(true);
@@ -264,6 +264,12 @@ const CourseView = (props: Props) => {
         type="object-array"
         data={enrollments}
         header={[
+          {
+            text: "학년",
+            key: "studentGrade",
+            type: "string",
+            width: "80px",
+          },
           {
             text: "ID",
             key: "studentId",
