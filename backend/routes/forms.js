@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const form = require("../controllers/form");
+const form = require("../controllers/forms");
 const { isAdManager } = require("../middleware/auth");
 
 //=================================

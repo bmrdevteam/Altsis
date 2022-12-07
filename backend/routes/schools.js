@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const school = require("../controllers/school");
+const school = require("../controllers/schools");
 const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================

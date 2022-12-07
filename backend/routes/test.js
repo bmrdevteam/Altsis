@@ -1,50 +1,26 @@
 const express = require("express");
 const router = express.Router();
-const _ = require("lodash");
-const client = require("../caches/redis");
-const Archive = require("../models/Archive");
-const Registration = require("../models/Registration");
-const Season = require("../models/Season");
-const User = require("../models/User");
+const {
+  isLoggedIn,
+  isAdManager,
+  forceNotLoggedIn,
+} = require("../middleware/auth");
+// const test = require("../controllers/test");
+const { test } = require("../controllers");
 
-router.get("/db", async (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "hello world! this is db/test",
-  });
-});
+router.post("/testdata", isLoggedIn, test.createTestData);
+router.get("/testdata/:_id?", isLoggedIn, test.getTestData);
+router.put("/testdata/:_id/:field", isLoggedIn, test.updateTestData);
+router.delete("/testdata/:_id", isLoggedIn, test.removeTestData);
 
-router.get("/test1", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "hello world! this is test1",
-  });
-});
+router.get("/db", test.db);
 
-router.post("/redis", (req, res) => {
-  client.set(req.body.key, req.body.value);
-  return res.status(200).send({ success: true });
-});
+router.get("/test1", test.test1);
 
-router.get("/redis", (req, res) => {
-  client.keys("*", (err, keys) => {
-    return res.status(200).send({ keys });
-  });
-});
+router.post("/redis", test.createRedis);
 
-router.delete("/redis/all", (req, res) => {
-  client.keys("*", (err, keys) => {
-    keys.map((key) => {
-      client.del(key);
-    });
-    return res.status(200).send({ success: true });
-  });
-});
+router.get("/redis", test.getRedis);
 
-router.delete("/redis/:key", (req, res) => {
-  console.log("key: ", req.params.key);
-  client.del(req.params.key);
-  return res.status(200).send({ success: true });
-});
+router.delete("/redis/:key", test.removeRedis);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 const { forEach } = require("lodash");
 const _ = require("lodash");
-const { User, Registration, Season } = require("../models/models");
+const { User, Registration, Season } = require("../models");
 
 /* create */
 module.exports.register = async (req, res) => {

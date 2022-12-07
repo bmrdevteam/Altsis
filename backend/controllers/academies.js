@@ -4,7 +4,7 @@ const {
   conn,
 } = require("../databases/connection");
 const Form = require("../models/Form");
-const { User, Academy, School, Season } = require("../models/models");
+const { User, Academy, School, Season } = require("../models");
 const Registration = require("../models/Registration");
 
 module.exports.create = async (req, res) => {
