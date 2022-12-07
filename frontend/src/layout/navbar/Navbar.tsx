@@ -9,15 +9,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
+import useInterval from "hooks/useInterval";
 
 // components
 import Button from "components/button/Button";
 import Select from "components/select/Select";
 
-import Svg from "../../assets/svg/Svg";
+import Svg from "assets/svg/Svg";
 import style from "./navbar.module.scss";
 
 import _ from "lodash";
+
+import audioURL from "assets/audio/notification-a.mp3";
 
 const Notification = () => {
   /**
@@ -31,6 +34,7 @@ const Notification = () => {
 
   const notificationtRef = useRef<HTMLDivElement>(null);
 
+  const audio = new Audio(audioURL);
   function handleMousedown(e: MouseEvent) {
     if (
       notificationtRef.current &&
@@ -38,6 +42,13 @@ const Notification = () => {
     ) {
       setNotificationContentActive(false);
     }
+  }
+
+  async function getUpdatedNotifications() {
+    const { notifications } = await database.R({
+      location: `notifications?to=hi0123&checked=false`,
+    });
+    return notifications;
   }
 
   async function checkNotification(_id: string) {
@@ -48,14 +59,19 @@ const Notification = () => {
     return res;
   }
 
+  useInterval(() => {
+    getUpdatedNotifications().then((res) => {
+      if (res) {
+        audio.play().catch((e: any) => {
+          console.log(e);
+        });
+        setCurrentNotifications([...res]);
+      }
+    });
+  }, 5000);
+
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-
-    console.log(
-      "currentNotifications: ",
-      currentNotifications ? currentNotifications : ""
-    );
-
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
     };

@@ -1,6 +1,6 @@
 const _ = require("lodash");
 const { TestData } = require("../models");
-
+const client = require("../caches/redis");
 //_____________________________________________________________________________
 
 module.exports.createTestData = async (req, res) => {
@@ -72,8 +72,8 @@ module.exports.test1 = (req, res) => {
   });
 };
 
-module.exports.createRedis = (req, res) => {
-  client.set(req.body.key, req.body.value);
+module.exports.createRedis = async (req, res) => {
+  await client.set(req.body.key, req.body.value);
   return res.status(200).send({ success: true });
 };
 
@@ -82,7 +82,7 @@ module.exports.getRedis = (req, res) => {
     return res.status(200).send({ keys });
   });
 };
-module.exports.removeRedis = (req, res) => {
-  client.del(req.params.key);
+module.exports.removeRedis = async (req, res) => {
+  await client.del(req.params.key);
   return res.status(200).send({ success: true });
 };

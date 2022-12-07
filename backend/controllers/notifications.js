@@ -1,5 +1,6 @@
 const _ = require("lodash");
 const { Notification } = require("../models");
+const client = require("../caches/redis");
 
 module.exports.create = async (req, res) => {
   try {
@@ -9,6 +10,12 @@ module.exports.create = async (req, res) => {
       from: req.user.userId,
     });
     await notification.save();
+
+    await client.set(
+      `isReceivedNotifications/${req.user.academyId}/${req.body.to}`,
+      "true"
+    );
+
     return res.status(200).send(notification);
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -20,6 +27,11 @@ module.exports.find = async (req, res) => {
     const notifications = await Notification(req.user.academyId).find(
       req.query
     );
+
+    await client.del(
+      `isReceivedNotifications/${req.user.academyId}/${req.query.to}`
+    );
+
     return res.status(200).send({ notifications });
   } catch (err) {
     return res.status(500).send({ message: err.message });
