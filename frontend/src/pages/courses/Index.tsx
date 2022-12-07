@@ -53,8 +53,6 @@ const Course = (props: Props) => {
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
-  const [createdCourseList, setCreatedCourseList] = useState<any[]>([]);
-  const [mentoringCourseList, setMentoringCourseList] = useState<any[]>([]);
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
 
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
@@ -64,69 +62,33 @@ const Course = (props: Props) => {
     []
   );
 
-  async function getCreatedCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&userId=${currentUser?.userId}`,
-    });
-    if (syllabuses.length === 0) return [];
-
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id]}/${syllabus.limit}`;
-    }
-
-    return syllabuses;
-  }
-
-  async function getMentoringCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&teacherId=${currentUser?.userId}`,
-    });
-    if (syllabuses.length === 0) return [];
-
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id]}/${syllabus.limit}`;
-    }
-    return syllabuses;
-  }
-
   async function getEnrolledCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
+    const { enrollments: myEnrollments } = await database.R({
+      location: `enrollments?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
     });
-    if (syllabuses.length === 0) return [];
+    if (myEnrollments.length === 0) return [];
 
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
+    const { enrollments: sylEnrollments } = await database.R({
+      location: `enrollments?syllabuses=${_.join(
+        myEnrollments.map((e: any) => e.syllabus),
+        ","
+      )}`,
+    });
+    const cnt = _.countBy(
+      sylEnrollments.map((enrollment: any) => enrollment.syllabus)
     );
 
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
-    }
+    // enrollments to syllabus
+    const syllabuses = myEnrollments.map((e: any) => {
+      return {
+        ...e,
+        enrollment: e._id,
+        _id: e.syllabus,
+        count_limit: `${cnt[e.syllabus] || 0}/${e.limit}`,
+      };
+    });
 
     return syllabuses;
-  }
-
-  async function getCourseList() {
-    const [createdCourseList, mentoringCourseList, enrolledCourseList] =
-      await Promise.all([
-        getCreatedCourseList(),
-        getMentoringCourseList(),
-        getEnrolledCourseList(),
-      ]);
-
-    return {
-      createdCourseList,
-      mentoringCourseList,
-      enrolledCourseList,
-    };
   }
 
   const labelling = (courseList: any[]) => {
@@ -225,10 +187,8 @@ const Course = (props: Props) => {
     if (!currentRegistration) {
       setAlertPopupActive(true);
     } else {
-      getCourseList().then((res: any) => {
-        setCreatedCourseList(labelling(res["createdCourseList"]));
-        setMentoringCourseList(labelling(res["mentoringCourseList"]));
-        setEnrolledCourseList(labelling(res["enrolledCourseList"]));
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(labelling(res));
       });
       setSubjectLabelHeaderList([
         ...currentSeason?.subjects?.label.map((label: string) => {
@@ -262,7 +222,7 @@ const Course = (props: Props) => {
   return (
     <>
       <Navbar />
-
+      <a href="mailto:superman@test.com">메일보내기</a>
       <div className={style.section}>
         <div className={style.title}>시간표</div>
         <div style={{ height: "24px" }}></div>
