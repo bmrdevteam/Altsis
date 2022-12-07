@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const user = require("../controllers/user");
+const user = require("../controllers/users");
 const {
   isLoggedIn,
   isAdManager,
   forceNotLoggedIn,
 } = require("../middleware/auth");
-const profile = require("../controllers/profile");
+const profile = require("../controllers/profiles");
 
 //=================================
 //             User

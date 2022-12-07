@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const enrollment = require("../controllers/enrollment");
+const enrollment = require("../controllers/enrollments");
 const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
 
 //=================================

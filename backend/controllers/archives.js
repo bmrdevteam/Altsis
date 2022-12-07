@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const { Archive, School, User } = require("../models/models");
+const { Archive, School, User } = require("../models");
 
 /* create */
 module.exports.create = async (req, res) => {

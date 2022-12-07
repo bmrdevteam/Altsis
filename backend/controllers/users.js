@@ -1,6 +1,6 @@
 const passport = require("passport");
 const _ = require("lodash");
-const { User, Academy, Registration } = require("../models/models");
+const { User, Academy, Registration } = require("../models");
 const { getPayload } = require("../utils/payload");
 const School = require("../models/School");
 

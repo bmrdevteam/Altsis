@@ -1,9 +1,4 @@
-const {
-  Season,
-  Registration,
-  Syllabus,
-  Enrollment,
-} = require("../models/models");
+const { Season, Registration, Syllabus, Enrollment } = require("../models");
 const _ = require("lodash");
 
 const getUnavailableTimeLabels = async (academyId, syllabus) => {

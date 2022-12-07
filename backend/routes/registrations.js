@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const registration = require("../controllers/registration");
+const registration = require("../controllers/registrations");
 const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================
