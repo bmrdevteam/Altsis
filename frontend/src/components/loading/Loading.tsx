@@ -1,6 +1,6 @@
 /**
  * @file Loading Component
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -24,18 +24,25 @@
  * NOTES
  *
  */
+import React from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./loading.module.scss";
 /**
  * Loading Component
- * 
+ *
  * displays a loading screen while preparing components
- * 
+ *
  * @returns Loading Component
  */
-const Loading = () => {
+const Loading = (props: {
+  coverScreen?: boolean;
+  height?: React.CSSProperties["height"];
+}) => {
   return (
-    <div className={style.loading}>
+    <div
+      style={{ height: props.height }}
+      className={`${style.loading} ${props.coverScreen && style.cover_screen}`}
+    >
       <div className={style.icon}>
         <Svg type={"loading"} width={"48px"} height={"48px"} />
       </div>
