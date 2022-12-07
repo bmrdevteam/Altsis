@@ -9,4 +9,5 @@ module.exports = {
   seasons: require("./seasons"),
   archives: require("./archives"),
   test: require("./test"),
+  notifications: require("./notifications"),
 };
