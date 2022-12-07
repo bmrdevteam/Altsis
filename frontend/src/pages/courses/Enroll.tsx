@@ -52,7 +52,12 @@ const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const { currentSeason, currentUser, currentRegistration } = useAuth();
+  const {
+    currentSeason,
+    currentUser,
+    currentRegistration,
+    changeCurrentSeason,
+  } = useAuth();
 
   const [courseTitle, setCourseTitle] = useState<string>("");
 
@@ -60,6 +65,7 @@ const CourseEnroll = (props: Props) => {
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
 
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
+  const [alertMessage, setAlertMessage] = useState<string>("");
 
   /* subject label header list */
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
@@ -84,18 +90,30 @@ const CourseEnroll = (props: Props) => {
   }
 
   async function getEnrolledCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
+    const { enrollments: myEnrollments } = await database.R({
+      location: `enrollments?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
     });
-    if (syllabuses.length === 0) return [];
+    if (myEnrollments.length === 0) return [];
 
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
+    const { enrollments: sylEnrollments } = await database.R({
+      location: `enrollments?syllabuses=${_.join(
+        myEnrollments.map((e: any) => e.syllabus),
+        ","
+      )}`,
+    });
+    const cnt = _.countBy(
+      sylEnrollments.map((enrollment: any) => enrollment.syllabus)
     );
 
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
-    }
+    // enrollments to syllabus
+    const syllabuses = myEnrollments.map((e: any) => {
+      return {
+        ...e,
+        enrollment: e._id,
+        _id: e.syllabus,
+        count_limit: `${cnt[e.syllabus] || 0}/${e.limit}`,
+      };
+    });
 
     return syllabuses;
   }
@@ -122,10 +140,28 @@ const CourseEnroll = (props: Props) => {
 
   async function cancle(e: any) {
     const res = database.D({
-      location: `enrollments?syllabus=${e._id}&studentId=${currentUser.userId}`,
+      location: `enrollments/${e.enrollment}`,
     });
     return res;
   }
+
+  const checkPermission = () => {
+    const permission = currentSeason.permissionEnrollment;
+    for (let i = 0; i < permission.length; i++) {
+      if (
+        permission[i][0] === "userId" &&
+        permission[i][1] === currentUser.userId
+      ) {
+        return permission[i][2];
+      }
+      if (
+        permission[i][0] === "role" &&
+        permission[i][1] === currentRegistration.role
+      )
+        return permission[i][2];
+    }
+    return false;
+  };
 
   const subjectHeaderList = [
     {
@@ -198,7 +234,12 @@ const CourseEnroll = (props: Props) => {
   ];
 
   useEffect(() => {
+    changeCurrentSeason(currentRegistration);
     if (!currentRegistration) {
+      setAlertMessage("등록된 학기가 없습니다.");
+      setAlertPopupActive(true);
+    } else if (!checkPermission()) {
+      setAlertMessage("수강신청 권한이 없습니다.");
       setAlertPopupActive(true);
     } else {
       setSubjectLabelHeaderList([
@@ -342,15 +383,15 @@ const CourseEnroll = (props: Props) => {
       </div>
 
       {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
-          <div style={{ marginTop: "12px" }}>
+        <Popup setState={setAlertPopupActive} title={alertMessage}>
+          <div style={{ marginTop: "24px" }}>
             <Button
               type="ghost"
               onClick={() => {
-                navigate("/");
+                setAlertPopupActive(false);
               }}
             >
-              메인 화면으로 돌아가기
+              확인
             </Button>
           </div>
         </Popup>
