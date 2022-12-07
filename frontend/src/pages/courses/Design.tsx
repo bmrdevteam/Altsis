@@ -90,10 +90,10 @@ const CourseDesign = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                navigate("/");
+                setAlertPopupActive(false);
               }}
             >
-              메인 화면으로 돌아가기
+              확인
             </Button>
           </div>
         </Popup>
