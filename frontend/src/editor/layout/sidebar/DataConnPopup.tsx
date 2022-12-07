@@ -29,7 +29,33 @@ const DataConnPopup = (props: Props) => {
 
   const [schools, setSchools] = useState<any>();
   const [archiveData, setArchiveData] = useState<any>();
-  const [evaluationData, setEvaluationData] = useState<any>();
+  const evaluationData: string[] = [
+    "년도",
+    "학기",
+
+    "과목",
+    "교과",
+
+    "1쿼터/단위수",
+    "1쿼터/점수",
+    "1쿼터/평가",
+    "1쿼터/멘토 평가",
+
+    "2쿼터/단위수",
+    "2쿼터/점수",
+    "2쿼터/평가",
+    "2쿼터/멘토 평가",
+
+    "3쿼터/단위수",
+    "3쿼터/점수",
+    "3쿼터/평가",
+    "3쿼터/멘토 평가",
+
+    "4쿼터/단위수",
+    "4쿼터/점수",
+    "4쿼터/평가",
+    "4쿼터/멘토 평가",
+  ];
   const textareaRef = useRef<HTMLDivElement>(null);
 
   const repeat = useRef<any>({
@@ -53,6 +79,37 @@ const DataConnPopup = (props: Props) => {
       setSchools(res);
     });
   }, []);
+  function handleOnclick({
+    location,
+    label,
+  }: {
+    location: string;
+    label: string;
+  }) {
+    const textarea = document.getElementById("textarea");
+    const data = document.createElement("data");
+    data.contentEditable = "false";
+    data.innerText = label;
+    data.className = style.data;
+    // data.setAttribute("name", "DBData");
+    data.setAttribute("data-location", location);
+    try {
+      const selection = window.getSelection()?.getRangeAt(0);
+
+      if (
+        selection?.commonAncestorContainer.parentElement?.id ===
+        "textareaContainer"
+      ) {
+        selection?.insertNode(document.createTextNode(" "));
+        selection?.insertNode(data);
+      }
+    } catch {}
+
+    setTimeout(() => {
+      textareaRef.current?.blur();
+      window.getSelection()?.empty();
+    });
+  }
 
   return (
     <>
@@ -132,41 +189,9 @@ const DataConnPopup = (props: Props) => {
                                             key={`${school.schoolId}//archive//${archive.label}//${v.label}`}
                                             text={`${v.label} - ${v.type}`}
                                             onClick={() => {
-                                              const textarea =
-                                                document.getElementById(
-                                                  "textarea"
-                                                );
-                                              const data =
-                                                document.createElement("data");
-                                              data.contentEditable = "false";
-                                              data.innerText = `${v.label}`;
-                                              data.className = style.data;
-                                              // data.setAttribute("name", "DBData");
-                                              data.setAttribute(
-                                                "data-location",
-                                                `${school.schoolId}//archive//${archive.label}//${v.label}`
-                                              );
-                                              try {
-                                                const selection = window
-                                                  .getSelection()
-                                                  ?.getRangeAt(0);
-
-                                                if (
-                                                  selection
-                                                    ?.commonAncestorContainer
-                                                    .parentElement?.id ===
-                                                  "textareaContainer"
-                                                ) {
-                                                  selection?.insertNode(
-                                                    document.createTextNode(" ")
-                                                  );
-                                                  selection?.insertNode(data);
-                                                }
-                                              } catch {}
-
-                                              setTimeout(() => {
-                                                textareaRef.current?.blur();
-                                                window.getSelection()?.empty();
+                                              handleOnclick({
+                                                location: `${school.schoolId}//archive//${archive.label}//${v.label}`,
+                                                label: v.label,
                                               });
                                             }}
                                           />
@@ -178,7 +203,23 @@ const DataConnPopup = (props: Props) => {
                               }
                             )}
                           />,
-                          //   <TreeItem text="평가" />,
+                          <TreeItem
+                            text="평가"
+                            subItem={evaluationData.map((ev) => {
+                              return (
+                                <TreeItem
+                                  key={ev}
+                                  text={ev}
+                                  onClick={() => {
+                                    handleOnclick({
+                                      location: `${school.schoolId}//evaluation//${ev}`,
+                                      label: ev,
+                                    });
+                                  }}
+                                />
+                              );
+                            })}
+                          />,
                         ]}
                       />
                     );
@@ -252,7 +293,9 @@ const DataConnPopup = (props: Props) => {
                           repeat.current.by = e.target.value;
                         }}
                       >
-                        <option key={"none"} value="">없음</option>
+                        <option key={"none"} value="">
+                          없음
+                        </option>
                         {schools.map((s: any, i: number) => {
                           console.log(archiveData[s._id]);
                           return archiveData[s._id]?.map(
@@ -266,6 +309,17 @@ const DataConnPopup = (props: Props) => {
                                 </option>
                               );
                             }
+                          );
+                        })}
+
+                        {schools.map((s: any, i: number) => {
+                          return (
+                            <option
+                              key={`${s.schoolId}//evaluation`}
+                              value={`${s.schoolId}//evaluation`}
+                            >
+                              평가
+                            </option>
                           );
                         })}
                       </select>
