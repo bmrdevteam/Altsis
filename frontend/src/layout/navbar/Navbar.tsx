@@ -1,9 +1,3 @@
-import Select from "components/select/Select";
-import { useAuth } from "contexts/authContext";
-import React, { useEffect, useRef, useState } from "react";
-import Svg from "../../assets/svg/Svg";
-import style from "./navbar.module.scss";
-
 /**
  * notification component
  *
@@ -11,10 +5,27 @@ import style from "./navbar.module.scss";
  *
  * @example <Notification/>
  */
+
+import React, { useEffect, useRef, useState } from "react";
+import useDatabase from "hooks/useDatabase";
+import { useAuth } from "contexts/authContext";
+
+// components
+import Button from "components/button/Button";
+import Select from "components/select/Select";
+
+import Svg from "../../assets/svg/Svg";
+import style from "./navbar.module.scss";
+
+import _ from "lodash";
+
 const Notification = () => {
   /**
    * active state for notification contents
    */
+  const { currentNotifications, setCurrentNotifications } = useAuth();
+  const database = useDatabase();
+
   const [notificationContentActive, setNotificationContentActive] =
     useState(false);
 
@@ -28,12 +39,28 @@ const Notification = () => {
       setNotificationContentActive(false);
     }
   }
+
+  async function checkNotification(_id: string) {
+    const res = await database.U({
+      location: `notifications/${_id}/check`,
+      data: {},
+    });
+    return res;
+  }
+
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
+
+    console.log(
+      "currentNotifications: ",
+      currentNotifications ? currentNotifications : ""
+    );
+
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
     };
   }, []);
+
   return (
     <div className={style.notification} ref={notificationtRef}>
       <div
@@ -48,15 +75,46 @@ const Notification = () => {
       {notificationContentActive && (
         <div className={style.contents}>
           <div className={style.title}>알림</div>
-          <div className={style.item}>
-            <div className={style.description}>
-              <span className={style.type}>[수업]</span>
-              세계관의 기초 수업의 강의실이 변경 되었습니다
-            </div>
-            <div className={style.x}>
-              <Svg type={"x"} />
-            </div>
-          </div>
+          {_.sortBy(currentNotifications, "createdAt").map(
+            (notification: any) => {
+              return (
+                <div className={style.item} style={{ marginBottom: "12px" }}>
+                  <div className={style.description}>
+                    {notification.type && (
+                      <span className={style.type}>[{notification.type}]</span>
+                    )}
+                    {notification.message}
+                  </div>
+                  <Button
+                    type="ghost"
+                    onClick={(e: any) => {
+                      checkNotification(notification._id)
+                        .then(() => {
+                          currentNotifications.splice(
+                            _.findIndex(
+                              currentNotifications,
+                              (x: any) => x._id === notification._id
+                            ),
+                            1
+                          );
+
+                          setCurrentNotifications([...currentNotifications]);
+                        })
+                        .catch((err) => {
+                          alert(err.response.data.message);
+                        });
+                    }}
+                    style={{
+                      border: 0,
+                      color: "gray",
+                    }}
+                  >
+                    x
+                  </Button>
+                </div>
+              );
+            }
+          )}
         </div>
       )}
     </div>

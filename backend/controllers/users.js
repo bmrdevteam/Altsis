@@ -1,6 +1,12 @@
 const passport = require("passport");
 const _ = require("lodash");
-const { User, Academy, Registration, School } = require("../models");
+const {
+  User,
+  Academy,
+  Registration,
+  School,
+  Notification,
+} = require("../models");
 const { getPayload } = require("../utils/payload");
 
 // ____________ common ____________
@@ -178,7 +184,15 @@ module.exports.current = async (req, res) => {
         "role",
       ]);
 
-    return res.status(200).send({ ...user.toObject(), registrations });
+    // notifications
+    const notifications = await Notification(user.academyId).find({
+      userId: user.userId,
+      checked: false,
+    });
+
+    return res
+      .status(200)
+      .send({ ...user.toObject(), registrations, notifications });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
