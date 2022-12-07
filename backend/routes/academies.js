@@ -2,11 +2,11 @@ const express = require("express");
 const router = express.Router();
 const { isOwner } = require("../middleware/auth");
 
-const academy = require("../controllers/academies");
-const user = require("../controllers/users");
-const school = require("../controllers/schools");
-const season = require("../controllers/seasons");
-const registration = require("../controllers/registrations");
+const academies = require("../controllers/academies");
+const users = require("../controllers/users");
+const schools = require("../controllers/schools");
+const seasons = require("../controllers/seasons");
+const registrations = require("../controllers/registrations");
 
 //=================================
 //             Academy
