@@ -46,7 +46,7 @@ const Notification = () => {
 
   async function getUpdatedNotifications() {
     const { notifications } = await database.R({
-      location: `notifications?to=hi0123&checked=false`,
+      location: `notifications?toUserId=hi0123&checked=false&updated=true`,
     });
     return notifications;
   }
@@ -131,6 +131,19 @@ const Notification = () => {
               );
             }
           )}
+
+          <Button
+            type="ghost"
+            onClick={(e: any) => {
+              alert("hi");
+            }}
+            style={{
+              border: 0,
+              color: "gray",
+            }}
+          >
+            모두보기
+          </Button>
         </div>
       )}
     </div>

@@ -3,11 +3,19 @@ const { conn } = require("../databases/connection");
 
 const notificationSchema = mongoose.Schema(
   {
-    from: {
+    fromUserId: {
       type: String,
       required: true,
     },
-    to: {
+    fromUserName: {
+      type: String,
+      required: true,
+    },
+    toUserId: {
+      type: String,
+      required: true,
+    },
+    toUserName: {
       type: String,
       required: true,
     },
