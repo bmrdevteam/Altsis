@@ -57,6 +57,9 @@ import CourseList from "pages/courses/List";
 import CourseMyList from "pages/courses/MyList";
 import CourseMentoring from "pages/courses/Mentoring";
 
+// notification pages
+import Notifications from "pages/notifications/Index";
+
 //error pages
 import Http404 from "../pages/error/404";
 
@@ -320,6 +323,15 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <CoursePid />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="notifications"
+                element={
+                  <RequireAuth>
+                    <Notifications />
                   </RequireAuth>
                 }
               ></Route>

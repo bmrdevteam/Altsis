@@ -4,19 +4,33 @@ const client = require("../caches/redis");
 
 module.exports.create = async (req, res) => {
   try {
-    const _Notification = Notification(req.user.academyId);
-    const notification = new _Notification({
-      ...req.body,
-      from: req.user.userId,
-    });
-    await notification.save();
+    const base = {
+      fromUserId: req.user.userId,
+      fromUserName: req.user.userName,
+      type: req.body.type,
+      message: req.body.message,
+    };
 
-    await client.set(
-      `isReceivedNotifications/${req.user.academyId}/${req.body.to}`,
-      "true"
+    const notifications = req.body.toUsers.map((toUser) => {
+      return {
+        ...base,
+        toUserId: toUser.userId,
+        toUserName: toUser.userName,
+      };
+    });
+
+    const newNotifications = await Notification(req.user.academyId).insertMany(
+      notifications
     );
 
-    return res.status(200).send(notification);
+    for (let notification of newNotifications) {
+      await client.set(
+        `isReceivedNotifications/${req.user.academyId}/${notification.toUserId}`,
+        "true"
+      );
+    }
+
+    return res.status(200).send({ notifications: newNotifications });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -29,7 +43,7 @@ module.exports.find = async (req, res) => {
     );
 
     await client.del(
-      `isReceivedNotifications/${req.user.academyId}/${req.query.to}`
+      `isReceivedNotifications/${req.user.academyId}/${req.query.toUserId}`
     );
 
     return res.status(200).send({ notifications });
