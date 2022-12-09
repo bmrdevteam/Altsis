@@ -26,54 +26,54 @@
  * @version 1.0
  *
  */
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/enrollment.module.scss";
 
-// navigation bar
-import Navbar from "layout/navbar/Navbar";
-
 // components
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
 import Button from "components/button/Button";
 import Textarea from "components/textarea/Textarea";
 import Autofill from "components/input/Autofill";
-import Select from "components/select/Select";
 
 import _ from "lodash";
 import Input from "components/input/Input";
 
+import Mailbox from "../components/mailbox";
+
 type Props = {};
 
-const Courses = (props: Props) => {
+const Sent = (props: Props) => {
   const database = useDatabase();
 
   const { currentUser, currentRegistration } = useAuth();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
+  const [pageInfo, setPageInfo] = useState<any>({
+    requestPage: 1,
+    requestSize: 10,
+  });
 
   const [isRegistratinoListLoaded, setIsRegistrationLoaded] =
     useState<boolean>(false);
   const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
   const [receiverSelectedList, setReceiverSelectedList] = useState<any>();
 
-  const [message, setMessage] = useState<string>("");
-  const [type, setType] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
+  const [category, setCategory] = useState<string>("");
 
   const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   async function getNotificationList() {
-    const { notifications } = await database.R({
-      location: `notifications?fromUserId=${currentUser?.userId}`,
+    const { notifications, page } = await database.R({
+      location: `notifications?type=sent&userId=${currentUser?.userId}&page=${pageInfo.requestPage}&size=${pageInfo.requestSize}`,
     });
 
-    return notifications;
+    return { notifications, page };
   }
 
   async function getRegistrationList() {
@@ -88,14 +88,21 @@ const Courses = (props: Props) => {
     const res = await database.C({
       location: `notifications`,
       data: {
-        toUsers: Object.keys(receiverSelectedList).map((receiver: any) =>
+        toUserList: Object.keys(receiverSelectedList).map((receiver: any) =>
           JSON.parse(receiver)
         ),
-        type,
-        message,
+        category,
+        title,
       },
     });
 
+    return res;
+  }
+
+  async function deleteNotifications(ids: string[]) {
+    const res = await database.D({
+      location: `notifications/${_.join(ids, "&")}`,
+    });
     return res;
   }
 
@@ -103,13 +110,20 @@ const Courses = (props: Props) => {
     if (isLoading) {
       getNotificationList().then((res: any) => {
         setNotificationList(
-          res.map((notification: any) => {
+          res.notifications.map((notification: any) => {
             return {
               ...notification,
-              toUser: `${notification.toUserName}(${notification.toUserId})`,
+              toUser: `${notification.toUserList[0].userName}(${
+                notification.toUserList[0].userId
+              })${
+                notification.toUserList.length === 1
+                  ? ""
+                  : `외 ${notification.toUserList.length - 1}명`
+              }`,
             };
           })
         );
+        setPageInfo(res.page);
       });
       setIsLoading(false);
     }
@@ -147,7 +161,7 @@ const Courses = (props: Props) => {
               });
             }
             setReceiverSelectedList({});
-            setMessage("");
+            setTitle("");
             setSendPopupActive(true);
           }}
         >
@@ -155,33 +169,13 @@ const Courses = (props: Props) => {
         </Button>
       </div>
       <div className={style.section}>
-        <Table
-          filter
-          type="object-array"
+        <Mailbox
+          type="sent"
           data={notificationList}
-          header={[
-            {
-              text: "받은사람",
-              key: "toUser",
-              type: "string",
-            },
-            {
-              text: "구분",
-              key: "type",
-              type: "string",
-            },
-            {
-              text: "내용",
-              key: "message",
-              type: "string",
-            },
-            {
-              text: "날짜",
-              key: "createdAt",
-              type: "date",
-            },
-          ]}
-          style={{ bodyHeight: "calc(100vh - 300px)" }}
+          pageInfo={pageInfo}
+          deleteNotifications={deleteNotifications}
+          setIsLoading={setIsLoading}
+          setPageInfo={setPageInfo}
         />
       </div>
       {sendPopupActive && (
@@ -252,7 +246,7 @@ const Courses = (props: Props) => {
               <Input
                 label="타입"
                 onChange={(e: any) => {
-                  setType(e.target.value);
+                  setCategory(e.target.value);
                 }}
               />
             </div>
@@ -267,7 +261,7 @@ const Courses = (props: Props) => {
               <Textarea
                 label="메시지"
                 onChange={(e: any) => {
-                  setMessage(e.target.value);
+                  setTitle(e.target.value);
                 }}
               />
             </div>
@@ -279,7 +273,7 @@ const Courses = (props: Props) => {
                 console.log("receiverSelectedList: ", receiverSelectedList);
                 if (_.isEmpty(receiverSelectedList)) {
                   alert("받는사람을 한 명 이상 지정해야 합니다.");
-                } else if (message === "") {
+                } else if (title === "") {
                   alert("메시지 없이 메일을 보낼 수 없습니다.");
                 } else {
                   sendNotifications()
@@ -297,9 +291,8 @@ const Courses = (props: Props) => {
           </div>
         </Popup>
       )}
-      \
     </>
   );
 };
 
-export default Courses;
+export default Sent;

@@ -33,98 +33,74 @@ import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/enrollment.module.scss";
 
-// navigation bar
-import Navbar from "layout/navbar/Navbar";
-
 // components
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
 import Button from "components/button/Button";
 
 import _ from "lodash";
 
+import Mailbox from "../components/mailbox";
+
 type Props = {};
 
-const Courses = (props: Props) => {
+const Inbox = (props: Props) => {
   const database = useDatabase();
-  const navigate = useNavigate();
 
-  const { currentSeason, currentUser } = useAuth();
+  const { currentUser } = useAuth();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
-
-  const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
+  const [pageInfo, setPageInfo] = useState<any>({
+    requestPage: 1,
+    requestSize: 10,
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   async function getNotificationList() {
-    const { notifications } = await database.R({
-      location: `notifications?toUserId=${currentUser?.userId}`,
+    const { notifications, page } = await database.R({
+      location: `notifications?type=received&userId=${currentUser.userId}&page=${pageInfo.requestPage}&size=${pageInfo.requestSize}`,
     });
 
-    return notifications;
+    return { notifications, page };
+  }
+
+  async function deleteNotifications(ids: string[]) {
+    const res = await database.D({
+      location: `notifications/${_.join(ids, "&")}`,
+    });
+    return res;
   }
 
   useEffect(() => {
-    getNotificationList().then((res: any) => {
-      setNotificationList(
-        res.map((notification: any) => {
-          return {
-            ...notification,
-            fromUser: `${notification.fromUserName}(${notification.fromUserId})`,
-          };
-        })
-      );
-    });
-  }, []);
+    if (isLoading) {
+      getNotificationList().then((res: any) => {
+        setNotificationList(
+          res.notifications.map((notification: any) => {
+            return {
+              ...notification,
+              fromUser: `${notification.fromUserName}(${notification.fromUserId})`,
+            };
+          })
+        );
+        setPageInfo(res.page);
+      });
+      setIsLoading(false);
+    }
+  }, [isLoading]);
 
-  return (
-    <>
-      <div className={style.section}>
-        <Table
-          filter
-          type="object-array"
-          data={notificationList}
-          header={[
-            {
-              text: "보낸사람",
-              key: "fromUser",
-              type: "string",
-            },
-            {
-              text: "구분",
-              key: "type",
-              type: "string",
-            },
-            {
-              text: "내용",
-              key: "message",
-              type: "string",
-            },
-            {
-              text: "날짜",
-              key: "createdAt",
-              type: "date",
-            },
-          ]}
-          style={{ bodyHeight: "calc(100vh - 300px)" }}
-        />
-      </div>
-
-      {sendPopupActive && (
-        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
-          <div style={{ marginTop: "12px" }}>
-            <Button
-              type="ghost"
-              onClick={() => {
-                navigate("/");
-              }}
-            >
-              메인 화면으로 돌아가기
-            </Button>
-          </div>
-        </Popup>
-      )}
-    </>
+  return !isLoading ? (
+    <div className={style.section}>
+      <Mailbox
+        type="received"
+        data={notificationList}
+        pageInfo={pageInfo}
+        setPageInfo={setPageInfo}
+        deleteNotifications={deleteNotifications}
+        setIsLoading={setIsLoading}
+      />
+    </div>
+  ) : (
+    <></>
   );
 };
 
-export default Courses;
+export default Inbox;

@@ -26,7 +26,8 @@ const Notification = () => {
   /**
    * active state for notification contents
    */
-  const { currentNotifications, setCurrentNotifications } = useAuth();
+  const { currentUser, currentNotifications, setCurrentNotifications } =
+    useAuth();
   const database = useDatabase();
 
   const [notificationContentActive, setNotificationContentActive] =
@@ -46,7 +47,7 @@ const Notification = () => {
 
   async function getUpdatedNotifications() {
     const { notifications } = await database.R({
-      location: `notifications?toUserId=hi0123&checked=false&updated=true`,
+      location: `notifications?type=received&userId=${currentUser.userId}&checked=false&updated=true`,
     });
     return notifications;
   }
@@ -96,10 +97,12 @@ const Notification = () => {
               return (
                 <div className={style.item} style={{ marginBottom: "12px" }}>
                   <div className={style.description}>
-                    {notification.type && (
-                      <span className={style.type}>[{notification.type}]</span>
+                    {notification.category && (
+                      <span className={style.type}>
+                        [{notification.category}]
+                      </span>
                     )}
-                    {notification.message}
+                    {notification.title}
                   </div>
                   <Button
                     type="ghost"
