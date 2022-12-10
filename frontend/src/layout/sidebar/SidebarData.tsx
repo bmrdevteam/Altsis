@@ -1,4 +1,5 @@
 import { archiveTestData } from "archiveTest";
+import { apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 
 export interface INavLink {
@@ -136,6 +137,20 @@ export const SidebarData = (auth: string, role?: string): any => {
           }),
         },
         {
+          title: "apps",
+          name: "앱",
+          path: "/apps",
+          icon: <Svg type="app_menu" />,
+          subLink: [
+            {
+              title: "classroom",
+              name: "강의실",
+              path: "/apps/classroom",
+              icon: <Svg type="app" />,
+            },
+          ],
+        },
+        {
           title: "admin",
           name: "관리자",
           path: "/admin",
@@ -167,12 +182,12 @@ export const SidebarData = (auth: string, role?: string): any => {
             },
           ],
         },
-        {
-          title: "myaccount",
-          name: "내 정보",
-          path: "/myaccount",
-          icon: <Svg type="gear" />,
-        },
+        // {
+        //   title: "myaccount",
+        //   name: "내 정보",
+        //   path: "/myaccount",
+        //   icon: <Svg type="gear" />,
+        // },
         {
           title: "settings",
           name: "설정",
@@ -255,12 +270,12 @@ export const SidebarData = (auth: string, role?: string): any => {
                   },
                 ],
         },
-        {
-          title: "myaccount",
-          name: "내 정보",
-          path: "/myaccount",
-          icon: <Svg type="gear" />,
-        },
+        // {
+        //   title: "myaccount",
+        //   name: "내 정보",
+        //   path: "/myaccount",
+        //   icon: <Svg type="gear" />,
+        // },
         {
           title: "settings",
           name: "설정",
