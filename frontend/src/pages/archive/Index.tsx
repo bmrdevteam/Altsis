@@ -58,9 +58,12 @@ const Archive = (props: Props) => {
       if (_.findIndex(processedEvaluationByYear, ["id", IdByYear]) === -1) {
         processedEvaluationByYear.push({
           id: IdByYear,
+          학년: evaluation.studentGrade,
           년도: evaluation.year,
           교과: evaluation?.subject[0],
           과목: evaluation?.subject[1],
+          //만약 1년 단위로 합치고있다면-...-
+          "세부능력 및 특기사항": evaluation.evaluation["멘토평가"],
           [`${evaluation.term}/단위수`]: evaluation?.point,
           [`${evaluation.term}/멘토 평가`]: evaluation.evaluation["멘토평가"],
           [`${evaluation.term}/점수`]: evaluation.evaluation["점수"],
@@ -86,9 +89,6 @@ const Archive = (props: Props) => {
         );
       }
     }
-    console.log(evaluations);
-    console.log(processedEvaluation);
-    console.log(_.orderBy(processedEvaluationByYear, "년도"));
     return {
       [currentSchool.schoolId]: {
         archive: archive.data,
