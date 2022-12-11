@@ -6,6 +6,7 @@
     left: 0;
     z-index: 1;
     background-color: var(--background-color);
+    color: var(--accent-1)
 }
 
 .header_container {
@@ -28,6 +29,9 @@
             flex: 1 1 0;
 
             input {
+                color: var(--accent-1);
+                background-color: var(--background-color);
+                outline: none;
                 font-size: 16px;
                 font-weight: 600;
                 border: none;
@@ -95,6 +99,13 @@
                 display: flex;
                 flex-direction: column;
 
+                label {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: var(--accent-3);
+
+                }
+
                 .options {
                     margin: 8px 0;
                     display: flex;
@@ -120,16 +131,11 @@
                     align-items: center;
                     justify-content: space-between;
 
-                    label {
-                        padding: 0 0 0 12px;
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: var(--accent-3);
-
-                    }
 
                     select {
                         height: 30px;
+                        color: var(--accent-1);
+
                         display: flex;
                         justify-content: center;
                         align-items: center;
@@ -145,6 +151,7 @@
 
                     input[type=text],
                     input[type=number] {
+                        color: var(--accent-1);
                         height: 30px;
                         flex: 1 1 0;
                         width: 100%;
@@ -158,6 +165,8 @@
                     }
 
                     input[type=time] {
+                        color: var(--accent-1);
+
                         outline: none;
                         height: 30px;
                         width: 100%;
@@ -172,6 +181,8 @@
                     }
 
                     input[type=color] {
+                        color: var(--accent-1);
+
                         height: 24px;
                         flex: 1 1 0;
                         background-color: var(--background-color);
@@ -364,7 +375,12 @@
     }
 }
 
+.content_container::-webkit-scrollbar {
+    display: none;
+}
+
 .content_container {
+    overflow-y: scroll;
     z-index: 0;
     background-color: var(--component-color);
     min-height: 100%;
@@ -494,6 +510,7 @@
 parsed block
 */
 .parsed_block {
+    color: var(--accent-1);
     font-size: 14px;
     padding: 6px;
     font-weight: 500;
