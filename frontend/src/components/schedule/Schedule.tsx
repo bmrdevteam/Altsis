@@ -188,6 +188,7 @@ const RowGrid = ({ day }: { day: string }) => {
 };
 function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
   const { setEvents } = useStore();
+  const today = new Date()
 
   useEffect(() => {
     defaultEvents && setEvents(defaultEvents);
@@ -207,7 +208,7 @@ function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
           <div>
             <Svg type={"chevronLeft"} width={"24px"} height={"24px"} />
           </div>
-          <div>2022/12/5</div>
+          <div>{}</div>
           <div>
             <Svg type={"chevronRight"} width={"24px"} height={"24px"} />
           </div>
