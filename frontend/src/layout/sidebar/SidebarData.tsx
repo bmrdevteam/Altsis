@@ -123,9 +123,9 @@ export const SidebarData = (auth: string, role?: string): any => {
         },
         {
           title: "archive",
-          name: "학생생활",
+          name: "기록",
           path: "/archive",
-          icon: <Svg type="bookOpen" />,
+          icon: <Svg type="edit" />,
           subLink: archiveTestData.map((val) => {
             return {
               title: val.label,
