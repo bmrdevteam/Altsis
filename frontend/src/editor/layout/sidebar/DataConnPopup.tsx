@@ -29,50 +29,45 @@ const DataConnPopup = (props: Props) => {
 
   const [schools, setSchools] = useState<any>();
   const [archiveData, setArchiveData] = useState<any>();
-  const evaluationData: string[] = [
-    "년도",
-    "학기",
+  const [seasonData, setSeasonData] = useState<any>();
+  function seasonName(schoolId: string) {
+    if (seasonData) {
+      console.log(seasonData?.[schoolId]);
 
-    "과목",
-    "교과",
+      let result: string[] = [];
+      seasonData?.[schoolId]?.map((season: any) => {
+        if (result.includes(season.term)) {
+        } else {
+          result.push(season.term);
+        }
+      });
 
-    "1쿼터/단위수",
-    "1쿼터/점수",
-    "1쿼터/평가",
-    "1쿼터/멘토 평가",
-
-    "2쿼터/단위수",
-    "2쿼터/점수",
-    "2쿼터/평가",
-    "2쿼터/멘토 평가",
-
-    "3쿼터/단위수",
-    "3쿼터/점수",
-    "3쿼터/평가",
-    "3쿼터/멘토 평가",
-
-    "4쿼터/단위수",
-    "4쿼터/점수",
-    "4쿼터/평가",
-    "4쿼터/멘토 평가",
-  ];
+      return result;
+    }
+    return [];
+  }
   const textareaRef = useRef<HTMLDivElement>(null);
 
   const repeat = useRef<any>({
     by: getCurrentBlock()?.data?.dataRepeat?.by ?? "",
     index: getCurrentBlock()?.data?.dataRepeat?.index ?? "",
+    filterBy: getCurrentBlock()?.data?.dataRepeat?.filterBy ?? "",
+    filterValue: getCurrentBlock()?.data?.dataRepeat?.filterValue ?? "",
   });
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
 
   useEffect(() => {
     getSchools().then((res) => {
-      console.log(res);
       res.map((val: any) => {
         database.R({ location: `schools/${val._id}` }).then((v) => {
           setArchiveData((prev: any) => ({
             ...prev,
             [val._id]: v.formArchive,
+          }));
+          setSeasonData((prev: any) => ({
+            ...prev,
+            [val._id]: v.seasons,
           }));
         });
       });
@@ -205,20 +200,126 @@ const DataConnPopup = (props: Props) => {
                           />,
                           <TreeItem
                             text="평가"
-                            subItem={evaluationData.map((ev) => {
-                              return (
-                                <TreeItem
-                                  key={ev}
-                                  text={ev}
-                                  onClick={() => {
-                                    handleOnclick({
-                                      location: `${school.schoolId}//evaluation//${ev}`,
-                                      label: ev,
-                                    });
-                                  }}
-                                />
-                              );
-                            })}
+                            subItem={[
+                              <TreeItem
+                                key={"년도"}
+                                text={"년도"}
+                                onClick={() => {
+                                  handleOnclick({
+                                    location: `${
+                                      school.schoolId
+                                    }//evaluation//${"년도"}`,
+                                    label: "년도",
+                                  });
+                                }}
+                              />,
+                              <TreeItem
+                                key={"학기"}
+                                text={"학기"}
+                                onClick={() => {
+                                  handleOnclick({
+                                    location: `${
+                                      school.schoolId
+                                    }//evaluation//${"학기"}`,
+                                    label: "학기",
+                                  });
+                                }}
+                              />,
+                              <TreeItem
+                                key={"학년"}
+                                text={"학년"}
+                                onClick={() => {
+                                  handleOnclick({
+                                    location: `${
+                                      school.schoolId
+                                    }//evaluation//${"학년"}`,
+                                    label: "학년",
+                                  });
+                                }}
+                              />,
+                              <TreeItem
+                                key={"과목"}
+                                text={"과목"}
+                                onClick={() => {
+                                  handleOnclick({
+                                    location: `${
+                                      school.schoolId
+                                    }//evaluation//${"과목"}`,
+                                    label: "과목",
+                                  });
+                                }}
+                              />,
+                              <TreeItem
+                                key={"세부능력 및 특기사항"}
+                                text={"세부능력 및 특기사항"}
+                                onClick={() => {
+                                  handleOnclick({
+                                    location: `${
+                                      school.schoolId
+                                    }//evaluation//${"세부능력 및 특기사항"}`,
+                                    label: "세부능력 및 특기사항",
+                                  });
+                                }}
+                              />,
+                              <TreeItem
+                                key={"교과"}
+                                text={"교과"}
+                                onClick={() => {
+                                  handleOnclick({
+                                    location: `${
+                                      school.schoolId
+                                    }//evaluation//${"교과"}`,
+                                    label: "교과",
+                                  });
+                                }}
+                              />,
+                              ...seasonName(school._id).map((ev) => {
+                                return (
+                                  <>
+                                    <TreeItem
+                                      key={`${ev}/단위수`}
+                                      text={`${ev}/단위수`}
+                                      onClick={() => {
+                                        handleOnclick({
+                                          location: `${school.schoolId}//evaluation//${ev}/단위수`,
+                                          label: `${ev}/단위수`,
+                                        });
+                                      }}
+                                    />
+                                    <TreeItem
+                                      key={`${ev}/평가`}
+                                      text={`${ev}/평가`}
+                                      onClick={() => {
+                                        handleOnclick({
+                                          location: `${school.schoolId}//evaluation//${ev}/평가`,
+                                          label: `${ev}/평가`,
+                                        });
+                                      }}
+                                    />
+                                    <TreeItem
+                                      key={`${ev}/점수`}
+                                      text={`${ev}/점수`}
+                                      onClick={() => {
+                                        handleOnclick({
+                                          location: `${school.schoolId}//evaluation//${ev}/점수`,
+                                          label: `${ev}/점수`,
+                                        });
+                                      }}
+                                    />
+                                    <TreeItem
+                                      key={`${ev}/멘토 평가`}
+                                      text={`${ev}/멘토 평가`}
+                                      onClick={() => {
+                                        handleOnclick({
+                                          location: `${school.schoolId}//evaluation//${ev}/멘토 평가`,
+                                          label: `${ev}/멘토 평가`,
+                                        });
+                                      }}
+                                    />
+                                  </>
+                                );
+                              }),
+                            ]}
                           />,
                         ]}
                       />
@@ -347,6 +448,24 @@ const DataConnPopup = (props: Props) => {
                           }
                         )}
                       </select>
+                    </div>
+                    <div className={style.item}>
+                      <label>테이블 반복 필터</label>
+                      <input
+                        type="text"
+                        defaultValue={repeat.current.filterBy}
+                        onChange={(e) => {
+                          repeat.current.filterBy = e.target.value;
+                        }}
+                      />
+                      <div>=</div>
+                      <input
+                        type="text"
+                        defaultValue={repeat.current.filterValue}
+                        onChange={(e) => {
+                          repeat.current.filterValue = e.target.value;
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
