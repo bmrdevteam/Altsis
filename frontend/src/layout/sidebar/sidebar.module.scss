@@ -6,7 +6,7 @@
 
     }
 
-    100% {
+    20% {
 
         opacity: 1;
         display: block;
@@ -256,7 +256,7 @@
             .sub_links {
                 max-height: 100vh;
                 display: block;
-                transition: max-height 1s linear;
+                transition: max-height .5s linear;
 
                 .sub_link_container {
                     height: auto;
