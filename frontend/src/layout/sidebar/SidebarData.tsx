@@ -1,4 +1,6 @@
 import { archiveTestData } from "archiveTest";
+import useDatabase from "hooks/useDatabase";
+import { useEffect, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 
 export interface INavLink {
@@ -16,6 +18,12 @@ interface INavSubLink {
   icon: JSX.Element;
 }
 export const SidebarData = (auth: string, role?: string): any => {
+  const database = useDatabase()
+  const [archiveData, setArchiveData] = useState<any>();
+  useEffect(() => {
+    database.R({location:"a"})
+  }, []);
+
   switch (auth) {
     case "owner":
       return [
@@ -126,7 +134,7 @@ export const SidebarData = (auth: string, role?: string): any => {
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          subLink: archiveTestData.map((val) => {
+          subLink: archiveTestData.map((val, index) => {
             return {
               title: val.label,
               name: val.label,
@@ -134,6 +142,19 @@ export const SidebarData = (auth: string, role?: string): any => {
               icon: <Svg type="file" />,
             };
           }),
+        },
+
+        {
+          title: "myaccount",
+          name: "내 정보",
+          path: "/myaccount",
+          icon: <Svg type="gear" />,
+        },
+        {
+          title: "settings",
+          name: "설정",
+          path: "/settings",
+          icon: <Svg type="gear" />,
         },
         {
           title: "admin",
@@ -159,25 +180,7 @@ export const SidebarData = (auth: string, role?: string): any => {
               path: "/admin/users",
               icon: <Svg type="file" />,
             },
-            {
-              title: "list",
-              name: "리스트",
-              path: "/admin/lists",
-              icon: <Svg type="file" />,
-            },
           ],
-        },
-        {
-          title: "myaccount",
-          name: "내 정보",
-          path: "/myaccount",
-          icon: <Svg type="gear" />,
-        },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
         },
       ];
 
