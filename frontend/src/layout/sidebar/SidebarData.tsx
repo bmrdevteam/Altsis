@@ -20,10 +20,10 @@ export const SidebarData = (auth: string, role?: string): any => {
     case "owner":
       return [
         {
-          title: "dashboard",
-          name: " 대시보드",
+          title: "schedule",
+          name: "일정",
           path: "/",
-          icon: <Svg type="school" />,
+          icon: <Svg type="calender" />,
         },
         {
           title: "owner",
