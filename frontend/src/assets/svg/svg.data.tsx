@@ -83,6 +83,8 @@ export const svgData = {
   verticalDots: (
     <path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
   ),
+  horizontalBoxs: <path d="M10 10h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4z"></path>,
+  verticalBoxs: <path d="M10 10h4v4h-4zm0-6h4v4h-4zm0 12h4v4h-4z"></path>,
   checkbox: (
     <path d="M7 5c-1.103 0-2 .897-2 2v10c0 1.103.897 2 2 2h10c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2H7zm0 12V7h10l.002 10H7z"></path>
   ),
