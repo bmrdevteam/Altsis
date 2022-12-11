@@ -23,6 +23,7 @@ export function useAuth(): {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const database = useDatabase();
   const [currentUser, setCurrentUser] = useState<any>(null);
+
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [registrations, setRegistration] = useState<any>([]);
   const [currentRegistration, setCurrentRegistration] = useState<any>();
