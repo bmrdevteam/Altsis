@@ -69,8 +69,6 @@ import { useAuth } from "../contexts/authContext";
 import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
-import Lists from "pages/admin/lists/Index";
-import List from "pages/admin/lists/Pid";
 import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
@@ -199,22 +197,6 @@ function RouterPage() {
                   element={
                     <RequireAuth>
                       <Form />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route
-                  path="lists"
-                  element={
-                    <RequireAuth>
-                      <Lists />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route
-                  path="lists/:pid"
-                  element={
-                    <RequireAuth>
-                      <List />
                     </RequireAuth>
                   }
                 ></Route>
