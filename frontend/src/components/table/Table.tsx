@@ -142,13 +142,13 @@ const TableControls = (props: { selectedItems: any[]; data: any }) => {
   return (
     <div className={style.controls}>
       <div ref={outsideClickForFilter.RefObject}>
-        <div
+        {/* <div
           className={style.icon}
           onClick={() => outsideClickForFilter.setActive((prev) => !prev)}
         >
           <Svg type="filter" />
-        </div>
-        {outsideClickForFilter.active && (
+        </div> */}
+        {/* {outsideClickForFilter.active && (
           <div className={style.filters}>
             <div>필터</div>
             <div className={style.item}>
@@ -181,7 +181,7 @@ const TableControls = (props: { selectedItems: any[]; data: any }) => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
       <div ref={outsideClickForExport.RefObject}>
         <div
