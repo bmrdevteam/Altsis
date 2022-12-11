@@ -63,29 +63,9 @@ const Schools = () => {
             학교는 교육과정을 다루기 적합한 곳입니다
           </div>
         </div>
-        {/* <Button
-          type={"ghost"}
-          borderRadius={"4px"}
-          height={"32px"}
-          onClick={() => {
-            navigate("add", { replace: true });
-          }}
-        >
-          + 학교추가
-        </Button> */}
       </div>
       <Divider />
-      <Button
-        type={"ghost"}
-        style={{
-          borderRadius: "4px",
-          height: "32px",
-          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-        }}
-        onClick={() => {
-          navigate("add", { replace: true });
-        }}
-      >
+      <Button type={"ghost"} onClick={() => {}}>
         + 학교추가
       </Button>
       <div style={{ marginTop: "24px" }}>
@@ -109,11 +89,6 @@ const Schools = () => {
             {
               text: "학교명",
               key: "schoolName",
-              type: "string",
-            },
-            {
-              text: "학생수",
-              key: "userCount",
               type: "string",
             },
             {
