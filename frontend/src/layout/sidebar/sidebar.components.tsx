@@ -24,7 +24,7 @@ const Nav = ({
   return (
     <nav
       id="Sidebar"
-      className={`${style.nav_container} ${open ? style.open :style.close}`}
+      className={`${style.nav_container} ${open ? style.open : style.close}`}
     >
       {children}
     </nav>
@@ -32,6 +32,7 @@ const Nav = ({
 };
 
 const NavLogo = ({ onClick }: { onClick: any }) => {
+  const [open, setOpen] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const { currentUser, currentSchool } = useAuth();
@@ -46,9 +47,8 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
           // navigate("/", { replace: true });
         }}
       >
-        {currentSchool?.schoolName ? `${currentSchool.schoolName} - ` : ""}
-        {currentUser?.academyName
-          ? currentUser.academyName
+        {currentSchool?.schoolName
+          ? `${currentSchool.schoolName}`
           : currentUser?.academyName}
       </div>
       <div className={style.caret}>
