@@ -148,6 +148,7 @@ const UserSettings = (props: Props) => {
           appearence="flat"
           style={{ fontSize: "14px" }}
           defaultValue={currentUser.userName}
+          disabled
         />
         <Input
           label="아이디"
@@ -158,9 +159,9 @@ const UserSettings = (props: Props) => {
           disabled
         />
       </div>
-      <div style={{ marginTop: "12px" }}>
+      {/* <div style={{ marginTop: "12px" }}>
         <Textarea label="설명" placeholder="설명" />
-      </div>
+      </div> */}
     </div>
   );
 };
