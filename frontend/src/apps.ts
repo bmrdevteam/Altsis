@@ -1,7 +1,7 @@
 export const apps: any[] = [
   {
     label: "강의실",
-    name: "classroom",
+    name: "apps",
   },
   {
     label: "컴퓨터",
