@@ -58,8 +58,8 @@ import CourseMyList from "pages/courses/MyList";
 import CourseMentoring from "pages/courses/Mentoring";
 
 // apps pages
-import Apps from "pages/apps/Index";
-import Classroom from "pages/apps/Classroom";
+import AppsIndex from "pages/apps/Index";
+import Apps from "pages/apps/Apps";
 
 //error pages
 import Http404 from "../pages/error/404";
@@ -275,15 +275,15 @@ function RouterPage() {
                 path="apps"
                 element={
                   <RequireAuth>
-                    <Apps />
+                    <AppsIndex />
                   </RequireAuth>
                 }
               ></Route>
               <Route
-                path="apps/classroom"
+                path="apps/apps"
                 element={
                   <RequireAuth>
-                    <Classroom />
+                    <Apps />
                   </RequireAuth>
                 }
               ></Route>

@@ -39,7 +39,7 @@
  import Nav from "layout/sidebar/sidebar.components";
  import Navbar from "layout/navbar/Navbar";
  
- const Apps = () => {
+ const AppsIndex = () => {
    return (
    <>
     <Navbar />
@@ -54,20 +54,20 @@
          </div>
        </div>
        <div style={{marginBottom: "24px"}}>
-        <Tab
-          items={{
-            앱: <Overview />,
-            리스트: <List />,
-            포인트: <Point />
-            }}
-          align={"flex-start"}
-          >
-        </Tab>
+          <Tab
+            items={{
+              앱: <Overview />,
+              리스트: <List />,
+              포인트: <Point />
+              }}
+            align={"flex-start"}
+            >
+          </Tab>
        </div>
      </div>
      </>
    );
  };
  
- export default Apps;
+ export default AppsIndex;
  

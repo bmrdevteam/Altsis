@@ -145,7 +145,7 @@ export const SidebarData = (auth: string, role?: string): any => {
             {
               title: "classroom",
               name: "강의실",
-              path: "/apps/classroom",
+              path: "/apps/apps",
               icon: <Svg type="app" />,
             },
           ],

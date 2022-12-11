@@ -5,7 +5,7 @@ import style from "style/pages/apps/apps.module.scss";
 
 type Props = {}
 
-const classroom = (props: Props) => {
+const apps = (props: Props) => {
   return (
     <>
       <Navbar />
@@ -24,4 +24,4 @@ const classroom = (props: Props) => {
   )
 }
 
-export default classroom
+export default apps
