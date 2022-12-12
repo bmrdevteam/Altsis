@@ -37,9 +37,7 @@ import style from "style/pages/enrollment.module.scss";
 import Navbar from "layout/navbar/Navbar";
 
 // components
-import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
-import Button from "components/button/Button";
 
 import _ from "lodash";
 
@@ -52,8 +50,6 @@ const Courses = (props: Props) => {
   const { currentSeason, currentRegistration } = useAuth();
 
   const [courseList, setCourseList] = useState<any[]>([]);
-
-  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
   /* subject label header list */
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
@@ -170,7 +166,8 @@ const Courses = (props: Props) => {
 
   useEffect(() => {
     if (!currentRegistration) {
-      setAlertPopupActive(true);
+      alert("등록된 학기가 없습니다.");
+      navigate("/courses");
     } else {
       getCreatedCourseList().then((res: any) => {
         setCourseList(labelling(res));
@@ -194,7 +191,7 @@ const Courses = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>개설된 수업 목록</div>
+        <div className={style.title}>수업 목록</div>
         <div style={{ height: "24px" }}></div>
 
         <Table
@@ -205,21 +202,6 @@ const Courses = (props: Props) => {
           style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
-
-      {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
-          <div style={{ marginTop: "12px" }}>
-            <Button
-              type="ghost"
-              onClick={() => {
-                navigate("/");
-              }}
-            >
-              메인 화면으로 돌아가기
-            </Button>
-          </div>
-        </Popup>
-      )}
     </>
   );
 };

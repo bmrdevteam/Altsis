@@ -37,9 +37,7 @@ import style from "style/pages/enrollment.module.scss";
 import Navbar from "layout/navbar/Navbar";
 
 // components
-import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
-import Button from "components/button/Button";
 
 import _ from "lodash";
 import EditorParser from "editor/EditorParser";
@@ -54,8 +52,6 @@ const Course = (props: Props) => {
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
-
-  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
   /* subject label header list */
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
@@ -185,7 +181,8 @@ const Course = (props: Props) => {
 
   useEffect(() => {
     if (!currentRegistration) {
-      setAlertPopupActive(true);
+      alert("등록된 학기가 없습니다.");
+      navigate("/courses");
     } else {
       getEnrolledCourseList().then((res: any) => {
         setEnrolledCourseList(labelling(res));
@@ -225,17 +222,19 @@ const Course = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>시간표</div>
-        <div style={{ height: "24px" }}></div>
-        <EditorParser
-          auth="view"
-          defaultTimetable={syllabusToTime(enrolledCourseList)}
-          data={currentSeason?.formTimetable}
-        />
-
-        <div style={{ height: "24px" }}></div>
-        <Divider />
-        <div style={{ height: "24px" }}></div>
+        {currentSeason?.formTimetable && (
+          <>
+            <div className={style.title}>시간표</div>
+            <EditorParser
+              auth="view"
+              defaultTimetable={syllabusToTime(enrolledCourseList)}
+              data={currentSeason?.formTimetable}
+            />
+            <div style={{ height: "24px" }}></div>
+            <Divider />
+            <div style={{ height: "24px" }}></div>
+          </>
+        )}
 
         <div className={style.title}>수강신청 현황</div>
 
@@ -247,20 +246,6 @@ const Course = (props: Props) => {
           style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
-      {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
-          <div style={{ marginTop: "12px" }}>
-            <Button
-              type="ghost"
-              onClick={() => {
-                navigate("/");
-              }}
-            >
-              메인 화면으로 돌아가기
-            </Button>
-          </div>
-        </Popup>
-      )}
     </>
   );
 };

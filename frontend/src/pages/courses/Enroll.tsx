@@ -37,7 +37,6 @@ import style from "style/pages/enrollment.module.scss";
 import Navbar from "layout/navbar/Navbar";
 
 // components
-import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
@@ -52,20 +51,13 @@ const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const {
-    currentSeason,
-    currentUser,
-    currentRegistration,
-    changeCurrentSeason,
-  } = useAuth();
+  const { currentSeason, currentUser, currentRegistration, currentPermission } =
+    useAuth();
 
   const [courseTitle, setCourseTitle] = useState<string>("");
 
   const [courseList, setCourseList] = useState<any[]>([]);
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
-
-  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
-  const [alertMessage, setAlertMessage] = useState<string>("");
 
   /* subject label header list */
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
@@ -145,24 +137,6 @@ const CourseEnroll = (props: Props) => {
     return res;
   }
 
-  const checkPermission = () => {
-    const permission = currentSeason?.permissionEnrollment;
-    for (let i = 0; i < permission?.length; i++) {
-      if (
-        permission[i][0] === "userId" &&
-        permission[i][1] === currentUser?.userId
-      ) {
-        return permission[i][2];
-      }
-      if (
-        permission[i][0] === "role" &&
-        permission[i][1] === currentRegistration?.role
-      )
-        return permission[i][2];
-    }
-    return false;
-  };
-
   const subjectHeaderList = [
     {
       text: "수업명",
@@ -235,11 +209,8 @@ const CourseEnroll = (props: Props) => {
 
   useEffect(() => {
     if (!currentRegistration) {
-      setAlertMessage("등록된 학기가 없습니다.");
-      setAlertPopupActive(true);
-    } else if (!checkPermission()) {
-      setAlertMessage("수강신청 권한이 없습니다.");
-      setAlertPopupActive(true);
+      alert("등록된 학기가 없습니다.");
+      navigate("/courses");
     } else {
       setSubjectLabelHeaderList([
         ...currentSeason?.subjects?.label.map((label: string) => {
@@ -256,19 +227,22 @@ const CourseEnroll = (props: Props) => {
   }, [currentRegistration]);
 
   useEffect(() => {
+    if (!currentPermission.permissionSyllabus) {
+      alert("수강신청 권한이 없습니다.");
+      navigate("/courses");
+    }
+  }, [currentPermission]);
+
+  useEffect(() => {
     if (isLoading) {
-      if (!currentRegistration) {
-        setAlertPopupActive(true);
-      } else {
-        if (courseTitle !== "") {
-          getCourseList().then((res: any) => {
-            setCourseList(labelling(res));
-          });
-        }
-        getEnrolledCourseList().then((res: any) => {
-          setEnrolledCourseList(labelling(res));
+      if (courseTitle !== "") {
+        getCourseList().then((res: any) => {
+          setCourseList(labelling(res));
         });
       }
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(labelling(res));
+      });
       setIsLoading(false);
     }
   }, [isLoading]);
@@ -380,21 +354,6 @@ const CourseEnroll = (props: Props) => {
           style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
-
-      {alertPopupActive && (
-        <Popup setState={setAlertPopupActive} title={alertMessage}>
-          <div style={{ marginTop: "24px" }}>
-            <Button
-              type="ghost"
-              onClick={() => {
-                setAlertPopupActive(false);
-              }}
-            >
-              확인
-            </Button>
-          </div>
-        </Popup>
-      )}
     </>
   );
 };
