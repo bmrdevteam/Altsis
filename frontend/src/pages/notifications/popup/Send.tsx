@@ -39,15 +39,23 @@ import Popup from "components/popup/Popup";
 import _ from "lodash";
 import Textarea from "components/textarea/Textarea";
 
-type Props = { setState: any; receiverOptionList: any[] };
+type Props = {
+  setState: any;
+  receiverOptionList: any[];
+  receiverSelectedList?: any;
+  category?: string;
+  title?: string;
+};
 
 const NotificationSend = (props: Props) => {
   const database = useDatabase();
 
-  const [receiverSelectedList, setReceiverSelectedList] = useState<any>({});
+  const [receiverSelectedList, setReceiverSelectedList] = useState<any>(
+    props.receiverSelectedList || {}
+  );
 
-  const [title, setTitle] = useState<string>("");
-  const [category, setCategory] = useState<string>("");
+  const [title, setTitle] = useState<string>(props.title || "");
+  const [category, setCategory] = useState<string>(props.category || "");
   const [description, setDescription] = useState<string>("");
 
   async function sendNotifications() {
@@ -86,7 +94,7 @@ const NotificationSend = (props: Props) => {
           placeholder={"이름 또는 아이디로 검색"}
           resetOnClick
         />
-        <div>
+        <div style={{ display: "flex" }}>
           {Object.keys(receiverSelectedList).map((receiver: any) => {
             const { userId, userName } = JSON.parse(receiver);
 
@@ -129,6 +137,7 @@ const NotificationSend = (props: Props) => {
             onChange={(e: any) => {
               setCategory(e.target.value);
             }}
+            defaultValue={category}
           />
         </div>
 
@@ -145,6 +154,7 @@ const NotificationSend = (props: Props) => {
               setTitle(e.target.value);
             }}
             required
+            defaultValue={title}
           />
         </div>
 

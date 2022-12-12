@@ -44,11 +44,16 @@ import Table from "components/table/Table";
 
 import EditorParser from "editor/EditorParser";
 
+import Send from "../../notifications/popup/Send";
 import _ from "lodash";
 type Props = {
   courseData: any;
   setCourseData: any;
   setMode: any;
+};
+
+type receiverSelectedList = {
+  [key: string]: boolean;
 };
 
 const CourseView = (props: Props) => {
@@ -70,6 +75,12 @@ const CourseView = (props: Props) => {
 
   /* evaluation header list */
   const [evaluationHeaderList, setEvaluationHeaderList] = useState<any[]>([]);
+
+  const [sendNotificationPopupActive, setSendNotificationPopupActive] =
+    useState<boolean>(false);
+  const [receiverSelectedList, setReceiverSelectedList] =
+    useState<receiverSelectedList>({});
+  const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
 
   const checkPermission = () => {
     const permission = currentSeason?.permissionSyllabus;
@@ -215,7 +226,39 @@ const CourseView = (props: Props) => {
             borderColor: "rgba(200, 200, 255)",
           },
         },
+        {
+          text: "알림 보내기",
+          key: "evaluation",
+          onClick: (e: any) => {
+            const receiverSelectedList: receiverSelectedList = {};
+            receiverSelectedList[
+              JSON.stringify({ userId: e.studentId, userName: e.studentName })
+            ] = true;
+            setReceiverSelectedList({ ...receiverSelectedList });
+            setSendNotificationPopupActive(true);
+          },
+          type: "button",
+          width: "80px",
+          align: "center",
+          textStyle: {
+            padding: "0 10px",
+            border: "var(--border-default)",
+            background: "rgba(200, 200, 255, 0.25)",
+            borderColor: "rgba(200, 200, 255)",
+          },
+        },
       ]);
+      setReceiverOptionList(
+        res.map((e: any) => {
+          return {
+            value: JSON.stringify({
+              userId: e.studentId,
+              userName: e.studentName,
+            }),
+            text: `${e.studentName}(${e.studentId})`,
+          };
+        })
+      );
     });
 
     return () => {};
@@ -286,6 +329,28 @@ const CourseView = (props: Props) => {
         ]}
         style={{ bodyHeight: "calc(100vh - 300px)" }}
       />
+      <Button
+        type={"ghost"}
+        style={{
+          borderRadius: "4px",
+          height: "32px",
+          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          marginTop: "24px",
+        }}
+        onClick={() => {
+          const receiverSelectedList: receiverSelectedList = {};
+          for (let e of enrollments || []) {
+            receiverSelectedList[
+              JSON.stringify({ userId: e.studentId, userName: e.studentName })
+            ] = true;
+          }
+
+          setReceiverSelectedList({ ...receiverSelectedList });
+          setSendNotificationPopupActive(true);
+        }}
+      >
+        전체 알람 보내기
+      </Button>
 
       {confirmStatusPopupActive && (
         <Popup
@@ -411,6 +476,14 @@ const CourseView = (props: Props) => {
         </>
       ) : (
         <></>
+      )}
+      {sendNotificationPopupActive && (
+        <Send
+          setState={setSendNotificationPopupActive}
+          receiverOptionList={receiverOptionList}
+          receiverSelectedList={receiverSelectedList}
+          category={props.courseData.classTitle}
+        />
       )}
     </div>
   );
