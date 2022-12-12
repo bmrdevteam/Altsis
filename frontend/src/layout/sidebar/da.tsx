@@ -1,5 +1,5 @@
 import { archiveTestData } from "archiveTest";
-import { apps } from "apps";
+import { useAuth } from "contexts/authContext";
 import Svg from "../../assets/svg/Svg";
 
 export interface INavLink {
@@ -17,14 +17,15 @@ interface INavSubLink {
   icon: JSX.Element;
 }
 export const SidebarData = (auth: string, role?: string): any => {
+  const { currentUser } = useAuth();
   switch (auth) {
     case "owner":
       return [
         {
-          title: "schedule",
-          name: "일정",
+          title: "dashboard",
+          name: " 대시보드",
           path: "/",
-          icon: <Svg type="calender" />,
+          icon: <Svg type="school" />,
         },
         {
           title: "owner",
@@ -45,15 +46,15 @@ export const SidebarData = (auth: string, role?: string): any => {
     case "admin":
       return [
         {
-          title: "schedule",
-          name: "일정",
-          path: "/",
-          icon: <Svg type="calender" />,
+          title: "dashboard",
+          name: "대시보드",
+          path: `${currentUser.academyId}`,
+          icon: <Svg type="school" />,
         },
         {
           title: "courses",
           name: "수업",
-          path: "/courses",
+          path: `${currentUser.academyId}/courses`,
           icon: <Svg type="bookOpen" />,
           subLink:
             role === "teacher"
@@ -61,31 +62,31 @@ export const SidebarData = (auth: string, role?: string): any => {
                   {
                     title: "design",
                     name: "수업개설",
-                    path: "/courses/design",
+                    path: `${currentUser.academyId}/courses/design`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "enroll",
                     name: "수강신청",
-                    path: "/courses/enroll",
+                    path: `${currentUser.academyId}/courses/enroll`,
                     icon: <Svg type="school" />,
                   },
                   {
                     title: "list",
                     name: "개설된 수업",
-                    path: "/courses/list",
+                    path: `${currentUser.academyId}/courses/list`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "mylist",
                     name: "개설한 수업",
-                    path: "/courses/mylist",
+                    path: `${currentUser.academyId}/courses/mylist`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "mentoring",
                     name: "멘토링 현황",
-                    path: "/courses/mentoring",
+                    path: `${currentUser.academyId}/courses/mentoring`,
                     icon: <Svg type="file" />,
                   },
                 ]
@@ -93,40 +94,40 @@ export const SidebarData = (auth: string, role?: string): any => {
                   {
                     title: "design",
                     name: "수업개설",
-                    path: "/courses/design",
+                    path: `${currentUser.academyId}/courses/design`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "enroll",
                     name: "수강신청",
-                    path: "/courses/enroll",
+                    path: `${currentUser.academyId}/courses/enroll`,
                     icon: <Svg type="school" />,
                   },
                   {
                     title: "list",
                     name: "개설된 수업",
-                    path: "/courses/list",
+                    path: `${currentUser.academyId}/courses/list`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "mylist",
                     name: "개설한 수업",
-                    path: "/courses/mylist",
+                    path: `${currentUser.academyId}/courses/mylist`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "mentoring",
                     name: "멘토링 현황",
-                    path: "/courses/mentoring",
+                    path: `${currentUser.academyId}/courses/mentoring`,
                     icon: <Svg type="file" />,
                   },
                 ],
         },
         {
           title: "archive",
-          name: "기록",
-          path: "/archive",
-          icon: <Svg type="edit" />,
+          name: "학생생활",
+          path: `${currentUser.academyId}/courses/archive`,
+          icon: <Svg type="bookOpen" />,
           subLink: archiveTestData.map((val) => {
             return {
               title: val.label,
@@ -137,61 +138,47 @@ export const SidebarData = (auth: string, role?: string): any => {
           }),
         },
         {
-          title: "apps",
-          name: "앱",
-          path: "/apps",
-          icon: <Svg type="app_menu" />,
-          subLink: [
-            {
-              title: "classroom",
-              name: "강의실",
-              path: "/apps/apps",
-              icon: <Svg type="app" />,
-            },
-          ],
-        },
-        {
           title: "admin",
           name: "관리자",
-          path: "/admin",
+          path: `${currentUser.academyId}/courses/admin`,
           icon: <Svg type="calender" />,
           subLink: [
             {
               title: "schools",
               name: "학교 관리",
-              path: "/admin/schools",
+              path: `${currentUser.academyId}/courses/schools`,
               icon: <Svg type="file" />,
             },
             {
               title: "forms",
               name: "양식 관리",
-              path: "/admin/forms",
+              path: `${currentUser.academyId}/courses/forms`,
               icon: <Svg type="file" />,
             },
             {
               title: "users",
               name: "사용자",
-              path: "/admin/users",
+              path: `${currentUser.academyId}/courses/users`,
               icon: <Svg type="file" />,
             },
             {
               title: "list",
               name: "리스트",
-              path: "/admin/lists",
+              path: `${currentUser.academyId}/courses/users/lists`,
               icon: <Svg type="file" />,
             },
           ],
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
+        {
+          title: "myaccount",
+          name: "내 정보",
+          path: `${currentUser.academyId}/myaccount`,
+          icon: <Svg type="gear" />,
+        },
         {
           title: "settings",
           name: "설정",
-          path: "/settings",
+          path: `${currentUser.academyId}/settings`,
           icon: <Svg type="gear" />,
         },
       ];
@@ -199,15 +186,15 @@ export const SidebarData = (auth: string, role?: string): any => {
     default:
       return [
         {
-          title: "schedule",
-          name: "일정",
-          path: "/",
-          icon: <Svg type="calender" />,
+          title: "dashboard",
+          name: "대시보드",
+          path: `${currentUser.academyId}`,
+          icon: <Svg type="school" />,
         },
         {
           title: "courses",
           name: "수업",
-          path: "/courses",
+          path: `${currentUser.academyId}/courses`,
           icon: <Svg type="bookOpen" />,
           subLink:
             role === "teacher"
@@ -215,31 +202,31 @@ export const SidebarData = (auth: string, role?: string): any => {
                   {
                     title: "design",
                     name: "수업개설",
-                    path: "/courses/design",
+                    path: `${currentUser.academyId}/courses/design`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "enroll",
                     name: "수강신청",
-                    path: "/courses/enroll",
+                    path: `${currentUser.academyId}/courses/enroll`,
                     icon: <Svg type="school" />,
                   },
                   {
                     title: "list",
                     name: "개설된 수업",
-                    path: "/courses/list",
+                    path: `${currentUser.academyId}/courses/list`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "mylist",
                     name: "개설한 수업",
-                    path: "/courses/mylist",
+                    path: `${currentUser.academyId}/courses/mylist`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "mentoring",
                     name: "멘토링 현황",
-                    path: "/courses/mentoring",
+                    path: `${currentUser.academyId}/courses/mentoring`,
                     icon: <Svg type="file" />,
                   },
                 ]
@@ -247,39 +234,39 @@ export const SidebarData = (auth: string, role?: string): any => {
                   {
                     title: "design",
                     name: "수업개설",
-                    path: "/courses/design",
+                    path: `${currentUser.academeyId}/courses/design`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "enroll",
                     name: "수강신청",
-                    path: "/courses/enroll",
+                    path: `${currentUser.academeyId}/courses/enroll`,
                     icon: <Svg type="school" />,
                   },
                   {
                     title: "list",
                     name: "개설된 수업",
-                    path: "/courses/list",
+                    path: `${currentUser.academeyId}/courses/list`,
                     icon: <Svg type="file" />,
                   },
                   {
                     title: "mylist",
                     name: "개설한 수업",
-                    path: "/courses/mylist",
+                    path: `${currentUser.academeyId}/courses/mylist`,
                     icon: <Svg type="file" />,
                   },
                 ],
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
+        {
+          title: "myaccount",
+          name: "내 정보",
+          path: `${currentUser.academeyId}/myaccount`,
+          icon: <Svg type="gear" />,
+        },
         {
           title: "settings",
           name: "설정",
-          path: "/settings",
+          path: `${currentUser.academeyId}/settings`,
           icon: <Svg type="gear" />,
         },
       ];
