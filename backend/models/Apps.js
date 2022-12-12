@@ -3,11 +3,6 @@ const { conn } = require("../databases/connection");
 
 const appsSchema = mongoose.Schema(
   {
-    userId: String,
-    userName: String,
-    school: mongoose.Types.ObjectId,
-    schoolId: String,
-    schoolName: String,
     title: String,
     description: String,
   },
