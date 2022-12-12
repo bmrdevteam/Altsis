@@ -27,15 +27,10 @@
  *
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/enrollment.module.scss";
-
-// components
-import Popup from "components/popup/Popup";
-import Button from "components/button/Button";
 
 import _ from "lodash";
 
@@ -49,41 +44,24 @@ const Inbox = (props: Props) => {
   const { currentUser } = useAuth();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
-  const [pageInfo, setPageInfo] = useState<any>({
-    requestPage: 1,
-    requestSize: 10,
-  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const [start, setStart] = useState<number>(0);
+
   async function getNotificationList() {
-    const { notifications, page } = await database.R({
-      location: `notifications?type=received&userId=${currentUser.userId}&page=${pageInfo.requestPage}&size=${pageInfo.requestSize}`,
+    const { notifications } = await database.R({
+      location: `notifications?type=received&userId=${currentUser.userId}`,
     });
 
-    return { notifications, page };
-  }
-
-  async function deleteNotifications(ids: string[]) {
-    const res = await database.D({
-      location: `notifications/${_.join(ids, "&")}`,
-    });
-    return res;
+    return _.sortBy(notifications, "createdAt").reverse();
   }
 
   useEffect(() => {
     if (isLoading) {
       getNotificationList().then((res: any) => {
-        setNotificationList(
-          res.notifications.map((notification: any) => {
-            return {
-              ...notification,
-              fromUser: `${notification.fromUserName}(${notification.fromUserId})`,
-            };
-          })
-        );
-        setPageInfo(res.page);
+        setNotificationList(res);
+        setIsLoading(false);
       });
-      setIsLoading(false);
     }
   }, [isLoading]);
 
@@ -92,10 +70,10 @@ const Inbox = (props: Props) => {
       <Mailbox
         type="received"
         data={notificationList}
-        pageInfo={pageInfo}
-        setPageInfo={setPageInfo}
-        deleteNotifications={deleteNotifications}
+        setData={setNotificationList}
         setIsLoading={setIsLoading}
+        start={start}
+        setStart={setStart}
       />
     </div>
   ) : (
