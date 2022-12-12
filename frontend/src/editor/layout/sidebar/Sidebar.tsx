@@ -210,7 +210,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            행 추가
+            {`열 추가`}
           </Button>
           <Button
             type="ghost"
@@ -226,7 +226,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            열 추가
+            {`${getCurrentCellIndex().row + 1} 행 아래 추가`}
           </Button>
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
@@ -243,7 +243,8 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            행 삭제
+            {`${getCurrentCellIndex().column + 1} 열 삭제`}
+
           </Button>
           <Button
             type="ghost"
@@ -259,7 +260,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            열 삭제
+            {`${getCurrentCellIndex().row + 1} 행 삭제`}
           </Button>
         </div>
       </Menu>
@@ -353,7 +354,7 @@ const Sidebar = (props: Props) => {
                 }
               }}
               type="number"
-              defaultValue={getCurrentCell()?.갲Span}
+              defaultValue={getCurrentCell()?.rowSpan}
             />
           </div>
           {getCurrentCell()?.type === "checkbox" && (
@@ -531,7 +532,9 @@ const Sidebar = (props: Props) => {
               </Button>
             </div>
           )}
-          {getCurrentCell()?.type === "data" && <DataConnPopup callPageReload={props.callPageReload}/>}
+          {getCurrentCell()?.type === "data" && (
+            <DataConnPopup callPageReload={props.callPageReload} />
+          )}
         </Menu>
       </>
     );

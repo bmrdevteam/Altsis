@@ -1,3 +1,19 @@
+@media print {
+    .navbar_container {
+        display: none !important;
+    }
+
+    @page {
+        margin: 0;
+        page-break-after: always;
+    }
+}
+
+
+
+
+
+
 .navbar_container {
     height: 56px;
     border-bottom: var(--border-default);

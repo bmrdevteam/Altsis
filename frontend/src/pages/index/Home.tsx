@@ -95,7 +95,7 @@ const Home = () => {
       <QuickSearch />
       <Navbar />
       <div className={style.section}>
-        <Schedule defaultEvents={enrollmentsToEvents(enrollments)} />
+        {/* <Schedule defaultEvents={enrollmentsToEvents(enrollments)} /> */}
       </div>
     </>
   );

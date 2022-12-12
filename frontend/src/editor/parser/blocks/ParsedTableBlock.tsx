@@ -12,7 +12,7 @@ type Props = {
   dbData?: any;
 };
 const ParsedTableBlock = (props: Props) => {
-console.log(props.blockData);
+  console.log(props.blockData);
 
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
@@ -217,9 +217,19 @@ console.log(props.blockData);
     }
   };
 
+  let spanTrack: {
+    rowStart: number;
+    rowEnd: number;
+    colStart: number;
+    colEnd: number;
+  }[] = [];
+
   return (
     <div className={style.parsed_block}>
-      <table className={style.table} style={{fontSize:props.blockData.data?.fontSize}}>
+      <table
+        className={style.table}
+        style={{ fontSize: props.blockData.data?.fontSize }}
+      >
         <SetColumn />
         <tbody>
           {props.blockData.data.table.map((value: any[], index: number) => {
@@ -227,9 +237,52 @@ console.log(props.blockData);
               return (
                 repeat &&
                 repeat.map((v: any, i: number) => {
+
+
+                  //filter map  ()
+                  if (
+                    props.blockData.data.dataRepeat?.filterBy &&
+                    v?.[props.blockData.data.dataRepeat?.filterBy] !==
+                      props.blockData.data.dataRepeat?.filterValue
+                  ) {
+                    return;
+                  }
+
+
                   return (
                     <tr key={`${index}-${i}`}>
                       {value.map((val, ind: number) => {
+                        const spanTrackCurr = spanTrack.filter((track) => {
+                          if (
+                            track.rowStart <= i + index &&
+                            track.rowEnd > i + index &&
+                            track.colStart <= ind &&
+                            track.colEnd > ind
+                          ) {
+                            return true;
+                          }
+
+                          return false;
+                        });
+
+                        if (spanTrackCurr.length > 0) {
+                          return;
+                        }
+
+                        spanTrack.push({
+                          rowStart: i,
+                          rowEnd:
+                            i +
+                            (isNaN(parseInt(val.rowSpan))
+                              ? 1
+                              : Math.abs(parseInt(val.rowSpan))),
+                          colStart: ind,
+                          colEnd:
+                            ind +
+                            (isNaN(parseInt(val.colSpan))
+                              ? 1
+                              : Math.abs(parseInt(val.colSpan))),
+                        });
                         return val?.isHeader ? (
                           <th
                             key={`${i}-${ind}`}
@@ -258,6 +311,37 @@ console.log(props.blockData);
               return (
                 <tr key={index}>
                   {value.map((val, ind: number) => {
+                    const spanTrackCurr = spanTrack.filter((v) => {
+                      if (
+                        v.rowStart <= index &&
+                        v.rowEnd > index &&
+                        v.colStart <= ind &&
+                        v.colEnd > ind
+                      ) {
+                        return true;
+                      }
+
+                      return false;
+                    });
+
+                    if (spanTrackCurr.length > 0) {
+                      return;
+                    }
+
+                    spanTrack.push({
+                      rowStart: index,
+                      rowEnd:
+                        index +
+                        (isNaN(parseInt(val.rowSpan))
+                          ? 1
+                          : Math.abs(parseInt(val.rowSpan))),
+                      colStart: ind,
+                      colEnd:
+                        ind +
+                        (isNaN(parseInt(val.colSpan))
+                          ? 1
+                          : Math.abs(parseInt(val.colSpan))),
+                    });
                     return val?.isHeader ? (
                       <th
                         key={ind}
