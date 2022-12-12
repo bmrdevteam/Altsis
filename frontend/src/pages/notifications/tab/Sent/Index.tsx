@@ -43,6 +43,7 @@ import Input from "components/input/Input";
 
 import Mailbox from "../components/mailbox";
 
+import Send from "../../popup/Send";
 type Props = {};
 
 const Sent = (props: Props) => {
@@ -51,29 +52,21 @@ const Sent = (props: Props) => {
   const { currentUser, currentRegistration } = useAuth();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
-  const [pageInfo, setPageInfo] = useState<any>({
-    requestPage: 1,
-    requestSize: 10,
-  });
 
   const [isRegistratinoListLoaded, setIsRegistrationLoaded] =
     useState<boolean>(false);
   const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
-  const [receiverSelectedList, setReceiverSelectedList] = useState<any>();
-
-  const [title, setTitle] = useState<string>("");
-  const [category, setCategory] = useState<string>("");
 
   const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
+  const [start, setStart] = useState<number>(0);
   async function getNotificationList() {
-    const { notifications, page } = await database.R({
-      location: `notifications?type=sent&userId=${currentUser?.userId}&page=${pageInfo.requestPage}&size=${pageInfo.requestSize}`,
+    const { notifications } = await database.R({
+      location: `notifications?type=sent&userId=${currentUser?.userId}`,
     });
 
-    return { notifications, page };
+    return _.sortBy(notifications, "createdAt").reverse();
   }
 
   async function getRegistrationList() {
@@ -84,48 +77,12 @@ const Sent = (props: Props) => {
     return registrations;
   }
 
-  async function sendNotifications() {
-    const res = await database.C({
-      location: `notifications`,
-      data: {
-        toUserList: Object.keys(receiverSelectedList).map((receiver: any) =>
-          JSON.parse(receiver)
-        ),
-        category,
-        title,
-      },
-    });
-
-    return res;
-  }
-
-  async function deleteNotifications(ids: string[]) {
-    const res = await database.D({
-      location: `notifications/${_.join(ids, "&")}`,
-    });
-    return res;
-  }
-
   useEffect(() => {
     if (isLoading) {
       getNotificationList().then((res: any) => {
-        setNotificationList(
-          res.notifications.map((notification: any) => {
-            return {
-              ...notification,
-              toUser: `${notification.toUserList[0].userName}(${
-                notification.toUserList[0].userId
-              })${
-                notification.toUserList.length === 1
-                  ? ""
-                  : `외 ${notification.toUserList.length - 1}명`
-              }`,
-            };
-          })
-        );
-        setPageInfo(res.page);
+        setNotificationList(res);
+        setIsLoading(false);
       });
-      setIsLoading(false);
     }
   }, [isLoading]);
 
@@ -149,7 +106,7 @@ const Sent = (props: Props) => {
     });
   }
 
-  return (
+  return !isLoading ? (
     <>
       <div className={style.section}>
         <Button
@@ -160,8 +117,6 @@ const Sent = (props: Props) => {
                 setIsRegistrationLoaded(true);
               });
             }
-            setReceiverSelectedList({});
-            setTitle("");
             setSendPopupActive(true);
           }}
         >
@@ -172,126 +127,21 @@ const Sent = (props: Props) => {
         <Mailbox
           type="sent"
           data={notificationList}
-          pageInfo={pageInfo}
-          deleteNotifications={deleteNotifications}
+          setData={setNotificationList}
           setIsLoading={setIsLoading}
-          setPageInfo={setPageInfo}
+          start={start}
+          setStart={setStart}
         />
       </div>
-      {sendPopupActive && (
-        <Popup setState={setSendPopupActive} title="알림 보내기" closeBtn>
-          <div style={{ marginTop: "12px" }}>
-            <div
-              style={{
-                marginBottom: "5px",
-              }}
-            >
-              수신자
-            </div>
-
-            <div>
-              {Object.keys(receiverSelectedList).map((receiver: any) => {
-                const { userId, userName } = JSON.parse(receiver);
-
-                return (
-                  <div
-                    style={{
-                      display: "flex",
-                    }}
-                  >
-                    {`${userName}(${userId})`}
-                    <Button
-                      type="ghost"
-                      onClick={(e: any) => {
-                        delete receiverSelectedList[receiver];
-                        setReceiverSelectedList({
-                          ...receiverSelectedList,
-                        });
-                      }}
-                      style={{
-                        border: 0,
-                        color: "gray",
-                      }}
-                    >
-                      x
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-
-            <Autofill
-              appearence="flat"
-              options={receiverOptionList}
-              setState={(e: string) => {
-                if (!receiverSelectedList[e]) {
-                  receiverSelectedList[e] = true;
-                  setReceiverSelectedList({
-                    ...receiverSelectedList,
-                  });
-                }
-              }}
-              required
-              placeholder={"이름 또는 아이디로 검색"}
-              resetOnClick
-            />
-
-            <div
-              style={{
-                display: "flex",
-                gap: "24px",
-                marginTop: "24px",
-              }}
-            >
-              <Input
-                label="타입"
-                onChange={(e: any) => {
-                  setCategory(e.target.value);
-                }}
-              />
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "24px",
-                marginTop: "24px",
-              }}
-            >
-              <Textarea
-                label="메시지"
-                onChange={(e: any) => {
-                  setTitle(e.target.value);
-                }}
-              />
-            </div>
-
-            <Button
-              style={{ marginTop: "24px" }}
-              type="ghost"
-              onClick={() => {
-                console.log("receiverSelectedList: ", receiverSelectedList);
-                if (_.isEmpty(receiverSelectedList)) {
-                  alert("받는사람을 한 명 이상 지정해야 합니다.");
-                } else if (title === "") {
-                  alert("메시지 없이 메일을 보낼 수 없습니다.");
-                } else {
-                  sendNotifications()
-                    .then((res: any) => {
-                      alert("success");
-                      setSendPopupActive(false);
-                      setIsLoading(true);
-                    })
-                    .catch((err) => alert(err.response.data.message));
-                }
-              }}
-            >
-              전송
-            </Button>
-          </div>
-        </Popup>
+      {sendPopupActive && isRegistratinoListLoaded && (
+        <Send
+          setState={setSendPopupActive}
+          receiverOptionList={receiverOptionList}
+        />
       )}
     </>
+  ) : (
+    <></>
   );
 };
 

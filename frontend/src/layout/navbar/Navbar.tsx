@@ -10,6 +10,7 @@ import React, { useEffect, useRef, useState } from "react";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
 import useInterval from "hooks/useInterval";
+import { useNavigate } from "react-router-dom";
 
 // components
 import Button from "components/button/Button";
@@ -29,6 +30,7 @@ const Notification = () => {
   const { currentUser, currentNotifications, setCurrentNotifications } =
     useAuth();
   const database = useDatabase();
+  const navigate = useNavigate();
 
   const [notificationContentActive, setNotificationContentActive] =
     useState(false);
@@ -69,7 +71,7 @@ const Notification = () => {
         setCurrentNotifications([...res]);
       }
     });
-  }, 5000);
+  }, 1000 * 60 * 10); //10분
 
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
@@ -138,7 +140,7 @@ const Notification = () => {
           <Button
             type="ghost"
             onClick={(e: any) => {
-              alert("hi");
+              navigate("/notifications");
             }}
             style={{
               border: 0,

@@ -49,24 +49,23 @@ module.exports.send = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    const requestPage = parseInt(req.query.page);
-    const requestSize = parseInt(req.query.size);
-    delete req.query.requestPage;
-    delete req.query.requestSize;
+    // const notifications = await Notification(req.user.academyId)
+    //   .find(req.query)
+    //   .sort({ createdAt: -1 })
+    //   .limit(requestSize)
+    //   .skip(requestSize * (requestPage - 1));
 
-    const totalDataCnt = await Notification(req.user.academyId).countDocuments(
-      req.query
-    );
-
-    const totalPages = Math.ceil(totalDataCnt / requestSize);
-    const isLastPage = requestPage === totalPages;
-    const isFirstPage = requestPage === 1;
+    if (req.params._id) {
+      const notification = await Notification(req.user.academyId).findById(
+        req.params._id
+      );
+      if (notification.userId != req.user.userId) return res.status(401).send();
+      return res.status(200).send(notification);
+    }
 
     const notifications = await Notification(req.user.academyId)
       .find(req.query)
-      .sort({ createdAt: -1 })
-      .limit(requestSize)
-      .skip(requestSize * (requestPage - 1));
+      .select("-description");
 
     if (req.query.type === "received") {
       await client.del(
@@ -74,17 +73,7 @@ module.exports.find = async (req, res) => {
       );
     }
 
-    return res.status(200).send({
-      notifications,
-      page: {
-        totalDataCnt,
-        totalPages,
-        isLastPage,
-        isFirstPage,
-        requestPage,
-        requestSize,
-      },
-    });
+    return res.status(200).send({ notifications });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
