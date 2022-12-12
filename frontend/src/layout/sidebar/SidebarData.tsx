@@ -277,6 +277,12 @@ export const SidebarData = (auth: string, role?: string): any => {
         //   icon: <Svg type="gear" />,
         // },
         {
+          title: "notifications",
+          name: "알림",
+          path: "/notifications",
+          icon: <Svg type="notification" />,
+        },
+        {
           title: "settings",
           name: "설정",
           path: "/settings",

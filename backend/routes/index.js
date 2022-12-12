@@ -10,4 +10,5 @@ module.exports = [
   "registrations",
   "archives",
   "apps",
+  "notifications",
 ];

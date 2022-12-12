@@ -1,4 +1,5 @@
 const { conn } = require("../databases/connection");
+const client = require("../caches/redis");
 
 exports.isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
@@ -92,4 +93,20 @@ authRank = {
 
 exports.isLower = (auth1, auth2) => {
   return authRank[auth1] > authRank[auth2];
+};
+
+exports.isReceivedNotifications = (req, res, next) => {
+  if (!req.query.updated) next();
+  else {
+    client.get(
+      `isReceivedNotifications/${req.user.academyId}/${req.query.userId}`,
+      (err, value) => {
+        if (err) res.status(409).send({ message: err.message });
+        if (value) next();
+        else {
+          res.status(200).send();
+        }
+      }
+    );
+  }
 };

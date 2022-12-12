@@ -16,6 +16,8 @@ export function useAuth(): {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
+  currentNotifications: any;
+  setCurrentNotifications: React.Dispatch<any>;
 } {
   return useContext(AuthContext);
 }
@@ -25,8 +27,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [registrations, setRegistration] = useState<any>([]);
+  console.log(
+    "🚀 ~ file: authContext.tsx ~ line 25 ~ AuthProvider ~ registrations",
+    registrations
+  );
   const [currentRegistration, setCurrentRegistration] = useState<any>();
   const [currentSeason, setCurrentSeason] = useState<any>();
+  const [currentNotifications, setCurrentNotifications] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(true);
   async function getLoggedInUser() {
     const res = await database.R({
@@ -37,6 +44,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      */
     setCurrentUser(res);
     setCurrentSchool(res.schools[0]);
+    setCurrentNotifications(res.notifications);
 
     /** if there is a registration, set the season */
     if (res.registrations) {
@@ -91,10 +99,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentSchool,
     updateUserProfile,
     deleteUserProfile,
+    currentNotifications,
+    setCurrentNotifications,
   };
   return (
     <AuthContext.Provider value={value}>
-      {!loading ? children : <Loading height={"100vh"}/>}
+      {!loading ? children : <Loading height={"100vh"} />}
     </AuthContext.Provider>
   );
 };

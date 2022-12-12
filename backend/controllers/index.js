@@ -10,4 +10,5 @@ module.exports = {
   archives: require("./archives"),
   apps: require("./apps"),
   test: require("./test"),
+  notifications: require("./notifications"),
 };
