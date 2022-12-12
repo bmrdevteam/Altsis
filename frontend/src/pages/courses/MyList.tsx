@@ -49,11 +49,10 @@ const CoursesMyList = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
 
-  const { currentSeason, currentUser, currentRegistration } = useAuth();
+  const { currentSeason, currentUser, currentRegistration, currentPermission } =
+    useAuth();
 
   const [courseList, setCourseList] = useState<any[]>([]);
-
-  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
   /* subject label header list */
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
@@ -164,7 +163,8 @@ const CoursesMyList = (props: Props) => {
 
   useEffect(() => {
     if (!currentRegistration) {
-      setAlertPopupActive(true);
+      alert("등록된 학기가 없습니다.");
+      navigate("/courses");
     } else {
       getCreatedCourseList().then((res: any) => {
         setCourseList(labelling(res));
@@ -184,6 +184,13 @@ const CoursesMyList = (props: Props) => {
     }
   }, [currentRegistration]);
 
+  useEffect(() => {
+    if (!currentPermission.permissionSyllabus) {
+      alert("수업 개설 권한이 없습니다.");
+      navigate("/courses");
+    }
+  }, [currentPermission]);
+
   return (
     <>
       <Navbar />
@@ -199,21 +206,6 @@ const CoursesMyList = (props: Props) => {
           style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
-
-      {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
-          <div style={{ marginTop: "12px" }}>
-            <Button
-              type="ghost"
-              onClick={() => {
-                navigate("/");
-              }}
-            >
-              메인 화면으로 돌아가기
-            </Button>
-          </div>
-        </Popup>
-      )}
     </>
   );
 };

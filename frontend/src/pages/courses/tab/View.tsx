@@ -203,51 +203,6 @@ const CourseView = (props: Props) => {
 
     getEnrollments().then((res: any) => {
       setEnrollments(res);
-      setEvaluationHeaderList([
-        // ...Object.keys(res[0].evaluation).map((key: string) => {
-        //   return {
-        //     text: key,
-        //     key: `evaluation.${key}`,
-        //   };
-        // }),
-        {
-          text: "평가",
-          key: "evaluation",
-          onClick: (e: any) => {
-            alert("clicked!");
-          },
-          type: "button",
-          width: "80px",
-          align: "center",
-          textStyle: {
-            padding: "0 10px",
-            border: "var(--border-default)",
-            background: "rgba(200, 200, 255, 0.25)",
-            borderColor: "rgba(200, 200, 255)",
-          },
-        },
-        {
-          text: "알림 보내기",
-          key: "evaluation",
-          onClick: (e: any) => {
-            const receiverSelectedList: receiverSelectedList = {};
-            receiverSelectedList[
-              JSON.stringify({ userId: e.studentId, userName: e.studentName })
-            ] = true;
-            setReceiverSelectedList({ ...receiverSelectedList });
-            setSendNotificationPopupActive(true);
-          },
-          type: "button",
-          width: "80px",
-          align: "center",
-          textStyle: {
-            padding: "0 10px",
-            border: "var(--border-default)",
-            background: "rgba(200, 200, 255, 0.25)",
-            borderColor: "rgba(200, 200, 255)",
-          },
-        },
-      ]);
       setReceiverOptionList(
         res.map((e: any) => {
           return {
@@ -296,105 +251,16 @@ const CourseView = (props: Props) => {
         <div className={style.categories}>{categories()}</div>
       </div>
       <Divider />
-
       <ClassInfo />
       <div style={{ height: "24px" }}></div>
       <Divider />
-      <div style={{ height: "24px" }}></div>
-      <div className={style.title}>수강생 목록</div>
-      <Table
-        filter
-        type="object-array"
-        data={enrollments}
-        header={[
-          {
-            text: "학년",
-            key: "studentGrade",
-            type: "string",
-            width: "80px",
-          },
-          {
-            text: "ID",
-            key: "studentId",
-            type: "string",
-            width: "80px",
-          },
-          {
-            text: "이름",
-            key: "studentName",
-            type: "string",
-            width: "80px",
-          },
-          ...evaluationHeaderList,
-        ]}
-        style={{ bodyHeight: "calc(100vh - 300px)" }}
-      />
-      <Button
-        type={"ghost"}
-        style={{
-          borderRadius: "4px",
-          height: "32px",
-          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          marginTop: "24px",
-        }}
-        onClick={() => {
-          const receiverSelectedList: receiverSelectedList = {};
-          for (let e of enrollments || []) {
-            receiverSelectedList[
-              JSON.stringify({ userId: e.studentId, userName: e.studentName })
-            ] = true;
-          }
-
-          setReceiverSelectedList({ ...receiverSelectedList });
-          setSendNotificationPopupActive(true);
-        }}
-      >
-        전체 알람 보내기
-      </Button>
-
-      {confirmStatusPopupActive && (
-        <Popup
-          setState={setConfirmStatusPopupActive}
-          title="승인 상태"
-          closeBtn
-        >
-          <Table
-            type="object-array"
-            data={props.courseData.teachers}
-            header={[
-              {
-                text: "No",
-                key: "",
-                type: "index",
-                width: "48px",
-                align: "center",
-              },
-              {
-                text: "멘토",
-                key: "userName",
-                type: "string",
-              },
-
-              {
-                text: "상태",
-                key: "confirmed",
-                type: "string",
-                returnFunction: (e: boolean) => {
-                  return e ? "승인됨" : "미승인";
-                },
-              },
-            ]}
-          />
-        </Popup>
-      )}
-      {isMentor && enrollments?.length === 0 && checkPermission() ? (
+      {isMentor && enrollments?.length === 0 && (
         <Button
           type={"ghost"}
           style={{
             borderRadius: "4px",
             height: "32px",
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-            marginTop: "24px",
           }}
           onClick={() => {
             if (mentorConfirmed) {
@@ -432,10 +298,8 @@ const CourseView = (props: Props) => {
         >
           {mentorConfirmed ? "승인 취소" : "승인하기"}
         </Button>
-      ) : (
-        <></>
       )}
-      {isUser && !confirmed && checkPermission() ? (
+      {isUser && !confirmed && (
         <>
           <Button
             type={"ghost"}
@@ -443,7 +307,7 @@ const CourseView = (props: Props) => {
               borderRadius: "4px",
               height: "32px",
               boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              marginTop: "24px",
+              marginTop: "12px",
             }}
             onClick={() => {
               alert("clicked");
@@ -474,8 +338,166 @@ const CourseView = (props: Props) => {
             삭제
           </Button>
         </>
+      )}
+      <div style={{ height: "24px" }}></div>
+      <div className={style.title}>수강생 목록</div>
+      {isMentor ? (
+        <>
+          <Table
+            filter
+            type="object-array"
+            data={enrollments}
+            header={[
+              {
+                text: "학년",
+                key: "studentGrade",
+                type: "string",
+                width: "80px",
+              },
+              {
+                text: "ID",
+                key: "studentId",
+                type: "string",
+                width: "80px",
+              },
+              {
+                text: "이름",
+                key: "studentName",
+                type: "string",
+                width: "80px",
+              },
+              {
+                text: "평가",
+                key: "evaluation",
+                onClick: (e: any) => {
+                  alert("clicked!");
+                },
+                type: "button",
+                width: "80px",
+                align: "center",
+                textStyle: {
+                  padding: "0 10px",
+                  border: "var(--border-default)",
+                  background: "rgba(200, 200, 255, 0.25)",
+                  borderColor: "rgba(200, 200, 255)",
+                },
+              },
+              {
+                text: "알림 보내기",
+                key: "evaluation",
+                onClick: (e: any) => {
+                  const receiverSelectedList: receiverSelectedList = {};
+                  receiverSelectedList[
+                    JSON.stringify({
+                      userId: e.studentId,
+                      userName: e.studentName,
+                    })
+                  ] = true;
+                  setReceiverSelectedList({ ...receiverSelectedList });
+                  setSendNotificationPopupActive(true);
+                },
+                type: "button",
+                width: "80px",
+                align: "center",
+                textStyle: {
+                  padding: "0 10px",
+                  border: "var(--border-default)",
+                  background: "rgba(200, 200, 255, 0.25)",
+                  borderColor: "rgba(200, 200, 255)",
+                },
+              },
+            ]}
+            style={{ bodyHeight: "calc(100vh - 300px)" }}
+          />
+          <Button
+            type={"ghost"}
+            style={{
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+              marginTop: "24px",
+            }}
+            onClick={() => {
+              const receiverSelectedList: receiverSelectedList = {};
+              for (let e of enrollments || []) {
+                receiverSelectedList[
+                  JSON.stringify({
+                    userId: e.studentId,
+                    userName: e.studentName,
+                  })
+                ] = true;
+              }
+
+              setReceiverSelectedList({ ...receiverSelectedList });
+              setSendNotificationPopupActive(true);
+            }}
+          >
+            전체 알람 보내기
+          </Button>
+        </>
       ) : (
-        <></>
+        <>
+          <Table
+            filter
+            type="object-array"
+            data={enrollments}
+            header={[
+              {
+                text: "학년",
+                key: "studentGrade",
+                type: "string",
+                width: "80px",
+              },
+              {
+                text: "ID",
+                key: "studentId",
+                type: "string",
+                width: "80px",
+              },
+              {
+                text: "이름",
+                key: "studentName",
+                type: "string",
+              },
+            ]}
+            style={{ bodyHeight: "calc(100vh - 300px)" }}
+          />
+        </>
+      )}
+      {confirmStatusPopupActive && (
+        <Popup
+          setState={setConfirmStatusPopupActive}
+          title="승인 상태"
+          closeBtn
+        >
+          <Table
+            type="object-array"
+            data={props.courseData.teachers}
+            header={[
+              {
+                text: "No",
+                key: "",
+                type: "index",
+                width: "48px",
+                align: "center",
+              },
+              {
+                text: "멘토",
+                key: "userName",
+                type: "string",
+              },
+
+              {
+                text: "상태",
+                key: "confirmed",
+                type: "string",
+                returnFunction: (e: boolean) => {
+                  return e ? "승인됨" : "미승인";
+                },
+              },
+            ]}
+          />
+        </Popup>
       )}
       {sendNotificationPopupActive && (
         <Send
