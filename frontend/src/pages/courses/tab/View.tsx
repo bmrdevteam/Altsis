@@ -204,12 +204,12 @@ const CourseView = (props: Props) => {
     getEnrollments().then((res: any) => {
       setEnrollments(res);
       setEvaluationHeaderList([
-        ...Object.keys(res[0].evaluation).map((key: string) => {
-          return {
-            text: key,
-            key: `evaluation.${key}`,
-          };
-        }),
+        // ...Object.keys(res[0].evaluation).map((key: string) => {
+        //   return {
+        //     text: key,
+        //     key: `evaluation.${key}`,
+        //   };
+        // }),
         {
           text: "평가",
           key: "evaluation",
