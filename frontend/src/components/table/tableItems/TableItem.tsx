@@ -150,31 +150,31 @@ const TableItem = (props: ITableItem) => {
           {output}
         </div>
       );
-      case "input-number":
-        return outsideClick.active ? (
-          <input
+    case "input-number":
+      return outsideClick.active ? (
+        <input
           type={"number"}
-            ref={outsideClick.RefObject}
-            className={`${style.table_item} ${style.input_number}`}
-            defaultValue={output}
-            autoFocus
-          />
-        ) : (
-          <div
-            className={`${style.table_item}`}
-            style={{
-              justifyContent: props.header.align,
-              maxWidth: props.header.width,
-              border: props.style?.border,
-            }}
-            ref={outsideClick.RefObject}
-            onDoubleClick={() => {
-              outsideClick.handleOnClick();
-            }}
-          >
-            {output}
-          </div>
-        );
+          ref={outsideClick.RefObject}
+          className={`${style.table_item} ${style.input_number}`}
+          defaultValue={output}
+          autoFocus
+        />
+      ) : (
+        <div
+          className={`${style.table_item}`}
+          style={{
+            justifyContent: props.header.align,
+            maxWidth: props.header.width,
+            border: props.style?.border,
+          }}
+          ref={outsideClick.RefObject}
+          onDoubleClick={() => {
+            outsideClick.handleOnClick();
+          }}
+        >
+          {output}
+        </div>
+      );
     case "select":
       return outsideClick.active ? (
         <select

@@ -10,4 +10,5 @@ module.exports = {
   Archive: require("./Archive"),
   Apps: require("./Apps"),
   TestData: require("./TestData"),
+  Notification: require("./Notification"),
 };

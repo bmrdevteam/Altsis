@@ -14,6 +14,7 @@ type Props = {
   setValue?: any;
   setState?: React.Dispatch<React.SetStateAction<any>>;
   appearence?: "flat";
+  resetOnClick?: boolean;
 };
 
 const Autofill = (props: Props) => {
@@ -37,7 +38,7 @@ const Autofill = (props: Props) => {
       setInputValue(
         props.options.filter((val) => {
           return (
-            val.value && val.value.toString() === props.defaultValue.toString()
+            val.value && val.value.toString() === props.defaultValue?.toString()
           );
         })[0]?.text ?? ""
       );
@@ -143,6 +144,44 @@ const Autofill = (props: Props) => {
                   key={index}
                   onClick={() => {
                     setInputValue(value.text);
+                    props.setState && props.setState(value.value);
+                    setEdit(false);
+                  }}
+                  className={style.option}
+                >
+                  {value.text}
+                </div>
+              );
+            })}
+        </div>
+      )}
+
+      {edit && (valid || inputValue !== "") && props.resetOnClick && (
+        <div
+          className={style.options}
+          style={{
+            borderTop: "none",
+            borderRadius: props.style?.borderRadius,
+          }}
+        >
+          {props.options
+            .filter((val: { text: string; value: string | number }) => {
+              if (inputValue === "") {
+                return true;
+              } else if (
+                val.text &&
+                val.text?.toLowerCase()?.includes(inputValue?.toLowerCase())
+              ) {
+                return true;
+              }
+              return false;
+            })
+            .map((value, index) => {
+              return (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setInputValue("");
                     props.setState && props.setState(value.value);
                     setEdit(false);
                   }}

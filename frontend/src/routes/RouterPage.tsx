@@ -60,6 +60,8 @@ import CourseMentoring from "pages/courses/Mentoring";
 // apps pages
 import AppsIndex from "pages/apps/Index";
 import Apps from "pages/apps/Apps";
+// notification pages
+import Notifications from "pages/notifications/Index";
 
 //error pages
 import Http404 from "../pages/error/404";
@@ -340,6 +342,15 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <CoursePid />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="notifications"
+                element={
+                  <RequireAuth>
+                    <Notifications />
                   </RequireAuth>
                 }
               ></Route>
