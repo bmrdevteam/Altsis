@@ -35,7 +35,7 @@ import Table from "components/table/Table";
 import useDatabase from "hooks/useDatabase";
 import useGenerateId from "hooks/useGenerateId";
 type Props = {
-  school: any;
+  schoolData: any;
   resetData: any;
 };
 
@@ -55,7 +55,7 @@ const Classroom = (props: Props) => {
       console.log(inputClassroomName);
 
       await database.C({
-        location: `schools/${props.school?._id}/classrooms`,
+        location: `schools/${props.schoolData?._id}/classrooms`,
         data: { new: inputClassroomName },
       });
       props.resetData(true);
@@ -65,7 +65,7 @@ const Classroom = (props: Props) => {
   async function deleteClassroom(index: number | undefined) {
     if (typeof index === "number" && deleteClassroomPopupActive) {
       await database.D({
-        location: `schools/${props.school?._id}/classrooms/${index}`,
+        location: `schools/${props.schoolData?._id}/classrooms/${index}`,
       });
       props.resetData(true);
     }
@@ -91,7 +91,7 @@ const Classroom = (props: Props) => {
 
       <Table
         type="string-array"
-        data={props.school?.classrooms}
+        data={props.schoolData?.classrooms}
         header={[
           {
             text: "ID",
@@ -157,7 +157,7 @@ const Classroom = (props: Props) => {
           <div style={{ marginTop: "24px" }}>
             <strong>강의실 :</strong>
             &nbsp;
-            {props.school?.classrooms[deleteClassroomIndex as number]}
+            {props.schoolData?.classrooms[deleteClassroomIndex as number]}
           </div>
           <div style={{ marginTop: "24px" }}>
             <Button

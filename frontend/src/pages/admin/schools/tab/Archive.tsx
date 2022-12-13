@@ -5,7 +5,7 @@ import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
 import React, { useEffect, useState } from "react";
 type Props = {
-  school: any;
+  schoolData: any;
 };
 
 function Archive(props: Props) {
@@ -18,7 +18,7 @@ function Archive(props: Props) {
 
   async function updateFormArchive() {
     const result = await database.U({
-      location: `schools/${props.school._id}/form/archive`,
+      location: `schools/${props.schoolData._id}/form/archive`,
       data: { new: archiveForm },
     });
     return result;
@@ -26,7 +26,7 @@ function Archive(props: Props) {
   useEffect(() => {
     database
       .R({
-        location: `schools/${props.school._id}`,
+        location: `schools/${props.schoolData._id}`,
       })
       .then((res) => {
         setArchiveForm(res.formArchive);

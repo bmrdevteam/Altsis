@@ -1,5 +1,5 @@
 /**
- * @file Season Page Tab Item - Subject
+ * @file Season Page Tab Item - Subjects
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -26,7 +26,7 @@
  * @version 1.0
  *
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -47,7 +47,7 @@ type subjectDataListType = {
   [key: string]: string;
 };
 
-const Subject = (props: Props) => {
+const Subjects = (props: Props) => {
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -55,11 +55,11 @@ const Subject = (props: Props) => {
   const [subjectLabelList, setSubjectLabelList] = useState<string[]>(
     props.seasonData.subjects?.label || []
   );
-  const [subjectLabel, setSubjectLabel] = useState<string>("");
+  const subjectLabelRef = useRef<string>("");
 
   /* subject data list */
   const [subjectDataList, setSubjectDataList] = useState<any>();
-  const [subjectData, setSubjectData] = useState<string>("");
+  const subjectDataRef = useRef<string>("");
 
   /* subject data header list */
   const [subjectDataHeader, setSubjectDataHeader] = useState<any>([]);
@@ -108,31 +108,35 @@ const Subject = (props: Props) => {
   }
 
   useEffect(() => {
-    updateSubjectDataList();
-    updateSubjectDataHeader();
-    setIsLoading(false);
+    if (isLoading) {
+      updateSubjectDataList();
+      updateSubjectDataHeader();
+      setIsLoading(false);
+    }
     return () => {};
   }, [isLoading]);
 
   return (
     <div className={style.popup}>
       <div className={style.title} style={{ marginTop: "24px" }}>
-        Label 추가하기
+        헤더 수정하기
       </div>
 
       <div className={style.row}>
         <Input
           style={{ minHeight: "30px" }}
           onChange={(e: any) => {
-            setSubjectLabel(e.target.value);
+            subjectLabelRef.current = e.target.value;
           }}
           appearence={"flat"}
+          placeholder="ex) 교과/과목"
         />
 
         <Button
           type={"ghost"}
           onClick={() => {
-            setSubjectLabelList([...subjectLabelList, subjectLabel]);
+            const _subjectLabel = subjectLabelRef.current.split("/");
+            setSubjectLabelList(_subjectLabel);
             updateSubjectDataHeader();
             setIsLoading(true);
           }}
@@ -146,56 +150,15 @@ const Subject = (props: Props) => {
         </Button>
       </div>
 
-      <div style={{ marginTop: "24px" }} />
-      <Table
-        type="string-array"
-        data={subjectLabelList || []}
-        header={[
-          {
-            text: "ID",
-            key: "",
-            type: "index",
-            width: "48px",
-            align: "center",
-          },
-          {
-            text: "Label",
-            key: "",
-            type: "string",
-          },
-          {
-            text: "삭제",
-            key: "index",
-            type: "button",
-            onClick: (e: any) => {
-              subjectLabelList.splice(
-                _.findIndex(subjectLabelList, (x) => x === e),
-                1
-              );
-              setSubjectLabelList([...subjectLabelList]);
-              updateSubjectDataHeader();
-            },
-            width: "80px",
-            align: "center",
-            textStyle: {
-              padding: "0 10px",
-              border: "var(--border-default)",
-              background: "rgba(255, 200, 200, 0.25)",
-              borderColor: "rgba(255, 200, 200)",
-            },
-          },
-        ]}
-      />
-
       <div className={style.title} style={{ marginTop: "24px" }}>
-        Data 추가하기
+        항목 추가하기
       </div>
 
       <div className={style.row}>
         <Input
           style={{ minHeight: "30px" }}
           onChange={(e: any) => {
-            setSubjectData(e.target.value);
+            subjectDataRef.current = e.target.value;
           }}
           appearence={"flat"}
           placeholder={"ex) 미술/서양미술사"}
@@ -204,7 +167,7 @@ const Subject = (props: Props) => {
         <Button
           type={"ghost"}
           onClick={() => {
-            const _subjectData = subjectData.split("/");
+            const _subjectData = subjectDataRef.current.split("/");
             let data: subjectDataListType = {};
             for (let j = 0; j < subjectLabelList.length; j++) {
               data[subjectLabelList[j]] = _subjectData[j];
@@ -281,4 +244,4 @@ const Subject = (props: Props) => {
   );
 };
 
-export default Subject;
+export default Subjects;

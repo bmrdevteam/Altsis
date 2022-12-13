@@ -1,6 +1,6 @@
 /**
  * @file School Add Page
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -18,15 +18,15 @@
  * -------------------------------------------------------
  *
  * DEPRECATED
- * 
+ *
  * - School Add Page -> move to popup component in <Schools Index Page>
- * 
+ *
  * -------------------------------------------------------
  *
  * NOTES
- * 
- * 
- * 
+ *
+ *
+ *
  * @version 1.0
  *
  */
@@ -40,7 +40,7 @@ const SchoolAdd = (props: Props) => {
   return (
     <div className={style.section}>
       <NavigationLinks />
-      <div className={style.title}>학교추가</div>
+      <div className={style.title}>학교 추가</div>
     </div>
   );
 };

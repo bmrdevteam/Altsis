@@ -38,7 +38,7 @@ import Table from "components/table/Table";
 import Popup from "components/popup/Popup";
 
 // tab elements
-import Basic from "./tab/Basic";
+import Basic from "./tab/BasicInfo";
 import Classroom from "./tab/Classroom";
 import Subject from "./tab/Subject";
 
@@ -124,7 +124,7 @@ const School = (props: Props) => {
             setAddPopupActive(true);
           }}
         >
-          + 학교 생성
+          + 학교 추가
         </Button>
         <Table
           type="object-array"
@@ -221,6 +221,7 @@ const School = (props: Props) => {
                 onChange={(e: any) => {
                   setSchoolId(e.target.value);
                 }}
+                placeholder="2~20자의 영문 소문자와 숫자만 사용 가능합니다."
               />
             </div>
 
@@ -232,6 +233,7 @@ const School = (props: Props) => {
                 onChange={(e: any) => {
                   setSchoolName(e.target.value);
                 }}
+                placeholder="2~20자의 문자만 가능합니다."
               />
             </div>
 

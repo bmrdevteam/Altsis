@@ -127,7 +127,7 @@ const Academy = (props: Props) => {
           items={{
             아카데미: <BasicInfo academyData={academyData} />,
             학교: <School academyId={academyData?.academyId} />,
-            시즌: <Season academyId={academyData?.academyId} />,
+            학기: <Season academyId={academyData?.academyId} />,
             사용자: <User academyId={academyData?.academyId} />,
             등록: <Registration academyId={academyData?.academyId} />,
           }}
