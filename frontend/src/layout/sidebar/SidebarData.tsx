@@ -94,7 +94,7 @@ export const SidebarData = (
             role === "teacher"
               ? {
                   title: "mentoring",
-                  name: "멘토링 현황",
+                  name: "담당 수업",
                   path: "/courses/mentoring",
                   icon: <Svg type="file" />,
                 }
@@ -223,7 +223,7 @@ export const SidebarData = (
             role === "teacher"
               ? {
                   title: "mentoring",
-                  name: "멘토링 현황",
+                  name: "담당 수업",
                   path: "/courses/mentoring",
                   icon: <Svg type="file" />,
                 }
