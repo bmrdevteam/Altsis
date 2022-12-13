@@ -31,7 +31,7 @@ import Tree from "components/tree/Tree";
 import Table from "components/table/Table";
 
 type Props = {
-  school: any;
+  schoolData: any;
 };
 
 const Subject = (props: Props) => {
@@ -39,7 +39,7 @@ const Subject = (props: Props) => {
     <div style={{ marginTop: "24px" }}>
       <Table
         type="string-array"
-        data={props.school?.subjects.data}
+        data={props.schoolData?.subjects.data}
         header={[
           {
             text: "ID",

@@ -29,6 +29,7 @@
 
 // components
 import Input from "components/input/Input";
+
 import style from "style/pages/admin/schools.module.scss";
 
 type Props = {

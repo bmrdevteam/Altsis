@@ -124,14 +124,17 @@ const School = (props: Props) => {
       {schoolData && (
         <Tab
           items={{
-            "기본 정보": <BasicInfo school={schoolData} />,
+            "기본 정보": <BasicInfo schoolData={schoolData} />,
             학기: <Season />,
-            교과목: <Subject school={schoolData} />,
+            교과목: <Subject schoolData={schoolData} />,
             강의실: (
-              <Classroom school={schoolData} resetData={setResetSchoolData} />
+              <Classroom
+                schoolData={schoolData}
+                resetData={setResetSchoolData}
+              />
             ),
             "시간표(beta)": <Timetable />,
-            "학생정보 관리(archive)": <Archive school={schoolData} />,
+            "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
           }}
         />
       )}

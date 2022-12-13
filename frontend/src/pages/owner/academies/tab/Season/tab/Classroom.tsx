@@ -27,7 +27,7 @@
  *
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -66,7 +66,7 @@ const Classroom = (props: Props) => {
   return (
     <div className={style.popup}>
       <div className={style.title} style={{ marginTop: "24px" }}>
-        classroom 추가하기
+        강의실 추가하기
       </div>
 
       <div className={style.row}>
@@ -106,8 +106,8 @@ const Classroom = (props: Props) => {
             align: "center",
           },
           {
-            text: "classroom",
-            key: "",
+            text: "강의실",
+            key: 0,
             type: "string",
           },
           {
@@ -151,7 +151,7 @@ const Classroom = (props: Props) => {
             });
         }}
       >
-        수정하기
+        저장
       </Button>
     </div>
   );

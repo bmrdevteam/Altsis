@@ -41,7 +41,7 @@ import Select from "components/select/Select";
 // tab elements
 import Basic from "./tab/Basic";
 import Classroom from "./tab/Classroom";
-import Subject from "./tab/Subject";
+import Subjects from "./tab/Subjects";
 import Permission from "./tab/Permission";
 
 import _ from "lodash";
@@ -100,8 +100,6 @@ const Season = (props: Props) => {
       location: `academies/${props.academyId}/seasons`,
       data: {
         school,
-        schoolId,
-        schoolName,
         year,
         term,
         period: {
@@ -132,18 +130,6 @@ const Season = (props: Props) => {
         text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
         value: schoolList[i]._id,
       });
-    }
-
-    return result;
-  };
-
-  const years = () => {
-    let result: { text: string; value: number }[] = [];
-    const date = new Date();
-    const currentYear = date.getFullYear();
-
-    for (let i = 2000; i < currentYear + 50; i++) {
-      result.push({ text: i.toString(), value: i });
     }
 
     return result;
@@ -288,7 +274,7 @@ const Season = (props: Props) => {
       {editPopupActive && (
         <Popup
           closeBtn
-          title="Edit Document"
+          title={`${doc.schoolName}(${doc.schoolId}) / ${doc.year} ${doc.term}`}
           setState={setEditPopupActive}
           style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
           contentScroll
@@ -300,7 +286,7 @@ const Season = (props: Props) => {
               classrooms: (
                 <Classroom academy={props.academyId} seasonData={doc} />
               ),
-              subjects: <Subject academy={props.academyId} seasonData={doc} />,
+              subjects: <Subjects academy={props.academyId} seasonData={doc} />,
               permissions: (
                 <Permission academy={props.academyId} seasonData={doc} />
               ),
@@ -314,37 +300,27 @@ const Season = (props: Props) => {
           setState={setAddPopupActive}
           style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
           closeBtn
-          title={"Creaet Document"}
+          title={"Create Document"}
         >
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
               appearence="flat"
-              label="학교 ID"
+              label="학교"
               required={true}
               disabled={true}
-              defaultValue={schoolId}
-            />
-            <Input
-              appearence="flat"
-              label="학교 이름"
-              required={true}
-              disabled={true}
-              defaultValue={schoolName}
+              defaultValue={`${schoolName}(${schoolId})`}
             />
           </div>
 
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Select
-              style={{ minHeight: "30px" }}
+            <Input
+              appearence="flat"
               label="학년도"
-              defaultSelectedValue={new Date().getFullYear()}
-              required
-              options={years()}
-              setValue={setYear}
-              appearence={"flat"}
+              required={true}
+              onChange={(e: any) => {
+                setYear(e.target.value);
+              }}
             />
-          </div>
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
               appearence="flat"
               label="term"
@@ -354,12 +330,12 @@ const Season = (props: Props) => {
               }}
             />
           </div>
+
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
               appearence="flat"
               label="period.start"
               type="date"
-              required={true}
               onChange={(e: any) => {
                 setStart(e.target.value);
               }}
@@ -370,7 +346,6 @@ const Season = (props: Props) => {
               appearence="flat"
               label="period.end"
               type="date"
-              required={true}
               onChange={(e: any) => {
                 setEnd(e.target.value);
               }}
