@@ -28,7 +28,10 @@
  */
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
+
 import Svg from "assets/svg/Svg";
+
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
@@ -52,12 +55,13 @@ const Forms = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);
 
   const [view, setView] = useState<"list" | "grid">("grid");
-  const [updateFormList, setUpdateFormList] = useState<boolean>(true);
 
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
 
@@ -92,7 +96,7 @@ const Forms = (props: Props) => {
         },
       })
       .then(() => {
-        setUpdateFormList(true);
+        setIsLoading(true);
         setAddFormPopupActive(false);
       })
       .catch((error) => {
@@ -104,11 +108,22 @@ const Forms = (props: Props) => {
   }
 
   useEffect(() => {
-    updateFormList &&
+    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsLoading(true);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (isLoading) {
       getForms().then(() => {
-        setUpdateFormList(false);
+        setIsLoading(false);
       });
-  }, [updateFormList]);
+    }
+  }, [isLoading]);
+
   /**
    * form item container
    * @param {any} data
