@@ -74,6 +74,8 @@ import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
 
 function RouterPage() {
+  const { currentUser } = useAuth();
+
   // authenticate path with simple userlogin check
   const RequireAuth = ({
     children,
@@ -82,8 +84,6 @@ function RouterPage() {
     children: JSX.Element;
     role?: string[];
   }) => {
-    const { currentUser } = useAuth();
-
     if (role !== undefined && !role?.includes(currentUser.auth)) {
       return currentUser ? children : <Navigate to="/" />;
     }
@@ -94,235 +94,235 @@ function RouterPage() {
   return (
     <div className="main" id="main">
       <BrowserRouter>
-        <Sidebar />
+        {currentUser && <Sidebar />}
         <div
           className="content"
           id="content"
           // style={{ maxWidth: `calc(100vw - ${sidebarClose ? 56 : 240}px)` }}
         >
           <Routes>
-            <Route path="/">
-              {/* ----------------------------------------------------- */}
+            {/* ----------------------------------------------------- */}
 
-              {/* index */}
+            {/* basic routes */}
+            <Route path="login" element={<Login />}></Route>
+            <Route path=":pid/login" element={<Login />}></Route>
+            <Route path="register" element={<Register />}></Route>
+            {/* <Route path="/:academyId"> */}
+            {/* ----------------------------------------------------- */}
+
+            {/* index */}
+            <Route
+              index
+              element={
+                <RequireAuth>
+                  <Home />
+                </RequireAuth>
+              }
+            ></Route>
+
+            {/* ----------------------------------------------------- */}
+
+            {/* academy admin routes */}
+            <Route path="admin">
+              {/* [!make!] an hook to identify the number of */}
               <Route
-                index
+                path=""
                 element={
                   <RequireAuth>
-                    <Home />
+                    <Admin />
                   </RequireAuth>
                 }
               ></Route>
 
-              {/* ----------------------------------------------------- */}
-
-              {/* owner routes */}
-              <Route path="owner">
-                <Route
-                  path=""
-                  element={
-                    <RequireAuth>
-                      <Owner />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route
-                  path="academies"
-                  element={
-                    <RequireAuth>
-                      <Academies />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route
-                  path="academies/:pid"
-                  element={
-                    <RequireAuth>
-                      <Academy />
-                    </RequireAuth>
-                  }
-                ></Route>
-              </Route>
-              {/* ----------------------------------------------------- */}
-
-              {/* academy admin routes */}
-              <Route path="admin">
-                {/* [!make!] an hook to identify the number of */}
-                <Route
-                  path=""
-                  element={
-                    <RequireAuth>
-                      <Admin />
-                    </RequireAuth>
-                  }
-                ></Route>
-
-                <Route
-                  path="users"
-                  element={
-                    <RequireAuth>
-                      <Users />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route path="users/add" element={<Schools />}></Route>
-
-                <Route
-                  path="schools"
-                  element={
-                    <RequireAuth role={["member"]}>
-                      <Schools />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route
-                  path="schools/:pid"
-                  element={
-                    <RequireAuth>
-                      <School />
-                    </RequireAuth>
-                  }
-                ></Route>
-
-                <Route
-                  path="forms"
-                  element={
-                    <RequireAuth>
-                      <Forms />
-                    </RequireAuth>
-                  }
-                ></Route>
-                <Route
-                  path="forms/:pid"
-                  element={
-                    <RequireAuth>
-                      <Form />
-                    </RequireAuth>
-                  }
-                ></Route>
-              </Route>
-
-              {/* ----------------------------------------------------- */}
-              {/* teacher routes */}
-
               <Route
-                path="archive"
+                path="users"
                 element={
                   <RequireAuth>
-                    <Archive />
+                    <Users />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route path="users/add" element={<Schools />}></Route>
+
+              <Route
+                path="schools"
+                element={
+                  <RequireAuth role={["member"]}>
+                    <Schools />
                   </RequireAuth>
                 }
               ></Route>
               <Route
-                path="archive/:pid"
+                path="schools/:pid"
                 element={
                   <RequireAuth>
-                    <ArchiveField />
+                    <School />
                   </RequireAuth>
                 }
               ></Route>
 
-              {/* ----------------------------------------------------- */}
-
-              {/* basic routes */}
-              <Route path="login" element={<Login />}></Route>
-              <Route path=":pid/login" element={<Login />}></Route>
-              <Route path="register" element={<Register />}></Route>
-
               <Route
-                path="settings"
+                path="forms"
                 element={
                   <RequireAuth>
-                    <Settings />
-                  </RequireAuth>
-                }
-              ></Route>
-
-              {/* ----------------------------------------------------- */}
-
-              {/* school routes */}
-              <Route
-                path="myaccount"
-                element={
-                  <RequireAuth>
-                    <Myaccount />
+                    <Forms />
                   </RequireAuth>
                 }
               ></Route>
               <Route
-                path="courses"
+                path="forms/:pid"
                 element={
                   <RequireAuth>
-                    <Course />
+                    <Form />
                   </RequireAuth>
                 }
               ></Route>
-              <Route
-                path="courses/enroll"
-                element={
-                  <RequireAuth>
-                    <CourseEnroll />
-                  </RequireAuth>
-                }
-              ></Route>
-              <Route
-                path="courses/design"
-                element={
-                  <RequireAuth>
-                    <CourseDesign />
-                  </RequireAuth>
-                }
-              ></Route>
-              <Route
-                path="courses/list"
-                element={
-                  <RequireAuth>
-                    <CourseList />
-                  </RequireAuth>
-                }
-              ></Route>
-              <Route
-                path="courses/mylist"
-                element={
-                  <RequireAuth>
-                    <CourseMyList />
-                  </RequireAuth>
-                }
-              ></Route>
-              <Route
-                path="courses/mentoring"
-                element={
-                  <RequireAuth>
-                    <CourseMentoring />
-                  </RequireAuth>
-                }
-              ></Route>
-              <Route
-                path="courses/:pid"
-                element={
-                  <RequireAuth>
-                    <CoursePid />
-                  </RequireAuth>
-                }
-              ></Route>
-
-              {/* ----------------------------------------------------- */}
-
-              {/* dev routes */}
-              <Route path="dev">
-                <Route path="test" element={<Test />}></Route>
-                <Route path="e" element={<E />}></Route>
-                {/*  404 error */}
-                <Route path="*" element={<Http404 />}></Route>
-              </Route>
-
-              {/* ----------------------------------------------------- */}
-
-              {/* error routes */}
-              <Route path="*" element={<Http404 />}></Route>
-
-              {/* ----------------------------------------------------- */}
             </Route>
+
+            {/* ----------------------------------------------------- */}
+            {/* teacher routes */}
+
+            <Route
+              path="archive"
+              element={
+                <RequireAuth>
+                  <Archive />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="archive/:pid"
+              element={
+                <RequireAuth>
+                  <ArchiveField />
+                </RequireAuth>
+              }
+            ></Route>
+
+            {/* ----------------------------------------------------- */}
+
+            <Route
+              path="settings"
+              element={
+                <RequireAuth>
+                  <Settings />
+                </RequireAuth>
+              }
+            ></Route>
+
+            {/* ----------------------------------------------------- */}
+
+            {/* school routes */}
+            <Route
+              path="myaccount"
+              element={
+                <RequireAuth>
+                  <Myaccount />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="courses"
+              element={
+                <RequireAuth>
+                  <Course />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="courses/enroll"
+              element={
+                <RequireAuth>
+                  <CourseEnroll />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="courses/design"
+              element={
+                <RequireAuth>
+                  <CourseDesign />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="courses/list"
+              element={
+                <RequireAuth>
+                  <CourseList />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="courses/mylist"
+              element={
+                <RequireAuth>
+                  <CourseMyList />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="courses/mentoring"
+              element={
+                <RequireAuth>
+                  <CourseMentoring />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="courses/:pid"
+              element={
+                <RequireAuth>
+                  <CoursePid />
+                </RequireAuth>
+              }
+            ></Route>
+
+            {/* ----------------------------------------------------- */}
+
+            {/* dev routes */}
+            <Route path="dev">
+              <Route path="test" element={<Test />}></Route>
+              <Route path="e" element={<E />}></Route>
+              {/*  404 error */}
+              <Route path="*" element={<Http404 />}></Route>
+            </Route>
+            {/* ----------------------------------------------------- */}
+
+            {/* owner routes */}
+            <Route path="owner">
+              <Route
+                path=""
+                element={
+                  <RequireAuth>
+                    <Owner />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="academies"
+                element={
+                  <RequireAuth>
+                    <Academies />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="academies/:pid"
+                element={
+                  <RequireAuth>
+                    <Academy />
+                  </RequireAuth>
+                }
+              ></Route>
+            </Route>
+            {/* ----------------------------------------------------- */}
+
+            {/* error routes */}
+            <Route path="*" element={<Http404 />}></Route>
+
+            {/* ----------------------------------------------------- */}
+            {/* </Route> */}
           </Routes>
         </div>
       </BrowserRouter>
