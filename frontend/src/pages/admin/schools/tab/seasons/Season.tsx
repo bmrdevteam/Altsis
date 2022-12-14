@@ -43,8 +43,10 @@ import Basic from "./tab/Basic";
 import Classroom from "./tab/Classroom";
 import Form from "./tab/Form";
 import Permission from "./tab/Permission";
-import Subjects from "./tab/Subjects";
+import Subject from "./tab/Subject";
 import Users from "./tab/Users";
+
+import { useAuth } from "contexts/authContext";
 
 type Props = {};
 
@@ -52,12 +54,15 @@ const Season = (props: Props) => {
   const database = useDatabase();
 
   const { pid } = useParams();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [seasons, setSeasons] = useState<any[]>();
   const [selectedSeason, setSelectedSeason] = useState<any>();
 
-  const [selectedYear, setSelectedYear] = useState();
-  const [termName, setTermName] = useState<string>();
+  const [year, setYear] = useState();
+  const [term, setTerm] = useState<string>();
+  const [start, setStart] = useState<string>();
+  const [end, setEnd] = useState<string>();
 
   const [addSeasonPopupActive, setAddSeasonPopupActive] =
     useState<boolean>(false);
@@ -70,7 +75,7 @@ const Season = (props: Props) => {
    */
   async function getSeasons() {
     const { seasons: result } = await database.R({
-      location: `seasons?schoolId=bmrhs`,
+      location: `seasons?school=${pid}`,
     });
     return result;
   }
@@ -83,21 +88,30 @@ const Season = (props: Props) => {
     const result = await database.C({
       location: `seasons`,
       data: {
-        schoolId: pid,
-        year: selectedYear,
-        term: termName,
+        school: pid,
+        year: year,
+        term: term,
+        period: {
+          start: start,
+          end: end,
+        },
       },
     });
     return result;
   }
 
   useEffect(() => {
-    getSeasons().then((res) => {
-      console.log(res);
+    if (isLoading) {
+      getSeasons()
+        .then((res) => {
+          console.log(res);
 
-      setSeasons(res);
-    });
-  }, []);
+          setSeasons(res);
+          setIsLoading(false);
+        })
+        .catch((err) => alert(err.response.data.message));
+    }
+  }, [isLoading]);
 
   const years = () => {
     let result: { text: string; value: number }[] = [];
@@ -176,11 +190,6 @@ const Season = (props: Props) => {
               align: "center",
             },
             {
-              text: "학교 ID",
-              key: "schoolId",
-              type: "string",
-            },
-            {
               text: "학년도",
               key: "year",
               type: "string",
@@ -199,6 +208,15 @@ const Season = (props: Props) => {
                   return "없음";
                 }
                 return `${value?.start} ~ ${value?.end}`;
+              },
+            },
+            {
+              text: "상태",
+              key: "isActivated",
+              type: "string",
+
+              returnFunction: (e: boolean) => {
+                return e ? "활성화됨" : "비활성화됨";
               },
             },
             {
@@ -226,44 +244,68 @@ const Season = (props: Props) => {
           closeBtn
           title={"학기 추가"}
         >
-          <div style={{ marginTop: "24px" }}>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <Select
-                style={{ minHeight: "30px" }}
-                label="년도 선택"
-                defaultSelectedValue={new Date().getFullYear()}
-                required
-                options={years()}
-                setValue={setSelectedYear}
-                appearence={"flat"}
+          <div>
+            <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
+              <Input
+                appearence="flat"
+                label="학년도"
+                required={true}
+                onChange={(e: any) => {
+                  setYear(e.target.value);
+                }}
               />
+            </div>
+            <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
               <Input
                 style={{ maxHeight: "30px" }}
                 appearence="flat"
                 label="학기"
                 onChange={(e: any) => {
-                  setTermName(e.target.value);
+                  setTerm(e.target.value);
                 }}
                 required
               />
             </div>
-            <div style={{ height: "24px" }}></div>
+            <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+              <Input
+                appearence="flat"
+                label="시작일"
+                type="date"
+                onChange={(e: any) => {
+                  setStart(e.target.value);
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+              <Input
+                appearence="flat"
+                label="종료일"
+                type="date"
+                onChange={(e: any) => {
+                  setEnd(e.target.value);
+                }}
+              />
+            </div>
             <Button
               type={"ghost"}
-              disableOnclick
-              disabled={!selectedYear || !termName}
+              disabled={!year || !term}
               onClick={() => {
-                addSeason().then((res) => {
-                  setAddSeasonPopupActive(false);
-                });
+                addSeason()
+                  .then((res) => {
+                    alert("success");
+                    setIsLoading(true);
+                    setAddSeasonPopupActive(false);
+                  })
+                  .catch((err) => alert(err.response.data.message));
               }}
               style={{
                 borderRadius: "4px",
                 height: "32px",
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                marginTop: "24px",
               }}
             >
-              저장
+              생성
             </Button>
           </div>
         </Popup>
@@ -271,16 +313,22 @@ const Season = (props: Props) => {
       {editSeasonPopupActive && (
         <Popup
           closeBtn
-          title="학기 편집"
+          title={`${selectedSeason.year} ${selectedSeason.term}`}
           setState={setEditSeasonPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          style={{ borderRadius: "8px", maxWidth: "800px", width: "100%" }}
+          contentScroll
         >
           <Tab
             dontUsePaths
             items={{
-              "기본 정보": <Basic seasonData={selectedSeason} />,
+              "기본 정보": (
+                <Basic
+                  seasonData={selectedSeason}
+                  setIsLoading={setIsLoading}
+                />
+              ),
+              교과목: <Subject seasonData={selectedSeason} />,
               강의실: <Classroom seasonData={selectedSeason} />,
-              "교과 과목": <Subjects seasonData={selectedSeason} />,
               양식: <Form seasonData={selectedSeason} />,
               시용자: <Users seasonData={selectedSeason} />,
               권한: <Permission seasonData={selectedSeason} />,

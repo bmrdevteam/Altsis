@@ -27,7 +27,7 @@
  *
  */
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -51,7 +51,7 @@ const Classroom = (props: Props) => {
   const [classroomList, setClassroomList] = useState<string[]>(
     props.seasonData.classrooms || []
   );
-  const [classroom, setClassroom] = useState<string>("");
+  const classroomRef = useRef<string>("");
 
   async function updateClassrooms() {
     const result = await database.U({
@@ -66,22 +66,30 @@ const Classroom = (props: Props) => {
   return (
     <div className={style.popup}>
       <div className={style.title} style={{ marginTop: "24px" }}>
-        classroom 추가하기
+        강의실 추가하기
       </div>
 
       <div className={style.row}>
         <Input
           style={{ minHeight: "30px" }}
           onChange={(e: any) => {
-            setClassroom(e.target.value);
+            classroomRef.current = e.target.value;
           }}
           appearence={"flat"}
+          onKeyDown={(e: any) => {
+            if (classroomRef.current !== "" && e.key === "Enter") {
+              setClassroomList([...classroomList, classroomRef.current]);
+              // e.target.value = "";
+              // classroomRef.current = "";
+            }
+          }}
+          placeholder={"ex) 101호"}
         />
 
         <Button
           type={"ghost"}
           onClick={() => {
-            setClassroomList([...classroomList, classroom]);
+            setClassroomList([...classroomList, classroomRef.current]);
           }}
           style={{
             borderRadius: "4px",
@@ -106,8 +114,8 @@ const Classroom = (props: Props) => {
             align: "center",
           },
           {
-            text: "classroom",
-            key: "",
+            text: "강의실",
+            key: 0,
             type: "string",
           },
           {
@@ -151,7 +159,7 @@ const Classroom = (props: Props) => {
             });
         }}
       >
-        수정하기
+        저장
       </Button>
     </div>
   );

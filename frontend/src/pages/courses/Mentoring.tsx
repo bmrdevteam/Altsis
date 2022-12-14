@@ -171,7 +171,11 @@ const CoursesMentoring = (props: Props) => {
 
   useEffect(() => {
     if (!currentRegistration) {
-      setAlertPopupActive(true);
+      alert("등록된 학기가 없습니다.");
+      navigate("/courses");
+    } else if (currentRegistration.role !== "teacher") {
+      alert("멘토링 권한이 없습니다.");
+      navigate("/courses");
     } else {
       getCreatedCourseList().then((res: any) => {
         setCourseList(labelling(res));
@@ -205,7 +209,7 @@ const CoursesMentoring = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>멘토링 수업 목록</div>
+        <div className={style.title}>담당 수업 목록</div>
         <div style={{ height: "24px" }}></div>
 
         <Table
@@ -216,21 +220,6 @@ const CoursesMentoring = (props: Props) => {
           style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
-
-      {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 시즌이 없습니다">
-          <div style={{ marginTop: "12px" }}>
-            <Button
-              type="ghost"
-              onClick={() => {
-                navigate("/");
-              }}
-            >
-              메인 화면으로 돌아가기
-            </Button>
-          </div>
-        </Popup>
-      )}
     </>
   );
 };

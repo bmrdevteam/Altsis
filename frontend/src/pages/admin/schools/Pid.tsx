@@ -29,6 +29,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -79,12 +80,15 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 };
 
 const School = (props: Props) => {
+  const navigate = useNavigate();
   const { pid } = useParams<"pid">();
 
   const database = useDatabase();
+  const { currentUser } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [schoolData, setSchoolData] = useState<any>();
-  const [resetSchoolData, setResetSchoolData] = useState<boolean>(true);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   async function getSchool() {
@@ -93,7 +97,7 @@ const School = (props: Props) => {
   }
 
   useEffect(() => {
-    if (resetSchoolData) {
+    if (isLoading) {
       getSchool()
         .then((res) => {
           console.log(res);
@@ -103,14 +107,24 @@ const School = (props: Props) => {
           setIsSchool(false);
         });
 
-      setResetSchoolData(false);
+      setIsLoading(false);
     }
-  }, [resetSchoolData]);
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsAuthenticated(true);
+      setIsLoading(true);
+    }
+  }, [currentUser]);
 
   if (!isSchool) {
     return <CannotFindSchool />;
   }
-  return (
+  return isAuthenticated ? (
     <div className={style.section}>
       <NavigationLinks />
 
@@ -124,18 +138,22 @@ const School = (props: Props) => {
       {schoolData && (
         <Tab
           items={{
-            "기본 정보": <BasicInfo school={schoolData} />,
+            "기본 정보": <BasicInfo schoolData={schoolData} />,
             학기: <Season />,
-            교과목: <Subject school={schoolData} />,
+            교과목: (
+              <Subject schoolData={schoolData} setIsLoading={setIsLoading} />
+            ),
             강의실: (
-              <Classroom school={schoolData} resetData={setResetSchoolData} />
+              <Classroom schoolData={schoolData} setIsLoading={setIsLoading} />
             ),
             "시간표(beta)": <Timetable />,
-            "학생정보 관리(archive)": <Archive school={schoolData} />,
+            "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
           }}
         />
       )}
     </div>
+  ) : (
+    <></>
   );
 };
 

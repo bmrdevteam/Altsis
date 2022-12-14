@@ -57,6 +57,12 @@ import CourseList from "pages/courses/List";
 import CourseMyList from "pages/courses/MyList";
 import CourseMentoring from "pages/courses/Mentoring";
 
+// apps pages
+import AppsIndex from "pages/apps/Index";
+import Apps from "pages/apps/Apps";
+// notification pages
+import Notifications from "pages/notifications/Index";
+
 //error pages
 import Http404 from "../pages/error/404";
 
@@ -170,13 +176,103 @@ function RouterPage() {
                 }
               ></Route>
               <Route
-                path="forms/:pid"
+                path="apps"
+                element={
+                  <RequireAuth>
+                    <AppsIndex />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="apps/apps"
+                element={
+                  <RequireAuth>
+                    <Apps />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses"
                 element={
                   <RequireAuth>
                     <Form />
                   </RequireAuth>
                 }
               ></Route>
+              <Route
+                path="courses/enroll"
+                element={
+                  <RequireAuth>
+                    <CourseEnroll />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/design"
+                element={
+                  <RequireAuth>
+                    <CourseDesign />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/list"
+                element={
+                  <RequireAuth>
+                    <CourseList />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/mylist"
+                element={
+                  <RequireAuth>
+                    <CourseMyList />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/mentoring"
+                element={
+                  <RequireAuth>
+                    <CourseMentoring />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="courses/:pid"
+                element={
+                  <RequireAuth>
+                    <CoursePid />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="notifications"
+                element={
+                  <RequireAuth>
+                    <Notifications />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              {/* ----------------------------------------------------- */}
+
+              {/* dev routes */}
+              <Route path="dev">
+                <Route path="test" element={<Test />}></Route>
+                <Route path="e" element={<E />}></Route>
+                {/*  404 error */}
+                <Route path="*" element={<Http404 />}></Route>
+              </Route>
+
+              {/* ----------------------------------------------------- */}
+
+              {/* error routes */}
+              <Route path="*" element={<Http404 />}></Route>
+
+              {/* ----------------------------------------------------- */}
             </Route>
 
             {/* ----------------------------------------------------- */}

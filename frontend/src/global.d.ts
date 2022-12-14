@@ -5,6 +5,7 @@ declare module "*.scss" {
 declare module "*.jpeg";
 declare module "*.png";
 declare module "*.data.tsx";
+declare module "*.mp3";
 
 interface Window {
   handleGoogleLogin: any;
