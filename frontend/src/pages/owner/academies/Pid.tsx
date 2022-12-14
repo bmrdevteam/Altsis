@@ -82,13 +82,13 @@ const Academy = (props: Props) => {
   const { pid } = useParams<"pid">();
   const database = useDatabase();
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [isAcademy, setIsAcademy] = useState<boolean>(true);
   const [academyData, setAcademyData] = useState<any>();
 
   async function getAcademyData() {
-    const res = await database.R({ location: `academies?academyId=${pid}` });
+    const res = await database.R({ location: `academies/${pid}` });
     return res;
   }
 
