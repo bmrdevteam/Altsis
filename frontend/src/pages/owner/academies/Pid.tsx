@@ -88,7 +88,7 @@ const Academy = (props: Props) => {
   const [academyData, setAcademyData] = useState<any>();
 
   async function getAcademyData() {
-    const res = await database.R({ location: `academies/${pid}` });
+    const res = await database.R({ location: `academies?academyId=${pid}` });
     return res;
   }
 
