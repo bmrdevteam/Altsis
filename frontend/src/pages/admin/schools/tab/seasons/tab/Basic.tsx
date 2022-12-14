@@ -29,71 +29,107 @@
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
+import useDatabase from "hooks/useDatabase";
+import { useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
 
 type Props = {
   seasonData: any;
+  setIsLoading: any;
 };
 
 function Basic(props: Props) {
-  const years = () => {
-    let result: { text: string; value: number }[] = [];
-    const date = new Date();
-    const currentYear = date.getFullYear();
+  const database = useDatabase();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    for (let i = 2000; i < currentYear + 50; i++) {
-      result.push({ text: i.toString(), value: i });
+  /* document fields */
+  const [isActivated, setIsActivated] = useState<boolean>(
+    props.seasonData.isActivated
+  );
+
+  const [start, setStart] = useState<string>(
+    props.seasonData?.period?.start ?? ""
+  );
+  const [end, setEnd] = useState<string>(props.seasonData?.period?.end ?? "");
+
+  async function activateSeason() {
+    if (window.confirm("정말 활성화하시겠습니까?") === true) {
+      // 확인
+      const result = await database.C({
+        location: `seasons/${props.seasonData._id}/activate`,
+        data: {},
+      });
+      return result;
     }
+    // 취소
+    return false;
+  }
 
+  async function inactivateSeason() {
+    if (window.confirm("정말 비활성화하시겠습니까?") === true) {
+      // 확인
+      const result = await database.C({
+        location: `seasons/${props.seasonData._id}/inactivate`,
+        data: {},
+      });
+      return result;
+    }
+    // 취소
+    return false;
+  }
+
+  async function updateSeason() {
+    const result = database.U({
+      location: `seasons/${props.seasonData._id}/period`,
+      data: {
+        new: {
+          start,
+          end,
+        },
+      },
+    });
     return result;
-  };
+  }
+
   return (
     <div>
       <div className={style.popup}>
-        <div className={style.row}>
-          <Select
-            style={{ minHeight: "30px" }}
-            label="년도 선택"
-            defaultSelectedValue={parseInt(props.seasonData.year)}
-            required
-            options={years()}
-            appearence={"flat"}
-          />
+        <div className={style.row} style={{ marginTop: "24px" }}>
           <Input
             style={{ maxHeight: "30px" }}
-            defaultValue={props.seasonData.term}
-            appearence="flat"
-            label="학기"
-            onChange={(e: any) => {
-              //   setTermName(e.target.value);
-            }}
-            required
-          />
-        </div>
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
-            appearence="flat"
+            type="date"
             label="학기 시작"
+            appearence="flat"
+            defaultValue={start}
             onChange={(e: any) => {
-              //   setTermName(e.target.value);
+              setStart(e.target.value);
             }}
-            required
           />
           <Input
             style={{ maxHeight: "30px" }}
+            type="date"
             appearence="flat"
             label="학기 끝"
+            defaultValue={end}
             onChange={(e: any) => {
-              //   setTermName(e.target.value);
+              setEnd(e.target.value);
             }}
-            required
           />
         </div>
         <Button
           type={"ghost"}
-          disableOnclick
-          onClick={() => {}}
+          disabled={isLoading}
+          onClick={() => {
+            setIsLoading(true);
+            updateSeason()
+              .then(() => {
+                setIsLoading(false);
+              })
+              .catch((err) => {
+                alert(err.reponse.data.message);
+                setIsLoading(false);
+              });
+          }}
           style={{
             borderRadius: "4px",
             marginTop: "24px",
@@ -101,7 +137,44 @@ function Basic(props: Props) {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
         >
-          저장
+          {isLoading ? "저장중" : "저장"}
+        </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            marginTop: "12px",
+          }}
+          onClick={() => {
+            if (isActivated) {
+              inactivateSeason()
+                .then((res) => {
+                  if (res) {
+                    alert("success");
+                    setIsActivated(false);
+                    props.setIsLoading(true);
+                  }
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
+            } else {
+              activateSeason()
+                .then((res) => {
+                  if (res) {
+                    alert("success");
+                    setIsActivated(true);
+                    props.setIsLoading(true);
+                  }
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
+            }
+          }}
+        >
+          {isActivated ? "비활성화" : "활성화"}
         </Button>
       </div>
     </div>

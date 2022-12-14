@@ -1,21 +1,19 @@
 const express = require("express");
 const router = express.Router();
-const school = require("../controllers/school");
+const schools = require("../controllers/schools");
 const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             School
 //=================================
 
-router.post("/", isAdManager, school.create);
+router.post("/", isAdManager, schools.create);
 
-router.get("/:_id?/:field?", isLoggedIn, school.find);
+router.get("/:_id?/:field?", isLoggedIn, schools.find);
 
-// update activatedSeason
-router.put("/:_id/activated-season", isAdManager, school.updateActivatedSeason);
 // update subjects, classrooms, formArchive
-router.put("/:_id/:field/:fieldType?", isAdManager, school.updateField);
+router.put("/:_id/:field/:fieldType?", isAdManager, schools.updateField);
 
-router.delete("/:_id", isAdManager, school.delete);
+router.delete("/:_id", isAdManager, schools.delete);
 
 module.exports = router;

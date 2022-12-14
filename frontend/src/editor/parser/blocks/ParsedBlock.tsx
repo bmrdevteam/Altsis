@@ -1,33 +1,45 @@
 import React from "react";
 import style from "../../editor.module.scss";
-import ParsedDataTableBlock from "./ParsedDataTableBlock";
 import ParsedTableBlock from "./ParsedTableBlock";
 type Props = {
   blockData: any;
-  onChange?: (data: any) => void;
   auth: "edit" | "view";
   returnData: any;
+  defaultValues?: any;
+  defaultTimetable?: any;
+  dbData?: any;
 };
 
 const ParsedBlock = (props: Props) => {
-  console.log(props.blockData);
-
   switch (props.blockData.type) {
     case "paragraph":
       return (
-        <div className={style.parsed_block}>{props.blockData.data.text}</div>
+        <div
+          className={style.parsed_block}
+          style={{
+            fontSize: props.blockData.data.fontSize,
+            fontWeight: props.blockData.data.fontWeight,
+          }}
+        >
+          {props.blockData.data.text}
+        </div>
       );
     case "table":
       return (
         <ParsedTableBlock
           blockData={props.blockData}
           auth={props.auth}
+          defaultValues={props.defaultValues}
           returnData={props.returnData}
+          defaultTimetable={props.defaultTimetable}
+          dbData={props.dbData}
         />
       );
-    case "dataTable":
+    case "divider":
       return (
-        <ParsedDataTableBlock blockData={props.blockData} auth={props.auth} />
+        <div className={`${style.parsed_block} ${style.line}`}>
+          <div className={style.line}></div>
+        </div>
       );
     default:
       return (

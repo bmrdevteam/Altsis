@@ -1,17 +1,21 @@
-import Button from "components/button/Button";
-import Divider from "components/divider/Divider";
-import Input from "components/input/Input";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
-import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
-import React from "react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import style from "style/pages/admin/list.module.scss";
+
+// components
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Button from "components/button/Button";
+import Divider from "components/divider/Divider";
+import Table from "components/table/Table";
+import Popup from "components/popup/Popup";
+import Input from "components/input/Input";
+
 type Props = {};
 
 const Lists = (props: Props) => {
   const navigate = useNavigate();
+
   const [addDatabasePopupActive, setAddDatabasePopupActive] =
     useState<boolean>(false);
   const [addDatabaseFormValid, setAddDatabaseFormValid] =
@@ -36,6 +40,7 @@ const Lists = (props: Props) => {
       </Button>
       <div style={{ height: "24px" }}></div>
       <Table
+        type="object-array"
         data={[
           { _id: "abwqe43cas", dbName: "DB1", data: [] },
           { _id: "abcadfas423", dbName: "DB2", data: [] },

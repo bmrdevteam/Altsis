@@ -1,7 +1,7 @@
 /**
- * @file Courses Index Page
+ * @file Course Index Page
  *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
+ * @author jessie129j <jessie129j@gmail.com>
  *
  * -------------------------------------------------------
  *
@@ -26,79 +26,228 @@
  * @version 1.0
  *
  */
-
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Table from "../../components/table/Table";
-import { courseData } from "../../dummyData/coursesData";
-import useDatabase from "../../hooks/useDatabase";
-import style from "../../style/pages/courses/course.module.scss";
+import { useAuth } from "contexts/authContext";
+import useDatabase from "hooks/useDatabase";
+
+import style from "style/pages/enrollment.module.scss";
+
+// navigation bar
+import Navbar from "layout/navbar/Navbar";
+
+// components
+import Table from "components/table/Table";
+
+import _ from "lodash";
+import EditorParser from "editor/EditorParser";
+import Divider from "components/divider/Divider";
 
 type Props = {};
 
-const Courses = (props: Props) => {
+const Course = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
 
-  async function getCourseList() {
-    const res = await database.R({ location: "syllabuses/list" });
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
 
-    // setCourseList(res);
-    return res;
+  const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
+
+  /* subject label header list */
+  const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
+    []
+  );
+
+  async function getEnrolledCourseList() {
+    const { enrollments: myEnrollments } = await database.R({
+      location: `enrollments?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
+    });
+    if (myEnrollments.length === 0) return [];
+
+    const { enrollments: sylEnrollments } = await database.R({
+      location: `enrollments?syllabuses=${_.join(
+        myEnrollments.map((e: any) => e.syllabus),
+        ","
+      )}`,
+    });
+    const cnt = _.countBy(
+      sylEnrollments.map((enrollment: any) => enrollment.syllabus)
+    );
+
+    // enrollments to syllabus
+    const syllabuses = myEnrollments.map((e: any) => {
+      return {
+        ...e,
+        enrollment: e._id,
+        _id: e.syllabus,
+        count_limit: `${cnt[e.syllabus] || 0}/${e.limit}`,
+      };
+    });
+
+    return syllabuses;
   }
+
+  const labelling = (courseList: any[]) => {
+    return courseList.map((syllabus: any) => {
+      for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
+        syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
+      }
+      return syllabus;
+    });
+  };
+
+  const subjectHeaderList = [
+    {
+      text: "수업명",
+      key: "classTitle",
+      type: "string",
+    },
+
+    {
+      text: "시간",
+      key: "time",
+      type: "string",
+      returnFunction: (e: any) =>
+        _.join(
+          e.map((timeBlock: any) => timeBlock.label),
+          ", "
+        ),
+    },
+    {
+      text: "강의실",
+      key: "classroom",
+      type: "string",
+      width: "120px",
+    },
+
+    {
+      text: "개설자",
+      key: "userName",
+      type: "string",
+      width: "120px",
+    },
+
+    {
+      text: "멘토",
+      key: "teachers",
+      returnFunction: (e: any) => {
+        return _.join(
+          e.map((teacher: any) => {
+            return teacher.userName;
+          }),
+          ", "
+        );
+      },
+      type: "string",
+      width: "120px",
+    },
+    {
+      text: "학점",
+      key: "point",
+      type: "string",
+      width: "80px",
+    },
+    {
+      text: "수강/정원",
+      key: "count_limit",
+      type: "string",
+      width: "80px",
+    },
+    {
+      text: "상태",
+      key: "teachers",
+      returnFunction: (e: any) => {
+        for (let teacher of e) {
+          if (!teacher.confirmed) return "미승인";
+        }
+        return "승인됨";
+      },
+      type: "string",
+      width: "120px",
+    },
+    {
+      text: "자세히",
+      key: "courseName",
+      type: "button",
+      onClick: (e: any) => {
+        navigate(`/courses/${e._id}`, {
+          replace: true,
+        });
+      },
+      width: "80px",
+      align: "center",
+    },
+  ];
+
   useEffect(() => {
-    console.log(getCourseList());
-    return () => {};
-  }, []);
+    if (!currentRegistration) {
+      alert("등록된 학기가 없습니다.");
+      navigate("/courses");
+    } else {
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(labelling(res));
+      });
+      if (currentSeason?.subjects?.label) {
+        setSubjectLabelHeaderList([
+          ...currentSeason?.subjects?.label?.map((label: string) => {
+            return {
+              text: label,
+              key: label,
+              type: "string",
+              width: "120px",
+            };
+          }),
+        ]);
+      }
+    }
+  }, [currentRegistration]);
+
+  function syllabusToTime(s: any) {
+    let result = {};
+    if (s) {
+      for (let i = 0; i < s.length; i++) {
+        const element = s[i];
+        for (let ii = 0; ii < element.time.length; ii++) {
+          Object.assign(result, {
+            [element.time[ii].label]: element.classTitle,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
 
   return (
-    <div className={style.section}>
-      <div className={style.title}>개설 수업 목록</div>
+    <>
+      <Navbar />
+      <div className={style.section}>
+        {currentSeason?.formTimetable && (
+          <>
+            <div className={style.title}>시간표</div>
+            <EditorParser
+              auth="view"
+              defaultTimetable={syllabusToTime(enrolledCourseList)}
+              data={currentSeason?.formTimetable}
+            />
+            <div style={{ height: "24px" }}></div>
+            <Divider />
+            <div style={{ height: "24px" }}></div>
+          </>
+        )}
 
-      <Table
-        style={{ bodyHeight: "calc(100vh - 141px)" }}
-        data={courseData}
-        header={[
-          {
-            text: "수업 명",
-            key: "courseName",
-            type: "string",
-          },
-          {
-            text: "과목",
-            key: "subject",
-            type: "string",
-            width: "240px",
-          },
-          {
-            text: "선생님",
-            key: "teachers",
-            type: "string",
-            width: "180px",
-          },
-          {
-            text: "강의실",
-            key: "classroom",
-            type: "string",
-            width: "120px",
-          },
-          {
-            text: "자세히",
-            key: "_id",
-            type: "button",
-            onClick:(e:any)=>{
-              navigate(`${e.target.dataset.value}`, {
-                replace: true,
-              });
-            },
+        <div className={style.title}>수강신청 현황</div>
 
-            width: "80px",
-            align: "center",
-          },
-        ]}
-      />
-    </div>
+        <Table
+          filter
+          type="object-array"
+          data={enrolledCourseList}
+          header={[...subjectLabelHeaderList, ...subjectHeaderList]}
+          style={{ bodyHeight: "calc(100vh - 300px)" }}
+        />
+      </div>
+    </>
   );
 };
 
-export default Courses;
+export default Course;

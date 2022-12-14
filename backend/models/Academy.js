@@ -36,6 +36,7 @@ const academySchema = mongoose.Schema(
     dbName: {
       type: String,
     },
+    isActivated: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

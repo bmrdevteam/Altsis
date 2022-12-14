@@ -21,7 +21,7 @@ const InputCell = (props: Props) => {
           : "입력"
       }
     >
-      {cell.data?.text}
+      {/* {cell.data?.text} */}
     </div>
   );
 };

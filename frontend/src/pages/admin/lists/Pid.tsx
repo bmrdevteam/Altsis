@@ -1,7 +1,6 @@
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Tab from "components/tab/Tab";
 import useDatabase from "hooks/useDatabase";
-import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import style from "style/pages/admin/list.module.scss";
 import Body from "./tab/Body";
@@ -12,7 +11,6 @@ type Props = {};
 
 function List(props: Props) {
   const { pid } = useParams();
-  const database = useDatabase();
 
   async function getList() {}
 
@@ -23,7 +21,7 @@ function List(props: Props) {
       <Tab
         items={{
           데이터베이스: <Body />,
-          헤더: <Header  />,
+          헤더: <Header />,
           설정: <Settings />,
         }}
         align={"flex-start"}

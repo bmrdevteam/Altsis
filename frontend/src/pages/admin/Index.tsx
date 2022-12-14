@@ -26,18 +26,25 @@
  * @version 1.0
  *
  */
-import React from "react";
-import Navbar from "../../layout/navbar/Navbar";
+import style from "style/pages/admin/schools.module.scss";
 
-type Props = {};
+// components
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Divider from "components/divider/Divider";
 
-const Academy = (props: Props) => {
+const Admin = () => {
   return (
-    <>
-      <Navbar title="관리자" />
-      <div></div>
-    </>
+    <div className={style.section}>
+      <NavigationLinks />
+      <div style={{ display: "flex", gap: "24px" }}>
+        <div style={{ flex: "1 1 0" }}>
+          <div className={style.title}>관리자 메뉴</div>
+          <div className={style.description}>description...</div>
+        </div>
+      </div>
+      <Divider />
+    </div>
   );
 };
 
-export default Academy;
+export default Admin;

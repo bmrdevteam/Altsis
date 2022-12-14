@@ -2,6 +2,7 @@ import { isArray } from "lodash";
 import style from "../../editor.module.scss";
 import { useEditor } from "../../functions/editorContext";
 import CheckBoxCell from "./CheckBoxCell";
+import DataCell from "./DataCell";
 import InputCell from "./InputCell";
 import ParagraphCell from "./ParagraphCell";
 import SelectCell from "./SelectCell";
@@ -43,6 +44,8 @@ const TableBlock = (props: Props) => {
           return (
             <ParagraphCell column={col} row={row} blockIndex={props.index} />
           );
+        case "data":
+          return <DataCell column={col} row={row} blockIndex={props.index} />;
         case "time":
           return <TimeCell column={col} row={row} blockIndex={props.index} />;
         case "timeRange":
@@ -66,6 +69,13 @@ const TableBlock = (props: Props) => {
     return <div>{result()}</div>;
   };
 
+  let spanTrack: {
+    rowStart: number;
+    rowEnd: number;
+    colStart: number;
+    colEnd: number;
+  }[] = [];
+
   return (
     <div
       className={style.block}
@@ -75,7 +85,13 @@ const TableBlock = (props: Props) => {
         }
       }}
     >
-      <table className={style.table}>
+      <table
+        className={style.table}
+        style={{ fontSize: block.data.fontSize }}
+        onClick={() => {
+          console.log(spanTrack);
+        }}
+      >
         <SetColumn />
         <tbody>
           {block.data.table !== undefined &&
@@ -83,6 +99,38 @@ const TableBlock = (props: Props) => {
               return (
                 <tr key={index}>
                   {value.map((val: any, ind: number) => {
+                    const spanTrackCurr = spanTrack.filter((v) => {
+                      if (
+                        v.rowStart <= index &&
+                        v.rowEnd > index &&
+                        v.colStart <= ind &&
+                        v.colEnd > ind
+                      ) {
+                        return true;
+                      }
+
+                      return false;
+                    });
+
+                    if (spanTrackCurr.length > 0) {
+                      return;
+                    }
+
+                    spanTrack.push({
+                      rowStart: index,
+                      rowEnd:
+                        index +
+                        (isNaN(parseInt(val.rowSpan))
+                          ? 1
+                          : Math.abs(parseInt(val.rowSpan))),
+                      colStart: ind,
+                      colEnd:
+                        ind +
+                        (isNaN(parseInt(val.colSpan))
+                          ? 1
+                          : Math.abs(parseInt(val.colSpan))),
+                    });
+
                     return val.isHeader ? (
                       <th
                         key={ind}

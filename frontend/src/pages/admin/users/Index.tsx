@@ -28,27 +28,42 @@
  *
  */
 
-import React, { useEffect, useState } from "react";
-import Button from "../../../components/button/Button";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
 
-import Input from "../../../components/input/Input";
-import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
-import Popup from "../../../components/popup/Popup";
+// style
+import style from "style/pages/admin/users.module.scss";
 
-import Select from "../../../components/select/Select";
-import Table from "../../../components/table/Table";
-import useDatabase from "../../../hooks/useDatabase";
-import useSearch from "../../../hooks/useSearch";
-import style from "../../../style/pages/admin/users.module.scss";
+// hooks
+import useDatabase from "hooks/useDatabase";
+
+// components
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Button from "components/button/Button";
+import Input from "components/input/Input";
+import Popup from "components/popup/Popup";
+import Table from "components/table/Table";
+import Select from "components/select/Select";
 
 type Props = {};
 
 const Users = (props: Props) => {
   const database = useDatabase();
-  const [academyUsers, setAcademyUsers] = useState<any>();
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  /* user list */
+  const [userList, setUserList] = useState<any>();
   const [user, setUser] = useState<any>();
+
+  /* additional document list */
+  const [schoolList, setSchoolList] = useState<any>();
+  const [school, setSchool] = useState<any>();
+  const [schoolId, setSchoolId] = useState<string>("");
+  const [schoolName, setSchoolName] = useState<string>("");
+
   const [userRegistrations, setUserRegistrations] = useState<any[]>();
-  console.log(user);
 
   const [userInfoPopupActive, setUserInfoPopupActive] =
     useState<boolean>(false);
@@ -61,23 +76,68 @@ const Users = (props: Props) => {
     return res;
   }
 
-  useEffect(() => {
-    getAcademyUsers().then((res) => {
-      setAcademyUsers(res);
+  const schools = () => {
+    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
+
+    for (let i = 0; i < schoolList?.length; i++) {
+      result.push({
+        text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
+        value: schoolList[i]._id,
+      });
+    }
+
+    return result;
+  };
+
+  async function getSchoolList() {
+    const { documents } = await database.R({
+      location: `schools`,
     });
-  }, []);
+    return documents;
+  }
+
+  useEffect(() => {
+    if (isLoading) {
+      getSchoolList()
+        .then((res) => {
+          setSchoolList(res);
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+      setIsLoading(false);
+
+      // getAcademyUsers()
+      //   .then((res) => {
+      //     setUserList(res);
+      //     setIsLoading(false);
+      //   })
+      //   .catch((err) => {
+      //     alert(err.response.data.message);
+      //   });
+    }
+  }, [isLoading]);
 
   return (
     <>
       <div className={style.section}>
         <NavigationLinks />
-        <div className={style.title}>아카데미 유저 관리</div>
+        <div className={style.title}>아카데미 사용자 관리</div>
         <div style={{ height: "24px" }}></div>
+        <Select
+          style={{ minHeight: "30px" }}
+          required
+          label={"학교 선택"}
+          options={!isLoading ? schools() : [{ text: "", value: "" }]}
+          setValue={setSchool}
+          appearence={"flat"}
+        />
         <div>
           <Table
+            type="object-array"
             filter
             filterSearch
-            data={academyUsers}
+            data={userList}
             header={[
               {
                 text: "",
@@ -97,9 +157,20 @@ const Users = (props: Props) => {
               { text: "Id", key: "userId", type: "string" },
               {
                 text: "학교",
-                key: ["schools", "schooolName"],
+                key: "schools",
                 type: "string",
                 align: "center",
+                returnFunction: (val) => {
+                  let result = "";
+
+                  for (let i = 0; i < val.length; i++) {
+                    result = result.concat(val[i].schoolName);
+                    if (i >= 1) {
+                      result = result.concat(",");
+                    }
+                  }
+                  return result;
+                },
               },
               {
                 text: "auth",
@@ -112,15 +183,9 @@ const Users = (props: Props) => {
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  setUser(
-                    academyUsers?.filter(
-                      (val: any) => val._id === e.target.dataset.value
-                    )[0]
-                  );
+                  setUser(userList?.filter((val: any) => val._id === e._id)[0]);
                   getUserRegistrations(
-                    academyUsers?.filter(
-                      (val: any) => val._id === e.target.dataset.value
-                    )[0].userId
+                    userList?.filter((val: any) => val._id === e._id)[0].userId
                   ).then((res) => {
                     setUserRegistrations(res);
                   });

@@ -1,34 +1,15 @@
+import useOutsideClick from "hooks/useOutsideClick";
 import _, { isArray } from "lodash";
-import React, { useState } from "react";
+import E from "pages/dev/E";
+import React, { useRef, useState } from "react";
 import { useEffect } from "react";
 import Svg from "../../../assets/svg/Svg";
+import { TTableHeaderItem, TTableItemType } from "../Table";
 import style from "../table.module.scss";
 
-export type ITableItemType =
-  | "index"
-  | "string"
-  | "button"
-  | "dateTime"
-  | "date"
-  | "time"
-  | "select"
-  | "checkbox"
-  | "arrText"
-  | "input";
-
 interface ITableItem {
-  header: {
-    text: string;
-    key: string | string[];
-    value?: string;
-    returnFunction?: (value: any) => string;
-    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-    type: ITableItemType;
-    link?: string;
-    align?: "left" | "center" | "right";
-    width?: string;
-    textStyle?: object;
-  };
+  type: "object-array" | "string-array";
+  header: TTableHeaderItem;
   index: number;
   data: any;
   style?: {
@@ -44,24 +25,47 @@ const TableItem = (props: ITableItem) => {
   const [checked, setChecked] = useState<boolean>(
     props.checked !== undefined ? props.checked : false
   );
+  const outsideClick = useOutsideClick();
   useEffect(() => {
     props.checked && console.log(props.checked);
   }, [props.checked]);
 
-  // const [output, setOutput] = useState("");
-  const d = _.get(props?.data, props.header.key);
-  let output = d;
+  let output;
+  if (props.type === "object-array") {
+    const d = _.get(props?.data, props.header.key);
+    output = d;
 
-  if (props.header.returnFunction) {
-    output = props.header.returnFunction(d);
-  } else {
-    if (typeof d === "object") {
-      output = JSON.stringify(d);
-      if (isArray(d) && d.length === 1) {
-        output = _.values(d[0]).join(",");
+    if (props.header.returnFunction) {
+      output = props.header.returnFunction(d);
+    } else {
+      if (typeof d === "object") {
+        output = JSON.stringify(d);
+        if (isArray(d) && d.length === 1) {
+          output = _.values(d[0]).join(",");
+        }
+        if (isArray(d) && d.length > 1) {
+          output = d.join(",");
+        }
       }
-      if (isArray(d) && d.length > 1) {
-        output = d.join(",");
+    }
+  }
+  if (props.type === "string-array") {
+    const d = props?.data[props.header.key];
+    output = d;
+    if (typeof props?.data !== "object") {
+      output = props?.data;
+    }
+    if (props.header.returnFunction) {
+      output = props.header.returnFunction(d);
+    } else {
+      if (typeof d === "object") {
+        output = JSON.stringify(d);
+        if (isArray(d) && d.length === 1) {
+          output = _.values(d[0]).join(",");
+        }
+        if (isArray(d) && d.length > 1) {
+          output = d.join(",");
+        }
       }
     }
   }
@@ -75,6 +79,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
         >
           {props.index + 1}
@@ -89,6 +94,7 @@ const TableItem = (props: ITableItem) => {
             maxWidth: props.header.width,
             padding: "12px",
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
           onClick={() => {
             setChecked((prev) => {
@@ -116,29 +122,106 @@ const TableItem = (props: ITableItem) => {
         </div>
       );
     case "input":
-      return (
+      return outsideClick.active ? (
+        <textarea
+          ref={outsideClick.RefObject}
+          className={`${style.table_item} ${style.input}`}
+          defaultValue={output}
+          autoFocus
+          rows={1}
+          onInput={(e) => {
+            e.currentTarget.style.height = e.currentTarget.scrollHeight + "px";
+          }}
+          onFocus={(e) => {
+            e.target.style.height = e.target.scrollHeight + "px";
+          }}
+        />
+      ) : (
         <div
-          className={style.table_item}
+          className={`${style.table_item}`}
           style={{
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
+          }}
+          ref={outsideClick.RefObject}
+          onDoubleClick={() => {
+            outsideClick.handleOnClick();
           }}
         >
-          []
+          {output}
+        </div>
+      );
+    case "input-number":
+      return outsideClick.active ? (
+        <input
+          type={"number"}
+          ref={outsideClick.RefObject}
+          className={`${style.table_item} ${style.input_number}`}
+          defaultValue={output}
+          autoFocus
+        />
+      ) : (
+        <div
+          className={`${style.table_item}`}
+          style={{
+            justifyContent: props.header.align,
+            maxWidth: props.header.width,
+            border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
+          }}
+          ref={outsideClick.RefObject}
+          onDoubleClick={() => {
+            outsideClick.handleOnClick();
+          }}
+        >
+          {output}
+        </div>
+      );
+    case "select":
+      return outsideClick.active ? (
+        <select
+          ref={outsideClick.RefObject}
+          className={`${style.table_item} ${style.select}`}
+          defaultValue={output}
+          autoFocus
+        >
+          {props.header.selectOptions?.map((val) => {
+            return <option value={val}>{val}</option>;
+          })}
+        </select>
+      ) : (
+        <div
+          className={`${style.table_item}`}
+          style={{
+            justifyContent: props.header.align,
+            maxWidth: props.header.width,
+            border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
+          }}
+          ref={outsideClick.RefObject}
+          onClick={() => {
+            outsideClick.handleOnClick();
+          }}
+        >
+          {output}
         </div>
       );
     case "button":
       return (
         <div
           className={style.table_item}
-          onClick={props.header.onClick}
+          onClick={() => {
+            props.header.onClick && props.header.onClick(props.data);
+          }}
           data-value={props.header.value ? props.header.value : output}
           data-rowindex={props.index}
           style={{
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
         >
           <div
@@ -148,23 +231,6 @@ const TableItem = (props: ITableItem) => {
           >
             {props.header.text}
           </div>
-        </div>
-      );
-
-    case "arrText":
-      return (
-        <div
-          className={style.table_item}
-          onClick={props.header.onClick}
-          data-value={props.header.value ? props.header.value : props.data}
-          data-rowindex={props.index}
-          style={{
-            justifyContent: props.header.align,
-            maxWidth: props.header.width,
-            border: props.style?.border,
-          }}
-        >
-          {props.data ? props.data : null}
         </div>
       );
 
@@ -178,6 +244,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
         >
           {output}

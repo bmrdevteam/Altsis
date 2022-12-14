@@ -28,7 +28,12 @@
  */
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Svg from "assets/svg/Svg";
+import style from "style/pages/admin/forms.module.scss";
+
+// hooks
+import useDatabase from "hooks/useDatabase";
+import useSearch from "hooks/useSearch";
+
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
@@ -36,9 +41,8 @@ import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import Table from "components/table/Table";
-import useDatabase from "hooks/useDatabase";
-import useSearch from "hooks/useSearch";
-import style from "style/pages/admin/forms.module.scss";
+
+import Svg from "assets/svg/Svg";
 
 type Props = {};
 
@@ -53,11 +57,11 @@ const Forms = (props: Props) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);
 
   const [view, setView] = useState<"list" | "grid">("grid");
-  const [updateFormList, setUpdateFormList] = useState<boolean>(true);
 
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
 
@@ -92,7 +96,7 @@ const Forms = (props: Props) => {
         },
       })
       .then(() => {
-        setUpdateFormList(true);
+        setIsLoading(true);
         setAddFormPopupActive(false);
       })
       .catch((error) => {
@@ -104,11 +108,13 @@ const Forms = (props: Props) => {
   }
 
   useEffect(() => {
-    updateFormList &&
+    if (isLoading) {
       getForms().then(() => {
-        setUpdateFormList(false);
+        setIsLoading(false);
       });
-  }, [updateFormList]);
+    }
+  }, [isLoading]);
+
   /**
    * form item container
    * @param {any} data
@@ -203,7 +209,7 @@ const Forms = (props: Props) => {
                   : decodeURI(location.hash).replace("#", "") === "강의계획서"
                   ? "syllabus"
                   : decodeURI(location.hash).replace("#", "") === "평가"
-                  ? "evalutation"
+                  ? "evaluation"
                   : decodeURI(location.hash).replace("#", "") === "출력"
                   ? "print"
                   : "other"
@@ -246,6 +252,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"timetable"} />
                   ) : (
                     <Table
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "timetable";
                       })}
@@ -269,6 +276,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"syllabus"} />
                   ) : (
                     <Table
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "syllabus";
                       })}
@@ -292,6 +300,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"evaluation"} />
                   ) : (
                     <Table
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "evaluation";
                       })}
@@ -315,6 +324,7 @@ const Forms = (props: Props) => {
                     <FormItems type={"print"} />
                   ) : (
                     <Table
+                      type="object-array"
                       data={search.result().filter((value: any) => {
                         return value.type === "print";
                       })}
@@ -338,6 +348,7 @@ const Forms = (props: Props) => {
                     <FormItems />
                   ) : (
                     <Table
+                      type="object-array"
                       data={search.result()}
                       header={[
                         { type: "index", key: "", text: "ID", width: "48px" },

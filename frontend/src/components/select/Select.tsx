@@ -88,7 +88,10 @@ const Select = (props: Props) => {
 
   const Options = () => {
     return (
-      <div className={style.options}>
+      <div
+        className={style.options}
+        style={{ borderRadius: props.style?.borderRadius }}
+      >
         {props.options.map((value, index) => {
           return (
             <div
@@ -114,7 +117,7 @@ const Select = (props: Props) => {
     <div
       ref={selectRef}
       className={`${style.select} ${props.appearence === "flat" && style.flat}`}
-      style={{ width: props.style?.width, fontSize: props.style?.fontSize }}
+      style={props.style}
     >
       {props.label && (
         <label className={style.label}>
@@ -125,14 +128,18 @@ const Select = (props: Props) => {
       <div
         ref={props.ref}
         className={style.selected}
-        style={{ minWidth: props.style?.minWidth, width: props.style?.width }}
+        style={{
+          minWidth: props.style?.minWidth,
+          width: props.style?.width,
+          borderRadius: props.style?.borderRadius,
+        }}
         onClick={() => {
           setEdit((prev) => !prev);
         }}
       >
         <span className={style.text}>{props.options[selected]?.text}</span>
         <span className={style.icon}>
-          <Svg type={"chevronDown"} />
+          <Svg type={edit ? "chevronUp" : "chevronDown"} />
         </span>
         {edit && <Options />}
       </div>

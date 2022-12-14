@@ -47,12 +47,13 @@
 
     .options {
         border: var(--border-default);
+        border-top: none;
         cursor: pointer;
         width: calc(100% + 2px);
         z-index: 2022;
         position: absolute;
 
-        top: 38px;
+        top: 29px;
         left: -1px;
 
         overflow: auto;
@@ -62,7 +63,7 @@
 
 
         .option {
-            height: 40px;
+            height: 30px;
             display: flex;
             padding: 0 14px;
             white-space: nowrap;

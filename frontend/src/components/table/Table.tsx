@@ -9,27 +9,54 @@ import React, { useState } from "react";
 import useOutsideClick from "hooks/useOutsideClick";
 import Button from "../button/Button";
 import style from "./table.module.scss";
-import { ITableItemType, TableItem } from "./tableItems/TableItem";
+import { TableItem } from "./tableItems/TableItem";
 import Svg from "assets/svg/Svg";
 import { useEffect } from "react";
 import useSearch from "hooks/useSearch";
 import { useRef } from "react";
 import Select from "components/select/Select";
+import objectDownloadAsJson from "functions/objectDownloadAsJson";
+import objectDownloadAsCSV from "functions/objectDownloadAsCSV";
+import _, { isNumber } from "lodash";
+
+export type TTableHeaderItem = {
+  text: string;
+  key: string | number;
+  value?: string;
+  returnFunction?: (value: any) => string;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  type: TTableItemType;
+  link?: string;
+  align?: "left" | "center" | "right";
+  selectOptions?: string[];
+  width?: string;
+  textStyle?: object;
+  whiteSpace?:
+    | "normal"
+    | "nowrap"
+    | "pre"
+    | "pre-wrap"
+    | "pre-line"
+    | "break-spaces";
+};
+export type TTableHeader = TTableHeaderItem[];
+export type TTableItemType =
+  | "index"
+  | "string"
+  | "button"
+  | "dateTime"
+  | "date"
+  | "time"
+  | "select"
+  | "checkbox"
+  | "input"
+  | "input-number"
+  | "input-date";
 
 type Props = {
   data: any;
-  header: {
-    text: string;
-    key: string | string[];
-    value?: string;
-    returnFunction?: (value: any) => string;
-    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-    type: ITableItemType;
-    link?: string;
-    align?: "left" | "center" | "right";
-    width?: string;
-    textStyle?: object;
-  }[];
+  type: "object-array" | "string-array";
+  header: TTableHeader;
   style?: {
     border?: string;
     rowHeight?: string;
@@ -38,6 +65,8 @@ type Props = {
   onSelectChange?: (value: any) => void;
   filter?: boolean;
   filterSearch?: boolean;
+  hideHeader?: boolean;
+  checkAll?: boolean;
 };
 
 /**
@@ -112,7 +141,7 @@ const TableFilterItem = () => {
  * @version 1.0 design + close and open
  *
  */
-const TableControls = (props: { selectedItems: any[] }) => {
+const TableControls = (props: { selectedItems: any[]; data: any }) => {
   // const search = useSearch()
   // implement close on clicked somewhere else
   const outsideClickForFilter = useOutsideClick();
@@ -122,15 +151,15 @@ const TableControls = (props: { selectedItems: any[] }) => {
   return (
     <div className={style.controls}>
       <div ref={outsideClickForFilter.RefObject}>
-        <div
+        {/* <div
           className={style.icon}
           onClick={() => outsideClickForFilter.setActive((prev) => !prev)}
         >
           <Svg type="filter" />
-        </div>
-        {outsideClickForFilter.active && (
+        </div> */}
+        {/* {outsideClickForFilter.active && (
           <div className={style.filters}>
-            <div>AND</div>
+            <div>필터</div>
             <div className={style.item}>
               <div className={style.content}>
                 <span style={{ flex: "1 1 0" }}>item1</span>
@@ -140,7 +169,6 @@ const TableControls = (props: { selectedItems: any[] }) => {
               <Svg type="x" />
             </div>
 
-            <div>OR</div>
             <div className={style.item}>
               <div className={style.content}>
                 <span style={{ flex: "1 1 0" }}>item1</span>
@@ -162,7 +190,7 @@ const TableControls = (props: { selectedItems: any[] }) => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
       <div ref={outsideClickForExport.RefObject}>
         <div
@@ -173,14 +201,29 @@ const TableControls = (props: { selectedItems: any[] }) => {
         </div>
         {outsideClickForExport.active && (
           <div className={style.control}>
-            <div className={style.item}>csv 다운로드</div>
-            <div className={style.item}>json 다운로드</div>
+            <div
+              className={style.item}
+              onClick={() => {
+                objectDownloadAsCSV(props.data);
+              }}
+            >
+              csv 다운로드
+            </div>
+            <div
+              className={style.item}
+              onClick={() => {
+                objectDownloadAsJson(props.data);
+              }}
+            >
+              json 다운로드
+            </div>
           </div>
         )}
       </div>
     </div>
   );
 };
+
 /**
  * table search component
  *
@@ -188,14 +231,48 @@ const TableControls = (props: { selectedItems: any[] }) => {
  *
  * @version 1.0
  */
-const TableSearch = ({ search }: { search: any }) => {
+const TableSearch = ({
+  searchKeyName,
+  searchKey,
+  search,
+}: {
+  searchKeyName: any;
+  searchKey: any;
+  search: any;
+}) => {
+  const [searchValue, setSearchValue] = useState<string>(
+    search.filters.filter((f: any) => {
+      return f.id === "mainSearch";
+    })[0]?.value ?? ""
+  );
+  useEffect(() => {
+    setSearchValue(
+      search.filters.filter((f: any) => {
+        return f.id === "mainSearch";
+      })[0]?.value ?? ""
+    );
+  }, [searchKey]);
+
   return (
     <div className={style.search}>
       <input
         className={style.input}
         type="text"
-        placeholder="검색"
-        onChange={(e) => {}}
+        value={searchValue}
+        placeholder={searchKeyName ? `${searchKeyName} 검색` : "검색"}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            search.addFilterItem({
+              id: "mainSearch",
+              value: searchValue,
+              key: searchKey,
+              operator: "=",
+            });
+          }
+        }}
+        onChange={(e) => {
+          setSearchValue(e.target.value);
+        }}
       />
     </div>
   );
@@ -233,10 +310,45 @@ const TableSearch = ({ search }: { search: any }) => {
  * @version 1.0 initial version - created the table component
  */
 const Table = (props: Props) => {
-  const search = useSearch({});
+  const [searchKeyName, setSearchKeyName] = useState<string>("");
+
+  const [orderBy, setOrderBy] = useState<string | number>("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
   const selectedItems = useRef<any>([]);
 
   const [tableData, setTableData] = useState<any>(props.data);
+  const search = useSearch(tableData);
+
+  function tableDataResult() {
+    if (props.type === "object-array") {
+      if (orderBy && orderBy !== "" && orderBy !== " " && tableData) {
+        if (sortOrder === "asc") return _.sortBy(search?.result(), orderBy);
+        if (sortOrder === "desc")
+          return _.sortBy(search?.result(), orderBy).reverse();
+      }
+    }
+    // search.addFilterItem({
+    //   id: "mainSearch",
+    //   value: orderBy,
+    //   key: searchKey,
+    //   operator: "=",
+    // });
+    if (props.type === "string-array") {
+      if (isNumber(orderBy) && tableData) {
+        if (sortOrder === "asc") return _.sortBy(search?.result(), orderBy);
+        if (sortOrder === "desc")
+          return _.sortBy(search?.result(), orderBy).reverse();
+      }
+    }
+    if (tableData && props.type === "object-array") {
+      return search?.result();
+    }
+    if (tableData) {
+      return tableData;
+    }
+    return [];
+  }
 
   useEffect(() => {
     setTableData(props.data);
@@ -254,6 +366,7 @@ const Table = (props: Props) => {
     );
     props.onSelectChange && props.onSelectChange(selectedItems.current);
   }
+
   /**
    * filter component
    *
@@ -261,12 +374,17 @@ const Table = (props: Props) => {
    *
    * @version 1.0 design
    */
-
-  const TableFilter = ({ search }: { search: any }) => {
+  const TableFilter = () => {
     return (
       <div className={style.table_filter}>
-        {props.filterSearch && <TableSearch search={search} />}
-        <TableControls selectedItems={selectedItems.current} />
+        {props.filterSearch && (
+          <TableSearch
+            searchKey={orderBy}
+            search={search}
+            searchKeyName={searchKeyName}
+          />
+        )}
+        <TableControls data={tableData} selectedItems={selectedItems.current} />
       </div>
     );
   };
@@ -293,8 +411,33 @@ const Table = (props: Props) => {
                 maxWidth: value.width,
                 border: props.style?.border,
               }}
+              onClick={() => {
+                if (orderBy === value.key) {
+                  if (sortOrder === "asc") {
+                    setSortOrder("desc");
+                  } else {
+                    setSortOrder("asc");
+                    setOrderBy("");
+                  }
+                } else {
+                  setSortOrder("asc");
+                  setOrderBy(value.key);
+                }
+                if (value.key) {
+                  setSearchKeyName(value.text);
+                }
+              }}
             >
               {value.text}
+              {(orderBy || orderBy === 0) && orderBy === value.key ? (
+                sortOrder === "asc" ? (
+                  <Svg type={"arrowDown"} />
+                ) : (
+                  <Svg type={"arrowUp"} />
+                )
+              ) : (
+                ""
+              )}
             </div>
           ) : (
             <div
@@ -342,31 +485,32 @@ const Table = (props: Props) => {
       >
         <div className={style.table_body_container}>
           {/* map through rows */}
-          {tableData &&
-            tableData?.map((data: any, dataIndex: number) => {
-              return (
-                <div
-                  key={dataIndex}
-                  className={style.table_row}
-                  style={{ height: props.style?.rowHeight }}
-                >
-                  {/* map through the header to display the right output with the data */}
-                  {props.header.map((value, index) => {
-                    return (
-                      <TableItem
-                        append={appendItemToSelect}
-                        delete={deleteItemFromSelect}
-                        key={index}
-                        header={value}
-                        data={data}
-                        index={dataIndex}
-                        style={props.style}
-                      />
-                    );
-                  })}
-                </div>
-              );
-            })}
+          {tableDataResult().map((data: any, dataIndex: number) => {
+            return (
+              <div
+                key={dataIndex}
+                className={style.table_row}
+                style={{ height: props.style?.rowHeight }}
+              >
+                {/* map through the header to display the right output with the data */}
+                {props.header.map((value, index) => {
+                  return (
+                    <TableItem
+                      append={appendItemToSelect}
+                      delete={deleteItemFromSelect}
+                      key={index}
+                      header={value}
+                      type={props.type}
+                      data={data}
+                      index={dataIndex}
+                      style={props.style}
+                      checked={props.checkAll ? true : false}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -380,8 +524,8 @@ const Table = (props: Props) => {
         border: props.style?.border,
       }}
     >
-      {props.filter && <TableFilter search={search} />}
-      <TableHeader />
+      {props.filter && <TableFilter />}
+      {!props.hideHeader && <TableHeader />}
       <TableBody />
     </div>
   );

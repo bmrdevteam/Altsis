@@ -1,6 +1,6 @@
 /**
  * @file Form Pid Page
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -22,12 +22,11 @@
  * -------------------------------------------------------
  *
  * NOTES
- * 
+ *
  * @version 1.0
  *
  */
 
-import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import Editor from "../../../editor/Editor";

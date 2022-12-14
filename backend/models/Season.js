@@ -34,7 +34,10 @@ const seasonSchema = mongoose.Schema(
       type: String,
       required: true,
     },
-    period: String,
+    period: {
+      start: String,
+      end: String,
+    },
     permissionSyllabus: [[]],
     permissionEnrollment: [[]],
     permissionEvaluation: [[]],
@@ -42,6 +45,10 @@ const seasonSchema = mongoose.Schema(
     formSyllabus: Object,
     formEvaluation: Object,
     temp: Object,
+    isActivated: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -83,6 +90,7 @@ seasonSchema.methods.getSubdocument = function () {
     schoolName: this.schoolName,
     year: this.year,
     term: this.term,
+    isActivated: this.isActivated,
   };
 };
 

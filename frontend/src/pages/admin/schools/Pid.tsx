@@ -27,16 +27,14 @@
  *
  */
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import style from "style/pages/admin/schools.module.scss";
 
-// NavigationLinks component
-import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
-
-// tab component
-import Tab from "../../../components/tab/Tab";
+// components
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Tab from "components/tab/Tab";
 
 // tab elements
 import BasicInfo from "./tab/BasicInfo";
@@ -46,6 +44,8 @@ import Subject from "./tab/Subject";
 import useDatabase from "../../../hooks/useDatabase";
 import Setting from "./tab/Setting";
 import Skeleton from "../../../components/skeleton/Skeleton";
+import Timetable from "./tab/Timetable";
+import Archive from "./tab/Archive";
 
 type Props = {};
 
@@ -80,9 +80,8 @@ const School = (props: Props) => {
   const { pid } = useParams<"pid">();
 
   const database = useDatabase();
-
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<any>();
-  const [resetSchoolData, setResetSchoolData] = useState<boolean>(true);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   async function getSchool() {
@@ -91,19 +90,19 @@ const School = (props: Props) => {
   }
 
   useEffect(() => {
-    if (resetSchoolData) {
+    if (isLoading) {
       getSchool()
         .then((res) => {
           console.log(res);
-          setSchoolData(res)
+          setSchoolData(res);
         })
         .catch(() => {
           setIsSchool(false);
         });
 
-      setResetSchoolData(false);
+      setIsLoading(false);
     }
-  }, [resetSchoolData]);
+  }, [isLoading]);
 
   if (!isSchool) {
     return <CannotFindSchool />;
@@ -119,18 +118,22 @@ const School = (props: Props) => {
           <Skeleton height="22px" width="20%" />
         )}
       </div>
-
-      <Tab
-        items={{
-          "기본 정보": <BasicInfo school={schoolData} />,
-          학기: <Season />,
-          교과목: <Subject school={schoolData} />,
-          강의실: (
-            <Classroom school={schoolData} resetData={setResetSchoolData} />
-          ),
-          // 설정: <Setting />,
-        }}
-      />
+      {schoolData && (
+        <Tab
+          items={{
+            "기본 정보": <BasicInfo schoolData={schoolData} />,
+            학기: <Season />,
+            교과목: (
+              <Subject schoolData={schoolData} setIsLoading={setIsLoading} />
+            ),
+            강의실: (
+              <Classroom schoolData={schoolData} setIsLoading={setIsLoading} />
+            ),
+            "시간표(beta)": <Timetable />,
+            "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
+          }}
+        />
+      )}
     </div>
   );
 };

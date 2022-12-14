@@ -1,3 +1,5 @@
+import { archiveTestData } from "archiveTest";
+import Tree, { TreeItem } from "components/tree/Tree";
 import useGenerateId from "hooks/useGenerateId";
 import { isArray } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
@@ -9,6 +11,7 @@ import ToggleSwitch from "../../../components/toggleSwitch/ToggleSwitch";
 import style from "../../editor.module.scss";
 import { useEditor } from "../../functions/editorContext";
 import useEditorStore from "../../functions/useEditorStore";
+import DataConnPopup from "./DataConnPopup";
 import DatatableMenu from "./DatatableMenu";
 import Menu from "./Menu";
 
@@ -56,20 +59,17 @@ const Sidebar = (props: Props) => {
   const [addNewBlockType, setAddNewBlockType] = useState<string>("paragraph");
   const blockTypes = [
     { text: "텍스트", value: "paragraph" },
-    { text: "Data 텍스트", value: "dataText" },
     { text: "테이블", value: "table" },
-    { text: "Data 테이블", value: "dataTable" },
     { text: "select", value: "select" },
-    { text: "Data select", value: "dataSelect" },
     { text: "선", value: "divider" },
     { text: "입력", value: "input" },
   ];
 
   const AddBlockMenu = () => {
     return (
-      <Menu name="블록 추가">
+      <Menu name="블록">
         <div className={style.item}>
-          <label>추가</label>
+          <label>유형</label>
           <Select
             style={{ fontSize: "12px" }}
             appearence="flat"
@@ -100,12 +100,12 @@ const Sidebar = (props: Props) => {
 
   const BlockMenu = () => {
     return (
-      <Menu name="블록">
-        <div className={style.item}>
+      <Menu name="속성">
+        {/* <div className={style.item}>
           <label>{getCurrentBlock()?.id}</label>
-        </div>
+        </div> */}
         <div className={style.item}>
-          <label>타입</label>
+          <label>유형</label>
           <Select
             onChange={(value: any) => {
               changeCurrentBlockType(value);
@@ -118,7 +118,7 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
-          <label>Width</label>
+          <label>너비 (%)</label>
 
           <input
             onChange={(e) => {
@@ -146,7 +146,6 @@ const Sidebar = (props: Props) => {
       </Menu>
     );
   };
-
   const TableBlockMenu = () => {
     return (
       <Menu name="테이블">
@@ -160,7 +159,7 @@ const Sidebar = (props: Props) => {
         </div> */}
 
         <div className={style.item}>
-          <label>column 비율</label>
+          <label>비율</label>
           <Select
             onChange={(value: any) => {
               setCurrentCellColumn(value);
@@ -208,7 +207,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            행 추가
+            {`열 추가`}
           </Button>
           <Button
             type="ghost"
@@ -224,276 +223,9 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            열 추가
+            {`${getCurrentCellIndex().row + 1} 행 아래 추가`}
           </Button>
         </div>
-      </Menu>
-    );
-  };
-  const TableCellMenu = () => {
-    return (
-      <Menu name="셀">
-        <div className={style.item}>
-          <label>셀 타입</label>
-          <Select
-            onChange={(value: any) => {
-              changeCurrentCell({ type: value });
-              props.callPageReload();
-              forcefullyReloadSidebar();
-            }}
-            style={{ fontSize: "12px" }}
-            selectedValue={getCurrentCell()?.type}
-            appearence="flat"
-            options={[
-              { text: "텍스트셀", value: "paragraph" },
-              { text: "시간셀", value: "time" },
-              { text: "시간범위셀", value: "timeRange" },
-              { text: "체크박스셀", value: "checkbox" },
-              { text: "입력셀", value: "input" },
-              { text: "선택셀", value: "select" },
-            ]}
-          />
-        </div>
-        <div className={style.item}>
-          <label>헤더</label>
-          <ToggleSwitch
-            defaultChecked={getCurrentCell()?.isHeader}
-            onChange={(e: any) => {
-              changeCurrentCell({ isHeader: e.target.checked });
-              props.callPageReload();
-            }}
-          />
-        </div>
-
-        <div className={style.item}>
-          <label>셀 정렬</label>
-          <Select
-            onChange={(value: any) => {
-              changeCurrentCell({ align: value });
-              props.callPageReload();
-            }}
-            style={{ fontSize: "12px" }}
-            selectedValue={getCurrentCell()?.align}
-            appearence="flat"
-            options={[
-              { text: "왼쪽", value: "left" },
-              { text: "가운데", value: "center" },
-              { text: "오른쪽", value: "right" },
-            ]}
-          />
-        </div>
-        <div className={style.item}>
-          <label>텍스트 크기</label>
-          <input
-            onChange={(e) => {
-              changeCurrentCell({ fontSize: e.target.value });
-              props.callPageReload();
-            }}
-            type="text"
-            defaultValue={getCurrentCell()?.fontSize}
-          />
-        </div>
-        <div className={style.item}>
-          <label>셀 colSpan</label>
-          <input
-            onChange={(e) => {
-              if (e.target.value) {
-                changeCurrentCell({ colSpan: parseInt(e.target.value) });
-                props.callPageReload();
-              }
-            }}
-            type="text"
-            defaultValue={getCurrentCell()?.colSpan}
-          />
-        </div>
-        <div className={style.item}>
-          <label>셀 rowSpan</label>
-          <input
-            onChange={(e) => {
-              if (e.target.value) {
-                changeCurrentCell({ rowSpan: parseInt(e.target.value) });
-                props.callPageReload();
-              }
-            }}
-            type="text"
-            defaultValue={getCurrentCell()?.갲Span}
-          />
-        </div>
-        {getCurrentCell()?.type === "checkbox" && (
-          <div className={style.item}>
-            <label>이름</label>
-            <input
-              type="text"
-              defaultValue={getCurrentCell()?.name}
-              onChange={(e) => {
-                changeCurrentCell({ name: e.target.value });
-                props.callPageReload();
-              }}
-            />
-          </div>
-        )}
-        {getCurrentCell()?.type === "timeRange" && (
-          <>
-            <div className={style.item}>
-              <label>시작 시간</label>
-              <input
-                type="time"
-                defaultValue={getCurrentCell()?.timeRangeStart}
-                onChange={(e) => {
-                  changeCurrentCell({ timeRangeStart: e.target.value });
-                  props.callPageReload();
-                }}
-              />
-            </div>
-            <div className={style.item}>
-              <label>끝 시간</label>
-              <input
-                type="time"
-                defaultValue={getCurrentCell()?.timeRangeEnd}
-                onChange={(e) => {
-                  changeCurrentCell({ timeRangeEnd: e.target.value });
-                  props.callPageReload();
-                }}
-              />
-            </div>
-          </>
-        )}
-        {getCurrentCell()?.type === "time" && (
-          <div className={style.item}>
-            <label>시간</label>
-            <input type="time" />
-          </div>
-        )}
-        {getCurrentCell()?.type === "input" && (
-          <>
-            <div className={style.item}>
-              <label>이름</label>
-              <input
-                type="text"
-                defaultValue={getCurrentCell()?.name}
-                onChange={(e) => {
-                  changeCurrentCell({ name: e.target.value });
-                  props.callPageReload();
-                }}
-              />
-            </div>
-            <div className={style.item}>
-              <label>placeholder</label>
-              <input
-                type="text"
-                defaultValue={getCurrentCell()?.placeholder}
-                onChange={(e) => {
-                  changeCurrentCell({ placeholder: e.target.value });
-                  props.callPageReload();
-                }}
-              />
-            </div>
-          </>
-        )}
-        {getCurrentCell()?.type === "select" && (
-          <div>
-            <label style={{ flex: "1 1 0" }} className={style.name}>
-              옵션
-            </label>
-            <div className={style.item}>
-              <label>이름</label>
-              <input
-                type="text"
-                defaultValue={getCurrentCell()?.name}
-                onChange={(e) => {
-                  changeCurrentCell({ name: e.target.value });
-                  props.callPageReload();
-                }}
-              />
-            </div>
-            <div className={style.options}>
-              {getCurrentCell()?.options?.map((value: any) => {
-                return (
-                  <div className={style.item} key={value.id}>
-                    <span>
-                      <input
-                        type="text"
-                        defaultValue={value.text}
-                        onChange={(e) => {
-                          const index = getCurrentCell().options.findIndex(
-                            (obj: any) => obj.id === value.id
-                          );
-                          getCurrentCell().options[index] = Object.assign(
-                            getCurrentCell().options[index],
-                            { text: e.target.value }
-                          );
-                          props.callPageReload();
-                        }}
-                      />
-                    </span>
-                    <span>|</span>
-                    <span>
-                      <input
-                        type="text"
-                        defaultValue={value.value}
-                        onChange={(e) => {
-                          const index = getCurrentCell().options.findIndex(
-                            (obj: any) => obj.id === value.id
-                          );
-                          getCurrentCell().options[index] = Object.assign(
-                            getCurrentCell().options[index],
-                            { value: e.target.value }
-                          );
-                          props.callPageReload();
-                        }}
-                      />
-                    </span>
-                    <span
-                      style={{ minWidth: "24px" }}
-                      onClick={() => {
-                        getCurrentCell().options =
-                          getCurrentCell()?.options?.filter(
-                            (val: any) => val.id !== value.id
-                          );
-                        props.callPageReload();
-                        forcefullyReloadSidebar();
-                      }}
-                    >
-                      <Svg width="24px" type={"x"} />
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <Button
-              type="ghost"
-              style={{
-                flex: "1 1 0",
-                marginTop: "8px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-              onClick={() => {
-                if (isArray(getCurrentCell().options)) {
-                  getCurrentCell().options.push({
-                    id: generateId(12),
-                    text: "필드",
-                    value: "값",
-                  });
-                } else {
-                  getCurrentCell().options = [
-                    {
-                      id: generateId(12),
-                      text: "필드",
-                      value: "값",
-                    },
-                  ];
-                }
-
-                console.log(getCurrentCell()?.options);
-                props.callPageReload();
-                forcefullyReloadSidebar();
-              }}
-            >
-              option 추가
-            </Button>
-          </div>
-        )}
         <div style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
@@ -508,7 +240,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            행 삭제
+            {`${getCurrentCellIndex().column + 1} 열 삭제`}
           </Button>
           <Button
             type="ghost"
@@ -524,17 +256,308 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            열 삭제
+            {`${getCurrentCellIndex().row + 1} 행 삭제`}
           </Button>
         </div>
       </Menu>
+    );
+  };
+  const TableCellMenu = () => {
+    return (
+      <>
+        <Menu name="셀">
+          <div className={style.item}>
+            <label>셀 타입</label>
+            <Select
+              onChange={(value: any) => {
+                changeCurrentCell({ type: value });
+                props.callPageReload();
+                forcefullyReloadSidebar();
+              }}
+              style={{ fontSize: "12px" }}
+              selectedValue={getCurrentCell()?.type}
+              appearence="flat"
+              options={[
+                { text: "텍스트셀", value: "paragraph" },
+                { text: "데이터셀", value: "data" },
+                { text: "시간셀", value: "time" },
+                { text: "시간범위셀", value: "timeRange" },
+                { text: "체크박스셀", value: "checkbox" },
+                { text: "입력셀", value: "input" },
+                { text: "선택셀", value: "select" },
+              ]}
+            />
+          </div>
+          <div className={style.item}>
+            <label>헤더</label>
+            <ToggleSwitch
+              defaultChecked={getCurrentCell()?.isHeader}
+              onChange={(e: any) => {
+                changeCurrentCell({ isHeader: e.target.checked });
+                props.callPageReload();
+              }}
+            />
+          </div>
+
+          <div className={style.item}>
+            <label>셀 정렬</label>
+            <div className={style.align}>
+              <div className={style.align_options}>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "left" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignLeft"} />
+                </div>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "center" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignCenter"} />
+                </div>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "right" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignRight"} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className={style.item}>
+            <label>텍스트 크기</label>
+            <input
+              onChange={(e) => {
+                changeCurrentCell({ fontSize: e.target.value });
+                props.callPageReload();
+              }}
+              placeholder="pt / px"
+              type="text"
+              defaultValue={getCurrentCell()?.fontSize}
+            />
+          </div>
+          <div className={style.item}>
+            <label>셀 병합(가로)</label>
+            <input
+              onChange={(e) => {
+                if (e.target.value) {
+                  changeCurrentCell({ colSpan: parseInt(e.target.value) });
+                  props.callPageReload();
+                }
+              }}
+              type="number"
+              defaultValue={getCurrentCell()?.colSpan}
+            />
+          </div>
+          <div className={style.item}>
+            <label>셀 병합(세로)</label>
+            <input
+              onChange={(e) => {
+                if (e.target.value) {
+                  changeCurrentCell({ rowSpan: parseInt(e.target.value) });
+                  props.callPageReload();
+                }
+              }}
+              type="number"
+              defaultValue={getCurrentCell()?.rowSpan}
+            />
+          </div>
+          {getCurrentCell()?.type === "checkbox" && (
+            <div className={style.item}>
+              <label>이름</label>
+              <input
+                type="text"
+                defaultValue={getCurrentCell()?.name}
+                onChange={(e) => {
+                  changeCurrentCell({ name: e.target.value });
+                  props.callPageReload();
+                }}
+              />
+            </div>
+          )}
+          {getCurrentCell()?.type === "timeRange" && (
+            <>
+              <div className={style.item}>
+                <label>시작 시간</label>
+                <input
+                  type="time"
+                  defaultValue={getCurrentCell()?.timeRangeStart}
+                  onChange={(e) => {
+                    changeCurrentCell({ timeRangeStart: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+              <div className={style.item}>
+                <label>끝 시간</label>
+                <input
+                  type="time"
+                  defaultValue={getCurrentCell()?.timeRangeEnd}
+                  onChange={(e) => {
+                    changeCurrentCell({ timeRangeEnd: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+            </>
+          )}
+          {getCurrentCell()?.type === "time" && (
+            <div className={style.item}>
+              <label>시간</label>
+              <input type="time" />
+            </div>
+          )}
+          {getCurrentCell()?.type === "input" && (
+            <>
+              <div className={style.item}>
+                <label>이름</label>
+                <input
+                  type="text"
+                  defaultValue={getCurrentCell()?.name}
+                  onChange={(e) => {
+                    changeCurrentCell({ name: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+              <div className={style.item}>
+                <label>응답 예시</label>
+                <input
+                  type="text"
+                  defaultValue={getCurrentCell()?.placeholder}
+                  onChange={(e) => {
+                    changeCurrentCell({ placeholder: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+            </>
+          )}
+          {getCurrentCell()?.type === "select" && (
+            <div>
+              <label style={{ flex: "1 1 0" }} className={style.name}>
+                옵션
+              </label>
+              <div className={style.item}>
+                <label>이름</label>
+                <input
+                  type="text"
+                  defaultValue={getCurrentCell()?.name}
+                  onChange={(e) => {
+                    changeCurrentCell({ name: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+              <div className={style.options}>
+                {getCurrentCell()?.options?.map((value: any) => {
+                  return (
+                    <div className={style.item} key={value.id}>
+                      <span>
+                        <input
+                          type="text"
+                          defaultValue={value.text}
+                          onChange={(e) => {
+                            const index = getCurrentCell().options.findIndex(
+                              (obj: any) => obj.id === value.id
+                            );
+                            getCurrentCell().options[index] = Object.assign(
+                              getCurrentCell().options[index],
+                              { text: e.target.value }
+                            );
+                            props.callPageReload();
+                          }}
+                        />
+                      </span>
+                      <span>|</span>
+                      <span>
+                        <input
+                          type="text"
+                          defaultValue={value.value}
+                          onChange={(e) => {
+                            const index = getCurrentCell().options.findIndex(
+                              (obj: any) => obj.id === value.id
+                            );
+                            getCurrentCell().options[index] = Object.assign(
+                              getCurrentCell().options[index],
+                              { value: e.target.value }
+                            );
+                            props.callPageReload();
+                          }}
+                        />
+                      </span>
+                      <span
+                        style={{ minWidth: "24px" }}
+                        onClick={() => {
+                          getCurrentCell().options =
+                            getCurrentCell()?.options?.filter(
+                              (val: any) => val.id !== value.id
+                            );
+                          props.callPageReload();
+                          forcefullyReloadSidebar();
+                        }}
+                      >
+                        <Svg width="24px" type={"x"} />
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <Button
+                type="ghost"
+                style={{
+                  flex: "1 1 0",
+                  marginTop: "8px",
+                  height: "32px",
+                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                }}
+                onClick={() => {
+                  if (isArray(getCurrentCell().options)) {
+                    getCurrentCell().options.push({
+                      id: generateId(12),
+                      text: "필드",
+                      value: "값",
+                    });
+                  } else {
+                    getCurrentCell().options = [
+                      {
+                        id: generateId(12),
+                        text: "필드",
+                        value: "값",
+                      },
+                    ];
+                  }
+
+                  console.log(getCurrentCell()?.options);
+                  props.callPageReload();
+                  forcefullyReloadSidebar();
+                }}
+              >
+                option 추가
+              </Button>
+            </div>
+          )}
+          {getCurrentCell()?.type === "data" && (
+            <DataConnPopup callPageReload={props.callPageReload} />
+          )}
+        </Menu>
+      </>
     );
   };
   const InputBlockMenu = () => {
     return (
       <Menu name="input">
         <div className={style.item}>
-          <label>Name</label>
+          <label>이름</label>
           <input
             type="text"
             defaultValue={getCurrentBlock().data.name}
@@ -544,7 +567,7 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
-          <label>레이블</label>
+          <label>라벨</label>
           <input
             type="text"
             defaultValue={getCurrentBlock().data.label}
@@ -555,7 +578,7 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
-          <label>placeholder</label>
+          <label>응답 예시</label>
           <input
             type="text"
             defaultValue={getCurrentBlock().data?.placeholder}
@@ -585,6 +608,7 @@ const Sidebar = (props: Props) => {
           <label>크기</label>
           <input
             type="text"
+            placeholder="pt / px"
             defaultValue={getCurrentBlock()?.data?.fontSize}
             onChange={(e) => {
               changeCurrentBlockData({ fontSize: e.target.value });
@@ -599,7 +623,8 @@ const Sidebar = (props: Props) => {
               <div
                 className={style.option}
                 onClick={() => {
-                  // editor.align("left");
+                  changeCurrentBlockData({ textAlign: "left" });
+                  props.callPageReload();
                 }}
               >
                 <Svg type={"alignLeft"} />
@@ -607,7 +632,8 @@ const Sidebar = (props: Props) => {
               <div
                 className={style.option}
                 onClick={() => {
-                  // editor.align("center");
+                  changeCurrentBlockData({ textAlign: "center" });
+                  props.callPageReload();
                 }}
               >
                 <Svg type={"alignCenter"} />
@@ -615,7 +641,8 @@ const Sidebar = (props: Props) => {
               <div
                 className={style.option}
                 onClick={() => {
-                  // editor.align("right");
+                  changeCurrentBlockData({ textAlign: "right" });
+                  props.callPageReload();
                 }}
               >
                 <Svg type={"alignRight"} />
@@ -624,20 +651,46 @@ const Sidebar = (props: Props) => {
           </div>
         </div>
         <div className={style.item}>
-          <label></label>
+          <label>볼드</label>
+          <Select
+            onChange={(value: any) => {
+              changeCurrentBlockData({ fontWeight: value });
+              props.callPageReload();
+            }}
+            style={{ fontSize: "12px" }}
+            selectedValue={getCurrentBlock().data.fontWeight}
+            appearence="flat"
+            options={[
+              { text: "100", value: 100 },
+              { text: "200", value: 200 },
+              { text: "300", value: 300 },
+              { text: "400", value: 400 },
+              { text: "500", value: 500 },
+              { text: "600", value: 600 },
+              { text: "700", value: 700 },
+              { text: "800", value: 800 },
+              { text: "900", value: 900 },
+            ]}
+          />
         </div>
-        <div className={style.item}>
+        {/* <div className={style.item}>
           <label>배경색</label>
         </div>
-        <div className={style.item}>
-          <label>크기</label>
-        </div>
+        */}
       </Menu>
     );
   };
 
   return (
-    <div className={style.sidebar_container}>
+    <div
+      className={style.sidebar_container}
+      // onMouseEnter={() => {
+      //   console.log("a");
+      // }}
+      // onMouseLeave={() => {
+      //   console.log("aa");
+      // }}
+    >
       <div className={style.sidebar}>
         <AddBlockMenu />
         {getCurrentBlock() && <BlockMenu />}

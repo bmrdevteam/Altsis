@@ -104,7 +104,12 @@ export const EditorProvider = (props: {
    * editor data
    */
   const editorData = useRef<any>(null);
-
+  /**
+   * editor data Moves
+   */
+  const editorDataMoves = useRef<any>([]);
+  const editorDataMovesTrack = useRef<number>(0);
+  const editorDataMovesLimit = 100;
   /**
    * editor page ref
    */
@@ -125,17 +130,56 @@ export const EditorProvider = (props: {
    * save the form data to the backend
    */
   async function saveEditorData() {
-    await database.U({
-      location: `forms/${props.id}`,
-      data: {
-        new: {
-          title: editorTitle,
-          type: editorType,
-          data: result(),
+    if (!(editorType === "timetable")) {
+      await database.U({
+        location: `forms/${props.id}`,
+        data: {
+          new: {
+            title: editorTitle,
+            type: editorType,
+            data: result(),
+          },
         },
-      },
-    });
+      });
+    } else {
+      parseTimeBlocks();
+
+      await database.U({
+        location: `forms/${props.id}`,
+        data: {
+          new: {
+            title: editorTitle,
+            type: editorType,
+            data: result(),
+            timeBlocks: parseTimeBlocks(),
+          },
+        },
+      });
+    }
   }
+
+  /** timeBlock parsing */
+  function parseTimeBlocks() {
+    let timeBlockOutputarr = [];
+    const tableData: any[] = result().filter((block: any) => {
+      return block.type === "table";
+    })[0].data.table;
+    for (let i = 0; i < tableData.length; i++) {
+      const row = tableData[i];
+      for (let ii = 0; ii < row.length; ii++) {
+        const cell = row[ii];
+        if (cell.type === "checkbox") {
+          timeBlockOutputarr.push({
+            label: cell.name,
+            start: row[0].timeRangeStart,
+            end: row[0].timeRangeEnd,
+          });
+        }
+      }
+    }
+    return timeBlockOutputarr;
+  }
+
   /**
    * --------------------------------------------------------------------
    *
@@ -324,8 +368,8 @@ export const EditorProvider = (props: {
       return [...editorData.current, block];
     };
     editorData.current = q();
-
     setReloadEditorData(true);
+    saveMoves();
   }
 
   function saveBlock({ block, update }: { block: IBlock; update?: boolean }) {
@@ -340,6 +384,7 @@ export const EditorProvider = (props: {
       }
       console.log("updated", editorData.current);
     }
+    saveMoves();
   }
 
   /**
@@ -368,15 +413,18 @@ export const EditorProvider = (props: {
   function removeCurrentBlock() {
     editorData.current.splice(getCurrentBlockIndex(), 1);
     setReloadEditorData(true);
+    saveMoves();
   }
   function changeCurrentBlockType(type: string) {
     if (type !== editorData.current[getCurrentBlockIndex()].type) {
       editorData.current[getCurrentBlockIndex()].type = type;
       setReloadEditorData(true);
     }
+    saveMoves();
   }
   function changeCurrentBlockData(data: any, update?: boolean) {
     Object.assign(editorData.current[getCurrentBlockIndex()].data, data);
+    saveMoves();
   }
 
   function addBlockAfterCurrentBlock(blockType: string) {
@@ -447,6 +495,7 @@ export const EditorProvider = (props: {
   ) {
     Object.assign(editorData.current[blockIndex].data.table[row][column], data);
     console.log(editorData.current[blockIndex]);
+    saveMoves();
   }
 
   function addToCurrentRow() {
@@ -465,6 +514,7 @@ export const EditorProvider = (props: {
         newRow
       );
     }
+    saveMoves();
   }
 
   function addToCurrentColumn() {
@@ -478,6 +528,7 @@ export const EditorProvider = (props: {
         type: "paragraph",
       });
     }
+    saveMoves();
   }
 
   function removeCurrentRow() {
@@ -485,6 +536,7 @@ export const EditorProvider = (props: {
     if (table.length > 1) {
       table.splice(currentCellRow.current, 1);
     }
+    saveMoves();
   }
   function removeCurrentColumn() {
     const block = getCurrentBlock();
@@ -496,9 +548,11 @@ export const EditorProvider = (props: {
         table[i].splice(currentCellCol.current, 1);
       }
     }
+    saveMoves();
   }
 
   function changeCurrentCell(data: any) {
+    saveMoves();
     Object.assign(
       editorData.current[getCurrentBlockIndex()].data.table[
         parseInt(currentCellRow.current)
@@ -516,7 +570,61 @@ export const EditorProvider = (props: {
   function changeBlockData(blockIndex: number, data: any) {
     Object.assign(editorData.current[blockIndex].data, data);
     setReloadEditorData(true);
+    saveMoves();
   }
+
+  /**
+   * --------------------------------------------------------------------
+   * handle key presses
+   */
+
+  function saveMoves() {
+    if (
+      editorDataMovesTrack.current !== 0 &&
+      editorDataMovesTrack.current !== editorDataMoves.current.length
+    ) {
+      editorDataMoves.current = editorDataMoves.current.slice(
+        0,
+        editorDataMovesTrack.current
+      );
+    }
+    editorDataMoves.current.push(JSON.stringify(editorData.current));
+    editorDataMovesTrack.current = editorDataMoves.current.length;
+
+    editorDataMoves.current.length > editorDataMovesLimit &&
+      editorDataMoves.current.shift();
+  }
+  function handleKeyPress(e: KeyboardEvent) {
+    if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+      e.preventDefault();
+      editorData.current = JSON.parse(
+        editorDataMoves.current[editorDataMovesTrack.current]
+      );
+      editorDataMovesTrack.current += 1;
+      console.log(editorDataMoves.current);
+      setReloadEditorData(true);
+    } else if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      editorData.current = JSON.parse(
+        editorDataMoves.current[editorDataMovesTrack.current - 2]
+      );
+      editorDataMovesTrack.current -= 1;
+      console.log(editorDataMoves.current);
+
+      setReloadEditorData(true);
+    }
+  }
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyPress);
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+    };
+  }, []);
+
+  /**
+   * --------------------------------------------------------------------
+   */
 
   /**
    * --------------------------------------------------------------------

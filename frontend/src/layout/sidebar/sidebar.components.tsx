@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useState } from "react";
 import Svg from "assets/svg/Svg";
 import style from "./sidebar.module.scss";
-import dummmyProfilePic from "assets/img/sponge.jpeg";
+import defaultProfilePic from "assets/img/default_profile.png";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 import Popup from "components/popup/Popup";
@@ -9,10 +9,10 @@ import Button from "components/button/Button";
 
 const Nav = ({
   children,
-  close,
+  open,
 }: {
   children?: JSX.Element[] | JSX.Element;
-  close: boolean;
+  open: boolean;
 }) => {
   const { currentSchool } = useAuth();
   useEffect(() => {
@@ -24,7 +24,7 @@ const Nav = ({
   return (
     <nav
       id="Sidebar"
-      className={`${style.nav_container} ${close && style.close}`}
+      className={`${style.nav_container} ${open ? style.open : style.close}`}
     >
       {children}
     </nav>
@@ -32,6 +32,7 @@ const Nav = ({
 };
 
 const NavLogo = ({ onClick }: { onClick: any }) => {
+  const [open, setOpen] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const { currentUser, currentSchool } = useAuth();
@@ -46,9 +47,8 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
           // navigate("/", { replace: true });
         }}
       >
-        {currentSchool?.schoolName ? `${currentSchool.schoolName} - ` : ""}
-        {currentUser?.academyName
-          ? currentUser.academyName
+        {currentSchool?.schoolName
+          ? `${currentSchool.schoolName}`
           : currentUser?.academyName}
       </div>
       <div className={style.caret}>
@@ -159,7 +159,17 @@ const NavProfile = () => {
       <div className={style.nav_profile_container}>
         <div className={style.nav_profile}>
           <div className={style.profile_img}>
-            <img src={dummmyProfilePic} alt="profile" />
+            <img
+              src={currentUser?.profile || defaultProfilePic}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = currentUser?.profile.replace(
+                  "/thumb/",
+                  "/original/"
+                );
+              }}
+              alt="profile"
+            />
           </div>
           <div className={style.profile_info}>
             <div

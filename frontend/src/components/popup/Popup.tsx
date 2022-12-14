@@ -110,7 +110,7 @@ const Popup = (props: Props) => {
         </div>
         <div
           className={style.content}
-          style={{ overflowY: props.contentScroll ? "scroll" : "visible" }}
+          style={{ overflowY: props.contentScroll ? "scroll" : "hidden" }}
         >
           {props.children}
         </div>

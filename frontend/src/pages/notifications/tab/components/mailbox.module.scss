@@ -1,0 +1,21 @@
+.mailbox {
+  .table_header {
+    display: flex;
+
+    .page {
+      color: var(--accent-3);
+    }
+    .icon {
+      svg {
+        fill: var(--accent-3);
+        cursor: pointer;
+      }
+    }
+
+    .icon_disabled {
+      svg {
+        fill: var(--accent-5);
+      }
+    }
+  }
+}

@@ -9,4 +9,6 @@ module.exports = [
   "seasons",
   "registrations",
   "archives",
+  "apps",
+  "notifications",
 ];

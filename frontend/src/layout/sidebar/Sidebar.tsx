@@ -19,38 +19,39 @@ type Props = {};
 
 const Sidebar = (props: Props) => {
   const location = useLocation();
-  const [sidebarClose, setSidebarClose] = useState<boolean>(false);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const { currentUser, currentRegistration, currentPermission } = useAuth();
 
   useEffect(() => {
-    setSidebarClose(
-      window.localStorage.getItem("AppSidebarStatus") === "close"
-    );
+    setSidebarOpen(window.localStorage.getItem("AppSidebarStatus") === "open");
   }, []);
 
   useEffect(() => {
-    if (sidebarClose) {
-      window.localStorage.setItem("AppSidebarStatus", "close");
-    } else {
+    if (sidebarOpen) {
       window.localStorage.setItem("AppSidebarStatus", "open");
+    } else {
+      window.localStorage.setItem("AppSidebarStatus", "close");
     }
-  }, [sidebarClose]);
-
-  const { currentUser } = useAuth();
+  }, [sidebarOpen]);
 
   return (
-    <Nav close={sidebarClose}>
+    <Nav open={sidebarOpen}>
       <NavLogo
         onClick={() => {
-          setSidebarClose((prev: boolean) => {
+          setSidebarOpen((prev: boolean) => {
             return !prev;
           });
         }}
       />
 
       <NavLinks>
-        <Search />
+        {/* <Search /> */}
 
-        {SidebarData(currentUser?.auth).map((data: INavLink, index: number) => {
+        {SidebarData(
+          currentUser?.auth,
+          currentRegistration?.role,
+          currentPermission
+        ).map((data: INavLink, index: number) => {
           return (
             <NavLink
               key={index}
@@ -71,7 +72,7 @@ const Sidebar = (props: Props) => {
                           path={sbData.path}
                           active={
                             location.pathname !== "/" &&
-                            location.pathname.includes(sbData.path)
+                            decodeURI(location.pathname).includes(sbData.path)
                           }
                         >
                           {sbData.name}
