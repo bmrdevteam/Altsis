@@ -30,6 +30,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useDatabase from "../../../hooks/useDatabase";
+import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -80,8 +81,12 @@ const CannotFindAcademy = ({ schoolId }: { schoolId?: string }) => {
 
 const Academy = (props: Props) => {
   const { pid } = useParams<"pid">();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const database = useDatabase();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [isAcademy, setIsAcademy] = useState<boolean>(true);
   const [academyData, setAcademyData] = useState<any>();
@@ -92,22 +97,34 @@ const Academy = (props: Props) => {
   }
 
   useEffect(() => {
-    getAcademyData()
-      .then((res) => {
-        setAcademyData(res);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        alert("failed to load data");
-        setIsAcademy(false);
-      });
-  }, []);
+    if (isLoading) {
+      getAcademyData()
+        .then((res) => {
+          setAcademyData(res);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          alert("failed to load data");
+          setIsAcademy(false);
+        });
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (currentUser.auth !== "owner") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsAuthenticated(true);
+      setIsLoading(true);
+    }
+  }, [currentUser]);
 
   if (!isAcademy) {
     return <CannotFindAcademy />;
   }
 
-  return (
+  return isAuthenticated ? (
     <div className={style.section}>
       <NavigationLinks />
       <div style={{ display: "flex", gap: "24px" }}>
@@ -136,6 +153,8 @@ const Academy = (props: Props) => {
         <div />
       )}
     </div>
+  ) : (
+    <></>
   );
 };
 
