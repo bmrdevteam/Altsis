@@ -96,7 +96,7 @@ function RouterPage() {
       !auth?.includes(currentUser.auth)
     ) {
       alert("잘못된 접근입니다.");
-      return currentUser ? children : <Navigate to="/" />;
+      return <Navigate to="/" />;
     }
 
     return currentUser ? children : <Navigate to="/0/login" />;
