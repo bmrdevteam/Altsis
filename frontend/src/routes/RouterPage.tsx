@@ -90,9 +90,13 @@ function RouterPage() {
     children: JSX.Element;
     auth?: string[];
   }) => {
-    if (auth !== undefined && !auth?.includes(currentUser.auth)) {
+    if (
+      currentUser &&
+      auth !== undefined &&
+      !auth?.includes(currentUser.auth)
+    ) {
       alert("잘못된 접근입니다.");
-      return <Navigate to="/" />;
+      return currentUser ? children : <Navigate to="/" />;
     }
 
     return currentUser ? children : <Navigate to="/0/login" />;
