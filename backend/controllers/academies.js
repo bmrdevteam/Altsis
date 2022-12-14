@@ -26,7 +26,7 @@ module.exports.create = async (req, res) => {
     await academy.save();
 
     /* create db */
-    addConnection(academy.academyId);
+    addConnection(academy.academyId, academy.dbName);
 
     /* create & save admin document  */
     const _User = User(academy.academyId);
