@@ -237,17 +237,40 @@ const ParsedTableBlock = (props: Props) => {
               return (
                 repeat &&
                 repeat.map((v: any, i: number) => {
-
-
                   //filter map  ()
-                  if (
-                    props.blockData.data.dataRepeat?.filterBy &&
-                    v?.[props.blockData.data.dataRepeat?.filterBy] !==
-                      props.blockData.data.dataRepeat?.filterValue
-                  ) {
-                    return;
-                  }
+                  console.log(props.blockData.data.dataFilter);
 
+                  if (props.blockData.data.dataFilter?.length > 0) {
+                    let boolCount: number = 0;
+                    let boola: string = "";
+                    props.blockData.data.dataFilter?.map(
+                      (filter: any, iasd: number) => {
+                        boola = boola.concat(
+                          `${iasd}${v?.[filter.by]} ${filter.operator} ${
+                            filter.value
+                          }`
+                        );
+                        if (
+                          filter.operator === "===" &&
+                          v?.[filter.by] !== undefined &&
+                          v?.[filter.by] !== filter.value
+                        ) {
+                          boolCount += 1;
+                        }
+
+                        if (
+                          filter.operator === "!==" &&
+                          v?.[filter.by] !== undefined &&
+                          v?.[filter.by] === filter.value
+                        ) {
+                          boolCount += 1;
+                        }
+                      }
+                    );
+                    if (boolCount > 0) {
+                      return;
+                    }
+                  }
 
                   return (
                     <tr key={`${index}-${i}`}>
