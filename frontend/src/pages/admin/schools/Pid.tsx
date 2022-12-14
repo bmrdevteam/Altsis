@@ -29,6 +29,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -79,12 +80,14 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 };
 
 const School = (props: Props) => {
+  const navigate = useNavigate();
   const { pid } = useParams<"pid">();
 
   const database = useDatabase();
+  const { currentUser } = useAuth();
 
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [schoolData, setSchoolData] = useState<any>();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   async function getSchool() {
@@ -106,6 +109,15 @@ const School = (props: Props) => {
       setIsLoading(false);
     }
   }, [isLoading]);
+
+  useEffect(() => {
+    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsLoading(true);
+    }
+  }, [currentUser]);
 
   if (!isSchool) {
     return <CannotFindSchool />;

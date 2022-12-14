@@ -1,21 +1,44 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
+
+import style from "style/pages/admin/list.module.scss";
+
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
-import Input from "components/input/Input";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
-import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
-import React from "react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import style from "style/pages/admin/list.module.scss";
+import Popup from "components/popup/Popup";
+import Input from "components/input/Input";
+
 type Props = {};
 
 const Lists = (props: Props) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+
   const [addDatabasePopupActive, setAddDatabasePopupActive] =
     useState<boolean>(false);
   const [addDatabaseFormValid, setAddDatabaseFormValid] =
     useState<boolean>(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      setIsLoading(false);
+    }
+    return () => {};
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsLoading(true);
+    }
+  }, [currentUser]);
 
   return (
     <div className={style.section}>

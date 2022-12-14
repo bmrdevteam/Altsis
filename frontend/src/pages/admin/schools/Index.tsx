@@ -28,20 +28,24 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
+
+import style from "style/pages/admin/schools.module.scss";
+
+import useDatabase from "hooks/useDatabase";
+
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Table from "components/table/Table";
-import useDatabase from "hooks/useDatabase";
-import style from "style/pages/admin/schools.module.scss";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 
 const Schools = () => {
   const navigate = useNavigate();
   const database = useDatabase();
-
-  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
   /* document list */
   const [schoolsList, setSchoolsList] = useState<any>();
@@ -78,9 +82,17 @@ const Schools = () => {
     return result;
   }
 
+  useEffect(() => {
+    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsLoading(true);
+    }
+  }, [currentUser]);
+
   return (
     <>
-      {" "}
       <div className={style.section}>
         <NavigationLinks />
         <div style={{ display: "flex", gap: "24px" }}>
