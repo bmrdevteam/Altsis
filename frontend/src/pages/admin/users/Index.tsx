@@ -50,10 +50,8 @@ type Props = {};
 
 const Users = (props: Props) => {
   const database = useDatabase();
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(true);
 
   /* user list */
   const [userList, setUserList] = useState<any>();
@@ -120,17 +118,7 @@ const Users = (props: Props) => {
     }
   }, [isLoading]);
 
-  useEffect(() => {
-    if (currentUser.auth !== "admin") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(true);
-    }
-  }, [currentUser]);
-
-  return isAuthenticated ? (
+  return (
     <>
       <div className={style.section}>
         <NavigationLinks />
@@ -263,8 +251,6 @@ const Users = (props: Props) => {
         </Popup>
       )}
     </>
-  ) : (
-    <></>
   );
 };
 

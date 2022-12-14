@@ -28,12 +28,12 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/schools.module.scss";
 
 import useDatabase from "hooks/useDatabase";
 
+// components
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
@@ -44,9 +44,7 @@ import Input from "components/input/Input";
 const Schools = () => {
   const navigate = useNavigate();
   const database = useDatabase();
-  const { currentUser } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   /* document list */
   const [schoolsList, setSchoolsList] = useState<any>();
@@ -72,16 +70,6 @@ const Schools = () => {
     return () => {};
   }, [isLoading]);
 
-  useEffect(() => {
-    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(true);
-    }
-  }, [currentUser]);
-
   async function addSchool() {
     const result = await database.C({
       location: `schools`,
@@ -93,7 +81,7 @@ const Schools = () => {
     return result;
   }
 
-  return isAuthenticated ? (
+  return (
     <>
       <div className={style.section}>
         <NavigationLinks />
@@ -224,8 +212,6 @@ const Schools = () => {
         </Popup>
       )}
     </>
-  ) : (
-    <></>
   );
 };
 
