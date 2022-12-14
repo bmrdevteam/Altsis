@@ -146,12 +146,6 @@ export const SidebarData = (
               path: "/admin/forms",
               icon: <Svg type="file" />,
             },
-            {
-              title: "list",
-              name: "리스트",
-              path: "/admin/lists",
-              icon: <Svg type="file" />,
-            },
           ],
         },
         // {
@@ -272,12 +266,6 @@ export const SidebarData = (
               title: "users",
               name: "사용자 관리",
               path: "/admin/users",
-              icon: <Svg type="file" />,
-            },
-            {
-              title: "list",
-              name: "리스트",
-              path: "/admin/lists",
               icon: <Svg type="file" />,
             },
           ],
