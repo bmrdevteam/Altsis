@@ -27,7 +27,7 @@
  *
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -51,7 +51,7 @@ const Classroom = (props: Props) => {
   const [classroomList, setClassroomList] = useState<string[]>(
     props.seasonData.classrooms || []
   );
-  const [classroom, setClassroom] = useState<string>("");
+  const classroomRef = useRef<string>("");
 
   async function updateClassrooms() {
     const result = await database.U({
@@ -73,15 +73,23 @@ const Classroom = (props: Props) => {
         <Input
           style={{ minHeight: "30px" }}
           onChange={(e: any) => {
-            setClassroom(e.target.value);
+            classroomRef.current = e.target.value;
           }}
           appearence={"flat"}
+          onKeyDown={(e: any) => {
+            if (classroomRef.current !== "" && e.key === "Enter") {
+              setClassroomList([...classroomList, classroomRef.current]);
+              // e.target.value = "";
+              // classroomRef.current = "";
+            }
+          }}
+          placeholder={"ex) 101호"}
         />
 
         <Button
           type={"ghost"}
           onClick={() => {
-            setClassroomList([...classroomList, classroom]);
+            setClassroomList([...classroomList, classroomRef.current]);
           }}
           style={{
             borderRadius: "4px",

@@ -84,7 +84,7 @@ const School = (props: Props) => {
   const database = useDatabase();
 
   const [schoolData, setSchoolData] = useState<any>();
-  const [resetSchoolData, setResetSchoolData] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   async function getSchool() {
@@ -93,7 +93,7 @@ const School = (props: Props) => {
   }
 
   useEffect(() => {
-    if (resetSchoolData) {
+    if (isLoading) {
       getSchool()
         .then((res) => {
           console.log(res);
@@ -103,9 +103,9 @@ const School = (props: Props) => {
           setIsSchool(false);
         });
 
-      setResetSchoolData(false);
+      setIsLoading(false);
     }
-  }, [resetSchoolData]);
+  }, [isLoading]);
 
   if (!isSchool) {
     return <CannotFindSchool />;
@@ -126,12 +126,11 @@ const School = (props: Props) => {
           items={{
             "기본 정보": <BasicInfo schoolData={schoolData} />,
             학기: <Season />,
-            교과목: <Subject schoolData={schoolData} />,
+            교과목: (
+              <Subject schoolData={schoolData} setIsLoading={setIsLoading} />
+            ),
             강의실: (
-              <Classroom
-                schoolData={schoolData}
-                resetData={setResetSchoolData}
-              />
+              <Classroom schoolData={schoolData} setIsLoading={setIsLoading} />
             ),
             "시간표(beta)": <Timetable />,
             "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
