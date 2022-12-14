@@ -27,9 +27,11 @@ const ArchiveField = (props: Props) => {
   const [archiveForm, setArchiveForm] = useState<any>();
 
   async function getUsers(schoolId: string) {
-    const { users: result } = await database.R({
-      location: `users?schoolId=bmrhs&role=student`,
+    const { registrations: result } = await database.R({
+      location: `registrations?schoolId=bmrhs&role=student`,
     });
+    console.log(result);
+    
     return result;
   }
 

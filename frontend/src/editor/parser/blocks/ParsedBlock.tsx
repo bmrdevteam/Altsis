@@ -1,6 +1,5 @@
 import React from "react";
 import style from "../../editor.module.scss";
-import ParsedDataTableBlock from "./ParsedDataTableBlock";
 import ParsedTableBlock from "./ParsedTableBlock";
 type Props = {
   blockData: any;
@@ -36,9 +35,11 @@ const ParsedBlock = (props: Props) => {
           dbData={props.dbData}
         />
       );
-    case "dataTable":
+    case "divider":
       return (
-        <ParsedDataTableBlock blockData={props.blockData} auth={props.auth} />
+        <div className={`${style.parsed_block} ${style.line}`}>
+          <div className={style.line}></div>
+        </div>
       );
     default:
       return (

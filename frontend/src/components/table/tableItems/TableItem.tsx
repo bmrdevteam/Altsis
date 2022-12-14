@@ -79,6 +79,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
         >
           {props.index + 1}
@@ -93,6 +94,7 @@ const TableItem = (props: ITableItem) => {
             maxWidth: props.header.width,
             padding: "12px",
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
           onClick={() => {
             setChecked((prev) => {
@@ -141,6 +143,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
           ref={outsideClick.RefObject}
           onDoubleClick={() => {
@@ -166,6 +169,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
           ref={outsideClick.RefObject}
           onDoubleClick={() => {
@@ -194,6 +198,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
           ref={outsideClick.RefObject}
           onClick={() => {
@@ -216,6 +221,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
         >
           <div
@@ -238,6 +244,7 @@ const TableItem = (props: ITableItem) => {
             justifyContent: props.header.align,
             maxWidth: props.header.width,
             border: props.style?.border,
+            whiteSpace: props.header.whiteSpace,
           }}
         >
           {output}

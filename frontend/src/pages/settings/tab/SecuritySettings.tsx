@@ -1,6 +1,6 @@
 /**
  * @file Settings Page tab - SecuritySettings
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
@@ -102,6 +102,7 @@ const SecuritySettings = (props: Props) => {
           title="비밀번호 재설정"
           setState={setResetPasswordPopupActive}
           closeBtn
+          footer={<Button type="ghost">비밀번호 변경</Button>}
         >
           <div style={{ width: "500px", marginTop: "24px" }}>
             <Input
@@ -118,7 +119,6 @@ const SecuritySettings = (props: Props) => {
               type="password"
             />
           </div>
-          <Button>비밀번호 변경</Button>
         </Popup>
       )}
     </>

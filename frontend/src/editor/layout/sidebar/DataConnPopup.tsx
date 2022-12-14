@@ -32,8 +32,6 @@ const DataConnPopup = (props: Props) => {
   const [seasonData, setSeasonData] = useState<any>();
   function seasonName(schoolId: string) {
     if (seasonData) {
-      console.log(seasonData?.[schoolId]);
-
       let result: string[] = [];
       seasonData?.[schoolId]?.map((season: any) => {
         if (result.includes(season.term)) {
@@ -51,9 +49,11 @@ const DataConnPopup = (props: Props) => {
   const repeat = useRef<any>({
     by: getCurrentBlock()?.data?.dataRepeat?.by ?? "",
     index: getCurrentBlock()?.data?.dataRepeat?.index ?? "",
-    filterBy: getCurrentBlock()?.data?.dataRepeat?.filterBy ?? "",
-    filterValue: getCurrentBlock()?.data?.dataRepeat?.filterValue ?? "",
   });
+  const [filters, setFilters] = useState<any[]>(
+    getCurrentBlock()?.data?.dataFilter ?? []
+  );
+  const filtersRef = useRef<any[]>(getCurrentBlock()?.data?.dataFilter ?? []);
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
 
@@ -147,6 +147,7 @@ const DataConnPopup = (props: Props) => {
                 });
                 changeCurrentBlockData({
                   dataRepeat: repeat.current,
+                  dataFilter: filtersRef.current,
                 });
 
                 props.callPageReload();
@@ -170,6 +171,7 @@ const DataConnPopup = (props: Props) => {
                         subItem={[
                           <TreeItem
                             text="아카이브"
+                            key={"archive"}
                             subItem={archiveData[school._id]?.map(
                               (archive: any) => {
                                 return (
@@ -200,6 +202,7 @@ const DataConnPopup = (props: Props) => {
                           />,
                           <TreeItem
                             text="평가"
+                            key={"evaluation-1"}
                             subItem={[
                               <TreeItem
                                 key={"년도"}
@@ -376,7 +379,7 @@ const DataConnPopup = (props: Props) => {
                           }
                         } else {
                           if (dataTextElement === " ") {
-                            return <>&nbsp;</>;
+                            return <span key={index}>&nbsp;</span>;
                           }
                           return dataTextElement;
                         }
@@ -398,7 +401,6 @@ const DataConnPopup = (props: Props) => {
                           없음
                         </option>
                         {schools.map((s: any, i: number) => {
-                          console.log(archiveData[s._id]);
                           return archiveData[s._id]?.map(
                             (val: any, index: number) => {
                               return (
@@ -419,7 +421,7 @@ const DataConnPopup = (props: Props) => {
                               key={`${s.schoolId}//evaluation`}
                               value={`${s.schoolId}//evaluation`}
                             >
-                              평가
+                              {`${s.schoolName}-평가`}
                             </option>
                           );
                         })}
@@ -449,23 +451,78 @@ const DataConnPopup = (props: Props) => {
                         )}
                       </select>
                     </div>
-                    <div className={style.item}>
-                      <label>테이블 반복 필터</label>
-                      <input
-                        type="text"
-                        defaultValue={repeat.current.filterBy}
-                        onChange={(e) => {
-                          repeat.current.filterBy = e.target.value;
+                    <div className={style.filters}>
+                      <label style={{ textAlign: "center" }}>
+                        테이블 반복 필터
+                      </label>
+                      {filters.map((value, index) => {
+                        return (
+                          <div className={style.filter} key={value.key}>
+                            <input
+                              type="text"
+                              placeholder="필드"
+                              defaultValue={value.by}
+                              onChange={(e) => {
+                                filtersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).by = e.target.value;
+                                console.log(filtersRef.current);
+                              }}
+                            />
+                            <select
+                              defaultValue={value.operator}
+                              onChange={(e) => {
+                                filtersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).operator = e.target.value;
+                                console.log(filtersRef.current);
+                              }}
+                            >
+                              <option value="===">==</option>
+                              <option value="!==">!=</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="값"
+                              onChange={(e) => {
+                                filtersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).value = e.target.value;
+                                console.log(filtersRef.current);
+                              }}
+                              defaultValue={value.value}
+                            />
+                            <span
+                              className={style.icon}
+                              onClick={() => {
+                                filtersRef.current = filtersRef.current.filter(
+                                  (v) => v.key !== value.key
+                                );
+                                setFilters(filtersRef.current.slice());
+                              }}
+                            >
+                              <Svg type={"x"} />
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div
+                        className={style.btn}
+                        onClick={() => {
+                          const id = Math.random()
+                            .toString(36)
+                            .substring(2, 11);
+                          filtersRef.current.push({
+                            key: id,
+                            by: "",
+                            operator: "===",
+                            value: "",
+                          });
+                          setFilters(filtersRef.current.slice());
                         }}
-                      />
-                      <div>=</div>
-                      <input
-                        type="text"
-                        defaultValue={repeat.current.filterValue}
-                        onChange={(e) => {
-                          repeat.current.filterValue = e.target.value;
-                        }}
-                      />
+                      >
+                        필터 추가
+                      </div>
                     </div>
                   </div>
                 </div>
