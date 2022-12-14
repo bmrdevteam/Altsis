@@ -6,6 +6,7 @@ import TableBlock from "./table/TableBlock";
 import InputBlock from "./InputBlock";
 import DataTableBlock from "./dataTable/DataTableBlock";
 import TimeTableBlock from "./timeTable/TimeTableBlock";
+import DividerBlock from "./DividerBlock";
 
 type Props = { index: number };
 
@@ -44,10 +45,10 @@ const Block = (props: Props) => {
           <TableBlock index={props.index} />
         </Wrapper>
       );
-    case "dataTable":
+    case "divider":
       return (
         <Wrapper>
-          <DataTableBlock index={props.index} />
+          <DividerBlock index={props.index} />
         </Wrapper>
       );
     case "timetable":
