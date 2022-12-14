@@ -57,6 +57,7 @@ const Users = (props: Props) => {
   const { currentUser } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false);
   const [academyUsers, setAcademyUsers] = useState<any>();
   const [user, setUser] = useState<any>();
   const [userRegistrations, setUserRegistrations] = useState<any[]>();
@@ -73,19 +74,27 @@ const Users = (props: Props) => {
   }
 
   useEffect(() => {
+    if (isLoading) {
+      getAcademyUsers()
+        .then((res) => {
+          setAcademyUsers(res);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          alert(err.response.data.message);
+        });
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
     if (currentUser.auth !== "admin") {
       alert("접근 권한이 없습니다.");
       navigate("/");
     } else {
       setIsAuthenticated(true);
+      setIsLoading(true);
     }
   }, [currentUser]);
-
-  useEffect(() => {
-    getAcademyUsers().then((res) => {
-      setAcademyUsers(res);
-    });
-  }, []);
 
   return isAuthenticated ? (
     <>

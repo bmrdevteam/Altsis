@@ -85,6 +85,7 @@ const School = (props: Props) => {
 
   const database = useDatabase();
   const { currentUser } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [schoolData, setSchoolData] = useState<any>();
@@ -115,6 +116,7 @@ const School = (props: Props) => {
       alert("접근 권한이 없습니다.");
       navigate("/");
     } else {
+      setIsAuthenticated(true);
       setIsLoading(true);
     }
   }, [currentUser]);
@@ -122,7 +124,7 @@ const School = (props: Props) => {
   if (!isSchool) {
     return <CannotFindSchool />;
   }
-  return (
+  return isAuthenticated ? (
     <div className={style.section}>
       <NavigationLinks />
 
@@ -150,6 +152,8 @@ const School = (props: Props) => {
         />
       )}
     </div>
+  ) : (
+    <></>
   );
 };
 
