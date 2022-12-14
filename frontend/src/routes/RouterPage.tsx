@@ -175,6 +175,14 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
+                <Route
+                path="forms/:pid"
+                element={
+                  <RequireAuth>
+                    <Form />
+                  </RequireAuth>
+                }
+              ></Route>
               <Route
                 path="apps"
                 element={
