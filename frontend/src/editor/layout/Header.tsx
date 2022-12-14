@@ -19,7 +19,7 @@ const Header = () => {
             navigate(`/admin/forms`);
           }}
         >
-          <Svg type={"arrowBack"} width="20px" height="20px" />
+          <Svg type={"arrowLeft"} width="20px" height="20px" />
         </div>
         <div className={style.title}>
           <input
