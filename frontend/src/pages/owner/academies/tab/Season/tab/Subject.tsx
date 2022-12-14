@@ -130,6 +130,16 @@ const Subjects = (props: Props) => {
           }}
           appearence={"flat"}
           placeholder="ex) 교과/과목"
+          onKeyDown={(e: any) => {
+            if (subjectLabelRef.current !== "" && e.key === "Enter") {
+              const _subjectLabel = subjectLabelRef.current.split("/");
+              setSubjectLabelList(_subjectLabel);
+              updateSubjectDataHeader();
+              setIsLoading(true);
+              // e.target.value = "";
+              // subjectLabelRef.current = "";
+            }
+          }}
         />
 
         <Button
@@ -162,6 +172,18 @@ const Subjects = (props: Props) => {
           }}
           appearence={"flat"}
           placeholder={"ex) 미술/서양미술사"}
+          onKeyDown={(e: any) => {
+            if (subjectDataRef.current !== "" && e.key === "Enter") {
+              const _subjectData = subjectDataRef.current.split("/");
+              let data: subjectDataListType = {};
+              for (let j = 0; j < subjectLabelList.length; j++) {
+                data[subjectLabelList[j]] = _subjectData[j];
+              }
+              setSubjectDataList([...subjectDataList, data]);
+              // e.target.value = "";
+              // subjectDataRef.current = "";
+            }
+          }}
         />
 
         <Button

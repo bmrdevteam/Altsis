@@ -1,7 +1,7 @@
 /**
- * @file Seasons Page Tab Item - Classroom
+ * @file Season Page Tab Item - Classroom
  *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
+ * @author jessie129j <jessie129j@gmail.com>
  *
  * -------------------------------------------------------
  *
@@ -27,7 +27,7 @@
  *
  */
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -35,10 +35,9 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Button from "components/button/Button";
 import Table from "components/table/Table";
-import React from "react";
+import Input from "components/input/Input";
 
 import _ from "lodash";
-import Input from "components/input/Input";
 
 type Props = {
   seasonData: any;
@@ -51,7 +50,7 @@ const Classroom = (props: Props) => {
   const [classroomList, setClassroomList] = useState<string[]>(
     props.seasonData.classrooms || []
   );
-  const [classroom, setClassroom] = useState<string>("");
+  const classroomRef = useRef<string>("");
 
   async function updateClassrooms() {
     const result = await database.U({
@@ -73,25 +72,23 @@ const Classroom = (props: Props) => {
         <Input
           style={{ minHeight: "30px" }}
           onChange={(e: any) => {
-            console.log(e.target);
-            setClassroom(e.target.value);
+            classroomRef.current = e.target.value;
           }}
           appearence={"flat"}
-          placeholder="ex) 101호"
           onKeyDown={(e: any) => {
-            if (classroom !== "" && e.key === "Enter") {
-              setClassroomList([...classroomList, classroom]);
-              e.target.value = "";
+            if (classroomRef.current !== "" && e.key === "Enter") {
+              setClassroomList([...classroomList, classroomRef.current]);
+              // e.target.value = "";
+              // classroomRef.current = "";
             }
           }}
+          placeholder={"ex) 101호"}
         />
+
         <Button
           type={"ghost"}
           onClick={() => {
-            if (classroom !== "") {
-              setClassroomList([...classroomList, classroom]);
-              // 어떻게 input을 비울 수 있지?
-            }
+            setClassroomList([...classroomList, classroomRef.current]);
           }}
           style={{
             borderRadius: "4px",
@@ -105,8 +102,8 @@ const Classroom = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
-        type="string-array"
         data={classroomList || []}
+        type="string-array"
         header={[
           {
             text: "ID",
@@ -142,6 +139,7 @@ const Classroom = (props: Props) => {
           },
         ]}
       />
+
       <Button
         type={"ghost"}
         style={{

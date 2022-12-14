@@ -41,7 +41,7 @@ import Select from "components/select/Select";
 // tab elements
 import Basic from "./tab/Basic";
 import Classroom from "./tab/Classroom";
-import Subjects from "./tab/Subjects";
+import Subjects from "./tab/Subject";
 import Permission from "./tab/Permission";
 
 import _ from "lodash";
