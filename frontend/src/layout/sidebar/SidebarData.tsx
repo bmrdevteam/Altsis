@@ -1,4 +1,5 @@
 import { archiveTestData } from "archiveTest";
+import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
 import { useEffect, useState } from "react";
 import Svg from "../../assets/svg/Svg";
@@ -18,10 +19,11 @@ interface INavSubLink {
   icon: JSX.Element;
 }
 export const SidebarData = (auth: string, role?: string): any => {
-  const database = useDatabase()
+  const database = useDatabase();
+  const { currentUser } = useAuth();
   const [archiveData, setArchiveData] = useState<any>();
   useEffect(() => {
-    database.R({location:"a"})
+    database.R({ location: "a" });
   }, []);
 
   switch (auth) {
@@ -54,13 +56,13 @@ export const SidebarData = (auth: string, role?: string): any => {
         {
           title: "schedule",
           name: "일정",
-          path: "/",
+          path: `/`,
           icon: <Svg type="calender" />,
         },
         {
           title: "courses",
           name: "수업",
-          path: "/courses",
+          path: `/courses`,
           icon: <Svg type="bookOpen" />,
           subLink:
             role === "teacher"
@@ -132,7 +134,7 @@ export const SidebarData = (auth: string, role?: string): any => {
         {
           title: "archive",
           name: "기록",
-          path: "/archive",
+          path: `/archive`,
           icon: <Svg type="edit" />,
           subLink: archiveTestData.map((val, index) => {
             return {
@@ -147,19 +149,19 @@ export const SidebarData = (auth: string, role?: string): any => {
         {
           title: "myaccount",
           name: "내 정보",
-          path: "/myaccount",
+          path: `/myaccount`,
           icon: <Svg type="gear" />,
         },
         {
           title: "settings",
           name: "설정",
-          path: "/settings",
+          path: `/settings`,
           icon: <Svg type="gear" />,
         },
         {
           title: "admin",
           name: "관리자",
-          path: "/admin",
+          path: `/admin`,
           icon: <Svg type="calender" />,
           subLink: [
             {
@@ -189,13 +191,14 @@ export const SidebarData = (auth: string, role?: string): any => {
         {
           title: "schedule",
           name: "일정",
-          path: "/",
+          path: `/`,
           icon: <Svg type="calender" />,
         },
         {
           title: "courses",
           name: "수업",
-          path: "/courses",
+          path: `/courses`,
+
           icon: <Svg type="bookOpen" />,
           subLink:
             role === "teacher"
