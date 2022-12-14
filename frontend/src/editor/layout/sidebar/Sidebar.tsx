@@ -59,20 +59,17 @@ const Sidebar = (props: Props) => {
   const [addNewBlockType, setAddNewBlockType] = useState<string>("paragraph");
   const blockTypes = [
     { text: "텍스트", value: "paragraph" },
-    { text: "Data 텍스트", value: "dataText" },
     { text: "테이블", value: "table" },
-    { text: "Data 테이블", value: "dataTable" },
     { text: "select", value: "select" },
-    { text: "Data select", value: "dataSelect" },
     { text: "선", value: "divider" },
     { text: "입력", value: "input" },
   ];
 
   const AddBlockMenu = () => {
     return (
-      <Menu name="블록 추가">
+      <Menu name="블록">
         <div className={style.item}>
-          <label>추가</label>
+          <label>유형</label>
           <Select
             style={{ fontSize: "12px" }}
             appearence="flat"
@@ -103,12 +100,12 @@ const Sidebar = (props: Props) => {
 
   const BlockMenu = () => {
     return (
-      <Menu name="블록">
-        <div className={style.item}>
+      <Menu name="속성">
+        {/* <div className={style.item}>
           <label>{getCurrentBlock()?.id}</label>
-        </div>
+        </div> */}
         <div className={style.item}>
-          <label>타입</label>
+          <label>유형</label>
           <Select
             onChange={(value: any) => {
               changeCurrentBlockType(value);
@@ -121,7 +118,7 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
-          <label>Width</label>
+          <label>너비 (%)</label>
 
           <input
             onChange={(e) => {
@@ -162,7 +159,7 @@ const Sidebar = (props: Props) => {
         </div> */}
 
         <div className={style.item}>
-          <label>column 비율</label>
+          <label>비율</label>
           <Select
             onChange={(value: any) => {
               setCurrentCellColumn(value);
@@ -244,7 +241,6 @@ const Sidebar = (props: Props) => {
             }}
           >
             {`${getCurrentCellIndex().column + 1} 열 삭제`}
-
           </Button>
           <Button
             type="ghost"
@@ -305,20 +301,37 @@ const Sidebar = (props: Props) => {
 
           <div className={style.item}>
             <label>셀 정렬</label>
-            <Select
-              onChange={(value: any) => {
-                changeCurrentCell({ align: value });
-                props.callPageReload();
-              }}
-              style={{ fontSize: "12px" }}
-              selectedValue={getCurrentCell()?.align}
-              appearence="flat"
-              options={[
-                { text: "왼쪽", value: "left" },
-                { text: "가운데", value: "center" },
-                { text: "오른쪽", value: "right" },
-              ]}
-            />
+            <div className={style.align}>
+              <div className={style.align_options}>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "left" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignLeft"} />
+                </div>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "center" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignCenter"} />
+                </div>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "right" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignRight"} />
+                </div>
+              </div>
+            </div>
           </div>
           <div className={style.item}>
             <label>텍스트 크기</label>
@@ -327,12 +340,13 @@ const Sidebar = (props: Props) => {
                 changeCurrentCell({ fontSize: e.target.value });
                 props.callPageReload();
               }}
+              placeholder="pt / px"
               type="text"
               defaultValue={getCurrentCell()?.fontSize}
             />
           </div>
           <div className={style.item}>
-            <label>셀 colSpan</label>
+            <label>셀 병합(가로)</label>
             <input
               onChange={(e) => {
                 if (e.target.value) {
@@ -345,7 +359,7 @@ const Sidebar = (props: Props) => {
             />
           </div>
           <div className={style.item}>
-            <label>셀 rowSpan</label>
+            <label>셀 병합(세로)</label>
             <input
               onChange={(e) => {
                 if (e.target.value) {
@@ -416,7 +430,7 @@ const Sidebar = (props: Props) => {
                 />
               </div>
               <div className={style.item}>
-                <label>placeholder</label>
+                <label>응답 예시</label>
                 <input
                   type="text"
                   defaultValue={getCurrentCell()?.placeholder}
@@ -543,7 +557,7 @@ const Sidebar = (props: Props) => {
     return (
       <Menu name="input">
         <div className={style.item}>
-          <label>Name</label>
+          <label>이름</label>
           <input
             type="text"
             defaultValue={getCurrentBlock().data.name}
@@ -553,7 +567,7 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
-          <label>레이블</label>
+          <label>라벨</label>
           <input
             type="text"
             defaultValue={getCurrentBlock().data.label}
@@ -564,7 +578,7 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
-          <label>placeholder</label>
+          <label>응답 예시</label>
           <input
             type="text"
             defaultValue={getCurrentBlock().data?.placeholder}
@@ -594,6 +608,7 @@ const Sidebar = (props: Props) => {
           <label>크기</label>
           <input
             type="text"
+            placeholder="pt / px"
             defaultValue={getCurrentBlock()?.data?.fontSize}
             onChange={(e) => {
               changeCurrentBlockData({ fontSize: e.target.value });
