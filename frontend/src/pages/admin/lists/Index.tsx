@@ -17,6 +17,7 @@ type Props = {};
 const Lists = (props: Props) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [addDatabasePopupActive, setAddDatabasePopupActive] =
@@ -36,11 +37,12 @@ const Lists = (props: Props) => {
       alert("접근 권한이 없습니다.");
       navigate("/");
     } else {
+      setIsAuthenticated(true);
       setIsLoading(true);
     }
   }, [currentUser]);
 
-  return (
+  return isAuthenticated ? (
     <div className={style.section}>
       <NavigationLinks />
       <div className={style.title}>리스트</div>
@@ -121,6 +123,8 @@ const Lists = (props: Props) => {
         </Popup>
       )}
     </div>
+  ) : (
+    <></>
   );
 };
 

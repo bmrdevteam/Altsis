@@ -45,6 +45,7 @@ const Schools = () => {
   const navigate = useNavigate();
   const database = useDatabase();
   const { currentUser } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   /* document list */
@@ -71,6 +72,16 @@ const Schools = () => {
     return () => {};
   }, [isLoading]);
 
+  useEffect(() => {
+    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsAuthenticated(true);
+      setIsLoading(true);
+    }
+  }, [currentUser]);
+
   async function addSchool() {
     const result = await database.C({
       location: `schools`,
@@ -82,16 +93,7 @@ const Schools = () => {
     return result;
   }
 
-  useEffect(() => {
-    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsLoading(true);
-    }
-  }, [currentUser]);
-
-  return (
+  return isAuthenticated ? (
     <>
       <div className={style.section}>
         <NavigationLinks />
@@ -103,15 +105,15 @@ const Schools = () => {
             </div>
           </div>
           {/* <Button
-          type={"ghost"}
-          borderRadius={"4px"}
-          height={"32px"}
-          onClick={() => {
-            navigate("add", { replace: true });
-          }}
-        >
-          + 학교추가
-        </Button> */}
+    type={"ghost"}
+    borderRadius={"4px"}
+    height={"32px"}
+    onClick={() => {
+      navigate("add", { replace: true });
+    }}
+  >
+    + 학교추가
+  </Button> */}
         </div>
         <Divider />
         <Button
@@ -222,6 +224,8 @@ const Schools = () => {
         </Popup>
       )}
     </>
+  ) : (
+    <></>
   );
 };
 

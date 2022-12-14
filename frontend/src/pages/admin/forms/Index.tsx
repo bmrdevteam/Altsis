@@ -56,6 +56,7 @@ const Forms = (props: Props) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [formList, setFormList] = useState([]);
@@ -112,6 +113,7 @@ const Forms = (props: Props) => {
       alert("접근 권한이 없습니다.");
       navigate("/");
     } else {
+      setIsAuthenticated(true);
       setIsLoading(true);
     }
   }, [currentUser]);
@@ -246,7 +248,7 @@ const Forms = (props: Props) => {
     );
   };
 
-  return (
+  return isAuthenticated ? (
     <>
       <div className={style.section}>
         <NavigationLinks />
@@ -498,6 +500,8 @@ const Forms = (props: Props) => {
         </Popup>
       )}
     </>
+  ) : (
+    <></>
   );
 };
 
