@@ -31,6 +31,13 @@ export type TTableHeaderItem = {
   selectOptions?: string[];
   width?: string;
   textStyle?: object;
+  whiteSpace?:
+    | "normal"
+    | "nowrap"
+    | "pre"
+    | "pre-wrap"
+    | "pre-line"
+    | "break-spaces";
 };
 export type TTableHeader = TTableHeaderItem[];
 export type TTableItemType =
@@ -335,8 +342,8 @@ const Table = (props: Props) => {
     if (tableData && props.type === "object-array") {
       return search?.result();
     }
-    if(tableData){
-      return tableData
+    if (tableData) {
+      return tableData;
     }
     return [];
   }
