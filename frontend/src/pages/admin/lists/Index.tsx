@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/list.module.scss";
 
+// components
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
-
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import Table from "components/table/Table";
@@ -16,33 +15,13 @@ type Props = {};
 
 const Lists = (props: Props) => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const [addDatabasePopupActive, setAddDatabasePopupActive] =
     useState<boolean>(false);
   const [addDatabaseFormValid, setAddDatabaseFormValid] =
     useState<boolean>(false);
 
-  useEffect(() => {
-    if (isLoading) {
-      setIsLoading(false);
-    }
-    return () => {};
-  }, [isLoading]);
-
-  useEffect(() => {
-    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(true);
-    }
-  }, [currentUser]);
-
-  return isAuthenticated ? (
+  return (
     <div className={style.section}>
       <NavigationLinks />
       <div className={style.title}>리스트</div>
@@ -123,8 +102,6 @@ const Lists = (props: Props) => {
         </Popup>
       )}
     </div>
-  ) : (
-    <></>
   );
 };
 

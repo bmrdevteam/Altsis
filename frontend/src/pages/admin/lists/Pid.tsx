@@ -1,7 +1,3 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "contexts/authContext";
-
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Tab from "components/tab/Tab";
 import useDatabase from "hooks/useDatabase";
@@ -15,22 +11,10 @@ type Props = {};
 
 function List(props: Props) {
   const { pid } = useParams();
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   async function getList() {}
 
-  useEffect(() => {
-    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsAuthenticated(true);
-    }
-  }, [currentUser]);
-
-  return isAuthenticated ? (
+  return (
     <div className={style.section}>
       <NavigationLinks />
       <div className={style.title}>{pid}</div>
@@ -43,8 +27,6 @@ function List(props: Props) {
         align={"flex-start"}
       />
     </div>
-  ) : (
-    <></>
   );
 }
 
