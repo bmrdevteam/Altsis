@@ -30,11 +30,11 @@
   
   .slider:before {
     position: absolute;
-    content: "";
-    height: 15px;
-    width: 15px;
-    left: 1.5px;
-    bottom: 1.5px;
+    content: "";  
+    height: 16px;
+    width: 16px;
+    left: 1px;
+    bottom: 1px;
     border-radius: 50%;
     background-color: var(--accent-6);
     -webkit-transition: .4s;

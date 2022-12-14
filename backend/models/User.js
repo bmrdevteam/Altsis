@@ -36,10 +36,11 @@ const userSchema = mongoose.Schema(
       validate: validate({ validator: "isEmail" }),
     },
     tel: String,
-    snsId: { type: Object, select: false },
+    snsId: Object,
     schools: [
       mongoose.Schema(
         {
+          school: mongoose.Types.ObjectId,
           schoolId: String,
           schoolName: String,
         },
@@ -69,6 +70,7 @@ userSchema.methods.checkValidation = function (key) {
     return check[key](this[key]);
   }
   for (const key in check) {
+    if (key === "password") continue;
     if (!check[key](this[key])) return false;
   }
   return true;

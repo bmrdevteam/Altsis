@@ -26,7 +26,8 @@
  * @version 1.0
  *
  */
-import style from "../../style/pages/settings/settings.module.scss";
+import style from "style/pages/settings/settings.module.scss";
+import NavbarSettings from "./tab/NavbarSettings";
 import ResetSettings from "./tab/ResetSettings";
 import SchoolSettings from "./tab/SchoolSettings";
 import SecuritySettings from "./tab/SecuritySettings";
@@ -52,6 +53,7 @@ const Settings = (props: Props) => {
          <SecuritySettings/>
          <SchoolSettings/>
          <ThemeSettings/>
+         <NavbarSettings/>
          <ResetSettings/>
       </div>
     </>

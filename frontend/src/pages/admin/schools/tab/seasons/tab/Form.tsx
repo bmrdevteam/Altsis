@@ -148,6 +148,7 @@ const Form = (props: Props) => {
           closeBtn
         >
           <Table
+            type="object-array"
             data={forms?.filter((val: any) => val.type === selectFormType)}
             header={[
               { text: "제목", key: "title", type: "string" },
@@ -157,7 +158,7 @@ const Form = (props: Props) => {
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  const id = e.target.dataset.value;
+                  const id = e._id;
 
                   getForm(id).then((res) => {
                     switch (selectFormType) {

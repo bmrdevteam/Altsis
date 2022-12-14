@@ -8,15 +8,12 @@ const timeBlockSchema = mongoose.Schema(
     },
     day: {
       type: String,
-      required: true,
     },
     start: {
       type: String,
-      required: true,
     },
     end: {
       type: String,
-      required: true,
     },
   },
   { _id: false }

@@ -18,7 +18,7 @@ module.exports = () => {
         return done(err, null, null);
       }
 
-      const user = await User(academy.dbName)
+      const user = await User(academyId)
         .findOne({ userId })
         .select("+password");
       if (!user) {
@@ -34,7 +34,7 @@ module.exports = () => {
       }
 
       user.password = undefined;
-      return done(null, user, academy.dbName);
+      return done(null, user, academyId);
     })
   );
 };

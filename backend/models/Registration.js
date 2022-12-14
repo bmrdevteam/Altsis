@@ -11,6 +11,7 @@ const registrationSchema = mongoose.Schema({
   schoolName: String,
   year: String,
   term: String,
+  period: Object,
   userId: {
     type: String,
     required: true,
@@ -27,6 +28,10 @@ const registrationSchema = mongoose.Schema({
   group: String,
   teacherId: String,
   teacherName: String,
+  isActivated: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 registrationSchema.index({

@@ -1,46 +1,47 @@
 const express = require("express");
 const router = express.Router();
-const user = require("../controllers/user");
-const { isLoggedIn, forceNotLoggedIn } = require("../middleware/auth");
-const profile = require("../controllers/profile");
+const users = require("../controllers/users");
+const {
+  isLoggedIn,
+  isAdManager,
+  forceNotLoggedIn,
+} = require("../middleware/auth");
+const profile = require("../controllers/profiles");
 
 //=================================
 //             User
 //=================================
 
 // ____________ common ____________
-
-/* local & google login */
-router.post("/login/local", forceNotLoggedIn, user.loginLocal);
-router.post("/login/google", forceNotLoggedIn, user.loginGoogle);
-
-/* logout */
-router.get("/logout", isLoggedIn, user.logout);
+router.post("/login/local", forceNotLoggedIn, users.loginLocal);
+router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
+router.get("/logout", isLoggedIn, users.logout);
 
 // ___________ create _____________
-router.post("/", isLoggedIn, user.create);
-router.post("/bulk", isLoggedIn, user.createBulk);
+router.post("/", isAdManager, users.create);
+router.post("/bulk", isLoggedIn, users.createBulk);
 
 // ___________ find _____________
-router.get("/current", isLoggedIn, user.current);
-router.get("/", isLoggedIn, user.find);
+router.get("/current", isLoggedIn, users.current);
+router.get("/:_id?", isLoggedIn, users.find);
 
-// ___________ delete _____________
-router.delete("/:_id", isLoggedIn, user.delete);
+// ___________ update(onself) _____________
+
+router.post("/profile", isLoggedIn, profile.upload);
+// router.get("/profile", isLoggedIn, profile.read);
+router.delete("/profile", isLoggedIn, profile.delete);
+
+router.put("/google", isLoggedIn, users.connectGoogle);
+router.delete("/google", isLoggedIn, users.disconnectGoogle);
 
 // ___________ update _____________
-router.put("/:_id/auth", isLoggedIn, user.updateAuth);
-router.put("/:_id/schools", isLoggedIn, user.updateSchools);
 
-// ___________ update(myself) _____________
+router.put("/:_id/auth", isAdManager, users.updateAuth);
+router.put("/:_id/schools", isAdManager, users.updateSchools);
+router.put("/:_id/password", isLoggedIn, users.updatePassword);
+router.put("/:_id", isLoggedIn, users.update);
 
-router.put("/google", isLoggedIn, user.connectGoogle);
-router.delete("/google", isLoggedIn, user.disconnectGoogle);
-router.put("/:field", isLoggedIn, user.updateField);
-
-// // profile 보류
-// router.post("/profile", isLoggedIn, profile.upload);
-// router.get("/profile", isLoggedIn, profile.read);
-// router.delete("/profile", isLoggedIn, profile.delete);
+// ___________ delete _____________
+router.delete("/:_id", isAdManager, users.delete);
 
 module.exports = router;

@@ -22,6 +22,7 @@ const Header = (props: Props) => {
       </Button>
       <div style={{ marginTop: "24px" }}>
         <Table
+          type="object-array"
           data={headerData}
           header={[
             {

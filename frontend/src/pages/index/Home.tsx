@@ -34,46 +34,68 @@ import Canvas from "../../components/canvas/Canvas";
 import Calender from "../../components/calender/Calender";
 import QuickSearch from "../../components/quickSearch/QuickSearch";
 import Navbar from "../../layout/navbar/Navbar";
+import Schedule from "components/schedule/Schedule";
+import useDatabase from "hooks/useDatabase";
+import { useAuth } from "contexts/authContext";
+import useGenerateId from "hooks/useGenerateId";
 
 const Home = () => {
+  const database = useDatabase();
+  const idGen = useGenerateId;
+
+  const { currentSeason, currentUser } = useAuth();
+  const [enrollments, setEnrollments] = useState<any>();
+
+  async function getEnrollments() {
+    const { enrollments: result } = await database.R({
+      location: `enrollments?season=${currentSeason?._id}&studentId=${currentUser.userId}`,
+    });
+    return result;
+  }
+  function enrollmentsToEvents(data: any[]) {
+    if (data) {
+      let result: any[] = [];
+      for (let i = 0; i < data.length; i++) {
+        const element = data[i];
+
+        if (element?.time.length <= 1) {
+          result.push({
+            id: element._id + JSON.stringify(element?.time[0]),
+            title: element.classTitle,
+            startTime: element?.time[0].start,
+            endTime: element?.time[0].end,
+            day: element?.time[0].day,
+          });
+        } else {
+          for (let ii = 0; ii < element?.time.length; ii++) {
+            const time = element?.time[ii];
+            result.push({
+              id: element._id + JSON.stringify(time),
+              title: element.classTitle,
+              startTime: time.start,
+              endTime: time.end,
+              day: time.day,
+            });
+          }
+        }
+      }
+      return result;
+    }
+  }
   useEffect(() => {
-    return () => {};
-  }, []);
+    getEnrollments()
+      .then((res) => {
+        setEnrollments(res);
+      })
+      .catch(() => {});
+  }, [currentSeason]);
 
   return (
     <>
       <QuickSearch />
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>일정</div>
-        <div className={style.overview_container}>
-          <div className={style.overview}>
-            <div className={style.card}>1</div>
-            <div className={style.card}>2</div>
-            <div className={style.card}>3</div>
-            <div className={style.card}>4</div>
-            <div className={style.card}>5</div>
-          </div>
-        </div>
-        <div className={style.schedule_container}>
-          <div>
-            <div className={style.title}>2022/9/12 월요일</div>
-          </div>
-          <div className={style.schedule}>
-            <div className={style.item}>
-              <div className={style.description}>가치의 충돌_이상찬</div>
-              <div className={style.controls}>
-                <div className={style.time}>9:00 ~ 9:45</div>
-                <div className={style.classroom}>101호</div>
-              </div>
-            </div>
-            <div className={style.item}>
-              <div className={style.description}>
-                재미로 공부해보는 수학수업
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* <Schedule defaultEvents={enrollmentsToEvents(enrollments)} /> */}
       </div>
     </>
   );

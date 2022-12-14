@@ -27,7 +27,7 @@ const schoolSchema = mongoose.Schema(
     },
     classrooms: [String],
     subjects: subjectSchema,
-    formArchive: String,
+    formArchive: [],
     activatedSeason: mongoose.Types.ObjectId,
   },
   { timestamps: true }

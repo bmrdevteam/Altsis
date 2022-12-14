@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
+const encrypt = require("mongoose-encryption");
 
 const enrollmentSchema = mongoose.Schema(
   {
@@ -24,7 +25,9 @@ const enrollmentSchema = mongoose.Schema(
     // enrollment data
     studentId: String,
     studentName: String,
+    studentGrade: String,
     evaluation: Object,
+    temp: Object,
   },
   { timestamps: true }
 );
@@ -52,6 +55,12 @@ enrollmentSchema.methods.isTimeOverlapped = function (time) {
   }
   return null;
 };
+
+enrollmentSchema.plugin(encrypt, {
+  encryptionKey: process.env["ENCKEY_E"],
+  signingKey: process.env["SIGKEY_E"],
+  encryptedFields: ["evaluation"],
+});
 
 module.exports = (dbName) => {
   return conn[dbName].model("Enrollment", enrollmentSchema);

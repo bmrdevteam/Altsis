@@ -9,6 +9,7 @@ const Body = (props: Props) => {
   return (
     <div style={{ marginTop: "24px" }}>
       <Table
+        type="object-array"
         filter
         filterSearch
         data={bodyData}

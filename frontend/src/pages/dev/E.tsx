@@ -1,3 +1,4 @@
+import Tree from "components/tree/Tree";
 
 
 type Props = {};
@@ -5,6 +6,7 @@ type Props = {};
 const E = (props: Props) => {
   return (
     <div>
+      {/* <Tree/> */}
     </div>
   );
 };

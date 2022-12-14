@@ -1,58 +1,52 @@
-import { isArray } from "lodash";
 import style from "./tree.module.scss";
-
-import Item1 from "./Item1";
+import Svg from "assets/svg/Svg";
+import { useState } from "react";
 
 type Props = {
-  data: any[];
+  text: string;
+  subItem?: JSX.Element[];
+  onClick?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 };
 
-const Tree = (props: Props) => {
-  console.log("tree", props.data);
-
+const TreeItem = (props: Props) => {
+  const [open, setOpen] = useState<boolean>(false);
   return (
-    <div className={style.tree}>
-      {isArray(props.data) &&
-        props.data.map((value: any, index: number) => {
-          if (index === 0) {
-            return value.map((v: string, i: number) => {
-              return (
-                <Item1
-                  text={v}
-                  key={i}
-                  depth={index}
-                  order={10 ** props.data.length * (i + 1)}
-                />
-              );
-            });
-          }
-          const keys = Object.keys(value);
-
-          return keys.map((v: any, i: number) => {
-            return props.data[index][v].map((v2: string, i2: number) => {
-              let order = 0;
-            //   order =
-                // 10 ** props.data.length *
-                // (props.data[0].findIndex(
-                //   (val: any) => val === v.split("/")[0]
-                // ) +
-                //   1);
-                order += 10 ** index
-                order += 10 ** (props.data.length - index) * (i2 + 1);
-              return (
-                // v.split("/")[index-1]
-                <Item1
-                  text={`${v2}-------`}
-                  key={i2}
-                  depth={index}
-                  order={order}
-                />
-              );
-            });
-          });
+    <div className={style.item}>
+      <div
+        className={style.content}
+        onClick={(e) => {
+          props.subItem && setOpen((prev) => !prev);
+          props.onClick && props.onClick(e);
+        }}
+      >
+        <span className={style.text}>{props.text}</span>
+        <span style={{ flex: "1 1 0" }}></span>
+        <span className={style.icon}>
+          {props.subItem && (
+            <Svg
+              type={open ? "minus" : "plus"}
+              width={"14px"}
+              height={"14px"}
+            />
+          )}
+        </span>
+      </div>
+      {props.subItem &&
+        open &&
+        props.subItem.map((Element, index) => {
+          return (
+            <div className={style.subItem} key={index}>
+              {Element}
+            </div>
+          );
         })}
     </div>
   );
 };
 
+const Tree = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
+  return <div className={style.tree}>{children}</div>;
+};
+
+export { TreeItem };
 export default Tree;

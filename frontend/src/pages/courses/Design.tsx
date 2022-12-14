@@ -27,133 +27,41 @@
  *
  */
 
-import Navbar from "layout/navbar/Navbar";
-import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../../components/button/Button";
-import Autofill from "../../components/input/Autofill";
-import Input from "../../components/input/Input";
-import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
-import Popup from "../../components/popup/Popup";
-import Select from "../../components/select/Select";
-import { useAuth } from "../../contexts/authContext";
-import EditorParser from "../../editor/EditorParser";
-import useDatabase from "../../hooks/useDatabase";
+import { useAuth } from "contexts/authContext";
 
-import style from "../../style/pages/courses/courseDesign.module.scss";
+// Navigation Bar
+import Navbar from "layout/navbar/Navbar";
+
+// tab pages
+import Add from "./tab/Add";
+
 type Props = {};
 
+// create new syllabus
 const CourseDesign = (props: Props) => {
-  const { currentSchool, currentUser, currentSeason } = useAuth();
-  const database = useDatabase();
+  const { currentRegistration, currentPermission } = useAuth();
   const navigate = useNavigate();
 
-  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
-  const [timeSelectPopupActive, setTimeSelectPopupActive] =
-    useState<boolean>(false);
-
-  async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools" });
-    return res;
-  }
   useEffect(() => {
-    if (currentSchool === null || currentSchool === undefined) {
-      setAlertPopupActive(true);
+    if (!currentRegistration) {
+      alert("등록된 학기가 없습니다.");
+      navigate("/courses");
     }
-  }, []);
-  function getClassrooms() {
-    let result: any[] = [];
-    currentSeason?.classrooms?.map((value: string, index: number) => {
-      result.push({ text: value, value: index });
-    });
-    return result;
-  }
+  }, [currentRegistration]);
+
+  useEffect(() => {
+    if (!currentPermission.permissionSyllabus) {
+      alert("수업 개설 권한이 없습니다.");
+      navigate("/courses");
+    }
+  }, [currentPermission]);
 
   return (
     <>
       <Navbar />
-      <div className={style.section}>
-        <div className={style.design_form}>
-          <div className={style.title}>수업 개설</div>
-          <div style={{ display: "flex", gap: "24px" }}>
-            <Input appearence="flat" label="수업명" required={true} />
-          </div>
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Input
-              appearence="flat"
-              label="작성자"
-              required={true}
-              disabled
-              defaultValue={currentUser?.userName}
-            />
-            <Select
-              appearence="flat"
-              options={[
-                { text: "이세찬", value: "1" },
-                { text: "나도몰라", value: "2" },
-              ]}
-              label="멘토 선택"
-              required
-            />
-
-            <div style={{ display: "flex", flex: "1 1 0", gap: "24px" }}>
-              <Autofill
-                appearence="flat"
-                options={[
-                  { text: "1", value: "1" },
-                  { text: "2", value: "2  " },
-                ]}
-                label="학점"
-                required
-              />
-            </div>
-          </div>
-          <div style={{ display: "flex", marginTop: "24px", gap: "24px" }}>
-            <Button
-              style={{ flex: "1 1 0 " }}
-              type="ghost"
-              onClick={() => {
-                setTimeSelectPopupActive(true);
-              }}
-            >
-              시간 선택
-            </Button>
-            <Button style={{ flex: "1 1 0 " }} type="ghost">
-              강의실 선택
-            </Button>
-          </div>
-          <div style={{ display: "flex", marginTop: "24px" }}></div>
-          {/* <EditorParser data={currentSeason?.formTimetable} /> */}
-          <EditorParser auth="edit" data={currentSeason?.formSyllabus} />
-        </div>
-      </div>
-
-      {alertPopupActive && (
-        <Popup setState={() => {}} title="가입된 학교가 없습니다">
-          <div style={{ marginTop: "24px" }}>
-            <Button
-              type="ghost"
-              onClick={() => {
-                navigate("/");
-              }}
-            >
-              메인 화면으로 돌아가기
-            </Button>
-          </div>
-        </Popup>
-      )}
-      {timeSelectPopupActive && (
-        <Popup
-          setState={setTimeSelectPopupActive}
-          title="시간 선택"
-          closeBtn
-          style={{ borderRadius: "4px", width: "900px" }}
-          footer={<Button type="ghost">선택</Button>}
-        >
-          <EditorParser auth="edit" data={currentSeason?.formTimetable} />
-        </Popup>
-      )}
+      <Add />
     </>
   );
 };

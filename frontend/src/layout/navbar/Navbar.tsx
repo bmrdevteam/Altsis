@@ -1,9 +1,3 @@
-import Select from "components/select/Select";
-import { useAuth } from "contexts/authContext";
-import React, { useEffect, useRef, useState } from "react";
-import Svg from "../../assets/svg/Svg";
-import style from "./navbar.module.scss";
-
 /**
  * notification component
  *
@@ -11,15 +5,39 @@ import style from "./navbar.module.scss";
  *
  * @example <Notification/>
  */
+
+import React, { useEffect, useRef, useState } from "react";
+import useDatabase from "hooks/useDatabase";
+import { useAuth } from "contexts/authContext";
+import useInterval from "hooks/useInterval";
+import { useNavigate } from "react-router-dom";
+
+// components
+import Button from "components/button/Button";
+import Select from "components/select/Select";
+
+import Svg from "assets/svg/Svg";
+import style from "./navbar.module.scss";
+
+import _ from "lodash";
+
+import audioURL from "assets/audio/notification-a.mp3";
+
 const Notification = () => {
   /**
    * active state for notification contents
    */
+  const { currentUser, currentNotifications, setCurrentNotifications } =
+    useAuth();
+  const database = useDatabase();
+  const navigate = useNavigate();
+
   const [notificationContentActive, setNotificationContentActive] =
     useState(false);
 
   const notificationtRef = useRef<HTMLDivElement>(null);
 
+  const audio = new Audio(audioURL);
   function handleMousedown(e: MouseEvent) {
     if (
       notificationtRef.current &&
@@ -28,12 +46,40 @@ const Notification = () => {
       setNotificationContentActive(false);
     }
   }
+
+  async function getUpdatedNotifications() {
+    const { notifications } = await database.R({
+      location: `notifications?type=received&userId=${currentUser.userId}&checked=false&updated=true`,
+    });
+    return notifications;
+  }
+
+  async function checkNotification(_id: string) {
+    const res = await database.U({
+      location: `notifications/${_id}/check`,
+      data: {},
+    });
+    return res;
+  }
+
+  useInterval(() => {
+    getUpdatedNotifications().then((res) => {
+      if (res) {
+        audio.play().catch((e: any) => {
+          console.log(e);
+        });
+        setCurrentNotifications([...res]);
+      }
+    });
+  }, 1000 * 60 * 10); //10분
+
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
     };
   }, []);
+
   return (
     <div className={style.notification} ref={notificationtRef}>
       <div
@@ -48,15 +94,61 @@ const Notification = () => {
       {notificationContentActive && (
         <div className={style.contents}>
           <div className={style.title}>알림</div>
-          <div className={style.item}>
-            <div className={style.description}>
-              <span className={style.type}>[수업]</span>
-              세계관의 기초 수업의 강의실이 변경 되었습니다
-            </div>
-            <div className={style.x}>
-              <Svg type={"x"} />
-            </div>
-          </div>
+          {_.sortBy(currentNotifications, "createdAt").map(
+            (notification: any) => {
+              return (
+                <div className={style.item} style={{ marginBottom: "12px" }}>
+                  <div className={style.description}>
+                    {notification.category && (
+                      <span className={style.type}>
+                        [{notification.category}]
+                      </span>
+                    )}
+                    {notification.title}
+                  </div>
+                  <Button
+                    type="ghost"
+                    onClick={(e: any) => {
+                      checkNotification(notification._id)
+                        .then(() => {
+                          currentNotifications.splice(
+                            _.findIndex(
+                              currentNotifications,
+                              (x: any) => x._id === notification._id
+                            ),
+                            1
+                          );
+
+                          setCurrentNotifications([...currentNotifications]);
+                        })
+                        .catch((err) => {
+                          alert(err.response.data.message);
+                        });
+                    }}
+                    style={{
+                      border: 0,
+                      color: "gray",
+                    }}
+                  >
+                    x
+                  </Button>
+                </div>
+              );
+            }
+          )}
+
+          <Button
+            type="ghost"
+            onClick={(e: any) => {
+              navigate("/notifications");
+            }}
+            style={{
+              border: 0,
+              color: "gray",
+            }}
+          >
+            모두보기
+          </Button>
         </div>
       )}
     </div>
@@ -73,8 +165,7 @@ type Props = { title?: string };
  * @returns Navbar component
  */
 const Navbar = (props: Props) => {
-  const { registrations, currentSeason, changeCurrentSeason } = useAuth();
-
+  const { registrations, currentRegistration, changeCurrentSeason } = useAuth();
   return (
     <div className={style.navbar_container}>
       {props.title && <div className={style.title}>{props.title}</div>}
@@ -85,8 +176,9 @@ const Navbar = (props: Props) => {
           options={registrations?.map((value: any, index: number) => {
             return { text: `${value.year} ${value.term}`, value: value };
           })}
-          defaultSelectedValue={currentSeason}
+          defaultSelectedValue={currentRegistration}
           onChange={(value: any) => {
+            console.log(value);
             changeCurrentSeason(value);
           }}
         />

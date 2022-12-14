@@ -101,6 +101,7 @@ const Users = (props: Props) => {
         학기에 유저 등록
       </Button>
       <Table
+        type="object-array"
         data={registrations}
         header={[
           {
@@ -170,6 +171,7 @@ const Users = (props: Props) => {
         >
           <div style={{ height: "calc(100vh - 300px)" }}>
             <Table
+              type="object-array"
               onSelectChange={(value) => {
                 selectedSchoolUsers.current = value.map((val: any) => {
                   return {
