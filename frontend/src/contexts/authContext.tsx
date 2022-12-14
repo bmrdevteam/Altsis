@@ -16,6 +16,9 @@ export function useAuth(): {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
+  currentNotifications: any;
+  setCurrentNotifications: React.Dispatch<any>;
+  currentPermission: any;
 } {
   return useContext(AuthContext);
 }
@@ -26,9 +29,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [registrations, setRegistration] = useState<any>([]);
+  console.log(
+    "🚀 ~ file: authContext.tsx ~ line 25 ~ AuthProvider ~ registrations",
+    registrations
+  );
   const [currentRegistration, setCurrentRegistration] = useState<any>();
   const [currentSeason, setCurrentSeason] = useState<any>();
+  const [currentNotifications, setCurrentNotifications] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [currentPermission, setCurrentPermission] = useState<any>({});
+
   async function getLoggedInUser() {
     const res = await database.R({
       location: "users/current",
@@ -38,6 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      */
     setCurrentUser(res);
     setCurrentSchool(res.schools[0]);
+    setCurrentNotifications(res.notifications);
 
     /** if there is a registration, set the season */
     if (res.registrations) {
@@ -73,6 +84,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return result;
   }
 
+  const checkPermission = (permission: any) => {
+    for (let i = 0; i < permission?.length; i++) {
+      if (
+        permission[i][0] === "userId" &&
+        permission[i][1] === currentUser?.userId
+      ) {
+        return permission[i][2];
+      }
+      if (
+        permission[i][0] === "role" &&
+        permission[i][1] === currentRegistration?.role
+      )
+        return permission[i][2];
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    const permission = {
+      permissionSyllabus: false,
+      permissionEnrollment: false,
+      permissionEvaluation: false,
+      permissionNotification: false,
+    };
+
+    // permissionSyllabus
+    if (checkPermission(currentSeason?.permissionSyllabus))
+      permission["permissionSyllabus"] = true;
+
+    // permissionEnrollment
+    if (checkPermission(currentSeason?.permissionEnrollment))
+      permission["permissionEnrollment"] = true;
+
+    // permissionEvaluation
+    if (checkPermission(currentSeason?.permissionEvaluation))
+      permission["permissionEvaluation"] = true;
+
+    // permissionNotification?
+    if (checkPermission(currentSeason?.permissionNotification))
+      permission["permissionNotification"] = true;
+
+    setCurrentPermission(permission);
+  }, [currentSeason]);
+
   const updateUserProfile = (profile: string) => {
     setCurrentUser({ ...currentUser, profile });
   };
@@ -92,10 +147,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentSchool,
     updateUserProfile,
     deleteUserProfile,
+    currentNotifications,
+    setCurrentNotifications,
+    currentPermission,
   };
   return (
     <AuthContext.Provider value={value}>
-      {!loading ? children : <Loading height={"100vh"}/>}
+      {!loading ? children : <Loading height={"100vh"} />}
     </AuthContext.Provider>
   );
 };

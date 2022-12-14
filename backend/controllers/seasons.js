@@ -94,7 +94,15 @@ module.exports.find = async (req, res) => {
     }
     const seasons = await Season(req.user.academyId)
       .find(req.query)
-      .select(["school", "schoolId", "schoolName", "year", "term", "period"]);
+      .select([
+        "school",
+        "schoolId",
+        "schoolName",
+        "year",
+        "term",
+        "period",
+        "isActivated",
+      ]);
 
     return res.status(200).send({ seasons });
   } catch (err) {

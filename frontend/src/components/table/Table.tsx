@@ -65,6 +65,8 @@ type Props = {
   onSelectChange?: (value: any) => void;
   filter?: boolean;
   filterSearch?: boolean;
+  hideHeader?: boolean;
+  checkAll?: boolean;
 };
 
 /**
@@ -502,6 +504,7 @@ const Table = (props: Props) => {
                       data={data}
                       index={dataIndex}
                       style={props.style}
+                      checked={props.checkAll ? true : false}
                     />
                   );
                 })}
@@ -522,7 +525,7 @@ const Table = (props: Props) => {
       }}
     >
       {props.filter && <TableFilter />}
-      <TableHeader />
+      {!props.hideHeader && <TableHeader />}
       <TableBody />
     </div>
   );

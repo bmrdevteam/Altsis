@@ -36,6 +36,8 @@ import style from "style/pages/admin/schools.module.scss";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 
+import dateFormat from "functions/dateFormat";
+
 type Props = {
   academy: string;
   seasonData: any;
@@ -103,49 +105,8 @@ function Basic(props: Props) {
         <div className={style.row}>
           <Input
             style={{ maxHeight: "30px" }}
-            defaultValue={props.seasonData.schoolId}
-            appearence="flat"
-            label="학교 ID"
-            required
-            disabled
-          />
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={props.seasonData.schoolName}
-            appearence="flat"
-            label="학교 이름"
-            required
-            disabled
-          />
-        </div>
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
-            disabled
-            defaultValue={props.seasonData.year}
-            appearence="flat"
-            label="학년도"
-            required
-          />
-        </div>
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={props.seasonData.term}
-            disabled
-            appearence="flat"
-            label="학기"
-            onChange={(e: any) => {
-              setTerm(e.target.value);
-            }}
-            required
-          />
-        </div>
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
             type="date"
-            label="start"
+            label="학기 시작"
             appearence="flat"
             defaultValue={props.seasonData.period?.start}
             onChange={(e: any) => {
@@ -156,7 +117,7 @@ function Basic(props: Props) {
             style={{ maxHeight: "30px" }}
             type="date"
             appearence="flat"
-            label="end"
+            label="학기 끝"
             defaultValue={props.seasonData.period?.end}
             onChange={(e: any) => {
               setEnd(e.target.value);
@@ -166,7 +127,7 @@ function Basic(props: Props) {
         <div className={style.row}>
           <Input
             style={{ maxHeight: "30px" }}
-            defaultValue={props.seasonData.createdAt}
+            defaultValue={dateFormat(new Date(props.seasonData.createdAt))}
             appearence="flat"
             label="createdAt"
             disabled
@@ -175,7 +136,7 @@ function Basic(props: Props) {
         <div className={style.row}>
           <Input
             style={{ maxHeight: "30px" }}
-            defaultValue={props.seasonData.updatedAt}
+            defaultValue={dateFormat(new Date(props.seasonData.updatedAt))}
             appearence="flat"
             label="updatedAt"
             disabled
@@ -204,7 +165,7 @@ function Basic(props: Props) {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
         >
-          수정하기
+          저장
         </Button>
         <Button
           type={"ghost"}

@@ -47,7 +47,7 @@ const seasonSchema = mongoose.Schema(
     temp: Object,
     isActivated: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   { timestamps: true }

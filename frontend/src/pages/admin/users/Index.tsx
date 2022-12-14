@@ -29,22 +29,35 @@
  */
 
 import React, { useEffect, useState } from "react";
-import Button from "../../../components/button/Button";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
 
-import Input from "../../../components/input/Input";
-import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
-import Popup from "../../../components/popup/Popup";
+// style
+import style from "style/pages/admin/users.module.scss";
 
-import Select from "../../../components/select/Select";
-import Table from "../../../components/table/Table";
-import useDatabase from "../../../hooks/useDatabase";
-import useSearch from "../../../hooks/useSearch";
-import style from "../../../style/pages/admin/users.module.scss";
+// hooks
+import useDatabase from "hooks/useDatabase";
+import useSearch from "hooks/useSearch";
+
+// Navigation Links
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+
+// components
+import Button from "components/button/Button";
+import Input from "components/input/Input";
+import Popup from "components/popup/Popup";
+import Select from "components/select/Select";
+import Table from "components/table/Table";
 
 type Props = {};
 
 const Users = (props: Props) => {
   const database = useDatabase();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(false);
   const [academyUsers, setAcademyUsers] = useState<any>();
   const [user, setUser] = useState<any>();
   const [userRegistrations, setUserRegistrations] = useState<any[]>();
@@ -61,12 +74,29 @@ const Users = (props: Props) => {
   }
 
   useEffect(() => {
-    getAcademyUsers().then((res) => {
-      setAcademyUsers(res);
-    });
-  }, []);
+    if (isLoading) {
+      getAcademyUsers()
+        .then((res) => {
+          setAcademyUsers(res);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          alert(err.response.data.message);
+        });
+    }
+  }, [isLoading]);
 
-  return (
+  useEffect(() => {
+    if (currentUser.auth !== "admin") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else {
+      setIsAuthenticated(true);
+      setIsLoading(true);
+    }
+  }, [currentUser]);
+
+  return isAuthenticated ? (
     <>
       <div className={style.section}>
         <NavigationLinks />
@@ -194,6 +224,8 @@ const Users = (props: Props) => {
         </Popup>
       )}
     </>
+  ) : (
+    <></>
   );
 };
 

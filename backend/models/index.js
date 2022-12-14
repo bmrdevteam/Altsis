@@ -8,5 +8,7 @@ module.exports = {
   User: require("./User"),
   Season: require("./Season"),
   Archive: require("./Archive"),
+  Apps: require("./Apps"),
   TestData: require("./TestData"),
+  Notification: require("./Notification"),
 };
