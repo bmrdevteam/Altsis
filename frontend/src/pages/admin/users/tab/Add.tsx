@@ -38,7 +38,6 @@ import Input from "components/input/Input";
 import Select from "components/select/Select";
 
 type Props = {
-  academyId: string;
   school: any;
 };
 
@@ -56,7 +55,7 @@ function Basic(props: Props) {
 
   async function addDocument() {
     const result = await database.C({
-      location: `academies/${props.academyId}/users`,
+      location: `users`,
       data: {
         auth,
         userId,
