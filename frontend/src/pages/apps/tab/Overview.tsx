@@ -4,6 +4,7 @@ import Textarea from "../../../components/textarea/Textarea";
 import { useAuth } from "../../../contexts/authContext";
 import style from "../../../style/pages/settings/settings.module.scss";
 import Button from "components/button/Button";
+import Table from "components/table/Table";
 import useDatabase from "../../../hooks/useDatabase";
 
 type Props = {}
@@ -13,6 +14,7 @@ const Overview = (props: Props) => {
   const database = useDatabase();
   const [InputName, setInputName] = useState<any>();
   const [InputDescription, setInputDescription] = useState<any>();
+  const [AppsList, setAppsList] = useState<any>();
 
   // addclassroom function
   async function addApps() {
@@ -30,6 +32,16 @@ const Overview = (props: Props) => {
     });
     return apps;
   }
+
+  useEffect(() => {
+    getApps()
+    .then((res) => {
+      setAppsList(res);
+    })
+    .catch(() => {
+      alert("failed to load data");
+    });
+  }, []);
 
   return (
     <>
@@ -75,7 +87,31 @@ const Overview = (props: Props) => {
       <div style={{ gap: "12px", marginTop: "24px" }}>
         <div className={style.settings_container}>
           <div className={style.container_title}>앱 리스트</div>
-          <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
+          <div style={{ gap: "12px", marginTop: "24px" }}>
+          <Table
+            type="object-array"
+            filter
+            filterSearch
+            data={AppsList}
+            header={[
+              {
+                text: "",
+                key: "",
+                type: "checkbox",
+                width: "48px",
+                align: "center",
+              },
+              {
+                text: "id",
+                key: "",
+                type: "index",
+                width: "48px",
+                align: "center",
+              },
+              { text: "이름", key: "title", type: "string", align: "center" },
+              { text: "설명", key: "description", type: "string", align: "center"  },
+            ]}
+          />
           </div>
         </div>
       </div>
