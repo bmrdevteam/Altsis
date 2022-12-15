@@ -28,7 +28,7 @@
  *
  */
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 
@@ -37,29 +37,32 @@ import style from "style/pages/admin/users.module.scss";
 
 // hooks
 import useDatabase from "hooks/useDatabase";
-import useSearch from "hooks/useSearch";
-
-// Navigation Links
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
 
 // components
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
-import Select from "components/select/Select";
 import Table from "components/table/Table";
+import Select from "components/select/Select";
 
 type Props = {};
 
 const Users = (props: Props) => {
   const database = useDatabase();
-  const navigate = useNavigate();
-  const { currentUser } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [academyUsers, setAcademyUsers] = useState<any>();
+  const [isLoading, setIsLoading] = useState(true);
+
+  /* user list */
+  const [userList, setUserList] = useState<any>();
   const [user, setUser] = useState<any>();
+
+  /* additional document list */
+  const [schoolList, setSchoolList] = useState<any>();
+  const [school, setSchool] = useState<any>();
+  const [schoolId, setSchoolId] = useState<string>("");
+  const [schoolName, setSchoolName] = useState<string>("");
+
   const [userRegistrations, setUserRegistrations] = useState<any[]>();
 
   const [userInfoPopupActive, setUserInfoPopupActive] =
@@ -73,41 +76,68 @@ const Users = (props: Props) => {
     return res;
   }
 
+  const schools = () => {
+    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
+
+    for (let i = 0; i < schoolList?.length; i++) {
+      result.push({
+        text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
+        value: schoolList[i]._id,
+      });
+    }
+
+    return result;
+  };
+
+  async function getSchoolList() {
+    const { documents } = await database.R({
+      location: `schools`,
+    });
+    return documents;
+  }
+
   useEffect(() => {
     if (isLoading) {
-      getAcademyUsers()
+      getSchoolList()
         .then((res) => {
-          setAcademyUsers(res);
-          setIsLoading(false);
+          setSchoolList(res);
         })
-        .catch((err) => {
-          alert(err.response.data.message);
+        .catch(() => {
+          alert("failed to load data");
         });
+      setIsLoading(false);
+
+      // getAcademyUsers()
+      //   .then((res) => {
+      //     setUserList(res);
+      //     setIsLoading(false);
+      //   })
+      //   .catch((err) => {
+      //     alert(err.response.data.message);
+      //   });
     }
   }, [isLoading]);
 
-  useEffect(() => {
-    if (currentUser.auth !== "admin") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(true);
-    }
-  }, [currentUser]);
-
-  return isAuthenticated ? (
+  return (
     <>
       <div className={style.section}>
         <NavigationLinks />
-        <div className={style.title}>아카데미 유저 관리</div>
+        <div className={style.title}>아카데미 사용자 관리</div>
         <div style={{ height: "24px" }}></div>
+        <Select
+          style={{ minHeight: "30px" }}
+          required
+          label={"학교 선택"}
+          options={!isLoading ? schools() : [{ text: "", value: "" }]}
+          setValue={setSchool}
+          appearence={"flat"}
+        />
         <div>
           <Table
             type="object-array"
             filter
             filterSearch
-            data={academyUsers}
+            data={userList}
             header={[
               {
                 text: "",
@@ -153,12 +183,9 @@ const Users = (props: Props) => {
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  setUser(
-                    academyUsers?.filter((val: any) => val._id === e._id)[0]
-                  );
+                  setUser(userList?.filter((val: any) => val._id === e._id)[0]);
                   getUserRegistrations(
-                    academyUsers?.filter((val: any) => val._id === e._id)[0]
-                      .userId
+                    userList?.filter((val: any) => val._id === e._id)[0].userId
                   ).then((res) => {
                     setUserRegistrations(res);
                   });
@@ -224,8 +251,6 @@ const Users = (props: Props) => {
         </Popup>
       )}
     </>
-  ) : (
-    <></>
   );
 };
 

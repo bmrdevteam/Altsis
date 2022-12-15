@@ -28,9 +28,11 @@
  */
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "contexts/authContext";
+import style from "style/pages/admin/forms.module.scss";
 
-import Svg from "assets/svg/Svg";
+// hooks
+import useDatabase from "hooks/useDatabase";
+import useSearch from "hooks/useSearch";
 
 import Button from "components/button/Button";
 import Input from "components/input/Input";
@@ -39,9 +41,8 @@ import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import Table from "components/table/Table";
-import useDatabase from "hooks/useDatabase";
-import useSearch from "hooks/useSearch";
-import style from "style/pages/admin/forms.module.scss";
+
+import Svg from "assets/svg/Svg";
 
 type Props = {};
 
@@ -55,10 +56,8 @@ const Forms = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);
 
@@ -107,16 +106,6 @@ const Forms = (props: Props) => {
         }
       });
   }
-
-  useEffect(() => {
-    if (currentUser.auth !== "admin" && currentUser.auth !== "manager") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(true);
-    }
-  }, [currentUser]);
 
   useEffect(() => {
     if (isLoading) {
@@ -248,7 +237,7 @@ const Forms = (props: Props) => {
     );
   };
 
-  return isAuthenticated ? (
+  return (
     <>
       <div className={style.section}>
         <NavigationLinks />
@@ -500,8 +489,6 @@ const Forms = (props: Props) => {
         </Popup>
       )}
     </>
-  ) : (
-    <></>
   );
 };
 
