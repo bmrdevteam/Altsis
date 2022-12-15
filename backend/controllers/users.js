@@ -341,13 +341,17 @@ module.exports.update = async (req, res) => {
       user = req.user;
     } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
       user = await User(req.user.academyId).findById(req.params._id);
+
+      if (req.body.schools) {
+        user.schools = req.body.schools;
+      }
+      if (req.body.auth) {
+        user.auth = req.body.auth;
+      }
     } else {
       return res.status(401).send({ message: "You are not authorized." });
     }
 
-    if (req.body.auth && req.user.auth === "owner") {
-      user.auth = req.body.auth;
-    }
     user.email = req.body.email;
     user.tel = req.body.tel;
 

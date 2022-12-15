@@ -43,8 +43,10 @@ import Popup from "components/popup/Popup";
 import validate from "functions/validate";
 
 type Props = {
+  schoolData: any;
   schoolList: any;
-  setAddBulkPopup: any;
+  setPopupActive: any;
+  setIsUserListLoading: any;
 };
 
 function Basic(props: Props) {
@@ -55,6 +57,18 @@ function Basic(props: Props) {
 
   const [userList, setUserList] = useState<any[]>([]);
   const [invalidUserCnt, setInvalidUserCnt] = useState<number>(-1);
+
+  const [schools, setSchools] = useState<any[]>(
+    props.schoolData
+      ? [
+          {
+            school: props.schoolData._id,
+            schoolId: props.schoolData.schoolId,
+            schoolName: props.schoolData.schoolName,
+          },
+        ]
+      : []
+  );
   const selectedSchoolRef = useRef<any[]>([]);
 
   // popup activation
@@ -91,12 +105,6 @@ function Basic(props: Props) {
     });
     return result;
   }
-
-  //   const handleProfileUploadButtonClick = (
-  //     e: React.ChangeEvent<HTMLInputElement>
-  //   ) => {
-  //     if (fileInput.current) fileInput.current.click();
-  //   };
 
   useEffect(() => {
     console.log("invalidUserCnt: ", invalidUserCnt);
@@ -227,7 +235,7 @@ function Basic(props: Props) {
   return (
     <>
       <Popup
-        setState={props.setAddBulkPopup}
+        setState={props.setPopupActive}
         style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
         closeBtn
         title="사용자 일괄 생성"
@@ -244,7 +252,7 @@ function Basic(props: Props) {
                 alert(`수정이 필요한 항목이 ${invalidUserCnt}개 있습니다.`);
               } else {
                 console.log("props.schoolList: ", props.schoolList);
-                selectedSchoolRef.current = [];
+                selectedSchoolRef.current = [props.schoolData];
                 setIsAddPopupActive(true);
               }
             }}
@@ -424,9 +432,15 @@ function Basic(props: Props) {
                 type="object-array"
                 data={props.schoolList}
                 onSelectChange={(value) => {
-                  selectedSchoolRef.current = [...value];
-
-                  console.log(selectedSchoolRef.current);
+                  console.log(value);
+                  selectedSchoolRef.current = value;
+                }}
+                checkFunction={(value) => {
+                  console.log("schools: ", schools, " value: ", value);
+                  return _.includes(
+                    schools.map((schoolData: any) => schoolData.school),
+                    value._id
+                  );
                 }}
                 header={[
                   {
@@ -449,7 +463,8 @@ function Basic(props: Props) {
                 addUserBulk()
                   .then((res) => {
                     alert("success");
-                    props.setAddBulkPopup(false);
+                    props.setPopupActive(false);
+                    props.setIsUserListLoading(true);
                   })
                   .catch((err) => alert(err.response.data.message));
               }}
