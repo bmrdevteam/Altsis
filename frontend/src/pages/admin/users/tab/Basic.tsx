@@ -27,7 +27,7 @@
  *
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -36,25 +36,38 @@ import style from "style/pages/admin/schools.module.scss";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
+import Popup from "components/popup/Popup";
+import Table from "components/table/Table";
+import _ from "lodash";
 
 type Props = {
-  academy: string;
   userData: any;
+  setPopupAcitve: any;
+  schoolList: any;
+  setIsUserListLoading: any;
 };
 
 function Basic(props: Props) {
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const schoolSelectRef = useRef<any[]>([]);
 
   /* document fields */
+  const [schools, setSchools] = useState<any[]>(props.userData.schools || []);
+  const [schoolsText, setSchoolsText] = useState<string>("");
   const [auth, setAuth] = useState<string>(props.userData.auth);
   const [email, setEmail] = useState<string>(props.userData.email || undefined);
   const [tel, setTel] = useState<string>(props.userData.tel || undefined);
 
+  /* Popup Activation */
+  const [isEditSchoolPopupActive, setIsEditSchoolPopupActive] =
+    useState<boolean>(false);
+
   async function updateUser() {
     const result = database.U({
-      location: `academies/${props.academy}/users/${props.userData._id}`,
+      location: `users/${props.userData._id}`,
       data: {
+        schools,
         auth,
         email,
         tel,
@@ -63,112 +76,175 @@ function Basic(props: Props) {
     return result;
   }
 
+  useEffect(() => {
+    setSchoolsText(
+      _.join(
+        schools.map(
+          (schoolData: any) =>
+            `${schoolData.schoolName}(${schoolData.schoolId})`
+        ),
+        ", "
+      )
+    );
+  }, [schools]);
+
   return (
-    <div>
-      <div className={style.popup}>
-        <div className={style.row}>
-          <Select
-            style={{ minHeight: "30px" }}
-            label="auth"
-            required
-            options={[
-              { text: "member", value: "member" },
-              { text: "manager", value: "manager" },
-              { text: "admin", value: "admin" },
-            ]}
-            setValue={setAuth}
-            appearence={"flat"}
-            defaultSelectedValue={auth}
-          />
-        </div>
-
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={props.userData.schools[0]?.schoolId}
-            appearence="flat"
-            label="학교 ID"
-            required
-            disabled
-          />
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={props.userData.schools[0]?.schoolName}
-            appearence="flat"
-            label="학교 이름"
-            required
-            disabled
-          />
-        </div>
-
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={props.userData.userId}
-            appearence="flat"
-            label="사용자 ID"
-            required
-            disabled
-          />
-
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={props.userData.userName}
-            appearence="flat"
-            label="사용자 이름"
-            required
-            disabled
-          />
-        </div>
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={email}
-            appearence="flat"
-            label="email"
-            onChange={(e: any) => {
-              setEmail(e.target.value);
+    <>
+      <Popup
+        closeBtn
+        setState={props.setPopupAcitve}
+        title={`${props.userData.userName}(${props.userData.userId})`}
+        style={{ borderRadius: "4px" }}
+      >
+        <div className={style.popup}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: "12px",
             }}
-          />
-        </div>
+          >
+            <Input
+              label="소속 학교"
+              defaultValue={schoolsText}
+              appearence="flat"
+              disabled
+            />
+            <Button
+              type={"ghost"}
+              onClick={() => {
+                schoolSelectRef.current = schools;
+                setIsEditSchoolPopupActive(true);
+              }}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+              }}
+            >
+              수정
+            </Button>
+          </div>
 
-        <div className={style.row}>
-          <Input
-            style={{ maxHeight: "30px" }}
-            defaultValue={tel}
-            appearence="flat"
-            label="tel"
-            onChange={(e: any) => {
-              setTel(e.target.value);
-            }}
-          />
-        </div>
+          <div style={{ marginTop: "24px" }}>
+            <Select
+              appearence="flat"
+              label="Auth"
+              required
+              options={[
+                { text: "member", value: "member" },
+                { text: "manager", value: "manager" },
+              ]}
+              onChange={setAuth}
+            />
+          </div>
+          <div style={{ marginTop: "24px" }}>
+            <Input
+              appearence="flat"
+              label="이메일"
+              defaultValue={email}
+              onChange={setEmail}
+            />
+          </div>
+          <div style={{ marginTop: "24px" }}>
+            <Input
+              label="tel"
+              defaultValue={tel}
+              appearence="flat"
+              onChange={setTel}
+            />
+          </div>
 
-        <Button
-          type={"ghost"}
-          disabled={isLoading}
-          onClick={(e: any) => {
-            setIsLoading(true);
-            updateUser()
-              .then(() => {
-                alert("success");
-              })
-              .catch((err) => {
-                alert(err.response.data.message);
-              });
-            setIsLoading(false);
-          }}
-          style={{
-            borderRadius: "4px",
-            marginTop: "24px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
+          <div style={{ marginTop: "24px" }}>
+            <Button
+              type={"ghost"}
+              disableOnclick
+              onClick={() => {
+                updateUser()
+                  .then((res) => {
+                    alert("success");
+                    props.setIsUserListLoading(true);
+                    props.setPopupAcitve(false);
+                  })
+                  .catch((err) => alert(err.response.data.message));
+              }}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+              }}
+            >
+              저장
+            </Button>
+          </div>
+        </div>
+      </Popup>
+      {isEditSchoolPopupActive && (
+        <Popup
+          closeBtn
+          setState={setIsEditSchoolPopupActive}
+          title={`소속 학교 추가 및 삭제`}
+          style={{ borderRadius: "4px" }}
         >
-          수정하기
-        </Button>
-      </div>
-    </div>
+          <div className={style.popup}>
+            <div className={style.row}>
+              <Table
+                type="object-array"
+                data={props.schoolList}
+                onSelectChange={(value) => {
+                  console.log(value);
+                  schoolSelectRef.current = value;
+                }}
+                checkFunction={(value) => {
+                  console.log("schools: ", schools, " value: ", value);
+                  return _.includes(
+                    schools.map((schoolData: any) => schoolData.school),
+                    value._id
+                  );
+                }}
+                header={[
+                  {
+                    text: "선택",
+                    key: "",
+                    type: "checkbox",
+                    width: "48px",
+                    align: "center",
+                  },
+                  { text: "학교 Id", key: "schoolId", type: "string" },
+                  { text: "학교 이름", key: "schoolName", type: "string" },
+                ]}
+              />
+            </div>
+
+            <div style={{ marginTop: "24px" }}>
+              <Button
+                type={"ghost"}
+                disableOnclick
+                onClick={() => {
+                  setSchools([
+                    ...schoolSelectRef.current.map((schoolData: any) => {
+                      return {
+                        school: schoolData._id,
+                        schoolId: schoolData.schoolId,
+                        schoolName: schoolData.schoolName,
+                      };
+                    }),
+                  ]);
+                  setIsEditSchoolPopupActive(false);
+                }}
+                style={{
+                  borderRadius: "4px",
+                  height: "32px",
+                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                }}
+              >
+                수정
+              </Button>
+            </div>
+          </div>
+        </Popup>
+      )}
+    </>
   );
 }
 
