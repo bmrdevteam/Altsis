@@ -46,12 +46,17 @@ import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
 import Select from "components/select/Select";
 
+// popup/tab elements
+import Basic from "./tab/Basic";
+import Add from "./tab/Add";
+import AddBulk from "./tab/AddBulk";
+
 type Props = {};
 
 const Users = (props: Props) => {
   const database = useDatabase();
-
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
+  const [isUserLoading, setIsUserLoading] = useState(false);
 
   /* user list */
   const [userList, setUserList] = useState<any>();
@@ -60,15 +65,19 @@ const Users = (props: Props) => {
   /* additional document list */
   const [schoolList, setSchoolList] = useState<any>();
   const [school, setSchool] = useState<any>();
-  const [schoolId, setSchoolId] = useState<string>("");
-  const [schoolName, setSchoolName] = useState<string>("");
-
+  const [schoolVal, setSchoolVal] = useState<any>();
   const [userRegistrations, setUserRegistrations] = useState<any[]>();
 
-  const [userInfoPopupActive, setUserInfoPopupActive] =
-    useState<boolean>(false);
+  const [editPopupActive, setUserInfoPopupActive] = useState<boolean>(false);
+  const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
+  const [addBulkPopup, setAddBulkPopup] = useState<boolean>(false);
+
   async function getAcademyUsers() {
-    const { users: res } = await database.R({ location: "users" });
+    const { users: res } = await database.R({
+      location: `users?${
+        school?._id ? `schools.school=${school._id}` : `no-school=true`
+      }`,
+    });
     return res;
   }
   async function getUserRegistrations(id: string) {
@@ -82,41 +91,49 @@ const Users = (props: Props) => {
     for (let i = 0; i < schoolList?.length; i++) {
       result.push({
         text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
-        value: schoolList[i]._id,
+        value: JSON.stringify(schoolList[i]),
       });
     }
 
+    console.log(result);
     return result;
   };
 
   async function getSchoolList() {
-    const { documents } = await database.R({
+    const { schools } = await database.R({
       location: `schools`,
     });
-    return documents;
+    return schools;
   }
 
   useEffect(() => {
-    if (isLoading) {
+    if (isSchoolListLoading) {
       getSchoolList()
         .then((res) => {
           setSchoolList(res);
+          setIsSchoolListLoading(false);
+          setIsUserLoading(true);
         })
         .catch(() => {
           alert("failed to load data");
         });
-      setIsLoading(false);
-
-      // getAcademyUsers()
-      //   .then((res) => {
-      //     setUserList(res);
-      //     setIsLoading(false);
-      //   })
-      //   .catch((err) => {
-      //     alert(err.response.data.message);
-      //   });
     }
-  }, [isLoading]);
+    return () => {};
+  }, [isSchoolListLoading]);
+
+  useEffect(() => {
+    if (isUserLoading) {
+      getAcademyUsers()
+        .then((res) => {
+          setUserList(res);
+          setIsUserLoading(false);
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
+    return () => {};
+  }, [isUserLoading]);
 
   return (
     <>
@@ -128,10 +145,41 @@ const Users = (props: Props) => {
           style={{ minHeight: "30px" }}
           required
           label={"학교 선택"}
-          options={!isLoading ? schools() : [{ text: "", value: "" }]}
-          setValue={setSchool}
+          options={!isSchoolListLoading ? schools() : [{ text: "", value: "" }]}
+          setValue={(e: string) => {
+            setSchool(e ? JSON.parse(e) : {});
+            setIsUserLoading(true);
+          }}
           appearence={"flat"}
         />
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            setAddPopupActive(true);
+          }}
+        >
+          + 사용자 생성
+        </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            setAddBulkPopup(true);
+          }}
+        >
+          + 사용자 일괄 생성
+        </Button>
         <div>
           <Table
             type="object-array"
@@ -198,7 +246,7 @@ const Users = (props: Props) => {
           />
         </div>
       </div>
-      {userInfoPopupActive && (
+      {editPopupActive && (
         <Popup
           closeBtn
           setState={setUserInfoPopupActive}
@@ -249,6 +297,19 @@ const Users = (props: Props) => {
             </Button>
           </div>
         </Popup>
+      )}
+      {addPopupActive && (
+        <Popup
+          setState={setAddPopupActive}
+          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          closeBtn
+          title="Creaet Document"
+        >
+          <Add school={school} />
+        </Popup>
+      )}
+      {addBulkPopup && (
+        <AddBulk schoolList={schoolList} setAddBulkPopup={setAddBulkPopup} />
       )}
     </>
   );

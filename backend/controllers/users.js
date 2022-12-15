@@ -64,13 +64,7 @@ module.exports.logout = (req, res) => {
 
 module.exports.create = async (req, res) => {
   try {
-    // owner의 경우  => 타 아카데미의 user 생성 가능
-    const academyId =
-      req.user.auth == "owner" && req.params.academyId
-        ? req.params.academyId
-        : req.user.academyId;
-
-    const _User = User(academyId);
+    const _User = User(req.user.academyId);
 
     /* check duplication */
     const exUser = await _User.findOne({ userId: req.body.userId });
@@ -101,15 +95,6 @@ module.exports.create = async (req, res) => {
 
 module.exports.createBulk = async (req, res) => {
   try {
-    switch (req.user.auth) {
-      case "admin":
-        break;
-      case "manager":
-        break;
-      default:
-        return res.status(401).send({ message: "You are not authorized." });
-    }
-
     const _User = User(req.user.academyId);
     const users = [];
 
@@ -200,31 +185,37 @@ module.exports.current = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    // owner의 경우  => 타 아카데미의 user 정보 조회 가능
-    const academyId =
-      req.user.auth == "owner" && req.params.academyId
-        ? req.params.academyId
-        : req.user.academyId;
-
-    // admin, manager, member => 본인 아카데미의 user 정보 조회 가능
+    // 소속 아카데미의 user 정보 조회 가능
     if (req.params._id) {
-      const user = await User(academyId).findById(req.params._id);
+      const user = await User(req.user.academyId).findById(req.params._id);
       return res.status(200).send(user);
     }
 
     const queries = req.query;
+    let fields = [];
+    let users = [];
+
     if (queries.school) {
       queries["schools.school"] = queries.school;
       delete queries.school;
-    } else if (queries.schoolId) {
+    }
+    if (queries.schoolId) {
       queries["schools.schoolId"] = queries.schoolId;
       delete queries.schoolId;
-    } else if (queries["no-school"]) {
+    }
+    if (queries["no-school"]) {
       queries["schools"] = { $size: 0 };
       delete queries["no-school"];
     }
 
-    const users = await User(academyId).find(queries).select("-password");
+    if (queries["fields"]) {
+      fields = queries["fields"].split(",");
+      delete queries["fields"];
+      users = await User(req.user.academyId).find(queries).select(fields);
+    } else {
+      users = await User(req.user.academyId).find(queries);
+    }
+
     return res.status(200).send({ users });
   } catch (err) {
     return res.status(500).send({ message: err.message });

@@ -5,6 +5,7 @@ const {
   isLoggedIn,
   isAdManager,
   forceNotLoggedIn,
+  isAdmin,
 } = require("../middleware/auth");
 const profile = require("../controllers/profiles");
 
@@ -18,8 +19,8 @@ router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
 router.get("/logout", isLoggedIn, users.logout);
 
 // ___________ create _____________
-router.post("/", isAdManager, users.create);
-router.post("/bulk", isLoggedIn, users.createBulk);
+router.post("/", isAdmin, users.create);
+router.post("/bulk", isAdmin, users.createBulk);
 
 // ___________ find _____________
 router.get("/current", isLoggedIn, users.current);

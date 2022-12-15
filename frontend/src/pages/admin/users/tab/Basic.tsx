@@ -38,8 +38,8 @@ import Input from "components/input/Input";
 import Select from "components/select/Select";
 
 type Props = {
-  academyId: string;
-  school: any;
+  academy: string;
+  userData: any;
 };
 
 function Basic(props: Props) {
@@ -47,33 +47,17 @@ function Basic(props: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /* document fields */
-  const [auth, setAuth] = useState<string>("");
-  const [userId, setUserId] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [email, setEmail] = useState<any>(undefined);
-  const [tel, setTel] = useState<any>(undefined);
+  const [auth, setAuth] = useState<string>(props.userData.auth);
+  const [email, setEmail] = useState<string>(props.userData.email || undefined);
+  const [tel, setTel] = useState<string>(props.userData.tel || undefined);
 
-  async function addDocument() {
-    const result = await database.C({
-      location: `academies/${props.academyId}/users`,
+  async function updateUser() {
+    const result = database.U({
+      location: `academies/${props.academy}/users/${props.userData._id}`,
       data: {
         auth,
-        userId,
-        userName,
-        password,
-        tel,
         email,
-
-        schools: props.school
-          ? [
-              {
-                school: props.school._id,
-                schoolId: props.school.schoolId,
-                schoolName: props.school.schoolName,
-              },
-            ]
-          : [],
+        tel,
       },
     });
     return result;
@@ -82,24 +66,7 @@ function Basic(props: Props) {
   return (
     <div>
       <div className={style.popup}>
-        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-          <Input
-            appearence="flat"
-            label="학교 ID"
-            required={true}
-            disabled={true}
-            defaultValue={props.school.schoolId}
-          />
-          <Input
-            appearence="flat"
-            label="학교 이름"
-            required={true}
-            disabled={true}
-            defaultValue={props.school.schoolName}
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+        <div className={style.row}>
           <Select
             style={{ minHeight: "30px" }}
             label="auth"
@@ -107,44 +74,56 @@ function Basic(props: Props) {
             options={[
               { text: "member", value: "member" },
               { text: "manager", value: "manager" },
+              { text: "admin", value: "admin" },
             ]}
             setValue={setAuth}
             appearence={"flat"}
+            defaultSelectedValue={auth}
           />
         </div>
 
-        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+        <div className={style.row}>
           <Input
-            key="userId"
+            style={{ maxHeight: "30px" }}
+            defaultValue={props.userData.schools[0]?.schoolId}
             appearence="flat"
-            label="userId"
-            required={true}
-            onChange={(e: any) => {
-              setUserId(e.target.value);
-            }}
+            label="학교 ID"
+            required
+            disabled
           />
           <Input
+            style={{ maxHeight: "30px" }}
+            defaultValue={props.userData.schools[0]?.schoolName}
             appearence="flat"
-            label="password"
-            required={true}
-            onChange={(e: any) => {
-              setPassword(e.target.value);
-            }}
-          />
-        </div>
-        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-          <Input
-            appearence="flat"
-            label="userName"
-            required={true}
-            onChange={(e: any) => {
-              setUserName(e.target.value);
-            }}
+            label="학교 이름"
+            required
+            disabled
           />
         </div>
 
-        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+        <div className={style.row}>
           <Input
+            style={{ maxHeight: "30px" }}
+            defaultValue={props.userData.userId}
+            appearence="flat"
+            label="사용자 ID"
+            required
+            disabled
+          />
+
+          <Input
+            style={{ maxHeight: "30px" }}
+            defaultValue={props.userData.userName}
+            appearence="flat"
+            label="사용자 이름"
+            required
+            disabled
+          />
+        </div>
+        <div className={style.row}>
+          <Input
+            style={{ maxHeight: "30px" }}
+            defaultValue={email}
             appearence="flat"
             label="email"
             onChange={(e: any) => {
@@ -152,8 +131,11 @@ function Basic(props: Props) {
             }}
           />
         </div>
-        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+
+        <div className={style.row}>
           <Input
+            style={{ maxHeight: "30px" }}
+            defaultValue={tel}
             appearence="flat"
             label="tel"
             onChange={(e: any) => {
@@ -164,23 +146,26 @@ function Basic(props: Props) {
 
         <Button
           type={"ghost"}
-          onClick={() => {
-            addDocument()
+          disabled={isLoading}
+          onClick={(e: any) => {
+            setIsLoading(true);
+            updateUser()
               .then(() => {
                 alert("success");
               })
               .catch((err) => {
                 alert(err.response.data.message);
               });
+            setIsLoading(false);
           }}
           style={{
             borderRadius: "4px",
+            marginTop: "24px",
             height: "32px",
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-            marginTop: "24px",
           }}
         >
-          생성
+          수정하기
         </Button>
       </div>
     </div>
