@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useDatabase from "hooks/useDatabase";
-import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/owner/academy.module.scss";
 
@@ -50,12 +49,10 @@ type Props = {};
 const Academies = (props: Props) => {
   const navigate = useNavigate();
   const database = useDatabase();
-  const { currentUser } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   /* document list */
   const [documentList, setDocumentList] = useState<any>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   /* popup activation */
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
@@ -107,17 +104,7 @@ const Academies = (props: Props) => {
     return () => {};
   }, [isLoading]);
 
-  useEffect(() => {
-    if (currentUser.auth !== "owner") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else {
-      setIsAuthenticated(true);
-      setIsLoading(true);
-    }
-  }, [currentUser]);
-
-  return isAuthenticated ? (
+  return (
     <div className={style.section}>
       <NavigationLinks />
       <div style={{ display: "flex", gap: "24px" }}>
@@ -314,8 +301,6 @@ const Academies = (props: Props) => {
         </Popup>
       )}
     </div>
-  ) : (
-    <></>
   );
 };
 
