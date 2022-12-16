@@ -43,8 +43,111 @@ import Tab from "components/tab/Tab";
 import Table from "components/table/Table";
 
 import Svg from "assets/svg/Svg";
+import useOutsideClick from "hooks/useOutsideClick";
+import useApi from "hooks/useApi";
 
 type Props = {};
+
+/**
+ * form item container
+ * @param {any} data
+ * @returns {JSX.Element} form item element
+ */
+const FormItem = ({ data }: { data: any }): JSX.Element => {
+  const database = useDatabase();
+  // console.log(R.RSchools());
+
+  const navigate = useNavigate();
+  const outsideclick = useOutsideClick();
+  let fileColor;
+  switch (data.type) {
+    case "timetable":
+      fileColor = "rgb(128, 128, 255)";
+      break;
+    case "evaluation":
+      fileColor = "rgb(84, 255, 128)";
+      break;
+    case "syllabus":
+      fileColor = "rgb(255, 128, 128)";
+      break;
+    case "print":
+      fileColor = "rgb(255, 212, 94)";
+      break;
+    default:
+      fileColor = "rgb(200, 200, 200)";
+      break;
+  }
+
+  return (
+    <>
+      <div className={style.item} title={data.title}>
+        <div
+          className={style.icon}
+          onClick={() => {
+            navigate(data._id);
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 315 415"
+            width={"64px"}
+            height={"64px"}
+          >
+            <path
+              style={{
+                strokeMiterlimit: 10,
+                strokeWidth: "10px",
+                fillOpacity: 0.2,
+                fill: fileColor,
+                stroke: fileColor,
+              }}
+              d="M394.55,450h-300V50h200l100,100Z"
+              transform="translate(-89.55 -45)"
+            />
+          </svg>
+          <div
+            className={style.type}
+            style={{ color: fileColor }}
+          >{`.${data.type.substring(0, 4)}`}</div>
+        </div>
+        <div className={style.info}>
+          <span
+            className={style.title}
+            onClick={() => {
+              navigate(data._id);
+            }}
+          >
+            {data.title}
+          </span>
+          <span
+            className={style.more}
+            ref={outsideclick.RefObject}
+            onClick={() => {
+              outsideclick.setActive(true);
+            }}
+          >
+            <Svg type={"verticalDots"} />
+            {outsideclick.active && (
+              <div className={style.menu}>
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    database.U({
+                      location: `forms/${data._id}/type`,
+                      data: { new: "archive" },
+                    });
+                  }}
+                >
+                  보관 처리
+                </div>
+              </div>
+            )}
+          </span>
+        </div>
+      </div>
+    </>
+  );
+};
 
 /**
  * admin form page
@@ -54,7 +157,6 @@ type Props = {};
 
 const Forms = (props: Props) => {
   const database = useDatabase();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -66,7 +168,7 @@ const Forms = (props: Props) => {
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
 
   const [inputFormTitle, setInputFormTitle] = useState<string>("");
-  const [selectFormType, setSelectFormType] = useState<any>();
+  const [selectFormType, setSelectFormType] = useState<string>();
 
   /**
    * fetches the form list from the database
@@ -116,79 +218,6 @@ const Forms = (props: Props) => {
   }, [isLoading]);
 
   /**
-   * form item container
-   * @param {any} data
-   * @returns {JSX.Element} form item element
-   */
-  const FormItem = ({ data }: { data: any }): JSX.Element => {
-    let fileColor;
-    switch (data.type) {
-      case "timetable":
-        fileColor = "rgb(128, 128, 255)";
-        break;
-      case "evaluation":
-        fileColor = "rgb(84, 255, 128)";
-        break;
-      case "syllabus":
-        fileColor = "rgb(255, 128, 128)";
-        break;
-      case "print":
-        fileColor = "rgb(255, 212, 94)";
-        break;
-      default:
-        fileColor = "rgb(200, 200, 200)";
-        break;
-    }
-
-    return (
-      <div className={style.item} title={data.title}>
-        <div
-          className={style.icon}
-          onClick={() => {
-            navigate(data._id);
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 315 415"
-            width={"64px"}
-            height={"64px"}
-          >
-            <path
-              style={{
-                strokeMiterlimit: 10,
-                strokeWidth: "10px",
-                fillOpacity: 0.2,
-                fill: fileColor,
-                stroke: fileColor,
-              }}
-              d="M394.55,450h-300V50h200l100,100Z"
-              transform="translate(-89.55 -45)"
-            />
-          </svg>
-          <div
-            className={style.type}
-            style={{ color: fileColor }}
-          >{`.${data.type.substring(0, 4)}`}</div>
-        </div>
-        <div className={style.info}>
-          <span
-            className={style.title}
-            onClick={() => {
-              navigate(data._id);
-            }}
-          >
-            {data.title}
-          </span>
-          <span className={style.more}>
-            <Svg type={"verticalDots"} />
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  /**
    *
    * @param {any[]} data
    * @returns {JSX.Element} a grid of form items
@@ -224,9 +253,10 @@ const Forms = (props: Props) => {
           {search
             .result()
             .filter((value: any) => {
-              if (type === undefined) {
+              if (type === undefined && value.type !== "archive") {
                 return true;
               }
+
               return value.type === type;
             })
             .map((value: any, index: number) => {
@@ -294,30 +324,7 @@ const Forms = (props: Props) => {
                   )}
                 </div>
               ),
-              평가: (
-                <div style={{ marginTop: "24px" }}>
-                  {view === "grid" ? (
-                    <FormItems type={"evaluation"} />
-                  ) : (
-                    <Table
-                      type="object-array"
-                      data={search.result().filter((value: any) => {
-                        return value.type === "evaluation";
-                      })}
-                      header={[
-                        { type: "index", key: "", text: "ID", width: "48px" },
-                        { type: "string", key: "title", text: "제목" },
-                        {
-                          type: "string",
-                          key: "type",
-                          text: "종류",
-                          width: "240px",
-                        },
-                      ]}
-                    />
-                  )}
-                </div>
-              ),
+
               출력: (
                 <div style={{ marginTop: "24px" }}>
                   {view === "grid" ? (
@@ -350,6 +357,30 @@ const Forms = (props: Props) => {
                     <Table
                       type="object-array"
                       data={search.result()}
+                      header={[
+                        { type: "index", key: "", text: "ID", width: "48px" },
+                        { type: "string", key: "title", text: "제목" },
+                        {
+                          type: "string",
+                          key: "type",
+                          text: "종류",
+                          width: "240px",
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
+              ),
+              보관됨: (
+                <div style={{ marginTop: "24px" }}>
+                  {view === "grid" ? (
+                    <FormItems type={"archive"} />
+                  ) : (
+                    <Table
+                      type="object-array"
+                      data={search.result().filter((value: any) => {
+                        return value.type === "archive";
+                      })}
                       header={[
                         { type: "index", key: "", text: "ID", width: "48px" },
                         { type: "string", key: "title", text: "제목" },
@@ -428,9 +459,6 @@ const Forms = (props: Props) => {
           <div
             style={{
               marginTop: "12px",
-              display: "flex",
-              gap: "24px",
-              minWidth: "500px",
             }}
           >
             <Input
@@ -440,54 +468,43 @@ const Forms = (props: Props) => {
                 setInputFormTitle(e.target.value);
               }}
             />
-            <Select
-              label="양식 종류"
-              required
-              defaultSelectedIndex={
-                decodeURI(location.hash) === "#시간표"
-                  ? 0
-                  : decodeURI(location.hash) === "#강의계획서"
-                  ? 1
-                  : decodeURI(location.hash) === "#평가"
-                  ? 2
-                  : decodeURI(location.hash) === "#출력"
-                  ? 3
-                  : 4
-              }
-              options={[
-                { text: "시간표", value: "timetable" },
-                { text: "강의계획서", value: "syllabus" },
-                { text: "평가", value: "evaluation" },
-                { text: "출력", value: "print" },
-                { text: "기타", value: "" },
-              ]}
-              onChange={(e: any) => {
-                setSelectFormType(e);
-                switch (e) {
-                  case "timetable":
-                    navigate("#시간표");
-                    break;
-                  case "syllabus":
-                    navigate("#강의계획서");
-                    break;
-                  case "evaluation":
-                    navigate("#평가");
-                    break;
-                  case "print":
-                    navigate("#출력");
-                    break;
-                  case "":
-                    navigate("#전체");
-                    break;
-                  default:
-                    navigate("#전체");
-                    break;
-                }
+          </div>
+
+          <div className={style.select_form}>
+            <div
+              className={`${style.form} ${
+                selectFormType === "timetable" && style.active
+              }`}
+              onClick={() => {
+                setSelectFormType("timetable");
               }}
-            />
+            >
+              시간표
+            </div>
+            <div
+              className={`${style.form} ${
+                selectFormType === "syllabus" && style.active
+              }`}
+              onClick={() => {
+                setSelectFormType("syllabus");
+              }}
+            >
+              강의계획서
+            </div>
+            <div
+              className={`${style.form} ${
+                selectFormType === "print" && style.active
+              }`}
+              onClick={() => {
+                setSelectFormType("print");
+              }}
+            >
+              출력
+            </div>
           </div>
         </Popup>
       )}
+      {}
     </>
   );
 };
