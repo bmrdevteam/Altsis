@@ -67,6 +67,7 @@ type Props = {
   filterSearch?: boolean;
   hideHeader?: boolean;
   checkAll?: boolean;
+  checkFunction?: (value: any) => boolean;
 };
 
 /**
@@ -486,6 +487,15 @@ const Table = (props: Props) => {
         <div className={style.table_body_container}>
           {/* map through rows */}
           {tableDataResult().map((data: any, dataIndex: number) => {
+            let checked = false;
+            if (
+              props.checkAll ||
+              (props.checkFunction && props.checkFunction(data))
+            ) {
+              checked = true;
+              selectedItems.current.push(data);
+            }
+
             return (
               <div
                 key={dataIndex}
@@ -504,7 +514,7 @@ const Table = (props: Props) => {
                       data={data}
                       index={dataIndex}
                       style={props.style}
-                      checked={props.checkAll ? true : false}
+                      checked={checked}
                     />
                   );
                 })}

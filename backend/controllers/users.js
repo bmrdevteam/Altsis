@@ -64,13 +64,7 @@ module.exports.logout = (req, res) => {
 
 module.exports.create = async (req, res) => {
   try {
-    // owner의 경우  => 타 아카데미의 user 생성 가능
-    const academyId =
-      req.user.auth == "owner" && req.params.academyId
-        ? req.params.academyId
-        : req.user.academyId;
-
-    const _User = User(academyId);
+    const _User = User(req.user.academyId);
 
     /* check duplication */
     const exUser = await _User.findOne({ userId: req.body.userId });
@@ -101,15 +95,6 @@ module.exports.create = async (req, res) => {
 
 module.exports.createBulk = async (req, res) => {
   try {
-    switch (req.user.auth) {
-      case "admin":
-        break;
-      case "manager":
-        break;
-      default:
-        return res.status(401).send({ message: "You are not authorized." });
-    }
-
     const _User = User(req.user.academyId);
     const users = [];
 
@@ -200,31 +185,37 @@ module.exports.current = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    // owner의 경우  => 타 아카데미의 user 정보 조회 가능
-    const academyId =
-      req.user.auth == "owner" && req.params.academyId
-        ? req.params.academyId
-        : req.user.academyId;
-
-    // admin, manager, member => 본인 아카데미의 user 정보 조회 가능
+    // 소속 아카데미의 user 정보 조회 가능
     if (req.params._id) {
-      const user = await User(academyId).findById(req.params._id);
+      const user = await User(req.user.academyId).findById(req.params._id);
       return res.status(200).send(user);
     }
 
     const queries = req.query;
+    let fields = [];
+    let users = [];
+
     if (queries.school) {
       queries["schools.school"] = queries.school;
       delete queries.school;
-    } else if (queries.schoolId) {
+    }
+    if (queries.schoolId) {
       queries["schools.schoolId"] = queries.schoolId;
       delete queries.schoolId;
-    } else if (queries["no-school"]) {
+    }
+    if (queries["no-school"]) {
       queries["schools"] = { $size: 0 };
       delete queries["no-school"];
     }
 
-    const users = await User(academyId).find(queries).select("-password");
+    if (queries["fields"]) {
+      fields = queries["fields"].split(",");
+      delete queries["fields"];
+      users = await User(req.user.academyId).find(queries).select(fields);
+    } else {
+      users = await User(req.user.academyId).find(queries);
+    }
+
     return res.status(200).send({ users });
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -275,6 +266,42 @@ module.exports.updateSchools = async (req, res) => {
     user.schools = req.body.new;
     await user.save();
     return res.status(200).send(user);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updateSchoolsBulk = async (req, res) => {
+  try {
+    const users = await User(req.user.academyId).find({
+      _id: { $in: req.body.userIds },
+    });
+
+    if (req.body.type === "add") {
+      for (let i = 0; i < users.length; i++) {
+        users[i].schools = _.uniqBy(
+          [...users[i].schools, ...req.body.schools],
+          "schoolId"
+        );
+      }
+    } else if (req.body.type === "remove") {
+      const schoolIds = req.body.schools.map((school) => school.schoolId);
+      for (let i = 0; i < users.length; i++) {
+        users[i].schools = _.filter(
+          users[i].schools,
+          (val) => !_.includes(schoolIds, val.schoolId)
+        );
+      }
+    } else return res.status(400).send({});
+
+    /* save documents */
+    await Promise.all([
+      users.forEach((user) => {
+        user.save();
+      }),
+    ]);
+
+    return res.status(200).send({ users });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -350,13 +377,17 @@ module.exports.update = async (req, res) => {
       user = req.user;
     } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
       user = await User(req.user.academyId).findById(req.params._id);
+
+      if (req.body.schools) {
+        user.schools = req.body.schools;
+      }
+      if (req.body.auth) {
+        user.auth = req.body.auth;
+      }
     } else {
       return res.status(401).send({ message: "You are not authorized." });
     }
 
-    if (req.body.auth && req.user.auth === "owner") {
-      user.auth = req.body.auth;
-    }
     user.email = req.body.email;
     user.tel = req.body.tel;
 
@@ -374,21 +405,11 @@ module.exports.update = async (req, res) => {
 
 module.exports.delete = async (req, res) => {
   try {
-    const user = await User(req.user.academyId).findById(req.params._id);
-    if (!user) return res.status(404).send();
-
-    switch (req.user.auth) {
-      case "admin":
-        if (user.auth == "member") break;
-      case "manager":
-        if (user.auth == "member") break;
-      default:
-        return res.status(401).send({ message: "You are not authorized." });
-    }
-
-    /* delete document */
-    user.remove();
-    return res.status(200).send();
+    const ids = _.split(req.params._ids, "&");
+    const result = await User(req.user.academyId).deleteMany({
+      _id: { $in: ids },
+    });
+    return res.status(200).send(result);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
