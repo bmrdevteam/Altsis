@@ -43,15 +43,14 @@ import Select from "components/select/Select";
 import Basic from "./tab/Basic";
 import Add from "./tab/Add";
 
-import _ from "lodash";
-
 type Props = {
   academyId: string;
 };
 
 const User = (props: Props) => {
   const database = useDatabase();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
+  const [isUserLoading, setIsUserLoading] = useState(false);
 
   /* document list */
   const [documentList, setDocumentList] = useState<any>();
@@ -60,8 +59,6 @@ const User = (props: Props) => {
   /* additional document list */
   const [schoolList, setSchoolList] = useState<any>();
   const [school, setSchool] = useState<any>();
-  const [schoolId, setSchoolId] = useState<string>("");
-  const [schoolName, setSchoolName] = useState<string>("");
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState(false);
@@ -70,7 +67,7 @@ const User = (props: Props) => {
   async function getDocumentList() {
     const { users } = await database.R({
       location: `academies/${props.academyId}/users?${
-        school ? `schools.school=${school}` : `no-school=true`
+        school?._id ? `schools.school=${school._id}` : `no-school=true`
       }`,
     });
     return users;
@@ -107,7 +104,7 @@ const User = (props: Props) => {
     for (let i = 0; i < schoolList?.length; i++) {
       result.push({
         text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
-        value: schoolList[i]._id,
+        value: JSON.stringify(schoolList[i]),
       });
     }
 
@@ -115,28 +112,33 @@ const User = (props: Props) => {
   };
 
   useEffect(() => {
-    getSchoolList()
-      .then((res) => {
-        setSchoolList(res);
-      })
-      .catch(() => {
-        alert("failed to load data");
-      });
-    setIsLoading(false);
+    if (isSchoolListLoading) {
+      getSchoolList()
+        .then((res) => {
+          setSchoolList(res);
+          setIsSchoolListLoading(false);
+          setIsUserLoading(true);
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
     return () => {};
-  }, []);
+  }, [isSchoolListLoading]);
 
   useEffect(() => {
-    getDocumentList()
-      .then((res) => {
-        setDocumentList(res);
-      })
-      .catch(() => {
-        alert("failed to load data");
-      });
-    setIsLoading(false);
+    if (isUserLoading) {
+      getDocumentList()
+        .then((res) => {
+          setDocumentList(res);
+          setIsUserLoading(false);
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
     return () => {};
-  }, [school, addPopupActive, editPopupActive]);
+  }, [isUserLoading]);
 
   return (
     <>
@@ -145,8 +147,11 @@ const User = (props: Props) => {
           style={{ minHeight: "30px" }}
           required
           label={"학교 선택"}
-          options={!isLoading ? schools() : [{ text: "", value: "" }]}
-          setValue={setSchool}
+          options={!isSchoolListLoading ? schools() : [{ text: "", value: "" }]}
+          setValue={(e: string) => {
+            setSchool(e ? JSON.parse(e) : {});
+            setIsUserLoading(true);
+          }}
           appearence={"flat"}
         />
 
@@ -159,9 +164,6 @@ const User = (props: Props) => {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
           onClick={async () => {
-            const schoolDoc = _.find(schoolList, { _id: school });
-            setSchoolId(schoolDoc?.schoolId);
-            setSchoolName(schoolDoc?.schoolName);
             setAddPopupActive(true);
           }}
         >
@@ -170,7 +172,7 @@ const User = (props: Props) => {
         <Table
           type="object-array"
           filter
-          data={!isLoading ? documentList : []}
+          data={!isSchoolListLoading ? documentList : []}
           header={[
             {
               text: "ID",
@@ -255,12 +257,7 @@ const User = (props: Props) => {
           closeBtn
           title="Creaet Document"
         >
-          <Add
-            academyId={props.academyId}
-            school={school}
-            schoolId={schoolId}
-            schoolName={schoolName}
-          />
+          <Add academyId={props.academyId} school={school} />
         </Popup>
       )}
     </>
