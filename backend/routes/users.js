@@ -37,12 +37,11 @@ router.delete("/google", isLoggedIn, users.disconnectGoogle);
 
 // ___________ update _____________
 
-router.put("/:_id/auth", isAdManager, users.updateAuth);
-router.put("/:_id/schools", isAdManager, users.updateSchools);
+router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
 router.put("/:_id/password", isLoggedIn, users.updatePassword);
 router.put("/:_id", isLoggedIn, users.update);
 
 // ___________ delete _____________
-router.delete("/:_id", isAdManager, users.delete);
+router.delete("/:_ids", isAdmin, users.delete);
 
 module.exports = router;

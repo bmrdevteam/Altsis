@@ -271,6 +271,42 @@ module.exports.updateSchools = async (req, res) => {
   }
 };
 
+module.exports.updateSchoolsBulk = async (req, res) => {
+  try {
+    const users = await User(req.user.academyId).find({
+      _id: { $in: req.body.userIds },
+    });
+
+    if (req.body.type === "add") {
+      for (let i = 0; i < users.length; i++) {
+        users[i].schools = _.uniqBy(
+          [...users[i].schools, ...req.body.schools],
+          "schoolId"
+        );
+      }
+    } else if (req.body.type === "remove") {
+      const schoolIds = req.body.schools.map((school) => school.schoolId);
+      for (let i = 0; i < users.length; i++) {
+        users[i].schools = _.filter(
+          users[i].schools,
+          (val) => !_.includes(schoolIds, val.schoolId)
+        );
+      }
+    } else return res.status(400).send({});
+
+    /* save documents */
+    await Promise.all([
+      users.forEach((user) => {
+        user.save();
+      }),
+    ]);
+
+    return res.status(200).send({ users });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 // ____________ update(myself) ____________
 
 module.exports.connectGoogle = async (req, res) => {
@@ -369,21 +405,11 @@ module.exports.update = async (req, res) => {
 
 module.exports.delete = async (req, res) => {
   try {
-    const user = await User(req.user.academyId).findById(req.params._id);
-    if (!user) return res.status(404).send();
-
-    switch (req.user.auth) {
-      case "admin":
-        if (user.auth == "member") break;
-      case "manager":
-        if (user.auth == "member") break;
-      default:
-        return res.status(401).send({ message: "You are not authorized." });
-    }
-
-    /* delete document */
-    user.remove();
-    return res.status(200).send();
+    const ids = _.split(req.params._ids, "&");
+    const result = await User(req.user.academyId).deleteMany({
+      _id: { $in: ids },
+    });
+    return res.status(200).send(result);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

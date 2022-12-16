@@ -135,6 +135,7 @@ function Basic(props: Props) {
                 { text: "member", value: "member" },
                 { text: "manager", value: "manager" },
               ]}
+              defaultSelectedValue={auth}
               onChange={setAuth}
             />
           </div>
@@ -143,7 +144,7 @@ function Basic(props: Props) {
               appearence="flat"
               label="이메일"
               defaultValue={email}
-              onChange={setEmail}
+              onChange={(e: any) => setEmail(e.target.value)}
             />
           </div>
           <div style={{ marginTop: "24px" }}>
@@ -151,7 +152,7 @@ function Basic(props: Props) {
               label="tel"
               defaultValue={tel}
               appearence="flat"
-              onChange={setTel}
+              onChange={(e: any) => setTel(e.target.value)}
             />
           </div>
 
@@ -166,7 +167,10 @@ function Basic(props: Props) {
                     props.setIsUserListLoading(true);
                     props.setPopupAcitve(false);
                   })
-                  .catch((err) => alert(err.response.data.message));
+                  .catch((err) => {
+                    console.log(err);
+                    //alert(err.response.data.message)
+                  });
               }}
               style={{
                 borderRadius: "4px",
