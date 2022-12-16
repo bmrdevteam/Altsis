@@ -26,6 +26,7 @@
  *
  */
 
+import Svg from "assets/svg/Svg";
 import { CSSProperties, useState } from "react";
 import btnStyle from "./button.module.scss";
 
@@ -36,6 +37,7 @@ type Props = {
   round?: boolean;
   disabled?: boolean;
   disableOnclick?: boolean;
+  loading?: boolean;
   style?: CSSProperties;
 };
 
@@ -46,6 +48,7 @@ type Props = {
  * @param {"ghost" | "solid" | "hover"} type - determines the button type "ghost" - hollow button with borders "solid" - solid button(default) "hover" - button with only text
  * @param {boolean} round - button will have a round edge
  * @param {boolean} disabled - button will be disabled
+ * @param {boolean} loading - button will be disabled and display a loading sign on the end
  * @param {boolean} disableOnclick - if true, the button will only be allowed to be pressed once
  * @param {object} styles - {} a style object to gain more control
  * 
@@ -78,6 +81,7 @@ const Button = ({
   type,
   round,
   disabled,
+  loading,
   disableOnclick,
   style,
 }: Props) => {
@@ -122,6 +126,7 @@ const Button = ({
       }}
     >
       {children}
+      {loading&& <Svg type={"loader"} />}
     </div>
   );
 };
