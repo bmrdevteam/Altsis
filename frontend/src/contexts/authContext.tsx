@@ -1,4 +1,5 @@
 import Loading from "components/loading/Loading";
+import useApi from "hooks/useApi";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import useDatabase from "../hooks/useDatabase";
 
@@ -24,7 +25,7 @@ export function useAuth(): {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const database = useDatabase();
+  const { UserApi, SeasonApi } = useApi();
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [currentSchool, setCurrentSchool] = useState<any>();
@@ -40,24 +41,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentPermission, setCurrentPermission] = useState<any>({});
 
   async function getLoggedInUser() {
-    const res = await database.R({
-      location: "users/current",
+    await UserApi.RMySelf().then((res) => {
+      /**
+       * sets the current user
+       */
+      setCurrentUser(res);
+      setCurrentSchool(res.schools[0]);
+      setCurrentNotifications(res.notifications);
+
+      /** if there is a registration, set the season */
+      if (res.registrations) {
+        setRegistration(res.registrations);
+        setCurrentRegistration(res.registrations[0]);
+        changeCurrentSeason(res.registrations[0]);
+      }
     });
-    /**
-     * sets the current user
-     */
-    setCurrentUser(res);
-    setCurrentSchool(res.schools[0]);
-    setCurrentNotifications(res.notifications);
-
-    /** if there is a registration, set the season */
-    if (res.registrations) {
-      setRegistration(res.registrations);
-      setCurrentRegistration(res.registrations[0]);
-      changeCurrentSeason(res.registrations[0]);
-    }
-
-    return res;
   }
 
   useEffect(() => {
@@ -73,10 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
-    const result = await database
-      .R({
-        location: `seasons/${registration?.season}`,
-      })
+    const result = await SeasonApi.RGetSeasonById(registration?.season)
       .then((res) => {
         setCurrentSeason(res);
       })
