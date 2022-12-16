@@ -28,7 +28,7 @@
  *
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 // style
 import style from "style/pages/admin/users.module.scss";
@@ -48,7 +48,7 @@ import Select from "components/select/Select";
 import Basic from "./tab/Basic";
 import Add from "./tab/Add";
 import AddBulk from "./tab/AddBulk";
-
+import SchoolBulk from "./tab/SchoolBulk";
 import _ from "lodash";
 
 type Props = {};
@@ -68,11 +68,13 @@ const Users = (props: Props) => {
 
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
-  const [addBulkPopup, setAddBulkPopupActive] = useState<boolean>(false);
+  const [addBulkPopupActive, setAddBulkPopupActive] = useState<boolean>(false);
+  const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
+  const userSelectRef = useRef<any[]>([]);
 
   async function getAcademyUsers() {
     const { users: res } = await database.R({
-      location: `users?${
+      location: `users?auth=member&${
         school?._id ? `schools.school=${school._id}` : `no-school=true`
       }`,
     });
@@ -98,6 +100,16 @@ const Users = (props: Props) => {
     return schools;
   }
 
+  async function deleteUsers() {
+    const res = await database.D({
+      location: `users/${_.join(
+        userSelectRef.current.map((user) => user._id),
+        "&"
+      )}`,
+    });
+    return res;
+  }
+
   useEffect(() => {
     if (isSchoolListLoading) {
       getSchoolList()
@@ -119,6 +131,7 @@ const Users = (props: Props) => {
         .then((res) => {
           setUserList(res);
           setIsUserListLoading(false);
+          userSelectRef.current = [];
         })
         .catch(() => {
           alert("failed to load data");
@@ -172,12 +185,61 @@ const Users = (props: Props) => {
         >
           + 사용자 일괄 생성
         </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            console.log("userSelectRef.current is ", userSelectRef.current);
+            if (userSelectRef.current.length === 0) {
+              alert("선택된 사용자가 없습니다.");
+            } else {
+              deleteUsers()
+                .then((res: any) => {
+                  alert("success");
+                  userSelectRef.current = [];
+                  setIsUserListLoading(true);
+                })
+                .catch((err) => alert(err.response.data.message));
+            }
+          }}
+        >
+          선택된 사용자 삭제
+        </Button>
+
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            console.log("userSelectRef.current is ", userSelectRef.current);
+            if (userSelectRef.current.length === 0) {
+              alert("선택된 사용자가 없습니다.");
+            } else {
+              setSchoolBulkPopupActive(true);
+            }
+          }}
+        >
+          선택된 사용자 학교 설정
+        </Button>
+
         <div>
           <Table
             type="object-array"
             filter
             filterSearch
             data={userList}
+            onSelectChange={(value) => {
+              userSelectRef.current = value;
+            }}
             header={[
               {
                 text: "",
@@ -243,12 +305,20 @@ const Users = (props: Props) => {
           setIsUserListLoading={setIsUserListLoading}
         />
       )}
-      {addBulkPopup && (
+      {addBulkPopupActive && (
         <AddBulk
           schoolData={school}
           schoolList={schoolList}
           setPopupActive={setAddBulkPopupActive}
           setIsUserListLoading={setIsUserListLoading}
+        />
+      )}
+      {schoolBulkPopup && (
+        <SchoolBulk
+          schoolList={schoolList}
+          setPopupActive={setSchoolBulkPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+          selectedUserList={userSelectRef.current}
         />
       )}
     </>

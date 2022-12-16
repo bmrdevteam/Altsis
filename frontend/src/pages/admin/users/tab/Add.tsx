@@ -8,7 +8,7 @@
  * IN PRODUCTION
  *
  * -------------------------------------------------------
- *
+
  * IN MAINTENANCE
  *
  * -------------------------------------------------------
@@ -59,7 +59,7 @@ function Basic(props: Props) {
   const [email, setEmail] = useState<any>(undefined);
   const [tel, setTel] = useState<any>(undefined);
   const [schools, setSchools] = useState<any[]>(
-    props.schoolData
+    !_.isEmpty(props.schoolData)
       ? [
           {
             school: props.schoolData._id,
