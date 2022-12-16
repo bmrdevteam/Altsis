@@ -148,6 +148,12 @@ export const SidebarData = (
             },
           ],
         },
+        {
+          title: "notifications",
+          name: "알림",
+          path: "/notifications",
+          icon: <Svg type="notification" />,
+        },
         // {
         //   title: "myaccount",
         //   name: "내 정보",
@@ -269,6 +275,12 @@ export const SidebarData = (
               icon: <Svg type="file" />,
             },
           ],
+        },
+        {
+          title: "notifications",
+          name: "알림",
+          path: "/notifications",
+          icon: <Svg type="notification" />,
         },
         // {
         //   title: "myaccount",
