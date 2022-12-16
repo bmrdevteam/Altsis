@@ -1,0 +1,15 @@
+.section {
+    height: calc(100vh - 56px);
+    padding: 24px;
+    color: var(--accent-1);
+
+    .title {
+        font-weight: 600;
+    }
+    .search{
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        
+    }
+}
