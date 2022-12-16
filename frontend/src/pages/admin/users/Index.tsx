@@ -74,11 +74,11 @@ const Users = (props: Props) => {
 
   async function getAcademyUsers() {
     const { users: res } = await database.R({
-      location: `users?auth=member&${
+      location: `users?${
         school?._id ? `schools.school=${school._id}` : `no-school=true`
       }`,
     });
-    return res;
+    return _.filter(res, (user) => user.auth !== "admin");
   }
 
   const schools = () => {
