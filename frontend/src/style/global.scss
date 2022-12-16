@@ -22,9 +22,10 @@ body {
     height: 100vh;
     overflow: hidden;
 }
+
 body::-webkit-scrollbar-track {
     background: transparent;
- }
+}
 
 img,
 picture,
@@ -78,4 +79,21 @@ table {
     .content {
         max-width: 100% !important;
     }
+}
+
+.btn {
+    border: 1px solid rgb(225, 225, 225);
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn:hover {
+    background-color: rgb(245, 245, 245);
 }
