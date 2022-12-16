@@ -39,9 +39,7 @@ import Select from "components/select/Select";
 
 type Props = {
   academyId: string;
-  school: string;
-  schoolId: string;
-  schoolName: string;
+  school: any;
 };
 
 function Basic(props: Props) {
@@ -70,9 +68,9 @@ function Basic(props: Props) {
         schools: props.school
           ? [
               {
-                school: props.school,
-                schoolId: props.schoolId,
-                schoolName: props.schoolName,
+                school: props.school._id,
+                schoolId: props.school.schoolId,
+                schoolName: props.school.schoolName,
               },
             ]
           : [],
@@ -90,14 +88,14 @@ function Basic(props: Props) {
             label="학교 ID"
             required={true}
             disabled={true}
-            defaultValue={props.schoolId}
+            defaultValue={props.school.schoolId}
           />
           <Input
             appearence="flat"
             label="학교 이름"
             required={true}
             disabled={true}
-            defaultValue={props.schoolName}
+            defaultValue={props.school.schoolName}
           />
         </div>
 

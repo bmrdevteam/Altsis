@@ -28,9 +28,7 @@
  *
  */
 
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "contexts/authContext";
+import { useEffect, useState, useRef } from "react";
 
 // style
 import style from "style/pages/admin/users.module.scss";
@@ -46,34 +44,41 @@ import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
 import Select from "components/select/Select";
 
+// popup/tab elements
+import Basic from "./tab/Basic";
+import Add from "./tab/Add";
+import AddBulk from "./tab/AddBulk";
+import SchoolBulk from "./tab/SchoolBulk";
+import _ from "lodash";
+
 type Props = {};
 
 const Users = (props: Props) => {
   const database = useDatabase();
-
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
+  const [isUserListLoading, setIsUserListLoading] = useState(false);
 
   /* user list */
   const [userList, setUserList] = useState<any>();
   const [user, setUser] = useState<any>();
 
-  /* additional document list */
+  /* school list */
   const [schoolList, setSchoolList] = useState<any>();
   const [school, setSchool] = useState<any>();
-  const [schoolId, setSchoolId] = useState<string>("");
-  const [schoolName, setSchoolName] = useState<string>("");
 
-  const [userRegistrations, setUserRegistrations] = useState<any[]>();
+  const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
+  const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
+  const [addBulkPopupActive, setAddBulkPopupActive] = useState<boolean>(false);
+  const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
+  const userSelectRef = useRef<any[]>([]);
 
-  const [userInfoPopupActive, setUserInfoPopupActive] =
-    useState<boolean>(false);
   async function getAcademyUsers() {
-    const { users: res } = await database.R({ location: "users" });
-    return res;
-  }
-  async function getUserRegistrations(id: string) {
-    const res = await database.R({ location: `registrations?userId=${id}` });
-    return res;
+    const { users: res } = await database.R({
+      location: `users?${
+        school?._id ? `schools.school=${school._id}` : `no-school=true`
+      }`,
+    });
+    return _.filter(res, (user) => user.auth !== "admin");
   }
 
   const schools = () => {
@@ -82,41 +87,58 @@ const Users = (props: Props) => {
     for (let i = 0; i < schoolList?.length; i++) {
       result.push({
         text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
-        value: schoolList[i]._id,
+        value: JSON.stringify(schoolList[i]),
       });
     }
-
     return result;
   };
 
   async function getSchoolList() {
-    const { documents } = await database.R({
+    const { schools } = await database.R({
       location: `schools`,
     });
-    return documents;
+    return schools;
+  }
+
+  async function deleteUsers() {
+    const res = await database.D({
+      location: `users/${_.join(
+        userSelectRef.current.map((user) => user._id),
+        "&"
+      )}`,
+    });
+    return res;
   }
 
   useEffect(() => {
-    if (isLoading) {
+    if (isSchoolListLoading) {
       getSchoolList()
         .then((res) => {
           setSchoolList(res);
+          setIsSchoolListLoading(false);
+          setIsUserListLoading(true);
         })
         .catch(() => {
           alert("failed to load data");
         });
-      setIsLoading(false);
-
-      // getAcademyUsers()
-      //   .then((res) => {
-      //     setUserList(res);
-      //     setIsLoading(false);
-      //   })
-      //   .catch((err) => {
-      //     alert(err.response.data.message);
-      //   });
     }
-  }, [isLoading]);
+    return () => {};
+  }, [isSchoolListLoading]);
+
+  useEffect(() => {
+    if (isUserListLoading) {
+      getAcademyUsers()
+        .then((res) => {
+          setUserList(res);
+          setIsUserListLoading(false);
+          userSelectRef.current = [];
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
+    return () => {};
+  }, [isUserListLoading]);
 
   return (
     <>
@@ -128,16 +150,96 @@ const Users = (props: Props) => {
           style={{ minHeight: "30px" }}
           required
           label={"학교 선택"}
-          options={!isLoading ? schools() : [{ text: "", value: "" }]}
-          setValue={setSchool}
+          options={!isSchoolListLoading ? schools() : [{ text: "", value: "" }]}
+          setValue={(e: string) => {
+            setSchool(e ? JSON.parse(e) : {});
+            setIsUserListLoading(true);
+          }}
           appearence={"flat"}
         />
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            setAddPopupActive(true);
+          }}
+        >
+          + 단일 사용자 생성
+        </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            setAddBulkPopupActive(true);
+          }}
+        >
+          + 사용자 일괄 생성
+        </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            console.log("userSelectRef.current is ", userSelectRef.current);
+            if (userSelectRef.current.length === 0) {
+              alert("선택된 사용자가 없습니다.");
+            } else {
+              deleteUsers()
+                .then((res: any) => {
+                  alert("success");
+                  userSelectRef.current = [];
+                  setIsUserListLoading(true);
+                })
+                .catch((err) => alert(err.response.data.message));
+            }
+          }}
+        >
+          선택된 사용자 삭제
+        </Button>
+
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            console.log("userSelectRef.current is ", userSelectRef.current);
+            if (userSelectRef.current.length === 0) {
+              alert("선택된 사용자가 없습니다.");
+            } else {
+              setSchoolBulkPopupActive(true);
+            }
+          }}
+        >
+          선택된 사용자 학교 설정
+        </Button>
+
         <div>
           <Table
             type="object-array"
             filter
             filterSearch
             data={userList}
+            onSelectChange={(value) => {
+              userSelectRef.current = value;
+            }}
             header={[
               {
                 text: "",
@@ -160,17 +262,11 @@ const Users = (props: Props) => {
                 key: "schools",
                 type: "string",
                 align: "center",
-                returnFunction: (val) => {
-                  let result = "";
-
-                  for (let i = 0; i < val.length; i++) {
-                    result = result.concat(val[i].schoolName);
-                    if (i >= 1) {
-                      result = result.concat(",");
-                    }
-                  }
-                  return result;
-                },
+                returnFunction: (val) =>
+                  _.join(
+                    val.map((school: any) => school.schoolName),
+                    ", "
+                  ),
               },
               {
                 text: "auth",
@@ -183,13 +279,8 @@ const Users = (props: Props) => {
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  setUser(userList?.filter((val: any) => val._id === e._id)[0]);
-                  getUserRegistrations(
-                    userList?.filter((val: any) => val._id === e._id)[0].userId
-                  ).then((res) => {
-                    setUserRegistrations(res);
-                  });
-                  setUserInfoPopupActive(true);
+                  setUser(e);
+                  setEditPopupActive(true);
                 },
                 width: "72px",
                 align: "center",
@@ -198,57 +289,37 @@ const Users = (props: Props) => {
           />
         </div>
       </div>
-      {userInfoPopupActive && (
-        <Popup
-          closeBtn
-          setState={setUserInfoPopupActive}
-          title="유저 정보"
-          style={{ borderRadius: "4px" }}
-        >
-          <div className={style.popup}>
-            <div className={style.title}>기본 정보</div>
-            <div className={style.row}>
-              <Input
-                appearence="flat"
-                label="이름"
-                required
-                defaultValue={user.userName}
-              />
-              <Input
-                label="Id"
-                required
-                defaultValue={user.userId}
-                appearence="flat"
-              />
-            </div>
-            <div className={style.row}>
-              <Input
-                appearence="flat"
-                label="이메일"
-                required
-                defaultValue={user.email}
-              />
-              <Input
-                label="tel"
-                required
-                defaultValue={user.tel}
-                appearence="flat"
-              />
-            </div>
-            <Button
-              type={"ghost"}
-              disableOnclick
-              onClick={() => {}}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-            >
-              저장
-            </Button>
-          </div>
-        </Popup>
+      {editPopupActive && (
+        <Basic
+          userData={user}
+          schoolList={schoolList}
+          setPopupAcitve={setEditPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+        />
+      )}
+      {addPopupActive && (
+        <Add
+          schoolData={school}
+          schoolList={schoolList}
+          setPopupAcitve={setAddPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+        />
+      )}
+      {addBulkPopupActive && (
+        <AddBulk
+          schoolData={school}
+          schoolList={schoolList}
+          setPopupActive={setAddBulkPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+        />
+      )}
+      {schoolBulkPopup && (
+        <SchoolBulk
+          schoolList={schoolList}
+          setPopupActive={setSchoolBulkPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+          selectedUserList={userSelectRef.current}
+        />
       )}
     </>
   );

@@ -40,11 +40,14 @@ import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Table from "components/table/Table";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
+import { useAuth } from "contexts/authContext";
 
 const Schools = () => {
   const navigate = useNavigate();
   const database = useDatabase();
-  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser, currentSchool } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   /* document list */
   const [schoolsList, setSchoolsList] = useState<any>();
@@ -60,6 +63,21 @@ const Schools = () => {
     const { schools: res } = await database.R({ location: "schools" });
     setSchoolsList(res);
   }
+
+  useEffect(() => {
+    console.log("test");
+    if (currentUser.auth === "admin") {
+      setIsAuthenticated(true);
+      setIsLoading(true);
+    } else if (currentSchool) {
+      console.log("currentSchol is ", currentSchool);
+      navigate(`${currentSchool.school}`);
+    } else {
+      alert("가입된 학교가 없습니다.");
+      navigate("/");
+    }
+    return () => {};
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isLoading) {
@@ -81,7 +99,7 @@ const Schools = () => {
     return result;
   }
 
-  return (
+  return isAuthenticated ? (
     <>
       <div className={style.section}>
         <NavigationLinks />
@@ -93,15 +111,15 @@ const Schools = () => {
             </div>
           </div>
           {/* <Button
-    type={"ghost"}
-    borderRadius={"4px"}
-    height={"32px"}
-    onClick={() => {
-      navigate("add", { replace: true });
-    }}
-  >
-    + 학교추가
-  </Button> */}
+type={"ghost"}
+borderRadius={"4px"}
+height={"32px"}
+onClick={() => {
+navigate("add", { replace: true });
+}}
+>
++ 학교추가
+</Button> */}
         </div>
         <Divider />
         <Button
@@ -212,6 +230,8 @@ const Schools = () => {
         </Popup>
       )}
     </>
+  ) : (
+    <>로딩중</>
   );
 };
 
