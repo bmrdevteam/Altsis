@@ -36,6 +36,7 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Table from "components/table/Table";
 import _ from "lodash";
+import useApi from "hooks/useApi";
 
 type Props = {
   academy: any;
@@ -43,23 +44,13 @@ type Props = {
 };
 
 const Classroom = (props: Props) => {
-  const database = useDatabase();
+  const { SchoolApi } = useApi();
 
   /* classroom list */
   const [classroomList, setClassroomList] = useState<string[]>(
     props.schoolData.classrooms || []
   );
   const [classroom, setClassroom] = useState<string>("");
-
-  async function updateClassrooms() {
-    const result = await database.U({
-      location: `academies/${props.academy}/schools/${props.schoolData?._id}/classrooms`,
-      data: {
-        new: classroomList,
-      },
-    });
-    return result;
-  }
 
   return (
     <div className={style.popup}>
@@ -140,7 +131,11 @@ const Classroom = (props: Props) => {
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
         onClick={() => {
-          updateClassrooms()
+          SchoolApi.USchoolClassroom({
+            academyId: props.academy,
+            schoolId: props.schoolData?._id,
+            data: classroomList,
+          })
             .then(() => {
               alert("success");
             })
