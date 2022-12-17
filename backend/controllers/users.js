@@ -346,7 +346,7 @@ module.exports.disconnectGoogle = async (req, res) => {
   return res.status(200).send();
 };
 
-module.exports.updatePassword = async (req, res) => {
+module.exports.updatePasswordByAdmin = async (req, res) => {
   try {
     if (req.user._id != req.params._id) {
       // !== 하면 안 됨
@@ -374,6 +374,63 @@ module.exports.updatePassword = async (req, res) => {
         return res.status(err.status || 500).send({ message: err.message });
       }
     })(req, res);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updatePassword = async (req, res) => {
+  try {
+    const user = req.user;
+    req.body.academyId = req.user.academyId;
+    req.body.userId = req.user.userId;
+    req.body.password = req.body.old;
+
+    passport.authenticate("local2", async (authError, user, academyId) => {
+      try {
+        if (authError) throw authError;
+        console.log("DEBUG: authentication is over");
+
+        user.password = req.body.new;
+        if (!user.checkValidation("password"))
+          return res.status(400).send({ message: "validation failed" });
+
+        await user.save();
+        return res.status(200).send();
+      } catch (err) {
+        return res.status(err.status || 500).send({ message: err.message });
+      }
+    })(req, res);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updateEmail = async (req, res) => {
+  try {
+    const user = req.user;
+
+    user.email = req.body.email;
+    if (!user.checkValidation("email"))
+      return res.status(400).send({ message: "validation failed" });
+
+    await user.save();
+    return res.status(200).send({ email: user.email });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updateTel = async (req, res) => {
+  try {
+    const user = req.user;
+
+    user.tel = req.body.tel;
+    if (!user.checkValidation("tel"))
+      return res.status(400).send({ message: "validation failed" });
+
+    await user.save();
+    return res.status(200).send({ tel: user.tel });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
