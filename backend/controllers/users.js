@@ -348,22 +348,32 @@ module.exports.disconnectGoogle = async (req, res) => {
 
 module.exports.updatePassword = async (req, res) => {
   try {
-    let user = undefined;
-
-    if (req.user._id == req.params._id) {
-      user = req.user;
-    } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
-      user = await User(req.user.academyId).findById(req.params._id);
-    } else {
-      return res.status(401).send({ message: "You are not authorized." });
+    if (req.user._id != req.params._id) {
+      // !== 하면 안 됨
+      return res.status(401).send({
+        message: "You are not authorized.",
+      });
     }
+    const user = req.user;
+    req.body.academyId = req.user.academyId;
+    req.body.userId = req.user.userId;
+    req.body.password = req.body.old;
 
-    user.password = req.body.new;
-    if (!user.checkValidation("password"))
-      return res.status(400).send({ message: "validation failed" });
+    passport.authenticate("local2", async (authError, user, academyId) => {
+      try {
+        if (authError) throw authError;
+        console.log("DEBUG: authentication is over");
 
-    await user.save();
-    return res.status(200).send();
+        user.password = req.body.new;
+        if (!user.checkValidation("password"))
+          return res.status(400).send({ message: "validation failed" });
+
+        await user.save();
+        return res.status(200).send();
+      } catch (err) {
+        return res.status(err.status || 500).send({ message: err.message });
+      }
+    })(req, res);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

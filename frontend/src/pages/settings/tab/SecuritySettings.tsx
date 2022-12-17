@@ -35,12 +35,31 @@ import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Button from "components/button/Button";
+import useDatabase from "hooks/useDatabase";
+import { useAuth } from "contexts/authContext";
+import validate from "functions/validate";
 
 type Props = {};
 
 const SecuritySettings = (props: Props) => {
+  const database = useDatabase();
+  const { currentUser } = useAuth();
   const [resetPasswordPopupActive, setResetPasswordPopupActive] =
     useState<boolean>(false);
+  const [oldPassword, setOldPassword] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+
+  async function updatePassword() {
+    const res = database.U({
+      location: `users/${currentUser._id}/password`,
+      data: {
+        old: oldPassword,
+        new: newPassword,
+      },
+    });
+    return res;
+  }
+
   return (
     <>
       <div className={style.settings_container}>
@@ -76,25 +95,6 @@ const SecuritySettings = (props: Props) => {
             </div>
           </div>
         </div>
-        {/* <div className={style.setting_item}>
-          <div className={style.info}>
-            <label className={style.label}>비밀번호 재설정 요청</label>
-            <span className={style.description}>
-              관리자에게 비밀번호 재설정 요청
-            </span>
-          </div>
-          <div className={style.controls} style={{ alignItems: "center" }}>
-            <Button
-              type={"ghost"}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-              }}
-            >
-              보내기
-            </Button>
-          </div>
-        </div> */}
       </div>
       {resetPasswordPopupActive && (
         <Popup
@@ -102,7 +102,27 @@ const SecuritySettings = (props: Props) => {
           title="비밀번호 재설정"
           setState={setResetPasswordPopupActive}
           closeBtn
-          footer={<Button type="ghost">비밀번호 변경</Button>}
+          footer={
+            <Button
+              type="ghost"
+              onClick={() => {
+                if (!validate("password", newPassword)) {
+                  alert(
+                    "비밀번호는 특수문자(!@#$%^&*())가 하나 이상 포함된 길이 8~26의 문자열이어야 합니다."
+                  );
+                } else {
+                  updatePassword()
+                    .then((res) => {
+                      alert("success");
+                      setResetPasswordPopupActive(false);
+                    })
+                    .catch((err: any) => alert(err.response.data.message));
+                }
+              }}
+            >
+              비밀번호 변경
+            </Button>
+          }
         >
           <div style={{ width: "500px", marginTop: "24px" }}>
             <Input
@@ -110,13 +130,21 @@ const SecuritySettings = (props: Props) => {
               label="기존 비밀번호 입력"
               placeholder="기존 비밀번호 입력"
               type="password"
+              onChange={(e: any) => {
+                setOldPassword(e.target.value);
+              }}
+              required
             />
             <div style={{ margin: "24px" }}></div>
             <Input
               appearence="flat"
               label="새로운 비밀번호 입력"
-              placeholder="새로운 비밀번호 입력"
+              placeholder="특수문자(!@#$%^&*())가 하나 이상 포함된 길이 8~26의 문자열"
               type="password"
+              onChange={(e: any) => {
+                setNewPassword(e.target.value);
+              }}
+              required
             />
           </div>
         </Popup>
