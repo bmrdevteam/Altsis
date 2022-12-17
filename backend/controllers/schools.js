@@ -6,6 +6,10 @@ module.exports.create = async (req, res) => {
   try {
     const _School = School(req.user.academyId);
 
+    /* validate */
+    if (!_School.isValid(req.body))
+      return res.status(400).send({ message: "validation failed" });
+
     /* check duplication */
     const exSchool = await _School.findOne({ schoolId: req.body.schoolId });
     if (exSchool)

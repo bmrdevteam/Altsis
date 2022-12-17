@@ -60,19 +60,6 @@ userSchema.statics.isValid = function (user) {
   return true;
 };
 
-userSchema.methods.isValid = function (field) {
-  if (field) {
-    return validate(field, this[field]);
-  }
-
-  for (let field of ["userId", "userName"]) {
-    if (!validate(field, this[field])) return false;
-  }
-  if (this["email"] && !validate("email", this["email"])) return false;
-  if (this["tel"] && !validate("tel", this["tel"])) return false;
-  return true;
-};
-
 userSchema.pre("save", function (next) {
   var user = this;
   if (user.isModified("password")) {
