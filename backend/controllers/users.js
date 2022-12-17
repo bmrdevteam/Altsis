@@ -81,7 +81,7 @@ module.exports.create = async (req, res) => {
     });
 
     /* check validation */
-    if (!user.checkValidation() || !user.checkValidation("password"))
+    if (!user.validate() || !user.validate("password"))
       return res.status(400).send({ message: "validation failed" });
 
     /* save document */
@@ -117,7 +117,7 @@ module.exports.createBulk = async (req, res) => {
       const user = new _User(_user);
       console.log(user);
       /* validate */
-      if (!user.checkValidation())
+      if (!user.validate())
         return res.status(400).send({ message: "validation failed", user });
 
       user.academyId = req.user.academyId;
@@ -365,7 +365,7 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
         console.log("DEBUG: authentication is over");
 
         user.password = req.body.new;
-        if (!user.checkValidation("password"))
+        if (!user.validate("password"))
           return res.status(400).send({ message: "validation failed" });
 
         await user.save();
@@ -392,7 +392,7 @@ module.exports.updatePassword = async (req, res) => {
         console.log("DEBUG: authentication is over");
 
         user.password = req.body.new;
-        if (!user.checkValidation("password"))
+        if (!user.validate("password"))
           return res.status(400).send({ message: "validation failed" });
 
         await user.save();
@@ -411,7 +411,7 @@ module.exports.updateEmail = async (req, res) => {
     const user = req.user;
 
     user.email = req.body.email;
-    if (!user.checkValidation("email"))
+    if (!user.validate("email"))
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();
@@ -426,7 +426,7 @@ module.exports.updateTel = async (req, res) => {
     const user = req.user;
 
     user.tel = req.body.tel;
-    if (!user.checkValidation("tel"))
+    if (!user.validate("tel"))
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();
@@ -458,7 +458,7 @@ module.exports.update = async (req, res) => {
     user.email = req.body.email;
     user.tel = req.body.tel;
 
-    if (!user.checkValidation())
+    if (!user.validate())
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();
