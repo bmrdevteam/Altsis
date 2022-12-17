@@ -8,6 +8,8 @@ const {
   Registration,
 } = require("../models");
 
+const validate = require("../utils/validate");
+
 module.exports.create = async (req, res) => {
   try {
     /* check duplication */
@@ -19,7 +21,7 @@ module.exports.create = async (req, res) => {
 
     /* create academy document & check validation */
     const academy = new Academy(req.body);
-    if (!academy.checkValidation())
+    if (!academy.isValid())
       return res.status(400).send({ message: "validation failed" });
 
     /* save academy document */
@@ -127,6 +129,11 @@ module.exports.find = async (req, res) => {
 
 module.exports.updateField = async (req, res) => {
   try {
+    if (req.body.email && !validate("email", req.body.email))
+      return res.status(400).send({ message: "validation failed" });
+    if (req.body.tel && !validate("tel", req.body.tel))
+      return res.status(400).send({ message: "validation failed" });
+
     /* find document */
     const academy = await Academy.findOne({
       academyId: req.params.academyId,

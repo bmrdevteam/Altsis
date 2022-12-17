@@ -3,22 +3,22 @@ const bcrypt = require("bcrypt");
 
 const { conn } = require("../databases/connection");
 
-const myValidate = require("../utils/myValidate");
+const validate = require("../utils/validate");
 
 const userSchema = mongoose.Schema(
   {
     userId: {
       type: String,
       unique: true,
-      validate: (val) => myValidate("userId", val),
+      validate: (val) => validate("userId", val),
     },
     userName: {
       type: String,
-      validate: (val) => myValidate("userName", val),
+      validate: (val) => validate("userName", val),
     },
     password: {
       type: String,
-      validate: (val) => myValidate("password", val),
+      validate: (val) => validate("password", val),
       select: false, //alwasy exclude password in user document
     },
     auth: {
@@ -27,11 +27,11 @@ const userSchema = mongoose.Schema(
     },
     email: {
       type: String,
-      validate: (val) => myValidate("email", val),
+      validate: (val) => validate("email", val),
     },
     tel: {
       type: String,
-      validate: (val) => myValidate("tel", val),
+      validate: (val) => validate("tel", val),
     },
     snsId: Object,
     schools: [
@@ -51,15 +51,25 @@ const userSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.methods.validate = function (key) {
-  if (key) {
-    return regExp[key].test(this[key]);
+userSchema.statics.isValid = function (user) {
+  for (let field of ["userId", "userName"]) {
+    if (!validate(field, user[field])) return false;
+  }
+  if (user["email"] && !validate("email", user["email"])) return false;
+  if (user["tel"] && !validate("tel", user["tel"])) return false;
+  return true;
+};
+
+userSchema.methods.isValid = function (field) {
+  if (field) {
+    return validate(field, this[field]);
   }
 
-  if (!myValidate("userId", this["userId"])) return false;
-  if (!myValidate("userName", this["userName"])) return false;
-  if (this["email"] && !myValidate("email", this["email"])) return false;
-  if (this["tel"] && !myValidate("tel", this["tel"])) return false;
+  for (let field of ["userId", "userName"]) {
+    if (!validate(field, this[field])) return false;
+  }
+  if (this["email"] && !validate("email", this["email"])) return false;
+  if (this["tel"] && !validate("tel", this["tel"])) return false;
   return true;
 };
 
