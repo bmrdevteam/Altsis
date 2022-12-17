@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
-const validate = require("mongoose-validator");
+// const validate = require("mongoose-validator");
 const _ = require("lodash");
+const validate = require("../utils/validate");
 
 const subjectSchema = mongoose.Schema(
   {
@@ -16,14 +17,11 @@ const schoolSchema = mongoose.Schema(
     schoolId: {
       type: String,
       unique: true,
-      minLength: 2,
-      maxLength: 20,
-      validate: validate({ validator: "isAlphanumeric" }),
+      validate: (val) => validate("schoolId", val),
     },
     schoolName: {
       type: String,
-      minLength: 2,
-      maxLength: 20,
+      validate: (val) => validate("schoolName", val),
     },
     classrooms: [String],
     subjects: subjectSchema,
@@ -32,6 +30,13 @@ const schoolSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
+
+schoolSchema.statics.isValid = function (school) {
+  for (let field of ["schoolId", "schoolName"]) {
+    if (!validate(field, school[field])) return false;
+  }
+  return true;
+};
 
 module.exports = (dbName) => {
   return conn[dbName].model("School", schoolSchema);

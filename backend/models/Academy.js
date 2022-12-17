@@ -38,6 +38,17 @@ const academySchema = mongoose.Schema(
   { timestamps: true }
 );
 
+academySchema.statics.isValid = function (academy) {
+  for (let field of ["academyId", "academyName"]) {
+    if (!validate(field, academy[field])) return false;
+  }
+  if (academy["email"] && !validate("email", academy["email"])) return false;
+  if (academy["tel"] && !validate("tel", academy["tel"])) return false;
+  if (!validate("userId", academy["adminId"])) return false;
+  if (!validate("userName", academy["adminName"])) return false;
+  return true;
+};
+
 academySchema.pre("save", function (next) {
   var user = this;
   if (user.isModified("academyId")) {

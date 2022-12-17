@@ -12,6 +12,10 @@ const validate = require("../utils/validate");
 
 module.exports.create = async (req, res) => {
   try {
+    /* validate */
+    if (!Academy.isValid(req.body))
+      return res.status(400).send({ message: "validation failed" });
+
     /* check duplication */
     const exAcademy = await Academy.findOne({ academyId: req.body.academyId });
     if (exAcademy)
@@ -19,12 +23,8 @@ module.exports.create = async (req, res) => {
         message: `academyId '${exAcademy.academyId}'is already in use`,
       });
 
-    /* create academy document & check validation */
+    /* create & save academy document & check validation */
     const academy = new Academy(req.body);
-    if (!academy.isValid())
-      return res.status(400).send({ message: "validation failed" });
-
-    /* save academy document */
     await academy.save();
 
     /* create db */
