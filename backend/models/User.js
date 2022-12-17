@@ -1,30 +1,24 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
-const validator = require("validator");
-const validate = require("mongoose-validator");
 
 const { conn } = require("../databases/connection");
-const specialRegExp = /[!@#$%^&*()]+/;
+
+const myValidate = require("../utils/myValidate");
 
 const userSchema = mongoose.Schema(
   {
     userId: {
       type: String,
       unique: true,
-      minLength: 4,
-      maxLength: 20,
-      validate: validate({ validator: "isAlphanumeric" }),
+      validate: (val) => myValidate("userId", val),
     },
     userName: {
       type: String,
-      minLength: 2,
-      maxLength: 20,
+      validate: (val) => myValidate("userName", val),
     },
     password: {
       type: String,
-      min: 8,
-      max: 26,
-      match: specialRegExp,
+      validate: (val) => myValidate("password", val),
       select: false, //alwasy exclude password in user document
     },
     auth: {
@@ -33,9 +27,12 @@ const userSchema = mongoose.Schema(
     },
     email: {
       type: String,
-      validate: validate({ validator: "isEmail" }),
+      validate: (val) => myValidate("email", val),
     },
-    tel: String,
+    tel: {
+      type: String,
+      validate: (val) => myValidate("tel", val),
+    },
     snsId: Object,
     schools: [
       mongoose.Schema(
@@ -54,34 +51,15 @@ const userSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-const check = {
-  userId: (val) =>
-    validator.isLength(val, { min: 4, max: 20 }) &&
-    validator.isAlphanumeric(val),
-  userName: (val) => validator.isLength(val, { min: 2, max: 20 }),
-  email: (val) => !val || validator.isEmail(val),
-  password: (val) =>
-    validator.isLength(val, { min: 8, max: 26 }) &&
-    validator.matches(val, specialRegExp),
-  tel: (val) => new RegExp(pattern.tel).test(val),
-};
-
-const pattern = {
-  userId: "^[a-z|A-Z|0-9]{4,20}$",
-  userName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$",
-  password: "^(?=.*?[!@#$%^&*()])[a-z|A-Z|0-9|!@#$%^&*()]{8,26}$",
-  email: "@",
-  tel: "^[0-9]{3}-[0-9]{4}-[0-9]{4}$",
-};
-
-userSchema.methods.checkValidation = function (key) {
+userSchema.methods.validate = function (key) {
   if (key) {
-    return check[key](this[key]);
+    return regExp[key].test(this[key]);
   }
-  for (const key in check) {
-    if (key === "password") continue;
-    if (!check[key](this[key])) return false;
-  }
+
+  if (!myValidate("userId", this["userId"])) return false;
+  if (!myValidate("userName", this["userName"])) return false;
+  if (this["email"] && !myValidate("email", this["email"])) return false;
+  if (this["tel"] && !myValidate("tel", this["tel"])) return false;
   return true;
 };
 

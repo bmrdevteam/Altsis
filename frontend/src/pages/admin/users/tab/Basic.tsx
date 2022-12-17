@@ -159,7 +159,6 @@ function Basic(props: Props) {
           <div style={{ marginTop: "24px" }}>
             <Button
               type={"ghost"}
-              disableOnclick
               onClick={() => {
                 updateUser()
                   .then((res) => {
@@ -169,7 +168,7 @@ function Basic(props: Props) {
                   })
                   .catch((err) => {
                     console.log(err);
-                    //alert(err.response.data.message)
+                    alert(err.response.data.message);
                   });
               }}
               style={{
