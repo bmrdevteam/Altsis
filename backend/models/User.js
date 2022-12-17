@@ -63,6 +63,15 @@ const check = {
   password: (val) =>
     validator.isLength(val, { min: 8, max: 26 }) &&
     validator.matches(val, specialRegExp),
+  tel: (val) => new RegExp(pattern.tel).test(val),
+};
+
+const pattern = {
+  userId: "^[a-z|A-Z|0-9]{4,20}$",
+  userName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$",
+  password: "^(?=.*?[!@#$%^&*()])[a-z|A-Z|0-9|!@#$%^&*()]{8,26}$",
+  email: "@",
+  tel: "^[0-9]{3}-[0-9]{4}-[0-9]{4}$",
 };
 
 userSchema.methods.checkValidation = function (key) {

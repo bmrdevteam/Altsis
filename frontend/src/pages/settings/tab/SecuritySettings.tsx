@@ -27,23 +27,28 @@
  *
  */
 
-import React, { useState } from "react";
+import { useState } from "react";
 import style from "style/pages/settings/settings.module.scss";
-import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Svg from "assets/svg/Svg";
+
+// hooks
+import useDatabase from "hooks/useDatabase";
+
+// functions
+import validate from "functions/validate";
+
+// components
+import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Button from "components/button/Button";
-import useDatabase from "hooks/useDatabase";
-import { useAuth } from "contexts/authContext";
-import validate from "functions/validate";
 
 type Props = {};
 
 const SecuritySettings = (props: Props) => {
   const database = useDatabase();
-  const { currentUser } = useAuth();
+
   const [resetPasswordPopupActive, setResetPasswordPopupActive] =
     useState<boolean>(false);
   const [oldPassword, setOldPassword] = useState<string>("");
@@ -51,7 +56,7 @@ const SecuritySettings = (props: Props) => {
 
   async function updatePassword() {
     const res = database.U({
-      location: `users/${currentUser._id}/password`,
+      location: `users/password`,
       data: {
         old: oldPassword,
         new: newPassword,
