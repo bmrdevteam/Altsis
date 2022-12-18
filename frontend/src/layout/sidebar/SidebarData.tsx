@@ -1,5 +1,5 @@
 import { archiveTestData } from "archiveTest";
-import { apps } from "apps";
+import { Apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 
 export interface INavLink {
@@ -119,14 +119,14 @@ export const SidebarData = (
           name: "앱",
           path: "/apps",
           icon: <Svg type="app_menu" />,
-          subLink: [
-            {
-              title: "classroom",
-              name: "강의실",
-              path: "/apps/apps",
+          subLink: Apps.map((val) => {
+            return {
+              title: val.title,
+              name: val.title,
+              path: `/apps/${val.title}`,
               icon: <Svg type="app" />,
-            },
-          ],
+            };
+          }),
         },
         {
           title: "admin",

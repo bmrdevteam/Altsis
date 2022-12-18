@@ -59,7 +59,7 @@ import CourseMentoring from "pages/courses/Mentoring";
 
 // apps pages
 import AppsIndex from "pages/apps/Index";
-import Apps from "pages/apps/Apps";
+import AppsField from "pages/apps/Pid";
 // notification pages
 import Notifications from "pages/notifications/Index";
 
@@ -357,10 +357,10 @@ function RouterPage() {
               }
             ></Route>
             <Route
-              path="apps/apps"
+              path="apps/:pid"
               element={
                 <RequireAuth>
-                  <Apps />
+                  <AppsField />
                 </RequireAuth>
               }
             ></Route>
