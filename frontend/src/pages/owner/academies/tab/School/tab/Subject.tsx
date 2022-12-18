@@ -37,6 +37,7 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Table from "components/table/Table";
 import _ from "lodash";
+import useApi from "hooks/useApi";
 
 type Props = {
   academy: string;
@@ -48,7 +49,7 @@ type subjectDataListType = {
 };
 
 const Subject = (props: Props) => {
-  const database = useDatabase();
+  const { SchoolApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* subject label list */
@@ -87,25 +88,6 @@ const Subject = (props: Props) => {
     }
     setSubjectDataHeader(subjectDataList);
   };
-
-  async function updateSubjects() {
-    const result = await database.U({
-      location: `academies/${props.academy}/schools/${props.schoolData?._id}/subjects`,
-      data: {
-        new: {
-          label: subjectLabelList,
-          data: subjectDataList.map((data: any) => {
-            const _data = [];
-            for (let i = 0; i < subjectLabelList.length; i++) {
-              _data.push(data[subjectLabelList[i]]);
-            }
-            return _data;
-          }),
-        },
-      },
-    });
-    return result;
-  }
 
   useEffect(() => {
     updateSubjectDataList();
@@ -263,7 +245,20 @@ const Subject = (props: Props) => {
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
         onClick={() => {
-          updateSubjects()
+          SchoolApi.USchoolSubject({
+            academyId: props.academy,
+            schoolId: props.schoolData?._id,
+            data: {
+              label: subjectLabelList,
+              data: subjectDataList.map((data: any) => {
+                const _data = [];
+                for (let i = 0; i < subjectLabelList.length; i++) {
+                  _data.push(data[subjectLabelList[i]]);
+                }
+                return _data;
+              }),
+            },
+          })
             .then(() => {
               alert("success");
             })
