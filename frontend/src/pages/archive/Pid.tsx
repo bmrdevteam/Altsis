@@ -4,6 +4,7 @@ import Autofill from "components/input/Autofill";
 import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import { useAuth } from "contexts/authContext";
+import useApi from "hooks/useApi";
 import useDatabase from "hooks/useDatabase";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
@@ -18,36 +19,41 @@ type Props = {};
 const ArchiveField = (props: Props) => {
   const database = useDatabase();
   const { pid } = useParams();
+  const { RegistrationApi } = useApi();
 
-  const { currentSchool, currentUser } = useAuth();
+  const { currentSchool, currentSeason } = useAuth();
 
   const [users, setUsers] = useState<any[]>([]);
+  const [grades, setGrades] = useState<{ text: string; value: string }[]>([]);
+  const [selectedGrade, setSelectedGrade] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [archiveData, setArchiveData] = useState<any>();
   const [archiveForm, setArchiveForm] = useState<any>();
 
-  async function getUsers(schoolId: string) {
-    const { registrations: result } = await database.R({
-      location: `registrations?schoolId=bmrhs&role=student`,
-    });
-    console.log(result);
-    
-    return result;
-  }
-
   useEffect(() => {
-    getUsers(currentSchool.schoolId).then((res) => {
+    RegistrationApi.RRegistrations({
+      schoolId: currentSchool?.schoolId,
+      season: currentSeason?._id,
+      role: "student",
+    }).then((res) => {
+      const g: any = _.uniqBy(res, "grade");
+      setGrades(
+        g.map((val: any) => {
+          return { text: val.grade, value: val.grade };
+        })
+      );
+      setSelectedGrade(g[0]?.grade);
       setUsers(res);
     });
+
     database
       .R({
         location: `schools/${currentSchool.school}`,
       })
       .then((res) => {
-        console.log(res);
         setArchiveForm(res);
       });
-  }, [currentSchool]);
+  }, [currentSeason]);
 
   useEffect(() => {
     if (userId !== "") {
@@ -60,7 +66,6 @@ const ArchiveField = (props: Props) => {
         });
     }
   }, [userId]);
-  console.log(archiveData);
 
   return (
     <>
@@ -74,7 +79,10 @@ const ArchiveField = (props: Props) => {
                 <div className={style.search}>
                   <div className={style.label}>학생선택</div>
                   <Select
-                    options={[{ text: "11학년", value: "11" }]}
+                    options={grades}
+                    onChange={(val: any) => {
+                      setSelectedGrade(val);
+                    }}
                     style={{ borderRadius: "4px", maxWidth: "120px" }}
                   />
                   <Autofill
@@ -83,12 +91,14 @@ const ArchiveField = (props: Props) => {
                     defaultValue={userId}
                     options={[
                       { text: "", value: "" },
-                      ...users?.map((val) => {
-                        return {
-                          value: val.userId,
-                          text: `${val.userName} / ${val.userId}`,
-                        };
-                      }),
+                      ...users
+                        ?.filter((val) => val.grade === selectedGrade)
+                        .map((val) => {
+                          return {
+                            value: val.userId,
+                            text: `${val.userName} / ${val.userId}`,
+                          };
+                        }),
                     ]}
                     placeholder={"검색"}
                   />

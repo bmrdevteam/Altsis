@@ -32,6 +32,20 @@ export default function useApi() {
   const database = useDatabase();
 
   /**
+   * API FUNCTIONS
+   */
+  function QUERY_BUILDER(params?: object) {
+    let query = "";
+    if (params) {
+      query = "?";
+      for (const [key, value] of Object.entries(params)) {
+        query = query.concat(`${key}=${value}&`);
+      }
+    }
+    return query;
+  }
+
+  /**
    * Academy Api
    * ##########################################################################
    */
@@ -42,7 +56,7 @@ export default function useApi() {
    * @auth guest
    * @returns list of academies
    */
-  async function CAcademies() {
+  async function RAcademies() {
     const { academies: result } = await database.R({ location: "academies" });
     return result;
   }
@@ -135,12 +149,74 @@ export default function useApi() {
    * Registration Api
    * ##########################################################################
    */
-
+  /**
+   * Get Registration by param
+   * @type GET
+   * @auth member
+   * @returns Registrations
+   */
+  async function RRegistrations(params?: {
+    season?: string;
+    schoolId?: string;
+    schoolName?: string;
+    year?: string;
+    term?: string;
+    userId?: string;
+    userName?: string;
+    role?: "student" | "teacher";
+  }) {
+    const { registrations: result } = await database.R({
+      location: `registrations${QUERY_BUILDER(params)}`,
+    });
+    return result;
+  }
   /**
    * Form Api
    * ##########################################################################
    */
 
+  /**
+   * Create Form
+   * @type POST
+   * @auth admin
+   * @returns Created Form
+   */
+  async function CForm(data: {
+    type: "syllabus" | "timetable" | "evaluation" | "archive";
+    title: string;
+    data: any[];
+  }) {
+    const result = await database.R({ location: "users/logout" });
+    return result;
+  }
+
+  /**
+   * Read Forms
+   * @type GET
+   * @auth admin
+   * @returns Form list ([data]Field omitted)
+   */
+  async function RForms(params?: {
+    userId?: string;
+    userName?: string;
+    type?: "syllabus" | "timetable" | "evaluation" | "archive";
+    title?: string;
+  }) {
+    const {forms:result} = await database.R({
+      location: "forms" + QUERY_BUILDER(params),
+    });
+    return result;
+  }
+  /**
+   * Read Form by id
+   * @type GET
+   * @auth admin
+   * @returns Form
+   */
+  async function RForm(id: string) {
+    const result = await database.R({ location: "forms/" + id });
+    return result;
+  }
   /**
    * School Api
    * ##########################################################################
@@ -164,7 +240,7 @@ export default function useApi() {
    * Read Schools by id
    * @auth admin
    */
-  async function RSchoolsById(id: string) {
+  async function RSchool(id: string) {
     return await database.R({ location: "schools" });
   }
   /**
@@ -195,6 +271,25 @@ export default function useApi() {
       data: { new: props.data },
     });
   }
+  /**
+   * Archive Api
+   * ##########################################################################
+   */
+  /**
+   * Read Archives
+   * @type GET
+   * @auth admin
+   * @returns Archives
+   */
+  async function RArchives(params: {
+    school?: string;
+    userId?: string | number;
+  }) {
+    const result = await database.R({
+      location: "archives" + QUERY_BUILDER(params),
+    });
+    return result;
+  }
 
   /**
    * Notification Api
@@ -216,7 +311,7 @@ export default function useApi() {
 
   return {
     AcademyApi: {
-      CAcademies,
+      RAcademies,
     },
     UserApi: {
       CLoginLocal,
@@ -226,9 +321,18 @@ export default function useApi() {
     SchoolApi: {
       CSchools,
       RSchools,
-      RSchoolsById,
+      RSchool,
       USchoolClassroom,
       USchoolSubject,
+    },
+    RegistrationApi: { RRegistrations },
+    FormApi: {
+      CForm,
+      RForms,
+      RForm,
+    },
+    ArchiveApi: {
+      RArchives,
     },
     NotificationApi: { CUpdatedNotifications, UCheckNotification },
   };

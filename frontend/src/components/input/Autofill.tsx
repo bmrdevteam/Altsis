@@ -15,6 +15,7 @@ type Props = {
   setState?: React.Dispatch<React.SetStateAction<any>>;
   appearence?: "flat";
   resetOnClick?: boolean;
+  onChange?: (value: string | number) => void;
 };
 
 const Autofill = (props: Props) => {
@@ -92,6 +93,13 @@ const Autofill = (props: Props) => {
           } else {
             setValid(true);
           }
+          const o = props.options.filter(
+            (val: { text: string; value: string | number }) =>
+              val.text.toLowerCase() === e.target.value.toLowerCase()
+          );
+          if (props.onChange && e.target.value !== "" && o.length > 0) {
+            props.onChange(o[0].value);
+          }
 
           if (props.required && e.target.value === "") {
             setValid(false);
@@ -144,6 +152,7 @@ const Autofill = (props: Props) => {
                   key={index}
                   onClick={() => {
                     setInputValue(value.text);
+                    props.onChange && props.onChange(value.value);
                     props.setState && props.setState(value.value);
                     setEdit(false);
                   }}

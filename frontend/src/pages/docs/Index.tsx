@@ -4,6 +4,7 @@ import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
+import useApi from "hooks/useApi";
 import useDatabase from "hooks/useDatabase";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
@@ -13,30 +14,27 @@ type Props = {};
 
 function Docs({}: Props) {
   const database = useDatabase();
-  const { currentSchool } = useAuth();
+  const { RegistrationApi, ArchiveApi, FormApi } = useApi();
+  const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
-  const [printForms, setPrintForms] = useState<any>();
+  const [printForms, setPrintForms] = useState<any>([]);
   const [DBData, setDBData] = useState<any>();
   const [users, setUsers] = useState<any[]>([]);
+  const [grades, setGrades] = useState<any[]>([]);
+  const [selectedGrade, setSelectedGrade] = useState<string>();
   const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
 
-  async function getPrintForms() {
-    const { forms: result } = await database.R({ location: "forms" });
-    setPrintForms(result);
-    return result;
-  }
-
-  async function getDBData() {
-    const archive = await database.R({
-      location: `archives?school=${currentSchool.school}&userId=${191025}`,
+  async function getDBData(userId: any) {
+    const archive = await ArchiveApi.RArchives({
+      school: currentSchool.school,
+      userId: userId,
     });
+
     let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
     const { enrollments: evaluations } = await database.R({
-      location: `enrollments/evaluations?studentId=${191025}&school=${
-        currentSchool.school
-      }`,
+      location: `enrollments/evaluations?studentId=${userId}&school=${currentSchool.school}`,
     });
 
     for (let i = 0; i < evaluations.length; i++) {
@@ -107,77 +105,96 @@ function Docs({}: Props) {
   async function getFormData(id: string) {
     // const { forms: result } = await database.R({ location: `forms/${id}` });
     const result = await database.R({
-      location: `forms/637f8ec0a7b07cb7f3a27da5`,
+      location: `forms/` + id,
     });
     return result;
   }
   useEffect(() => {
-    database
-      .R({
-        location: `registrations?schoolId=bmrhs&role=student`,
-      })
-      .then((res) => {
-        setUsers(res.registrations);
+    RegistrationApi.RRegistrations({
+      schoolId: currentSchool?.schoolId,
+      season: currentSeason?._id,
+      role: "student",
+    }).then((res) => {
+      const g: any = _.uniqBy(res, "grade");
+      setGrades(
+        g.map((val: any) => {
+          return { text: val.grade, value: val.grade };
+        })
+      );
+      setSelectedGrade(g[0]?.grade);
+      setUsers(res);
+    });
+    FormApi.RForms({}).then((res) => {
+      const r = res.filter((val: any) => val.type === "print");
+      setPrintForms(r);
+      getFormData(r[0]._id).then((result) => {
+        setFormData(result);
+        setLoading(false);
       });
-
-    getPrintForms().then((res) => {
-      console.log(res);
-    });
-    getFormData("").then((res) => {
-      setFormData(res);
-    });
-    getDBData().then((res) => {
-      setDBData(res);
-      setLoading(false);
     });
   }, []);
   return (
     <>
       <Navbar />
-      {!loading ? (
-        <div className={style.section}>
-          {/* <div
+      <div className={style.section}>
+        {/* <div
             className="btn"
             onClick={() => {
               setChoosePopupActive(true);
             }}
           ></div> */}
-          <div className={style.search}>
-            <div className={style.label}>학생선택</div>
-            <Select
-              options={[{ text: "11학년", value: "11" }]}
-              style={{ borderRadius: "4px", maxWidth: "120px" }}
-            />
-            <Select
-              style={{ borderRadius: "4px" }}
-              options={[
-                ...printForms
-                  .filter((val: any) => val.type === "print")
-                  .map((val: any) => {
-                    return { text: val.title, value: "" };
-                  }),
-              ]}
-            />
-            <Autofill
-              style={{ borderRadius: "4px" }}
-              options={[
-                { text: "", value: "" },
-                ...users?.map((val) => {
+        <div className={style.search}>
+          <div className={style.label}>학생선택</div>
+          <Select
+            options={grades}
+            onChange={(val: string) => {
+              setSelectedGrade(val);
+            }}
+            style={{ borderRadius: "4px", maxWidth: "120px" }}
+          />
+          <Select
+            style={{ borderRadius: "4px" }}
+            options={[
+              ...printForms.map((val: any) => {
+                return { text: val.title, value: val._id };
+              }),
+            ]}
+            onChange={(val: string) => {
+              FormApi.RForm(val).then((res) => {
+                setFormData(res);
+              });
+            }}
+          />
+          <Autofill
+            style={{ borderRadius: "4px" }}
+            options={[
+              { text: "", value: "" },
+              ...users
+                ?.filter((val) => val.grade === selectedGrade)
+                .map((val) => {
                   return {
                     value: val.userId,
                     text: `${val.userName} / ${val.userId}`,
                   };
                 }),
-              ]}
-              placeholder={"검색"}
-            />
-          </div>
-
-          <EditorParser auth="edit" data={formData} dbData={DBData} />
+            ]}
+            onChange={(value) => {
+              setLoading(true);
+              getDBData(value).then((res) => {
+                setDBData(res);
+                setLoading(false);
+              });
+            }}
+            placeholder={"검색"}
+          />
         </div>
-      ) : (
-        <Loading height={"calc(100vh - 55px)"} />
-      )}
+        {!loading ? (
+          <EditorParser auth="edit" data={formData} dbData={DBData} />
+        ) : (
+          <Loading height={"calc(100vh - 55px)"} />
+        )}
+      </div>
+
       {choosePopupActive && (
         <Popup
           setState={setChoosePopupActive}
