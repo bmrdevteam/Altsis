@@ -3,7 +3,7 @@ const pattern: any = {
   userName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$",
   password: "^(?=.*?[!@#$%^&*()])[a-z|A-Z|0-9|!@#$%^&*()]{8,26}$",
   email: "@",
-  tel: "",
+  tel: "^[0-9]{3}-[0-9]{4}-[0-9]{4}$",
 };
 
 export default function validate(type: string, content: string) {

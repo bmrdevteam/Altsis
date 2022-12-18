@@ -1,30 +1,24 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
-const validator = require("validator");
-const validate = require("mongoose-validator");
 
 const { conn } = require("../databases/connection");
-const specialRegExp = /[!@#$%^&*()]+/;
+
+const validate = require("../utils/validate");
 
 const userSchema = mongoose.Schema(
   {
     userId: {
       type: String,
       unique: true,
-      minLength: 4,
-      maxLength: 20,
-      validate: validate({ validator: "isAlphanumeric" }),
+      validate: (val) => validate("userId", val),
     },
     userName: {
       type: String,
-      minLength: 2,
-      maxLength: 20,
+      validate: (val) => validate("userName", val),
     },
     password: {
       type: String,
-      min: 8,
-      max: 26,
-      match: specialRegExp,
+      validate: (val) => validate("password", val),
       select: false, //alwasy exclude password in user document
     },
     auth: {
@@ -33,9 +27,12 @@ const userSchema = mongoose.Schema(
     },
     email: {
       type: String,
-      validate: validate({ validator: "isEmail" }),
+      validate: (val) => validate("email", val),
     },
-    tel: String,
+    tel: {
+      type: String,
+      validate: (val) => validate("tel", val),
+    },
     snsId: Object,
     schools: [
       mongoose.Schema(
@@ -54,25 +51,12 @@ const userSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-const check = {
-  userId: (val) =>
-    validator.isLength(val, { min: 4, max: 20 }) &&
-    validator.isAlphanumeric(val),
-  userName: (val) => validator.isLength(val, { min: 2, max: 20 }),
-  email: (val) => !val || validator.isEmail(val),
-  password: (val) =>
-    validator.isLength(val, { min: 8, max: 26 }) &&
-    validator.matches(val, specialRegExp),
-};
-
-userSchema.methods.checkValidation = function (key) {
-  if (key) {
-    return check[key](this[key]);
+userSchema.statics.isValid = function (user) {
+  for (let field of ["userId", "userName"]) {
+    if (!validate(field, user[field])) return false;
   }
-  for (const key in check) {
-    if (key === "password") continue;
-    if (!check[key](this[key])) return false;
-  }
+  if (user["email"] && !validate("email", user["email"])) return false;
+  if (user["tel"] && !validate("tel", user["tel"])) return false;
   return true;
 };
 
