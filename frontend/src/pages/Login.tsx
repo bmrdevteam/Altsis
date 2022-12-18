@@ -105,7 +105,7 @@ const Login = () => {
   date.setFullYear(date.getFullYear() + 1);
 
   useEffect(() => {
-    AcademyApi.CAcademies().then((res) => {
+    AcademyApi.RAcademies().then((res) => {
       setAcademies(res);
       setLoading(false);
     });

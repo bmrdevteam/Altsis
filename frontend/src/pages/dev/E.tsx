@@ -5,17 +5,14 @@ import { useEffect, useState } from "react";
 type Props = {};
 
 const E = (props: Props) => {
-  const { UserApi } = useApi();
+  const { RegistrationApi } = useApi();
 
   const [user, setUser] = useState();
   useEffect(() => {
-    UserApi.RMySelf().then((res) => {
-      setUser(res);
-    });
-    
+    RegistrationApi.RRegistrations().then((res)=>{
+      console.log(res);
+    })
   }, []);
-  console.log(user);
-  
 
   return <div></div>;
 };

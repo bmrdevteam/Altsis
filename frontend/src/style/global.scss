@@ -18,6 +18,8 @@
 
 }
 
+
+
 body {
     height: 100vh;
     overflow: hidden;
@@ -78,7 +80,14 @@ table {
 @media print {
     .content {
         max-width: 100% !important;
+        height: auto;
     }
+
+    body {
+        height: auto !important;
+        margin: 0 !important;
+    }
+
 }
 
 .btn {
