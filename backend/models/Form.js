@@ -76,6 +76,7 @@ const formSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    archived: Boolean,
     data: {
       // type: Object   // temp1-1. form의 data가 Object type인 경우
       type: Array, // temp1-2. form의 data가 Array type인 경우
