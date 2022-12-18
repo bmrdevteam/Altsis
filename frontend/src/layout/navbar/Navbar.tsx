@@ -22,6 +22,7 @@ import style from "./navbar.module.scss";
 import _ from "lodash";
 
 import audioURL from "assets/audio/notification-a.mp3";
+import useApi from "hooks/useApi";
 
 const Notification = () => {
   /**
@@ -29,7 +30,7 @@ const Notification = () => {
    */
   const { currentUser, currentNotifications, setCurrentNotifications } =
     useAuth();
-  const database = useDatabase();
+  const { NotificationApi } = useApi();
   const navigate = useNavigate();
 
   const [notificationContentActive, setNotificationContentActive] =
@@ -47,23 +48,8 @@ const Notification = () => {
     }
   }
 
-  async function getUpdatedNotifications() {
-    const { notifications } = await database.R({
-      location: `notifications?type=received&userId=${currentUser.userId}&checked=false&updated=true`,
-    });
-    return notifications;
-  }
-
-  async function checkNotification(_id: string) {
-    const res = await database.U({
-      location: `notifications/${_id}/check`,
-      data: {},
-    });
-    return res;
-  }
-
   useInterval(() => {
-    getUpdatedNotifications().then((res) => {
+    NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
       if (res) {
         audio.play().catch((e: any) => {
           console.log(e);
@@ -109,7 +95,7 @@ const Notification = () => {
                   <Button
                     type="ghost"
                     onClick={(e: any) => {
-                      checkNotification(notification._id)
+                      NotificationApi.UCheckNotification(notification._id)
                         .then(() => {
                           currentNotifications.splice(
                             _.findIndex(

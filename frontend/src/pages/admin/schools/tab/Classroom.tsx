@@ -143,6 +143,7 @@ const Classroom = (props: Props) => {
 
       <Button
         type={"ghost"}
+        loading
         style={{
           borderRadius: "4px",
           height: "32px",
