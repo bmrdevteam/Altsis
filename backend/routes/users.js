@@ -35,10 +35,15 @@ router.delete("/profile", isLoggedIn, profile.delete);
 router.put("/google", isLoggedIn, users.connectGoogle);
 router.delete("/google", isLoggedIn, users.disconnectGoogle);
 
+router.put("/email", isLoggedIn, users.updateEmail);
+router.put("/tel", isLoggedIn, users.updateTel);
+router.put("/password", isLoggedIn, users.updatePassword);
+
 // ___________ update _____________
 
 router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
-router.put("/:_id/password", isLoggedIn, users.updatePassword);
+router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
+
 router.put("/:_id", isLoggedIn, users.update);
 
 // ___________ delete _____________

@@ -9,6 +9,8 @@ const {
 } = require("../models");
 const { getPayload } = require("../utils/payload");
 
+const validate = require("../utils/validate");
+
 // ____________ common ____________
 
 module.exports.loginLocal = async (req, res) => {
@@ -66,6 +68,10 @@ module.exports.create = async (req, res) => {
   try {
     const _User = User(req.user.academyId);
 
+    /* check validation */
+    if (!_User.isValid(req.body) || !validate("password", req.body.password))
+      return res.status(400).send({ message: "validation failed" });
+
     /* check duplication */
     const exUser = await _User.findOne({ userId: req.body.userId });
     if (exUser)
@@ -79,10 +85,6 @@ module.exports.create = async (req, res) => {
       academyId: req.user.academyId,
       academyName: req.user.academyName,
     });
-
-    /* check validation */
-    if (!user.checkValidation() || !user.checkValidation("password"))
-      return res.status(400).send({ message: "validation failed" });
 
     /* save document */
     await user.save();
@@ -98,6 +100,12 @@ module.exports.createBulk = async (req, res) => {
     const _User = User(req.user.academyId);
     const users = [];
 
+    /* validate */
+    for (let _user of req.body.users) {
+      if (!_User.isValid(_user))
+        return res.status(400).send({ message: "validation failed", _user });
+    }
+
     /* check userId duplication */
     const exUsers = await _User.find({});
     const duplicatedUserIds = _([...exUsers, ...req.body.users])
@@ -112,23 +120,15 @@ module.exports.createBulk = async (req, res) => {
         .send({ message: `userId '${duplicatedUserIds}' are already in use` });
     }
 
-    for (let _user of req.body.users) {
-      /* create document */
-      const user = new _User(_user);
-      console.log(user);
-      /* validate */
-      if (!user.checkValidation())
-        return res.status(400).send({ message: "validation failed", user });
-
-      user.academyId = req.user.academyId;
-      user.academyName = req.user.academyName;
-      user.auth = "member";
-      users.push(user);
-    }
-
-    /* save documents */
+    /* create & save documents */
     await Promise.all([
-      users.forEach((user) => {
+      req.body.users.forEach((_user) => {
+        const user = new _User({
+          ..._user,
+          academyId: req.user.academyId,
+          academyName: req.user.academyName,
+        });
+
         user.save();
       }),
     ]);
@@ -346,24 +346,89 @@ module.exports.disconnectGoogle = async (req, res) => {
   return res.status(200).send();
 };
 
-module.exports.updatePassword = async (req, res) => {
+module.exports.updatePasswordByAdmin = async (req, res) => {
   try {
-    let user = undefined;
-
-    if (req.user._id == req.params._id) {
-      user = req.user;
-    } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
-      user = await User(req.user.academyId).findById(req.params._id);
-    } else {
-      return res.status(401).send({ message: "You are not authorized." });
+    if (req.user._id != req.params._id) {
+      // !== 하면 안 됨
+      return res.status(401).send({
+        message: "You are not authorized.",
+      });
     }
-
-    user.password = req.body.new;
-    if (!user.checkValidation("password"))
+    /* validate */
+    if (!validate("password", req.body.new))
       return res.status(400).send({ message: "validation failed" });
 
+    const user = req.user;
+    req.body.academyId = req.user.academyId;
+    req.body.userId = req.user.userId;
+    req.body.password = req.body.old;
+
+    passport.authenticate("local2", async (authError, user, academyId) => {
+      try {
+        if (authError) throw authError;
+        console.log("DEBUG: authentication is over");
+        user.password = req.body.new;
+        await user.save();
+        return res.status(200).send();
+      } catch (err) {
+        return res.status(err.status || 500).send({ message: err.message });
+      }
+    })(req, res);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updatePassword = async (req, res) => {
+  try {
+    /* validate */
+    if (!validate("password", req.body.new))
+      return res.status(400).send({ message: "validation failed" });
+
+    const user = req.user;
+    req.body.academyId = req.user.academyId;
+    req.body.userId = req.user.userId;
+    req.body.password = req.body.old;
+
+    passport.authenticate("local2", async (authError, user, academyId) => {
+      try {
+        if (authError) throw authError;
+        console.log("DEBUG: authentication is over");
+        user.password = req.body.new;
+        await user.save();
+        return res.status(200).send();
+      } catch (err) {
+        return res.status(err.status || 500).send({ message: err.message });
+      }
+    })(req, res);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updateEmail = async (req, res) => {
+  try {
+    if (!validate("email", req.body.email))
+      return res.status(400).send({ message: "validation failed" });
+
+    const user = req.user;
+    user.email = req.body.email;
     await user.save();
-    return res.status(200).send();
+    return res.status(200).send({ email: user.email });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.updateTel = async (req, res) => {
+  try {
+    if (!validate("tel", req.body.tel))
+      return res.status(400).send({ message: "validation failed" });
+
+    const user = req.user;
+    user.tel = req.body.tel;
+    await user.save();
+    return res.status(200).send({ tel: user.tel });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -391,7 +456,7 @@ module.exports.update = async (req, res) => {
     user.email = req.body.email;
     user.tel = req.body.tel;
 
-    if (!user.checkValidation())
+    if (!user.isValid())
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();
