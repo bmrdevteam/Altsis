@@ -1,21 +1,11 @@
-import useDatabase from "hooks/useDatabase";
-
-export const Apps = () => {
-  const database = useDatabase();
-  
-  async function getApps() {
-    const apps = await database.R({
-      location: `apps/`,
-    });
-    return apps;
-  }
-
-  getApps()
-    .then((res) => {
-      console.log(res)
-      return [res]
-    })
-    .catch(() => {
-      alert("failed to load data");
-    });
-}
+export const Apps: any[] = [
+  {
+    title: "강의실",
+  },
+  {
+    title: "컴퓨터",
+  },
+  {
+    title: "통학버스",
+  },
+];
