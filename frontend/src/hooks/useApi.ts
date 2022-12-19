@@ -8,6 +8,7 @@
  * -------------------------------------------------------
  *
  * IN PRODUCTION
+ * - useApi hook
  *
  * -------------------------------------------------------
  *
@@ -202,7 +203,7 @@ export default function useApi() {
     type?: "syllabus" | "timetable" | "evaluation" | "archive";
     title?: string;
   }) {
-    const {forms:result} = await database.R({
+    const { forms: result } = await database.R({
       location: "forms" + QUERY_BUILDER(params),
     });
     return result;
@@ -272,6 +273,41 @@ export default function useApi() {
     });
   }
   /**
+   * Enrollment Api
+   * ##########################################################################
+   */
+
+  /**
+   * Read Enrollments
+   * @type GET
+   * @auth member
+   * @returns Enrollments
+   */
+  async function REnrolllments(params?: {
+    syllabus?: string;
+    season?: string;
+    studentId?: string | number;
+  }) {
+    const { enrollments } = await database.R({
+      location: "enrollments" + QUERY_BUILDER(params),
+    });
+    return enrollments;
+  }
+
+  /**
+   * Read Enrollment
+   * @type GET
+   * @auth member
+   * @returns Enrollment
+   */
+  async function REnrolllment(id: string) {
+    const result = await database.R({
+      location: "enrollments" + id,
+    });
+    return result;
+  }
+
+  /**
    * Archive Api
    * ##########################################################################
    */
@@ -326,6 +362,7 @@ export default function useApi() {
       USchoolSubject,
     },
     RegistrationApi: { RRegistrations },
+    EnrollmentApi: { REnrolllment, REnrolllments },
     FormApi: {
       CForm,
       RForms,
