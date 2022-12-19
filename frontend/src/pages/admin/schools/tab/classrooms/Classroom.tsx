@@ -27,7 +27,7 @@
  *
  */
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -37,23 +37,21 @@ import Button from "components/button/Button";
 import Table from "components/table/Table";
 import Input from "components/input/Input";
 
+import UpdateBulk from "./tab/updateBulk";
+
 import _ from "lodash";
 
 type Props = {
   schoolData?: any;
-  setIsLoading?: any;
+  setSchoolData: any;
 };
 
 const Classroom = (props: Props) => {
   const database = useDatabase();
 
-  /* classroom list */
-  const [classroomList, setClassroomList] = useState<string[]>(
-    props.schoolData.classrooms || []
-  );
   const classroomRef = useRef<string>("");
 
-  async function updateClassrooms() {
+  async function updateClassrooms(classroomList: any[]) {
     const result = await database.U({
       location: `schools/${props.schoolData?._id}/classrooms`,
       data: {
@@ -78,9 +76,20 @@ const Classroom = (props: Props) => {
           appearence={"flat"}
           onKeyDown={(e: any) => {
             if (classroomRef.current !== "" && e.key === "Enter") {
-              setClassroomList([...classroomList, classroomRef.current]);
-              // e.target.value = "";
-              // classroomRef.current = "";
+              updateClassrooms([
+                ...props.schoolData?.classrooms,
+                classroomRef.current,
+              ])
+                .then((res: any) => {
+                  props.setSchoolData({
+                    ...props.schoolData,
+                    classrooms: res.data,
+                  });
+                  alert("success");
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
             }
           }}
           placeholder={"ex) 101호"}
@@ -89,7 +98,20 @@ const Classroom = (props: Props) => {
         <Button
           type={"ghost"}
           onClick={() => {
-            setClassroomList([...classroomList, classroomRef.current]);
+            updateClassrooms([
+              ...props.schoolData?.classrooms,
+              classroomRef.current,
+            ])
+              .then((res: any) => {
+                props.setSchoolData({
+                  ...props.schoolData,
+                  classrooms: res.data,
+                });
+                alert("success");
+              })
+              .catch((err) => {
+                alert(err.response.data.message);
+              });
           }}
           style={{
             borderRadius: "4px",
@@ -103,7 +125,7 @@ const Classroom = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
-        data={classroomList || []}
+        data={props.schoolData?.classrooms}
         type="string-array"
         header={[
           {
@@ -123,11 +145,21 @@ const Classroom = (props: Props) => {
             key: "index",
             type: "button",
             onClick: (e: any) => {
-              classroomList.splice(
-                _.findIndex(classroomList, (x) => x === e),
+              props.schoolData?.classrooms.splice(
+                _.findIndex(props.schoolData?.classrooms, (x) => x === e),
                 1
               );
-              setClassroomList([...classroomList]);
+              updateClassrooms([...props.schoolData?.classrooms])
+                .then((res: any) => {
+                  props.setSchoolData({
+                    ...props.schoolData,
+                    classrooms: res.data,
+                  });
+                  alert("success");
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
             },
             width: "80px",
             align: "center",
@@ -140,29 +172,6 @@ const Classroom = (props: Props) => {
           },
         ]}
       />
-
-      <Button
-        type={"ghost"}
-        loading
-        style={{
-          borderRadius: "4px",
-          height: "32px",
-          margin: "24px 0",
-          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-        }}
-        onClick={() => {
-          updateClassrooms()
-            .then(() => {
-              alert("success");
-              props.setIsLoading(true);
-            })
-            .catch((err) => {
-              alert(err.response.data.message);
-            });
-        }}
-      >
-        저장
-      </Button>
     </div>
   );
 };

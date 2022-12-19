@@ -38,7 +38,7 @@ import Tab from "components/tab/Tab";
 
 // tab elements
 import BasicInfo from "./tab/BasicInfo";
-import Classroom from "./tab/Classroom";
+import Classroom from "./tab/classrooms/Classroom";
 import Season from "./tab/seasons/Season";
 import Subject from "./tab/subjects/Subject";
 import useDatabase from "../../../hooks/useDatabase";
@@ -127,7 +127,10 @@ const School = (props: Props) => {
               <Subject schoolData={schoolData} setSchoolData={setSchoolData} />
             ),
             강의실: (
-              <Classroom schoolData={schoolData} setIsLoading={setIsLoading} />
+              <Classroom
+                schoolData={schoolData}
+                setSchoolData={setSchoolData}
+              />
             ),
             "시간표(beta)": <Timetable />,
             "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
