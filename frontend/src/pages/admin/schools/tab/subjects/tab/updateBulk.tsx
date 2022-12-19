@@ -47,10 +47,6 @@ type Props = {
   setSchoolData: any;
 };
 
-type subjectDataListType = {
-  [key: string]: string;
-};
-
 function Basic(props: Props) {
   const database = useDatabase();
 
@@ -69,27 +65,6 @@ function Basic(props: Props) {
 
   const description = `1. 엑셀을 열어 교과목 헤더를 A1셀부터 입력합니다.\n
 2. 교과목 항목을 B1셀부터 입력합니다.`;
-
-  const updateSubjectDataHeader = () => {
-    const subjectDataList = [];
-    for (let j = 0; j < subjectLabelList.length; j++) {
-      subjectDataList.push({
-        text: subjectLabelList[j],
-        key: subjectLabelList[j],
-        type: "string",
-      });
-    }
-    setSubjectDataHeader(subjectDataList);
-  };
-
-  const parseSubjectDataList = (labalList: any[], dataList: any[]) => {
-    return dataList.map((data: any) =>
-      labalList.reduce(
-        (ac: any[], a: string, idx: number) => ({ ...ac, [a]: data[idx] }),
-        {}
-      )
-    );
-  };
 
   const parseSubjectObjectList = (objectList: any[]) => {
     return objectList.map((obj: any) => Object.values(obj));
