@@ -40,7 +40,7 @@ import Tab from "components/tab/Tab";
 import BasicInfo from "./tab/BasicInfo";
 import Classroom from "./tab/Classroom";
 import Season from "./tab/seasons/Season";
-import Subject from "./tab/Subject";
+import Subject from "./tab/subjects/Subject";
 import useDatabase from "../../../hooks/useDatabase";
 import Setting from "./tab/Setting";
 import Skeleton from "../../../components/skeleton/Skeleton";
@@ -124,7 +124,7 @@ const School = (props: Props) => {
             "기본 정보": <BasicInfo schoolData={schoolData} />,
             학기: <Season />,
             교과목: (
-              <Subject schoolData={schoolData} setIsLoading={setIsLoading} />
+              <Subject schoolData={schoolData} setSchoolData={setSchoolData} />
             ),
             강의실: (
               <Classroom schoolData={schoolData} setIsLoading={setIsLoading} />
