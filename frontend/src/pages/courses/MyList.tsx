@@ -152,7 +152,7 @@ const CoursesMyList = (props: Props) => {
       key: "courseName",
       type: "button",
       onClick: (e: any) => {
-        navigate(`../courses/${e._id}`, {
+        navigate(`../${e._id}`, {
           replace: true,
         });
       },

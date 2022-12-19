@@ -115,6 +115,12 @@ export const SidebarData = (
           }),
         },
         {
+          title: "docs",
+          name: "문서",
+          path: "/docs",
+          icon: <Svg type="docs" />,
+        },
+        {
           title: "apps",
           name: "앱",
           path: "/apps",
@@ -237,6 +243,12 @@ export const SidebarData = (
           }),
         },
         {
+          title: "docs",
+          name: "문서",
+          path: "/docs",
+          icon: <Svg type="docs" />,
+        },
+        {
           title: "apps",
           name: "앱",
           path: "/apps",
@@ -288,12 +300,12 @@ export const SidebarData = (
         //   path: "/myaccount",
         //   icon: <Svg type="gear" />,
         // },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
-        },
+        // {
+        //   title: "settings",
+        //   name: "설정",
+        //   path: "/settings",
+        //   icon: <Svg type="gear" />,
+        // },
       ];
 
     default:

@@ -12,7 +12,6 @@ type Props = {
   dbData?: any;
 };
 const ParsedTableBlock = (props: Props) => {
-  console.log(props.blockData);
 
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
@@ -238,7 +237,7 @@ const ParsedTableBlock = (props: Props) => {
                 repeat &&
                 repeat.map((v: any, i: number) => {
                   //filter map  ()
-                  console.log(props.blockData.data.dataFilter);
+                  // console.log(props.blockData.data.dataFilter);
 
                   if (props.blockData.data.dataFilter?.length > 0) {
                     let boolCount: number = 0;

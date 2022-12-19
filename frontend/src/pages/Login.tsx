@@ -37,6 +37,7 @@ import Select from "../components/select/Select";
 import { useCookies } from "react-cookie";
 import useDatabase from "../hooks/useDatabase";
 import Input from "../components/input/Input";
+import useApi from "hooks/useApi";
 // import useFormValidation from "../hooks/useFormValidation";
 
 /**
@@ -97,33 +98,17 @@ const Login = () => {
    * react-router navigation
    */
   const navigate = useNavigate();
-
-  /**
-   * database hook
-   */
-  const database = useDatabase();
+  const { AcademyApi } = useApi();
   /** Date for setting the cookie expire date  */
   var date = new Date();
   /** */
   date.setFullYear(date.getFullYear() + 1);
 
-  /**
-   * get academies from the backend
-   *
-   * @async
-   *
-   * @returns list of academies
-   */
-  async function getAcademis() {
-    const { academies: res } = await database.R({
-      location: `academies`,
-    });
-    setLoading(false);
-    return res;
-  }
-
   useEffect(() => {
-    getAcademis().then((res) => setAcademies(res));
+    AcademyApi.RAcademies().then((res) => {
+      setAcademies(res);
+      setLoading(false);
+    });
 
     /**
      *
@@ -329,7 +314,6 @@ const Login = () => {
               navigate("/login", { replace: false });
               navigate(0);
             }}
-
             style={{ borderRadius: "8px" }}
           >
             다른 아카데미에 로그인

@@ -78,6 +78,7 @@ import Form from "../pages/admin/forms/Pid";
 import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
+import Docs from "pages/docs/Index";
 
 function RouterPage() {
   const { currentUser } = useAuth();
@@ -322,6 +323,15 @@ function RouterPage() {
               element={
                 <RequireAuth>
                   <ArchiveField />
+                </RequireAuth>
+              }
+            ></Route>
+
+            <Route
+              path="docs"
+              element={
+                <RequireAuth>
+                  <Docs />
                 </RequireAuth>
               }
             ></Route>
