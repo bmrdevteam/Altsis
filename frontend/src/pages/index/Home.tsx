@@ -38,9 +38,11 @@ import Schedule from "components/schedule/Schedule";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
 import useGenerateId from "hooks/useGenerateId";
+import useApi from "hooks/useApi";
 
 const Home = () => {
   const database = useDatabase();
+  const { EnrollmentApi } = useApi();
   const idGen = useGenerateId;
 
   const { currentSeason, currentUser } = useAuth();
@@ -83,9 +85,14 @@ const Home = () => {
     }
   }
   useEffect(() => {
-    getEnrollments()
+    EnrollmentApi.REnrolllments({
+      season: currentSeason?._id,
+      studentId: currentUser.userId,
+    })
       .then((res) => {
         setEnrollments(res);
+        console.log(res);
+        
       })
       .catch(() => {});
   }, [currentSeason]);
@@ -95,7 +102,7 @@ const Home = () => {
       <QuickSearch />
       <Navbar />
       <div className={style.section}>
-        {/* <Schedule defaultEvents={enrollmentsToEvents(enrollments)} /> */}
+        <Schedule defaultEvents={enrollmentsToEvents(enrollments)} />
       </div>
     </>
   );
