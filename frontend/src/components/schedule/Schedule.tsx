@@ -46,7 +46,7 @@ const useStore = create<ICalendarState>()((set) => {
       })),
     setEvents: (events) =>
       set((state) => ({
-        events:  events,
+        events: events,
       })),
     currentEvent: undefined,
     setCurrentEvent: (id: string) =>
@@ -93,6 +93,7 @@ const EventEditor = () => {
         />
         <div>{currentEvent?.startTime}</div>
         <input type="time" />
+        <div className="btn">저장</div>
       </div>
     </>
   ) : (
@@ -187,13 +188,12 @@ const RowGrid = ({ day }: { day: string }) => {
   );
 };
 function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
-  const { setEvents } = useStore();
-  const today = new Date()
+  const { setEvents, setEditor } = useStore();
+  const today = new Date();
 
   useEffect(() => {
     defaultEvents && setEvents(defaultEvents);
   }, [defaultEvents]);
-  
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -204,7 +204,14 @@ function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
         <div className={style.controls}>
           <div className={style.title}>일정</div>
           <div style={{ flex: "1 1 0" }}></div>
-          <div className={style.btn}>일정추가</div>
+          <div
+            className={style.btn}
+            onClick={() => {
+              setEditor(true);
+            }}
+          >
+            일정추가
+          </div>
           <div>
             <Svg type={"chevronLeft"} width={"24px"} height={"24px"} />
           </div>
