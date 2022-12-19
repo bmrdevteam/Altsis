@@ -39,7 +39,7 @@ import Button from "components/button/Button";
 import Table from "components/table/Table";
 import Popup from "components/popup/Popup";
 
-import exampleData from "./exampleData";
+import exampleData from "../../../exampleData/subjectExampleData";
 
 type Props = {
   setPopupActive: any;
