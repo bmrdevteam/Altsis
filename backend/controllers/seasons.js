@@ -260,7 +260,7 @@ module.exports.updateField = async (req, res) => {
       );
     }
 
-    return res.status(200).send(season);
+    return res.status(200).send(season[field]);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

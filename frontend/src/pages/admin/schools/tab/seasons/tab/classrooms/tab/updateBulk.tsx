@@ -39,12 +39,12 @@ import Button from "components/button/Button";
 import Table from "components/table/Table";
 import Popup from "components/popup/Popup";
 
-import exampleData from "../../../exampleData/classroomsExampleData";
+import exampleData from "../../../../../exampleData/classroomsExampleData";
 
 type Props = {
   setPopupActive: any;
-  schoolData: any;
-  setSchoolData: any;
+  seasonData: any;
+  setSelectedSeason: any;
 };
 
 function Basic(props: Props) {
@@ -62,13 +62,9 @@ function Basic(props: Props) {
   const description = `1. 엑셀을 열어 A1셀에 '강의실'을 입력합니다.\n
 2. 강의실을 B1셀부터 입력합니다.`;
 
-  const parseSubjectObjectList = (objectList: any[]) => {
-    return objectList.map((obj: any) => Object.values(obj));
-  };
-
   async function updateClassrooms(classroomList: any[]) {
     const result = await database.U({
-      location: `schools/${props.schoolData?._id}/classrooms`,
+      location: `seasons/${props.seasonData._id}/classrooms`,
       data: {
         new: classroomList,
       },
@@ -109,6 +105,7 @@ function Basic(props: Props) {
     if (selectedFile) {
       fileToUserList(selectedFile);
     }
+    return () => {};
   }, [selectedFile]);
 
   const handleProfileUploadButtonClick = (
@@ -145,8 +142,8 @@ function Basic(props: Props) {
             onClick={() => {
               updateClassrooms(classroomList)
                 .then((res: any) => {
-                  props.setSchoolData({
-                    ...props.schoolData,
+                  props.setSelectedSeason({
+                    ...props.seasonData,
                     classrooms: res.data,
                   });
                   alert("success");
