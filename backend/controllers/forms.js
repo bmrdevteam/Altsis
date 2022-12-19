@@ -48,7 +48,7 @@ module.exports.update = async (req, res) => {
     if (!form) return res.status(404).send({ message: "form not found" });
 
     //const fields = ["type", "title", "contents"]; // temp-1.1: form의 data가 object type인 경우
-    const fields = ["type", "title", "data"]; // temp1-2. form의 data가 Array type인 경우
+    const fields = ["type", "title", "data", "archived"]; // temp1-2. form의 data가 Array type인 경우
 
     if (req.params.field) {
       if (fields.includes(req.params.field)) {
