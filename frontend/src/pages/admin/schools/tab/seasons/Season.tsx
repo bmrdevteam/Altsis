@@ -286,9 +286,11 @@ const Season = (props: Props) => {
               "기본 정보": (
                 <Basic
                   seasonData={selectedSeason}
+                  setPopupActive={setEditSeasonPopupActive}
                   setIsLoading={setIsLoading}
                 />
               ),
+              사용자: <Users seasonData={selectedSeason} />,
               교과목: (
                 <Subject
                   seasonData={selectedSeason}
@@ -302,7 +304,7 @@ const Season = (props: Props) => {
                 />
               ),
               양식: <Form seasonData={selectedSeason} />,
-              시용자: <Users seasonData={selectedSeason} />,
+
               권한: (
                 <Permission
                   seasonData={selectedSeason}
