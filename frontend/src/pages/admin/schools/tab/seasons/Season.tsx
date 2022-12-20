@@ -46,7 +46,7 @@ import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/Form";
 import Permission from "./tab/Permission";
 import Subject from "./tab/subjects/Subject";
-import Users from "./tab/Users";
+import Users from "./tab/users/Users";
 
 import { useAuth } from "contexts/authContext";
 
