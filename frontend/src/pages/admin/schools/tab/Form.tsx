@@ -26,16 +26,21 @@
  * @version 1.0
  *
  */
+import { useEffect, useState } from "react";
+
+import useDatabase from "hooks/useDatabase";
+
+// components
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Table from "components/table/Table";
-import useDatabase from "hooks/useDatabase";
-import React, { useEffect } from "react";
-import { useState } from "react";
+
 import style from "style/pages/admin/schools.module.scss";
+
 type Props = {
-  seasonData: any;
+  schoolData: any;
 };
+
 const Form = (props: Props) => {
   const database = useDatabase();
   const [selectFormPopupActive, setSelectFormPopupActive] =
@@ -54,28 +59,28 @@ const Form = (props: Props) => {
   }
   async function getSeason() {
     const result = await database.R({
-      location: `seasons/${props.seasonData._id}`,
+      location: `schools/${props.schoolData._id}`,
     });
     return result;
   }
 
   async function updateSeasonFormTimetable(data: any) {
     const result = await database.U({
-      location: `seasons/${props.seasonData._id}/form/timetable`,
+      location: `schools/${props.schoolData._id}/form/timetable`,
       data: { new: data },
     });
     return result;
   }
   async function updateSeasonFormSyllabus(data: any) {
     const result = await database.U({
-      location: `seasons/${props.seasonData._id}/form/syllabus`,
+      location: `schools/${props.schoolData._id}/form/syllabus`,
       data: { new: data },
     });
     return result;
   }
   async function updateSeasonFormEvaluation(data: any) {
     const result = await database.U({
-      location: `seasons/${props.seasonData._id}/form/evaluation`,
+      location: `schools/${props.schoolData._id}/form/evaluation`,
       data: { new: data },
     });
     return result;

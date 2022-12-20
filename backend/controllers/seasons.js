@@ -77,6 +77,13 @@ module.exports.create = async (req, res) => {
       schoolName: school.schoolName,
       classrooms: school.classrooms,
       subjects: school.subjects,
+      permissionSyllabus: school.permissionSyllabus,
+      permissionEnrollment: school.permissionEnrollment,
+      permissionEvaluation: school.permissionEvaluation,
+      formTimetable: school.formTimetable,
+      formSyllabus: school.formSyllabus,
+      formEvaluation: school.formEvaluation,
+      formArchive: school.formArchive,
     });
 
     await season.save();
