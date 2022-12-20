@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (res.registrations) {
         setRegistration(res.registrations);
         setCurrentRegistration(res.registrations[0]);
-        SeasonApi.RGetSeasonById(res.registrations[0].season).then((res) => {
+        SeasonApi.RSeason(res.registrations[0].season).then((res) => {
           setCurrentSeason(res);
         });
       }
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
-    const result = await SeasonApi.RGetSeasonById(registration?.season)
+    const result = await SeasonApi.RSeason(registration?.season)
       .then((res) => {
         setCurrentSeason(res);
       })
