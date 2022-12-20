@@ -77,6 +77,13 @@ module.exports.create = async (req, res) => {
       schoolName: school.schoolName,
       classrooms: school.classrooms,
       subjects: school.subjects,
+      permissionSyllabus: school.permissionSyllabus,
+      permissionEnrollment: school.permissionEnrollment,
+      permissionEvaluation: school.permissionEvaluation,
+      formTimetable: school.formTimetable,
+      formSyllabus: school.formSyllabus,
+      formEvaluation: school.formEvaluation,
+      formArchive: school.formArchive,
     });
 
     await season.save();
@@ -260,7 +267,7 @@ module.exports.updateField = async (req, res) => {
       );
     }
 
-    return res.status(200).send(season);
+    return res.status(200).send(season[field]);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

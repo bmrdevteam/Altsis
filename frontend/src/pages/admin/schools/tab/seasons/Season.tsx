@@ -39,11 +39,13 @@ import { useParams } from "react-router-dom";
 import Tree from "components/tree/Tree";
 import useDatabase from "hooks/useDatabase";
 import style from "style/pages/admin/schools.module.scss";
+
+// tab
 import Basic from "./tab/Basic";
-import Classroom from "./tab/Classroom";
+import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/Form";
 import Permission from "./tab/Permission";
-import Subject from "./tab/Subject";
+import Subject from "./tab/subjects/Subject";
 import Users from "./tab/Users";
 
 import { useAuth } from "contexts/authContext";
@@ -63,6 +65,8 @@ const Season = (props: Props) => {
   const [term, setTerm] = useState<string>();
   const [start, setStart] = useState<string>();
   const [end, setEnd] = useState<string>();
+
+  const [classroomList, setClassroomList] = useState<any[]>([]);
 
   const [addSeasonPopupActive, setAddSeasonPopupActive] =
     useState<boolean>(false);
@@ -112,49 +116,6 @@ const Season = (props: Props) => {
         .catch((err) => alert(err.response.data.message));
     }
   }, [isLoading]);
-
-  const years = () => {
-    let result: { text: string; value: number }[] = [];
-    const date = new Date();
-    const currentYear = date.getFullYear();
-
-    for (let i = 2000; i < currentYear + 50; i++) {
-      result.push({ text: i.toString(), value: i });
-    }
-
-    return result;
-  };
-  // function subjects(subjectObj: any) {
-  //   const unique: any = Array.from(
-  //     new Set(subjectObj.data.map((val: any) => val[0]))
-  //   );
-  //   let sub1: any = {};
-  //   for (let i = 0; i < unique.length; i++) {
-  //     sub1[unique[i]] = Array.from(
-  //       new Set(
-  //         subjectObj.data
-  //           .filter((val: any) => val[0] === unique[i])
-  //           .map((val: string[]) => val[1])
-  //       )
-  //     );
-  //   }
-  //   let sub2: any = {};
-  //   for (let i = 0; i < unique.length; i++) {
-  //     for (let index = 0; index < sub1[unique[i]].length; index++) {
-  //       sub2[`${unique[i]}/${sub1[unique[i]][index]}`] = Array.from(
-  //         new Set(
-  //           subjectObj.data
-  //             .filter(
-  //               (val: any) =>
-  //                 val[0] === unique[i] && val[1] === sub1[unique[i]][index]
-  //             )
-  //             .map((val: string[]) => val[2])
-  //         )
-  //       );
-  //     }
-  //   }
-  //   return [unique, sub1, sub2];
-  // }
 
   return (
     <div className={style.seasons_tab}>
@@ -226,6 +187,7 @@ const Season = (props: Props) => {
               onClick: (e: any) => {
                 getSelectedSeason(e._id).then((res) => {
                   setSelectedSeason(res);
+                  setClassroomList(res.classrooms);
                   setEditSeasonPopupActive(true);
                   console.log(res);
                 });
@@ -327,11 +289,26 @@ const Season = (props: Props) => {
                   setIsLoading={setIsLoading}
                 />
               ),
-              교과목: <Subject seasonData={selectedSeason} />,
-              강의실: <Classroom seasonData={selectedSeason} />,
+              교과목: (
+                <Subject
+                  seasonData={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                />
+              ),
+              강의실: (
+                <Classroom
+                  seasonData={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                />
+              ),
               양식: <Form seasonData={selectedSeason} />,
               시용자: <Users seasonData={selectedSeason} />,
-              권한: <Permission seasonData={selectedSeason} />,
+              권한: (
+                <Permission
+                  seasonData={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                />
+              ),
             }}
             align={"flex-start"}
           />

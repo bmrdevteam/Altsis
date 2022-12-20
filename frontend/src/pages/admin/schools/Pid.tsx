@@ -38,14 +38,16 @@ import Tab from "components/tab/Tab";
 
 // tab elements
 import BasicInfo from "./tab/BasicInfo";
-import Classroom from "./tab/Classroom";
+import Classroom from "./tab/classrooms/Classroom";
 import Season from "./tab/seasons/Season";
-import Subject from "./tab/Subject";
+import Subject from "./tab/subjects/Subject";
 import useDatabase from "../../../hooks/useDatabase";
 import Setting from "./tab/Setting";
 import Skeleton from "../../../components/skeleton/Skeleton";
 import Timetable from "./tab/Timetable";
 import Archive from "./tab/Archive";
+import Form from "./tab/Form";
+import Permission from "./tab/Permission";
 
 type Props = {};
 
@@ -124,10 +126,20 @@ const School = (props: Props) => {
             "기본 정보": <BasicInfo schoolData={schoolData} />,
             학기: <Season />,
             교과목: (
-              <Subject schoolData={schoolData} setIsLoading={setIsLoading} />
+              <Subject schoolData={schoolData} setSchoolData={setSchoolData} />
             ),
             강의실: (
-              <Classroom schoolData={schoolData} setIsLoading={setIsLoading} />
+              <Classroom
+                schoolData={schoolData}
+                setSchoolData={setSchoolData}
+              />
+            ),
+            양식: <Form schoolData={schoolData} />,
+            권한: (
+              <Permission
+                schoolData={schoolData}
+                setSchoolData={setSchoolData}
+              />
             ),
             "시간표(beta)": <Timetable />,
             "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
