@@ -60,13 +60,13 @@ const Http404 = (props: Props) => {
       >
         404
       </strong>
-      <iframe
+      {/* <iframe
         src="https://gifer.com/embed/JwN"
         width={480}
         height={269.76}
         frameBorder="0"
         title="catgif"
-      ></iframe>
+      ></iframe> */}
 
       <div>페이지를 찾을수 없음 </div>
       <div
