@@ -187,7 +187,13 @@ const RowGrid = ({ day }: { day: string }) => {
     </div>
   );
 };
-function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
+function Schedule({
+  defaultEvents,
+  title,
+}: {
+  defaultEvents?: TEvent[];
+  title: string;
+}) {
   const { setEvents, setEditor } = useStore();
   const today = new Date();
 
@@ -202,7 +208,7 @@ function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
     <div className={style.calendar_container}>
       <div className={style.header}>
         <div className={style.controls}>
-          <div className={style.title}>일정</div>
+          <div className={style.title}>{title}</div>
           <div style={{ flex: "1 1 0" }}></div>
           <div
             className={style.btn}
@@ -212,13 +218,13 @@ function Schedule({ defaultEvents }: { defaultEvents?: TEvent[] }) {
           >
             일정추가
           </div>
-          <div>
+          {/* <div>
             <Svg type={"chevronLeft"} width={"24px"} height={"24px"} />
           </div>
           <div>{}</div>
           <div>
             <Svg type={"chevronRight"} width={"24px"} height={"24px"} />
-          </div>
+          </div> */}
           <div>
             <Svg type={"horizontalDots"} width={"24px"} height={"18px"} />
           </div>
