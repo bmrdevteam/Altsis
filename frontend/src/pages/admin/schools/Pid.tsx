@@ -47,6 +47,7 @@ import Skeleton from "../../../components/skeleton/Skeleton";
 import Timetable from "./tab/Timetable";
 import Archive from "./tab/Archive";
 import Form from "./tab/Form";
+import Permission from "./tab/Permission";
 
 type Props = {};
 
@@ -134,6 +135,12 @@ const School = (props: Props) => {
               />
             ),
             양식: <Form schoolData={schoolData} />,
+            권한: (
+              <Permission
+                schoolData={schoolData}
+                setSchoolData={setSchoolData}
+              />
+            ),
             "시간표(beta)": <Timetable />,
             "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
           }}

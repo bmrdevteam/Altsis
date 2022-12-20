@@ -39,6 +39,8 @@ import { useParams } from "react-router-dom";
 import Tree from "components/tree/Tree";
 import useDatabase from "hooks/useDatabase";
 import style from "style/pages/admin/schools.module.scss";
+
+// tab
 import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/Form";
@@ -301,7 +303,12 @@ const Season = (props: Props) => {
               ),
               양식: <Form seasonData={selectedSeason} />,
               시용자: <Users seasonData={selectedSeason} />,
-              권한: <Permission seasonData={selectedSeason} />,
+              권한: (
+                <Permission
+                  seasonData={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                />
+              ),
             }}
             align={"flex-start"}
           />
