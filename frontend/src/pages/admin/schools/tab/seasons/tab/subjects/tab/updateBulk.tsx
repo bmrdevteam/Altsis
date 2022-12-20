@@ -39,13 +39,13 @@ import Button from "components/button/Button";
 import Table from "components/table/Table";
 import Popup from "components/popup/Popup";
 
-import exampleData from "../../../../../exampleData/classroomsExampleData";
+import exampleData from "../../../../../exampleData/subjectExampleData";
 
 type Props = {
   setPopupActive: any;
   seasonData: any;
-  setClassroomList: any;
   setSelectedSeason: any;
+  setSubjectObjectList: any;
 };
 
 function Basic(props: Props) {
@@ -54,20 +54,43 @@ function Basic(props: Props) {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<any>();
 
-  /* classroom list */
-  const [classroomList, setClassroomList] = useState<any[]>([]);
+  /* subject label list */
+  const [subjectLabelList, setSubjectLabelList] = useState<any[]>([]);
+
+  /* subject data header & object list */
+  const [subjectDataHeader, setSubjectDataHeader] = useState<any>([]);
+  const [subjectObjectList, setSubjectObjectList] = useState<any[]>([]);
 
   // popup activation
   const [isHelpPopupActive, setIsHelpPopupActive] = useState<boolean>(false);
 
-  const description = `1. 엑셀을 열어 A1셀에 '강의실'을 입력합니다.\n
-2. 강의실을 B1셀부터 입력합니다.`;
+  const description = `1. 엑셀을 열어 교과목 헤더를 A1셀부터 입력합니다.\n
+2. 교과목 항목을 B1셀부터 입력합니다.`;
 
-  async function updateClassrooms(classroomList: any[]) {
+  const parseSubjectObjectList = (objectList: any[]) => {
+    return objectList.map((obj: any) => Object.values(obj));
+  };
+
+  const parseSubjectDataList = (labalList: any[], dataList: any[]) => {
+    return dataList.map((data: any) =>
+      labalList.reduce(
+        (ac: any[], a: string, idx: number) => ({ ...ac, [a]: data[idx] }),
+        {}
+      )
+    );
+  };
+
+  async function updateSubjects(
+    subjectLabelList: any[],
+    subjectDataList: any[]
+  ) {
     const result = await database.U({
-      location: `seasons/${props.seasonData._id}/classrooms`,
+      location: `seasons/${props.seasonData._id}/subjects`,
       data: {
-        new: classroomList,
+        new: {
+          label: subjectLabelList,
+          data: subjectDataList,
+        },
       },
     });
     return result;
@@ -82,9 +105,10 @@ function Basic(props: Props) {
       var wb = xlsx.read(fileData, { type: "binary" });
       wb.SheetNames.forEach(function (sheetName) {
         var rowObjList = xlsx.utils.sheet_to_json(wb.Sheets[sheetName]);
-        res.push(...rowObjList.map((obj: any) => obj["강의실"] || ""));
+        res.push(...rowObjList);
       });
-      setClassroomList(res);
+      setSubjectLabelList(Object.keys(res[0]));
+      setSubjectObjectList(res);
     };
 
     reader.readAsBinaryString(file);
@@ -106,7 +130,6 @@ function Basic(props: Props) {
     if (selectedFile) {
       fileToUserList(selectedFile);
     }
-    return () => {};
   }, [selectedFile]);
 
   const handleProfileUploadButtonClick = (
@@ -129,23 +152,44 @@ function Basic(props: Props) {
     xlsx.writeFile(wb, `example.xlsx`);
   };
 
+  useEffect(() => {
+    setSubjectDataHeader([
+      {
+        text: "No",
+        key: "",
+        type: "index",
+        width: "48px",
+        align: "center",
+      },
+      ...subjectLabelList.map((label: string) => {
+        return { text: label, key: label, type: "string" };
+      }),
+    ]);
+  }, [subjectLabelList]);
+
   return (
     <>
       <Popup
         setState={props.setPopupActive}
         style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
         closeBtn
-        title="강의실 일괄 생성"
+        title="사용자 일괄 생성"
         contentScroll
         footer={
           <Button
             type={"ghost"}
             onClick={() => {
-              updateClassrooms(classroomList)
+              updateSubjects(
+                subjectLabelList,
+                parseSubjectObjectList(subjectObjectList)
+              )
                 .then((res: any) => {
-                  props.setClassroomList(res.data);
-                  props.seasonData.classrooms = res.data;
+                  props.setSubjectObjectList(
+                    parseSubjectDataList(res.data.label, res.data.data)
+                  );
+                  props.seasonData.subjects = res.data;
                   props.setSelectedSeason(props.seasonData);
+
                   alert("success");
                   props.setPopupActive(false);
                 })
@@ -217,22 +261,9 @@ function Basic(props: Props) {
 
           <div style={{ marginTop: "24px" }}>
             <Table
-              data={classroomList}
-              type="string-array"
-              header={[
-                {
-                  text: "ID",
-                  key: "",
-                  type: "index",
-                  width: "48px",
-                  align: "center",
-                },
-                {
-                  text: "강의실",
-                  key: 0,
-                  type: "string",
-                },
-              ]}
+              type="object-array"
+              data={subjectObjectList}
+              header={subjectDataHeader}
             />
           </div>
         </div>

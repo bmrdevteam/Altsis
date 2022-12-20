@@ -43,7 +43,7 @@ import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/Form";
 import Permission from "./tab/Permission";
-import Subject from "./tab/Subject";
+import Subject from "./tab/subjects/Subject";
 import Users from "./tab/Users";
 
 import { useAuth } from "contexts/authContext";
@@ -287,7 +287,12 @@ const Season = (props: Props) => {
                   setIsLoading={setIsLoading}
                 />
               ),
-              교과목: <Subject seasonData={selectedSeason} />,
+              교과목: (
+                <Subject
+                  seasonData={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                />
+              ),
               강의실: (
                 <Classroom
                   seasonData={selectedSeason}
