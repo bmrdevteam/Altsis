@@ -141,7 +141,7 @@ export default function useApi() {
    * @auth member
    * @returns Season
    */
-  async function RGetSeasonById(id: string) {
+  async function RSeason(id: string) {
     const result = await database.R({ location: `seasons/${id}` });
     return result;
   }
@@ -352,8 +352,11 @@ export default function useApi() {
     UserApi: {
       CLoginLocal,
       RMySelf,
+      RLogout,
+      CGoogleLocal,
+      CConnectGoogle,
     },
-    SeasonApi: { RGetSeasonById },
+    SeasonApi: { RSeason },
     SchoolApi: {
       CSchools,
       RSchools,
