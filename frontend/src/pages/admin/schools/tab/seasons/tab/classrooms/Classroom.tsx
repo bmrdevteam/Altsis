@@ -101,6 +101,8 @@ const Classroom = (props: Props) => {
                 updateClassrooms([...classroomList, classroomRef.current])
                   .then((res: any) => {
                     setClassroomList(res.data);
+                    props.seasonData.classrooms = res.data;
+                    props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
                   .catch((err) => {
@@ -117,6 +119,8 @@ const Classroom = (props: Props) => {
               updateClassrooms([...classroomList, classroomRef.current])
                 .then((res: any) => {
                   setClassroomList(res.data);
+                  props.seasonData.classrooms = res.data;
+                  props.setSelectedSeason(props.seasonData);
                   alert("success");
                 })
                 .catch((err) => {
@@ -184,7 +188,8 @@ const Classroom = (props: Props) => {
         <UpdateBulk
           setPopupActive={setUpdateBulkPopupActive}
           seasonData={props.seasonData}
-          setSelectedSeason={props.setSelectedSeason} // setClassroomList를 넘겨선 수정하고 다른 탭 갔다 돌아오면 원상복구됨... 왤까?
+          setClassroomList={setClassroomList}
+          setSelectedSeason={props.setSelectedSeason}
         />
       )}
     </>
