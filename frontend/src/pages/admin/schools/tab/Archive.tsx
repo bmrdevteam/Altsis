@@ -1,7 +1,6 @@
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
-import { useAuth } from "contexts/authContext";
+import Table from "components/tableV2/Table";
 import useDatabase from "hooks/useDatabase";
 import React, { useEffect, useState } from "react";
 type Props = {
@@ -55,33 +54,40 @@ function Archive(props: Props) {
 
         <Table
           type="object-array"
-          filter
-          filterSearch
-          data={archiveForm}
+          control
+          data={archiveForm ?? []}
           header={[
             {
-              text: "label",
+              text: "이름",
               key: "label",
-              type: "string",
+              type: "text",
             },
             {
               text: "데이터 형식",
               key: "dataType",
-              type: "string",
-              returnFunction: (value: any) => {
-                return value === "object" ? "단일" : "누적";
+              type: "status",
+              textAlign: "center",
+              width: "120px",
+              status: {
+                object: {
+                  text: "단일",
+                  color: "#3a44b5",
+                },
+                array: {
+                  text: "누적",
+                  color: "#c95636",
+                },
               },
             },
             {
               text: "자세히",
-              key: "",
               type: "button",
               onClick: (value: any) => {
                 setEditArchivePopupActive(true);
                 setEditArchivefield(value.label);
               },
               width: "80px",
-              align: "center",
+              textAlign: "center",
             },
           ]}
         />
@@ -118,8 +124,6 @@ function Archive(props: Props) {
           </Button>
           <Table
             type="object-array"
-            filter
-            filterSearch
             data={
               archiveForm?.filter(
                 (val: any) => val.label === editArchivefield
@@ -129,7 +133,7 @@ function Archive(props: Props) {
               {
                 text: "필드 이름",
                 key: "label",
-                type: "input",
+                type: "text",
               },
 
               {
@@ -138,7 +142,7 @@ function Archive(props: Props) {
                 type: "button",
                 onClick: (e: any) => {},
                 width: "80px",
-                align: "center",
+                textAlign: "center",
               },
             ]}
           />
