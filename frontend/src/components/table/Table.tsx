@@ -15,9 +15,8 @@ import { useEffect } from "react";
 import useSearch from "hooks/useSearch";
 import { useRef } from "react";
 import Select from "components/select/Select";
-import objectDownloadAsJson from "functions/objectDownloadAsJson";
-import objectDownloadAsCSV from "functions/objectDownloadAsCSV";
 import _, { isNumber } from "lodash";
+import { objectDownloadAsCSV, objectDownloadAsJson } from "functions/functions";
 
 export type TTableHeaderItem = {
   text: string;
