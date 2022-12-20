@@ -48,12 +48,6 @@ const Home = () => {
   const { currentSeason, currentUser } = useAuth();
   const [enrollments, setEnrollments] = useState<any>();
 
-  async function getEnrollments() {
-    const { enrollments: result } = await database.R({
-      location: `enrollments?season=${currentSeason?._id}&studentId=${currentUser.userId}`,
-    });
-    return result;
-  }
   function enrollmentsToEvents(data: any[]) {
     if (data) {
       let result: any[] = [];
@@ -92,7 +86,6 @@ const Home = () => {
       .then((res) => {
         setEnrollments(res);
         console.log(res);
-        
       })
       .catch(() => {});
   }, [currentSeason]);
@@ -102,7 +95,10 @@ const Home = () => {
       <QuickSearch />
       <Navbar />
       <div className={style.section}>
-        <Schedule defaultEvents={enrollmentsToEvents(enrollments)} />
+        <Schedule
+          defaultEvents={enrollmentsToEvents(enrollments)}
+          title={`${currentSeason?.year??""} ${currentSeason?.term ??""} 일정`}
+        />
       </div>
     </>
   );
