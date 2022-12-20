@@ -36,8 +36,8 @@ import style from "../../../style/pages/settings/settings.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 import Button from "components/button/Button";
 import useDatabase from "../../../hooks/useDatabase";
-import validate from "functions/validate";
 import Popup from "components/popup/Popup";
+import { validate } from "functions/functions";
 
 type Props = {};
 
