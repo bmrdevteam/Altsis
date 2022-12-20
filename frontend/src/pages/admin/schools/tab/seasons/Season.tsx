@@ -32,7 +32,7 @@ import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -175,53 +175,63 @@ const Season = (props: Props) => {
       <div style={{ marginTop: "24px" }}>
         <Table
           type="object-array"
-          data={seasons?.sort((a, b) => {
-            return (
-              new Date(b.period?.start).getTime() -
-              new Date(a.period?.start).getTime()
-            );
-          })}
+          data={
+            seasons?.sort((a, b) => {
+              return (
+                new Date(b.period?.start).getTime() -
+                new Date(a.period?.start).getTime()
+              );
+            }) ?? []
+          }
           header={[
             {
               text: "ID",
-              key: "",
-              type: "index",
+              type: "text",
+              key: "tableRowIndex",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
             {
               text: "학년도",
               key: "year",
-              type: "string",
+              type: "text",
             },
             {
               text: "학기",
               key: "term",
-              type: "string",
+              type: "text",
             },
             {
-              text: "period",
-              key: "period",
-              type: "string",
-              returnFunction: (value) => {
-                if ((value?.start || value?.end) === undefined) {
-                  return "없음";
-                }
-                return `${value?.start} ~ ${value?.end}`;
-              },
+              text: "시작",
+              key: "period.start",
+              textAlign: "center",
+              type: "text",
+              width: "120px",
+            },
+            {
+              text: "끝",
+              key: "period.end",
+              type: "text",
+              textAlign: "center",
+              width: "120px",
             },
             {
               text: "상태",
               key: "isActivated",
-              type: "string",
-
-              returnFunction: (e: boolean) => {
-                return e ? "활성화됨" : "비활성화됨";
+              width: "120px",
+              textAlign: "center",
+              type: "status",
+              status: {
+                false: { text: "비활성화됨", color: "red" },
+                true: { text: "활성화됨", color: "green" },
               },
+
+              // returnFunction: (e: boolean) => {
+              //   return e ? "활성화됨" : "비활성화됨";
+              // },
             },
             {
               text: "자세히",
-              key: "_id",
               type: "button",
               onClick: (e: any) => {
                 getSelectedSeason(e._id).then((res) => {
@@ -231,7 +241,7 @@ const Season = (props: Props) => {
                 });
               },
               width: "80px",
-              align: "center",
+              textAlign: "center",
             },
           ]}
         />
