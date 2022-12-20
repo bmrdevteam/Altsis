@@ -41,8 +41,8 @@ import Select from "components/select/Select";
 import _ from "lodash";
 
 type Props = {
-  seasonData: any;
-  setSelectedSeason: any;
+  schoolData: any;
+  setSchoolData: any;
 };
 
 const Permission = (props: Props) => {
@@ -50,13 +50,13 @@ const Permission = (props: Props) => {
 
   /* document list */
   const [permissionSyllabus, setPermissionSyllabus] = useState<any>(
-    props.seasonData.permissionSyllabus
+    props.schoolData.permissionSyllabus
   );
   const [permissionEnrollment, setPermissionEnrollment] = useState<any>(
-    props.seasonData.permissionEnrollment
+    props.schoolData.permissionEnrollment
   );
   const [permissionEvaluation, setPermissionEvaluation] = useState<any>(
-    props.seasonData.permissionEvaluation
+    props.schoolData.permissionEvaluation
   );
 
   /* additional document list */
@@ -118,7 +118,7 @@ const Permission = (props: Props) => {
 
   async function updatePermission(_permission: any) {
     const result = await database.U({
-      location: `seasons/${props.seasonData?._id}/permission/${permissionType}`,
+      location: `schools/${props.schoolData?._id}/permission/${permissionType}`,
       data: {
         new: _permission,
       },
@@ -127,17 +127,17 @@ const Permission = (props: Props) => {
     return result;
   }
 
-  async function getRegistrationList() {
-    const { registrations } = await database.R({
-      location: `registrations?season=${props.seasonData._id}`,
+  async function getSchoolUserList() {
+    const { users } = await database.R({
+      location: `users?schools.school=${props.schoolData?._id}`,
     });
 
-    return registrations;
+    return users;
   }
 
   useEffect(() => {
     if (editPopupActive) {
-      getRegistrationList().then((res) => {
+      getSchoolUserList().then((res) => {
         setRegistrationList([
           {
             text: "",
@@ -344,16 +344,16 @@ const Permission = (props: Props) => {
                     alert("success");
                     if (permissionType === "syllabus") {
                       setPermissionSyllabus(res.data);
-                      props.seasonData.permissionSyllabus = res.data;
-                      props.setSelectedSeason(props.seasonData);
+                      props.schoolData.permissionSyllabus = res.data;
+                      props.setSchoolData(props.schoolData);
                     } else if (permissionType === "enrollment") {
                       setPermissionEnrollment(res.data);
-                      props.seasonData.permissionEnrollment = res.data;
-                      props.setSelectedSeason(props.seasonData);
+                      props.schoolData.permissionEnrollment = res.data;
+                      props.setSchoolData(props.schoolData);
                     } else if (permissionType === "evaluation") {
                       setPermissionEvaluation(res.data);
-                      props.seasonData.permissionEvaluation = res.data;
-                      props.setSelectedSeason(props.seasonData);
+                      props.schoolData.permissionEvaluation = res.data;
+                      props.setSchoolData(props.schoolData);
                     }
                   })
                   .catch((err) => {
