@@ -46,6 +46,7 @@ import Setting from "./tab/Setting";
 import Skeleton from "../../../components/skeleton/Skeleton";
 import Timetable from "./tab/Timetable";
 import Archive from "./tab/Archive";
+import Form from "./tab/Form";
 
 type Props = {};
 
@@ -132,6 +133,7 @@ const School = (props: Props) => {
                 setSchoolData={setSchoolData}
               />
             ),
+            양식: <Form schoolData={schoolData} />,
             "시간표(beta)": <Timetable />,
             "학생정보 관리(archive)": <Archive schoolData={schoolData} />,
           }}
