@@ -279,6 +279,11 @@ exports.delete = async (req, res) => {
   try {
     const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send();
+
+    await Registration(req.user.academyId).deleteMany({
+      season: season._id,
+    });
+
     await season.delete();
     return res.status(200).send();
   } catch (err) {

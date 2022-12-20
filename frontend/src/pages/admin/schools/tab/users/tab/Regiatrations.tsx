@@ -60,6 +60,7 @@ function Registrations(props: Props) {
   useEffect(() => {
     getRegistrationList().then((res: any) => {
       setRegistrationList(res);
+      console.log("res is ", res);
     });
 
     return () => {};
@@ -107,21 +108,20 @@ function Registrations(props: Props) {
                 type: "string",
               },
               {
+                text: "선생님 Id",
+                key: "teacherId",
+                type: "string",
+              },
+              {
+                text: "선생님 이름",
+                key: "teacherName",
+                type: "string",
+              },
+              {
                 text: "활성화",
                 key: "isActivated",
                 type: "string",
                 returnFunction: (e) => (e ? "활성화됨" : "비활성화됨"),
-              },
-              {
-                text: "수정",
-                key: "_id",
-                type: "button",
-                onClick: (e: any) => {
-                  setRegistration(e);
-                  setEditPopupActive(true);
-                },
-                width: "72px",
-                align: "center",
               },
             ]}
           />
