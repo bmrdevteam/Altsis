@@ -35,7 +35,7 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import _ from "lodash";
 
@@ -83,7 +83,7 @@ const Subjects = (props: Props) => {
       subjectDataList.push({
         text: subjectLabelList[j],
         key: subjectLabelList[j],
-        type: "string",
+        type: "text",
       });
     }
     setSubjectDataHeader(subjectDataList);
@@ -208,22 +208,25 @@ const Subjects = (props: Props) => {
 
       <div style={{ marginTop: "24px" }} />
       <Table
+        control
+        defaultPageBy={10}
         type="object-array"
         data={subjectDataList || []}
         header={[
           {
             text: "ID",
-            key: "",
-            type: "index",
-            width: "48px",
-            align: "center",
+            key: "tableRowIndex",
+            type: "text",
+            width: "72px",
+            textAlign: "center",
           },
           ...subjectDataHeader,
           {
             text: "삭제",
-            key: "index",
             type: "button",
+            textAlign: "center",
             onClick: (e: any) => {
+              delete e['tableRowIndex']
               subjectDataList.splice(
                 _.findIndex(subjectDataList, (x) => _.isEqual(x, e)),
                 1
@@ -232,12 +235,6 @@ const Subjects = (props: Props) => {
             },
             width: "80px",
             align: "center",
-            textStyle: {
-              padding: "0 10px",
-              border: "var(--border-default)",
-              background: "rgba(255, 200, 200, 0.25)",
-              borderColor: "rgba(255, 200, 200)",
-            },
           },
         ]}
       />
