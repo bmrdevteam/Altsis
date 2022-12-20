@@ -50,24 +50,57 @@ module.exports.find = async (req, res) => {
   }
 };
 
+// module.exports.updateField = async (req, res) => {
+//   try {
+//     if (["subjects", "classrooms", "form"].indexOf(req.params.field) == -1)
+//       return res.status(400).send();
+
+//     const school = await School(req.user.academyId).findById(req.params._id);
+//     if (!school) return res.status(404).send({ message: "school not found" });
+
+//     let field = req.params.field;
+//     if (req.params.fieldType)
+//       field +=
+//         req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
+
+//     school[field] = req.body.new;
+//     await school.save();
+//     return res.status(200).send(school[field]);
+//   } catch (err) {
+//     return res.status(500).send({ message: err.message });
+//   }
+// };
+
 module.exports.updateField = async (req, res) => {
   try {
-    if (["subjects", "classrooms", "form"].indexOf(req.params.field) == -1)
-      return res.status(400).send();
-
-    const school = await School(req.user.academyId).findById(req.params._id);
-    if (!school) return res.status(404).send({ message: "school not found" });
-
     let field = req.params.field;
     if (req.params.fieldType)
       field +=
         req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
 
+    if (
+      [
+        "subjects",
+        "classrooms",
+        "formTimetable",
+        "formSyllabus",
+        "formEvaluation",
+        "formArchive",
+        "permissionSyllabus",
+        "permissionEnrollment",
+        "permissionEvaluation",
+      ].indexOf(field) == -1
+    )
+      return res.status(400).send();
+
+    const school = await School(req.user.academyId).findById(req.params._id);
+    if (!school) return res.status(404).send({ message: "school not found" });
     school[field] = req.body.new;
     await school.save();
-    return res.status(200).send(school);
+
+    return res.status(200).send(school[field]);
   } catch (err) {
-    return res.status(500).send({ message: err.message });
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
 

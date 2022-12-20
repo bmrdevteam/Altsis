@@ -394,7 +394,11 @@ function Basic(props: Props) {
           style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
         >
           <div className={style.popup}>
-            <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+            <div
+              style={{
+                whiteSpace: "pre-wrap",
+              }}
+            >
               {description}
             </div>
 
