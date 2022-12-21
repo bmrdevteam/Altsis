@@ -122,6 +122,7 @@
             background: var(--background-color);
             padding: 0 12px;
             height: 48px;
+            white-space: pre;
 
             cursor: pointer;
             position: relative;
@@ -180,6 +181,54 @@
         .item.checkbox {
             cursor: pointer;
             vertical-align: center;
+
+        }
+
+        .item.input:hover {
+            background-color: var(--background-color);
+        }
+
+        .item.input {
+            padding: 0;
+
+
+            textarea {
+                padding: 12px;
+                height: auto;
+                width: 100%;
+                border: none;
+                font-family: 'Pretendard';
+                resize: none;
+                font-size: inherit;
+                text-align: inherit;
+                font-weight: inherit;
+            }
+
+            input {
+                border: none;
+                padding: 12px;
+                height: 100%;
+                width: 100%;
+                font-family: 'Pretendard';
+                font-size: inherit;
+                text-align: inherit;
+                font-weight: inherit;
+            }
+
+            select {
+                border: none;
+                padding: 12px;
+                width: 100%;
+                font-family: 'Pretendard';
+                font-size: inherit;
+                text-align: inherit;
+                font-weight: inherit;
+            }
+
+            .byte_calc {
+                font-size: 12px;
+                text-align: center;
+            }
 
         }
     }
