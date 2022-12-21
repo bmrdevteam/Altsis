@@ -35,15 +35,28 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
   const [open, setOpen] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const { currentUser, currentSchool } = useAuth();
+  const { currentUser, currentSchool, changeSchool } = useAuth();
   console.log(currentSchool);
-  
+
   return (
     <div className={style.nav_logo}>
       <span className={style.icon} onClick={onClick}>
         {<Svg type="menu" width="24px" height="24px" />}
       </span>
-      <div
+      <select
+        className={style.logo}
+        style={{ border: "none", outline: "none", background: "transparent" }}
+        name=""
+        onChange={(e) => {
+          changeSchool(e.target.value);
+        }}
+        id=""
+      >
+        {currentUser.schools.map((s: any) => {
+          return <option key={s.school} value={s.school}>{s.schoolName}</option>;
+        })}
+      </select>
+      {/* <div
         className={style.logo}
         onClick={() => {
           // navigate("/", { replace: true });
@@ -55,7 +68,7 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
       </div>
       <div className={style.caret}>
         <Svg type={"caretDown"} />
-      </div>
+      </div> */}
     </div>
   );
 };
@@ -171,6 +184,11 @@ const NavProfile = () => {
                 );
               }}
               alt="profile"
+              onClick={() => {
+                currentUser?.userId
+                  ? navigate("/settings", { replace: true })
+                  : navigate("/login", { replace: true });
+              }}
             />
           </div>
           <div className={style.profile_info}>
