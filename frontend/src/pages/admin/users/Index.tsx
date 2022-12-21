@@ -78,7 +78,7 @@ const Users = (props: Props) => {
         school?._id ? `schools.school=${school._id}` : `no-school=true`
       }`,
     });
-    return _.filter(res, (user) => user.auth !== "admin");
+    return res;
   }
 
   const schools = () => {
@@ -103,7 +103,9 @@ const Users = (props: Props) => {
   async function deleteUsers() {
     const res = await database.D({
       location: `users/${_.join(
-        userSelectRef.current.map((user) => user._id),
+        _.filter(userSelectRef.current, (user) => user.auth !== "admin").map(
+          (user) => user._id
+        ),
         "&"
       )}`,
     });

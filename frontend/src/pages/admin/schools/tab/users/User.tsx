@@ -75,7 +75,7 @@ const Users = (props: Props) => {
     const { users: res } = await database.R({
       location: `users?schools.school=${props.schoolData._id}`,
     });
-    return _.filter(res, (user) => user.auth !== "admin");
+    return res;
   }
 
   useEffect(() => {
@@ -149,6 +149,7 @@ const Users = (props: Props) => {
           style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
           closeBtn
           title={`${user.userName}(${user.userId})`}
+          contentScroll
         >
           <Tab
             dontUsePaths
