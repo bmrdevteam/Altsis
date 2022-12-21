@@ -161,40 +161,51 @@ const Users = (props: Props) => {
                 width: "48px",
               },
               {
+                text: "역할",
+                key: "role",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  teacher: { text: "선생님", color: "blue" },
+                  student: { text: "학생", color: "orange" },
+                },
+              },
+              {
                 text: "ID",
                 key: "userId",
                 type: "text",
+                textAlign: "center",
               },
               {
                 text: "이름",
                 key: "userName",
                 type: "text",
-              },
-              {
-                text: "역할",
-                key: "role",
-                type: "text",
+                textAlign: "center",
               },
 
               {
                 text: "학년",
                 key: "grade",
                 type: "text",
+                textAlign: "center",
               },
               {
                 text: "그룹",
                 key: "group",
                 type: "text",
+                textAlign: "center",
               },
               {
                 text: "선생님 ID",
                 key: "teacherId",
                 type: "text",
+                textAlign: "center",
               },
               {
                 text: "선생님 이름",
                 key: "teacherName",
                 type: "text",
+                textAlign: "center",
               },
               {
                 text: "수정",

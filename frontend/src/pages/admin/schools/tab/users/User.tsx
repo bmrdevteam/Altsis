@@ -113,7 +113,9 @@ const Users = (props: Props) => {
                 width: "48px",
                 textAlign: "center",
               },
+
               { text: "ID", key: "userId", type: "text", textAlign: "center" },
+
               {
                 text: "이름",
                 key: "userName",
@@ -122,10 +124,16 @@ const Users = (props: Props) => {
               },
 
               {
-                text: "auth",
+                text: "등급",
                 key: "auth",
-                type: "text",
                 textAlign: "center",
+                type: "status",
+                status: {
+                  admin: { text: "관리자", color: "red" },
+                  manager: { text: "매니저", color: "purple" },
+                  member: { text: "멤버", color: "gray" },
+                },
+                width: "100px",
               },
               {
                 text: "자세히",

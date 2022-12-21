@@ -257,22 +257,28 @@ const Users = (props: Props) => {
                 textAlign: "center",
               },
 
-              {
-                text: "학교",
-                key: "schools",
-                type: "text",
+              // {
+              //   text: "학교",
+              //   key: "schools",
+              //   type: "text",
 
-                // returnFunction: (val) =>
-                //   _.join(
-                //     val.map((school: any) => school.schoolName),
-                //     ", "
-                //   ),
-              },
+              //   // returnFunction: (val) =>
+              //   //   _.join(
+              //   //     val.map((school: any) => school.schoolName),
+              //   //     ", "
+              //   //   ),
+              // },
               {
-                text: "auth",
+                text: "등급",
                 key: "auth",
-                type: "text",
                 textAlign: "center",
+                type: "status",
+                status: {
+                  admin: { text: "관리자", color: "red" },
+                  manager: { text: "매니저", color: "purple" },
+                  member: { text: "멤버", color: "gray" },
+                },
+                width: "100px",
               },
               {
                 text: "자세히",
