@@ -1,16 +1,26 @@
 import React, { useCallback, useEffect, useState } from "react";
 import style from "./table.module.scss";
-import _, { isArray, isBoolean, isNumber } from "lodash";
+import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
 import { flattenObject } from "functions/functions";
 import useOutsideClick from "hooks/useOutsideClick";
 
-type TTableItems = "text" | "checkbox" | "button" | "status";
+type TTableItems =
+  | "text"
+  | "checkbox"
+  | "button"
+  | "rowEdit"
+  | "status"
+  | "input"
+  | "input-number"
+  | "select";
 type TTableHeader = {
   text: string;
   type: TTableItems;
   key?: string;
   width?: string;
+  byteCalc?: boolean;
+  whiteSpace?: "pre" | "normal";
   textAlign?: "left" | "center" | "right";
   fontSize?: string;
   fontWeight?:
@@ -38,6 +48,7 @@ type TTableHeader = {
     padding?: string;
     border?: boolean;
   };
+  option?: string[];
   onClick?: (value: any) => void;
 };
 type Props = {
@@ -71,6 +82,16 @@ const Table = (props: Props) => {
     searchParam: "",
     searchParamName: "",
   });
+  const [addRowData, setAddRowData] = useState<any>(
+    props.header
+      .map((h) => {
+        if (h.key) return h.key;
+      })
+      .reduce((acc: any, value) => {
+        acc[`${value}`] = "";
+        return acc;
+      }, {})
+  );
   const moreOutSideClick = useOutsideClick();
   const filteredData = useCallback(() => {
     let result = [];
@@ -132,6 +153,16 @@ const Table = (props: Props) => {
             }),
           ] ?? [],
       }));
+      setAddRowData(
+        props.header
+          .map((h) => {
+            if (h.key) return h.key;
+          })
+          .reduce((acc: any, value) => {
+            acc[`${value}`] = "";
+            return acc;
+          }, {})
+      );
     } else {
       setTableData((prev) => ({
         ...prev,
@@ -147,9 +178,13 @@ const Table = (props: Props) => {
       }));
     }
   }, [props.data]);
-  function callOnChangeFunc() {
+  function callOnChangeFunc(data?: any) {
     if (props.onChange) {
-      props.onChange(tableData.data);
+      if (data) {
+        props.onChange(data);
+      } else {
+        props.onChange(tableData.data);
+      }
     }
   }
 
@@ -371,7 +406,9 @@ const Table = (props: Props) => {
               default:
                 return (
                   <th
-                    style={{ textAlign: val.textAlign }}
+                    style={{
+                      textAlign: val.textAlign,
+                    }}
                     className={style.item_container}
                     key={index}
                     onClick={() => {
@@ -398,6 +435,218 @@ const Table = (props: Props) => {
         </tr>
       </thead>
       <tbody>
+        {props.header.filter((h) => h.type === "rowEdit").length > 0 && (
+          <tr key={"tableAddRow"}>
+            {props.header.map((val, index) => {
+              switch (val.type) {
+                case "checkbox":
+                  return (
+                    <td
+                      style={{ textAlign: val.textAlign }}
+                      className={`${style.item} ${style.checkbox}`}
+                      key={index}
+                    >
+                      <span className={style.icon}>
+                        <Svg type="checkbox" width="20px" height="20px" />
+                      </span>
+                    </td>
+                  );
+                case "button":
+                  return (
+                    <td
+                      style={{
+                        textAlign: val.textAlign,
+                        fontSize: val.fontSize,
+                        fontWeight: val.fontWeight,
+                        cursor: "pointer",
+                      }}
+                      className={style.item}
+                      key={index}
+                    >
+                      <span
+                        style={{
+                          color: val.btnStyle?.color,
+                          background: val.btnStyle?.background,
+                          border: val.btnStyle?.border ? "1px solid" : "",
+                          borderRadius: val.btnStyle?.round ? "4px" : "",
+                          padding: val.btnStyle?.padding,
+                        }}
+                      >
+                        {val.text}
+                      </span>
+                    </td>
+                  );
+                case "status":
+                  return (
+                    <td
+                      style={{ textAlign: val.textAlign }}
+                      className={style.item}
+                      key={index}
+                    >
+                      <select >
+                        {Object.keys(val.status as any).map((a) => {
+                          return <option value={a}>a</option>;
+                        })}
+                      </select>
+                    </td>
+                  );
+                case "input-number":
+                  return (
+                    <td
+                      style={{
+                        whiteSpace: val.whiteSpace,
+                        textAlign: val.textAlign,
+                        fontSize: val.fontSize,
+                        fontWeight: val.fontWeight,
+                      }}
+                      className={`${style.item} ${style.input}`}
+                      key={index}
+                    >
+                      <input
+                        value={addRowData[`${val.key}`]}
+                        type="number"
+                        onChange={(e) => {
+                          setAddRowData((prev: any) => ({
+                            ...prev,
+                            [`${val.key}`]: e.target.value,
+                          }));
+                        }}
+                      />
+                      {val.byteCalc && (
+                        <div className={style.byte_calc}>
+                          {encodeURIComponent(addRowData[`${val.key}`]).length}{" "}
+                          bytes
+                        </div>
+                      )}
+                    </td>
+                  );
+                case "select":
+                  return (
+                    <td
+                      style={{
+                        whiteSpace: val.whiteSpace,
+                        textAlign: val.textAlign,
+                        fontSize: val.fontSize,
+                        fontWeight: val.fontWeight,
+                      }}
+                      className={`${style.item} ${style.input}`}
+                      key={index}
+                    >
+                      <select
+                        value={addRowData[`${val.key}`]}
+                        onChange={(e) => {
+                          setAddRowData((prev: any) => ({
+                            ...prev,
+                            [`${val.key}`]: e.target.value,
+                          }));
+                        }}
+                      >
+                        <option key={`nothing`} value={""}></option>
+                        {val.option?.map((opt, index) => {
+                          return (
+                            <option key={`${opt}-${index}`} value={opt}>
+                              {opt}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </td>
+                  );
+                case "rowEdit":
+                  return (
+                    <td
+                      style={{
+                        textAlign: val.textAlign,
+                        fontSize: val.fontSize,
+                        fontWeight: val.fontWeight,
+                        cursor: "pointer",
+                      }}
+                      className={style.item}
+                      key={index}
+                      onClick={() => {
+                        let data: any = [];
+                        if (tableData.data.length > 0) {
+                          data = [
+                            ...tableData.data,
+                            {
+                              tableRowIndex:
+                                Math.max(
+                                  ...tableData.data.map(
+                                    (obj) => obj.tableRowIndex
+                                  )
+                                ) + 1,
+                              ...addRowData,
+                            },
+                          ];
+                        } else {
+                          data = [
+                            ...tableData.data,
+                            {
+                              tableRowIndex: 1,
+                              ...addRowData,
+                            },
+                          ];
+                        }
+
+                        setTableData((prev) => {
+                          callOnChangeFunc(data);
+                          return {
+                            ...prev,
+                            data: data,
+                          };
+                        });
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "blue",
+                          background: "rgb(241 241 255)",
+                          border: "1px solid",
+                          borderRadius: "4px",
+                          padding: "4px",
+                        }}
+                      >
+                        {"추가"}
+                      </span>
+                    </td>
+                  );
+                default:
+                  return (
+                    <td
+                      style={{
+                        whiteSpace: val.whiteSpace,
+                        textAlign: val.textAlign,
+                        fontSize: val.fontSize,
+                        fontWeight: val.fontWeight,
+                      }}
+                      className={`${style.item} ${style.input}`}
+                      key={index}
+                    >
+                      <textarea
+                        onKeyUp={(e) => {
+                          const scrollHeight = e.currentTarget.scrollHeight;
+                          e.currentTarget.style.height = scrollHeight + "px";
+                        }}
+                        value={addRowData[`${val.key}`]}
+                        onChange={(e) => {
+                          setAddRowData((prev: any) => ({
+                            ...prev,
+                            [`${val.key}`]: e.target.value,
+                          }));
+                        }}
+                      ></textarea>
+                      {val.byteCalc && (
+                        <div className={style.byte_calc}>
+                          {encodeURIComponent(addRowData[`${val.key}`]).length}{" "}
+                          bytes
+                        </div>
+                      )}
+                    </td>
+                  );
+              }
+            })}
+          </tr>
+        )}
         {props.data &&
           isArray(props.data) &&
           slicedTableData().map((row, rowIndex) => {
@@ -501,10 +750,165 @@ const Table = (props: Props) => {
                             ))}
                         </td>
                       );
+                    case "input":
+                      return (
+                        <td
+                          style={{
+                            whiteSpace: val.whiteSpace,
+                            textAlign: val.textAlign,
+                            fontSize: val.fontSize,
+                            fontWeight: val.fontWeight,
+                          }}
+                          className={`${style.item} ${style.input}`}
+                          key={index}
+                        >
+                          <textarea
+                            onKeyUp={(e) => {
+                              const scrollHeight = e.currentTarget.scrollHeight;
+                              e.currentTarget.style.height =
+                                scrollHeight + "px";
+                            }}
+                            value={row[`${val.key}`]}
+                            onChange={(e) => {
+                              const arr = [...tableData.data];
+                              const ii = tableData.data.findIndex(
+                                (r) => r.tableRowIndex === row.tableRowIndex
+                              );
+                              arr[ii][`${val.key}`] = e.target.value;
+                              setTableData((prev) => ({
+                                ...prev,
+                                data: arr,
+                              }));
+                              callOnChangeFunc();
+                            }}
+                          ></textarea>
+                          {val.byteCalc && (
+                            <div className={style.byte_calc}>
+                              {encodeURIComponent(row[`${val.key}`]).length}{" "}
+                              bytes
+                            </div>
+                          )}
+                        </td>
+                      );
+                    case "input-number":
+                      return (
+                        <td
+                          style={{
+                            whiteSpace: val.whiteSpace,
+                            textAlign: val.textAlign,
+                            fontSize: val.fontSize,
+                            fontWeight: val.fontWeight,
+                          }}
+                          className={`${style.item} ${style.input}`}
+                          key={index}
+                        >
+                          <input
+                            value={parseInt(row[`${val.key}`]) || 0}
+                            type="number"
+                            onChange={(e) => {
+                              const arr = [...tableData.data];
+                              const ii = tableData.data.findIndex(
+                                (r) => r.tableRowIndex === row.tableRowIndex
+                              );
+                              arr[ii][`${val.key}`] = parseInt(e.target.value);
+                              setTableData((prev) => ({
+                                ...prev,
+                                data: arr,
+                              }));
+                              callOnChangeFunc();
+                            }}
+                          />
+                          {val.byteCalc && (
+                            <div className={style.byte_calc}>
+                              {encodeURIComponent(row[`${val.key}`]).length}{" "}
+                              bytes
+                            </div>
+                          )}
+                        </td>
+                      );
+                    case "select":
+                      return (
+                        <td
+                          style={{
+                            whiteSpace: val.whiteSpace,
+                            textAlign: val.textAlign,
+                            fontSize: val.fontSize,
+                            fontWeight: val.fontWeight,
+                          }}
+                          className={`${style.item} ${style.input}`}
+                          key={index}
+                        >
+                          <select
+                            value={row[`${val.key}`]}
+                            onChange={(e) => {
+                              const arr = [...tableData.data];
+                              const ii = tableData.data.findIndex(
+                                (r) => r.tableRowIndex === row.tableRowIndex
+                              );
+                              arr[ii][`${val.key}`] = e.target.value;
+                              setTableData((prev) => ({
+                                ...prev,
+                                data: arr,
+                              }));
+                              callOnChangeFunc();
+                            }}
+                          >
+                            <option key={`nothing`} value={""}></option>
+                            {val.option?.map((opt, index) => {
+                              return (
+                                <option key={`${opt}-${index}`} value={opt}>
+                                  {opt}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </td>
+                      );
+                    case "rowEdit":
+                      return (
+                        <td
+                          style={{
+                            textAlign: val.textAlign,
+                            fontSize: val.fontSize,
+                            fontWeight: val.fontWeight,
+                            cursor: "pointer",
+                          }}
+                          className={style.item}
+                          key={index}
+                          onClick={() => {
+                            setTableData((prev) => {
+                              callOnChangeFunc(
+                                prev.data.filter(
+                                  (a) => a.tableRowIndex !== row.tableRowIndex
+                                )
+                              );
+                              return {
+                                ...prev,
+                                data: prev.data.filter(
+                                  (a) => a.tableRowIndex !== row.tableRowIndex
+                                ),
+                              };
+                            });
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: "red",
+                              background: "rgb(255, 241, 241)",
+                              border: "1px solid",
+                              borderRadius: "4px",
+                              padding: "4px",
+                            }}
+                          >
+                            {"삭제"}
+                          </span>
+                        </td>
+                      );
                     default:
                       return (
                         <td
                           style={{
+                            whiteSpace: val.whiteSpace,
                             textAlign: val.textAlign,
                             fontSize: val.fontSize,
                             fontWeight: val.fontWeight,
@@ -513,6 +917,12 @@ const Table = (props: Props) => {
                           key={index}
                         >
                           {row[`${val.key}`]}
+                          {val.byteCalc && (
+                            <div className={style.byte_calc}>
+                              {encodeURIComponent(row[`${val.key}`]).length}{" "}
+                              bytes
+                            </div>
+                          )}
                         </td>
                       );
                   }
