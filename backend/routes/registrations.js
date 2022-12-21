@@ -9,11 +9,12 @@ const { isAdManager, isLoggedIn } = require("../middleware/auth");
 
 router.post("/", isAdManager, registrations.register);
 router.post("/bulk", isAdManager, registrations.registerBulk);
+router.post("/copy", isAdManager, registrations.registerCopy);
 
 router.get("/", isLoggedIn, registrations.find);
 
-router.put("/:_id", isAdManager, registrations.update);
+router.put("/:_ids", isAdManager, registrations.update);
 
-router.delete("/:_id", isAdManager, registrations.remove);
+router.delete("/:_ids", isAdManager, registrations.remove);
 
 module.exports = router;

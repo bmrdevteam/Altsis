@@ -456,7 +456,7 @@ module.exports.update = async (req, res) => {
     user.email = req.body.email;
     user.tel = req.body.tel;
 
-    if (!user.isValid())
+    if (!User(req.user.academyId).isValid(user))
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();

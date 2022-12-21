@@ -35,7 +35,6 @@ import Svg from "assets/svg/Svg";
 import useDatabase from "hooks/useDatabase";
 
 // functions
-import validate from "functions/validate";
 
 // components
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
@@ -43,6 +42,7 @@ import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Button from "components/button/Button";
+import { validate } from "functions/functions";
 
 type Props = {};
 

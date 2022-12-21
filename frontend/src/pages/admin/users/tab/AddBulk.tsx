@@ -38,9 +38,9 @@ import style from "style/pages/admin/schools.module.scss";
 import Button from "components/button/Button";
 import Table from "components/table/Table";
 import Popup from "components/popup/Popup";
+import { validate } from "functions/functions";
 
 // functions
-import validate from "functions/validate";
 
 type Props = {
   schoolData: any;

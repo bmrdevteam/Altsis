@@ -1,17 +1,15 @@
 /**
  * @file useGenerateId
- * 
- * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
  *
  * IN PRODUCTION
  *  - useGenerateId function
- * 
+ *
  * -------------------------------------------------------
  *
  * IN MAINTENANCE
- * 
+ *
  * -------------------------------------------------------
  *
  * IN DEVELOPMENT
@@ -26,17 +24,16 @@
  *
  */
 
-
 /**
  * hook that genenrates random id base on the given length
- * @param {number} length 
- * 
+ * @param {number} length
+ *
  * @returns {string} generated id
- * 
+ *
  * @version 1.0 initial version
- * 
+ *
  * @see https://stackoverflow.com/questions/1349404/generate-random-string-characters-in-javascript
- * 
+ *
  */
 
 export default function useGenerateId(length: number) {

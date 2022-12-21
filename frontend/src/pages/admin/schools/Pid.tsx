@@ -48,6 +48,7 @@ import Timetable from "./tab/Timetable";
 import Archive from "./tab/Archive";
 import Form from "./tab/Form";
 import Permission from "./tab/Permission";
+import User from "./tab/users/User";
 
 type Props = {};
 
@@ -125,6 +126,7 @@ const School = (props: Props) => {
           items={{
             "기본 정보": <BasicInfo schoolData={schoolData} />,
             학기: <Season />,
+            사용자: <User schoolData={schoolData} />,
             교과목: (
               <Subject schoolData={schoolData} setSchoolData={setSchoolData} />
             ),
