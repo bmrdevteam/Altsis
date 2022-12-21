@@ -239,10 +239,10 @@ export default function useApi() {
   }
   /**
    * Read Schools by id
-   * @auth admin
+   * @auth member
    */
   async function RSchool(id: string) {
-    return await database.R({ location: "schools" });
+    return await database.R({ location: "schools/" + id });
   }
   /**
    * Update Classrooms in school
