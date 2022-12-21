@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import style from "./table.module.scss";
 import _, { isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
@@ -12,8 +12,31 @@ type TTableHeader = {
   key?: string;
   width?: string;
   textAlign?: "left" | "center" | "right";
+  fontSize?: string;
+  fontWeight?:
+    | "100"
+    | "200"
+    | "300"
+    | "400"
+    | "500"
+    | "600"
+    | "700"
+    | "800"
+    | "900";
   status?: {
-    [key: string]: { text?: string; color?: string; background?: string };
+    [key: string]: {
+      text?: string;
+      color?: string;
+      background?: string;
+      onClick?: (value: any) => void;
+    };
+  };
+  btnStyle?: {
+    round?: boolean;
+    color?: string;
+    background?: string;
+    padding?: string;
+    border?: boolean;
   };
   onClick?: (value: any) => void;
 };
@@ -23,6 +46,7 @@ type Props = {
   header: TTableHeader[];
   control?: boolean;
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
+  onChange?: (value: any[]) => void;
 };
 
 const Table = (props: Props) => {
@@ -48,8 +72,9 @@ const Table = (props: Props) => {
     searchParamName: "",
   });
   const moreOutSideClick = useOutsideClick();
-  function filteredData(): any[] {
+  const filteredData = useCallback(() => {
     let result = [];
+
     if (!tableData.orderBy) {
       result = tableData.data.filter((val) => {
         const text = Object.values(val).join("");
@@ -69,23 +94,29 @@ const Table = (props: Props) => {
             );
           }
 
-          return `${param}`.includes(tableData.searchParam);
+          return param
+            .toString()
+            .toLowerCase()
+            .includes(tableData.searchParam.toLowerCase());
         }
         return false;
       });
       result = _.sortBy(result, tableData.orderBy);
     }
+
     if (tableData.order === "asc") result.reverse();
 
-    if (tableSettings.pageBy === 0) {
-      return result;
+    return result;
+  }, [tableData]);
+
+  function slicedTableData() {
+    if (tableSettings.pageBy !== 0) {
+      const pageStart = tableSettings.pageBy * (tableSettings.pageIndex - 1);
+      const pageEnd = tableSettings.pageBy * tableSettings.pageIndex;
+      return filteredData().slice(pageStart, pageEnd);
     }
-
-    const pageStart = tableSettings.pageBy * (tableSettings.pageIndex - 1);
-    const pageEnd = tableSettings.pageBy * tableSettings.pageIndex;
-    return result.slice(pageStart, pageEnd);
+    return filteredData();
   }
-
   useEffect(() => {
     if (props.type === "object-array") {
       setTableData((prev) => ({
@@ -116,9 +147,11 @@ const Table = (props: Props) => {
       }));
     }
   }, [props.data]);
-  useEffect(() => {
-    console.log(tableData.data);
-  }, [tableData.data]);
+  function callOnChangeFunc() {
+    if (props.onChange) {
+      props.onChange(tableData.data);
+    }
+  }
 
   function handleHeaderOnClick(val: TTableHeader) {
     if (val.key !== undefined && val.key !== " ") {
@@ -205,9 +238,15 @@ const Table = (props: Props) => {
                           tableSettings.pageBy !== 0 &&
                           number > tableData.data.length / tableSettings.pageBy
                         ) {
+                          let end = Math.floor(
+                            tableData.data.length / tableSettings.pageBy
+                          );
+                          if (tableData.data.length % tableSettings.pageBy > 0)
+                            end += 1;
+
                           setTableSettings((prev) => ({
                             ...prev,
-                            pageIndex: tableData.data.length,
+                            pageIndex: end,
                           }));
                         }
                       }}
@@ -268,7 +307,7 @@ const Table = (props: Props) => {
                 style={{
                   padding: 0,
                   background: "var(--border-default-color)",
-                  height:"1px"
+                  height: "1px",
                 }}
               />
             </tr>
@@ -279,13 +318,17 @@ const Table = (props: Props) => {
             switch (val.type) {
               case "checkbox":
                 const allChecked =
-                  tableData.data.filter((c) => !c.checked).length === 0;
+                  filteredData().filter((c) => !c.tableRowChecked).length === 0;
                 const allEmpty =
-                  tableData.data.filter((c) => c.checked).length === 0;
+                  tableData.data.filter((c) => c.tableRowChecked).length === 0;
                 const checkTo = (to: boolean) => {
-                  let arr: any[] = [];
-                  tableData.data.forEach((e) => {
-                    arr.push({ ...e, checked: to });
+                  let arr: any[] = tableData.data;
+                  filteredData().forEach((e) => {
+                    arr[
+                      arr.findIndex(
+                        (obj) => obj.tableRowIndex === e.tableRowIndex
+                      )
+                    ].tableRowChecked = to;
                   });
                   return arr;
                 };
@@ -307,10 +350,11 @@ const Table = (props: Props) => {
                           data: checkTo(false),
                         }));
                       }
+                      callOnChangeFunc();
                     }}
                   >
                     <span className={style.icon}>
-                      {allChecked ? (
+                      {allChecked && filteredData().length !== 0 ? (
                         <Svg
                           type="checkboxChecked"
                           width="20px"
@@ -356,7 +400,7 @@ const Table = (props: Props) => {
       <tbody>
         {props.data &&
           isArray(props.data) &&
-          filteredData().map((row, rowIndex) => {
+          slicedTableData().map((row, rowIndex) => {
             return (
               <tr key={rowIndex}>
                 {props.header.map((val, index) => {
@@ -372,15 +416,16 @@ const Table = (props: Props) => {
                             const ii = arr.findIndex(
                               (r) => r.tableRowIndex === row.tableRowIndex
                             );
-                            arr[ii].checked = !arr[ii].checked;
+                            arr[ii].tableRowChecked = !arr[ii].tableRowChecked;
                             setTableData((prev) => ({
                               ...prev,
                               data: arr,
                             }));
+                            callOnChangeFunc();
                           }}
                         >
                           <span className={style.icon}>
-                            {!row.checked ? (
+                            {!row.tableRowChecked ? (
                               <Svg type="checkbox" width="20px" height="20px" />
                             ) : (
                               <Svg
@@ -397,6 +442,8 @@ const Table = (props: Props) => {
                         <td
                           style={{
                             textAlign: val.textAlign,
+                            fontSize: val.fontSize,
+                            fontWeight: val.fontWeight,
                             cursor: "pointer",
                           }}
                           className={style.item}
@@ -405,7 +452,17 @@ const Table = (props: Props) => {
                             val.onClick && val.onClick(row);
                           }}
                         >
-                          {val.text}
+                          <span
+                            style={{
+                              color: val.btnStyle?.color,
+                              background: val.btnStyle?.background,
+                              border: val.btnStyle?.border ? "1px solid" : "",
+                              borderRadius: val.btnStyle?.round ? "4px" : "",
+                              padding: val.btnStyle?.padding,
+                            }}
+                          >
+                            {val.text}
+                          </span>
                         </td>
                       );
                     case "status":
@@ -423,11 +480,18 @@ const Table = (props: Props) => {
                                   color: val.status[`${row[val.key]}`].color,
                                   border: "1px solid",
                                   padding: "4px",
-                                  fontSize: "12px",
-                                  fontWeight: "600",
+                                  fontSize: val.fontSize,
+                                  fontWeight: val.fontWeight,
                                   borderRadius: "4px",
+                                  cursor: "pointer",
                                   background:
                                     val.status[`${row[val.key]}`].background,
+                                }}
+                                onClick={() => {
+                                  val.status?.[row[`${val.key}`]].onClick &&
+                                    val.status[row[`${val.key}`]].onClick?.(
+                                      row
+                                    );
                                 }}
                               >
                                 {val.status[`${row[val.key]}`].text}
@@ -440,7 +504,11 @@ const Table = (props: Props) => {
                     default:
                       return (
                         <td
-                          style={{ textAlign: val.textAlign }}
+                          style={{
+                            textAlign: val.textAlign,
+                            fontSize: val.fontSize,
+                            fontWeight: val.fontWeight,
+                          }}
                           className={style.item}
                           key={index}
                         >

@@ -71,7 +71,7 @@ const Schools = () => {
       setIsLoading(true);
     } else if (currentSchool) {
       console.log("currentSchol is ", currentSchool);
-      navigate(`${currentSchool.school}`);
+      navigate(`${currentSchool._id}`);
     } else {
       alert("가입된 학교가 없습니다.");
       navigate("/");
