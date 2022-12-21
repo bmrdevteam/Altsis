@@ -28,7 +28,7 @@
  */
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import useDatabase from "hooks/useDatabase";
 import React from "react";
 import { useRef } from "react";
@@ -147,54 +147,54 @@ const Users = (props: Props) => {
           <Table
             data={registrationList}
             type="object-array"
-            onSelectChange={(value) => {
-              selectedRegistrations.current = value.map((val: any) => {
-                return val._id;
-              });
-            }}
+            control
+            // onSelectChange={(value: any) => {
+            //   selectedRegistrations.current = value.map((val: any) => {
+            //     return val._id;
+            //   });
+            // }}
             header={[
               {
-                text: "No",
+                text: "checkbox",
                 key: "",
                 type: "checkbox",
                 width: "48px",
-                align: "center",
               },
               {
-                text: "Id",
+                text: "ID",
                 key: "userId",
-                type: "string",
+                type: "text",
               },
               {
                 text: "이름",
                 key: "userName",
-                type: "string",
+                type: "text",
               },
               {
                 text: "역할",
                 key: "role",
-                type: "string",
+                type: "text",
               },
 
               {
                 text: "학년",
                 key: "grade",
-                type: "string",
+                type: "text",
               },
               {
                 text: "그룹",
                 key: "group",
-                type: "string",
+                type: "text",
               },
               {
-                text: "선생님 Id",
+                text: "선생님 ID",
                 key: "teacherId",
-                type: "string",
+                type: "text",
               },
               {
                 text: "선생님 이름",
                 key: "teacherName",
-                type: "string",
+                type: "text",
               },
               {
                 text: "수정",
@@ -205,7 +205,7 @@ const Users = (props: Props) => {
                   setEditPopupActive(true);
                 },
                 width: "72px",
-                align: "center",
+                textAlign: "center",
               },
             ]}
           />

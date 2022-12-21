@@ -41,7 +41,7 @@ import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Select from "components/select/Select";
 
 // popup/tab elements
@@ -234,45 +234,43 @@ const Users = (props: Props) => {
         <div>
           <Table
             type="object-array"
-            filter
-            filterSearch
-            data={userList}
-            onSelectChange={(value) => {
-              userSelectRef.current = value;
-            }}
+            control
+            data={userList || []}
+            defaultPageBy={50}
+            // onSelectChange={(value) => {
+            //   userSelectRef.current = value;
+            // }}
             header={[
               {
                 text: "",
                 key: "",
                 type: "checkbox",
                 width: "48px",
-                align: "center",
               },
+              { text: "ID", key: "userId", type: "text", textAlign: "center" },
               {
-                text: "id",
-                key: "",
-                type: "index",
-                width: "48px",
-                align: "center",
+                text: "이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
               },
-              { text: "이름", key: "userName", type: "string", align: "right" },
-              { text: "Id", key: "userId", type: "string" },
+
               {
                 text: "학교",
                 key: "schools",
-                type: "string",
-                align: "center",
-                returnFunction: (val) =>
-                  _.join(
-                    val.map((school: any) => school.schoolName),
-                    ", "
-                  ),
+                type: "text",
+
+                // returnFunction: (val) =>
+                //   _.join(
+                //     val.map((school: any) => school.schoolName),
+                //     ", "
+                //   ),
               },
               {
                 text: "auth",
                 key: "auth",
-                type: "string",
-                align: "center",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "자세히",
@@ -282,8 +280,8 @@ const Users = (props: Props) => {
                   setUser(e);
                   setEditPopupActive(true);
                 },
-                width: "72px",
-                align: "center",
+                width: "80px",
+                textAlign: "center",
               },
             ]}
           />

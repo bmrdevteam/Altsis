@@ -33,7 +33,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
@@ -61,6 +61,7 @@ const Permission = (props: Props) => {
 
   /* additional document list */
   const [registrationList, setRegistrationList] = useState<any>([]);
+  const [registrationOptionList, setRegistrationOptionList] = useState<any>([]);
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
@@ -93,6 +94,7 @@ const Permission = (props: Props) => {
           index: i,
           userId: permission[i][1],
           isAllowed: permission[i][2],
+          ...getRegistrationDataByUserId(permission[i][1]),
         });
       }
     }
@@ -114,6 +116,14 @@ const Permission = (props: Props) => {
     _permission.push(["role", "student", isStudentAllowed]);
 
     return _permission;
+  };
+
+  const getRegistrationDataByUserId = (userId: string) => {
+    const res = _.find(registrationList, { userId });
+    // return { userName: "임시", role: "임시" };
+    return res
+      ? { userName: res.userName, role: res.role }
+      : { userName: "", role: "" };
   };
 
   async function updatePermission(_permission: any) {
@@ -138,26 +148,30 @@ const Permission = (props: Props) => {
   useEffect(() => {
     if (editPopupActive) {
       getRegistrationList().then((res) => {
-        setRegistrationList([
-          {
-            text: "",
-            value: "",
-          },
-          ...res
-            ?.filter((r: any) => {
-              if (!r["userId"]) return false;
-              return true;
-            })
-            .map((r: any) => {
-              return {
-                text: `${r["userName"]}(${r["userId"]})`,
-                value: r["userId"],
-              };
-            }),
-        ]);
+        setRegistrationList(res);
       });
     }
   }, [editPopupActive]);
+
+  useEffect(() => {
+    setRegistrationOptionList([
+      {
+        text: "",
+        value: "",
+      },
+      ...registrationList
+        ?.filter((r: any) => {
+          if (!r["userId"]) return false;
+          return true;
+        })
+        .map((r: any) => {
+          return {
+            text: `${r["userName"]}(${r["userId"]})`,
+            value: r["userId"],
+          };
+        }),
+    ]);
+  }, [registrationList]);
 
   return (
     <>
@@ -241,7 +255,7 @@ const Permission = (props: Props) => {
             <div className={style.row}>
               <Select
                 style={{ minHeight: "30px" }}
-                options={registrationList}
+                options={registrationOptionList}
                 onChange={(e: any) => {
                   setSelectedUserId(e);
                 }}
@@ -265,6 +279,7 @@ const Permission = (props: Props) => {
                       {
                         userId: selectedUserId,
                         isAllowed: selectedIsAllowed === "허용",
+                        ...getRegistrationDataByUserId(selectedUserId),
                       },
                     ]);
                   }
@@ -288,42 +303,57 @@ const Permission = (props: Props) => {
               data={exceptions || []}
               header={[
                 {
-                  text: "ID",
-                  key: "",
-                  type: "index",
+                  text: "No",
+                  type: "text",
+                  key: "tableRowIndex",
                   width: "48px",
-                  align: "center",
+                  textAlign: "center",
                 },
                 {
-                  text: "사용자 ID",
+                  text: "ID",
                   key: "userId",
-                  type: "string",
+                  type: "text",
+                  textAlign: "center",
                 },
                 {
-                  text: "허용/비허용",
+                  text: "이름",
+                  key: "userName",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "역할",
+                  key: "role",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "상태",
                   key: "isAllowed",
-                  type: "string",
-                  returnFunction: (value: any) => (value ? "허용" : "비허용"),
+                  width: "120px",
+                  textAlign: "center",
+                  type: "status",
+                  status: {
+                    false: { text: "비허용", color: "red" },
+                    true: { text: "허용", color: "green" },
+                  },
                 },
                 {
                   text: "삭제",
                   key: "index",
                   type: "button",
                   onClick: (e: any) => {
-                    exceptions.splice(
-                      _.findIndex(exceptions, (x) => x === e),
-                      1
-                    );
+                    exceptions.splice(e.tableRowIndex - 1, 1);
                     setExceptions([...exceptions]);
                   },
                   width: "80px",
-                  align: "center",
-                  textStyle: {
-                    padding: "0 10px",
-                    border: "var(--border-default)",
-                    background: "rgba(255, 200, 200, 0.25)",
-                    borderColor: "rgba(255, 200, 200)",
-                  },
+                  textAlign: "center",
+                  // textStyle: {
+                  //   padding: "0 10px",
+                  //   border: "var(--border-default)",
+                  //   background: "rgba(255, 200, 200, 0.25)",
+                  //   borderColor: "rgba(255, 200, 200)",
+                  // },
                 },
               ]}
             />
@@ -334,7 +364,7 @@ const Permission = (props: Props) => {
               style={{
                 borderRadius: "4px",
                 height: "32px",
-                margin: "24px 0",
+                marginTop: "24px",
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
               }}
               onClick={(e: any) => {
