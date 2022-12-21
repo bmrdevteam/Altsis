@@ -30,10 +30,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [registrations, setRegistration] = useState<any>([]);
-  console.log(
-    "🚀 ~ file: authContext.tsx ~ line 25 ~ AuthProvider ~ registrations",
-    registrations
-  );
   const [currentRegistration, setCurrentRegistration] = useState<any>();
   const [currentSeason, setCurrentSeason] = useState<any>();
   const [currentNotifications, setCurrentNotifications] = useState<any>([]);
@@ -53,7 +49,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (res.registrations) {
         setRegistration(res.registrations);
         setCurrentRegistration(res.registrations[0]);
-        changeCurrentSeason(res.registrations[0]);
+        SeasonApi.RSeason(res.registrations[0].season).then((res) => {
+          setCurrentSeason(res);
+        });
       }
     });
   }
@@ -71,7 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
-    const result = await SeasonApi.RGetSeasonById(registration?.season)
+    const result = await SeasonApi.RSeason(registration?.season)
       .then((res) => {
         setCurrentSeason(res);
       })

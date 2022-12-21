@@ -337,12 +337,12 @@ const Sidebar = (props: Props) => {
             <label>텍스트 크기</label>
             <input
               onChange={(e) => {
-                changeCurrentCell({ fontSize: e.target.value });
+                changeCurrentCell({ fontSize: `${e.target.value}px` });
                 props.callPageReload();
               }}
-              placeholder="pt / px"
-              type="text"
-              defaultValue={getCurrentCell()?.fontSize}
+              placeholder=""
+              type="number"
+              defaultValue={parseInt(getCurrentCell()?.fontSize)||""}
             />
           </div>
           <div className={style.item}>
@@ -608,10 +608,10 @@ const Sidebar = (props: Props) => {
           <label>크기</label>
           <input
             type="text"
-            placeholder="pt / px"
-            defaultValue={getCurrentBlock()?.data?.fontSize}
+            placeholder=""
+            defaultValue={parseInt(getCurrentBlock()?.data?.fontSize)||""}
             onChange={(e) => {
-              changeCurrentBlockData({ fontSize: e.target.value });
+              changeCurrentBlockData({ fontSize: `${e.target.value}px` });
               props.callPageReload();
             }}
           />

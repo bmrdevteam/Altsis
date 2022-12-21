@@ -35,8 +35,7 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
-
-import dateFormat from "functions/dateFormat";
+import { dateFormat } from "functions/functions";
 
 type Props = {
   academy: string;

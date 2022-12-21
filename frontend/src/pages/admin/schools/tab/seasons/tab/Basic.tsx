@@ -35,22 +35,21 @@ import style from "style/pages/admin/schools.module.scss";
 
 type Props = {
   seasonData: any;
+  setPopupActive: any;
   setIsLoading: any;
 };
 
 function Basic(props: Props) {
   const database = useDatabase();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /* document fields */
   const [isActivated, setIsActivated] = useState<boolean>(
     props.seasonData.isActivated
   );
 
-  const [start, setStart] = useState<string>(
-    props.seasonData?.period?.start ?? ""
+  const [period, setPeriod] = useState<any>(
+    props.seasonData?.period || { start: "", end: "" }
   );
-  const [end, setEnd] = useState<string>(props.seasonData?.period?.end ?? "");
 
   async function activateSeason() {
     if (window.confirm("정말 활성화하시겠습니까?") === true) {
@@ -78,7 +77,19 @@ function Basic(props: Props) {
     return false;
   }
 
-  async function updateSeason() {
+  async function deleteSeason() {
+    if (window.confirm("정말 삭제하시겠습니까?") === true) {
+      // 확인
+      const result = await database.D({
+        location: `seasons/${props.seasonData._id}`,
+      });
+      return result;
+    }
+    // 취소
+    return false;
+  }
+
+  async function updateSeason(start: string, end: string) {
     const result = database.U({
       location: `seasons/${props.seasonData._id}/period`,
       data: {
@@ -100,9 +111,16 @@ function Basic(props: Props) {
             type="date"
             label="학기 시작"
             appearence="flat"
-            defaultValue={start}
+            defaultValue={period.start}
             onChange={(e: any) => {
-              setStart(e.target.value);
+              updateSeason(e.target.value, period.end)
+                .then((res: any) => {
+                  setPeriod(res.data);
+                  props.setIsLoading(true);
+                })
+                .catch((err) => {
+                  alert(err.reponse.data.message);
+                });
             }}
           />
           <Input
@@ -110,41 +128,26 @@ function Basic(props: Props) {
             type="date"
             appearence="flat"
             label="학기 끝"
-            defaultValue={end}
+            defaultValue={period.end}
             onChange={(e: any) => {
-              setEnd(e.target.value);
+              updateSeason(period.start, e.target.value)
+                .then(() => {
+                  alert("success");
+                  props.setIsLoading(true);
+                })
+                .catch((err) => {
+                  alert(err.reponse.data.message);
+                });
             }}
           />
         </div>
+
         <Button
           type={"ghost"}
-          disabled={isLoading}
-          onClick={() => {
-            setIsLoading(true);
-            updateSeason()
-              .then(() => {
-                setIsLoading(false);
-              })
-              .catch((err) => {
-                alert(err.reponse.data.message);
-                setIsLoading(false);
-              });
-          }}
           style={{
             borderRadius: "4px",
+            height: "32px",
             marginTop: "24px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-        >
-          {isLoading ? "저장중" : "저장"}
-        </Button>
-        <Button
-          type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            marginTop: "12px",
           }}
           onClick={() => {
             if (isActivated) {
@@ -176,6 +179,32 @@ function Basic(props: Props) {
         >
           {isActivated ? "비활성화" : "활성화"}
         </Button>
+        {!isActivated && (
+          <Button
+            type={"ghost"}
+            onClick={() => {
+              deleteSeason()
+                .then((res) => {
+                  if (res) {
+                    alert("success");
+                    props.setIsLoading(true);
+                    props.setPopupActive(false);
+                  }
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
+            }}
+            style={{
+              borderRadius: "4px",
+              marginTop: "12px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+          >
+            삭제
+          </Button>
+        )}
       </div>
     </div>
   );

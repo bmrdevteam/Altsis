@@ -72,6 +72,39 @@ module.exports.registerBulk = async (req, res) => {
   }
 };
 
+module.exports.registerCopy = async (req, res) => {
+  try {
+    const exRegistrations = await Registration(req.user.academyId).find({
+      season: req.body.fromSeason,
+    });
+    const season = await Season(req.user.academyId).findById(req.body.toSeason);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    const seasonSubdocument = season.getSubdocument();
+    const registerations = exRegistrations.map((registration) => {
+      return {
+        school: registration.school,
+        schoolId: registration.schoolId,
+        schoolName: registration.schoolName,
+        userId: registration.userId,
+        userName: registration.userName,
+        role: registration.role,
+        grade: registration.grade,
+        group: registration.group,
+        teacherId: registration.teacherId,
+        teacherName: registration.teacherName,
+        ...seasonSubdocument,
+      };
+    });
+    const newRegistrations = await Registration(req.user.academyId).insertMany(
+      registerations
+    );
+    return res.status(200).send({ registerations: newRegistrations });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.find = async (req, res) => {
   try {
     const registrations = await Registration(req.user.academyId).find(
@@ -91,20 +124,17 @@ module.exports.find = async (req, res) => {
  */
 module.exports.update = async (req, res) => {
   try {
-    const registration = await Registration(req.user.academyId).findById(
-      req.params._id
+    const ids = _.split(req.params._ids, ",");
+    const { role, grade, group, teacherId, teacherName } = req.body;
+
+    const registrations = await Registration(req.user.academyId).updateMany(
+      {
+        _id: { $in: ids },
+      },
+      { role, grade, group, teacherId, teacherName }
     );
-    if (!registration)
-      return res.status(404).send({ message: "registration not found" });
 
-    for (let field of ["role", "grade", "group", "teacherId", "teacherName"]) {
-      if (req.body[field]) {
-        registration[field] = req.body[field];
-      }
-    }
-
-    await registration.save();
-    return res.status(200).send(registration);
+    return res.status(200).send(registrations);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -113,14 +143,12 @@ module.exports.update = async (req, res) => {
 /* delete */
 exports.remove = async (req, res) => {
   try {
-    const registration = await Registration(req.user.academyId).findById(
-      req.params._id
-    );
-    if (!registration)
-      return res.status(404).send({ message: "registration not found" });
+    const ids = _.split(req.params._ids, ",");
+    const result = await Registration(req.user.academyId).deleteMany({
+      _id: { $in: ids },
+    });
 
-    await registration.delete();
-    return res.status(200).send();
+    return res.status(200).send(result);
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }
