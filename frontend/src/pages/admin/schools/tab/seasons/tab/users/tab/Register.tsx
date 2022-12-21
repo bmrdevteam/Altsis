@@ -106,6 +106,7 @@ function Basic(props: Props) {
       <div style={{ height: "calc(100vh - 300px)" }}>
         <Table
           type="object-array"
+          defaultPageBy={50}
           // onSelectChange={(value) => {
           //   selectedSchoolUsers.current = value.map((val: any) => {
           //     return {
@@ -130,11 +131,13 @@ function Basic(props: Props) {
               text: "ID",
               key: "userId",
               type: "text",
+              textAlign: "center",
             },
             {
               text: "이름",
               key: "userName",
               type: "text",
+              textAlign: "center",
             },
           ]}
         />
