@@ -36,7 +36,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import { validate } from "functions/functions";
 
@@ -263,21 +263,30 @@ function Basic(props: Props) {
             <Table
               type="object-array"
               data={props.schoolList}
-              onSelectChange={(value) => {
-                console.log(value);
-                schoolSelectRef.current = value;
-              }}
+              // onSelectChange={(value) => {
+              //   console.log(value);
+              //   schoolSelectRef.current = value;
+              // }}
               header={[
                 {
                   text: "선택",
                   key: "",
                   type: "checkbox",
                   width: "48px",
-                  align: "center",
                 },
 
-                { text: "학교 Id", key: "schoolId", type: "string" },
-                { text: "학교 이름", key: "schoolName", type: "string" },
+                {
+                  text: "학교 Id",
+                  key: "schoolId",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "학교 이름",
+                  key: "schoolName",
+                  type: "text",
+                  textAlign: "center",
+                },
               ]}
             />
           </div>

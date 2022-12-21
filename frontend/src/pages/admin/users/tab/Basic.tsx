@@ -37,7 +37,7 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import _ from "lodash";
 
 type Props = {
@@ -194,27 +194,27 @@ function Basic(props: Props) {
               <Table
                 type="object-array"
                 data={props.schoolList}
-                onSelectChange={(value) => {
-                  console.log(value);
-                  schoolSelectRef.current = value;
-                }}
-                checkFunction={(value) => {
-                  console.log("schools: ", schools, " value: ", value);
-                  return _.includes(
-                    schools.map((schoolData: any) => schoolData.school),
-                    value._id
-                  );
-                }}
+                // onSelectChange={(value) => {
+                //   console.log(value);
+                //   schoolSelectRef.current = value;
+                // }}
+
+                // checkFunction={(value) => {
+                //   console.log("schools: ", schools, " value: ", value);
+                //   return _.includes(
+                //     schools.map((schoolData: any) => schoolData.school),
+                //     value._id
+                //   );
+                // }}
                 header={[
                   {
                     text: "선택",
                     key: "",
                     type: "checkbox",
                     width: "48px",
-                    align: "center",
                   },
-                  { text: "학교 Id", key: "schoolId", type: "string" },
-                  { text: "학교 이름", key: "schoolName", type: "string" },
+                  { text: "학교 ID", key: "schoolId", type: "text" },
+                  { text: "학교 이름", key: "schoolName", type: "text" },
                 ]}
               />
             </div>

@@ -34,7 +34,7 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Input from "components/input/Input";
 import { useEffect, useState } from "react";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 type Props = {
   userData: any;
@@ -71,57 +71,71 @@ function Registrations(props: Props) {
       <div className={style.popup}>
         <div style={{ marginTop: "24px" }}>
           <Table
-            data={registrationList}
+            data={registrationList || []}
+            defaultPageBy={50}
+            control
             type="object-array"
             header={[
               {
                 text: "No",
-                key: "",
-                type: "index",
+                type: "text",
+                key: "tableRowIndex",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
               {
                 text: "학년도",
                 key: "year",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "학기",
                 key: "term",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "역할",
                 key: "role",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
 
               {
                 text: "학년",
                 key: "grade",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "그룹",
                 key: "group",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
-                text: "선생님 Id",
+                text: "선생님 ID",
                 key: "teacherId",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "선생님 이름",
                 key: "teacherName",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
-                text: "활성화",
+                text: "상태",
                 key: "isActivated",
-                type: "string",
-                returnFunction: (e) => (e ? "활성화됨" : "비활성화됨"),
+                width: "120px",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  false: { text: "비활성화됨", color: "red" },
+                  true: { text: "활성화됨", color: "green" },
+                },
               },
             ]}
           />

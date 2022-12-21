@@ -35,7 +35,7 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import UpdateBulk from "./tab/updateBulk";
 
@@ -253,13 +253,14 @@ const Subjects = (props: Props) => {
         <Table
           type="object-array"
           data={subjectObjectList || []}
+          control
           header={[
             {
-              text: "ID",
-              key: "",
-              type: "index",
+              text: "No",
+              type: "text",
+              key: "tableRowIndex",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
             ...subjectDataHeader,
             {
@@ -267,10 +268,7 @@ const Subjects = (props: Props) => {
               key: "index",
               type: "button",
               onClick: (e: any) => {
-                props.schoolData?.subjects.data.splice(
-                  _.findIndex(subjectObjectList, (x) => _.isEqual(x, e)),
-                  1
-                );
+                props.schoolData?.subjects.data.splice(e.tableRowIndex - 1, 1);
 
                 updateSubjects(subjectLabelList, [
                   ...props.schoolData?.subjects.data,
@@ -288,7 +286,7 @@ const Subjects = (props: Props) => {
               },
 
               width: "80px",
-              align: "center",
+              textAlign: "center",
               textStyle: {
                 padding: "0 10px",
                 border: "var(--border-default)",

@@ -144,9 +144,11 @@ const Season = (props: Props) => {
               );
             }) ?? []
           }
+          control
+          defaultPageBy={50}
           header={[
             {
-              text: "ID",
+              text: "No",
               type: "text",
               key: "tableRowIndex",
               width: "48px",
@@ -156,11 +158,13 @@ const Season = (props: Props) => {
               text: "학년도",
               key: "year",
               type: "text",
+              textAlign: "center",
             },
             {
               text: "학기",
               key: "term",
               type: "text",
+              textAlign: "center",
             },
             {
               text: "시작",
@@ -186,10 +190,6 @@ const Season = (props: Props) => {
                 false: { text: "비활성화됨", color: "red" },
                 true: { text: "활성화됨", color: "green" },
               },
-
-              // returnFunction: (e: boolean) => {
-              //   return e ? "활성화됨" : "비활성화됨";
-              // },
             },
             {
               text: "자세히",
