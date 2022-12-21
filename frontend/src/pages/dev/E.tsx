@@ -31,7 +31,7 @@ const E = (props: Props) => {
           },
           {
             text: "유져 아이디",
-            type: "text",
+            type: "input",
             key: "userId",
           },
           {
