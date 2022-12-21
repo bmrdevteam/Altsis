@@ -44,7 +44,8 @@ import Select from "components/select/Select";
 import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
-import Table from "components/tableV2/Table";
+import Table from "components/table/Table";
+import TableV2 from "components/tableV2/Table";
 
 type Props = {};
 
@@ -58,10 +59,11 @@ const CourseAdd = (props: Props) => {
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
   const [teacherList, setTeacherList] = useState<any>();
+  const selectedTeacherListRef = useRef<any[]>([]);
 
   const [courseSubject, setCourseSubject] = useState<string>("");
   const [courseTitle, setCourseTitle] = useState<string>("");
-  const [courseMentor, setCourseMentor] = useState<any>("");
+  const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
   const [coursePoint, setCoursePoint] = useState<string>();
   const [courseTime, setCourseTime] = useState<any>([]);
   const [courseClassroom, setCourseClassroom] = useState<string>("");
@@ -130,12 +132,13 @@ const CourseAdd = (props: Props) => {
       classTitle: courseTitle,
       point: coursePoint,
       subject: courseSubject.split("/"),
-      teachers: [JSON.parse(courseMentor)],
+      teachers: courseMentorList,
       classroom: courseClassroom,
       time: courseTime.map((lb: string) => {
         return { label: lb };
       }),
       info: courseMoreInfo,
+      limit: courseLimit,
     };
     const res = await database.C({
       location: "syllabuses",
@@ -190,6 +193,12 @@ const CourseAdd = (props: Props) => {
     return () => {};
   }, [isLoadingRef]);
 
+  useEffect(() => {
+    if (mentorSelectPopupActive) {
+      selectedTeacherListRef.current = [];
+    }
+  }, [mentorSelectPopupActive]);
+
   return !isLoading && !isLoadingRef ? (
     <>
       <div className={style.section}>
@@ -231,26 +240,26 @@ const CourseAdd = (props: Props) => {
               disabled
               defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
             />
-            <div
-              style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}
+            <Input
+              appearence="flat"
+              label="멘토"
+              required
+              defaultValue={_.join(
+                courseMentorList.map(
+                  (teacher: any) => `${teacher.userName}(${teacher.userId})`
+                ),
+                ", "
+              )}
+              disabled
+            />
+            <Button
+              type="ghost"
+              onClick={() => {
+                setMentorSelectPopupActive(true);
+              }}
             >
-              <Autofill
-                appearence="flat"
-                options={teachers()}
-                label="멘토"
-                setState={setCourseMentor}
-                required
-                defaultValue={courseMentor}
-              />
-              <Button
-                type="ghost"
-                onClick={() => {
-                  setMentorSelectPopupActive(true);
-                }}
-              >
-                수정
-              </Button>
-            </div>
+              수정
+            </Button>
           </div>
 
           <Button
@@ -411,7 +420,12 @@ const CourseAdd = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                //
+                setCourseMentorList(
+                  selectedTeacherListRef.current.map((val: any) => {
+                    return { userId: val.userId, userName: val.userName };
+                  })
+                );
+                setMentorSelectPopupActive(false);
               }}
             >
               선택
@@ -419,6 +433,35 @@ const CourseAdd = (props: Props) => {
           }
         >
           <Table
+            data={teacherList}
+            type="object-array"
+            filter
+            onSelectChange={(value: any) => {
+              selectedTeacherListRef.current = value;
+            }}
+            header={[
+              {
+                text: "checkbox",
+                key: "",
+                type: "checkbox",
+                width: "48px",
+              },
+
+              {
+                text: "선생님 ID",
+                key: "userId",
+                type: "string",
+                align: "center",
+              },
+              {
+                text: "선생님 이름",
+                key: "userName",
+                type: "string",
+                align: "center",
+              },
+            ]}
+          />
+          {/* <TableV2
             data={teacherList}
             type="object-array"
             control
@@ -448,7 +491,7 @@ const CourseAdd = (props: Props) => {
                 textAlign: "center",
               },
             ]}
-          />
+          /> */}
         </Popup>
       )}
     </>

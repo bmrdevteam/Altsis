@@ -40,6 +40,8 @@ import Autofill from "components/input/Autofill";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
+import Table from "components/table/Table";
+import TableV2 from "components/tableV2/Table";
 
 import EditorParser from "editor/EditorParser";
 
@@ -56,7 +58,9 @@ const CourseEdit = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingRef, setIsLoadingRef] = useState<boolean>(false);
+  const [isLoadingTimeClassroomRef, setIsLoadingTimeClassroomRef] =
+    useState<boolean>(false);
+  const [isLoadingMentorRef, setIsLoadingMentorRef] = useState<boolean>(false);
 
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
@@ -68,29 +72,33 @@ const CourseEdit = (props: Props) => {
   const [courseTitle, setCourseTitle] = useState<string>(
     props.courseData.classTitle
   );
-  const [courseMentor, setCourseMentor] = useState<string>(
-    JSON.stringify({
-      userId: props.courseData.teachers[0].userId,
-      userName: props.courseData.teachers[0].userName,
-    })
+  const [courseMentorList, setCourseMentorList] = useState<any[]>(
+    props.courseData.teachers || []
   );
+
   const [coursePoint, setCoursePoint] = useState<string>(
     props.courseData.point
   );
-  const [courseTime, setCourseTime] = useState<any>([
-    ...props.courseData.time.map((timeBlock: any) => timeBlock.label),
-  ]);
+  const [courseTime, setCourseTime] = useState<any>(
+    props.courseData.time || []
+  );
   const [courseClassroom, setCourseClassroom] = useState<string>(
     props.courseData.classroom
   );
   const [courseMoreInfo, setCourseMoreInfo] = useState<any>(
     props.courseData.info
   );
+  const [courseLimit, setCourseLimit] = useState<number>(
+    props.courseData.limit
+  );
 
   const courseClassroomRef = useRef<any>("");
   const courseTimeRef = useRef<any>({});
+  const courseMentorRef = useRef<any[]>([]);
 
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
+    useState<boolean>(false);
+  const [mentorSelectPopupActive, setMentorSelectPopupActive] =
     useState<boolean>(false);
 
   async function getTeachers() {
@@ -100,12 +108,16 @@ const CourseEdit = (props: Props) => {
     return res;
   }
 
-  const updateRef = () => {
+  const updateTimeClassroomRef = () => {
     courseTimeRef.current = {};
     for (let lb of courseTime) {
       courseTimeRef.current[lb] = true;
     }
     courseClassroomRef.current = courseClassroom;
+  };
+
+  const updateMentorRef = () => {
+    courseMentorRef.current = [];
   };
 
   async function getSyllabusByClassroom(classroom: string) {
@@ -146,12 +158,13 @@ const CourseEdit = (props: Props) => {
       classTitle: courseTitle,
       point: coursePoint,
       subject: courseSubject.split("/"),
-      teachers: [JSON.parse(courseMentor)],
+      teachers: courseMentorList,
       classroom: courseClassroom,
       time: courseTime.map((lb: string) => {
         return { label: lb };
       }),
       info: courseMoreInfo,
+      limit: courseLimit,
     };
     const res = await database.U({
       location: `syllabuses/${props.courseData._id}`,
@@ -161,20 +174,6 @@ const CourseEdit = (props: Props) => {
     return res;
   }
 
-  const teachers = () => {
-    const res = [{ text: "", value: "" }];
-    for (let i = 0; i < teacherList?.length; i++) {
-      res.push({
-        text: `${teacherList[i].userName}(${teacherList[i].userId})`,
-        value: JSON.stringify({
-          userId: teacherList[i].userId,
-          userName: teacherList[i].userName,
-        }),
-      });
-    }
-
-    return res;
-  };
   const subjects = () => {
     const res = [];
     for (let i = 0; i < currentSeason?.subjects.data.length; i++) {
@@ -190,7 +189,7 @@ const CourseEdit = (props: Props) => {
   useEffect(() => {
     setData()
       .then((res) => {
-        updateRef();
+        updateTimeClassroomRef();
         setIsLoading(false);
       })
       .catch((err) => {
@@ -200,14 +199,27 @@ const CourseEdit = (props: Props) => {
   }, []);
 
   useEffect(() => {
-    if (isLoadingRef) {
-      updateRef();
-      setIsLoadingRef(false);
+    if (isLoadingTimeClassroomRef) {
+      updateTimeClassroomRef();
+      setIsLoadingTimeClassroomRef(false);
     }
     return () => {};
-  }, [isLoadingRef]);
+  }, [isLoadingTimeClassroomRef]);
 
-  return !isLoading && !isLoadingRef ? (
+  useEffect(() => {
+    if (isLoadingMentorRef) {
+      updateMentorRef();
+      setIsLoadingMentorRef(false);
+    }
+    return () => {};
+  }, [isLoadingMentorRef]);
+
+  useEffect(() => {
+    setCoursePoint(courseTime.length);
+    return () => {};
+  }, [courseTime]);
+
+  return !isLoading && !isLoadingTimeClassroomRef && !isLoadingMentorRef ? (
     <>
       <div className={style.section}>
         <div className={style.design_form}>
@@ -236,31 +248,50 @@ const CourseEdit = (props: Props) => {
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
               appearence="flat"
+              label="수업명"
+              required={true}
+              onChange={(e: any) => {
+                setCourseTitle(e.target.value);
+              }}
+              defaultValue={courseTitle}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "24px",
+              marginTop: "24px",
+              alignItems: "flex-end",
+            }}
+          >
+            <Input
+              appearence="flat"
               label="작성자"
               required={true}
               disabled
-              defaultValue={currentUser?.userName}
+              defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
             />
-            <Autofill
+
+            <Input
               appearence="flat"
-              options={teachers()}
-              label="멘토 선택"
-              setState={setCourseMentor}
+              label="멘토"
               required
-              defaultValue={courseMentor}
+              defaultValue={_.join(
+                courseMentorList.map(
+                  (teacher: any) => `${teacher.userName}(${teacher.userId})`
+                ),
+                ", "
+              )}
+              disabled
             />
-            <div style={{ display: "flex", flex: "1 1 0", gap: "24px" }}>
-              <Input
-                type="number"
-                appearence="flat"
-                label="학점"
-                required={true}
-                onChange={(e: any) => {
-                  setCoursePoint(e.target.value);
-                }}
-                defaultValue={coursePoint}
-              />
-            </div>
+            <Button
+              type="ghost"
+              onClick={() => {
+                setMentorSelectPopupActive(true);
+              }}
+            >
+              수정
+            </Button>
           </div>
           <Button
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
@@ -285,6 +316,27 @@ const CourseEdit = (props: Props) => {
               defaultValue={courseTime}
               required={true}
               disabled
+            />
+            <Input
+              type="number"
+              appearence="flat"
+              label="학점"
+              required={true}
+              onChange={(e: any) => {
+                setCoursePoint(e.target.value);
+              }}
+              defaultValue={`${coursePoint}`}
+            />
+
+            <Input
+              type="number"
+              appearence="flat"
+              label="수강정원"
+              required={true}
+              onChange={(e: any) => {
+                setCourseLimit(e.target.value);
+              }}
+              defaultValue={"0"}
             />
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
@@ -337,7 +389,7 @@ const CourseEdit = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                setIsLoadingRef(true);
+                setIsLoadingTimeClassroomRef(true);
                 setCourseClassroom(courseClassroomRef.current);
                 setCourseTime([
                   ...Object.keys(
@@ -388,6 +440,92 @@ const CourseEdit = (props: Props) => {
             defaultValues={courseTimeRef.current}
             data={currentSeason?.formTimetable}
           />
+        </Popup>
+      )}
+      {mentorSelectPopupActive && (
+        <Popup
+          contentScroll
+          setState={setMentorSelectPopupActive}
+          title="멘토 선택"
+          closeBtn
+          style={{ borderRadius: "4px", width: "900px" }}
+          footer={
+            <Button
+              type="ghost"
+              onClick={() => {
+                setCourseMentorList(
+                  courseMentorRef.current.map((val: any) => {
+                    return { userId: val.userId, userName: val.userName };
+                  })
+                );
+                setIsLoadingTimeClassroomRef(true);
+                setMentorSelectPopupActive(false);
+              }}
+            >
+              선택
+            </Button>
+          }
+        >
+          <Table
+            data={teacherList}
+            type="object-array"
+            filter
+            onSelectChange={(value: any) => {
+              courseMentorRef.current = value;
+            }}
+            header={[
+              {
+                text: "checkbox",
+                key: "",
+                type: "checkbox",
+                width: "48px",
+              },
+
+              {
+                text: "선생님 ID",
+                key: "userId",
+                type: "string",
+                align: "center",
+              },
+              {
+                text: "선생님 이름",
+                key: "userName",
+                type: "string",
+                align: "center",
+              },
+            ]}
+          />
+          {/* <TableV2
+            data={teacherList}
+            type="object-array"
+            control
+            // onSelectChange={(value: any) => {
+            //   selectedRegistrations.current = value.map((val: any) => {
+            //     return val._id;
+            //   });
+            // }}
+            header={[
+              {
+                text: "checkbox",
+                key: "",
+                type: "checkbox",
+                width: "48px",
+              },
+
+              {
+                text: "선생님 ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "선생님 이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
+              },
+            ]}
+          /> */}
         </Popup>
       )}
     </>

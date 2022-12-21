@@ -40,7 +40,7 @@ import Divider from "components/divider/Divider";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import EditorParser from "editor/EditorParser";
 
@@ -106,7 +106,19 @@ const CourseView = (props: Props) => {
         <div className={style.category}>
           {_.join(currentSeason?.subjects.label, "/")}:{" "}
           {_.join(props.courseData.subject, "/")}
+        </div>{" "}
+        <div className={style.category}>
+          강의실: {props.courseData.classroom || "없음"}
         </div>
+        <div className={style.category}>
+          시간:{" "}
+          {_.join(
+            props.courseData?.time.map((timeBlock: any) => timeBlock.label),
+            ", "
+          )}
+        </div>
+        <div className={style.category}>학점: {props.courseData.point}</div>
+        <div className={style.category}>수강정원: {props.courseData.limit}</div>
         <div className={style.category}>
           개설자: {props.courseData.userName}
         </div>
@@ -124,19 +136,6 @@ const CourseView = (props: Props) => {
           }}
         >
           상태: {confirmed ? "승인됨" : "미승인"}
-        </div>
-        <div className={style.category}>
-          시간:{" "}
-          {_.join(
-            props.courseData?.time.map((timeBlock: any) => {
-              return timeBlock.label;
-            }),
-            ", "
-          )}
-        </div>
-        <div className={style.category}>학점: {props.courseData.point}</div>
-        <div className={style.category}>
-          강의실: {props.courseData.classroom || "없음"}
         </div>
       </>
     );
@@ -344,27 +343,34 @@ const CourseView = (props: Props) => {
       {isMentor ? (
         <>
           <Table
-            filter
             type="object-array"
-            data={enrollments}
+            data={enrollments || []}
             header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+
               {
                 text: "학년",
                 key: "studentGrade",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "ID",
                 key: "studentId",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "이름",
                 key: "studentName",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "평가",
@@ -374,13 +380,13 @@ const CourseView = (props: Props) => {
                 },
                 type: "button",
                 width: "80px",
-                align: "center",
-                textStyle: {
-                  padding: "0 10px",
-                  border: "var(--border-default)",
-                  background: "rgba(200, 200, 255, 0.25)",
-                  borderColor: "rgba(200, 200, 255)",
-                },
+                textAlign: "center",
+                // textStyle: {
+                //   padding: "0 10px",
+                //   border: "var(--border-default)",
+                //   background: "rgba(200, 200, 255, 0.25)",
+                //   borderColor: "rgba(200, 200, 255)",
+                // },
               },
               {
                 text: "알림 보내기",
@@ -398,16 +404,15 @@ const CourseView = (props: Props) => {
                 },
                 type: "button",
                 width: "80px",
-                align: "center",
-                textStyle: {
-                  padding: "0 10px",
-                  border: "var(--border-default)",
-                  background: "rgba(200, 200, 255, 0.25)",
-                  borderColor: "rgba(200, 200, 255)",
-                },
+                textAlign: "center",
+                // textStyle: {
+                //   padding: "0 10px",
+                //   border: "var(--border-default)",
+                //   background: "rgba(200, 200, 255, 0.25)",
+                //   borderColor: "rgba(200, 200, 255)",
+                // },
               },
             ]}
-            style={{ bodyHeight: "calc(100vh - 300px)" }}
           />
           <Button
             type={"ghost"}
@@ -438,29 +443,35 @@ const CourseView = (props: Props) => {
       ) : (
         <>
           <Table
-            filter
             type="object-array"
-            data={enrollments}
+            data={enrollments || []}
             header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
               {
                 text: "학년",
                 key: "studentGrade",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "ID",
                 key: "studentId",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "이름",
                 key: "studentName",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
             ]}
-            style={{ bodyHeight: "calc(100vh - 300px)" }}
           />
         </>
       )}
@@ -476,23 +487,33 @@ const CourseView = (props: Props) => {
             header={[
               {
                 text: "No",
-                key: "",
-                type: "index",
+                type: "text",
+                key: "tableRowIndex",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
               {
-                text: "멘토",
+                text: "멘토 ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "멘토 이름",
                 key: "userName",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
 
               {
                 text: "상태",
                 key: "confirmed",
-                type: "string",
-                returnFunction: (e: boolean) => {
-                  return e ? "승인됨" : "미승인";
+                width: "120px",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  false: { text: "미승인", color: "red" },
+                  true: { text: "승인됨", color: "green" },
                 },
               },
             ]}
