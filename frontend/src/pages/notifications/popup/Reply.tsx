@@ -100,7 +100,7 @@ const NotificationSend = (props: Props) => {
           }}
         >
           <Textarea
-            label="메시지"
+            label="본문"
             onChange={(e: any) => {
               setDescription(e.target.value);
             }}

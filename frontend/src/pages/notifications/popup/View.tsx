@@ -49,20 +49,15 @@ const NotificationSend = (props: Props) => {
   return (
     <>
       {" "}
-      <Popup setState={props.setState} closeBtn>
-        <div style={{}}>
-          <div className={style.description}>
-            {props.data.category && (
-              <span className={style.type}>[{props.data.category}]</span>
-            )}
-            {props.data.title}
-          </div>
-
-          <div
-            style={{
-              marginTop: "24px",
-            }}
-          >
+      <Popup
+        setState={props.setState}
+        closeBtn
+        title={`${props.data.category ? `[${props.data.category}] ` : ""}${
+          props.data.title
+        }`}
+      >
+        <div>
+          <div>
             {props.type === "received" ? (
               <Input
                 label="발신자"
@@ -91,7 +86,7 @@ const NotificationSend = (props: Props) => {
             }}
           >
             <Textarea
-              label="메시지"
+              label="본문"
               defaultValue={props.data.description}
               disabled
             />
