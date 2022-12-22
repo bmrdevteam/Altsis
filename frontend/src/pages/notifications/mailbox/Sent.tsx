@@ -55,7 +55,7 @@ const Sent = (props: Props) => {
   const [notificatnionPopupActive, setNotificatnionPopupActive] =
     useState<boolean>(false);
 
-  const [isRegistratinoListLoaded, setIsRegistrationLoaded] =
+  const [isReceiverOptionListLoaded, setIsReceiverOptionListLoaded] =
     useState<boolean>(false);
   const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
 
@@ -84,6 +84,14 @@ const Sent = (props: Props) => {
     });
 
     return registrations;
+  }
+
+  async function getUserList() {
+    const { users } = await database.R({
+      location: `users`,
+    });
+
+    return users;
   }
 
   useEffect(() => {
@@ -117,23 +125,39 @@ const Sent = (props: Props) => {
   }
 
   useEffect(() => {
-    setIsRegistrationLoaded(false);
+    setIsReceiverOptionListLoaded(false);
   }, [currentRegistration]);
 
   async function updateReceiverOptionList() {
-    getRegistrationList().then((res: any) => {
-      setReceiverOptionList(
-        res.map((registration: any) => {
-          return {
-            value: JSON.stringify({
-              userId: registration.userId,
-              userName: registration.userName,
-            }),
-            text: `${registration.userName}(${registration.userId})`,
-          };
-        })
-      );
-    });
+    if (currentRegistration) {
+      getRegistrationList().then((res: any) => {
+        setReceiverOptionList(
+          res.map((registration: any) => {
+            return {
+              value: JSON.stringify({
+                userId: registration.userId,
+                userName: registration.userName,
+              }),
+              text: `${registration.userName}(${registration.userId})`,
+            };
+          })
+        );
+      });
+    } else {
+      getUserList().then((res: any) => {
+        setReceiverOptionList(
+          res.map((user: any) => {
+            return {
+              value: JSON.stringify({
+                userId: user.userId,
+                userName: user.userName,
+              }),
+              text: `${user.userName}(${user.userId})`,
+            };
+          })
+        );
+      });
+    }
   }
 
   return !isLoading ? (
@@ -179,9 +203,9 @@ const Sent = (props: Props) => {
               <div
                 className={style.icon}
                 onClick={() => {
-                  if (!isRegistratinoListLoaded) {
+                  if (!isReceiverOptionListLoaded) {
                     updateReceiverOptionList().then(() => {
-                      setIsRegistrationLoaded(true);
+                      setIsReceiverOptionListLoaded(true);
                     });
                   }
                   setSendPopupActive(true);
@@ -264,7 +288,7 @@ const Sent = (props: Props) => {
           />
         )}
       </div>
-      {sendPopupActive && isRegistratinoListLoaded && (
+      {sendPopupActive && isReceiverOptionListLoaded && (
         <Send
           setState={setSendPopupActive}
           receiverOptionList={receiverOptionList}
