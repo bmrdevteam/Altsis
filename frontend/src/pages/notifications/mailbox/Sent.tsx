@@ -46,7 +46,7 @@ type Props = {};
 
 const Sent = (props: Props) => {
   const database = useDatabase();
-  const { currentUser, currentRegistration } = useAuth();
+  const { currentUser, currentRegistration, currentSchool } = useAuth();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
   const [notification, setNotification] = useState<any>();
@@ -57,6 +57,8 @@ const Sent = (props: Props) => {
 
   const [isReceiverOptionListLoaded, setIsReceiverOptionListLoaded] =
     useState<boolean>(false);
+  const [receiverType, setReceiverType] = useState<string>("");
+  const [receiverList, setReceiverList] = useState<any[]>([]);
   const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
 
   const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
@@ -84,6 +86,14 @@ const Sent = (props: Props) => {
     });
 
     return registrations;
+  }
+
+  async function getSchoolUserList() {
+    const { users } = await database.R({
+      location: `users?schools.school=${currentSchool._id}`,
+    });
+
+    return users;
   }
 
   async function getUserList() {
@@ -130,35 +140,40 @@ const Sent = (props: Props) => {
 
   async function updateReceiverOptionList() {
     if (currentRegistration) {
+      setReceiverType("season");
       getRegistrationList().then((res: any) => {
-        setReceiverOptionList(
-          res.map((registration: any) => {
-            return {
-              value: JSON.stringify({
-                userId: registration.userId,
-                userName: registration.userName,
-              }),
-              text: `${registration.userName}(${registration.userId})`,
-            };
-          })
-        );
+        setReceiverList(res);
+      });
+    } else if (currentSchool) {
+      setReceiverType("school");
+      getSchoolUserList().then((res: any) => {
+        setReceiverList(res);
       });
     } else {
+      setReceiverType("academy");
       getUserList().then((res: any) => {
-        setReceiverOptionList(
-          res.map((user: any) => {
-            return {
-              value: JSON.stringify({
-                userId: user.userId,
-                userName: user.userName,
-              }),
-              text: `${user.userName}(${user.userId})`,
-            };
-          })
-        );
+        setReceiverList(res);
       });
     }
   }
+
+  useEffect(() => {
+    if (receiverList) {
+      setReceiverOptionList(
+        receiverList.map((receiver: any) => {
+          return {
+            value: JSON.stringify({
+              userId: receiver.userId,
+              userName: receiver.userName,
+            }),
+            text: `${receiver.userName}(${receiver.userId})`,
+          };
+        })
+      );
+    }
+
+    return () => {};
+  }, [receiverList]);
 
   return !isLoading ? (
     <>
@@ -240,7 +255,7 @@ const Sent = (props: Props) => {
                 text: "받은사람",
                 key: "toUser",
                 type: "text",
-                width: "160px",
+                width: "180px",
               },
               {
                 text: "구분",
@@ -292,6 +307,8 @@ const Sent = (props: Props) => {
         <Send
           setState={setSendPopupActive}
           receiverOptionList={receiverOptionList}
+          receiverList={receiverList}
+          receiverType={receiverType}
         />
       )}
     </>

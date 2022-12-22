@@ -17,3 +17,12 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+.icon {
+  padding: 6px;
+  cursor: pointer;
+  color: var(--accent-3);
+  svg {
+    fill: var(--accent-3);
+  }
+}
