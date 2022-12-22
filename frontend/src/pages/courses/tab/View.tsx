@@ -526,6 +526,14 @@ const CourseView = (props: Props) => {
           receiverOptionList={receiverOptionList}
           receiverSelectedList={receiverSelectedList}
           category={props.courseData.classTitle}
+          receiverList={enrollments?.map((enrollment: any) => {
+            return {
+              ...enrollment,
+              userId: enrollment.studentId,
+              userName: enrollment.studentName,
+            };
+          })}
+          receiverType={"enrollment"}
         />
       )}
     </div>
