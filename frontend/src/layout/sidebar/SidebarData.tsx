@@ -1,6 +1,9 @@
 import { archiveTestData } from "archiveTest";
 import { apps } from "apps";
 import Svg from "../../assets/svg/Svg";
+import { useAuth } from "contexts/authContext";
+import { useEffect, useState } from "react";
+import useApi from "hooks/useApi";
 
 export interface INavLink {
   title: string;
@@ -21,6 +24,9 @@ export const SidebarData = (
   role?: string,
   currentPermission?: any
 ): any => {
+  const { currentSchool } = useAuth();
+
+
   switch (auth) {
     case "owner":
       return [
@@ -105,7 +111,7 @@ export const SidebarData = (
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          subLink: archiveTestData.map((val) => {
+          subLink: currentSchool.formArchive?.map((val: any) => {
             return {
               title: val.label,
               name: val.label,
@@ -233,7 +239,7 @@ export const SidebarData = (
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          subLink: archiveTestData.map((val) => {
+          subLink: currentSchool.formArchive?.map((val:any) => {
             return {
               title: val.label,
               name: val.label,
