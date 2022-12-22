@@ -385,6 +385,7 @@ const CourseEdit = (props: Props) => {
           title="강의실 및 시간 선택"
           closeBtn
           style={{ borderRadius: "4px", width: "900px" }}
+          contentScroll
           footer={
             <Button
               type="ghost"
