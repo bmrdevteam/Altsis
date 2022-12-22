@@ -1,10 +1,6 @@
 import { archiveTestData } from "archiveTest";
 import Button from "components/button/Button";
-import Divider from "components/divider/Divider";
-import Autofill from "components/input/Autofill";
-import Input from "components/input/Input";
-import Select from "components/select/Select";
-import Table, { TTableHeader, TTableItemType } from "components/table/Table";
+import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
 import _ from "lodash";
@@ -19,69 +15,92 @@ type Props = {
 };
 
 const One = (props: Props) => {
+  console.log(props.userArchiveData);
+  
+  const {currentSchool} = useAuth()
   function archiveData() {
     return (
-      archiveTestData.filter((val) => {
+      currentSchool.formArchive?.filter((val:any) => {
         return val.label === props.archive;
       })[0] ?? { fields: [] }
     );
   }
   function archiveHeader() {
-    let arr: TTableHeader = [];
+    let arr: any = [];
     archiveData().fields?.map((val: any) => {
       if (val.type === "select") {
         arr.push({
           text: val.label,
+          whiteSpace: "pre",
           key: val.label,
           type: "select",
-          selectOptions: val.options,
+          option: val.options,
+        });
+      } else if (val.type === "input-number") {
+        arr.push({
+          text: val.label,
+          whiteSpace: "pre",
+          key: val.label,
+          type: "input-number",
         });
       } else {
         arr.push({
+          byteCalc: true,
           text: val.label,
           key: val.label,
-          type: val.type as TTableItemType,
+          type: val.type,
         });
       }
     });
     arr.push({
-      text: "삭제",
-      key: "",
+      text: "수정",
+      type: "rowEdit",
       width: "72px",
-      align: "center",
-      type: "button",
+      textAlign: "center",
+      fontSize: "12px",
+      btnStyle: {
+        round: true,
+        border: true,
+        padding: "4px",
+        color: "red",
+        background: "#FFF1F1",
+      },
+      fontWeight: "600",
     });
     return arr;
   }
 
-  return (
+  return archiveData().dataType === "object" ? (
+    <div className={style.content}>
+      {archiveData().fields?.map((val: any, index: number) => {
+        return (
+          <div className={style.field} key={index}>
+            <div className={style.label}>{val.label}</div>
+            <textarea
+              defaultValue={props.userArchiveData?.[val.label]}
+              className={style.input}
+              rows={1}
+            />
+          </div>
+        );
+      })}
+    </div>
+  ) : (
     <>
-      <Button type="ghost" style={{ marginTop: "24px", height: "30px" }}>
-        저장
-      </Button>
-      {archiveData().dataType === "object" ? (
-        <div className={style.content}>
-          {archiveData().fields?.map((val: any, index: number) => {
-            return (
-              <div className={style.field} key={index}>
-                <div className={style.label}>{val.label}</div>
-                <textarea
-                  defaultValue={props.userArchiveData?.[val.label]}
-                  className={style.input}
-                  rows={1}
-                />
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div style={{ marginTop: "24px" }}>
-          <Table
-            type="object-array"
-            data={props.userArchiveData}
-            header={archiveHeader()}
-          />
-        </div>
+      {props.userArchiveData && (
+        <>
+          <Button type="ghost"> 저장</Button>
+          <div style={{ marginTop: "24px" }}>
+            <Table
+              onChange={(value) => {
+                console.log(value);
+              }}
+              type="object-array"
+              data={props.userArchiveData ?? []}
+              header={archiveHeader()}
+            />
+          </div>
+        </>
       )}
     </>
   );

@@ -9,6 +9,7 @@ export function useAuth(): {
   setCurrentUser: React.Dispatch<any>;
   currentUser: any;
   currentSchool: any;
+  changeSchool: (to: string) => void;
   currentSeason: any;
   changeCurrentSeason: (season: any) => void;
   currentRegistration: any;
@@ -25,7 +26,7 @@ export function useAuth(): {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { UserApi, SeasonApi } = useApi();
+  const { UserApi, SeasonApi, SchoolApi } = useApi();
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [currentSchool, setCurrentSchool] = useState<any>();
@@ -43,6 +44,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
        */
       setCurrentUser(res);
       setCurrentSchool(res.schools[0]);
+      SchoolApi.RSchool(res.schools[0].school).then((s) => {
+        setCurrentSchool((prev: any) => ({ ...prev, ...s }));
+      });
       setCurrentNotifications(res.notifications);
 
       /** if there is a registration, set the season */
@@ -66,7 +70,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         });
   }, [loading]);
-
+  
+  function changeSchool(to: string) {
+    SchoolApi.RSchool(to).then((s) => {
+      setCurrentSchool({ ...s, school: s._id });
+    });
+  }
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
     const result = await SeasonApi.RSeason(registration?.season)
@@ -137,6 +146,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     changeCurrentSeason,
     currentRegistration,
     setLoading,
+    changeSchool,
     currentSchool,
     updateUserProfile,
     deleteUserProfile,

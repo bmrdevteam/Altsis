@@ -6,10 +6,10 @@ const pattern = {
   tel: "^[0-9]{3}-[0-9]{4}-[0-9]{4}$",
 
   academyId: "^[a-z|A-Z|0-9]{2,20}$",
-  academyName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$",
+  academyName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$",
 
   schoolId: "^[a-z|A-Z|0-9]{2,20}$",
-  schoolName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$",
+  schoolName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$",
 };
 
 module.exports = (type, val) => {
