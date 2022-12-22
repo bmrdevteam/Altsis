@@ -76,7 +76,12 @@ const NotificationSend = (props: Props) => {
 
   console.log("test1");
   return (
-    <Popup setState={props.setState} title="알림 보내기" closeBtn>
+    <Popup
+      setState={props.setState}
+      title="알림 보내기"
+      style={{ maxWidth: "320px" }}
+      closeBtn
+    >
       <div style={{ marginTop: "12px" }}>
         <Autofill
           label="수신자"
@@ -94,7 +99,15 @@ const NotificationSend = (props: Props) => {
           placeholder={"이름 또는 아이디로 검색"}
           resetOnClick
         />
-        <div style={{ display: "flex" }}>
+        <div
+          style={{
+            display: "flex",
+            marginTop: "12px",
+            gap: "4px",
+            overflow: "auto",
+            whiteSpace: "nowrap",
+          }}
+        >
           {Object.keys(receiverSelectedList).map((receiver: any) => {
             const { userId, userName } = JSON.parse(receiver);
 
@@ -102,6 +115,14 @@ const NotificationSend = (props: Props) => {
               <div
                 style={{
                   display: "flex",
+                  alignItems: "center",
+                  color: "gray",
+                  border: "1px solid",
+                  padding: "0px 4px 0px 4px",
+                  fontSize: "12px",
+                  fontWeight: "12px",
+                  borderRadius: "12px",
+                  cursor: "pointer",
                 }}
               >
                 {`${userName}(${userId})`}
