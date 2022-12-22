@@ -65,6 +65,8 @@ function Archive(props: Props) {
             {
               text: "데이터 형식",
               key: "dataType",
+              fontSize: "12px",
+              fontWeight: "600",
               type: "status",
               textAlign: "center",
               width: "120px",
@@ -82,12 +84,28 @@ function Archive(props: Props) {
             {
               text: "자세히",
               type: "button",
+              fontSize: "12px",
+              fontWeight: "600",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "green",
+                padding: "4px",
+                round: true,
+              },
               onClick: (value: any) => {
                 setEditArchivePopupActive(true);
                 setEditArchivefield(value.label);
               },
               width: "80px",
+            },
+            {
+              text: "수정",
+              type: "rowEdit",
+              fontSize: "12px",
+              fontWeight: "600",
               textAlign: "center",
+              width: "80px",
             },
           ]}
         />
