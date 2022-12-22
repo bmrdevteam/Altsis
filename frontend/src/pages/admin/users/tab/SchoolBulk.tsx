@@ -263,10 +263,11 @@ function Basic(props: Props) {
             <Table
               type="object-array"
               data={props.schoolList}
-              // onSelectChange={(value) => {
-              //   console.log(value);
-              //   schoolSelectRef.current = value;
-              // }}
+              onChange={(value: any[]) => {
+                schoolSelectRef.current = _.filter(value, {
+                  tableRowChecked: true,
+                });
+              }}
               header={[
                 {
                   text: "선택",
@@ -276,7 +277,7 @@ function Basic(props: Props) {
                 },
 
                 {
-                  text: "학교 Id",
+                  text: "학교 ID",
                   key: "schoolId",
                   type: "text",
                   textAlign: "center",

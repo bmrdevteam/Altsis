@@ -148,11 +148,11 @@ const Users = (props: Props) => {
             data={registrationList}
             type="object-array"
             control
-            // onSelectChange={(value: any) => {
-            //   selectedRegistrations.current = value.map((val: any) => {
-            //     return val._id;
-            //   });
-            // }}
+            onChange={(value: any[]) => {
+              selectedRegistrations.current = _.filter(value, {
+                tableRowChecked: true,
+              }).map((val: any) => val._id);
+            }}
             header={[
               {
                 text: "checkbox",

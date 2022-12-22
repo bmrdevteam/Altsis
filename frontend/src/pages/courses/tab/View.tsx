@@ -379,7 +379,7 @@ const CourseView = (props: Props) => {
                   alert("clicked!");
                 },
                 type: "button",
-                width: "80px",
+
                 textAlign: "center",
                 // textStyle: {
                 //   padding: "0 10px",
@@ -403,7 +403,7 @@ const CourseView = (props: Props) => {
                   setSendNotificationPopupActive(true);
                 },
                 type: "button",
-                width: "80px",
+                width: "120px",
                 textAlign: "center",
                 // textStyle: {
                 //   padding: "0 10px",
