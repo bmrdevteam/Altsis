@@ -44,6 +44,8 @@ import Select from "components/select/Select";
 import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
+import Table from "components/table/Table";
+import TableV2 from "components/tableV2/Table";
 
 type Props = {};
 
@@ -57,24 +59,28 @@ const CourseAdd = (props: Props) => {
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
   const [teacherList, setTeacherList] = useState<any>();
+  const selectedTeacherListRef = useRef<any[]>([]);
 
   const [courseSubject, setCourseSubject] = useState<string>("");
   const [courseTitle, setCourseTitle] = useState<string>("");
-  const [courseMentor, setCourseMentor] = useState<any>("");
+  const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
   const [coursePoint, setCoursePoint] = useState<string>();
   const [courseTime, setCourseTime] = useState<any>([]);
   const [courseClassroom, setCourseClassroom] = useState<string>("");
   const [courseMoreInfo, setCourseMoreInfo] = useState<any>();
+  const [courseLimit, setCourseLimit] = useState<number>(0);
 
   const courseClassroomRef = useRef<any>("");
   const courseTimeRef = useRef<any>({});
 
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
     useState<boolean>(false);
+  const [mentorSelectPopupActive, setMentorSelectPopupActive] =
+    useState<boolean>(false);
 
   async function getTeachers() {
     const { registrations: res } = await database.R({
-      location: `registrations?role=teacher&season=${currentSeason?._id}`,
+      location: `registrations?season=${currentSeason?._id}&role=teacher`,
     });
     return res;
   }
@@ -93,6 +99,11 @@ const CourseAdd = (props: Props) => {
     });
     return res;
   }
+
+  useEffect(() => {
+    setCoursePoint(courseTime.length);
+    return () => {};
+  }, [courseTime]);
 
   function syllabusToTime(s: any) {
     let result = {};
@@ -121,12 +132,13 @@ const CourseAdd = (props: Props) => {
       classTitle: courseTitle,
       point: coursePoint,
       subject: courseSubject.split("/"),
-      teachers: [JSON.parse(courseMentor)],
+      teachers: courseMentorList,
       classroom: courseClassroom,
       time: courseTime.map((lb: string) => {
         return { label: lb };
       }),
       info: courseMoreInfo,
+      limit: courseLimit,
     };
     const res = await database.C({
       location: "syllabuses",
@@ -181,6 +193,12 @@ const CourseAdd = (props: Props) => {
     return () => {};
   }, [isLoadingRef]);
 
+  useEffect(() => {
+    if (mentorSelectPopupActive) {
+      selectedTeacherListRef.current = [];
+    }
+  }, [mentorSelectPopupActive]);
+
   return !isLoading && !isLoadingRef ? (
     <>
       <div className={style.section}>
@@ -207,35 +225,43 @@ const CourseAdd = (props: Props) => {
               defaultValue={courseTitle}
             />
           </div>
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "24px",
+              marginTop: "24px",
+              alignItems: "flex-end",
+            }}
+          >
             <Input
               appearence="flat"
               label="작성자"
               required={true}
               disabled
-              defaultValue={currentUser?.userName}
+              defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
             />
-            <Autofill
+            <Input
               appearence="flat"
-              options={teachers()}
-              label="멘토 선택"
-              setState={setCourseMentor}
+              label="멘토"
               required
-              defaultValue={courseMentor}
+              defaultValue={_.join(
+                courseMentorList.map(
+                  (teacher: any) => `${teacher.userName}(${teacher.userId})`
+                ),
+                ", "
+              )}
+              disabled
             />
-            <div style={{ display: "flex", flex: "1 1 0", gap: "24px" }}>
-              <Input
-                type="number"
-                appearence="flat"
-                label="학점"
-                required={true}
-                onChange={(e: any) => {
-                  setCoursePoint(e.target.value);
-                }}
-                defaultValue={coursePoint}
-              />
-            </div>
+            <Button
+              type="ghost"
+              onClick={() => {
+                setMentorSelectPopupActive(true);
+              }}
+            >
+              수정
+            </Button>
           </div>
+
           <Button
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
             type="ghost"
@@ -259,6 +285,28 @@ const CourseAdd = (props: Props) => {
               defaultValue={courseTime}
               required={true}
               disabled
+            />
+
+            <Input
+              type="number"
+              appearence="flat"
+              label="학점"
+              required={true}
+              onChange={(e: any) => {
+                setCoursePoint(e.target.value);
+              }}
+              defaultValue={`${coursePoint}`}
+            />
+
+            <Input
+              type="number"
+              appearence="flat"
+              label="수강정원"
+              required={true}
+              onChange={(e: any) => {
+                setCourseLimit(e.target.value);
+              }}
+              defaultValue={"0"}
             />
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
@@ -302,6 +350,7 @@ const CourseAdd = (props: Props) => {
 
       {timeSelectPopupActive && (
         <Popup
+          contentScroll
           setState={setTimeSelectPopupActive}
           title="강의실 및 시간 선택"
           closeBtn
@@ -357,6 +406,92 @@ const CourseAdd = (props: Props) => {
             defaultValues={courseTimeRef.current}
             data={currentSeason?.formTimetable}
           />
+        </Popup>
+      )}
+
+      {mentorSelectPopupActive && (
+        <Popup
+          contentScroll
+          setState={setMentorSelectPopupActive}
+          title="멘토 선택"
+          closeBtn
+          style={{ borderRadius: "4px", width: "900px" }}
+          footer={
+            <Button
+              type="ghost"
+              onClick={() => {
+                setCourseMentorList(
+                  selectedTeacherListRef.current.map((val: any) => {
+                    return { userId: val.userId, userName: val.userName };
+                  })
+                );
+                setMentorSelectPopupActive(false);
+              }}
+            >
+              선택
+            </Button>
+          }
+        >
+          <Table
+            data={teacherList}
+            type="object-array"
+            filter
+            onSelectChange={(value: any) => {
+              selectedTeacherListRef.current = value;
+            }}
+            header={[
+              {
+                text: "checkbox",
+                key: "",
+                type: "checkbox",
+                width: "48px",
+              },
+
+              {
+                text: "선생님 ID",
+                key: "userId",
+                type: "string",
+                align: "center",
+              },
+              {
+                text: "선생님 이름",
+                key: "userName",
+                type: "string",
+                align: "center",
+              },
+            ]}
+          />
+          {/* <TableV2
+            data={teacherList}
+            type="object-array"
+            control
+            // onSelectChange={(value: any) => {
+            //   selectedRegistrations.current = value.map((val: any) => {
+            //     return val._id;
+            //   });
+            // }}
+            header={[
+              {
+                text: "checkbox",
+                key: "",
+                type: "checkbox",
+                width: "48px",
+              },
+
+              {
+                text: "선생님 ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "선생님 이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
+              },
+            ]}
+          /> */}
         </Popup>
       )}
     </>
