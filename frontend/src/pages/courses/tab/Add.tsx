@@ -40,12 +40,11 @@ import Autofill from "components/input/Autofill";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
+import Table from "components/tableV2/Table";
 
 import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
-import Table from "components/table/Table";
-import TableV2 from "components/tableV2/Table";
 
 type Props = {};
 
@@ -435,9 +434,11 @@ const CourseAdd = (props: Props) => {
           <Table
             data={teacherList}
             type="object-array"
-            filter
-            onSelectChange={(value: any) => {
-              selectedTeacherListRef.current = value;
+            control
+            onChange={(value: any[]) => {
+              selectedTeacherListRef.current = _.filter(value, {
+                tableRowChecked: true,
+              });
             }}
             header={[
               {
@@ -450,48 +451,17 @@ const CourseAdd = (props: Props) => {
               {
                 text: "선생님 ID",
                 key: "userId",
-                type: "string",
-                align: "center",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "선생님 이름",
                 key: "userName",
-                type: "string",
-                align: "center",
+                type: "text",
+                textAlign: "center",
               },
             ]}
           />
-          {/* <TableV2
-            data={teacherList}
-            type="object-array"
-            control
-            // onSelectChange={(value: any) => {
-            //   selectedRegistrations.current = value.map((val: any) => {
-            //     return val._id;
-            //   });
-            // }}
-            header={[
-              {
-                text: "checkbox",
-                key: "",
-                type: "checkbox",
-                width: "48px",
-              },
-
-              {
-                text: "선생님 ID",
-                key: "userId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "선생님 이름",
-                key: "userName",
-                type: "text",
-                textAlign: "center",
-              },
-            ]}
-          /> */}
         </Popup>
       )}
     </>

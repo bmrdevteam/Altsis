@@ -107,21 +107,23 @@ function Basic(props: Props) {
         <Table
           type="object-array"
           defaultPageBy={50}
-          // onSelectChange={(value) => {
-          //   selectedSchoolUsers.current = value.map((val: any) => {
-          //     return {
-          //       userId: val.userId,
-          //       userName: val.userName,
-          //       role: "student",
-          //     };
-          //   });
-          // }}
+          onChange={(value: any[]) => {
+            selectedSchoolUsers.current = _.filter(value, {
+              tableRowChecked: true,
+            }).map((val: any) => {
+              return {
+                userId: val.userId,
+                userName: val.userName,
+                role: "student",
+              };
+            });
+          }}
           control
           data={_.differenceBy(userList, props.registrationList, "userId")}
           header={[
             {
-              text: "ID",
-              key: "",
+              text: "",
+              key: "checkbox",
               type: "checkbox",
               width: "48px",
               textAlign: "center",
