@@ -133,7 +133,7 @@ const NotificationSend = (props: Props) => {
           }}
         >
           <Input
-            label="타입"
+            label="구분"
             onChange={(e: any) => {
               setCategory(e.target.value);
             }}
@@ -149,7 +149,7 @@ const NotificationSend = (props: Props) => {
           }}
         >
           <Input
-            label="타이틀"
+            label="제목"
             onChange={(e: any) => {
               setTitle(e.target.value);
             }}
