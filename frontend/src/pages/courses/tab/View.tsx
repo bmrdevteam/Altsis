@@ -407,7 +407,7 @@ const CourseView = (props: Props) => {
                 style={{ display: "flex", gap: "4px" }}
               >
                 <Svg type="send" width="20px" height="20px" />
-                전체 알림
+                알림
               </div>
             </div>
           </div>
@@ -449,30 +449,6 @@ const CourseView = (props: Props) => {
                 },
                 type: "button",
 
-                textAlign: "center",
-                // textStyle: {
-                //   padding: "0 10px",
-                //   border: "var(--border-default)",
-                //   background: "rgba(200, 200, 255, 0.25)",
-                //   borderColor: "rgba(200, 200, 255)",
-                // },
-              },
-              {
-                text: "알림 보내기",
-                key: "evaluation",
-                onClick: (e: any) => {
-                  const receiverSelectedList: receiverSelectedList = {};
-                  receiverSelectedList[
-                    JSON.stringify({
-                      userId: e.studentId,
-                      userName: e.studentName,
-                    })
-                  ] = true;
-                  setReceiverSelectedList({ ...receiverSelectedList });
-                  setSendNotificationPopupActive(true);
-                },
-                type: "button",
-                width: "120px",
                 textAlign: "center",
                 // textStyle: {
                 //   padding: "0 10px",
