@@ -67,7 +67,7 @@ const Subjects = (props: Props) => {
 
   const updateSubjectDataList = () => {
     const subjectDataList = [];
-    for (let i = 0; i < props.schoolData.subjects?.data.length; i++) {
+    for (let i = 0; i < props.schoolData.subjects?.data?.length; i++) {
       let data: subjectDataListType = {};
       for (let j = 0; j < props.schoolData.subjects?.data[i].length; j++) {
         data[subjectLabelList[j]] = props.schoolData.subjects?.data[i][j];
