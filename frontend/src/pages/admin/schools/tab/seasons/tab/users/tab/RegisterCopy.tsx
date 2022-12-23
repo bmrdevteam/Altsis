@@ -103,7 +103,7 @@ function Basic(props: Props) {
             },
             {
               text: "선택",
-              key: "_id",
+              key: "select",
               type: "button",
               onClick: (e: any) => {
                 registerCopyFromSeason(e._id).then(() => {
@@ -113,6 +113,12 @@ function Basic(props: Props) {
               },
               width: "80px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "black",
+                padding: "4px",
+                round: true,
+              },
             },
           ]}
         />

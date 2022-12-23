@@ -209,7 +209,7 @@ const Users = (props: Props) => {
               },
               {
                 text: "수정",
-                key: "_id",
+                key: "edit",
                 type: "button",
                 onClick: (e: any) => {
                   setRegistration(e);
@@ -217,6 +217,12 @@ const Users = (props: Props) => {
                 },
                 width: "72px",
                 textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "black",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />

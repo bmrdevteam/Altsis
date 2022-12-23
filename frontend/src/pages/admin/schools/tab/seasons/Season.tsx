@@ -195,6 +195,7 @@ const Season = (props: Props) => {
             },
             {
               text: "자세히",
+              key: "detail",
               type: "button",
               onClick: (e: any) => {
                 getSelectedSeason(e._id).then((res) => {
@@ -206,6 +207,12 @@ const Season = (props: Props) => {
               },
               width: "80px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "black",
+                padding: "4px",
+                round: true,
+              },
             },
           ]}
         />

@@ -200,14 +200,20 @@ const CourseEnroll = (props: Props) => {
     },
     {
       text: "자세히",
-      key: "courseName",
+      key: "detail",
       type: "button",
       onClick: (e: any) => {
         setCourse(e._id);
         setViewPopupActive(true);
       },
-      width: "80px",
+      width: "72px",
       textAlign: "center",
+      btnStyle: {
+        border: true,
+        color: "black",
+        padding: "4px",
+        round: true,
+      },
     },
   ];
 
@@ -250,7 +256,8 @@ const CourseEnroll = (props: Props) => {
   }, [currentRegistration]);
 
   useEffect(() => {
-    if (!currentPermission.permissionSyllabus) {
+    console.log("currentPermission is ", currentPermission);
+    if (!currentPermission.permissionEnrollment) {
       alert("수강신청 권한이 없습니다.");
       navigate("/courses");
     }
@@ -324,6 +331,7 @@ const CourseEnroll = (props: Props) => {
             {
               text: "신청",
               key: "enroll",
+              type: "button",
               onClick: (e: any) => {
                 enroll(e)
                   .then(() => {
@@ -334,9 +342,14 @@ const CourseEnroll = (props: Props) => {
                     alert(err.response.data.message);
                   });
               },
-              type: "button",
-              width: "80px",
+              width: "72px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "green",
+                padding: "4px",
+                round: true,
+              },
             },
             ...subjectLabelHeaderList,
             ...subjectHeaderList,
@@ -356,6 +369,7 @@ const CourseEnroll = (props: Props) => {
             {
               text: "취소",
               key: "cancel",
+              type: "button",
               onClick: (e: any) => {
                 cancel(e)
                   .then(() => {
@@ -366,9 +380,14 @@ const CourseEnroll = (props: Props) => {
                     alert(err.response.data.message);
                   });
               },
-              type: "button",
-              width: "80px",
+              width: "72px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "red",
+                padding: "4px",
+                round: true,
+              },
             },
             ...subjectLabelHeaderList,
             ...subjectHeaderList,

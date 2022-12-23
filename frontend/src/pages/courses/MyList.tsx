@@ -150,15 +150,21 @@ const CoursesMyList = (props: Props) => {
     },
     {
       text: "자세히",
-      key: "courseName",
+      key: "detail",
       type: "button",
       onClick: (e: any) => {
         navigate(`../${e._id}`, {
           replace: true,
         });
       },
-      width: "80px",
+      width: "72px",
       textAlign: "center",
+      btnStyle: {
+        border: true,
+        color: "black",
+        padding: "4px",
+        round: true,
+      },
     },
   ];
 
