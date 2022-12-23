@@ -42,7 +42,7 @@ type Props = {};
 
 const Courses = (props: Props) => {
   return (
-    <div className={style.section}>
+    <div>
       <Navbar />
 
       <Tab
