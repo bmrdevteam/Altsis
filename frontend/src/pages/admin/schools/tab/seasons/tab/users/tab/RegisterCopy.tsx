@@ -32,7 +32,7 @@ import useDatabase from "hooks/useDatabase";
 import _ from "lodash";
 
 // components
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 
 type Props = {
@@ -76,32 +76,30 @@ function Basic(props: Props) {
       setState={props.setPopupActive}
       style={{ borderRadius: "4px", maxWidth: "800px", width: "100%" }}
       closeBtn
+      contentScroll
     >
       <div style={{ height: "calc(100vh - 300px)" }}>
         <Table
           type="object-array"
-          filter
-          filterSearch
+          control
           data={_.differenceBy(seasonList, [props.seasonData], "_id")}
           header={[
             {
               text: "No",
-              key: "",
-              type: "index",
+              type: "text",
+              key: "tableRowIndex",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
             {
               text: "학년도",
               key: "year",
-              type: "string",
-              align: "left",
+              type: "text",
             },
             {
               text: "학기",
               key: "term",
-              type: "string",
-              align: "left",
+              type: "text",
             },
             {
               text: "선택",
@@ -114,7 +112,7 @@ function Basic(props: Props) {
                 });
               },
               width: "80px",
-              align: "center",
+              textAlign: "center",
             },
           ]}
         />

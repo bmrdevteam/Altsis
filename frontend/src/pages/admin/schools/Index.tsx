@@ -37,7 +37,7 @@ import useDatabase from "hooks/useDatabase";
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import { useAuth } from "contexts/authContext";
@@ -138,25 +138,26 @@ navigate("add", { replace: true });
         <div style={{ marginTop: "24px" }}>
           <Table
             type="object-array"
-            filter
             data={!isLoading ? schoolsList : []}
             header={[
               {
-                text: "ID",
-                key: "",
-                type: "index",
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
               {
                 text: "학교 ID",
                 key: "schoolId",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "학교명",
                 key: "schoolName",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "자세히",
@@ -166,7 +167,7 @@ navigate("add", { replace: true });
                   navigate(`${value._id}`);
                 },
                 width: "80px",
-                align: "center",
+                textAlign: "center",
               },
             ]}
           />

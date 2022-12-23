@@ -37,10 +37,12 @@ import style from "style/pages/enrollment.module.scss";
 import Navbar from "layout/navbar/Navbar";
 
 // components
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import Input from "components/input/Input";
+
+import ViewPopup from "./tab/ViewPopup";
 
 import _ from "lodash";
 
@@ -58,11 +60,14 @@ const CourseEnroll = (props: Props) => {
 
   const [courseList, setCourseList] = useState<any[]>([]);
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
+  const [course, setCourse] = useState<string>();
 
   /* subject label header list */
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
     []
   );
+
+  const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
 
   async function getCourseList() {
     const { syllabuses, enrollments } = await database.R({
@@ -110,11 +115,19 @@ const CourseEnroll = (props: Props) => {
     return syllabuses;
   }
 
-  const labelling = (courseList: any[]) => {
+  const structuring = (courseList: any[]) => {
     return courseList.map((syllabus: any) => {
       for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
         syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
       }
+      syllabus.timeText = _.join(
+        syllabus.time.map((timeBlock: any) => timeBlock.label),
+        ", "
+      );
+      syllabus.mentorText = _.join(
+        syllabus.teachers.map((teacher: any) => teacher.userName),
+        ", "
+      );
       return syllabus;
     });
   };
@@ -130,7 +143,7 @@ const CourseEnroll = (props: Props) => {
     return res;
   }
 
-  async function cancle(e: any) {
+  async function cancel(e: any) {
     const res = database.D({
       location: `enrollments/${e.enrollment}`,
     });
@@ -141,69 +154,57 @@ const CourseEnroll = (props: Props) => {
     {
       text: "수업명",
       key: "classTitle",
-      type: "string",
+      type: "text",
+      textAlign: "center",
     },
 
     {
       text: "시간",
-      key: "time",
+      key: "timeText",
       type: "string",
-      returnFunction: (e: any) =>
-        _.join(
-          e.map((timeBlock: any) => timeBlock.label),
-          ", "
-        ),
+      textAlign: "center",
     },
     {
       text: "강의실",
       key: "classroom",
       type: "string",
-      width: "120px",
+      textAlign: "center",
     },
 
     {
       text: "학점",
       key: "point",
       type: "string",
-      width: "80px",
+      textAlign: "center",
     },
     {
       text: "수강/정원",
       key: "count_limit",
       type: "string",
-      width: "80px",
+      textAlign: "center",
     },
     {
       text: "개설자",
       key: "userName",
       type: "string",
-      width: "120px",
+      textAlign: "center",
     },
     {
       text: "멘토",
-      key: "teachers",
-      returnFunction: (e: any) => {
-        return _.join(
-          e.map((teacher: any) => {
-            return teacher.userName;
-          }),
-          ", "
-        );
-      },
+      key: "mentorText",
       type: "string",
-      width: "120px",
+      textAlign: "center",
     },
     {
       text: "자세히",
       key: "courseName",
       type: "button",
       onClick: (e: any) => {
-        navigate(`../courses/${e._id}`, {
-          replace: true,
-        });
+        setCourse(e._id);
+        setViewPopupActive(true);
       },
       width: "80px",
-      align: "center",
+      textAlign: "center",
     },
   ];
 
@@ -212,16 +213,18 @@ const CourseEnroll = (props: Props) => {
       alert("등록된 학기가 없습니다.");
       navigate("/courses");
     } else {
-      setSubjectLabelHeaderList([
-        ...currentSeason?.subjects?.label.map((label: string) => {
-          return {
-            text: label,
-            key: label,
-            type: "string",
-            width: "120px",
-          };
-        }),
-      ]);
+      if (currentSeason?.subjects?.label) {
+        setSubjectLabelHeaderList([
+          ...currentSeason?.subjects?.label.map((label: string) => {
+            return {
+              text: label,
+              key: label,
+              type: "text",
+              textAlign: "center",
+            };
+          }),
+        ]);
+      }
       setIsLoading(true);
     }
   }, [currentRegistration]);
@@ -237,11 +240,11 @@ const CourseEnroll = (props: Props) => {
     if (isLoading) {
       if (courseTitle !== "") {
         getCourseList().then((res: any) => {
-          setCourseList(labelling(res));
+          setCourseList(structuring(res));
         });
       }
       getEnrolledCourseList().then((res: any) => {
-        setEnrolledCourseList(labelling(res));
+        setEnrolledCourseList(structuring(res));
       });
       setIsLoading(false);
     }
@@ -260,7 +263,7 @@ const CourseEnroll = (props: Props) => {
             onKeyDown={(e: any) => {
               if (courseTitle !== "" && e.key === "Enter") {
                 getCourseList().then((res: any) => {
-                  setCourseList(labelling(res));
+                  setCourseList(structuring(res));
                 });
               }
             }}
@@ -272,7 +275,7 @@ const CourseEnroll = (props: Props) => {
             type="ghost"
             onClick={() => {
               getCourseList().then((res: any) => {
-                setCourseList(labelling(res));
+                setCourseList(structuring(res));
               });
             }}
           >
@@ -287,7 +290,7 @@ const CourseEnroll = (props: Props) => {
           header={[
             {
               text: "신청",
-              key: "_id",
+              key: "enroll",
               onClick: (e: any) => {
                 enroll(e)
                   .then(() => {
@@ -300,18 +303,11 @@ const CourseEnroll = (props: Props) => {
               },
               type: "button",
               width: "80px",
-              align: "center",
-              textStyle: {
-                padding: "0 10px",
-                border: "var(--border-default)",
-                background: "rgba(200, 200, 255, 0.25)",
-                borderColor: "rgba(200, 200, 255)",
-              },
+              textAlign: "center",
             },
             ...subjectLabelHeaderList,
             ...subjectHeaderList,
           ]}
-          style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
 
         <div style={{ height: "24px" }}></div>
@@ -321,15 +317,14 @@ const CourseEnroll = (props: Props) => {
         <div className={style.title}>수강신청 현황</div>
 
         <Table
-          filter
           type="object-array"
           data={enrolledCourseList}
           header={[
             {
               text: "취소",
-              key: "_id",
+              key: "cancel",
               onClick: (e: any) => {
-                cancle(e)
+                cancel(e)
                   .then(() => {
                     alert("success");
                     setIsLoading(true);
@@ -340,20 +335,16 @@ const CourseEnroll = (props: Props) => {
               },
               type: "button",
               width: "80px",
-              align: "center",
-              textStyle: {
-                padding: "0 10px",
-                border: "var(--border-default)",
-                background: "rgba(200, 200, 255, 0.25)",
-                borderColor: "rgba(200, 200, 255)",
-              },
+              textAlign: "center",
             },
             ...subjectLabelHeaderList,
             ...subjectHeaderList,
           ]}
-          style={{ bodyHeight: "calc(100vh - 300px)" }}
         />
       </div>
+      {viewPopupActive && course && (
+        <ViewPopup course={course} setPopupActive={setViewPopupActive} />
+      )}
     </>
   );
 };

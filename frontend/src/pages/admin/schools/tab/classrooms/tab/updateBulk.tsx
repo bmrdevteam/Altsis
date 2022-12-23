@@ -36,7 +36,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 
 import exampleData from "../../../exampleData/classroomsExampleData";
@@ -224,16 +224,16 @@ function Basic(props: Props) {
               type="string-array"
               header={[
                 {
-                  text: "ID",
-                  key: "",
-                  type: "index",
+                  text: "No",
+                  type: "text",
+                  key: "tableRowIndex",
                   width: "48px",
-                  align: "center",
+                  textAlign: "center",
                 },
                 {
                   text: "강의실",
-                  key: 0,
-                  type: "string",
+                  key: "0",
+                  type: "text",
                 },
               ]}
             />

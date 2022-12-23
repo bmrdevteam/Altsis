@@ -41,7 +41,7 @@ import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Select from "components/select/Select";
 
 // popup/tab elements
@@ -60,7 +60,7 @@ const Users = (props: Props) => {
 
   /* user list */
   const [userList, setUserList] = useState<any>();
-  const [user, setUser] = useState<any>();
+  const [user, setUser] = useState<string>();
 
   /* school list */
   const [schoolList, setSchoolList] = useState<any>();
@@ -78,6 +78,7 @@ const Users = (props: Props) => {
         school?._id ? `schools.school=${school._id}` : `no-school=true`
       }`,
     });
+    console.log("res[0] is ", res[0]);
     return res;
   }
 
@@ -236,64 +237,70 @@ const Users = (props: Props) => {
         <div>
           <Table
             type="object-array"
-            filter
-            filterSearch
-            data={userList}
-            onSelectChange={(value) => {
-              userSelectRef.current = value;
+            control
+            data={userList || []}
+            defaultPageBy={50}
+            onChange={(value: any[]) => {
+              userSelectRef.current = _.filter(value, {
+                tableRowChecked: true,
+              });
             }}
             header={[
               {
                 text: "",
-                key: "",
+                key: "checkbox",
                 type: "checkbox",
                 width: "48px",
-                align: "center",
               },
+              { text: "ID", key: "userId", type: "text", textAlign: "center" },
               {
-                text: "id",
-                key: "",
-                type: "index",
-                width: "48px",
-                align: "center",
+                text: "이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
               },
-              { text: "이름", key: "userName", type: "string", align: "right" },
-              { text: "Id", key: "userId", type: "string" },
+
+              // {
+              //   text: "학교",
+              //   key: "schools",
+              //   type: "text",
+
+              //   // returnFunction: (val) =>
+              //   //   _.join(
+              //   //     val.map((school: any) => school.schoolName),
+              //   //     ", "
+              //   //   ),
+              // },
               {
-                text: "학교",
-                key: "schools",
-                type: "string",
-                align: "center",
-                returnFunction: (val) =>
-                  _.join(
-                    val.map((school: any) => school.schoolName),
-                    ", "
-                  ),
-              },
-              {
-                text: "auth",
+                text: "등급",
                 key: "auth",
-                type: "string",
-                align: "center",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  admin: { text: "관리자", color: "red" },
+                  manager: { text: "매니저", color: "violet" },
+                  member: { text: "멤버", color: "gray" },
+                },
+                width: "100px",
               },
               {
                 text: "자세히",
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  setUser(e);
+                  setUser(e._id);
                   setEditPopupActive(true);
                 },
-                width: "72px",
-                align: "center",
+                width: "80px",
+                textAlign: "center",
               },
             ]}
           />
         </div>
       </div>
-      {editPopupActive && (
+      {editPopupActive && user && (
         <Basic
-          userData={user}
+          user={user}
           schoolList={schoolList}
           setPopupAcitve={setEditPopupActive}
           setIsUserListLoading={setIsUserListLoading}

@@ -28,7 +28,7 @@
  */
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import useDatabase from "hooks/useDatabase";
 import React, { useEffect } from "react";
 import { useState } from "react";
@@ -97,7 +97,6 @@ const Form = (props: Props) => {
           <div className={style.title}>시간표 양식</div>
 
           <Button
-            style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
               setSelectFormType("timetable");
@@ -110,7 +109,6 @@ const Form = (props: Props) => {
         <div className={style.item}>
           <div className={style.title}>강의 계획서 양식</div>
           <Button
-            style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
               setSelectFormType("syllabus");
@@ -123,7 +121,6 @@ const Form = (props: Props) => {
         <div className={style.item}>
           <div className={style.title}>평가 양식</div>
           <Button
-            style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
               setSelectFormType("evaluation");
@@ -151,8 +148,15 @@ const Form = (props: Props) => {
             type="object-array"
             data={forms?.filter((val: any) => val.type === selectFormType)}
             header={[
-              { text: "제목", key: "title", type: "string" },
-              { text: "종류", key: "type", type: "string" },
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+              { text: "제목", key: "title", type: "text" },
+
               {
                 text: "선택",
                 key: "_id",
@@ -192,13 +196,13 @@ const Form = (props: Props) => {
                   });
                 },
                 width: "80px",
-                align: "center",
-                textStyle: {
-                  padding: "0 10px",
-                  border: "var(--border-default)",
-                  background: "rgba(200, 200, 255, 0.25)",
-                  borderColor: "rgba(200, 200, 255)",
-                },
+                textAlign: "center",
+                // textStyle: {
+                //   padding: "0 10px",
+                //   border: "var(--border-default)",
+                //   background: "rgba(200, 200, 255, 0.25)",
+                //   borderColor: "rgba(200, 200, 255)",
+                // },
               },
             ]}
           />

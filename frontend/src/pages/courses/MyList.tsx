@@ -37,9 +37,7 @@ import style from "style/pages/enrollment.module.scss";
 import Navbar from "layout/navbar/Navbar";
 
 // components
-import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
-import Button from "components/button/Button";
+import Table from "components/tableV2/Table";
 
 import _ from "lodash";
 
@@ -76,10 +74,25 @@ const CoursesMyList = (props: Props) => {
     return syllabuses;
   }
 
-  const labelling = (courseList: any[]) => {
+  const structuring = (courseList: any[]) => {
     return courseList.map((syllabus: any) => {
       for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
         syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
+      }
+      syllabus.timeText = _.join(
+        syllabus.time.map((timeBlock: any) => timeBlock.label),
+        ", "
+      );
+      syllabus.mentorText = _.join(
+        syllabus.teachers.map((teacher: any) => teacher.userName),
+        ", "
+      );
+      syllabus.confirmed = true;
+      for (let teacher of syllabus.teachers) {
+        if (!teacher.confirmed) {
+          syllabus.confirmed = false;
+          break;
+        }
       }
       return syllabus;
     });
@@ -89,63 +102,51 @@ const CoursesMyList = (props: Props) => {
     {
       text: "수업명",
       key: "classTitle",
-      type: "string",
+      type: "text",
+      textAlign: "center",
     },
 
     {
       text: "시간",
-      key: "time",
+      key: "timeText",
       type: "string",
-      returnFunction: (e: any) =>
-        _.join(
-          e.map((timeBlock: any) => timeBlock.label),
-          ", "
-        ),
+      textAlign: "center",
     },
     {
       text: "강의실",
       key: "classroom",
       type: "string",
-      width: "120px",
+      textAlign: "center",
     },
 
     {
       text: "학점",
       key: "point",
       type: "string",
-      width: "80px",
+      textAlign: "center",
     },
     {
       text: "수강/정원",
       key: "count_limit",
       type: "string",
-      width: "80px",
+      textAlign: "center",
     },
     {
       text: "멘토",
-      key: "teachers",
-      returnFunction: (e: any) => {
-        return _.join(
-          e.map((teacher: any) => {
-            return teacher.userName;
-          }),
-          ", "
-        );
-      },
+      key: "mentorText",
       type: "string",
-      width: "120px",
+      textAlign: "center",
     },
     {
       text: "상태",
-      key: "teachers",
-      returnFunction: (e: any) => {
-        for (let teacher of e) {
-          if (!teacher.confirmed) return "미승인";
-        }
-        return "승인됨";
+      key: "confirmed",
+      width: "72px",
+      textAlign: "center",
+      type: "status",
+      status: {
+        false: { text: "미승인", color: "red" },
+        true: { text: "승인됨", color: "green" },
       },
-      type: "string",
-      width: "120px",
     },
     {
       text: "자세히",
@@ -157,7 +158,7 @@ const CoursesMyList = (props: Props) => {
         });
       },
       width: "80px",
-      align: "center",
+      textAlign: "center",
     },
   ];
 
@@ -167,7 +168,7 @@ const CoursesMyList = (props: Props) => {
       navigate("/courses");
     } else {
       getCreatedCourseList().then((res: any) => {
-        setCourseList(labelling(res));
+        setCourseList(structuring(res));
       });
       if (currentSeason?.subjects?.label) {
         setSubjectLabelHeaderList([
@@ -175,8 +176,9 @@ const CoursesMyList = (props: Props) => {
             return {
               text: label,
               key: label,
-              type: "string",
+              type: "text",
               width: "120px",
+              textAlign: "center",
             };
           }),
         ]);
@@ -199,11 +201,20 @@ const CoursesMyList = (props: Props) => {
         <div style={{ height: "24px" }}></div>
 
         <Table
-          filter
+          control
           type="object-array"
           data={courseList}
-          header={[...subjectLabelHeaderList, ...subjectHeaderList]}
-          style={{ bodyHeight: "calc(100vh - 300px)" }}
+          header={[
+            {
+              text: "No",
+              type: "text",
+              key: "tableRowIndex",
+              width: "48px",
+              textAlign: "center",
+            },
+            ...subjectLabelHeaderList,
+            ...subjectHeaderList,
+          ]}
         />
       </div>
     </>

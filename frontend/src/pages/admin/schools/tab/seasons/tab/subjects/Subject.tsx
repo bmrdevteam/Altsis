@@ -35,7 +35,7 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import UpdateBulk from "./tab/updateBulk";
 
@@ -255,22 +255,21 @@ const Subjects = (props: Props) => {
           data={subjectObjectList || []}
           header={[
             {
-              text: "ID",
-              key: "",
-              type: "index",
+              text: "No",
+              type: "text",
+              key: "tableRowIndex",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
             ...subjectDataHeader,
             {
               text: "삭제",
               key: "index",
               type: "button",
+              textAlign: "center",
               onClick: (e: any) => {
-                props.seasonData?.subjects.data.splice(
-                  _.findIndex(subjectObjectList, (x) => _.isEqual(x, e)),
-                  1
-                );
+                console.log("e is ", e);
+                props.seasonData?.subjects.data.splice(e.tableRowIndex - 1, 1);
 
                 updateSubjects(subjectLabelList, [
                   ...props.seasonData?.subjects.data,
