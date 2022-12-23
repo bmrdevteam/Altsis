@@ -56,6 +56,8 @@ const Season = (props: Props) => {
   const database = useDatabase();
 
   const { pid } = useParams();
+  const { currentSchool } = useAuth();
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [seasons, setSeasons] = useState<any[]>();
@@ -79,7 +81,7 @@ const Season = (props: Props) => {
    */
   async function getSeasons() {
     const { seasons: result } = await database.R({
-      location: `seasons?school=${pid}`,
+      location: `seasons?school=${pid || currentSchool._id}`,
     });
     return result;
   }
