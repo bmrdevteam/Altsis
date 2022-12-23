@@ -380,7 +380,11 @@ const CourseView = (props: Props) => {
               <div
                 className={style.icon}
                 onClick={(e: any) => {
-                  setEnrollBulkPopupActive(true);
+                  if (!confirmed) {
+                    alert("수업이 승인되지 않아 학생을 초대할 수 없습니다.");
+                  } else {
+                    setEnrollBulkPopupActive(true);
+                  }
                 }}
                 style={{ display: "flex", gap: "4px", alignItems: "center" }}
               >
