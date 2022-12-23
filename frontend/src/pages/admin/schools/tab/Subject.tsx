@@ -226,7 +226,7 @@ const Subjects = (props: Props) => {
             type: "button",
             textAlign: "center",
             onClick: (e: any) => {
-              delete e['tableRowIndex']
+              delete e["tableRowIndex"];
               subjectDataList.splice(
                 _.findIndex(subjectDataList, (x) => _.isEqual(x, e)),
                 1
