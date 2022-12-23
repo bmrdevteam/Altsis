@@ -40,7 +40,7 @@ import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Select from "components/select/Select";
 
 // popup/tab elements
@@ -96,99 +96,44 @@ const Users = (props: Props) => {
   return (
     <>
       <div className={style.section}>
-        <Button
-          type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            margin: "24px 0",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={async () => {
-            console.log("userSelectRef.current is ", userSelectRef.current);
-            if (userSelectRef.current.length === 0) {
-              alert("선택된 사용자가 없습니다.");
-            } else {
-              //   deleteUsers()
-              //     .then((res: any) => {
-              //       alert("success");
-              //       userSelectRef.current = [];
-              //       setIsUserListLoading(true);
-              //     })
-              //     .catch((err) => alert(err.response.data.message));
-            }
-          }}
-        >
-          선택된 사용자 삭제
-        </Button>
-
-        <Button
-          type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            margin: "24px 0",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={async () => {
-            console.log("userSelectRef.current is ", userSelectRef.current);
-            if (userSelectRef.current.length === 0) {
-              alert("선택된 사용자가 없습니다.");
-            } else {
-              setSchoolBulkPopupActive(true);
-            }
-          }}
-        >
-          선택된 사용자 학교 설정
-        </Button>
-
         <div>
           <Table
             type="object-array"
-            filter
-            filterSearch
-            data={userList}
-            onSelectChange={(value) => {
-              userSelectRef.current = value;
-            }}
+            control
+            data={userList || []}
+            defaultPageBy={50}
+            // onSelectChange={(value) => {
+            //   userSelectRef.current = value;
+            // }}
             header={[
               {
-                text: "",
-                key: "",
-                type: "checkbox",
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
-              {
-                text: "id",
-                key: "",
-                type: "index",
-                width: "48px",
-                align: "center",
-              },
+
+              { text: "ID", key: "userId", type: "text", textAlign: "center" },
+
               {
                 text: "이름",
                 key: "userName",
-                type: "string",
-                align: "center",
+                type: "text",
+                textAlign: "center",
               },
-              { text: "Id", key: "userId", type: "string", align: "center" },
+
               {
-                text: "학교",
-                key: "schools",
-                type: "string",
-                align: "center",
-                returnFunction: (val) =>
-                  _.join(
-                    val.map((school: any) => school.schoolName),
-                    ", "
-                  ),
-              },
-              {
-                text: "auth",
+                text: "등급",
                 key: "auth",
-                type: "string",
-                align: "center",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  admin: { text: "관리자", color: "red" },
+                  manager: { text: "매니저", color: "purple" },
+                  member: { text: "멤버", color: "gray" },
+                },
+                width: "100px",
               },
               {
                 text: "자세히",
@@ -200,7 +145,7 @@ const Users = (props: Props) => {
                   console.log(e);
                 },
                 width: "72px",
-                align: "center",
+                textAlign: "center",
               },
             ]}
           />
@@ -230,7 +175,6 @@ const Users = (props: Props) => {
                 />
               ),
             }}
-            align={"flex-start"}
           />
         </Popup>
       )}

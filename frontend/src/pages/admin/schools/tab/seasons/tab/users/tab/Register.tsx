@@ -36,7 +36,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 
 import exampleData from "../../../../../exampleData/subjectExampleData";
@@ -84,6 +84,7 @@ function Basic(props: Props) {
       setState={props.setPopupActive}
       style={{ borderRadius: "4px", maxWidth: "800px", width: "100%" }}
       closeBtn
+      contentScroll
       footer={
         <Button
           type={"ghost"}
@@ -105,8 +106,11 @@ function Basic(props: Props) {
       <div style={{ height: "calc(100vh - 300px)" }}>
         <Table
           type="object-array"
-          onSelectChange={(value) => {
-            selectedSchoolUsers.current = value.map((val: any) => {
+          defaultPageBy={50}
+          onChange={(value: any[]) => {
+            selectedSchoolUsers.current = _.filter(value, {
+              tableRowChecked: true,
+            }).map((val: any) => {
               return {
                 userId: val.userId,
                 userName: val.userName,
@@ -114,28 +118,28 @@ function Basic(props: Props) {
               };
             });
           }}
-          filter
-          filterSearch
+          control
           data={_.differenceBy(userList, props.registrationList, "userId")}
           header={[
             {
-              text: "ID",
-              key: "",
+              text: "",
+              key: "checkbox",
               type: "checkbox",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
+
             {
-              text: "사용자 이름",
-              key: "userName",
-              type: "string",
-              align: "left",
-            },
-            {
-              text: "사용자 ID",
+              text: "ID",
               key: "userId",
-              type: "string",
-              align: "left",
+              type: "text",
+              textAlign: "center",
+            },
+            {
+              text: "이름",
+              key: "userName",
+              type: "text",
+              textAlign: "center",
             },
           ]}
         />
