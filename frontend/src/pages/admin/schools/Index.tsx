@@ -161,13 +161,19 @@ navigate("add", { replace: true });
               },
               {
                 text: "자세히",
-                key: "_id",
+                key: "detail",
                 type: "button",
                 onClick: (value: any) => {
                   navigate(`/admin/schools/${value._id}`);
                 },
                 width: "80px",
                 textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "black",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />
