@@ -63,7 +63,7 @@ const Subjects = (props: Props) => {
 
   const updateSubjectDataHeader = () => {
     const subjectDataList = [];
-    for (let j = 0; j < subjectLabelList.length; j++) {
+    for (let j = 0; j < subjectLabelList?.length; j++) {
       subjectDataList.push({
         text: subjectLabelList[j],
         key: subjectLabelList[j],
@@ -105,9 +105,12 @@ const Subjects = (props: Props) => {
 
   useEffect(() => {
     updateSubjectDataHeader();
-    setSubjectObjectList(
-      parseSubjectDataList(subjectLabelList, props.schoolData?.subjects.data)
-    );
+    if (props.schoolData?.subjects?.data) {
+      setSubjectObjectList(
+        parseSubjectDataList(subjectLabelList, props.schoolData?.subjects?.data)
+      );
+    }
+
     return () => {};
   }, [subjectLabelList]);
 
