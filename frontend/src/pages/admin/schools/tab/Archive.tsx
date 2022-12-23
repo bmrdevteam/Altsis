@@ -145,7 +145,7 @@ function Archive(props: Props) {
             data={
               archiveForm?.filter(
                 (val: any) => val.label === editArchivefield
-              )[0].fields
+              )[0].fields || []
             }
             header={[
               {
