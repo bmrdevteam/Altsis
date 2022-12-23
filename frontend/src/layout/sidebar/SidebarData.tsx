@@ -26,7 +26,6 @@ export const SidebarData = (
 ): any => {
   const { currentSchool } = useAuth();
 
-
   switch (auth) {
     case "owner":
       return [
@@ -149,7 +148,7 @@ export const SidebarData = (
             {
               title: "schools",
               name: "학교 관리",
-              path: "/admin/schools",
+              path: `/admin/schools`,
               icon: <Svg type="file" />,
             },
             {
@@ -239,7 +238,7 @@ export const SidebarData = (
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          subLink: currentSchool.formArchive?.map((val:any) => {
+          subLink: currentSchool.formArchive?.map((val: any) => {
             return {
               title: val.label,
               name: val.label,
@@ -277,7 +276,7 @@ export const SidebarData = (
             {
               title: "schools",
               name: "학교 관리",
-              path: "/admin/schools",
+              path: "/admin/schools/list",
               icon: <Svg type="file" />,
             },
             {

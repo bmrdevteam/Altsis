@@ -50,6 +50,8 @@ import Form from "./tab/Form";
 import Permission from "./tab/Permission";
 import User from "./tab/users/User";
 
+import { useAuth } from "contexts/authContext";
+
 type Props = {};
 
 const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
@@ -81,6 +83,7 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
+  const { currentUser, currentSchool } = useAuth();
 
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -94,14 +97,18 @@ const School = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      getSchool()
-        .then((res) => {
-          console.log(res);
-          setSchoolData(res);
-        })
-        .catch(() => {
-          setIsSchool(false);
-        });
+      if (pid) {
+        getSchool()
+          .then((res) => {
+            console.log(res);
+            setSchoolData(res);
+          })
+          .catch(() => {
+            setIsSchool(false);
+          });
+      } else {
+        setSchoolData(currentSchool);
+      }
 
       setIsLoading(false);
     }
