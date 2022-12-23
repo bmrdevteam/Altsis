@@ -45,7 +45,10 @@ import Table from "components/tableV2/Table";
 import EditorParser from "editor/EditorParser";
 
 import Send from "../../notifications/popup/Send";
-import _ from "lodash";
+import EnrollBulkPopup from "./EnrollBulkPopup";
+
+import _, { omit } from "lodash";
+import Svg from "assets/svg/Svg";
 type Props = {
   courseData: any;
   setCourseData: any;
@@ -63,6 +66,8 @@ const CourseView = (props: Props) => {
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
+  const [enrollBulkPopupActive, setEnrollBulkPopupActive] =
+    useState<boolean>(false);
 
   const [confirmed, setConfirmed] = useState<boolean>(true);
 
@@ -71,7 +76,9 @@ const CourseView = (props: Props) => {
   const [mentorIdx, setMentorIdx] = useState<number>(-1);
   const [mentorConfirmed, setMentorConfirmed] = useState<boolean>();
 
-  const [enrollments, setEnrollments] = useState<any[]>();
+  const [isEnrollmentListLoading, setIsEnrollmentListLoading] =
+    useState<boolean>(true);
+  const [enrollmentList, setEnrollmentList] = useState<any[]>();
 
   /* evaluation header list */
   const [evaluationHeaderList, setEvaluationHeaderList] = useState<any[]>([]);
@@ -200,23 +207,30 @@ const CourseView = (props: Props) => {
       }
     }
 
-    getEnrollments().then((res: any) => {
-      setEnrollments(res);
-      setReceiverOptionList(
-        res.map((e: any) => {
-          return {
-            value: JSON.stringify({
-              userId: e.studentId,
-              userName: e.studentName,
-            }),
-            text: `${e.studentName}(${e.studentId})`,
-          };
-        })
-      );
-    });
-
     return () => {};
   }, []);
+
+  useEffect(() => {
+    if (isEnrollmentListLoading) {
+      getEnrollments().then((res: any) => {
+        setEnrollmentList(res);
+        setReceiverOptionList(
+          res.map((e: any) => {
+            return {
+              value: JSON.stringify({
+                userId: e.studentId,
+                userName: e.studentName,
+              }),
+              text: `${e.studentName}(${e.studentId})`,
+            };
+          })
+        );
+      });
+      setIsEnrollmentListLoading(false);
+    }
+
+    return () => {};
+  }, [isEnrollmentListLoading]);
 
   useEffect(() => {
     // is this syllabus fully confirmed?
@@ -253,7 +267,7 @@ const CourseView = (props: Props) => {
       <ClassInfo />
       <div style={{ height: "24px" }}></div>
       <Divider />
-      {isMentor && enrollments?.length === 0 && (
+      {isMentor && enrollmentList?.length === 0 && (
         <Button
           type={"ghost"}
           style={{
@@ -339,12 +353,67 @@ const CourseView = (props: Props) => {
         </>
       )}
       <div style={{ height: "24px" }}></div>
-      <div className={style.title}>수강생 목록</div>
+
       {isMentor ? (
         <>
+          <div style={{ display: "flex" }}>
+            <div
+              style={{
+                flex: "auto",
+                marginLeft: "12px",
+                display: "flex",
+                gap: "12px",
+              }}
+            >
+              <div className={style.title}>수강생 목록</div>
+            </div>
+            <div
+              style={{
+                flex: "auto",
+                marginRight: "24px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                alignItems: "center",
+              }}
+            >
+              <div
+                className={style.icon}
+                onClick={(e: any) => {
+                  setEnrollBulkPopupActive(true);
+                }}
+                style={{ display: "flex", gap: "4px", alignItems: "center" }}
+              >
+                <Svg type="user_check" width="24px" height="24px" />
+                초대
+              </div>
+
+              <div
+                className={style.icon}
+                onClick={(e: any) => {
+                  const receiverSelectedList: receiverSelectedList = {};
+                  for (let e of enrollmentList || []) {
+                    receiverSelectedList[
+                      JSON.stringify({
+                        userId: e.studentId,
+                        userName: e.studentName,
+                      })
+                    ] = true;
+                  }
+
+                  setReceiverSelectedList({ ...receiverSelectedList });
+                  setSendNotificationPopupActive(true);
+                }}
+                style={{ display: "flex", gap: "4px" }}
+              >
+                <Svg type="send" width="20px" height="20px" />
+                전체 알림
+              </div>
+            </div>
+          </div>
           <Table
             type="object-array"
-            data={enrollments || []}
+            data={enrollmentList || []}
             header={[
               {
                 text: "No",
@@ -414,37 +483,13 @@ const CourseView = (props: Props) => {
               },
             ]}
           />
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              marginTop: "24px",
-            }}
-            onClick={() => {
-              const receiverSelectedList: receiverSelectedList = {};
-              for (let e of enrollments || []) {
-                receiverSelectedList[
-                  JSON.stringify({
-                    userId: e.studentId,
-                    userName: e.studentName,
-                  })
-                ] = true;
-              }
-
-              setReceiverSelectedList({ ...receiverSelectedList });
-              setSendNotificationPopupActive(true);
-            }}
-          >
-            전체 알람 보내기
-          </Button>
         </>
       ) : (
         <>
+          <div className={style.title}>수강생 목록</div>
           <Table
             type="object-array"
-            data={enrollments || []}
+            data={enrollmentList || []}
             header={[
               {
                 text: "No",
@@ -526,7 +571,7 @@ const CourseView = (props: Props) => {
           receiverOptionList={receiverOptionList}
           receiverSelectedList={receiverSelectedList}
           category={props.courseData.classTitle}
-          receiverList={enrollments?.map((enrollment: any) => {
+          receiverList={enrollmentList?.map((enrollment: any) => {
             return {
               ...enrollment,
               userId: enrollment.studentId,
@@ -534,6 +579,13 @@ const CourseView = (props: Props) => {
             };
           })}
           receiverType={"enrollment"}
+        />
+      )}
+      {enrollBulkPopupActive && (
+        <EnrollBulkPopup
+          setPopupActive={setEnrollBulkPopupActive}
+          courseData={props.courseData}
+          setIsEnrollmentListLoading={setIsEnrollmentListLoading}
         />
       )}
     </div>
