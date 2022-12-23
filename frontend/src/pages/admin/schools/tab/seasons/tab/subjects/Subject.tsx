@@ -99,15 +99,18 @@ const Subjects = (props: Props) => {
   }
 
   useEffect(() => {
-    setSubjectLabelList(props.seasonData.subjects?.label);
+    setSubjectLabelList(props.seasonData.subjects?.label || []);
     return () => {};
   }, [props.seasonData]);
 
   useEffect(() => {
     updateSubjectDataHeader();
-    setSubjectObjectList(
-      parseSubjectDataList(subjectLabelList, props.seasonData?.subjects.data)
-    );
+    if (props.seasonData?.subjects?.data) {
+      setSubjectObjectList(
+        parseSubjectDataList(subjectLabelList, props.seasonData?.subjects?.data)
+      );
+    }
+
     return () => {};
   }, [subjectLabelList]);
 
