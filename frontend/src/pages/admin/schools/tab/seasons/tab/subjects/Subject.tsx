@@ -35,7 +35,7 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import UpdateBulk from "./tab/updateBulk";
 
@@ -99,15 +99,18 @@ const Subjects = (props: Props) => {
   }
 
   useEffect(() => {
-    setSubjectLabelList(props.seasonData.subjects?.label);
+    setSubjectLabelList(props.seasonData.subjects?.label || []);
     return () => {};
   }, [props.seasonData]);
 
   useEffect(() => {
     updateSubjectDataHeader();
-    setSubjectObjectList(
-      parseSubjectDataList(subjectLabelList, props.seasonData?.subjects.data)
-    );
+    if (props.seasonData?.subjects?.data) {
+      setSubjectObjectList(
+        parseSubjectDataList(subjectLabelList, props.seasonData?.subjects?.data)
+      );
+    }
+
     return () => {};
   }, [subjectLabelList]);
 
@@ -255,22 +258,19 @@ const Subjects = (props: Props) => {
           data={subjectObjectList || []}
           header={[
             {
-              text: "ID",
-              key: "",
-              type: "index",
+              text: "No",
+              type: "text",
+              key: "tableRowIndex",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
             ...subjectDataHeader,
             {
               text: "삭제",
-              key: "index",
+              key: "delete",
               type: "button",
               onClick: (e: any) => {
-                props.seasonData?.subjects.data.splice(
-                  _.findIndex(subjectObjectList, (x) => _.isEqual(x, e)),
-                  1
-                );
+                props.seasonData?.subjects.data.splice(e.tableRowIndex - 1, 1);
 
                 updateSubjects(subjectLabelList, [
                   ...props.seasonData?.subjects.data,
@@ -287,14 +287,13 @@ const Subjects = (props: Props) => {
                     alert(err.response.data.message);
                   });
               },
-
               width: "80px",
-              align: "center",
-              textStyle: {
-                padding: "0 10px",
-                border: "var(--border-default)",
-                background: "rgba(255, 200, 200, 0.25)",
-                borderColor: "rgba(255, 200, 200)",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "red",
+                padding: "4px",
+                round: true,
               },
             },
           ]}

@@ -99,23 +99,68 @@ module.exports.enrollbulk = async (req, res) => {
     if (!syllabus)
       return res.status(404).send({ message: "syllabus is not found" });
 
-    for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (!syllabus.teachers[i].confirmed)
+    // mentor 확인 & confirmed 확인
+    let isMentor = false;
+    for (let teacher of syllabus.teachers) {
+      if (teacher.userId === req.user.userId) {
+        isMentor = true;
+        break;
+      }
+      if (!teacher.confirmed)
         return res.status(409).send({ message: "syllabus is not confirmed" });
+    }
+    if (!isMentor)
+      return res.status(403).send({ message: "수업 초대 권한이 없습니다." });
+
+    // 2. 수강정원 확인
+    if (syllabus.limit != 0) {
+      const enrollmentsCnt = await _Enrollment.countDocuments({
+        syllabus: syllabus._id,
+      });
+      if (enrollmentsCnt + req.body.students.length > syllabus.limit)
+        return res.status(409).send({ message: "수강정원을 초과합니다." });
     }
 
     const enrollments = [];
     const syllabusSubdocument = syllabus.getSubdocument();
 
     for (let student of req.body.students) {
-      const enrollment = new _Enrollment({
-        ...syllabusSubdocument,
+      // 3. 이미 신청한 수업인가?
+      const exEnrollments = await _Enrollment.find({
         studentId: student.userId,
-        studentName: student.userName,
-        studentGrade: student.grade,
+        season: syllabus.season,
       });
-      await enrollment.save();
-      enrollments.push(enrollment);
+
+      if (_.find(exEnrollments, { syllabus: syllabus._id })) {
+        enrollments.push({
+          success: { status: false, message: "이미 신청함" },
+          ...student,
+        });
+      }
+
+      // 4. 수강신청 가능한 시간인가?
+      else if (isTimeOverlapped(exEnrollments, syllabus))
+        enrollments.push({
+          success: { status: false, message: "시간표 중복" },
+          ...student,
+        });
+      else {
+        try {
+          const enrollment = new _Enrollment({
+            ...syllabusSubdocument,
+            studentId: student.userId,
+            studentName: student.userName,
+            studentGrade: student.grade,
+          });
+          await enrollment.save();
+          enrollments.push({ success: { status: true }, ...student });
+        } catch (error) {
+          enrollments.push({
+            success: { status: false, message: err.message },
+            ...student,
+          });
+        }
+      }
     }
     // const newEnrollments = await Enrollment(req.user.academyId).insertMany(
     //   enrollments

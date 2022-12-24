@@ -34,7 +34,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Input from "components/input/Input";
 
 import UpdateBulk from "./tab/updateBulk";
@@ -143,26 +143,23 @@ const Classroom = (props: Props) => {
           type="string-array"
           header={[
             {
-              text: "ID",
-              key: "",
-              type: "index",
+              text: "No",
+              type: "text",
+              key: "tableRowIndex",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
             {
               text: "강의실",
-              key: 0,
-              type: "string",
+              key: "0",
+              type: "text",
             },
             {
               text: "삭제",
-              key: "index",
+              key: "delete",
               type: "button",
               onClick: (e: any) => {
-                classroomList.splice(
-                  _.findIndex(classroomList, (x) => x === e),
-                  1
-                );
+                classroomList.splice(e.rowIndex - 1, 1);
                 updateClassrooms([...classroomList])
                   .then((res: any) => {
                     setClassroomList(res.data);
@@ -173,12 +170,12 @@ const Classroom = (props: Props) => {
                   });
               },
               width: "80px",
-              align: "center",
-              textStyle: {
-                padding: "0 10px",
-                border: "var(--border-default)",
-                background: "rgba(255, 200, 200, 0.25)",
-                borderColor: "rgba(255, 200, 200)",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "red",
+                padding: "4px",
+                round: true,
               },
             },
           ]}

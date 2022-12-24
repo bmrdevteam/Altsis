@@ -33,7 +33,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
@@ -60,7 +60,8 @@ const Permission = (props: Props) => {
   );
 
   /* additional document list */
-  const [registrationList, setRegistrationList] = useState<any>([]);
+  const [userList, setUserList] = useState<any>([]);
+  const [userOptionList, setUserOptionList] = useState<any>([]);
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
@@ -93,11 +94,17 @@ const Permission = (props: Props) => {
           index: i,
           userId: permission[i][1],
           isAllowed: permission[i][2],
+          ...getUserDataByUserId(permission[i][1]),
         });
       }
     }
 
     setExceptions(_exceptions);
+  };
+
+  const getUserDataByUserId = (userId: string) => {
+    const res = _.find(userList, { userId });
+    return res ? { userName: res.userName } : { userName: "" };
   };
 
   const zipPermission = () => {
@@ -138,26 +145,30 @@ const Permission = (props: Props) => {
   useEffect(() => {
     if (editPopupActive) {
       getSchoolUserList().then((res) => {
-        setRegistrationList([
-          {
-            text: "",
-            value: "",
-          },
-          ...res
-            ?.filter((r: any) => {
-              if (!r["userId"]) return false;
-              return true;
-            })
-            .map((r: any) => {
-              return {
-                text: `${r["userName"]}(${r["userId"]})`,
-                value: r["userId"],
-              };
-            }),
-        ]);
+        setUserList(res);
       });
     }
   }, [editPopupActive]);
+
+  useEffect(() => {
+    setUserOptionList([
+      {
+        text: "",
+        value: "",
+      },
+      ...userList
+        ?.filter((r: any) => {
+          if (!r["userId"]) return false;
+          return true;
+        })
+        .map((r: any) => {
+          return {
+            text: `${r["userName"]}(${r["userId"]})`,
+            value: r["userId"],
+          };
+        }),
+    ]);
+  }, [userList]);
 
   return (
     <>
@@ -241,7 +252,7 @@ const Permission = (props: Props) => {
             <div className={style.row}>
               <Select
                 style={{ minHeight: "30px" }}
-                options={registrationList}
+                options={userOptionList}
                 onChange={(e: any) => {
                   setSelectedUserId(e);
                 }}
@@ -265,6 +276,7 @@ const Permission = (props: Props) => {
                       {
                         userId: selectedUserId,
                         isAllowed: selectedIsAllowed === "허용",
+                        ...getUserDataByUserId(selectedUserId),
                       },
                     ]);
                   }
@@ -288,41 +300,51 @@ const Permission = (props: Props) => {
               data={exceptions || []}
               header={[
                 {
-                  text: "ID",
-                  key: "",
-                  type: "index",
+                  text: "No",
+                  type: "text",
+                  key: "tableRowIndex",
                   width: "48px",
-                  align: "center",
+                  textAlign: "center",
                 },
                 {
-                  text: "사용자 ID",
+                  text: "ID",
                   key: "userId",
-                  type: "string",
+                  type: "text",
+                  textAlign: "center",
                 },
                 {
-                  text: "허용/비허용",
+                  text: "이름",
+                  key: "userName",
+                  type: "text",
+                  textAlign: "center",
+                },
+
+                {
+                  text: "상태",
                   key: "isAllowed",
-                  type: "string",
-                  returnFunction: (value: any) => (value ? "허용" : "비허용"),
+                  width: "80px",
+                  textAlign: "center",
+                  type: "status",
+                  status: {
+                    false: { text: "비허용", color: "red" },
+                    true: { text: "허용", color: "green" },
+                  },
                 },
                 {
                   text: "삭제",
-                  key: "index",
+                  key: "delete",
                   type: "button",
                   onClick: (e: any) => {
-                    exceptions.splice(
-                      _.findIndex(exceptions, (x) => x === e),
-                      1
-                    );
+                    exceptions.splice(e.tableRowIndex - 1, 1);
                     setExceptions([...exceptions]);
                   },
                   width: "80px",
-                  align: "center",
-                  textStyle: {
-                    padding: "0 10px",
-                    border: "var(--border-default)",
-                    background: "rgba(255, 200, 200, 0.25)",
-                    borderColor: "rgba(255, 200, 200)",
+                  textAlign: "center",
+                  btnStyle: {
+                    border: true,
+                    color: "red",
+                    padding: "4px",
+                    round: true,
                   },
                 },
               ]}
