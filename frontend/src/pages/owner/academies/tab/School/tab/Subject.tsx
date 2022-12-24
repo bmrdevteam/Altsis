@@ -49,7 +49,7 @@ type subjectDataListType = {
 };
 
 const Subject = (props: Props) => {
-  const { SchoolApi } = useApi();
+  const { AcademyApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* subject label list */
@@ -245,7 +245,7 @@ const Subject = (props: Props) => {
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
         onClick={() => {
-          SchoolApi.USchoolSubject({
+          AcademyApi.USchoolSubject({
             academyId: props.academy,
             schoolId: props.schoolData?._id,
             data: {
