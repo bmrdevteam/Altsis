@@ -26,6 +26,25 @@
     }
 }
 
+@media (max-width: 800px) {
+    .nav_container {
+        position: absolute;
+        z-index: 10000;
+        border: none !important;
+        background-color: var(--background-color) !important;
+        width: 100vw !important;
+        // display: none !important;
+    }
+
+    .nav_container.open {
+        max-width: 100vw !important;
+    }
+
+    .nav_container.close {
+        height: 56px;
+    }
+}
+
 
 
 .nav_container {
@@ -42,6 +61,7 @@
         display: flex;
         align-items: center;
         height: 56px;
+        min-height: 56px;
         padding: 8px;
         border-bottom: var(--border-default);
         word-break: keep-all;
