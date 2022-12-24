@@ -121,6 +121,7 @@ export function objectDownloadAsJson(data: any) {
   link.download = "data.json"; // set the download file name
   link.click(); // trigger a click on the link to download the JSON file
 }
+
 interface FlattenableObject {
   [key: string]: any;
 }
@@ -133,7 +134,10 @@ interface FlattenableObject {
  * @param prefix - The prefix to use for the keys of the flattened object.
  * @returns The flattened object.
  */
-export function flattenObject(obj: FlattenableObject, prefix = ""): FlattenableObject {
+export function flattenObject(
+  obj: FlattenableObject,
+  prefix = ""
+): FlattenableObject {
   // Create a new object to store the flattened key-value pairs
   const result: FlattenableObject = {};
 
@@ -155,5 +159,58 @@ export function flattenObject(obj: FlattenableObject, prefix = ""): FlattenableO
   }
 
   // Return the result object, which contains all of the flattened key-value pairs
+  return result;
+}
+
+interface NestedObject {
+  [key: string]: any;
+}
+
+/**
+ * Unflattens an object, converting all keys with concatenated property names
+ * into nested properties.
+ *
+ * @param obj - The object to unflatten.
+ * @returns The unflattened object.
+ */
+export function unflattenObject(obj: FlattenableObject): NestedObject {
+  // Create a new object to store the unflattened key-value pairs
+  const result: NestedObject = {};
+
+  // Loop through the properties of the object
+  for (const key in obj) {
+    // Only consider own properties of the object (not inherited properties)
+    if (obj.hasOwnProperty(key)) {
+      // Split the key into its nested properties
+      const parts = key.split(".");
+
+      // Use reduce to build the nested object or array, starting with the result object
+      const nested = parts.reduce((acc, part, i) => {
+        // If this is the last property, set the value
+        if (i === parts.length - 1) {
+          // Check if the current property is a valid array index or a string that can be used as a property name
+          if (Number.isInteger(+part) && +part >= 0) {
+            // Set the value at the index in the array
+            acc[+part] = obj[key];
+          } else if (typeof part === "string") {
+            // Otherwise, set the value as a property on the object
+            acc[part] = obj[key];
+          }
+        } else {
+          // Otherwise, create a new nested object or array if it doesn't exist,
+          // or use the existing nested object or array
+          const next = parts[i + 1];
+          if (Number.isInteger(+next) && +next >= 0) {
+            acc[part] = acc[part] || [];
+          } else if (typeof next === "string") {
+            acc[part] = acc[part] || {};
+          }
+        }
+        return acc[part];
+      }, result);
+    }
+  }
+
+  // Return the result object, which contains all of the unflattened key-value pairs
   return result;
 }
