@@ -1,4 +1,7 @@
-.table_container {}
+.table_container {
+    width: 100%;
+    overflow-x: auto;
+}
 
 .table {
     border: var(--border-default);
@@ -172,6 +175,7 @@
                 justify-content: center;
                 align-items: center;
             }
+
         }
 
         .item:hover {
