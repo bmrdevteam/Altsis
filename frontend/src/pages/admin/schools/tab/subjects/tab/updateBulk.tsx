@@ -36,7 +36,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 
 import exampleData from "../../../exampleData/subjectExampleData";
@@ -146,10 +146,10 @@ function Basic(props: Props) {
     setSubjectDataHeader([
       {
         text: "No",
-        key: "",
-        type: "index",
+        type: "text",
+        key: "tableRowIndex",
         width: "48px",
-        align: "center",
+        textAlign: "center",
       },
       ...subjectLabelList.map((label: string) => {
         return { text: label, key: label, type: "string" };
@@ -163,7 +163,7 @@ function Basic(props: Props) {
         setState={props.setPopupActive}
         style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
         closeBtn
-        title="사용자 일괄 생성"
+        title="교과목 일괄 수정"
         contentScroll
         footer={
           <Button

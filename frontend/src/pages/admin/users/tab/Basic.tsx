@@ -37,11 +37,11 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import _ from "lodash";
 
 type Props = {
-  userData: any;
+  user: string;
   setPopupAcitve: any;
   schoolList: any;
   setIsUserListLoading: any;
@@ -49,15 +49,16 @@ type Props = {
 
 function Basic(props: Props) {
   const database = useDatabase();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const schoolSelectRef = useRef<any[]>([]);
 
   /* document fields */
-  const [schools, setSchools] = useState<any[]>(props.userData.schools || []);
-  const [schoolsText, setSchoolsText] = useState<string>("");
-  const [auth, setAuth] = useState<string>(props.userData.auth);
-  const [email, setEmail] = useState<string>(props.userData.email || undefined);
-  const [tel, setTel] = useState<string>(props.userData.tel || undefined);
+  const [userId, setUserId] = useState<string>();
+  const [userName, setUserName] = useState<string>();
+  const [schools, setSchools] = useState<any[]>();
+  const [schoolsText, setSchoolsText] = useState<string>();
+  const [auth, setAuth] = useState<string>();
+  const [email, setEmail] = useState<string>();
+  const [tel, setTel] = useState<string>();
 
   /* Popup Activation */
   const [isEditSchoolPopupActive, setIsEditSchoolPopupActive] =
@@ -65,7 +66,7 @@ function Basic(props: Props) {
 
   async function updateUser() {
     const result = database.U({
-      location: `users/${props.userData._id}`,
+      location: `users/${props.user}`,
       data: {
         schools,
         auth,
@@ -76,16 +77,42 @@ function Basic(props: Props) {
     return result;
   }
 
+  async function getUser() {
+    const res = await database.R({
+      location: `users/${props.user}`,
+    });
+    return res;
+  }
+
   useEffect(() => {
-    setSchoolsText(
-      _.join(
-        schools.map(
-          (schoolData: any) =>
-            `${schoolData.schoolName}(${schoolData.schoolId})`
-        ),
-        ", "
-      )
-    );
+    console.log("auth is ", auth);
+  }, [auth]);
+
+  useEffect(() => {
+    getUser()
+      .then((res: any) => {
+        setUserId(res.userId);
+        setUserName(res.userName);
+        setSchools(res.schools);
+        setAuth(res.auth);
+        setEmail(res.email);
+        setTel(res.tel);
+      })
+      .catch((err: any) => alert(err.response.data.message));
+  }, []);
+
+  useEffect(() => {
+    if (schools) {
+      setSchoolsText(
+        _.join(
+          schools.map(
+            (schoolData: any) =>
+              `${schoolData.schoolName}(${schoolData.schoolId})`
+          ),
+          ", "
+        )
+      );
+    }
   }, [schools]);
 
   return (
@@ -93,7 +120,7 @@ function Basic(props: Props) {
       <Popup
         closeBtn
         setState={props.setPopupAcitve}
-        title={`${props.userData.userName}(${props.userData.userId})`}
+        title={`${userName}(${userId})`}
         style={{ borderRadius: "4px" }}
       >
         <div className={style.popup}>
@@ -113,7 +140,7 @@ function Basic(props: Props) {
             <Button
               type={"ghost"}
               onClick={() => {
-                schoolSelectRef.current = schools;
+                schoolSelectRef.current = [];
                 setIsEditSchoolPopupActive(true);
               }}
               style={{
@@ -127,17 +154,19 @@ function Basic(props: Props) {
           </div>
 
           <div style={{ marginTop: "24px" }}>
-            <Select
-              appearence="flat"
-              label="Auth"
-              required
-              options={[
-                { text: "member", value: "member" },
-                { text: "manager", value: "manager" },
-              ]}
-              defaultSelectedValue={auth}
-              onChange={setAuth}
-            />
+            {auth && (
+              <Select
+                appearence="flat"
+                label="등급"
+                required
+                options={[
+                  { text: "멤버", value: "member" },
+                  { text: "매니저", value: "manager" },
+                ]}
+                defaultSelectedValue={auth}
+                onChange={setAuth}
+              />
+            )}
           </div>
           <div style={{ marginTop: "24px" }}>
             <Input
@@ -194,27 +223,27 @@ function Basic(props: Props) {
               <Table
                 type="object-array"
                 data={props.schoolList}
-                onSelectChange={(value) => {
-                  console.log(value);
-                  schoolSelectRef.current = value;
+                onChange={(value: any[]) => {
+                  schoolSelectRef.current = _.filter(value, {
+                    tableRowChecked: true,
+                  });
                 }}
-                checkFunction={(value) => {
-                  console.log("schools: ", schools, " value: ", value);
-                  return _.includes(
-                    schools.map((schoolData: any) => schoolData.school),
-                    value._id
-                  );
-                }}
+                // checkFunction={(value) => {
+                //   console.log("schools: ", schools, " value: ", value);
+                //   return _.includes(
+                //     schools.map((schoolData: any) => schoolData.school),
+                //     value._id
+                //   );
+                // }}
                 header={[
                   {
                     text: "선택",
                     key: "",
                     type: "checkbox",
                     width: "48px",
-                    align: "center",
                   },
-                  { text: "학교 Id", key: "schoolId", type: "string" },
-                  { text: "학교 이름", key: "schoolName", type: "string" },
+                  { text: "학교 ID", key: "schoolId", type: "text" },
+                  { text: "학교 이름", key: "schoolName", type: "text" },
                 ]}
               />
             </div>

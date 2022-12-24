@@ -40,12 +40,15 @@ import Divider from "components/divider/Divider";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import EditorParser from "editor/EditorParser";
 
 import Send from "../../notifications/popup/Send";
-import _ from "lodash";
+import EnrollBulkPopup from "./EnrollBulkPopup";
+
+import _, { omit } from "lodash";
+import Svg from "assets/svg/Svg";
 type Props = {
   courseData: any;
   setCourseData: any;
@@ -63,6 +66,8 @@ const CourseView = (props: Props) => {
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
+  const [enrollBulkPopupActive, setEnrollBulkPopupActive] =
+    useState<boolean>(false);
 
   const [confirmed, setConfirmed] = useState<boolean>(true);
 
@@ -71,7 +76,9 @@ const CourseView = (props: Props) => {
   const [mentorIdx, setMentorIdx] = useState<number>(-1);
   const [mentorConfirmed, setMentorConfirmed] = useState<boolean>();
 
-  const [enrollments, setEnrollments] = useState<any[]>();
+  const [isEnrollmentListLoading, setIsEnrollmentListLoading] =
+    useState<boolean>(true);
+  const [enrollmentList, setEnrollmentList] = useState<any[]>();
 
   /* evaluation header list */
   const [evaluationHeaderList, setEvaluationHeaderList] = useState<any[]>([]);
@@ -106,7 +113,19 @@ const CourseView = (props: Props) => {
         <div className={style.category}>
           {_.join(currentSeason?.subjects.label, "/")}:{" "}
           {_.join(props.courseData.subject, "/")}
+        </div>{" "}
+        <div className={style.category}>
+          강의실: {props.courseData.classroom || "없음"}
         </div>
+        <div className={style.category}>
+          시간:{" "}
+          {_.join(
+            props.courseData?.time.map((timeBlock: any) => timeBlock.label),
+            ", "
+          )}
+        </div>
+        <div className={style.category}>학점: {props.courseData.point}</div>
+        <div className={style.category}>수강정원: {props.courseData.limit}</div>
         <div className={style.category}>
           개설자: {props.courseData.userName}
         </div>
@@ -124,19 +143,6 @@ const CourseView = (props: Props) => {
           }}
         >
           상태: {confirmed ? "승인됨" : "미승인"}
-        </div>
-        <div className={style.category}>
-          시간:{" "}
-          {_.join(
-            props.courseData?.time.map((timeBlock: any) => {
-              return timeBlock.label;
-            }),
-            ", "
-          )}
-        </div>
-        <div className={style.category}>학점: {props.courseData.point}</div>
-        <div className={style.category}>
-          강의실: {props.courseData.classroom || "없음"}
         </div>
       </>
     );
@@ -201,23 +207,30 @@ const CourseView = (props: Props) => {
       }
     }
 
-    getEnrollments().then((res: any) => {
-      setEnrollments(res);
-      setReceiverOptionList(
-        res.map((e: any) => {
-          return {
-            value: JSON.stringify({
-              userId: e.studentId,
-              userName: e.studentName,
-            }),
-            text: `${e.studentName}(${e.studentId})`,
-          };
-        })
-      );
-    });
-
     return () => {};
   }, []);
+
+  useEffect(() => {
+    if (isEnrollmentListLoading) {
+      getEnrollments().then((res: any) => {
+        setEnrollmentList(res);
+        setReceiverOptionList(
+          res.map((e: any) => {
+            return {
+              value: JSON.stringify({
+                userId: e.studentId,
+                userName: e.studentName,
+              }),
+              text: `${e.studentName}(${e.studentId})`,
+            };
+          })
+        );
+      });
+      setIsEnrollmentListLoading(false);
+    }
+
+    return () => {};
+  }, [isEnrollmentListLoading]);
 
   useEffect(() => {
     // is this syllabus fully confirmed?
@@ -254,7 +267,7 @@ const CourseView = (props: Props) => {
       <ClassInfo />
       <div style={{ height: "24px" }}></div>
       <Divider />
-      {isMentor && enrollments?.length === 0 && (
+      {isMentor && enrollmentList?.length === 0 && (
         <Button
           type={"ghost"}
           style={{
@@ -340,31 +353,97 @@ const CourseView = (props: Props) => {
         </>
       )}
       <div style={{ height: "24px" }}></div>
-      <div className={style.title}>수강생 목록</div>
+
       {isMentor ? (
         <>
+          <div style={{ display: "flex" }}>
+            <div
+              style={{
+                flex: "auto",
+                marginLeft: "12px",
+                display: "flex",
+                gap: "12px",
+              }}
+            >
+              <div className={style.title}>수강생 목록</div>
+            </div>
+            <div
+              style={{
+                flex: "auto",
+                marginRight: "24px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                alignItems: "center",
+              }}
+            >
+              <div
+                className={style.icon}
+                onClick={(e: any) => {
+                  if (!confirmed) {
+                    alert("수업이 승인되지 않아 학생을 초대할 수 없습니다.");
+                  } else {
+                    setEnrollBulkPopupActive(true);
+                  }
+                }}
+                style={{ display: "flex", gap: "4px", alignItems: "center" }}
+              >
+                <Svg type="user_check" width="24px" height="24px" />
+                초대
+              </div>
+
+              <div
+                className={style.icon}
+                onClick={(e: any) => {
+                  const receiverSelectedList: receiverSelectedList = {};
+                  for (let e of enrollmentList || []) {
+                    receiverSelectedList[
+                      JSON.stringify({
+                        userId: e.studentId,
+                        userName: e.studentName,
+                      })
+                    ] = true;
+                  }
+
+                  setReceiverSelectedList({ ...receiverSelectedList });
+                  setSendNotificationPopupActive(true);
+                }}
+                style={{ display: "flex", gap: "4px" }}
+              >
+                <Svg type="send" width="20px" height="20px" />
+                알림
+              </div>
+            </div>
+          </div>
           <Table
-            filter
             type="object-array"
-            data={enrollments}
+            data={enrollmentList || []}
             header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+
               {
                 text: "학년",
                 key: "studentGrade",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "ID",
                 key: "studentId",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "이름",
                 key: "studentName",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "평가",
@@ -373,94 +452,51 @@ const CourseView = (props: Props) => {
                   alert("clicked!");
                 },
                 type: "button",
-                width: "80px",
-                align: "center",
-                textStyle: {
-                  padding: "0 10px",
-                  border: "var(--border-default)",
-                  background: "rgba(200, 200, 255, 0.25)",
-                  borderColor: "rgba(200, 200, 255)",
-                },
-              },
-              {
-                text: "알림 보내기",
-                key: "evaluation",
-                onClick: (e: any) => {
-                  const receiverSelectedList: receiverSelectedList = {};
-                  receiverSelectedList[
-                    JSON.stringify({
-                      userId: e.studentId,
-                      userName: e.studentName,
-                    })
-                  ] = true;
-                  setReceiverSelectedList({ ...receiverSelectedList });
-                  setSendNotificationPopupActive(true);
-                },
-                type: "button",
-                width: "80px",
-                align: "center",
-                textStyle: {
-                  padding: "0 10px",
-                  border: "var(--border-default)",
-                  background: "rgba(200, 200, 255, 0.25)",
-                  borderColor: "rgba(200, 200, 255)",
-                },
+
+                textAlign: "center",
+                // textStyle: {
+                //   padding: "0 10px",
+                //   border: "var(--border-default)",
+                //   background: "rgba(200, 200, 255, 0.25)",
+                //   borderColor: "rgba(200, 200, 255)",
+                // },
               },
             ]}
-            style={{ bodyHeight: "calc(100vh - 300px)" }}
           />
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              marginTop: "24px",
-            }}
-            onClick={() => {
-              const receiverSelectedList: receiverSelectedList = {};
-              for (let e of enrollments || []) {
-                receiverSelectedList[
-                  JSON.stringify({
-                    userId: e.studentId,
-                    userName: e.studentName,
-                  })
-                ] = true;
-              }
-
-              setReceiverSelectedList({ ...receiverSelectedList });
-              setSendNotificationPopupActive(true);
-            }}
-          >
-            전체 알람 보내기
-          </Button>
         </>
       ) : (
         <>
+          <div className={style.title}>수강생 목록</div>
           <Table
-            filter
             type="object-array"
-            data={enrollments}
+            data={enrollmentList || []}
             header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
               {
                 text: "학년",
                 key: "studentGrade",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "ID",
                 key: "studentId",
-                type: "string",
-                width: "80px",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "이름",
                 key: "studentName",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
             ]}
-            style={{ bodyHeight: "calc(100vh - 300px)" }}
           />
         </>
       )}
@@ -476,23 +512,33 @@ const CourseView = (props: Props) => {
             header={[
               {
                 text: "No",
-                key: "",
-                type: "index",
+                type: "text",
+                key: "tableRowIndex",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
               {
-                text: "멘토",
+                text: "멘토 ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "멘토 이름",
                 key: "userName",
-                type: "string",
+                type: "text",
+                textAlign: "center",
               },
 
               {
                 text: "상태",
                 key: "confirmed",
-                type: "string",
-                returnFunction: (e: boolean) => {
-                  return e ? "승인됨" : "미승인";
+                width: "120px",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  false: { text: "미승인", color: "red" },
+                  true: { text: "승인됨", color: "green" },
                 },
               },
             ]}
@@ -505,6 +551,21 @@ const CourseView = (props: Props) => {
           receiverOptionList={receiverOptionList}
           receiverSelectedList={receiverSelectedList}
           category={props.courseData.classTitle}
+          receiverList={enrollmentList?.map((enrollment: any) => {
+            return {
+              ...enrollment,
+              userId: enrollment.studentId,
+              userName: enrollment.studentName,
+            };
+          })}
+          receiverType={"enrollment"}
+        />
+      )}
+      {enrollBulkPopupActive && (
+        <EnrollBulkPopup
+          setPopupActive={setEnrollBulkPopupActive}
+          courseData={props.courseData}
+          setIsEnrollmentListLoading={setIsEnrollmentListLoading}
         />
       )}
     </div>

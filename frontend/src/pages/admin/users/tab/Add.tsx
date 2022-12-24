@@ -39,7 +39,7 @@ import Select from "components/select/Select";
 import Popup from "components/popup/Popup";
 
 import _ from "lodash";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 type Props = {
   schoolData: any;
@@ -146,11 +146,11 @@ function Basic(props: Props) {
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Select
               style={{ minHeight: "30px" }}
-              label="auth"
+              label="등급"
               required
               options={[
-                { text: "member", value: "member" },
-                { text: "manager", value: "manager" },
+                { text: "멤버", value: "member" },
+                { text: "매니저", value: "manager" },
               ]}
               setValue={setAuth}
               appearence={"flat"}
@@ -161,7 +161,7 @@ function Basic(props: Props) {
             <Input
               key="userId"
               appearence="flat"
-              label="userId"
+              label="ID"
               required={true}
               onChange={(e: any) => {
                 setUserId(e.target.value);
@@ -169,20 +169,20 @@ function Basic(props: Props) {
             />
             <Input
               appearence="flat"
-              label="password"
+              label="이름"
               required={true}
               onChange={(e: any) => {
-                setPassword(e.target.value);
+                setUserName(e.target.value);
               }}
             />
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
               appearence="flat"
-              label="userName"
+              label="비밀번호"
               required={true}
               onChange={(e: any) => {
-                setUserName(e.target.value);
+                setPassword(e.target.value);
               }}
             />
           </div>
@@ -242,16 +242,10 @@ function Basic(props: Props) {
               <Table
                 type="object-array"
                 data={props.schoolList}
-                onSelectChange={(value) => {
-                  console.log(value);
-                  schoolSelectRef.current = value;
-                }}
-                checkFunction={(value) => {
-                  console.log("schools: ", schools, " value: ", value);
-                  return _.includes(
-                    schools.map((schoolData: any) => schoolData.school),
-                    value._id
-                  );
+                onChange={(value: any[]) => {
+                  schoolSelectRef.current = _.filter(value, {
+                    tableRowChecked: true,
+                  });
                 }}
                 header={[
                   {
@@ -259,10 +253,19 @@ function Basic(props: Props) {
                     key: "",
                     type: "checkbox",
                     width: "48px",
-                    align: "center",
                   },
-                  { text: "학교 Id", key: "schoolId", type: "string" },
-                  { text: "학교 이름", key: "schoolName", type: "string" },
+                  {
+                    text: "학교 ID",
+                    key: "schoolId",
+                    type: "text",
+                    textAlign: "center",
+                  },
+                  {
+                    text: "학교 이름",
+                    key: "schoolName",
+                    type: "text",
+                    textAlign: "center",
+                  },
                 ]}
               />
             </div>

@@ -35,7 +35,7 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import UpdateBulk from "./tab/updateBulk";
 
@@ -63,7 +63,7 @@ const Subjects = (props: Props) => {
 
   const updateSubjectDataHeader = () => {
     const subjectDataList = [];
-    for (let j = 0; j < subjectLabelList.length; j++) {
+    for (let j = 0; j < subjectLabelList?.length; j++) {
       subjectDataList.push({
         text: subjectLabelList[j],
         key: subjectLabelList[j],
@@ -105,9 +105,12 @@ const Subjects = (props: Props) => {
 
   useEffect(() => {
     updateSubjectDataHeader();
-    setSubjectObjectList(
-      parseSubjectDataList(subjectLabelList, props.schoolData?.subjects.data)
-    );
+    if (props.schoolData?.subjects?.data) {
+      setSubjectObjectList(
+        parseSubjectDataList(subjectLabelList, props.schoolData?.subjects?.data)
+      );
+    }
+
     return () => {};
   }, [subjectLabelList]);
 
@@ -253,24 +256,22 @@ const Subjects = (props: Props) => {
         <Table
           type="object-array"
           data={subjectObjectList || []}
+          control
           header={[
             {
-              text: "ID",
-              key: "",
-              type: "index",
+              text: "No",
+              type: "text",
+              key: "tableRowIndex",
               width: "48px",
-              align: "center",
+              textAlign: "center",
             },
             ...subjectDataHeader,
             {
               text: "삭제",
-              key: "index",
+              key: "delete",
               type: "button",
               onClick: (e: any) => {
-                props.schoolData?.subjects.data.splice(
-                  _.findIndex(subjectObjectList, (x) => _.isEqual(x, e)),
-                  1
-                );
+                props.schoolData?.subjects.data.splice(e.tableRowIndex - 1, 1);
 
                 updateSubjects(subjectLabelList, [
                   ...props.schoolData?.subjects.data,
@@ -286,14 +287,13 @@ const Subjects = (props: Props) => {
                     alert(err.response.data.message);
                   });
               },
-
               width: "80px",
-              align: "center",
-              textStyle: {
-                padding: "0 10px",
-                border: "var(--border-default)",
-                background: "rgba(255, 200, 200, 0.25)",
-                borderColor: "rgba(255, 200, 200)",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "red",
+                padding: "4px",
+                round: true,
               },
             },
           ]}
