@@ -61,11 +61,11 @@ export default function useApi() {
     const { academies: result } = await database.R({ location: "academies" });
     return result;
   }
-   /**
+  /**
    * Update Subjects in school
    * @auth admin
    */
-   async function USchoolSubject(props: {
+  async function USchoolSubject(props: {
     academyId: string;
     schoolId: string;
     data: any;
@@ -98,8 +98,12 @@ export default function useApi() {
    * @type POST
    * @auth member
    */
-  async function CGoogleLocal(data: { credential: string }) {
-    return await database.C({ location: "users/google", data: data });
+  async function CGoogleLocal(data: {
+    academyId: string;
+    credential: string;
+    persist?: boolean;
+  }) {
+    return await database.C({ location: "users/login/google", data: data });
   }
   /**
    * Google login
@@ -272,7 +276,6 @@ export default function useApi() {
       data: { new: props.data },
     });
   }
- 
 
   /**
    * Update formArchive in school
