@@ -143,6 +143,10 @@ function Archive(props: Props) {
                 (val: any) => val.label === editArchivefield
               )[0].fields ?? []
             }
+            onChange={(e)=>{
+
+
+            }}
             header={[
               {
                 text: "필드 이름",
@@ -166,6 +170,14 @@ function Archive(props: Props) {
                   },
                   "input-number": {
                     text: "숫자",
+                    color: "#00B3AD",
+                  },
+                  total: {
+                    text: "합산",
+                    color: "#00B3AD",
+                  },
+                  runningTotal: {
+                    text: "누계 합산",
                     color: "#00B3AD",
                   },
                 },
