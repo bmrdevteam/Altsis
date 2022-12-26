@@ -52,11 +52,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       /** if there is a registration, set the season */
       if (res.registrations) _setRegistration(res.registrations);
       if (
-        res.registrations.filter((r: any) => r.school === res.schools[0].school)
-          .length > 0
+        res.registrations.filter(
+          (r: any) => r.school === res.schools[0].school && r.isActivated
+        ).length > 0
       ) {
         const re = res.registrations.filter(
-          (r: any) => r.school === res.schools[0].school
+          (r: any) => r.school === res.schools[0].school && r.isActivated
         );
         setRegistration(re);
         setCurrentRegistration(re[0]);
@@ -81,13 +82,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   function changeSchool(to: string) {
     SchoolApi.RSchool(to).then((s) => {
       setCurrentSchool({ ...s, school: s._id });
-      setRegistration(_registrations.filter((r: any) => r.school === s._id));
+      setRegistration(
+        _registrations.filter((r: any) => r.school === s._id && r.isActivated)
+      );
       setCurrentRegistration(
-        _registrations.filter((r: any) => r.school === s._id)[0]
+        _registrations.filter(
+          (r: any) => r.school === s._id && r.isActivated
+        )[0]
       );
     });
   }
-  
+
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
     const result = await SeasonApi.RSeason(registration?.season)
