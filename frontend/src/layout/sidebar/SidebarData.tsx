@@ -111,14 +111,14 @@ export const SidebarData = (
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          subLink: currentSchool.formArchive?.map((val: any) => {
-            return {
-              title: val.label,
-              name: val.label,
-              path: `/archive/${val.label}`,
-              icon: <Svg type="file" />,
-            };
-          }),
+          // subLink: currentSchool.formArchive?.map((val: any) => {
+            // return {
+            //   title: val.label,
+            //   name: val.label,
+            //   path: `/archive/${val.label}`,
+            //   icon: <Svg type="file" />,
+            // };
+          // }),
         },
         {
           title: "docs",
@@ -239,14 +239,14 @@ export const SidebarData = (
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          subLink: currentSchool.formArchive?.map((val:any) => {
-            return {
-              title: val.label,
-              name: val.label,
-              path: `/archive/${val.label}`,
-              icon: <Svg type="file" />,
-            };
-          }),
+          // subLink: currentSchool.formArchive?.map((val:any) => {
+            // return {
+            //   title: val.label,
+            //   name: val.label,
+            //   path: `/archive/${val.label}`,
+            //   icon: <Svg type="file" />,
+            // };
+          // }),
         },
         {
           title: "docs",
