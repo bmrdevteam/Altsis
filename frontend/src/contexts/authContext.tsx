@@ -9,6 +9,7 @@ export function useAuth(): {
   setCurrentUser: React.Dispatch<any>;
   currentUser: any;
   currentSchool: any;
+  setCurrentSchool: any;
   changeSchool: (to: string) => void;
   currentSeason: any;
   changeCurrentSeason: (season: any) => void;
@@ -170,6 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentNotifications,
     setCurrentNotifications,
     currentPermission,
+    setCurrentSchool,
   };
   return (
     <AuthContext.Provider value={value}>
