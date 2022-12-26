@@ -55,7 +55,8 @@ import CourseDesign from "../pages/courses/Design";
 import CourseEnroll from "../pages/courses/Enroll";
 import CourseList from "pages/courses/List";
 import CourseMyList from "pages/courses/MyList";
-import CourseMentoring from "pages/courses/Mentoring";
+import CourseMentoringList from "pages/courses/Mentoring/List";
+import CourseMentoringPid from "pages/courses/Mentoring/Pid";
 
 // apps pages
 import AppsIndex from "pages/apps/Index";
@@ -296,7 +297,15 @@ function RouterPage() {
                 path="mentoring"
                 element={
                   <RequireAuth>
-                    <CourseMentoring />
+                    <CourseMentoringList />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="mentoring/:pid"
+                element={
+                  <RequireAuth>
+                    <CourseMentoringPid />
                   </RequireAuth>
                 }
               ></Route>

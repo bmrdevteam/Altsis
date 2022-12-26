@@ -43,7 +43,7 @@ const seasonSchema = mongoose.Schema(
     permissionEvaluation: [[]],
     formTimetable: Object,
     formSyllabus: Object,
-    formEvaluation: Object,
+    formEvaluation: [],
     temp: Object,
     isActivated: {
       type: Boolean,
