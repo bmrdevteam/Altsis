@@ -1,6 +1,12 @@
 .table_container {
     width: 100%;
     overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.table_container::-webkit-scrollbar {
+    display: none;
 }
 
 .table {
@@ -221,8 +227,6 @@
 
             select {
                 border: none;
-                padding: 12px;
-                width: 100%;
                 font-family: 'Pretendard';
                 font-size: inherit;
                 text-align: inherit;
