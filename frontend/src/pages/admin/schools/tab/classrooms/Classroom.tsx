@@ -145,7 +145,7 @@ const Classroom = (props: Props) => {
 
         <div style={{ marginTop: "24px" }} />
         <Table
-          data={props.schoolData?.classrooms}
+          data={props.schoolData?.classrooms ?? []}
           type="string-array"
           header={[
             {
