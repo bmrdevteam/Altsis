@@ -322,7 +322,12 @@ const Season = (props: Props) => {
                   setSelectedSeason={setSelectedSeason}
                 />
               ),
-              양식: <Form seasonData={selectedSeason} />,
+              양식: (
+                <Form
+                  seasonData={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                />
+              ),
 
               권한: (
                 <Permission
