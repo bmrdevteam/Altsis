@@ -26,16 +26,16 @@ export function useAuth(): {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { UserApi, SeasonApi, SchoolApi } = useApi();
+  const { UserApi, SeasonApi, SchoolApi, RegistrationApi } = useApi();
   const [currentUser, setCurrentUser] = useState<any>(null);
-
   const [currentSchool, setCurrentSchool] = useState<any>();
-  const [registrations, setRegistration] = useState<any>([]);
   const [currentRegistration, setCurrentRegistration] = useState<any>();
+  const [currentPermission, setCurrentPermission] = useState<any>({});
+  const [_registrations, _setRegistration] = useState<any>([]);
+  const [registrations, setRegistration] = useState<any>([]);
   const [currentSeason, setCurrentSeason] = useState<any>();
   const [currentNotifications, setCurrentNotifications] = useState<any>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [currentPermission, setCurrentPermission] = useState<any>({});
 
   async function getLoggedInUser() {
     await UserApi.RMySelf().then((res) => {
@@ -50,10 +50,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setCurrentNotifications(res.notifications);
 
       /** if there is a registration, set the season */
-      if (res.registrations) {
-        setRegistration(res.registrations);
-        setCurrentRegistration(res.registrations[0]);
-        SeasonApi.RSeason(res.registrations[0].season).then((res) => {
+      if (res.registrations) _setRegistration(res.registrations);
+      if (
+        res.registrations.filter((r: any) => r.school === res.schools[0].school)
+          .length > 0
+      ) {
+        const re = res.registrations.filter(
+          (r: any) => r.school === res.schools[0].school
+        );
+        setRegistration(re);
+        setCurrentRegistration(re[0]);
+        SeasonApi.RSeason(re[0].season).then((res) => {
           setCurrentSeason(res);
         });
       }
@@ -70,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         });
   }, [loading]);
-  
+
   function changeSchool(to: string) {
     SchoolApi.RSchool(to).then((s) => {
       setCurrentSchool({ ...s, school: s._id });
