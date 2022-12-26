@@ -35,6 +35,7 @@ module.exports.loginLocal = async (req, res) => {
 };
 
 module.exports.loginGoogle = async (req, res) => {
+  console.log("loginGoogle: req.body is ", req.body);
   passport.authenticate("google2", (authErr, user, academyId) => {
     try {
       if (authErr) throw authErr;
