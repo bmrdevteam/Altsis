@@ -1,18 +1,24 @@
 @media print {
-    .navbar_container {
-        display: none !important;
-    }
+  .navbar_container {
+    display: none !important;
+  }
 
-    @page {
-        margin: 0;
-        page-break-after: always;
-    }
+  @page {
+    margin: 0;
+    page-break-after: always;
+  }
 }
 
 
 
 
 
+@media (max-width: 800px) {
+  .navbar_container {
+    padding: 0 24px 0 60px !important;
+
+  }
+}
 
 .navbar_container {
   height: 56px;
@@ -34,7 +40,7 @@
     border-radius: 8px;
     background-color: var(--component-color);
     padding: 8px 18px;
-    flex: 1 1 0;
+    width: 100%;
   }
 
   .controls {

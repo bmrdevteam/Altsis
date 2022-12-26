@@ -100,8 +100,9 @@ module.exports.find = async (req, res) => {
       delete queries.confirmed;
     }
     if (queries.matches) {
-      queries["classTitle"] = { $regex: queries.matches };
+      queries[queries.field] = { $regex: queries.matches };
       delete queries.matches;
+      delete queries.field;
     }
     if (queries.season && queries.studentId) {
       const studentEnrollements = await Enrollment(req.user.academyId)

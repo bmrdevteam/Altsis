@@ -185,7 +185,7 @@ function RouterPage() {
               <Route path="users/add" element={<Schools />}></Route>
 
               <Route
-                path="schools"
+                path="schools/list"
                 element={
                   <RequireAuth auth={["admin", "manager"]}>
                     <Schools />
@@ -194,6 +194,14 @@ function RouterPage() {
               ></Route>
               <Route
                 path="schools/:pid"
+                element={
+                  <RequireAuth auth={["admin"]}>
+                    <School />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="schools"
                 element={
                   <RequireAuth auth={["admin", "manager"]}>
                     <School />

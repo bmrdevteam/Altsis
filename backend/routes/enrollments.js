@@ -8,7 +8,7 @@ const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
 //=================================
 
 router.post("/", isLoggedIn, enrollments.enroll);
-router.post("/bulk", isAdManager, enrollments.enrollbulk);
+router.post("/bulk", isLoggedIn, enrollments.enrollbulk);
 
 // query season&userId -> 유저의 수강 정보 (student 본인 혹은 teacher can access)
 // query syllabus -> syllabus 수강하는 학생 목록 (only teacher can access)

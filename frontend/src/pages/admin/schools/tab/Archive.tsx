@@ -1,6 +1,8 @@
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
+import { unflattenObject } from "functions/functions";
+import useApi from "hooks/useApi";
 import useDatabase from "hooks/useDatabase";
 import React, { useEffect, useState } from "react";
 type Props = {
@@ -9,19 +11,12 @@ type Props = {
 
 function Archive(props: Props) {
   const database = useDatabase();
-
+  const { SchoolApi } = useApi();
   const [archiveForm, setArchiveForm] = useState<any>();
   const [editArchivePopupActive, setEditArchivePopupActive] =
     useState<boolean>(false);
   const [editArchivefield, setEditArchivefield] = useState<string>();
 
-  async function updateFormArchive() {
-    const result = await database.U({
-      location: `schools/${props.schoolData._id}/form/archive`,
-      data: { new: archiveForm },
-    });
-    return result;
-  }
   useEffect(() => {
     database
       .R({
@@ -30,6 +25,8 @@ function Archive(props: Props) {
       .then((res) => {
         setArchiveForm(res.formArchive);
       });
+
+    console.log(props.schoolData);
   }, []);
 
   return (
@@ -43,12 +40,15 @@ function Archive(props: Props) {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
           onClick={() => {
-            updateFormArchive().then((res) => {
-              console.log(res);
-            });
+            SchoolApi.USchoolFormArchive({
+              schoolId: props.schoolData._id,
+              data: archiveForm,
+            })
+              .then(() => alert("저장 성공"))
+              .catch(() => alert("저장 실패"));
           }}
         >
-          + 새로운 아카이브 추가
+          저장
         </Button>
         <div style={{ marginTop: "24px" }}></div>
 
@@ -56,6 +56,13 @@ function Archive(props: Props) {
           type="object-array"
           control
           data={archiveForm ?? []}
+          onChange={(e) => {
+            setArchiveForm(
+              e.map((v) => {
+                return unflattenObject(v);
+              })
+            );
+          }}
           header={[
             {
               text: "이름",
@@ -129,36 +136,59 @@ function Archive(props: Props) {
             </Button>
           }
         >
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              marginBottom: "24px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-            }}
-          >
-            필드 추가
-          </Button>
           <Table
             type="object-array"
             data={
               archiveForm?.filter(
                 (val: any) => val.label === editArchivefield
-              )[0].fields
+              )[0].fields ?? []
             }
+            onChange={(e)=>{
+
+
+            }}
             header={[
               {
                 text: "필드 이름",
                 key: "label",
                 type: "text",
               },
-
               {
-                text: "자세히",
-                key: "label",
-                type: "button",
-                onClick: (e: any) => {},
+                text: "유형",
+                key: "type",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "status",
+                status: {
+                  input: {
+                    text: "텍스트",
+                    color: "#B33F00",
+                  },
+                  select: {
+                    text: "선택",
+                    color: "#006663",
+                  },
+                  "input-number": {
+                    text: "숫자",
+                    color: "#00B3AD",
+                  },
+                  total: {
+                    text: "합산",
+                    color: "#00B3AD",
+                  },
+                  runningTotal: {
+                    text: "누계 합산",
+                    color: "#00B3AD",
+                  },
+                },
+                width: "80px",
+                textAlign: "center",
+              },
+              {
+                text: "수정",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "rowEdit",
                 width: "80px",
                 textAlign: "center",
               },

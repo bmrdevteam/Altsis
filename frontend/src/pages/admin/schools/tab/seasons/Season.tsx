@@ -56,6 +56,8 @@ const Season = (props: Props) => {
   const database = useDatabase();
 
   const { pid } = useParams();
+  const { currentSchool } = useAuth();
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [seasons, setSeasons] = useState<any[]>();
@@ -79,7 +81,7 @@ const Season = (props: Props) => {
    */
   async function getSeasons() {
     const { seasons: result } = await database.R({
-      location: `seasons?school=${pid}`,
+      location: `seasons?school=${currentSchool.school ?? " "}`,
     });
     return result;
   }
@@ -193,6 +195,7 @@ const Season = (props: Props) => {
             },
             {
               text: "자세히",
+              key: "detail",
               type: "button",
               onClick: (e: any) => {
                 getSelectedSeason(e._id).then((res) => {
@@ -204,6 +207,12 @@ const Season = (props: Props) => {
               },
               width: "80px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "black",
+                padding: "4px",
+                round: true,
+              },
             },
           ]}
         />

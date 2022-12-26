@@ -202,7 +202,7 @@ const CourseAdd = (props: Props) => {
     <>
       <div className={style.section}>
         <div className={style.design_form}>
-          <div className={style.title}>강의계획서 수정</div>
+          <div className={style.title}>강의계획서 생성</div>
           <div style={{ display: "flex", gap: "24px" }}>
             <Select
               appearence="flat"

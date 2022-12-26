@@ -3,18 +3,26 @@ import style from "./schedule.module.scss";
 import create from "zustand";
 import useGenerateId from "hooks/useGenerateId";
 import Svg from "assets/svg/Svg";
+import { useAuth } from "contexts/authContext";
 
 type TEvent = {
   id: string;
   day: string;
   title: string;
+  type: string;
+  classroom?: string;
   startTime: string;
   endTime: string;
 };
 
 interface ICalendarState {
   events: TEvent[];
-  addEvent: (day: string, startTime: string, endTime: string) => void;
+  addEvent: (
+    type: string,
+    day: string,
+    startTime: string,
+    endTime: string
+  ) => void;
   setEvents: (events: TEvent[]) => void;
   editor: boolean;
   setEditor: (to: boolean) => void;
@@ -31,7 +39,7 @@ const useStore = create<ICalendarState>()((set) => {
       set((state) => ({
         editor: to,
       })),
-    addEvent: (day, startTime, endTime) =>
+    addEvent: (type, day, startTime, endTime) =>
       set((state) => ({
         events: [
           ...state.events,
@@ -39,6 +47,7 @@ const useStore = create<ICalendarState>()((set) => {
             id: idGen(12),
             day: day,
             title: "",
+            type: type,
             startTime: startTime,
             endTime: endTime,
           },
@@ -74,7 +83,10 @@ const RowFunction = ({ day }: { day: string }) => {
   );
 };
 const EventEditor = () => {
-  const { editor, setEditor, currentEvent } = useStore();
+  const { editor, setEditor, currentEvent, addEvent } = useStore();
+  const { currentSchool } = useAuth();
+  const today = new Date();
+
   return editor ? (
     <>
       <div
@@ -84,16 +96,75 @@ const EventEditor = () => {
         }}
       ></div>
       <div className={style.editor_container}>
-        <div className={style.title}>일정 수정</div>
-        <input
-          className={style.title_input}
-          type="text"
-          defaultValue={currentEvent?.title}
-          placeholder="제목 입력"
-        />
-        <div>{currentEvent?.startTime}</div>
-        <input type="time" />
-        <div className="btn">저장</div>
+        {/* <div className={style.title}>일정</div> */}
+        <div className={style.content}>
+          <input
+            disabled={currentEvent?.type === "course"}
+            className={style.title_input}
+            type="text"
+            defaultValue={currentEvent?.title}
+            placeholder="제목 입력"
+          />
+          <div className={style.date}>
+            <select
+              disabled={currentEvent?.type === "course"}
+              defaultValue={currentEvent?.day }
+            >
+              <option value={"일"}>일</option>
+              <option value={"월"}>월</option>
+              <option value={"화"}>화</option>
+              <option value={"수"}>수</option>
+              <option value={"목"}>목</option>
+              <option value={"금"}>금</option>
+              <option value={"토"}>토</option>
+            </select>
+          </div>
+          <div className={style.room}>
+            <select disabled={currentEvent?.type === "course"}>
+              <option value="" key={"noClassroomSelected🔥"}>
+                없음
+              </option>
+              {currentSchool.classrooms?.map((val: string) => {
+                return (
+                  <option key={val} value={val}>
+                    {val}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <div className={style.time}>
+            <input
+              defaultValue={currentEvent?.startTime}
+              type="time"
+              disabled={currentEvent?.type === "course"}
+            />
+            ~
+            <input
+              defaultValue={currentEvent?.endTime}
+              type="time"
+              disabled={currentEvent?.type === "course"}
+            />
+          </div>
+          <div className={style.other}>
+            <label>추가 설명</label>
+            <textarea
+              rows={10}
+              disabled={currentEvent?.type === "course"}
+            ></textarea>
+          </div>
+        </div>
+        <div
+          className="btn"
+          onClick={() => {
+            console.log(currentEvent);
+
+            if (!currentEvent) {
+            }
+          }}
+        >
+          {currentEvent ? "저장" : "추가"}
+        </div>
       </div>
     </>
   ) : (
@@ -125,6 +196,7 @@ const Event = ({ data }: { data: TEvent }) => {
       <div className={style.title}>
         {(data.title || data.title === " ") ?? "제목 없음"}
       </div>
+      {data.classroom && <div className={style.room}>{data.classroom}</div>}
       <div className={style.time}>
         {data.startTime}
         {" ~ "}
@@ -190,11 +262,13 @@ const RowGrid = ({ day }: { day: string }) => {
 function Schedule({
   defaultEvents,
   title,
+  dayArray,
 }: {
   defaultEvents?: TEvent[];
   title: string;
+  dayArray: Array<"일" | "월" | "화" | "수" | "목" | "금" | "토">;
 }) {
-  const { setEvents, setEditor } = useStore();
+  const { setEvents, setEditor, setCurrentEvent } = useStore();
   const today = new Date();
 
   useEffect(() => {
@@ -203,7 +277,6 @@ function Schedule({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const dayArray = ["일", "월", "화", "수", "목", "금", "토"];
   return (
     <div className={style.calendar_container}>
       <div className={style.header}>
@@ -213,6 +286,7 @@ function Schedule({
           <div
             className={style.btn}
             onClick={() => {
+              setCurrentEvent("");
               setEditor(true);
             }}
           >

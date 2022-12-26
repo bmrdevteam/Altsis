@@ -26,7 +26,6 @@ export const SidebarData = (
 ): any => {
   const { currentSchool } = useAuth();
 
-
   switch (auth) {
     case "owner":
       return [
@@ -68,7 +67,7 @@ export const SidebarData = (
             currentPermission?.permissionSyllabus
               ? {
                   title: "design",
-                  name: "수업개설",
+                  name: "수업 개설",
                   path: "/courses/design",
                   icon: <Svg type="file" />,
                 }
@@ -78,6 +77,15 @@ export const SidebarData = (
                   title: "mylist",
                   name: "나의 수업",
                   path: "/courses/mylist",
+                  icon: <Svg type="file" />,
+                }
+              : undefined,
+
+            role === "teacher"
+              ? {
+                  title: "mentoring",
+                  name: "담당 수업",
+                  path: "/courses/mentoring",
                   icon: <Svg type="file" />,
                 }
               : undefined,
@@ -95,18 +103,9 @@ export const SidebarData = (
               path: "/courses/list",
               icon: <Svg type="file" />,
             },
-
-            role === "teacher"
-              ? {
-                  title: "mentoring",
-                  name: "담당 수업",
-                  path: "/courses/mentoring",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
           ].filter((element: any, i: number) => element !== undefined),
         },
-        {
+        currentSchool.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
@@ -149,7 +148,7 @@ export const SidebarData = (
             {
               title: "schools",
               name: "학교 관리",
-              path: "/admin/schools",
+              path: `/admin/schools`,
               icon: <Svg type="file" />,
             },
             {
@@ -196,7 +195,7 @@ export const SidebarData = (
             currentPermission?.permissionSyllabus
               ? {
                   title: "design",
-                  name: "수업개설",
+                  name: "수업 개설",
                   path: "/courses/design",
                   icon: <Svg type="file" />,
                 }
@@ -206,6 +205,14 @@ export const SidebarData = (
                   title: "mylist",
                   name: "나의 수업",
                   path: "/courses/mylist",
+                  icon: <Svg type="file" />,
+                }
+              : undefined,
+            role === "teacher"
+              ? {
+                  title: "mentoring",
+                  name: "담당 수업",
+                  path: "/courses/mentoring",
                   icon: <Svg type="file" />,
                 }
               : undefined,
@@ -223,30 +230,21 @@ export const SidebarData = (
               path: "/courses/list",
               icon: <Svg type="file" />,
             },
-
-            role === "teacher"
-              ? {
-                  title: "mentoring",
-                  name: "담당 수업",
-                  path: "/courses/mentoring",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
           ].filter((element: any, i: number) => element !== undefined),
         },
-        {
+        currentSchool.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          // subLink: currentSchool.formArchive?.map((val:any) => {
-            // return {
-            //   title: val.label,
-            //   name: val.label,
-            //   path: `/archive/${val.label}`,
-            //   icon: <Svg type="file" />,
-            // };
-          // }),
+          subLink: currentSchool.formArchive?.map((val: any) => {
+            return {
+              title: val.label,
+              name: val.label,
+              path: `/archive/${val.label}`,
+              icon: <Svg type="file" />,
+            };
+          }),
         },
         {
           title: "docs",
@@ -277,7 +275,7 @@ export const SidebarData = (
             {
               title: "schools",
               name: "학교 관리",
-              path: "/admin/schools",
+              path: "/admin/schools/list",
               icon: <Svg type="file" />,
             },
             {
@@ -331,7 +329,7 @@ export const SidebarData = (
             currentPermission?.permissionSyllabus
               ? {
                   title: "design",
-                  name: "수업개설",
+                  name: "수업 개설",
                   path: "/courses/design",
                   icon: <Svg type="file" />,
                 }
@@ -341,6 +339,14 @@ export const SidebarData = (
                   title: "mylist",
                   name: "나의 수업",
                   path: "/courses/mylist",
+                  icon: <Svg type="file" />,
+                }
+              : undefined,
+            role === "teacher"
+              ? {
+                  title: "mentoring",
+                  name: "담당 수업",
+                  path: "/courses/mentoring",
                   icon: <Svg type="file" />,
                 }
               : undefined,
@@ -358,15 +364,6 @@ export const SidebarData = (
               path: "/courses/list",
               icon: <Svg type="file" />,
             },
-
-            role === "teacher"
-              ? {
-                  title: "mentoring",
-                  name: "담당 수업",
-                  path: "/courses/mentoring",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
           ].filter((element: any, i: number) => element !== undefined),
         },
         // {

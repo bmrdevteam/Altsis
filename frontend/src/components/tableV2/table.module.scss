@@ -1,4 +1,13 @@
-.table_container {}
+.table_container {
+    width: 100%;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.table_container::-webkit-scrollbar {
+    display: none;
+}
 
 .table {
     border: var(--border-default);
@@ -172,6 +181,7 @@
                 justify-content: center;
                 align-items: center;
             }
+
         }
 
         .item:hover {
@@ -217,8 +227,6 @@
 
             select {
                 border: none;
-                padding: 12px;
-                width: 100%;
                 font-family: 'Pretendard';
                 font-size: inherit;
                 text-align: inherit;
