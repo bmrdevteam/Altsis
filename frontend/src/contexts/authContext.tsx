@@ -81,8 +81,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   function changeSchool(to: string) {
     SchoolApi.RSchool(to).then((s) => {
       setCurrentSchool({ ...s, school: s._id });
+      setRegistration(_registrations.filter((r: any) => r.school === s._id));
+      setCurrentRegistration(
+        _registrations.filter((r: any) => r.school === s._id)[0]
+      );
     });
   }
+  
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
     const result = await SeasonApi.RSeason(registration?.season)
