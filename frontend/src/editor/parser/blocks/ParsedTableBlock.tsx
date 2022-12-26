@@ -12,7 +12,6 @@ type Props = {
   dbData?: any;
 };
 const ParsedTableBlock = (props: Props) => {
-
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
     if (columns && isArray(columns)) {
@@ -182,20 +181,22 @@ const ParsedTableBlock = (props: Props) => {
             className={style.cell}
             style={{ textAlign: data.align, fontSize: data.fontSize }}
           >
-            <input
-              type="checkbox"
-              defaultChecked={
-                props.defaultValues?.[data?.id] === true ||
-                props.defaultValues?.[data?.name] === true
-              }
-              onChange={(e) => {
-                if (data?.name === undefined) {
-                  props.returnData[data?.id] = e.target.checked;
-                } else {
-                  props.returnData[data?.name] = e.target.checked;
+            {props.auth === "edit" && (
+              <input
+                type="checkbox"
+                defaultChecked={
+                  props.defaultValues?.[data?.id] === true ||
+                  props.defaultValues?.[data?.name] === true
                 }
-              }}
-            />
+                onChange={(e) => {
+                  if (data?.name === undefined) {
+                    props.returnData[data?.id] = e.target.checked;
+                  } else {
+                    props.returnData[data?.name] = e.target.checked;
+                  }
+                }}
+              />
+            )}
           </div>
         );
       case "timeRange":
