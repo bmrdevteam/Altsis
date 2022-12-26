@@ -105,7 +105,7 @@ export const SidebarData = (
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
-        {
+        currentSchool.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
@@ -232,7 +232,7 @@ export const SidebarData = (
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
-        {
+        currentSchool.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
