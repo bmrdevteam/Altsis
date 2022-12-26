@@ -340,7 +340,7 @@ const Permission = (props: Props) => {
                 },
                 {
                   text: "삭제",
-                  key: "index",
+                  key: "delete",
                   type: "button",
                   onClick: (e: any) => {
                     exceptions.splice(e.tableRowIndex - 1, 1);
@@ -348,12 +348,12 @@ const Permission = (props: Props) => {
                   },
                   width: "80px",
                   textAlign: "center",
-                  // textStyle: {
-                  //   padding: "0 10px",
-                  //   border: "var(--border-default)",
-                  //   background: "rgba(255, 200, 200, 0.25)",
-                  //   borderColor: "rgba(255, 200, 200)",
-                  // },
+                  btnStyle: {
+                    border: true,
+                    color: "red",
+                    padding: "4px",
+                    round: true,
+                  },
                 },
               ]}
             />

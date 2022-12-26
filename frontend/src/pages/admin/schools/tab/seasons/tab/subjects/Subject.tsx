@@ -99,15 +99,18 @@ const Subjects = (props: Props) => {
   }
 
   useEffect(() => {
-    setSubjectLabelList(props.seasonData.subjects?.label);
+    setSubjectLabelList(props.seasonData.subjects?.label || []);
     return () => {};
   }, [props.seasonData]);
 
   useEffect(() => {
     updateSubjectDataHeader();
-    setSubjectObjectList(
-      parseSubjectDataList(subjectLabelList, props.seasonData?.subjects.data)
-    );
+    if (props.seasonData?.subjects?.data) {
+      setSubjectObjectList(
+        parseSubjectDataList(subjectLabelList, props.seasonData?.subjects?.data)
+      );
+    }
+
     return () => {};
   }, [subjectLabelList]);
 
@@ -264,11 +267,9 @@ const Subjects = (props: Props) => {
             ...subjectDataHeader,
             {
               text: "삭제",
-              key: "index",
+              key: "delete",
               type: "button",
-              textAlign: "center",
               onClick: (e: any) => {
-                console.log("e is ", e);
                 props.seasonData?.subjects.data.splice(e.tableRowIndex - 1, 1);
 
                 updateSubjects(subjectLabelList, [
@@ -286,14 +287,13 @@ const Subjects = (props: Props) => {
                     alert(err.response.data.message);
                   });
               },
-
               width: "80px",
-              align: "center",
-              textStyle: {
-                padding: "0 10px",
-                border: "var(--border-default)",
-                background: "rgba(255, 200, 200, 0.25)",
-                borderColor: "rgba(255, 200, 200)",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "red",
+                padding: "4px",
+                round: true,
               },
             },
           ]}

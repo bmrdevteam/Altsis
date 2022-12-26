@@ -24,7 +24,7 @@ module.exports = () => {
           throw err;
         }
 
-        const user = await User(academy.dbName)
+        const user = await User(academyId)
           .findOne({
             "snsId.google": payload.email,
           })
@@ -36,7 +36,7 @@ module.exports = () => {
           throw err;
         }
 
-        return done(null, user, academy.dbName);
+        return done(null, user, academyId);
       } catch (err) {
         return done(err, null, null);
       }

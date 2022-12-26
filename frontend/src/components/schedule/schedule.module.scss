@@ -135,6 +135,9 @@
             background-color: rgb(202, 222, 255);
 
             .title {
+              word-break: keep-all;
+              white-space: pre;
+              text-overflow: ellipsis;
               font-weight: 600;
               overflow: hidden;
               text-overflow: ellipsis;
@@ -180,6 +183,9 @@
     }
 
     .editor_container {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
       padding: 24px;
       z-index: 2022;
       position: fixed;
@@ -187,22 +193,98 @@
       right: 50%;
       transform: translate(50%, -50%);
       background-color: #fff;
-      width: 400px;
+      width: 800px;
       height: 500px;
       box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
       border-radius: 4px;
+
 
       .title {
         font-size: 16px;
         font-weight: 600;
       }
 
-      .title_input {
-        font-size: 18px;
-        font-weight: 600;
-        margin-top: 24px;
-        border: none;
-        outline: none;
+      .content::-webkit-scrollbar {
+        display: none;
+      }
+
+      .content {
+        overflow: scroll;
+        flex: 1 1 0;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        input{
+          padding: 6px 8px;
+          border-radius: 4px;
+        }
+        input:disabled {
+          cursor: not-allowed;
+        }
+
+        textarea:disabled {
+          cursor: not-allowed;
+
+        }
+
+        .title_input {
+          font-size: 18px;
+          font-weight: 600;
+          border: none;
+          outline: none;
+        }
+
+        select {
+          outline: none;
+          border: none;
+          background-color: var(--component-color);
+          padding: 6px;
+          border-radius: 4px;
+          width: 100%;
+        }
+
+        .date {}
+
+        .room {}
+
+        .time {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+
+          input[type='time'] {
+            outline: none;
+            border: none;
+            background-color: var(--component-color);
+            padding: 6px;
+            border-radius: 4px;
+            width: 100%;
+          }
+        }
+
+        .other {
+          display: flex;
+          flex-direction: column;
+
+          label {
+            font-size: 12px;
+            font-weight: 600;
+            padding-bottom: 4px;
+          }
+
+          textarea {
+            resize: vertical;
+            outline: none;
+            font-family: 'Pretendard';
+            border: none;
+            background-color: var(--component-color);
+            padding: 6px;
+            border-radius: 4px;
+          }
+        }
       }
     }
   }

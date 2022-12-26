@@ -71,7 +71,7 @@ const Schools = () => {
       setIsLoading(true);
     } else if (currentSchool) {
       console.log("currentSchol is ", currentSchool);
-      navigate(`${currentSchool._id}`);
+      navigate(`/admin/schools`);
     } else {
       alert("가입된 학교가 없습니다.");
       navigate("/");
@@ -161,13 +161,19 @@ navigate("add", { replace: true });
               },
               {
                 text: "자세히",
-                key: "_id",
+                key: "detail",
                 type: "button",
                 onClick: (value: any) => {
-                  navigate(`${value._id}`);
+                  navigate(`/admin/schools/${value._id}`);
                 },
                 width: "80px",
                 textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "black",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />

@@ -84,6 +84,7 @@ const Table = (props: Props) => {
   });
   const [addRowData, setAddRowData] = useState<any>(
     props.header
+      .filter((val) => val.key)
       .map((h) => {
         if (h.key) return h.key;
       })
@@ -155,6 +156,7 @@ const Table = (props: Props) => {
       }));
       setAddRowData(
         props.header
+          .filter((val) => val.key)
           .map((h) => {
             if (h.key) return h.key;
           })
@@ -181,9 +183,9 @@ const Table = (props: Props) => {
   function callOnChangeFunc(data?: any) {
     if (props.onChange) {
       if (data) {
-        props.onChange(data);
+        props.onChange([...data]);
       } else {
-        props.onChange(tableData.data);
+        props.onChange([...tableData.data]);
       }
     }
   }
@@ -214,724 +216,775 @@ const Table = (props: Props) => {
     }
   }
   return (
-    <table className={style.table}>
-      <colgroup>
-        {props.header.map((val, index) => {
-          return <col width={val.width} key={index} />;
-        })}
-      </colgroup>
-      <thead className={style.header}>
-        {props.control && (
-          <>
-            <tr>
-              <td colSpan={props.header.length}>
-                <div className={style.control}>
-                  <input
-                    className={style.search}
-                    type="text"
-                    placeholder={`${tableData.searchParamName} 검색`}
-                    value={tableData.searchParam}
-                    onChange={(e) => {
-                      setTableData((prev) => ({
-                        ...prev,
-                        searchParam: e.target.value,
-                      }));
-                    }}
-                  />
-                  <div className={style.pager}>
-                    <span
-                      className={style.arrow}
-                      onClick={() => {
-                        tableSettings.pageBy !== 0 &&
-                          tableSettings.pageIndex > 1 &&
-                          setTableSettings((prev) => ({
-                            ...prev,
-                            pageIndex: prev.pageIndex - 1,
-                          }));
-                      }}
-                    >
-                      <Svg type={"chevronLeft"} width="20px" height="20px" />
-                    </span>
+    <div className={style.table_container}>
+      <table className={style.table}>
+        <thead className={style.header}>
+          {props.control && (
+            <>
+              <tr>
+                <td colSpan={props.header.length}>
+                  <div className={style.control}>
                     <input
-                      value={tableSettings.pageIndex}
-                      className={style.number}
+                      className={style.search}
+                      type="text"
+                      placeholder={`${tableData.searchParamName} 검색`}
+                      value={tableData.searchParam}
                       onChange={(e) => {
-                        const number = isNaN(parseInt(e.target.value))
-                          ? 1
-                          : parseInt(e.target.value);
-                        if (
-                          number > 0 &&
-                          tableSettings.pageBy !== 0 &&
-                          number < tableData.data.length / tableSettings.pageBy
-                        ) {
-                          setTableSettings((prev) => ({
-                            ...prev,
-                            pageIndex: number,
-                          }));
-                        }
-                        if (
-                          tableSettings.pageBy !== 0 &&
-                          number > tableData.data.length / tableSettings.pageBy
-                        ) {
-                          let end = Math.floor(
-                            tableData.data.length / tableSettings.pageBy
-                          );
-                          if (tableData.data.length % tableSettings.pageBy > 0)
-                            end += 1;
-
-                          setTableSettings((prev) => ({
-                            ...prev,
-                            pageIndex: end,
-                          }));
-                        }
+                        setTableData((prev) => ({
+                          ...prev,
+                          searchParam: e.target.value,
+                        }));
                       }}
                     />
-                    <span
-                      className={style.arrow}
-                      onClick={() => {
-                        tableSettings.pageBy !== 0 &&
-                          tableSettings.pageIndex <
-                            tableData.data.length / tableSettings.pageBy &&
+                    <div className={style.pager}>
+                      <span
+                        className={style.arrow}
+                        onClick={() => {
+                          tableSettings.pageBy !== 0 &&
+                            tableSettings.pageIndex > 1 &&
+                            setTableSettings((prev) => ({
+                              ...prev,
+                              pageIndex: prev.pageIndex - 1,
+                            }));
+                        }}
+                      >
+                        <Svg type={"chevronLeft"} width="20px" height="20px" />
+                      </span>
+                      <input
+                        value={tableSettings.pageIndex}
+                        className={style.number}
+                        onChange={(e) => {
+                          const number = isNaN(parseInt(e.target.value))
+                            ? 1
+                            : parseInt(e.target.value);
+                          if (
+                            number > 0 &&
+                            tableSettings.pageBy !== 0 &&
+                            number <
+                              tableData.data.length / tableSettings.pageBy
+                          ) {
+                            setTableSettings((prev) => ({
+                              ...prev,
+                              pageIndex: number,
+                            }));
+                          }
+                          if (
+                            tableSettings.pageBy !== 0 &&
+                            number >
+                              tableData.data.length / tableSettings.pageBy
+                          ) {
+                            let end = Math.floor(
+                              tableData.data.length / tableSettings.pageBy
+                            );
+                            if (
+                              tableData.data.length % tableSettings.pageBy >
+                              0
+                            )
+                              end += 1;
+
+                            setTableSettings((prev) => ({
+                              ...prev,
+                              pageIndex: end,
+                            }));
+                          }
+                        }}
+                      />
+                      <span
+                        className={style.arrow}
+                        onClick={() => {
+                          tableSettings.pageBy !== 0 &&
+                            tableSettings.pageIndex <
+                              tableData.data.length / tableSettings.pageBy &&
+                            setTableSettings((prev) => ({
+                              ...prev,
+                              pageIndex: prev.pageIndex + 1,
+                            }));
+                        }}
+                      >
+                        <Svg type={"chevronRight"} width="20px" height="20px" />
+                      </span>
+                      <select
+                        value={tableSettings.pageBy}
+                        className={style.page_by}
+                        onChange={(e) => {
                           setTableSettings((prev) => ({
                             ...prev,
-                            pageIndex: prev.pageIndex + 1,
+                            pageIndex: 1,
+                            pageBy: parseInt(e.target.value),
                           }));
-                      }}
-                    >
-                      <Svg type={"chevronRight"} width="20px" height="20px" />
-                    </span>
-                    <select
-                      value={tableSettings.pageBy}
-                      className={style.page_by}
-                      onChange={(e) => {
-                        setTableSettings((prev) => ({
-                          ...prev,
-                          pageIndex: 1,
-                          pageBy: parseInt(e.target.value),
-                        }));
-                      }}
-                    >
-                      <option value="0">전체 보기</option>
-                      <option value="10">10개씩 보기</option>
-                      <option value="50">50개씩 보기</option>
-                      <option value="100">100개씩 보기</option>
-                      <option value="200">200개씩 보기</option>
-                    </select>
-                  </div>
-                  <div
-                    className={style.more}
-                    ref={moreOutSideClick.RefObject}
-                    onClick={moreOutSideClick.handleOnClick}
-                  >
-                    <Svg type={"horizontalDots"} width="20px" height="20px" />
-                    {moreOutSideClick.active && (
-                      <div className={style.menu_container}>
-                        <div className={style.menu_item}>CSV 으로 다운로드</div>
-                        <div className={style.menu_item}>
-                          JSON 으로 다운로드
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td
-                colSpan={props.header.length}
-                style={{
-                  padding: 0,
-                  background: "var(--border-default-color)",
-                  height: "1px",
-                }}
-              />
-            </tr>
-          </>
-        )}
-        <tr>
-          {props.header.map((val, index) => {
-            switch (val.type) {
-              case "checkbox":
-                const allChecked =
-                  filteredData().filter((c) => !c.tableRowChecked).length === 0;
-                const allEmpty =
-                  tableData.data.filter((c) => c.tableRowChecked).length === 0;
-                const checkTo = (to: boolean) => {
-                  let arr: any[] = tableData.data;
-                  filteredData().forEach((e) => {
-                    arr[
-                      arr.findIndex(
-                        (obj) => obj.tableRowIndex === e.tableRowIndex
-                      )
-                    ].tableRowChecked = to;
-                  });
-                  return arr;
-                };
-
-                return (
-                  <th
-                    style={{ textAlign: val.textAlign }}
-                    className={style.item_container}
-                    key={index}
-                    onClick={() => {
-                      if (allEmpty) {
-                        setTableData((prev) => ({
-                          ...prev,
-                          data: checkTo(true),
-                        }));
-                      } else {
-                        setTableData((prev) => ({
-                          ...prev,
-                          data: checkTo(false),
-                        }));
-                      }
-                      callOnChangeFunc();
-                    }}
-                  >
-                    <span className={style.icon}>
-                      {allChecked && filteredData().length !== 0 ? (
-                        <Svg
-                          type="checkboxChecked"
-                          width="20px"
-                          height="20px"
-                        />
-                      ) : allEmpty ? (
-                        <Svg type="checkbox" width="20px" height="20px" />
-                      ) : (
-                        <Svg type="checkboxMinus" width="20px" height="20px" />
-                      )}
-                    </span>
-                  </th>
-                );
-              default:
-                return (
-                  <th
-                    style={{
-                      textAlign: val.textAlign,
-                    }}
-                    className={style.item_container}
-                    key={index}
-                    onClick={() => {
-                      handleHeaderOnClick(val);
-                    }}
-                  >
-                    <div className={style.item}>
-                      <span className={style.icon}>
-                        {tableData.orderBy === val.key &&
-                          tableData.order === "asc" && <Svg type="chevronUp" />}
-                      </span>
-                      <span>{val.text}</span>
-                      <span className={style.icon}>
-                        {tableData.orderBy === val.key &&
-                          tableData.order === "desc" && (
-                            <Svg type="chevronDown" />
-                          )}
-                      </span>
+                        }}
+                      >
+                        <option value="0">전체 보기</option>
+                        <option value="10">10개씩 보기</option>
+                        <option value="50">50개씩 보기</option>
+                        <option value="100">100개씩 보기</option>
+                        <option value="200">200개씩 보기</option>
+                      </select>
                     </div>
-                  </th>
-                );
-            }
-          })}
-        </tr>
-      </thead>
-      <tbody>
-        {props.header.filter((h) => h.type === "rowEdit").length > 0 && (
-          <tr key={"tableAddRow"}>
+                    <div
+                      className={style.more}
+                      ref={moreOutSideClick.RefObject}
+                      onClick={moreOutSideClick.handleOnClick}
+                    >
+                      <Svg type={"horizontalDots"} width="20px" height="20px" />
+                      {moreOutSideClick.active && (
+                        <div className={style.menu_container}>
+                          <div className={style.menu_item}>
+                            CSV 으로 다운로드
+                          </div>
+                          <div className={style.menu_item}>
+                            JSON 으로 다운로드
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td
+                  colSpan={props.header.length}
+                  style={{
+                    padding: 0,
+                    background: "var(--border-default-color)",
+                    height: "1px",
+                  }}
+                />
+              </tr>
+            </>
+          )}
+          <tr>
             {props.header.map((val, index) => {
               switch (val.type) {
                 case "checkbox":
+                  const allChecked =
+                    filteredData().filter((c) => !c.tableRowChecked).length ===
+                    0;
+                  const allEmpty =
+                    tableData.data.filter((c) => c.tableRowChecked).length ===
+                    0;
+                  const checkTo = (to: boolean) => {
+                    let arr: any[] = tableData.data;
+                    filteredData().forEach((e) => {
+                      arr[
+                        arr.findIndex(
+                          (obj) => obj.tableRowIndex === e.tableRowIndex
+                        )
+                      ].tableRowChecked = to;
+                    });
+                    return arr;
+                  };
+
                   return (
-                    <td
-                      style={{ textAlign: val.textAlign }}
-                      className={`${style.item} ${style.checkbox}`}
-                      key={index}
-                    >
-                      <span className={style.icon}>
-                        <Svg type="checkbox" width="20px" height="20px" />
-                      </span>
-                    </td>
-                  );
-                case "button":
-                  return (
-                    <td
+                    <th
                       style={{
                         textAlign: val.textAlign,
-                        fontSize: val.fontSize,
-                        fontWeight: val.fontWeight,
-                        cursor: "pointer",
+                        minWidth: val.width,
+                        maxWidth: val.width,
                       }}
-                      className={style.item}
-                      key={index}
-                    >
-                      <span
-                        style={{
-                          color: val.btnStyle?.color,
-                          background: val.btnStyle?.background,
-                          border: val.btnStyle?.border ? "1px solid" : "",
-                          borderRadius: val.btnStyle?.round ? "4px" : "",
-                          padding: val.btnStyle?.padding,
-                        }}
-                      >
-                        {val.text}
-                      </span>
-                    </td>
-                  );
-                case "status":
-                  return (
-                    <td
-                      style={{ textAlign: val.textAlign }}
-                      className={style.item}
-                      key={index}
-                    >
-                      <select >
-                        {Object.keys(val.status as any).map((a) => {
-                          return <option value={a}>a</option>;
-                        })}
-                      </select>
-                    </td>
-                  );
-                case "input-number":
-                  return (
-                    <td
-                      style={{
-                        whiteSpace: val.whiteSpace,
-                        textAlign: val.textAlign,
-                        fontSize: val.fontSize,
-                        fontWeight: val.fontWeight,
-                      }}
-                      className={`${style.item} ${style.input}`}
-                      key={index}
-                    >
-                      <input
-                        value={addRowData[`${val.key}`]}
-                        type="number"
-                        onChange={(e) => {
-                          setAddRowData((prev: any) => ({
-                            ...prev,
-                            [`${val.key}`]: e.target.value,
-                          }));
-                        }}
-                      />
-                      {val.byteCalc && (
-                        <div className={style.byte_calc}>
-                          {encodeURIComponent(addRowData[`${val.key}`]).length}{" "}
-                          bytes
-                        </div>
-                      )}
-                    </td>
-                  );
-                case "select":
-                  return (
-                    <td
-                      style={{
-                        whiteSpace: val.whiteSpace,
-                        textAlign: val.textAlign,
-                        fontSize: val.fontSize,
-                        fontWeight: val.fontWeight,
-                      }}
-                      className={`${style.item} ${style.input}`}
-                      key={index}
-                    >
-                      <select
-                        value={addRowData[`${val.key}`]}
-                        onChange={(e) => {
-                          setAddRowData((prev: any) => ({
-                            ...prev,
-                            [`${val.key}`]: e.target.value,
-                          }));
-                        }}
-                      >
-                        <option key={`nothing`} value={""}></option>
-                        {val.option?.map((opt, index) => {
-                          return (
-                            <option key={`${opt}-${index}`} value={opt}>
-                              {opt}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </td>
-                  );
-                case "rowEdit":
-                  return (
-                    <td
-                      style={{
-                        textAlign: val.textAlign,
-                        fontSize: val.fontSize,
-                        fontWeight: val.fontWeight,
-                        cursor: "pointer",
-                      }}
-                      className={style.item}
+                      className={style.item_container}
                       key={index}
                       onClick={() => {
-                        let data: any = [];
-                        if (tableData.data.length > 0) {
-                          data = [
-                            ...tableData.data,
-                            {
-                              tableRowIndex:
-                                Math.max(
-                                  ...tableData.data.map(
-                                    (obj) => obj.tableRowIndex
-                                  )
-                                ) + 1,
-                              ...addRowData,
-                            },
-                          ];
-                        } else {
-                          data = [
-                            ...tableData.data,
-                            {
-                              tableRowIndex: 1,
-                              ...addRowData,
-                            },
-                          ];
-                        }
-
-                        setTableData((prev) => {
-                          callOnChangeFunc(data);
-                          return {
+                        if (allEmpty) {
+                          setTableData((prev) => ({
                             ...prev,
-                            data: data,
-                          };
-                        });
+                            data: checkTo(true),
+                          }));
+                        } else {
+                          setTableData((prev) => ({
+                            ...prev,
+                            data: checkTo(false),
+                          }));
+                          callOnChangeFunc();
+                        }
                       }}
                     >
-                      <span
-                        style={{
-                          color: "blue",
-                          background: "rgb(241 241 255)",
-                          border: "1px solid",
-                          borderRadius: "4px",
-                          padding: "4px",
-                        }}
-                      >
-                        {"추가"}
+                      <span className={style.icon}>
+                        {allChecked && filteredData().length !== 0 ? (
+                          <Svg
+                            type="checkboxChecked"
+                            width="20px"
+                            height="20px"
+                          />
+                        ) : allEmpty ? (
+                          <Svg type="checkbox" width="20px" height="20px" />
+                        ) : (
+                          <Svg
+                            type="checkboxMinus"
+                            width="20px"
+                            height="20px"
+                          />
+                        )}
                       </span>
-                    </td>
+                    </th>
                   );
                 default:
                   return (
-                    <td
+                    <th
                       style={{
-                        whiteSpace: val.whiteSpace,
                         textAlign: val.textAlign,
-                        fontSize: val.fontSize,
-                        fontWeight: val.fontWeight,
+                        minWidth: val.width,
+                        width: val.width,
+                        maxWidth: val.width,
                       }}
-                      className={`${style.item} ${style.input}`}
+                      className={style.item_container}
                       key={index}
+                      onClick={() => {
+                        handleHeaderOnClick(val);
+                      }}
                     >
-                      <textarea
-                        onKeyUp={(e) => {
-                          const scrollHeight = e.currentTarget.scrollHeight;
-                          e.currentTarget.style.height = scrollHeight + "px";
-                        }}
-                        value={addRowData[`${val.key}`]}
-                        onChange={(e) => {
-                          setAddRowData((prev: any) => ({
-                            ...prev,
-                            [`${val.key}`]: e.target.value,
-                          }));
-                        }}
-                      ></textarea>
-                      {val.byteCalc && (
-                        <div className={style.byte_calc}>
-                          {encodeURIComponent(addRowData[`${val.key}`]).length}{" "}
-                          bytes
-                        </div>
-                      )}
-                    </td>
+                      <div className={style.item}>
+                        <span className={style.icon}>
+                          {tableData.orderBy === val.key &&
+                            tableData.order === "asc" && (
+                              <Svg type="chevronUp" />
+                            )}
+                        </span>
+                        <span>{val.text}</span>
+                        <span className={style.icon}>
+                          {tableData.orderBy === val.key &&
+                            tableData.order === "desc" && (
+                              <Svg type="chevronDown" />
+                            )}
+                        </span>
+                      </div>
+                    </th>
                   );
               }
             })}
           </tr>
-        )}
-        {props.data &&
-          isArray(props.data) &&
-          slicedTableData().map((row, rowIndex) => {
-            return (
-              <tr key={rowIndex}>
-                {props.header.map((val, index) => {
-                  switch (val.type) {
-                    case "checkbox":
-                      return (
-                        <td
-                          style={{ textAlign: val.textAlign }}
-                          className={`${style.item} ${style.checkbox}`}
-                          key={index}
-                          onClick={() => {
-                            const arr = [...tableData.data];
-                            const ii = arr.findIndex(
-                              (r) => r.tableRowIndex === row.tableRowIndex
-                            );
-                            arr[ii].tableRowChecked = !arr[ii].tableRowChecked;
-                            setTableData((prev) => ({
-                              ...prev,
-                              data: arr,
-                            }));
-                            callOnChangeFunc();
-                          }}
-                        >
-                          <span className={style.icon}>
-                            {!row.tableRowChecked ? (
-                              <Svg type="checkbox" width="20px" height="20px" />
-                            ) : (
-                              <Svg
-                                type="checkboxChecked"
-                                width="20px"
-                                height="20px"
-                              />
-                            )}
-                          </span>
-                        </td>
-                      );
-                    case "button":
-                      return (
-                        <td
+        </thead>
+        <tbody>
+          {props.header.filter((h) => h.type === "rowEdit").length > 0 && (
+            <tr key={"tableAddRow"}>
+              {props.header.map((val, index) => {
+                switch (val.type) {
+                  case "checkbox":
+                    return (
+                      <td
+                        style={{ textAlign: val.textAlign }}
+                        className={`${style.item} ${style.checkbox}`}
+                        key={index}
+                      >
+                        <span className={style.icon}>
+                          <Svg type="checkbox" width="20px" height="20px" />
+                        </span>
+                      </td>
+                    );
+                  case "button":
+                    return (
+                      <td
+                        style={{
+                          textAlign: val.textAlign,
+                          fontSize: val.fontSize,
+                          fontWeight: val.fontWeight,
+                          cursor: "pointer",
+                        }}
+                        className={style.item}
+                        key={index}
+                      >
+                        <span
                           style={{
-                            textAlign: val.textAlign,
-                            fontSize: val.fontSize,
-                            fontWeight: val.fontWeight,
-                            cursor: "pointer",
-                          }}
-                          className={style.item}
-                          key={index}
-                          onClick={() => {
-                            val.onClick && val.onClick(row);
+                            color: val.btnStyle?.color,
+                            background: val.btnStyle?.background,
+                            border: val.btnStyle?.border ? "1px solid" : "",
+                            borderRadius: val.btnStyle?.round ? "4px" : "",
+                            padding: val.btnStyle?.padding,
                           }}
                         >
-                          <span
-                            style={{
-                              color: val.btnStyle?.color,
-                              background: val.btnStyle?.background,
-                              border: val.btnStyle?.border ? "1px solid" : "",
-                              borderRadius: val.btnStyle?.round ? "4px" : "",
-                              padding: val.btnStyle?.padding,
-                            }}
-                          >
-                            {val.text}
-                          </span>
-                        </td>
-                      );
-                    case "status":
-                      return (
-                        <td
-                          style={{ textAlign: val.textAlign }}
-                          className={style.item}
-                          key={index}
-                        >
-                          {val.status &&
-                            val.key !== undefined &&
-                            (val.status[`${row[val.key]}`] ? (
-                              <span
-                                style={{
-                                  color: val.status[`${row[val.key]}`].color,
-                                  border: "1px solid",
-                                  padding: "4px",
-                                  fontSize: val.fontSize,
-                                  fontWeight: val.fontWeight,
-                                  borderRadius: "4px",
-                                  cursor: "pointer",
-                                  background:
-                                    val.status[`${row[val.key]}`].background,
-                                }}
-                                onClick={() => {
-                                  val.status?.[row[`${val.key}`]].onClick &&
-                                    val.status[row[`${val.key}`]].onClick?.(
-                                      row
-                                    );
-                                }}
-                              >
-                                {val.status[`${row[val.key]}`].text}
-                              </span>
-                            ) : (
-                              `${row[val.key]}`
-                            ))}
-                        </td>
-                      );
-                    case "input":
-                      return (
-                        <td
-                          style={{
-                            whiteSpace: val.whiteSpace,
-                            textAlign: val.textAlign,
-                            fontSize: val.fontSize,
-                            fontWeight: val.fontWeight,
-                          }}
-                          className={`${style.item} ${style.input}`}
-                          key={index}
-                        >
-                          <textarea
-                            onKeyUp={(e) => {
-                              const scrollHeight = e.currentTarget.scrollHeight;
-                              e.currentTarget.style.height =
-                                scrollHeight + "px";
-                            }}
-                            value={row[`${val.key}`]}
-                            onChange={(e) => {
-                              const arr = [...tableData.data];
-                              const ii = tableData.data.findIndex(
-                                (r) => r.tableRowIndex === row.tableRowIndex
-                              );
-                              arr[ii][`${val.key}`] = e.target.value;
-                              setTableData((prev) => ({
-                                ...prev,
-                                data: arr,
-                              }));
-                              callOnChangeFunc();
-                            }}
-                          ></textarea>
-                          {val.byteCalc && (
-                            <div className={style.byte_calc}>
-                              {encodeURIComponent(row[`${val.key}`]).length}{" "}
-                              bytes
-                            </div>
-                          )}
-                        </td>
-                      );
-                    case "input-number":
-                      return (
-                        <td
-                          style={{
-                            whiteSpace: val.whiteSpace,
-                            textAlign: val.textAlign,
-                            fontSize: val.fontSize,
-                            fontWeight: val.fontWeight,
-                          }}
-                          className={`${style.item} ${style.input}`}
-                          key={index}
-                        >
-                          <input
-                            value={parseInt(row[`${val.key}`]) || 0}
-                            type="number"
-                            onChange={(e) => {
-                              const arr = [...tableData.data];
-                              const ii = tableData.data.findIndex(
-                                (r) => r.tableRowIndex === row.tableRowIndex
-                              );
-                              arr[ii][`${val.key}`] = parseInt(e.target.value);
-                              setTableData((prev) => ({
-                                ...prev,
-                                data: arr,
-                              }));
-                              callOnChangeFunc();
-                            }}
-                          />
-                          {val.byteCalc && (
-                            <div className={style.byte_calc}>
-                              {encodeURIComponent(row[`${val.key}`]).length}{" "}
-                              bytes
-                            </div>
-                          )}
-                        </td>
-                      );
-                    case "select":
-                      return (
-                        <td
-                          style={{
-                            whiteSpace: val.whiteSpace,
-                            textAlign: val.textAlign,
-                            fontSize: val.fontSize,
-                            fontWeight: val.fontWeight,
-                          }}
-                          className={`${style.item} ${style.input}`}
-                          key={index}
-                        >
+                          {val.text}
+                        </span>
+                      </td>
+                    );
+                  case "status":
+                    return (
+                      <td
+                        style={{ textAlign: val.textAlign }}
+                        className={`${style.item} ${style.input}`}
+                        key={index}
+                      >
+                        {val.status && (
                           <select
-                            value={row[`${val.key}`]}
+                            value={addRowData[`${val.key}`]}
                             onChange={(e) => {
-                              const arr = [...tableData.data];
-                              const ii = tableData.data.findIndex(
-                                (r) => r.tableRowIndex === row.tableRowIndex
-                              );
-                              arr[ii][`${val.key}`] = e.target.value;
-                              setTableData((prev) => ({
+                              setAddRowData((prev: any) => ({
                                 ...prev,
-                                data: arr,
+                                [`${val.key}`]: e.target.value,
                               }));
-                              callOnChangeFunc();
+                              console.log(addRowData[`${val.key}`]);
                             }}
                           >
-                            <option key={`nothing`} value={""}></option>
-                            {val.option?.map((opt, index) => {
+                            <option value="" key={"none"}></option>
+                            {Object.keys(val.status as any).map((a, index) => {
                               return (
-                                <option key={`${opt}-${index}`} value={opt}>
-                                  {opt}
+                                <option key={index} value={a}>
+                                  {val.status?.[`${a}`].text}
                                 </option>
                               );
                             })}
                           </select>
-                        </td>
-                      );
-                    case "rowEdit":
-                      return (
-                        <td
-                          style={{
-                            textAlign: val.textAlign,
-                            fontSize: val.fontSize,
-                            fontWeight: val.fontWeight,
-                            cursor: "pointer",
+                        )}
+                      </td>
+                    );
+                  case "input-number":
+                    return (
+                      <td
+                        style={{
+                          whiteSpace: val.whiteSpace,
+                          textAlign: val.textAlign,
+                          fontSize: val.fontSize,
+                          fontWeight: val.fontWeight,
+                        }}
+                        className={`${style.item} ${style.input}`}
+                        key={index}
+                      >
+                        <input
+                          value={addRowData[`${val.key}`]}
+                          type="number"
+                          onChange={(e) => {
+                            setAddRowData((prev: any) => ({
+                              ...prev,
+                              [`${val.key}`]: e.target.value,
+                            }));
                           }}
-                          className={style.item}
-                          key={index}
-                          onClick={() => {
-                            setTableData((prev) => {
-                              callOnChangeFunc(
-                                prev.data.filter(
-                                  (a) => a.tableRowIndex !== row.tableRowIndex
-                                )
-                              );
-                              return {
-                                ...prev,
-                                data: prev.data.filter(
-                                  (a) => a.tableRowIndex !== row.tableRowIndex
-                                ),
-                              };
-                            });
+                        />
+                        {val.byteCalc && (
+                          <div className={style.byte_calc}>
+                            {
+                              encodeURIComponent(addRowData[`${val.key}`])
+                                .length
+                            }{" "}
+                            bytes
+                          </div>
+                        )}
+                      </td>
+                    );
+                  case "select":
+                    return (
+                      <td
+                        style={{
+                          whiteSpace: val.whiteSpace,
+                          textAlign: val.textAlign,
+                          fontSize: val.fontSize,
+                          fontWeight: val.fontWeight,
+                        }}
+                        className={`${style.item} ${style.input}`}
+                        key={index}
+                      >
+                        <select
+                          value={addRowData[`${val.key}`]}
+                          onChange={(e) => {
+                            setAddRowData((prev: any) => ({
+                              ...prev,
+                              [`${val.key}`]: e.target.value,
+                            }));
                           }}
                         >
-                          <span
-                            style={{
-                              color: "red",
-                              background: "rgb(255, 241, 241)",
-                              border: "1px solid",
-                              borderRadius: "4px",
-                              padding: "4px",
+                          <option key={`nothing`} value={""}></option>
+                          {val.option?.map((opt, index) => {
+                            return (
+                              <option key={`${opt}-${index}`} value={opt}>
+                                {opt}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </td>
+                    );
+                  case "rowEdit":
+                    return (
+                      <td
+                        style={{
+                          textAlign: val.textAlign,
+                          fontSize: val.fontSize,
+                          fontWeight: val.fontWeight,
+                          cursor: "pointer",
+                        }}
+                        className={style.item}
+                        key={index}
+                        onClick={() => {
+                          let data: any = [];
+                          if (tableData.data.length > 0) {
+                            data = [
+                              ...tableData.data,
+                              {
+                                tableRowIndex:
+                                  Math.max(
+                                    ...tableData.data.map(
+                                      (obj) => obj.tableRowIndex
+                                    )
+                                  ) + 1,
+                                ...addRowData,
+                              },
+                            ];
+                          } else {
+                            data = [
+                              ...tableData.data,
+                              {
+                                tableRowIndex: 1,
+                                ...addRowData,
+                              },
+                            ];
+                          }
+
+                          setTableData((prev) => {
+                            return {
+                              ...prev,
+                              data: data,
+                            };
+                          });
+                          callOnChangeFunc(data);
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "blue",
+                            background: "rgb(241 241 255)",
+                            border: "1px solid",
+                            borderRadius: "4px",
+                            padding: "4px",
+                          }}
+                        >
+                          {"추가"}
+                        </span>
+                      </td>
+                    );
+                  default:
+                    return (
+                      <td
+                        style={{
+                          whiteSpace: val.whiteSpace,
+                          textAlign: val.textAlign,
+                          fontSize: val.fontSize,
+                          fontWeight: val.fontWeight,
+                        }}
+                        className={`${style.item} ${style.input}`}
+                        key={index}
+                      >
+                        <textarea
+                          rows={1}
+                          onKeyUp={(e) => {
+                            const scrollHeight = e.currentTarget.scrollHeight;
+                            e.currentTarget.style.height = scrollHeight + "px";
+                          }}
+                          value={addRowData[`${val.key}`]}
+                          onChange={(e) => {
+                            setAddRowData((prev: any) => ({
+                              ...prev,
+                              [`${val.key}`]: e.target.value,
+                            }));
+                          }}
+                        ></textarea>
+                        {val.byteCalc && (
+                          <div className={style.byte_calc}>
+                            {
+                              encodeURIComponent(addRowData[`${val.key}`])
+                                .length
+                            }{" "}
+                            bytes
+                          </div>
+                        )}
+                      </td>
+                    );
+                }
+              })}
+            </tr>
+          )}
+          {props.data &&
+            isArray(props.data) &&
+            slicedTableData().map((row, rowIndex) => {
+              return (
+                <tr key={rowIndex}>
+                  {props.header.map((val, index) => {
+                    switch (val.type) {
+                      case "checkbox":
+                        return (
+                          <td
+                            style={{ textAlign: val.textAlign }}
+                            className={`${style.item} ${style.checkbox}`}
+                            key={index}
+                            onClick={() => {
+                              const arr = [...tableData.data];
+                              const ii = arr.findIndex(
+                                (r) => r.tableRowIndex === row.tableRowIndex
+                              );
+                              arr[ii].tableRowChecked =
+                                !arr[ii].tableRowChecked;
+                              setTableData((prev) => ({
+                                ...prev,
+                                data: arr,
+                              }));
+                              callOnChangeFunc();
                             }}
                           >
-                            {"삭제"}
-                          </span>
-                        </td>
-                      );
-                    default:
-                      return (
-                        <td
-                          style={{
-                            whiteSpace: val.whiteSpace,
-                            textAlign: val.textAlign,
-                            fontSize: val.fontSize,
-                            fontWeight: val.fontWeight,
-                          }}
-                          className={style.item}
-                          key={index}
-                        >
-                          {row[`${val.key}`]}
-                          {val.byteCalc && (
-                            <div className={style.byte_calc}>
-                              {encodeURIComponent(row[`${val.key}`]).length}{" "}
-                              bytes
-                            </div>
-                          )}
-                        </td>
-                      );
-                  }
-                })}
-              </tr>
-            );
-          })}
-      </tbody>
-    </table>
+                            <span className={style.icon}>
+                              {!row.tableRowChecked ? (
+                                <Svg
+                                  type="checkbox"
+                                  width="20px"
+                                  height="20px"
+                                />
+                              ) : (
+                                <Svg
+                                  type="checkboxChecked"
+                                  width="20px"
+                                  height="20px"
+                                />
+                              )}
+                            </span>
+                          </td>
+                        );
+                      case "button":
+                        return (
+                          <td
+                            style={{
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                              cursor: "pointer",
+                            }}
+                            className={style.item}
+                            key={index}
+                            onClick={() => {
+                              val.onClick && val.onClick(row);
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: val.btnStyle?.color,
+                                background: val.btnStyle?.background,
+                                border: val.btnStyle?.border ? "1px solid" : "",
+                                borderRadius: val.btnStyle?.round ? "4px" : "",
+                                padding: val.btnStyle?.padding,
+                              }}
+                            >
+                              {val.text}
+                            </span>
+                          </td>
+                        );
+                      case "status":
+                        return (
+                          <td
+                            style={{ textAlign: val.textAlign }}
+                            className={style.item}
+                            key={index}
+                          >
+                            {val.status &&
+                              val.key !== undefined &&
+                              (val.status[`${row[val.key]}`] ? (
+                                <span
+                                  style={{
+                                    color: val.status[`${row[val.key]}`].color,
+                                    border: "1px solid",
+                                    padding: "4px",
+                                    fontSize: val.fontSize,
+                                    fontWeight: val.fontWeight,
+                                    borderRadius: "4px",
+                                    cursor: "pointer",
+                                    background:
+                                      val.status[`${row[val.key]}`].background,
+                                  }}
+                                  onClick={() => {
+                                    val.status?.[row[`${val.key}`]].onClick &&
+                                      val.status[row[`${val.key}`]].onClick?.(
+                                        row
+                                      );
+                                  }}
+                                >
+                                  {val.status[`${row[val.key]}`].text}
+                                </span>
+                              ) : (
+                                `${row[val.key]}`
+                              ))}
+                          </td>
+                        );
+                      case "input":
+                        return (
+                          <td
+                            style={{
+                              whiteSpace: val.whiteSpace,
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                            }}
+                            className={`${style.item} ${style.input}`}
+                            key={index}
+                          >
+                            <textarea
+                              rows={1}
+                              onKeyUp={(e) => {
+                                const scrollHeight =
+                                  e.currentTarget.scrollHeight;
+                                e.currentTarget.style.height =
+                                  scrollHeight + "px";
+                              }}
+                              value={row[`${val.key}`]}
+                              onChange={(e) => {
+                                const arr = [...tableData.data];
+                                const ii = tableData.data.findIndex(
+                                  (r) => r.tableRowIndex === row.tableRowIndex
+                                );
+                                arr[ii][`${val.key}`] = e.target.value;
+                                setTableData((prev) => ({
+                                  ...prev,
+                                  data: arr,
+                                }));
+                                callOnChangeFunc();
+                              }}
+                            ></textarea>
+                            {val.byteCalc && (
+                              <div className={style.byte_calc}>
+                                {encodeURIComponent(row[`${val.key}`]).length}{" "}
+                                bytes
+                              </div>
+                            )}
+                          </td>
+                        );
+                      case "input-number":
+                        return (
+                          <td
+                            style={{
+                              whiteSpace: val.whiteSpace,
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                            }}
+                            className={`${style.item} ${style.input}`}
+                            key={index}
+                          >
+                            <input
+                              value={parseInt(row[`${val.key}`]) || 0}
+                              type="number"
+                              onChange={(e) => {
+                                const arr = [...tableData.data];
+                                const ii = tableData.data.findIndex(
+                                  (r) => r.tableRowIndex === row.tableRowIndex
+                                );
+                                arr[ii][`${val.key}`] = parseInt(
+                                  e.target.value
+                                );
+                                setTableData((prev) => ({
+                                  ...prev,
+                                  data: arr,
+                                }));
+                                callOnChangeFunc();
+                              }}
+                            />
+                            {val.byteCalc && (
+                              <div className={style.byte_calc}>
+                                {encodeURIComponent(row[`${val.key}`]).length}{" "}
+                                bytes
+                              </div>
+                            )}
+                          </td>
+                        );
+                      case "select":
+                        return (
+                          <td
+                            style={{
+                              whiteSpace: val.whiteSpace,
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                            }}
+                            className={`${style.item} ${style.input}`}
+                            key={index}
+                          >
+                            <select
+                              value={row[`${val.key}`]}
+                              onChange={(e) => {
+                                const arr = [...tableData.data];
+                                const ii = tableData.data.findIndex(
+                                  (r) => r.tableRowIndex === row.tableRowIndex
+                                );
+                                arr[ii][`${val.key}`] = e.target.value;
+                                setTableData((prev) => ({
+                                  ...prev,
+                                  data: arr,
+                                }));
+                                callOnChangeFunc();
+                              }}
+                            >
+                              <option key={`nothing`} value={""}></option>
+                              {val.option?.map((opt, index) => {
+                                return (
+                                  <option key={`${opt}-${index}`} value={opt}>
+                                    {opt}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </td>
+                        );
+                      case "rowEdit":
+                        return (
+                          <td
+                            style={{
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                              cursor: "pointer",
+                            }}
+                            className={style.item}
+                            key={index}
+                            onClick={() => {
+                              setTableData((prev) => {
+                                callOnChangeFunc(
+                                  prev.data.filter(
+                                    (a) => a.tableRowIndex !== row.tableRowIndex
+                                  )
+                                );
+                                return {
+                                  ...prev,
+                                  data: prev.data.filter(
+                                    (a) => a.tableRowIndex !== row.tableRowIndex
+                                  ),
+                                };
+                              });
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: "red",
+                                background: "rgb(255, 241, 241)",
+                                border: "1px solid",
+                                borderRadius: "4px",
+                                padding: "4px",
+                              }}
+                            >
+                              {"삭제"}
+                            </span>
+                          </td>
+                        );
+                      default:
+                        return (
+                          <td
+                            style={{
+                              whiteSpace: val.whiteSpace,
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                            }}
+                            className={style.item}
+                            key={index}
+                          >
+                            {row[`${val.key}`]}
+                            {val.byteCalc && (
+                              <div className={style.byte_calc}>
+                                {encodeURIComponent(row[`${val.key}`]).length}{" "}
+                                bytes
+                              </div>
+                            )}
+                          </td>
+                        );
+                    }
+                  })}
+                </tr>
+              );
+            })}
+        </tbody>
+      </table>
+    </div>
   );
 };
 export default Table;

@@ -156,10 +156,9 @@ const Form = (props: Props) => {
                 textAlign: "center",
               },
               { text: "제목", key: "title", type: "text" },
-
               {
                 text: "선택",
-                key: "_id",
+                key: "select",
                 type: "button",
                 onClick: (e: any) => {
                   const id = e._id;
@@ -197,12 +196,12 @@ const Form = (props: Props) => {
                 },
                 width: "80px",
                 textAlign: "center",
-                // textStyle: {
-                //   padding: "0 10px",
-                //   border: "var(--border-default)",
-                //   background: "rgba(200, 200, 255, 0.25)",
-                //   borderColor: "rgba(200, 200, 255)",
-                // },
+                btnStyle: {
+                  border: true,
+                  color: "black",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />

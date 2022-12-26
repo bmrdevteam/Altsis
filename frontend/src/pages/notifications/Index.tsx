@@ -26,34 +26,23 @@
  * @version 1.0
  *
  */
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/enrollment.module.scss";
 
 // navigation bar
 import Navbar from "layout/navbar/Navbar";
 
-// components
-import Popup from "components/popup/Popup";
-import Table from "components/table/Table";
-import Button from "components/button/Button";
-
 // tab
-import Inbox from "./tab/Inbox/Index";
-import Sent from "./tab/Sent/Index";
+import Inbox from "./mailbox/Inbox";
+import Sent from "./mailbox/Sent";
 
-import _ from "lodash";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Tab from "components/tab/Tab";
 
 type Props = {};
 
 const Courses = (props: Props) => {
   return (
-    <div className={style.section}>
+    <div>
       <Navbar />
 
       <Tab

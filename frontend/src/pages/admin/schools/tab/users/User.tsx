@@ -57,6 +57,7 @@ type Props = { schoolData: any };
 const Users = (props: Props) => {
   const database = useDatabase();
 
+
   const [isUserListLoading, setIsUserListLoading] = useState(true);
 
   /* user list */
@@ -137,7 +138,7 @@ const Users = (props: Props) => {
               },
               {
                 text: "자세히",
-                key: "_id",
+                key: "detail",
                 type: "button",
                 onClick: (e: any) => {
                   setUser(e);
@@ -146,6 +147,12 @@ const Users = (props: Props) => {
                 },
                 width: "72px",
                 textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "black",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />

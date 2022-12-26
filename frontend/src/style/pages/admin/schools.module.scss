@@ -1,6 +1,15 @@
-.section {
+.section::-webkit-scrollbar {
+    display: none;
+}
 
-    margin: 24px;
+
+.section {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    padding: 24px;
+
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 
     .title {
         font-size: 18px;

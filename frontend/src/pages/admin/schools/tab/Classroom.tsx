@@ -113,7 +113,6 @@ const Classroom = (props: Props) => {
           },
           {
             text: "삭제",
-            key: "0",
             type: "button",
             onClick: (e: any) => {
               console.log(e);

@@ -62,6 +62,20 @@ export default function useApi() {
     return result;
   }
   /**
+   * Update Subjects in school
+   * @auth admin
+   */
+  async function USchoolSubject(props: {
+    academyId: string;
+    schoolId: string;
+    data: any;
+  }) {
+    return await database.U({
+      location: `academies/${props.academyId}/schools/${props.schoolId}/subjects`,
+      data: { new: props.data },
+    });
+  }
+  /**
    * User Api
    * ##########################################################################
    */
@@ -84,8 +98,12 @@ export default function useApi() {
    * @type POST
    * @auth member
    */
-  async function CGoogleLocal(data: { credential: string }) {
-    return await database.C({ location: "users/google", data: data });
+  async function CGoogleLocal(data: {
+    academyId: string;
+    credential: string;
+    persist?: boolean;
+  }) {
+    return await database.C({ location: "users/login/google", data: data });
   }
   /**
    * Google login
@@ -258,17 +276,14 @@ export default function useApi() {
       data: { new: props.data },
     });
   }
+
   /**
-   * Update Subjects in school
+   * Update formArchive in school
    * @auth admin
    */
-  async function USchoolSubject(props: {
-    academyId: string;
-    schoolId: string;
-    data: any;
-  }) {
+  async function USchoolFormArchive(props: { schoolId: string; data: any }) {
     return await database.U({
-      location: `academies/${props.academyId}/schools/${props.schoolId}/subjects`,
+      location: `schools/${props.schoolId}/form/archive`,
       data: { new: props.data },
     });
   }
@@ -326,6 +341,21 @@ export default function useApi() {
     });
     return result;
   }
+  /**
+   * Update Archives
+   * @type PUT
+   * @auth admin
+   * @returns Archives
+   */
+  async function UArchives(params: {
+    school?: string;
+    userId?: string | number;
+  }) {
+    const result = await database.R({
+      location: "archives" + QUERY_BUILDER(params),
+    });
+    return result;
+  }
 
   /**
    * Notification Api
@@ -348,6 +378,7 @@ export default function useApi() {
   return {
     AcademyApi: {
       RAcademies,
+      USchoolSubject,
     },
     UserApi: {
       CLoginLocal,
@@ -362,7 +393,7 @@ export default function useApi() {
       RSchools,
       RSchool,
       USchoolClassroom,
-      USchoolSubject,
+      USchoolFormArchive,
     },
     RegistrationApi: { RRegistrations },
     EnrollmentApi: { REnrolllment, REnrolllments },

@@ -45,6 +45,7 @@ import Input from "components/input/Input";
 import ViewPopup from "./tab/ViewPopup";
 
 import _ from "lodash";
+import Select from "components/select/Select";
 
 type Props = {};
 
@@ -55,6 +56,8 @@ const CourseEnroll = (props: Props) => {
 
   const { currentSeason, currentUser, currentRegistration, currentPermission } =
     useAuth();
+
+  const [searchField, setSearchField] = useState<string>("classTitle");
 
   const [courseTitle, setCourseTitle] = useState<string>("");
 
@@ -71,7 +74,7 @@ const CourseEnroll = (props: Props) => {
 
   async function getCourseList() {
     const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&matches=${courseTitle}&confirmed=true`,
+      location: `syllabuses?season=${currentRegistration?.season}&matches=${courseTitle}&field=${searchField}&confirmed=true`,
     });
     if (syllabuses.length === 0) return [];
 
@@ -197,16 +200,39 @@ const CourseEnroll = (props: Props) => {
     },
     {
       text: "자세히",
-      key: "courseName",
+      key: "detail",
       type: "button",
       onClick: (e: any) => {
         setCourse(e._id);
         setViewPopupActive(true);
       },
-      width: "80px",
+      width: "72px",
       textAlign: "center",
+      btnStyle: {
+        border: true,
+        color: "black",
+        padding: "4px",
+        round: true,
+      },
     },
   ];
+
+  const searchOptions = () => {
+    console.log("currentSeason: ", currentSeason);
+    if (currentSeason?.subjects?.label) {
+      return [
+        { text: "수업명", value: "classTitle" },
+        ...currentSeason.subjects.label.map((lb: string, idx: number) => {
+          return { text: lb, value: `subject.${idx}` };
+        }),
+        { text: "시간", value: "time.label" },
+        { text: "강의실", value: "classroom" },
+        { text: "개설자", value: "userName" },
+        { text: "멘토", value: "teachers.userName" },
+      ];
+    }
+    return [{ text: "수업명", value: "classTitle" }];
+  };
 
   useEffect(() => {
     if (!currentRegistration) {
@@ -230,7 +256,8 @@ const CourseEnroll = (props: Props) => {
   }, [currentRegistration]);
 
   useEffect(() => {
-    if (!currentPermission.permissionSyllabus) {
+    console.log("currentPermission is ", currentPermission);
+    if (!currentPermission.permissionEnrollment) {
       alert("수강신청 권한이 없습니다.");
       navigate("/courses");
     }
@@ -256,21 +283,34 @@ const CourseEnroll = (props: Props) => {
       <div className={style.section}>
         <div className={style.title}>수강신청</div>
         <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-          <Input
-            appearence="flat"
-            required={true}
-            placeholder="검색"
-            onKeyDown={(e: any) => {
-              if (courseTitle !== "" && e.key === "Enter") {
-                getCourseList().then((res: any) => {
-                  setCourseList(structuring(res));
-                });
-              }
-            }}
-            onChange={(e: any) => {
-              setCourseTitle(e.target.value);
-            }}
-          />
+          <div style={{ width: "120px" }}>
+            <Select
+              appearence="flat"
+              label=""
+              required
+              setValue={setSearchField}
+              options={searchOptions()}
+              defaultSelectedValue={searchField}
+            />
+          </div>
+          <div style={{ flex: "auto" }}>
+            <Input
+              appearence="flat"
+              required={true}
+              placeholder="검색"
+              onKeyDown={(e: any) => {
+                if (courseTitle !== "" && e.key === "Enter") {
+                  getCourseList().then((res: any) => {
+                    setCourseList(structuring(res));
+                  });
+                }
+              }}
+              onChange={(e: any) => {
+                setCourseTitle(e.target.value);
+              }}
+            />
+          </div>
+
           <Button
             type="ghost"
             onClick={() => {
@@ -291,6 +331,7 @@ const CourseEnroll = (props: Props) => {
             {
               text: "신청",
               key: "enroll",
+              type: "button",
               onClick: (e: any) => {
                 enroll(e)
                   .then(() => {
@@ -301,9 +342,14 @@ const CourseEnroll = (props: Props) => {
                     alert(err.response.data.message);
                   });
               },
-              type: "button",
-              width: "80px",
+              width: "72px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "green",
+                padding: "4px",
+                round: true,
+              },
             },
             ...subjectLabelHeaderList,
             ...subjectHeaderList,
@@ -323,6 +369,7 @@ const CourseEnroll = (props: Props) => {
             {
               text: "취소",
               key: "cancel",
+              type: "button",
               onClick: (e: any) => {
                 cancel(e)
                   .then(() => {
@@ -333,9 +380,14 @@ const CourseEnroll = (props: Props) => {
                     alert(err.response.data.message);
                   });
               },
-              type: "button",
-              width: "80px",
+              width: "72px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "red",
+                padding: "4px",
+                round: true,
+              },
             },
             ...subjectLabelHeaderList,
             ...subjectHeaderList,
