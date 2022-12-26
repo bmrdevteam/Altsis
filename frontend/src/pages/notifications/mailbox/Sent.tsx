@@ -90,7 +90,7 @@ const Sent = (props: Props) => {
 
   async function getSchoolUserList() {
     const { users } = await database.R({
-      location: `users?schools.school=${currentSchool._id}`,
+      location: `users?schools.school=${currentSchool.school}`,
     });
 
     return users;
