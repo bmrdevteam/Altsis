@@ -183,9 +183,9 @@ const Table = (props: Props) => {
   function callOnChangeFunc(data?: any) {
     if (props.onChange) {
       if (data) {
-        props.onChange(data);
+        props.onChange([...data]);
       } else {
-        props.onChange(tableData.data);
+        props.onChange([...tableData.data]);
       }
     }
   }
