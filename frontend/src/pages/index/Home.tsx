@@ -29,21 +29,14 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import style from "../../style/pages/home.module.scss";
-import TimeTable from "../../components/timetable/TimeTable";
-import Canvas from "../../components/canvas/Canvas";
-import Calender from "../../components/calender/Calender";
 import QuickSearch from "../../components/quickSearch/QuickSearch";
 import Navbar from "../../layout/navbar/Navbar";
 import Schedule from "components/schedule/Schedule";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
-import useGenerateId from "hooks/useGenerateId";
 import useApi from "hooks/useApi";
 
 const Home = () => {
-  const database = useDatabase();
   const { EnrollmentApi } = useApi();
-  const idGen = useGenerateId;
 
   const { currentSeason, currentUser } = useAuth();
   const [enrollments, setEnrollments] = useState<any>();
@@ -57,6 +50,8 @@ const Home = () => {
         if (element?.time.length <= 1) {
           result.push({
             id: element._id + JSON.stringify(element?.time[0]),
+            type: "course",
+            classroom: element.classroom,
             title: element.classTitle,
             startTime: element?.time[0].start,
             endTime: element?.time[0].end,
@@ -68,6 +63,8 @@ const Home = () => {
             result.push({
               id: element._id + JSON.stringify(time),
               title: element.classTitle,
+              type: "course",
+              classroom: element.classroom,
               startTime: time.start,
               endTime: time.end,
               day: time.day,
@@ -96,8 +93,11 @@ const Home = () => {
       <Navbar />
       <div className={style.section}>
         <Schedule
+          dayArray={["월", "화", "수", "목", "금"]}
           defaultEvents={enrollmentsToEvents(enrollments)}
-          title={`${currentSeason?.year??""} ${currentSeason?.term ??""} 일정`}
+          title={`${currentSeason?.year ?? ""} ${
+            currentSeason?.term ?? ""
+          } 일정`}
         />
       </div>
     </>
