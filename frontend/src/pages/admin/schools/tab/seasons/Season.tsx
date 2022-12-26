@@ -81,7 +81,7 @@ const Season = (props: Props) => {
    */
   async function getSeasons() {
     const { seasons: result } = await database.R({
-      location: `seasons?school=${pid || currentSchool._id}`,
+      location: `seasons?school=${currentSchool.school ?? " "}`,
     });
     return result;
   }
