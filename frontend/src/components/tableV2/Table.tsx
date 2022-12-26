@@ -395,8 +395,8 @@ const Table = (props: Props) => {
                             ...prev,
                             data: checkTo(false),
                           }));
+                          callOnChangeFunc();
                         }
-                        callOnChangeFunc();
                       }}
                     >
                       <span className={style.icon}>
@@ -511,6 +511,7 @@ const Table = (props: Props) => {
                                 ...prev,
                                 [`${val.key}`]: e.target.value,
                               }));
+                              console.log(addRowData[`${val.key}`]);
                             }}
                           >
                             <option value="" key={"none"}></option>
@@ -627,12 +628,12 @@ const Table = (props: Props) => {
                           }
 
                           setTableData((prev) => {
-                            callOnChangeFunc(data);
                             return {
                               ...prev,
                               data: data,
                             };
                           });
+                          callOnChangeFunc(data);
                         }}
                       >
                         <span
@@ -661,6 +662,7 @@ const Table = (props: Props) => {
                         key={index}
                       >
                         <textarea
+                          rows={1}
                           onKeyUp={(e) => {
                             const scrollHeight = e.currentTarget.scrollHeight;
                             e.currentTarget.style.height = scrollHeight + "px";
@@ -809,6 +811,7 @@ const Table = (props: Props) => {
                             key={index}
                           >
                             <textarea
+                              rows={1}
                               onKeyUp={(e) => {
                                 const scrollHeight =
                                   e.currentTarget.scrollHeight;
