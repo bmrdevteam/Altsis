@@ -1,7 +1,7 @@
 /**
- * @file Seasons Page Tab Item - Form
+ * @file Schools Page Tab Item - Form
  *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
+ * @author jessie129j <jessie129j@gmail.com>
  *
  * -------------------------------------------------------
  *
@@ -134,82 +134,6 @@ const Form = (props: Props) => {
           </Button>
         </div>
       </div>
-      {/* {selectFormPopupActive && (
-        <Popup
-          style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
-          title={`${
-            selectFormType === "timetable"
-              ? "시간표"
-              : selectFormType === "syllabus"
-              ? "강의계획서"
-              : "평가"
-          } 양식 선택`}
-          setState={setSelectFormPopupActive}
-          closeBtn
-        >
-          <Table
-            type="object-array"
-            data={forms?.filter((val: any) => val.type === selectFormType)}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              { text: "제목", key: "title", type: "text" },
-              {
-                text: "선택",
-                key: "select",
-                type: "button",
-                onClick: (e: any) => {
-                  const id = e._id;
-
-                  getForm(id).then((res) => {
-                    switch (selectFormType) {
-                      case "timetable":
-                        updateFormTimetable(res).then(() => {
-                          getSchool().then((res) => {
-                            setSeason(res);
-                          });
-                        });
-                        setSelectFormPopupActive(false);
-                        break;
-                      case "syllabus":
-                        updateFormSyllabus(res).then(() => {
-                          getSchool().then((res) => {
-                            setSeason(res);
-                          });
-                        });
-                        setSelectFormPopupActive(false);
-                        break;
-                      case "evaluation":
-                        updateFormEvaluation(res).then(() => {
-                          getSchool().then((res) => {
-                            setSeason(res);
-                          });
-                        });
-                        setSelectFormPopupActive(false);
-                        break;
-                      default:
-                        break;
-                    }
-                  });
-                },
-                width: "80px",
-                textAlign: "center",
-                btnStyle: {
-                  border: true,
-                  color: "black",
-                  padding: "4px",
-                  round: true,
-                },
-              },
-            ]}
-          />
-        </Popup>
-      )} */}
       {formTimetablePopupActive && (
         <Popup
           style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
