@@ -94,7 +94,7 @@ const Season = (props: Props) => {
     const result = await database.C({
       location: `seasons`,
       data: {
-        school: pid,
+        school: currentSchool.school,
         year: year,
         term: term,
         period: {
