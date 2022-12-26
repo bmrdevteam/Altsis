@@ -57,6 +57,7 @@ type Props = { schoolData: any };
 const Users = (props: Props) => {
   const database = useDatabase();
 
+
   const [isUserListLoading, setIsUserListLoading] = useState(true);
 
   /* user list */
