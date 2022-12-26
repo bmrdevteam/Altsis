@@ -150,7 +150,7 @@ function Archive(props: Props) {
                 type: "text",
               },
               {
-                text: "종류",
+                text: "유형",
                 key: "type",
                 fontSize: "12px",
                 fontWeight: "600",
