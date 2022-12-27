@@ -308,7 +308,7 @@ module.exports.updateEvaluation = async (req, res) => {
     //authentication 다시 설정해야 함
     if (
       enrollment.studentId === req.user.userId ||
-      _.includes(enrollment.teachers, { userId: req.user.userId })
+      _.find(enrollment.teachers, { userId: req.user.userId })
     ) {
       enrollment.evaluation = { ...enrollment.evaluation, ...req.body.new };
       await enrollment.save();
