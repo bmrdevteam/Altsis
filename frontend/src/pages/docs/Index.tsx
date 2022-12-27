@@ -1,3 +1,4 @@
+import Svg from "assets/svg/Svg";
 import Autofill from "components/input/Autofill";
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
@@ -187,6 +188,14 @@ function Docs({}: Props) {
             }}
             placeholder={"검색"}
           />
+          <div
+            className="btn"
+            onClick={() => {
+              window.print();
+            }}
+          >
+            <Svg type={"print"} />
+          </div>
         </div>
         {!loading ? (
           <EditorParser auth="edit" data={formData} dbData={DBData} />
