@@ -395,8 +395,8 @@ const Table = (props: Props) => {
                             ...prev,
                             data: checkTo(false),
                           }));
-                          callOnChangeFunc();
                         }
+                        callOnChangeFunc();
                       }}
                     >
                       <span className={style.icon}>
