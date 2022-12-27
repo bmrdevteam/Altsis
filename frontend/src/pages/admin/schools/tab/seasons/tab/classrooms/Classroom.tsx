@@ -100,8 +100,8 @@ const Classroom = (props: Props) => {
               if (classroomRef.current !== "" && e.key === "Enter") {
                 updateClassrooms([...classroomList, classroomRef.current])
                   .then((res: any) => {
-                    setClassroomList(res.data);
-                    props.seasonData.classrooms = res.data;
+                    setClassroomList(res);
+                    props.seasonData.classrooms = res;
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
@@ -118,8 +118,8 @@ const Classroom = (props: Props) => {
             onClick={() => {
               updateClassrooms([...classroomList, classroomRef.current])
                 .then((res: any) => {
-                  setClassroomList(res.data);
-                  props.seasonData.classrooms = res.data;
+                  setClassroomList(res);
+                  props.seasonData.classrooms = res;
                   props.setSelectedSeason(props.seasonData);
                   alert("success");
                 })
@@ -162,7 +162,7 @@ const Classroom = (props: Props) => {
                 classroomList.splice(e.rowIndex - 1, 1);
                 updateClassrooms([...classroomList])
                   .then((res: any) => {
-                    setClassroomList(res.data);
+                    setClassroomList(res);
                     alert("success");
                   })
                   .catch((err) => {
