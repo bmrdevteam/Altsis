@@ -115,7 +115,7 @@ const CourseEnrollment = (props: Props) => {
     return (
       <>
         <div className={style.category}>
-          {_.join(currentSeason?.subjects.label, "/")}:{" "}
+          {_.join(currentSeason?.subjects?.label, "/")}:{" "}
           {_.join(enrollmentData?.subject, "/")}
         </div>{" "}
         <div className={style.category}>
@@ -164,6 +164,13 @@ const CourseEnrollment = (props: Props) => {
     if (isLoading) {
       getEnrollmentData()
         .then((result) => {
+          if (result.season !== currentSeason._id) {
+            console.log("?");
+            navigate("/courses", { replace: true });
+
+            // navigate("/courses");
+          }
+
           console.log("result.teachers: ", result.teachers);
           if (_.find(result.teachers, { userId: currentUser.userId })) {
             navigate(`../mentoring/${result.syllabus}`, {
