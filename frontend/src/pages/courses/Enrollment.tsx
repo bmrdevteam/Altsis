@@ -162,7 +162,12 @@ const CourseEnrollment = (props: Props) => {
               replace: true,
             });
           }
+          if (result.studentId !== currentUser.userId) {
+            console.log("?");
+            navigate("/courses", { replace: true });
 
+            // navigate("/courses");
+          }
           getCourseData(result.syllabus).then((res) => setCourseData(res));
           setEnrollmentData(result);
           getSeason(result.season).then((res: any) => {
