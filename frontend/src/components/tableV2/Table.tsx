@@ -639,7 +639,6 @@ const Table = (props: Props) => {
                         <span
                           style={{
                             color: "blue",
-                            background: "rgb(241 241 255)",
                             border: "1px solid",
                             borderRadius: "4px",
                             padding: "4px",
@@ -946,7 +945,6 @@ const Table = (props: Props) => {
                             <span
                               style={{
                                 color: "red",
-                                background: "rgb(255, 241, 241)",
                                 border: "1px solid",
                                 borderRadius: "4px",
                                 padding: "4px",
