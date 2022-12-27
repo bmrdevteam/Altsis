@@ -56,15 +56,19 @@
         }
       }
 
-      .icon::after {
+      .icon.active::after {
         cursor: pointer;
-        content: "";
+        content: attr(data-count);
+        font-size: 8px;
+        font-weight: 600;
+        text-align: center;
+        line-height: 10px;
         position: absolute;
         top: -2px;
         left: 10px;
         border-radius: 8px;
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
         background-color: var(--color-r3);
         color: var(--accent-6);
       }
