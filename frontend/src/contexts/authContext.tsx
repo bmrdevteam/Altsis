@@ -3,6 +3,7 @@ import useApi from "hooks/useApi";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import useDatabase from "../hooks/useDatabase";
 import _ from "lodash";
+import { checkPermissionBySeason } from "functions/functions";
 
 const AuthContext = createContext<any>(null);
 
@@ -62,14 +63,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           res.registrations.filter(
             (r: any) => r.school === res.schools[0].school && r.isActivated
           ),
-          "period.start"
+          "period.end"
         ).reverse();
-        console.log(re);
 
         setRegistration(re);
         setCurrentRegistration(re[0]);
-        SeasonApi.RSeason(re[0].season).then((res) => {
-          setCurrentSeason(res);
+        SeasonApi.RSeason(re[0].season).then((seasonData) => {
+          setCurrentSeason(seasonData);
+          setCurrentPermission(
+            checkPermissionBySeason(seasonData, res.userId, re[0].role)
+          );
         });
       }
     });
@@ -89,21 +92,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   function changeSchool(to: string) {
     SchoolApi.RSchool(to).then((s) => {
       setCurrentSchool({ ...s, school: s._id });
-      setRegistration(
-        _.sortBy(
-          _registrations
-            .filter(
-              (r: any) => r.school === s._id && r.isActivated,
-              "period.start"
-            )
-            .reverse()
-        )
-      );
-      setCurrentRegistration(
+
+      const re = _.sortBy(
         _registrations.filter(
-          (r: any) => r.school === s._id && r.isActivated
-        )[0]
-      );
+          (r: any) => r.school === s._id && r.isActivated,
+          "period.end"
+        )
+      ).reverse();
+      setRegistration(re);
+
+      if (re.length > 0) {
+        setCurrentRegistration(re[0]);
+        SeasonApi.RSeason(re[0].season).then((seasonData) => {
+          setCurrentSeason(seasonData);
+          setCurrentPermission(
+            checkPermissionBySeason(seasonData, currentUser.userId, re[0].role)
+          );
+        });
+      } else {
+        setCurrentRegistration(undefined);
+        setCurrentSeason(undefined);
+        setCurrentPermission(checkPermissionBySeason(undefined, "", ""));
+      }
     });
   }
 
@@ -112,54 +122,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const result = await SeasonApi.RSeason(registration?.season)
       .then((res) => {
         setCurrentSeason(res);
+        setCurrentPermission(
+          checkPermissionBySeason(res, currentUser.userId, registration.role)
+        );
       })
       .catch(() => {});
     return result;
   }
-
-  const checkPermission = (permission: any) => {
-    for (let i = 0; i < permission?.length; i++) {
-      if (
-        permission[i][0] === "userId" &&
-        permission[i][1] === currentUser?.userId
-      ) {
-        return permission[i][2];
-      }
-      if (
-        permission[i][0] === "role" &&
-        permission[i][1] === currentRegistration?.role
-      )
-        return permission[i][2];
-    }
-    return false;
-  };
-
-  useEffect(() => {
-    const permission = {
-      permissionSyllabus: false,
-      permissionEnrollment: false,
-      permissionEvaluation: false,
-      permissionNotification: false,
-    };
-
-    // permissionSyllabus
-    if (checkPermission(currentSeason?.permissionSyllabus))
-      permission["permissionSyllabus"] = true;
-
-    // permissionEnrollment
-    if (checkPermission(currentSeason?.permissionEnrollment))
-      permission["permissionEnrollment"] = true;
-
-    // permissionEvaluation
-    if (checkPermission(currentSeason?.permissionEvaluation))
-      permission["permissionEvaluation"] = true;
-
-    // permissionNotification?
-    if (checkPermission(currentSeason?.permissionNotification))
-      permission["permissionNotification"] = true;
-
-    setCurrentPermission(permission);
-  }, [currentSeason]);
 
   const updateUserProfile = (profile: string) => {
     setCurrentUser({ ...currentUser, profile });

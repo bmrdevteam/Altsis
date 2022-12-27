@@ -261,9 +261,9 @@ module.exports.updateField = async (req, res) => {
     // period가 변경되면
     // registration 일괄 수정
     if (field === "period") {
-      await Registration(req.user.academyId).update(
+      await Registration(req.user.academyId).updateMany(
         { season: season._id },
-        { preiod: season.period }
+        { period: season.period }
       );
     }
 
