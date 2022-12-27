@@ -89,6 +89,25 @@ function Archive(props: Props) {
               },
             },
             {
+              text: "권한",
+              key: "auth",
+              fontSize: "12px",
+              fontWeight: "600",
+              type: "status",
+              textAlign: "center",
+              width: "120px",
+              status: {
+                teacher: {
+                  text: "모든 선생님",
+                  color: "#grey",
+                },
+                array: {
+                  text: "담임 선생님",
+                  color: "#3a44b5",
+                },
+              },
+            },
+            {
               text: "자세히",
               type: "button",
               fontSize: "12px",
@@ -143,10 +162,7 @@ function Archive(props: Props) {
                 (val: any) => val.label === editArchivefield
               )[0].fields ?? []
             }
-            onChange={(e)=>{
-
-
-            }}
+            onChange={(e) => {}}
             header={[
               {
                 text: "필드 이름",
@@ -201,3 +217,5 @@ function Archive(props: Props) {
 }
 
 export default Archive;
+
+

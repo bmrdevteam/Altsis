@@ -55,6 +55,7 @@ const Notification = () => {
           console.log(e);
         });
         setCurrentNotifications([...res]);
+        console.log(res);
       }
     });
   }, 1000 * 60 * 10); //10분
@@ -69,10 +70,15 @@ const Notification = () => {
   return (
     <div className={style.notification} ref={notificationtRef}>
       <div
-        className={style.icon}
+        className={`${style.icon} ${
+          currentNotifications.length > 0 && style.active
+        }`}
         onClick={() => {
           setNotificationContentActive((prev) => !prev);
         }}
+        data-count={
+          currentNotifications.length > 0 ? currentNotifications.length : ""
+        }
       >
         <Svg type="notification" width="20px" height="20px" />
       </div>

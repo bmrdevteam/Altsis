@@ -2,6 +2,7 @@ import Loading from "components/loading/Loading";
 import useApi from "hooks/useApi";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import useDatabase from "../hooks/useDatabase";
+import _ from "lodash";
 
 const AuthContext = createContext<any>(null);
 
@@ -9,6 +10,7 @@ export function useAuth(): {
   setCurrentUser: React.Dispatch<any>;
   currentUser: any;
   currentSchool: any;
+  setCurrentSchool: any;
   changeSchool: (to: string) => void;
   currentSeason: any;
   changeCurrentSeason: (season: any) => void;
@@ -56,9 +58,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           (r: any) => r.school === res.schools[0].school && r.isActivated
         ).length > 0
       ) {
-        const re = res.registrations.filter(
-          (r: any) => r.school === res.schools[0].school && r.isActivated
-        );
+        const re = _.sortBy(
+          res.registrations.filter(
+            (r: any) => r.school === res.schools[0].school && r.isActivated
+          ),
+          "period.start"
+        ).reverse();
+        console.log(re);
+
         setRegistration(re);
         setCurrentRegistration(re[0]);
         SeasonApi.RSeason(re[0].season).then((res) => {
@@ -83,7 +90,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     SchoolApi.RSchool(to).then((s) => {
       setCurrentSchool({ ...s, school: s._id });
       setRegistration(
-        _registrations.filter((r: any) => r.school === s._id && r.isActivated)
+        _.sortBy(
+          _registrations
+            .filter(
+              (r: any) => r.school === s._id && r.isActivated,
+              "period.start"
+            )
+            .reverse()
+        )
       );
       setCurrentRegistration(
         _registrations.filter(
@@ -170,6 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentNotifications,
     setCurrentNotifications,
     currentPermission,
+    setCurrentSchool,
   };
   return (
     <AuthContext.Provider value={value}>

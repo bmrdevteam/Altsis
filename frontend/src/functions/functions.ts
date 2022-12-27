@@ -214,3 +214,14 @@ export function unflattenObject(obj: FlattenableObject): NestedObject {
   // Return the result object, which contains all of the unflattened key-value pairs
   return result;
 }
+
+export function checkPermission(permission: any, userId: string, role: string) {
+  for (let i = 0; i < permission?.length; i++) {
+    if (permission[i][0] === "userId" && permission[i][1] === userId) {
+      return permission[i][2];
+    }
+    if (permission[i][0] === "role" && permission[i][1] === role)
+      return permission[i][2];
+  }
+  return false;
+}

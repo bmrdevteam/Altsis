@@ -148,7 +148,7 @@ const Course = (props: Props) => {
       key: "detail",
       type: "button",
       onClick: (e: any) => {
-        navigate(`/courses/${e._id}`, {
+        navigate(`${e.enrollment}`, {
           replace: true,
         });
       },

@@ -30,7 +30,7 @@ const schoolSchema = mongoose.Schema(
     permissionEvaluation: [[]],
     formTimetable: Object,
     formSyllabus: Object,
-    formEvaluation: Object,
+    formEvaluation: [],
     formArchive: [],
     activatedSeason: mongoose.Types.ObjectId,
   },
