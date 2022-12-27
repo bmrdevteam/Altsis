@@ -148,14 +148,14 @@ const School = (props: Props) => {
                   setSchoolData={setSchoolData}
                 />
               ),
-              양식: <Form schoolData={schoolData} />,
+              양식: <Form />,
               권한: (
                 <Permission
                   schoolData={schoolData}
                   setSchoolData={setSchoolData}
                 />
               ),
-              "평가": <Evaluation schoolData={schoolData} />,
+              평가: <Evaluation schoolData={schoolData} />,
               "기록 관리": <Archive schoolData={schoolData} />,
             }}
           />

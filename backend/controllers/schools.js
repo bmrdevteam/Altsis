@@ -98,7 +98,7 @@ module.exports.updateField = async (req, res) => {
     school[field] = req.body.new;
     await school.save();
 
-    return res.status(200).send(school[field]);
+    return res.status(200).send({ [field]: school[field] });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

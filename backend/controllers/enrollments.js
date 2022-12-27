@@ -260,6 +260,7 @@ module.exports.findEvaluations = async (req, res) => {
         syllabus: syllabus.getSubdocument(),
         enrollments: enrollments.map((eval) => {
           return {
+            _id: eval._id,
             studentId: eval.studentId,
             studentName: eval.studentName,
             studentGrade: eval.studentGrade,
@@ -308,7 +309,7 @@ module.exports.updateEvaluation = async (req, res) => {
       if (enrollment.teachers[i].userId == req.user.userId) {
         enrollment.evaluation = req.body.new;
         await enrollment.save();
-        return res.status(200).send(enrollment);
+        return res.status(200).send({ evaluation: enrollment.evaluation });
       }
     }
     return res.status(401).send();
