@@ -64,7 +64,7 @@ type receiverSelectedList = {
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentUser, currentPermission } = useAuth();
+  const { currentUser, currentSeason } = useAuth();
   const navigate = useNavigate();
 
   const database = useDatabase();
@@ -137,82 +137,6 @@ const CoursePid = (props: Props) => {
   }
 
   useEffect(() => {
-    if (isLoading) {
-      navigate("#멘토링");
-      getCourseData()
-        .then((result) => {
-          setCourseData(result);
-          getEnrollments(result._id).then((res: any) => {
-            setEnrollmentList(res);
-            setReceiverOptionList(
-              res.map((e: any) => {
-                return {
-                  value: JSON.stringify({
-                    userId: e.studentId,
-                    userName: e.studentName,
-                  }),
-                  text: `${e.studentName}(${e.studentId})`,
-                };
-              })
-            );
-            getSeason(result.season).then((res: any) => {
-              let _formEvaluationHeader: any[] = [];
-
-              if (
-                checkPermission(
-                  res.permissionEvaluation,
-                  currentUser.userId,
-                  "teacher"
-                )
-              ) {
-                setPermissionEvaluation(true);
-                res.formEvaluation.forEach((val: any) => {
-                  const text = val.label;
-                  const key = "evaluation." + text;
-
-                  if (val.auth.edit.teacher) {
-                    fieldEvaluationList.push({
-                      text,
-                      key,
-                    });
-                    _formEvaluationHeader.push({
-                      text,
-                      key,
-                      type: "input",
-                    });
-                  } else if (val.auth.view.student) {
-                    _formEvaluationHeader.push({
-                      text,
-                      key,
-                      type: "text",
-                      whiteSpace: "pre-wrap",
-                    });
-                  }
-                });
-              } else {
-                res.formEvaluation.forEach((val: any) => {
-                  _formEvaluationHeader.push({
-                    text: val.label,
-                    key: "evaluation." + val.label,
-                    type: "text",
-                    whiteSpace: "pre-wrap",
-                  });
-                });
-              }
-              setFormEvaluationHeader(_formEvaluationHeader);
-              setIsLoading(false);
-            });
-          });
-        })
-        .catch((err) => {
-          alert(err.response.data.message);
-          navigate("/courses");
-        });
-    }
-    return () => {};
-  }, [isLoading]);
-
-  useEffect(() => {
     if (courseData) {
       // is this syllabus fully confirmed?
       for (let teacher of courseData?.teachers) {
@@ -261,6 +185,7 @@ const CoursePid = (props: Props) => {
   }, [isEnrollmentListLoading]);
 
   async function getCourseData() {
+    console.log("pid is ", pid);
     const result = await database.R({
       location: `syllabuses/${pid}`,
     });
@@ -269,16 +194,83 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      navigate("#강의 계획");
-      getCourseData()
-        .then((result) => {
-          setCourseData(result);
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          alert(err.response.data.message);
-          navigate("/courses");
-        });
+      if (isLoading) {
+        if (!currentSeason) navigate("/", { replace: true });
+
+        getCourseData()
+          .then((result) => {
+            if (result.season !== currentSeason._id)
+              navigate("/courses/mentoring", { replace: true });
+
+            setCourseData(result);
+            getEnrollments(result._id).then((res: any) => {
+              setEnrollmentList(res);
+              setReceiverOptionList(
+                res.map((e: any) => {
+                  return {
+                    value: JSON.stringify({
+                      userId: e.studentId,
+                      userName: e.studentName,
+                    }),
+                    text: `${e.studentName}(${e.studentId})`,
+                  };
+                })
+              );
+              getSeason(result.season).then((res: any) => {
+                let _formEvaluationHeader: any[] = [];
+
+                if (
+                  checkPermission(
+                    res.permissionEvaluation,
+                    currentUser.userId,
+                    "teacher"
+                  )
+                ) {
+                  setPermissionEvaluation(true);
+                  res.formEvaluation.forEach((val: any) => {
+                    const text = val.label;
+                    const key = "evaluation." + text;
+
+                    if (val.auth.edit.teacher) {
+                      fieldEvaluationList.push({
+                        text,
+                        key,
+                      });
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "input",
+                      });
+                    } else if (val.auth.view.student) {
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "text",
+                        whiteSpace: "pre-wrap",
+                      });
+                    }
+                  });
+                } else {
+                  res.formEvaluation.forEach((val: any) => {
+                    _formEvaluationHeader.push({
+                      text: val.label,
+                      key: "evaluation." + val.label,
+                      type: "text",
+                      whiteSpace: "pre-wrap",
+                    });
+                  });
+                }
+                setFormEvaluationHeader(_formEvaluationHeader);
+                setIsLoading(false);
+              });
+            });
+          })
+          .catch((err) => {
+            console.log("err: ", err);
+            alert(err.response.data.message);
+            navigate("/courses");
+          });
+      }
     }
     return () => {};
   }, [isLoading]);
@@ -304,7 +296,7 @@ const CoursePid = (props: Props) => {
               setConfirmStatusPopupActive(true);
             }}
           >
-            상태: {confirmed ? "승인됨" : "미승인"}
+            상태: {mentorConfirmed ? "승인됨" : "미승인"}
           </div>
         </div>
       </div>
@@ -541,6 +533,7 @@ const CoursePid = (props: Props) => {
                       teachers,
                     });
                     setMentorConfirmed(false);
+                    setConfirmStatusPopupActive(false);
                   })
                   .catch((err) => {
                     alert("failed to unconfirm");
@@ -551,11 +544,13 @@ const CoursePid = (props: Props) => {
                     alert("confirmed");
                     const teachers = courseData.teachers;
                     teachers[mentorIdx].confirmed = true;
+
                     setCourseData({
                       ...courseData,
                       teachers,
                     });
                     setMentorConfirmed(true);
+                    setConfirmStatusPopupActive(false);
                   })
                   .catch((err) => {
                     alert("failed to confirm");
