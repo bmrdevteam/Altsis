@@ -113,14 +113,7 @@ function Basic(props: Props) {
             appearence="flat"
             defaultValue={period.start}
             onChange={(e: any) => {
-              updateSeason(e.target.value, period.end)
-                .then((res: any) => {
-                  setPeriod(res.data);
-                  props.setIsLoading(true);
-                })
-                .catch((err) => {
-                  alert(err.reponse.data.message);
-                });
+              setPeriod({ start: e.target.value, end: period.end });
             }}
           />
           <Input
@@ -130,7 +123,19 @@ function Basic(props: Props) {
             label="학기 끝"
             defaultValue={period.end}
             onChange={(e: any) => {
-              updateSeason(period.start, e.target.value)
+              setPeriod({ start: period.start, end: e.target.value });
+            }}
+          />
+
+          <Button
+            type={"ghost"}
+            style={{
+              borderRadius: "4px",
+              height: "32px",
+              marginTop: "24px",
+            }}
+            onClick={() => {
+              updateSeason(period.start, period.end)
                 .then(() => {
                   alert("success");
                   props.setIsLoading(true);
@@ -139,7 +144,9 @@ function Basic(props: Props) {
                   alert(err.reponse.data.message);
                 });
             }}
-          />
+          >
+            수정
+          </Button>
         </div>
 
         <Button
