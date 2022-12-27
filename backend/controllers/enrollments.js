@@ -305,13 +305,17 @@ module.exports.updateEvaluation = async (req, res) => {
     )
       return res.status(409).send({ message: "you have no permission" });
 
-    for (let i = 0; i < enrollment.teachers.length; i++) {
-      if (enrollment.teachers[i].userId == req.user.userId) {
-        enrollment.evaluation = req.body.new;
-        await enrollment.save();
-        return res.status(200).send({ evaluation: enrollment.evaluation });
-      }
+    //authentication 다시 설정해야 함
+    if (
+      enrollment.studentId === req.user.userId ||
+      _.find(enrollment.teachers, { userId: req.user.userId })
+    ) {
+      enrollment.evaluation = { ...enrollment.evaluation, ...req.body.new };
+      await enrollment.save();
+      console.log("enrollment is now ", enrollment);
+      return res.status(200).send({ evaluation: enrollment.evaluation });
     }
+
     return res.status(401).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });

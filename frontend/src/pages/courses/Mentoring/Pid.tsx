@@ -73,6 +73,9 @@ const CoursePid = (props: Props) => {
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
+  const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
+  const [permissionEvaluation, setPermissionEvaluation] =
+    useState<boolean>(false);
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
@@ -153,6 +156,8 @@ const CoursePid = (props: Props) => {
               })
             );
             getSeason(result.season).then((res: any) => {
+              let _formEvaluationHeader: any[] = [];
+
               if (
                 checkPermission(
                   res.permissionEvaluation,
@@ -160,69 +165,42 @@ const CoursePid = (props: Props) => {
                   "teacher"
                 )
               ) {
-                setFormEvaluationHeader([
-                  ...res.formEvaluation.map((val: any) => {
-                    if (val.auth.edit.teacher)
-                      return {
-                        text: val.label,
-                        key: "evaluation." + val.label,
-                        type: "input",
-                      };
-                    return {
-                      text: val.label,
-                      key: "evaluation." + val.label,
-                      type: "text",
-                      whiteSpace: "pre-wrap",
-                    };
-                  }),
-                  {
-                    text: "평가",
-                    key: "evaluation",
-                    onClick: (e: any) => {
-                      const evaluation: any = {};
-                      for (let obj of formEvaluationHeader) {
-                        evaluation[obj.text] = e[obj.key];
-                      }
-                      updateEvaluation(
-                        enrollmentList[e.tableRowIndex - 1]._id,
-                        evaluation
-                      )
-                        .then((res: any) => {
-                          alert("수정되었습니다.");
-                          enrollmentList[e.tableRowIndex - 1].evaluation = {
-                            ...res,
-                          };
-                        })
-                        .catch((err: any) => alert(err.response.data.message));
-                    },
-                    type: "button",
+                setPermissionEvaluation(true);
+                res.formEvaluation.forEach((val: any) => {
+                  const text = val.label;
+                  const key = "evaluation." + text;
 
-                    textAlign: "center",
-                    width: "80px",
-                    btnStyle: {
-                      round: true,
-                      border: true,
-                      padding: "4px",
-                      color: "red",
-                      background: "#FFF1F1",
-                    },
-                    fontWeight: "600",
-                  },
-                ]);
-                setIsLoading(false);
-              } else {
-                setFormEvaluationHeader([
-                  ...res.formEvaluation.map((val: any) => {
-                    return {
-                      text: val.label,
-                      key: "evaluation." + val.label,
+                  if (val.auth.edit.teacher) {
+                    fieldEvaluationList.push({
+                      text,
+                      key,
+                    });
+                    _formEvaluationHeader.push({
+                      text,
+                      key,
+                      type: "input",
+                    });
+                  } else if (val.auth.view.student) {
+                    _formEvaluationHeader.push({
+                      text,
+                      key,
                       type: "text",
                       whiteSpace: "pre-wrap",
-                    };
-                  }),
-                ]);
-                setIsLoading(false);
+                    });
+                  }
+                });
+              } else {
+                res.formEvaluation.forEach((val: any) => {
+                  _formEvaluationHeader.push({
+                    text: val.label,
+                    key: "evaluation." + val.label,
+                    type: "text",
+                    whiteSpace: "pre-wrap",
+                  });
+                });
               }
+              setFormEvaluationHeader(_formEvaluationHeader);
+              setIsLoading(false);
             });
           });
         })
@@ -394,39 +372,106 @@ const CoursePid = (props: Props) => {
             </div>
           </div>
         </div>
-        <Table
-          type="object-array"
-          data={enrollmentList || []}
-          header={[
-            {
-              text: "No",
-              type: "text",
-              key: "tableRowIndex",
-              width: "48px",
-              textAlign: "center",
-            },
+        {permissionEvaluation ? (
+          <Table
+            type="object-array"
+            data={enrollmentList || []}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
 
-            {
-              text: "학년",
-              key: "studentGrade",
-              type: "text",
-              textAlign: "center",
-            },
-            {
-              text: "ID",
-              key: "studentId",
-              type: "text",
-              textAlign: "center",
-            },
-            {
-              text: "이름",
-              key: "studentName",
-              type: "text",
-              textAlign: "center",
-            },
-            ...formEvaluationHeader,
-          ]}
-        />
+              {
+                text: "학년",
+                key: "studentGrade",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "ID",
+                key: "studentId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "이름",
+                key: "studentName",
+                type: "text",
+                textAlign: "center",
+              },
+              ...formEvaluationHeader,
+              {
+                text: "저장",
+                key: "evaluation",
+                onClick: (e: any) => {
+                  const evaluation: any = {};
+                  for (let obj of fieldEvaluationList) {
+                    evaluation[obj.text] = e[obj.key];
+                    console.log(
+                      `evaluation[${obj.text}] is ${evaluation[obj.text]}`
+                    );
+                  }
+                  updateEvaluation(e._id, evaluation)
+                    .then((res: any) => {
+                      alert("수정되었습니다.");
+                      console.log("update eval: res is ", res);
+                    })
+                    .catch((err: any) => alert(err.response.data.message));
+                },
+                type: "button",
+
+                textAlign: "center",
+                width: "80px",
+                btnStyle: {
+                  round: true,
+                  border: true,
+                  padding: "4px",
+                  color: "red",
+                  background: "#FFF1F1",
+                },
+                fontWeight: "600",
+              },
+            ]}
+          />
+        ) : (
+          <Table
+            type="object-array"
+            data={enrollmentList || []}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+
+              {
+                text: "학년",
+                key: "studentGrade",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "ID",
+                key: "studentId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "이름",
+                key: "studentName",
+                type: "text",
+                textAlign: "center",
+              },
+              ...formEvaluationHeader,
+            ]}
+          />
+        )}
       </>
 
       {confirmStatusPopupActive && (
