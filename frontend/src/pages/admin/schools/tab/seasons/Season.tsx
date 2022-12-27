@@ -94,7 +94,7 @@ const Season = (props: Props) => {
     const result = await database.C({
       location: `seasons`,
       data: {
-        school: pid,
+        school: currentSchool.school,
         year: year,
         term: term,
         period: {
@@ -322,7 +322,12 @@ const Season = (props: Props) => {
                   setSelectedSeason={setSelectedSeason}
                 />
               ),
-              양식: <Form seasonData={selectedSeason} />,
+              양식: (
+                <Form
+                  seasonData={selectedSeason}
+                  setSelectedSeason={setSelectedSeason}
+                />
+              ),
 
               권한: (
                 <Permission

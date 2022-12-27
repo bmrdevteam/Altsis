@@ -168,6 +168,7 @@ module.exports.current = async (req, res) => {
         "term",
         "isActivated",
         "role",
+        "period"
       ]);
 
     // notifications
