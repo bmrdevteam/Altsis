@@ -225,3 +225,39 @@ export function checkPermission(permission: any, userId: string, role: string) {
   }
   return false;
 }
+
+export function checkPermissionBySeason(
+  season: any,
+  userId: string,
+  role: string
+) {
+  return season
+    ? {
+        permissionSyllabus: checkPermission(
+          season.permissionSyllabus,
+          userId,
+          role
+        ),
+        permissionEnrollment: checkPermission(
+          season.permissionEnrollment,
+          userId,
+          role
+        ),
+        permissionEvaluation: checkPermission(
+          season.permissionEvaluation,
+          userId,
+          role
+        ),
+        permissionNotification: checkPermission(
+          season.permissionNotification,
+          userId,
+          role
+        ),
+      }
+    : {
+        permissionSyllabus: false,
+        permissionEnrollment: false,
+        permissionEvaluation: false,
+        permissionNotification: false,
+      };
+}

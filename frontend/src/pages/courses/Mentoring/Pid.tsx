@@ -64,7 +64,7 @@ type receiverSelectedList = {
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentUser, currentPermission } = useAuth();
+  const { currentUser, currentSeason } = useAuth();
   const navigate = useNavigate();
 
   const database = useDatabase();
@@ -126,9 +126,22 @@ const CoursePid = (props: Props) => {
     return enrollments;
   }
 
-  async function updateEvaluation(enrollment: string, evaluation: any[]) {
-    const { evaluation: res } = await database.U({
-      location: `enrollments/${enrollment}/evaluation`,
+  // async function updateEvaluation(enrollment: string, evaluation: any[]) {
+  //   const { evaluation: res } = await database.U({
+  //     location: `enrollments/${enrollment}/evaluation`,
+  //     data: {
+  //       new: evaluation,
+  //     },
+  //   });
+  //   return res;
+  // }
+
+  async function updateEvaluationByMentor(
+    enrollment: string,
+    evaluation: any[]
+  ) {
+    const res = await database.U({
+      location: `enrollments/${enrollment}/evaluation2?by=mentor`,
       data: {
         new: evaluation,
       },
@@ -137,10 +150,70 @@ const CoursePid = (props: Props) => {
   }
 
   useEffect(() => {
+    if (courseData) {
+      // is this syllabus fully confirmed?
+      for (let teacher of courseData?.teachers) {
+        if (!teacher.confirmed) {
+          setConfirmed(false);
+          break;
+        }
+      }
+
+      // Is this user is mentor of this syllabus?
+      const mentorIdx = _.findIndex(courseData?.teachers, {
+        userId: currentUser?.userId,
+      });
+      if (mentorIdx === -1) {
+        alert("잘못된 접근입니다.");
+        navigate("/courses");
+      } else {
+        setMentorIdx(mentorIdx);
+        setMentorConfirmed(courseData.teachers[mentorIdx].confirmed);
+      }
+    }
+
+    return () => {};
+  }, [courseData]);
+
+  useEffect(() => {
+    if (isEnrollmentListLoading) {
+      getEnrollments(courseData._id).then((res: any) => {
+        setEnrollmentList(res);
+        setReceiverOptionList(
+          res.map((e: any) => {
+            return {
+              value: JSON.stringify({
+                userId: e.studentId,
+                userName: e.studentName,
+              }),
+              text: `${e.studentName}(${e.studentId})`,
+            };
+          })
+        );
+      });
+      setIsEnrollmentListLoading(false);
+    }
+
+    return () => {};
+  }, [isEnrollmentListLoading]);
+
+  async function getCourseData() {
+    console.log("pid is ", pid);
+    const result = await database.R({
+      location: `syllabuses/${pid}`,
+    });
+    return result;
+  }
+
+  useEffect(() => {
     if (isLoading) {
-      navigate("#멘토링");
+      if (!currentSeason) navigate("/", { replace: true });
+
       getCourseData()
         .then((result) => {
+          if (result.season !== currentSeason._id)
+            navigate("/courses/mentoring", { replace: true });
+
           setCourseData(result);
           getEnrollments(result._id).then((res: any) => {
             setEnrollmentList(res);
@@ -205,81 +278,12 @@ const CoursePid = (props: Props) => {
           });
         })
         .catch((err) => {
+          console.log("err: ", err);
           alert(err.response.data.message);
           navigate("/courses");
         });
     }
-    return () => {};
-  }, [isLoading]);
 
-  useEffect(() => {
-    if (courseData) {
-      // is this syllabus fully confirmed?
-      for (let teacher of courseData?.teachers) {
-        if (!teacher.confirmed) {
-          setConfirmed(false);
-          break;
-        }
-      }
-
-      // Is this user is mentor of this syllabus?
-      const mentorIdx = _.findIndex(courseData?.teachers, {
-        userId: currentUser?.userId,
-      });
-      if (mentorIdx === -1) {
-        alert("잘못된 접근입니다.");
-        navigate("/courses");
-      } else {
-        setMentorIdx(mentorIdx);
-        setMentorConfirmed(courseData.teachers[mentorIdx].confirmed);
-      }
-    }
-
-    return () => {};
-  }, [courseData]);
-
-  useEffect(() => {
-    if (isEnrollmentListLoading) {
-      getEnrollments(courseData._id).then((res: any) => {
-        setEnrollmentList(res);
-        setReceiverOptionList(
-          res.map((e: any) => {
-            return {
-              value: JSON.stringify({
-                userId: e.studentId,
-                userName: e.studentName,
-              }),
-              text: `${e.studentName}(${e.studentId})`,
-            };
-          })
-        );
-      });
-      setIsEnrollmentListLoading(false);
-    }
-
-    return () => {};
-  }, [isEnrollmentListLoading]);
-
-  async function getCourseData() {
-    const result = await database.R({
-      location: `syllabuses/${pid}`,
-    });
-    return result;
-  }
-
-  useEffect(() => {
-    if (isLoading) {
-      navigate("#강의 계획");
-      getCourseData()
-        .then((result) => {
-          setCourseData(result);
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          alert(err.response.data.message);
-          navigate("/courses");
-        });
-    }
     return () => {};
   }, [isLoading]);
 
@@ -304,7 +308,7 @@ const CoursePid = (props: Props) => {
               setConfirmStatusPopupActive(true);
             }}
           >
-            상태: {confirmed ? "승인됨" : "미승인"}
+            상태: {mentorConfirmed ? "승인됨" : "미승인"}
           </div>
         </div>
       </div>
@@ -411,14 +415,12 @@ const CoursePid = (props: Props) => {
                   const evaluation: any = {};
                   for (let obj of fieldEvaluationList) {
                     evaluation[obj.text] = e[obj.key];
-                    console.log(
-                      `evaluation[${obj.text}] is ${evaluation[obj.text]}`
-                    );
                   }
-                  updateEvaluation(e._id, evaluation)
-                    .then((res: any) => {
+                  updateEvaluationByMentor(e._id, evaluation)
+                    .then((res) => {
                       alert("수정되었습니다.");
-                      console.log("update eval: res is ", res);
+
+                      setIsLoading(true);
                     })
                     .catch((err: any) => alert(err.response.data.message));
                 },
@@ -541,6 +543,7 @@ const CoursePid = (props: Props) => {
                       teachers,
                     });
                     setMentorConfirmed(false);
+                    setConfirmStatusPopupActive(false);
                   })
                   .catch((err) => {
                     alert("failed to unconfirm");
@@ -551,11 +554,13 @@ const CoursePid = (props: Props) => {
                     alert("confirmed");
                     const teachers = courseData.teachers;
                     teachers[mentorIdx].confirmed = true;
+
                     setCourseData({
                       ...courseData,
                       teachers,
                     });
                     setMentorConfirmed(true);
+                    setConfirmStatusPopupActive(false);
                   })
                   .catch((err) => {
                     alert("failed to confirm");
