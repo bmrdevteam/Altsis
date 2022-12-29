@@ -110,10 +110,12 @@ const CourseView = (props: Props) => {
   const categories = () => {
     return (
       <>
-        <div className={style.category}>
-          {_.join(currentSeason?.subjects.label, "/")}:{" "}
-          {_.join(props.courseData.subject, "/")}
-        </div>{" "}
+        {currentSeason?.subjects?.label && (
+          <div className={style.category}>
+            {_.join(currentSeason?.subjects.label, "/")}:{" "}
+            {_.join(props.courseData.subject, "/")}
+          </div>
+        )}
         <div className={style.category}>
           강의실: {props.courseData.classroom || "없음"}
         </div>
@@ -184,6 +186,9 @@ const CourseView = (props: Props) => {
   useEffect(() => {
     navigate("#강의 계획");
 
+    if (props.courseData.season !== currentSeason._id) {
+      navigate("/courses", { replace: true });
+    }
     // is this syllabus fully confirmed?
     for (let teacher of props.courseData.teachers) {
       if (!teacher.confirmed) {

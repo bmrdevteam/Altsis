@@ -47,7 +47,7 @@ const CourseDesign = (props: Props) => {
   useEffect(() => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
-      navigate("/courses");
+      navigate("/");
     }
   }, [currentRegistration]);
 
