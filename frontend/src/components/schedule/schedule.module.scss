@@ -1,5 +1,6 @@
 .calendar_container {
-  // border: 1px solid rgb(225, 225, 225);
+  color: var(--accent-1);
+  // border: var(--border-default);;
   overflow-y: scroll;
   height: 100%;
   -ms-overflow-style: none;
@@ -8,9 +9,9 @@
   .header {
     z-index: 12;
     position: sticky;
-    background-color: #fff;
+    background-color: var(--background-color);
     top: 0;
-    border-bottom: 1px solid rgb(225, 225, 225);
+    border-bottom: var(--border-default);
     font-size: 14px;
     font-weight: 600;
 
@@ -24,7 +25,7 @@
       align-items: center;
 
       .btn {
-        border: 1px solid rgb(225, 225, 225);
+        border: var(--border-default);
         border-radius: 4px;
         padding: 4px 6px;
         cursor: pointer;
@@ -101,14 +102,16 @@
       .column {
         position: relative;
         flex: 1 1 120px;
-        border-left: 1px solid rgb(225, 225, 225);
+        border-left: var(--border-default);
+        ;
 
         .row_grid {
           z-index: 1;
 
           .block {
             min-height: 80px;
-            border-bottom: 1px solid rgb(225, 225, 225);
+            border-bottom: var(--border-default);
+            ;
           }
 
           .block:last-child {
@@ -192,7 +195,7 @@
       top: 50%;
       right: 50%;
       transform: translate(50%, -50%);
-      background-color: #fff;
+      background-color: var(--background-color);
       width: 800px;
       height: 500px;
       box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
@@ -217,10 +220,11 @@
         flex-direction: column;
         gap: 12px;
 
-        input{
+        input {
           padding: 6px 8px;
           border-radius: 4px;
         }
+
         input:disabled {
           cursor: not-allowed;
         }
