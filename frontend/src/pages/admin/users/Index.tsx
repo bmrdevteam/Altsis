@@ -276,6 +276,8 @@ const Users = (props: Props) => {
                 key: "auth",
                 textAlign: "center",
                 type: "status",
+                fontSize: "12px",
+                fontWeight: "600",
                 status: {
                   admin: { text: "관리자", color: "red" },
                   manager: { text: "매니저", color: "violet" },
@@ -285,7 +287,6 @@ const Users = (props: Props) => {
               },
               {
                 text: "자세히",
-                key: "_id",
                 type: "button",
                 onClick: (e: any) => {
                   setUser(e._id);
