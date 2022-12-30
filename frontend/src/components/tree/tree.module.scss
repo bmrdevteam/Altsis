@@ -1,0 +1,37 @@
+.tree {
+    display: grid;
+    gap: 4px;
+
+    .item {
+        cursor: pointer;
+
+        display: grid;
+        gap: 4px;
+        align-items: center;
+        
+        
+        .content {
+            user-select: none;
+            width: 240px;
+            display: flex;
+            align-items: center;
+
+            padding: 8px 6px;
+            border-radius: 4px;
+            border: var(--border-default);
+            background-color: var(--component-color);
+
+        }
+
+        .icon {}
+
+        .text {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .subItem {
+            margin-left: 12px;
+        }
+    }
+}

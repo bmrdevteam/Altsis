@@ -1,0 +1,88 @@
+.calender_container {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    max-width: 300px;
+
+
+    border: var(--border-default);
+    border-radius: 8px;
+
+    .calender {
+        padding: 12px;
+        font-weight: 600;
+        fill: var(--accent-1);
+        color: var(--accent-1);
+
+
+        .top {
+
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 6px;
+
+            .controls {
+                display: flex;
+                gap: 4px;
+
+                svg {
+                    border-radius: 10px;
+                    cursor: pointer;
+                }
+
+                svg:hover {
+                    background-color: var(--component-hover-color);
+                }
+
+            }
+        }
+
+        .days {
+            font-weight: 500;
+            display: flex;
+            font-size: 12px;
+            margin-bottom: 12px;
+
+            .day {
+                flex: 1 1 0;
+                text-align: center;
+            }
+
+        }
+
+        .dates {
+            font-size: 12px;
+            aspect-ratio: 1.5;
+
+
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            align-items: center;
+            justify-items: center;
+
+            .date {
+                transition: background-color .1s ease;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                height: 24px;
+                width: 24px;
+                justify-content: center;
+                border-radius: 24px;
+            }
+
+            .date:hover {
+
+                background-color: var(--component-hover-color);
+            }
+
+            .date.today {
+                background-color: var(--color-r3);
+                color: var(--accent-6);
+            }
+        }
+    }
+}

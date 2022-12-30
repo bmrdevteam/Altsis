@@ -1,0 +1,136 @@
+@media print {
+  .navbar_container {
+    display: none !important;
+  }
+
+  @page {
+    margin: 0;
+    page-break-after: always;
+  }
+}
+
+
+
+
+
+@media (max-width: 800px) {
+  .navbar_container {
+    padding: 0 24px 0 60px !important;
+
+  }
+}
+
+.navbar_container {
+  height: 56px;
+  border-bottom: var(--border-default);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+
+  .title {
+    font-size: 16px;
+    margin-right: 24px;
+    font-weight: 600;
+    color: var(--accent-1);
+  }
+
+  .search {
+    outline: none;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--component-color);
+    padding: 8px 18px;
+    width: 100%;
+  }
+
+  .controls {
+    margin-left: 24px;
+
+    .notification {
+      position: relative;
+
+      .icon {
+        svg {
+          fill: var(--accent-3);
+          cursor: pointer;
+        }
+      }
+
+      .icon.active::after {
+        cursor: pointer;
+        content: attr(data-count);
+        font-size: 8px;
+        font-weight: 600;
+        text-align: center;
+        line-height: 10px;
+        position: absolute;
+        top: -2px;
+        left: 10px;
+        border-radius: 8px;
+        width: 10px;
+        height: 10px;
+        background-color: var(--color-r3);
+        color: var(--accent-6);
+      }
+    }
+
+    .contents {
+      z-index: 100;
+      box-shadow: var(--component-box-shadow);
+      right: -16px;
+      top: 46px;
+      width: 300px;
+      max-height: 500px;
+      position: absolute;
+      border-radius: 8px;
+      background-color: var(--background-color);
+      border: var(--border-default);
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 600;
+
+      .title {
+        font-size: 16px;
+        padding-bottom: 12px;
+        border-bottom: var(--border-default);
+        margin-bottom: 12px;
+        margin-right: 0;
+      }
+
+      .item {
+        border: var(--border-default);
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .description {
+          .type {
+            padding: 1px 3px 2px 3px;
+            background-color: var(--color-b4);
+            border-radius: 4px;
+            margin-right: 4px;
+            color: var(--accent-6);
+          }
+
+          cursor: pointer;
+          flex: 1 1 0;
+          line-height: 18px;
+
+          word-break: keep-all;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .x {
+          cursor: pointer;
+          fill: var(--accent-3);
+        }
+      }
+    }
+  }
+}

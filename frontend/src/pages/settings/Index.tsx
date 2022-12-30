@@ -1,20 +1,62 @@
-import React from "react";
-import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
-import { useAuth } from "../../contexts/authContext";
-import style from "../../style/pages/settings/settings.module.scss";
+/**
+ * @file Settings Index Page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+import style from "style/pages/settings/settings.module.scss";
+import NavbarSettings from "./tab/NavbarSettings";
+import ResetSettings from "./tab/ResetSettings";
+import SchoolSettings from "./tab/SchoolSettings";
+import SecuritySettings from "./tab/SecuritySettings";
+import SocialLoginSettings from "./tab/SocialLoginSettings";
+import ThemeSettings from "./tab/ThemeSettings";
+import UserSettings from "./tab/UserSettings";
 
 type Props = {};
 
 const Settings = (props: Props) => {
-  const { currentUser } = useAuth();
+
+
+
   return (
-    <div className={style.section}>
-      <NavigationLinks />
-      <div className={style.title}>설정</div>
-      <div className={style.user_container}>
-        <div className={style.username}>{currentUser.userName}</div>
+    <>
+      <div className={style.search_container}>
+        <div className={style.title}>사용자 설정</div>
+        <input className={style.search} type="text" placeholder="검색" />
       </div>
-    </div>
+      <div className={style.section}>
+         <UserSettings/>
+         <SocialLoginSettings/>
+         <SecuritySettings/>
+         <SchoolSettings/>
+         <ThemeSettings/>
+         <NavbarSettings/>
+         <ResetSettings/>
+      </div>
+    </>
   );
 };
 

@@ -6,16 +6,22 @@
     flex: 1 1 0;
 
     .input {
-        padding: 8.5px 14px;
+        background-color: inherit;
+        color: var(--accent-1);
         font-size: 14px;
-
-        height: 40px;
         outline: none;
         border: var(--border-default);
         width: 100%;
+        min-height: 30px;
+        padding: 0 18px;
     }
 
-    .input.invaild {
+    .input:disabled {
+        cursor: not-allowed;
+
+    }
+
+    .input.invalid {
         border-color: var(--alert-c1);
     }
 
@@ -23,12 +29,59 @@
         font-size: 12px;
         font-family: 'Pretendard';
         font-weight: 500;
-        padding-bottom: 4px;
+        margin-bottom: 8px;
+        color: var(--accent-1);
+
 
         .required {
             padding-left: 1px;
             color: var(--alert-c1);
         }
+    }
+
+}
+
+
+.input_container.flat {
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1 1 0;
+
+    .label {
+        font-size: 12px;
+        color: var(--accent-2);
+        font-weight: 600;
+        margin-bottom: 8px;
+
+        .required {
+            padding-left: 1px;
+            color: var(--alert-c1);
+        }
+
+    }
+
+    .input {
+        outline: none;
+        border: none;
+        border-radius: 8px;
+        background-color: var(--component-color);
+
+        display: flex;
+        align-items: center;
+        width: 100%;
+
+    }
+
+    .input:disabled {
+        color: var(--accent-4);
+
+
+    }
+
+    .input.invalid {
+        background-color: var(--alert-c1);
     }
 
 }

@@ -1,31 +1,48 @@
 .section {
-    margin: 24px;
+    margin: 24px 0;
 
     .title {
         font-size: 18px;
         font-weight: 600;
+        color: var(--accent-1);
 
     }
 
     .filter_container {
 
         margin-top: 24px;
-        background: #fff;
+        background: var(--component-color);
 
         .filter {
             width: 100%;
             padding: 24px;
             display: flex;
+            width: 100%;
+            flex-direction: column;
 
-            .value {
-                font-size: 16px;
-                outline: none;
-                border: none;
-                padding: 0 0 0 12px;
 
-            }
         }
 
     }
 
+}
+
+.popup {
+    width: 50vw;
+    display: flex;
+    flex-direction: column;
+
+    .row {
+        margin: 12px 0;
+        display: flex;
+        gap: 12px;
+    }
+
+    .title {
+        margin-top: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent-1);
+
+    }
 }

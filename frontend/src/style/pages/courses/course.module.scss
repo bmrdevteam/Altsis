@@ -1,95 +1,100 @@
 .section {
-    margin: 24px;
+  margin: 24px;
 
-    .title {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 24px;
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: var(--accent-1);
+  }
 
+  .categories_container {
+    overflow: scroll auto;
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .categories_container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .categories {
+    display: flex;
+    gap: 4px;
+
+    .category {
+      cursor: pointer;
+      border: var(--border-default);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: Pretendard;
+      font-weight: 500;
+      white-space: nowrap;
     }
 
-    .categories_container {
-        overflow: scroll auto;
-        -ms-overflow-style: none;
-        /* IE and Edge */
-        scrollbar-width: none;
-        /* Firefox */
+    .category:hover {
+      background-color: #ebebeb;
     }
+  }
 
-    .categories_container::-webkit-scrollbar {
-        display: none;
+  .class_info {
+    margin-top: 12px;
+  }
+
+  .teachers_container {
+    overflow: scroll auto;
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .teachers_container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .teachers {
+    display: flex;
+
+    .teacher {
+      border: var(--border-default);
+      cursor: pointer;
+      padding: 10px 14px;
+      font-family: Pretendard;
+      display: flex;
+      flex-direction: column;
+      width: 320px;
+      height: fit-content;
+
+      .name {
+        font-weight: 500;
+      }
+
+      .subject {
+        padding-top: 8px;
+        font-size: 14px;
+      }
     }
-
-    .categories {
-        display: flex;
-        gap: 4px;
-
-        .category {
-            cursor: pointer;
-            border: var(--border-default);
-            padding: 10px 14px;
-            font-size: 14px;
-            font-family: Pretendard;
-            font-weight: 500;
-            white-space: nowrap;
-
-        }
-
-        .category:hover {
-            background-color: #ebebeb
-        }
+    .teacher:not(:last-child) {
+      margin-right: 12px;
     }
+  }
 
-    .class_info {
-        margin-top: 12px;
+  .tab {
+    margin: 12px 0;
+
+    .tab_item {
+      margin-top: 12px;
     }
+  }
 
-    .teachers_container {
-        overflow: scroll auto;
-        -ms-overflow-style: none;
-        /* IE and Edge */
-        scrollbar-width: none;
-        /* Firefox */
+  .icon {
+    cursor: pointer;
+    color: var(--accent-3);
+    svg {
+      fill: var(--accent-3);
     }
-
-    .teachers_container::-webkit-scrollbar {
-        display: none;
-    }
-
-    .teachers {
-        display: flex;
-
-        .teacher {
-            border: var(--border-default);
-            cursor: pointer;
-            padding: 10px 14px;
-            font-family: Pretendard;
-            display: flex;
-            flex-direction: column;
-            width: 320px;
-            height: fit-content;
-
-            .name {
-                font-weight: 500;
-            }
-
-            .subject {
-                padding-top: 8px;
-                font-size: 14px;
-            }
-        }
-        .teacher:not(:last-child) {
-            margin-right: 12px;
-        }
-
-
-    }
-
-    .tab {
-        margin: 12px 0;
-
-        .tab_item {
-            margin-top: 12px;
-        }
-    }
+  }
 }

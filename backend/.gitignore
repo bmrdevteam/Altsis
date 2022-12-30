@@ -1,11 +1,7 @@
+.yarn
+.yarn/*
 /node_modules
-dev.js
+ecosystem.config.js
+.env*
+/config
 
-#If you're using Zero-Installs:
- .yarn/*
- !.yarn/cache
- !.yarn/patches
- !.yarn/plugins
- !.yarn/releases
- !.yarn/sdks
- !.yarn/versions

@@ -1,18 +1,28 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const enrollment = require("../controllers/enrollment");
-const {isAdmin, isLoggedIn}=require('../middleware/auth')
+const enrollments = require("../controllers/enrollments");
+const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
 
 //=================================
 //             Enrollment
 //=================================
 
-router.post('/',isLoggedIn,enrollment.create);
-router.post('/bulk',isLoggedIn,enrollment.createBulk);
+router.post("/", isLoggedIn, enrollments.enroll);
+router.post("/bulk", isLoggedIn, enrollments.enrollbulk);
 
-router.get('/list',isLoggedIn,enrollment.list);
+// query season&userId -> 유저의 수강 정보 (student 본인 혹은 teacher can access)
+// query syllabus -> syllabus 수강하는 학생 목록 (only teacher can access)
+router.get("/evaluations", isLoggedIn, enrollments.findEvaluations);
 
-router.put('/:_id/evaluation',isLoggedIn,enrollment.updateEvaluation)
-router.delete('/:_id',isLoggedIn,enrollment.delete);
+// 수강 정보에 evaluation 작성 (only teacher can access)
+// router.put("/:_id/evaluation", isLoggedIn, enrollments.updateEvaluation);
+router.put("/:_id/evaluation2", isLoggedIn, enrollments.updateEvaluation2);
+
+// param _id -> only himself/herself can access
+// query season&userId -> 유저의 수강 정보 (-evaluation)
+// query syllabus -> syllabus 수강하는 학생 목록 (-evaluation)
+router.get("/:_id?", isLoggedIn, enrollments.find);
+
+router.delete("/:_id?", isLoggedIn, enrollments.remove);
 
 module.exports = router;

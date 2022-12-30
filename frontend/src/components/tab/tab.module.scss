@@ -2,13 +2,33 @@
 
     overflow-x: auto;
     overflow-y: hidden;
+    position: relative;
     width: 100%;
-
-    border-bottom: var(--border-default);
     -ms-overflow-style: none;
     /* IE and Edge */
     scrollbar-width: none;
+
+    border-bottom: var(--border-default);
+
     /* Firefox */
+    // .indicator_container {
+    //     position: absolute;
+    //     height: 1.5px;
+    //     width: 100%;
+    //     bottom: 0;
+    //     background-color: var(--accent-5);
+
+
+    //     .indicator {
+    //         position: absolute;
+    //         height: 1.5px;
+    //         background-color: var(--primary-text-color);
+    //         width: 100%;
+    //         transition: left 0.3s ease;
+
+
+    //     }
+    // }
 }
 
 .tab_menu_container::-webkit-scrollbar {
@@ -19,37 +39,41 @@
     width: 100%;
     display: flex;
     justify-content: center;
+    align-items: center;
 
     .tab_menu_item {
         cursor: pointer;
         white-space: nowrap;
-        color: rgb(150, 150, 150);
+        color: var(--accent-3);
         border-radius: 4px;
         display: flex;
         font-size: 14px;
-        line-height: 14px;
-        height: 24px;
-        padding: 8px;
+        height: 48px;
+        padding: 0 14px;
         justify-content: center;
         align-items: center;
-        margin: 12px;
         position: relative;
-        font-family: Pretendard;
+        font-family: 'Pretendard';
         font-weight: 600;
 
     }
 
     .tab_menu_item.active {
-        color: var(--primary-color)
+        color: var(--primary-text-color);
+
+
     }
 
     .tab_menu_item.active::after {
         content: "";
-        bottom: -13.5px;
-        width: 100%;
-        background-color: var(--primary-color);
-        height: 2px;
         position: absolute;
+        width: 100%;
+        bottom:0px;
+        border-radius: 1px 1px 0 0;
+        border-bottom: var(--border-default);
+        border-color:var(--primary-text-color) ;
 
     }
+
+
 }

@@ -1,0 +1,32 @@
+.section {
+  margin: 24px;
+
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: var(--accent-1);
+  }
+}
+.mailbox {
+  .table_header {
+    display: flex;
+
+    .page {
+      color: var(--accent-3);
+    }
+    .icon {
+      cursor: pointer;
+      color: var(--accent-3);
+      svg {
+        fill: var(--accent-3);
+      }
+    }
+
+    .icon_disabled {
+      svg {
+        fill: var(--accent-5);
+      }
+    }
+  }
+}
