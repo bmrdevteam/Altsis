@@ -4,10 +4,12 @@ import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
 import { flattenObject } from "functions/functions";
 import useOutsideClick from "hooks/useOutsideClick";
+import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
 type TTableItems =
   | "text"
   | "checkbox"
+  | "toggle"
   | "button"
   | "rowEdit"
   | "status"
@@ -471,6 +473,23 @@ const Table = (props: Props) => {
                         </span>
                       </td>
                     );
+                  case "toggle":
+                    return (
+                      <td
+                        style={{ textAlign: val.textAlign }}
+                        className={`${style.item} ${style.toggle}`}
+                        key={index}
+                      >
+                        <ToggleSwitch
+                          onChange={(b) => {
+                            setAddRowData((prev: any) => ({
+                              ...prev,
+                              [`${val.key}`]: b,
+                            }));
+                          }}
+                        />
+                      </td>
+                    );
                   case "button":
                     return (
                       <td
@@ -731,6 +750,30 @@ const Table = (props: Props) => {
                                 />
                               )}
                             </span>
+                          </td>
+                        );
+                      case "toggle":
+                        return (
+                          <td
+                            style={{ textAlign: val.textAlign }}
+                            className={`${style.item} ${style.toggle}`}
+                            key={index}
+                          >
+                            <ToggleSwitch
+                              defaultChecked={row[`${val.key}`]}
+                              onChange={(b) => {
+                                const arr = [...tableData.data];
+                                const ii = arr.findIndex(
+                                  (r) => r.tableRowIndex === row.tableRowIndex
+                                );
+                                arr[ii][`${val.key}`] = !arr[ii][`${val.key}`];
+                                setTableData((prev) => ({
+                                  ...prev,
+                                  data: arr,
+                                }));
+                                callOnChangeFunc();
+                              }}
+                            />
                           </td>
                         );
                       case "button":
