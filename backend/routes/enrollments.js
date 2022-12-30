@@ -15,7 +15,8 @@ router.post("/bulk", isLoggedIn, enrollments.enrollbulk);
 router.get("/evaluations", isLoggedIn, enrollments.findEvaluations);
 
 // 수강 정보에 evaluation 작성 (only teacher can access)
-router.put("/:_id/evaluation", isLoggedIn, enrollments.updateEvaluation);
+// router.put("/:_id/evaluation", isLoggedIn, enrollments.updateEvaluation);
+router.put("/:_id/evaluation2", isLoggedIn, enrollments.updateEvaluation2);
 
 // param _id -> only himself/herself can access
 // query season&userId -> 유저의 수강 정보 (-evaluation)

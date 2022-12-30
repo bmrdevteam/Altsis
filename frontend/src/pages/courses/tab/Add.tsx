@@ -162,6 +162,9 @@ const CourseAdd = (props: Props) => {
     return res;
   };
   const subjects = () => {
+    if (!currentSeason?.subjects) {
+      return [{ text: "", value: "" }];
+    }
     const res = [];
     for (let i = 0; i < currentSeason?.subjects.data.length; i++) {
       const value = _.join(currentSeason?.subjects.data[i], "/");
@@ -204,14 +207,16 @@ const CourseAdd = (props: Props) => {
         <div className={style.design_form}>
           <div className={style.title}>강의계획서 생성</div>
           <div style={{ display: "flex", gap: "24px" }}>
-            <Select
-              appearence="flat"
-              label={_.join(currentSeason?.subjects.label, "/")}
-              required
-              setValue={setCourseSubject}
-              options={subjects()}
-              defaultSelectedValue={courseSubject}
-            />
+            {currentSeason?.subjects && (
+              <Select
+                appearence="flat"
+                label={_.join(currentSeason?.subjects?.label, "/")}
+                required
+                setValue={setCourseSubject}
+                options={subjects()}
+                defaultSelectedValue={courseSubject}
+              />
+            )}
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -322,14 +327,22 @@ const CourseAdd = (props: Props) => {
             style={{ marginTop: "24px" }}
             type="ghost"
             onClick={() => {
-              submit()
-                .then((res: any) => {
-                  alert("success");
-                  navigate(`/courses/${res.data._id}`);
-                })
-                .catch((err) => {
-                  alert(err.response.body.message);
-                });
+              if (!courseTitle || courseTitle === "") {
+                alert("제목을 입력해주세요.");
+              } else if (courseMentorList.length === 0) {
+                alert("멘토를 선택해주세요.");
+              } else {
+                submit()
+                  .then((res: any) => {
+                    alert("success");
+                    navigate(`/courses/mylist/${res._id}`, {
+                      replace: true,
+                    });
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
+              }
             }}
           >
             생성

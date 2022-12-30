@@ -42,6 +42,7 @@ import Table from "components/tableV2/Table";
 import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
+import { useNavigate } from "react-router-dom";
 type Props = {
   setPopupActive: any;
   course: string;
@@ -50,6 +51,7 @@ type Props = {
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
   const database = useDatabase();
+  const navigate = useNavigate();
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
@@ -62,10 +64,12 @@ const CourseView = (props: Props) => {
   const categories = () => {
     return (
       <>
-        <div className={style.category}>
-          {_.join(currentSeason?.subjects.label, "/")}:{" "}
-          {_.join(courseData.subject, "/")}
-        </div>{" "}
+        {currentSeason?.subjects?.label && (
+          <div className={style.category}>
+            {_.join(currentSeason?.subjects.label, "/")}:{" "}
+            {_.join(courseData.subject, "/")}
+          </div>
+        )}{" "}
         <div className={style.category}>
           강의실: {courseData.classroom || "없음"}
         </div>
@@ -115,6 +119,9 @@ const CourseView = (props: Props) => {
 
   useEffect(() => {
     if (courseData) {
+      if (courseData.season !== currentSeason._id) {
+        navigate("/courses", { replace: true });
+      }
       // is this syllabus fully confirmed?
       for (let teacher of courseData.teachers) {
         if (!teacher.confirmed) {

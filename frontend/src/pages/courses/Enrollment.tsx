@@ -70,6 +70,8 @@ const CourseEnrollment = (props: Props) => {
   const [permissionEvaluation, setPermissionEvaluation] =
     useState<boolean>(false);
 
+  const [enrollments, setEnrollments] = useState<any[]>();
+
   async function getEnrollmentData() {
     const result = await database.R({
       location: `enrollments/${pid}`,
@@ -102,12 +104,18 @@ const CourseEnrollment = (props: Props) => {
     console.log("res is ", res);
     return res;
   }
+  async function getEnrollments(syllabus: string) {
+    const { enrollments } = await database.R({
+      location: `enrollments/evaluations?syllabus=${syllabus}`,
+    });
+    return enrollments;
+  }
 
   const categories = () => {
     return (
       <>
         <div className={style.category}>
-          {_.join(currentSeason?.subjects.label, "/")}:{" "}
+          {_.join(currentSeason?.subjects?.label, "/")}:{" "}
           {_.join(enrollmentData?.subject, "/")}
         </div>{" "}
         <div className={style.category}>
@@ -156,6 +164,13 @@ const CourseEnrollment = (props: Props) => {
     if (isLoading) {
       getEnrollmentData()
         .then((result) => {
+          if (result.season !== currentSeason._id) {
+            console.log("?");
+            navigate("/courses", { replace: true });
+
+            // navigate("/courses");
+          }
+
           console.log("result.teachers: ", result.teachers);
           if (_.find(result.teachers, { userId: currentUser.userId })) {
             navigate(`../mentoring/${result.syllabus}`, {
@@ -248,6 +263,10 @@ const CourseEnrollment = (props: Props) => {
               break;
             }
           }
+
+          getEnrollments(result.syllabus).then((res: any) => {
+            setEnrollments(res);
+          });
         })
         .catch((err) => {
           alert(err.response.data.message);
@@ -334,6 +353,40 @@ const CourseEnrollment = (props: Props) => {
               header={formEvaluationHeader}
             />
           )}
+          <div style={{ height: "24px" }}></div>
+          <div className={style.title}>수강생 목록</div>
+
+          <Table
+            type="object-array"
+            data={enrollments || []}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+              {
+                text: "학년",
+                key: "studentGrade",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "ID",
+                key: "studentId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "이름",
+                key: "studentName",
+                type: "text",
+                textAlign: "center",
+              },
+            ]}
+          />
         </>
         {confirmStatusPopupActive && (
           <Popup

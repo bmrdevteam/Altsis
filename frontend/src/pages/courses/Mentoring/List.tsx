@@ -178,7 +178,7 @@ const CoursesMentoring = (props: Props) => {
   useEffect(() => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
-      navigate("/courses");
+      navigate("/");
     } else if (currentRegistration.role !== "teacher") {
       alert("멘토링 권한이 없습니다.");
       navigate("/courses");
