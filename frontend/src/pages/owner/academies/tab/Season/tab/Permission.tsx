@@ -224,15 +224,15 @@ const Permission = (props: Props) => {
               <span>선생님</span>
               <ToggleSwitch
                 defaultChecked={isTeacherAllowed}
-                onChange={(e: any) => {
-                  setIsTeacherAllowed(e.target.checked);
+                onChange={(b) => {
+                  setIsTeacherAllowed(b);
                 }}
               />
               <span>학생</span>
               <ToggleSwitch
                 defaultChecked={isStudentAllowed}
-                onChange={(e: any) => {
-                  setIsStudentAllowed(e.target.checked);
+                onChange={(b) => {
+                  setIsStudentAllowed(b);
                 }}
               />
             </div>

@@ -52,8 +52,8 @@ const ThemeSettings = (props: Props) => {
         <div className={style.controls}>
           <ToggleSwitch
             defaultChecked={darkModeActive}
-            onChange={(e: any) => {
-              setDefaultAppTheme(e.target.checked ? "dark" : "light");
+            onChange={(b) => {
+              setDefaultAppTheme(b ? "dark" : "light");
             }}
           />
         </div>
