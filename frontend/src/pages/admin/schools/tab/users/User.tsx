@@ -149,7 +149,7 @@ const Users = (props: Props) => {
                 textAlign: "center",
                 btnStyle: {
                   border: true,
-                  color: "black",
+                  color: "var(--accent-1)",
                   padding: "4px",
                   round: true,
                 },
