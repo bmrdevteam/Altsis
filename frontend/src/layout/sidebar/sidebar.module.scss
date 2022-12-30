@@ -314,7 +314,7 @@
 
             }
 
-            @for $i from 1 through 10 {
+            @for $i from 1 through 20 {
                 .sub_links .sub_link_container:nth-child(#{$i}n) {
                     animation-duration: #{$i * 0.7}s;
 
