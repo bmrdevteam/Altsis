@@ -237,6 +237,8 @@ const Form = (props: Props) => {
               type={"ghost"}
               onClick={() => {
                 const _formEvaluation = formEvaluation?.map((elem: any) => {
+                  elem.type = elem.type || "input";
+                  elem.authOption = elem.authOption || "editByTeacher";
                   elem.auth = {
                     edit: {
                       teacher:
@@ -251,6 +253,8 @@ const Form = (props: Props) => {
                         elem.authOption === "editByTeacherAndStudentCanView",
                     },
                   };
+                  elem.combineBy = elem.combineBy || "term";
+
                   return elem;
                 });
 
@@ -259,7 +263,7 @@ const Form = (props: Props) => {
                   setFormEvaluation([...res]);
                   props.setSelectedSeason(props.seasonData);
 
-                  setFormEvaluationPopupActive(false);
+                  // setFormEvaluationPopupActive(false);
                 });
               }}
             >
@@ -271,11 +275,7 @@ const Form = (props: Props) => {
             type="object-array"
             data={formEvaluation ?? []}
             onChange={(e: any[]) => {
-              setFormEvaluation(
-                e.filter(
-                  (elem: any) => elem.label && elem.type && elem.authOption
-                )
-              );
+              setFormEvaluation(e.filter((elem: any) => elem.label));
             }}
             header={[
               {
@@ -323,6 +323,25 @@ const Form = (props: Props) => {
                   },
                 },
                 width: "180px",
+                textAlign: "center",
+              },
+              {
+                text: "평가단위",
+                key: "combineBy",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "status",
+                status: {
+                  term: {
+                    text: "학기",
+                    color: "green",
+                  },
+                  year: {
+                    text: "학년도",
+                    color: "gray",
+                  },
+                },
+                width: "100px",
                 textAlign: "center",
               },
 
