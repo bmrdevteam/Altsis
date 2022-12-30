@@ -7,7 +7,6 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
 import useInterval from "hooks/useInterval";
 import { useNavigate } from "react-router-dom";
