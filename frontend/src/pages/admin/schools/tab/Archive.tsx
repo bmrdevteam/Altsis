@@ -1,31 +1,24 @@
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
+import { useAuth } from "contexts/authContext";
 import { unflattenObject } from "functions/functions";
 import useApi from "hooks/useApi";
-import useDatabase from "hooks/useDatabase";
-import React, { useEffect, useState } from "react";
+import _ from "lodash";
+import React, { useEffect, useRef, useState } from "react";
 type Props = {
   schoolData: any;
 };
 
 function Archive(props: Props) {
-  const database = useDatabase();
   const { SchoolApi } = useApi();
-  const [archiveForm, setArchiveForm] = useState<any>();
+  const { currentSchool } = useAuth();
+  const formData = useRef<any>(currentSchool.formArchive);
   const [editArchivePopupActive, setEditArchivePopupActive] =
     useState<boolean>(false);
   const [editArchivefield, setEditArchivefield] = useState<string>();
 
   useEffect(() => {
-    database
-      .R({
-        location: `schools/${props.schoolData._id}`,
-      })
-      .then((res) => {
-        setArchiveForm(res.formArchive);
-      });
-
     console.log(props.schoolData);
   }, []);
 
@@ -34,15 +27,10 @@ function Archive(props: Props) {
       <div style={{ marginTop: "24px" }}>
         <Button
           type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
           onClick={() => {
             SchoolApi.USchoolFormArchive({
               schoolId: props.schoolData._id,
-              data: archiveForm,
+              data: formData.current,
             })
               .then(() => alert("저장 성공"))
               .catch(() => alert("저장 실패"));
@@ -55,13 +43,11 @@ function Archive(props: Props) {
         <Table
           type="object-array"
           control
-          data={archiveForm ?? []}
+          data={formData.current ?? []}
           onChange={(e) => {
-            setArchiveForm(
-              e.map((v) => {
-                return unflattenObject(v);
-              })
-            );
+            formData.current = e.map((v) => {
+              return unflattenObject(v);
+            });
           }}
           header={[
             {
@@ -150,6 +136,14 @@ function Archive(props: Props) {
                 height: "32px",
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
               }}
+              onClick={() => {
+                SchoolApi.USchoolFormArchive({
+                  schoolId: props.schoolData._id,
+                  data: formData.current,
+                })
+                  .then(() => alert("저장 성공"))
+                  .catch(() => alert("저장 실패"));
+              }}
             >
               저장
             </Button>
@@ -158,11 +152,16 @@ function Archive(props: Props) {
           <Table
             type="object-array"
             data={
-              archiveForm?.filter(
+              formData.current?.filter(
                 (val: any) => val.label === editArchivefield
               )[0].fields ?? []
             }
-            onChange={(e) => {}}
+            onChange={(e) => {
+              let fields = e.map((o) => unflattenObject(o));
+              formData.current.find(
+                (o: any) => o.label === editArchivefield
+              ).fields = fields;
+            }}
             header={[
               {
                 text: "필드 이름",
@@ -188,17 +187,23 @@ function Archive(props: Props) {
                     text: "숫자",
                     color: "#00B3AD",
                   },
-                  total: {
-                    text: "합산",
-                    color: "#00B3AD",
-                  },
-                  runningTotal: {
-                    text: "누계 합산",
-                    color: "#00B3AD",
-                  },
                 },
                 width: "80px",
                 textAlign: "center",
+              },
+              {
+                text: "합산",
+                key: "total",
+                textAlign:"center",
+                width: "80px",
+                type: "toggle",
+              },
+              {
+                text: "누계합산",
+                key: "runningTotal",
+                textAlign:"center",
+                width: "80px",
+                type: "toggle",
               },
               {
                 text: "수정",
@@ -217,5 +222,3 @@ function Archive(props: Props) {
 }
 
 export default Archive;
-
-
