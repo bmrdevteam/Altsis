@@ -1,26 +1,35 @@
-const mongoose=require('mongoose')
-const config=require('../config/config')
-const root=require('./root')
-const Academy=require('../models/Academy')
+const mongoose = require("mongoose");
+const root = require("./root");
+const Academy = require("../models/Academy");
 
-const conn={"root":root};
+const getURL = (dbName) => {
+  return `${process.env[
+    "DB_URL"
+  ].trim()}/${dbName}?retryWrites=true&w=majority`;
+};
 
-Academy.find({},(err,academies)=>{
-    academies.forEach(academy => {
-        const dbName=academy["academyId"]+'-db'
-        conn[dbName]=mongoose.createConnection(config["url"](dbName))
-    });
-    console.log(Object.keys(conn))
-})
+const conn = { root: root };
 
-exports.addConnection=({dbName,newConn})=>{
-    conn[dbName]=newConn;
-    console.log(`coonection to [${dbName}]is added`);
-}
+Academy.find({}, (err, academies) => {
+  academies.forEach((academy) => {
+    if (academy.academyId != "root") {
+      conn[academy.academyId] = mongoose.createConnection(
+        getURL(academy.dbName)
+      );
+    }
+  });
+  console.log(Object.keys(conn));
+});
 
-exports.deleteConnection=(academyId)=>{
-    delete conn[academyId];
-    console.log('coonection is deleted');
-}
+exports.addConnection = (academyId, dbName) => {
+  conn[academyId] = mongoose.createConnection(getURL(dbName));
+  console.log(`coonection to [${academyId}(${dbName})]is added`);
+};
 
-exports.conn =conn
+exports.deleteConnection = async (academyId) => {
+  await conn[academyId].db.dropDatabase();
+  delete conn[academyId];
+  console.log(`coonection to [${academyId}]is deleted`);
+};
+
+exports.conn = conn;

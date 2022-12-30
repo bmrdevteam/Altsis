@@ -1,18 +1,48 @@
-import React from 'react'
+/**
+ * @file divider component
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * - divider component
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
 
-type Props = {}
-
-const Divider = (props: Props) => {
+/**
+ * divider component
+ *
+ * @returns divider component
+ * 
+ * @version 1.0 initial version
+ */
+const Divider = () => {
   return (
     <div
-    style={{
-      width: "100%",
-      height: "1px",
-      backgroundColor: "rgb(225,225,225)",
-      margin: "12px 0",
-    }}
-  ></div>
-  )
-}
+      style={{
+        width: "100%",
+        borderBottom: "var(--border-default)",
+        margin: "12px 0",
+      }}
+    ></div>
+  );
+};
 
-export default Divider
+export default Divider;

@@ -1,0 +1,16 @@
+.skeleton {
+    animation: skeleton-loading 1s linear infinite alternate;
+    border-radius: 4px;
+    background-color: var(--accent-5);
+}
+
+@keyframes skeleton-loading {
+    0% {
+        opacity: .6;
+    }
+
+    100% {
+        opacity: .9;
+
+    }
+}

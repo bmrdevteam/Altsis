@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./select.module.scss";
 type Props = {
@@ -6,22 +12,46 @@ type Props = {
     text: string;
     value: string | number;
   }[];
-  style?: {
-    minWidth?: string;
-    width?: string;
-  };
+  style?: CSSProperties;
   ref?: any;
   label?: string;
   required?: boolean;
 
-  defaultSelected?: number;
+  defaultSelectedIndex?: number;
+  defaultSelectedValue?: number | string;
+  selectedValue?: string | number;
+
   setValue?: any;
-  onchange?: any;
+  onChange?: any;
+  appearence?: "flat";
 };
+
+/**
+ *
+ *
+ *
+ * @param options
+ * @param style
+ * @param ref
+ * @param label
+ * @param required
+ * @param defaultSelected
+ * @param setValue
+ * @param onchange
+ * @param appearence
+ *
+ * @returns
+ *
+ * @example <Select options={[{text:"",value:""},{text:"",value:""}]}/>
+ */
 
 const Select = (props: Props) => {
   const [selected, setSelected] = useState<number>(
-    props.defaultSelected ? props.defaultSelected : 0
+    props.defaultSelectedValue
+      ? props.options?.findIndex((e) => e.value === props.defaultSelectedValue)
+      : props.defaultSelectedIndex
+      ? props.defaultSelectedIndex
+      : 0
   );
 
   const [edit, setEdit] = useState<boolean>(false);
@@ -34,7 +64,6 @@ const Select = (props: Props) => {
   }
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    // props.defaultSelected && setSelected(props.defaultSelected);
     props.setValue && props.setValue(props.options[selected].value);
 
     return () => {
@@ -43,24 +72,41 @@ const Select = (props: Props) => {
   }, []);
 
   useEffect(() => {
-    props.onchange?.(props.options[selected].value);
-  }, [selected]);
+    if (props.selectedValue) {
+      setSelected(
+        props.options.findIndex((val) => val.value === props.selectedValue)
+      );
+    }
+  }, [props.selectedValue]);
+
+  // useEffect(() => {
+  //   if (selected >= 0 && typeof selected === "number") {
+  //     props.onChange?.(props.options[selected].value);
+  //   }
+  //   console.log(selected);
+  // }, [selected]);
 
   const Options = () => {
     return (
-      <div className={style.options}>
+      <div
+        className={style.options}
+        style={{ borderRadius: props.style?.borderRadius }}
+      >
         {props.options.map((value, index) => {
           return (
             <div
               onClick={() => {
+                if (props.onChange && index !== selected) {
+                  props.onChange(value.value);
+                }
                 setSelected(index);
                 props.setValue && props.setValue(props.options[index].value);
               }}
-              data-value={value.value}
+              data-value={value?.value}
               className={style.option}
               key={index}
             >
-              {value.text}
+              {value?.text}
             </div>
           );
         })}
@@ -70,24 +116,30 @@ const Select = (props: Props) => {
   return (
     <div
       ref={selectRef}
-      className={style.select}
-      style={{ width: props.style?.width }}
+      className={`${style.select} ${props.appearence === "flat" && style.flat}`}
+      style={props.style}
     >
-      <label className={style.label}>
-        {props.label}
-        {props.required && <span className={style.required}>*</span>}
-      </label>
+      {props.label && (
+        <label className={style.label}>
+          {props.label}
+          {props.required && <span className={style.required}>*</span>}
+        </label>
+      )}
       <div
         ref={props.ref}
         className={style.selected}
-        style={{ minWidth: props.style?.minWidth, width: props.style?.width }}
+        style={{
+          minWidth: props.style?.minWidth,
+          width: props.style?.width,
+          borderRadius: props.style?.borderRadius,
+        }}
         onClick={() => {
           setEdit((prev) => !prev);
         }}
       >
-        <span className={style.text}>{props.options[selected].text}</span>
+        <span className={style.text}>{props.options[selected]?.text}</span>
         <span className={style.icon}>
-          <Svg type={"caretDown"} />
+          <Svg type={edit ? "chevronUp" : "chevronDown"} />
         </span>
         {edit && <Options />}
       </div>

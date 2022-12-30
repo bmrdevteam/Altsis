@@ -1,22 +1,56 @@
-import React, { useEffect, useState } from "react";
+/**
+ * @file Schools Pid Page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import style from "../../../style/pages/admin/schools/schools.module.scss";
+import style from "style/pages/admin/schools.module.scss";
 
-// NavigationLinks component
-import NavigationLinks from "../../../components/navigationLinks/NavigationLinks";
-
-// tab component
-import Tab from "../../../components/tab/Tab";
+// components
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Tab from "components/tab/Tab";
 
 // tab elements
 import BasicInfo from "./tab/BasicInfo";
-import Classroom from "./tab/Classroom";
-import Season from "./tab/Season";
-import Subject from "./tab/Subject";
-import Form from "./tab/Form";
+import Classroom from "./tab/classrooms/Classroom";
+import Season from "./tab/seasons/Season";
+import Subject from "./tab/subjects/Subject";
 import useDatabase from "../../../hooks/useDatabase";
-import Setting from "./tab/Setting";
+import Skeleton from "../../../components/skeleton/Skeleton";
+import Archive from "./tab/Archive";
+import Form from "./tab/Form";
+import Permission from "./tab/Permission";
+import User from "./tab/users/User";
+
+import { useAuth } from "contexts/authContext";
+import Navbar from "layout/navbar/Navbar";
+import Evaluation from "./tab/Evaluation";
 
 type Props = {};
 
@@ -49,59 +83,85 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
+  const { currentUser, currentSchool } = useAuth();
 
   const database = useDatabase();
-
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<any>();
-  const [resetSchoolData, setResetSchoolData] = useState<boolean>(true);
-  const [schoolsList, setSchoolsList] = useState<any>([]);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
-  async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools/list" });
-    setSchoolsList(res);
+  async function getSchool() {
+    const res = await database.R({ location: `schools/${pid}` });
     return res;
   }
 
   useEffect(() => {
-    if (resetSchoolData) {
-      getSchoolList().then((res) => {
-        if (res.filter((val: any) => val._id === pid).length === 0) {
-          setIsSchool(false);
-        }
-        setSchoolData(res.filter((val: any) => val._id === pid)[0]);
-      });
-      console.log("reset");
+    if (isLoading) {
+      if (pid) {
+        getSchool()
+          .then((res) => {
+            console.log(res);
+            setSchoolData(res);
+          })
+          .catch(() => {
+            setIsSchool(false);
+          });
+      } else {
+        setSchoolData(currentSchool);
+      }
 
-      setResetSchoolData(false);
+      setIsLoading(false);
     }
-    return () => {};
-  }, [resetSchoolData]);
+  }, [isLoading]);
 
   if (!isSchool) {
     return <CannotFindSchool />;
   }
   return (
-    <div className={style.section}>
-      <NavigationLinks />
+    <>
+      <Navbar />
+      <div className={style.section}>
+        {/* <NavigationLinks /> */}
 
-      <div className={style.title}>
-        {schoolData !== undefined && schoolData.schoolName}
+        <div className={style.title}>
+          {schoolData !== undefined ? (
+            schoolData.schoolName
+          ) : (
+            <Skeleton height="22px" width="20%" />
+          )}
+        </div>
+        {schoolData && (
+          <Tab
+            items={{
+              "기본 정보": <BasicInfo schoolData={schoolData} />,
+              학기: <Season />,
+              사용자: <User schoolData={schoolData} />,
+              교과목: (
+                <Subject
+                  schoolData={schoolData}
+                  setSchoolData={setSchoolData}
+                />
+              ),
+              강의실: (
+                <Classroom
+                  schoolData={schoolData}
+                  setSchoolData={setSchoolData}
+                />
+              ),
+              양식: <Form />,
+              권한: (
+                <Permission
+                  schoolData={schoolData}
+                  setSchoolData={setSchoolData}
+                />
+              ),
+              평가: <Evaluation schoolData={schoolData} />,
+              "기록 관리": <Archive schoolData={schoolData} />,
+            }}
+          />
+        )}
       </div>
-
-      <Tab
-        items={{
-          "기본 정보": <BasicInfo school={schoolData} />,
-          학기: <Season />,
-          교과목: <Subject school={schoolData} />,
-          강의실: (
-            <Classroom school={schoolData} resetData={setResetSchoolData} />
-          ),
-          "양식(beta)": <Form />,
-          "설정(test)": <Setting />,
-        }}
-      />
-    </div>
+    </>
   );
 };
 

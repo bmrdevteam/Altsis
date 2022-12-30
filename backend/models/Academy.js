@@ -1,17 +1,60 @@
-const mongoose=require('mongoose')
-const moment=require('moment')
-const conn=require('../databases/root')   
+const mongoose = require("mongoose");
+const conn = require("../databases/root");
 
-const academySchema=mongoose.Schema({
-    academyId:{
-        type:String,
-        unique:true
+const validate = require("../utils/validate");
+
+const academySchema = mongoose.Schema(
+  {
+    academyId: {
+      type: String,
+      unique: true,
+      validate: (val) => validate("academyId", val),
     },
-    academyName:String,
-    email:String,
-    tel:String,
-    adminId:String,
-    adminName:String
-},{ timestamps: true });
+    academyName: {
+      type: String,
+      validate: (val) => validate("academyName", val),
+    },
+    email: {
+      type: String,
+      validate: (val) => validate("email", val),
+    },
+    tel: {
+      type: String,
+      validate: (val) => validate("tel", val),
+    },
+    adminId: {
+      type: String,
+      validate: (val) => validate("userId", val),
+    },
+    adminName: {
+      type: String,
+      validate: (val) => validate("userName", val),
+    },
+    dbName: {
+      type: String,
+    },
+    isActivated: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
 
-module.exports=conn.model('Academy',academySchema);
+academySchema.statics.isValid = function (academy) {
+  for (let field of ["academyId", "academyName"]) {
+    if (!validate(field, academy[field])) return false;
+  }
+  if (academy["email"] && !validate("email", academy["email"])) return false;
+  if (academy["tel"] && !validate("tel", academy["tel"])) return false;
+  if (!validate("userId", academy["adminId"])) return false;
+  if (!validate("userName", academy["adminName"])) return false;
+  return true;
+};
+
+academySchema.pre("save", function (next) {
+  var user = this;
+  if (user.isModified("academyId")) {
+    user.dbName = user.academyId + "-db";
+  }
+  next();
+});
+
+module.exports = conn.model("Academy", academySchema);

@@ -1,43 +1,52 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const user = require("../controllers/user");
-const {isLoggedIn,isNotLoggedIn,isOwner,isAdmin,isAdManager}=require("../middleware/auth");
+const users = require("../controllers/users");
+const {
+  isLoggedIn,
+  isAdManager,
+  forceNotLoggedIn,
+  isAdmin,
+} = require("../middleware/auth");
+const profile = require("../controllers/profiles");
 
 //=================================
 //             User
 //=================================
 
 // ____________ common ____________
+router.post("/login/local", forceNotLoggedIn, users.loginLocal);
+router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
+router.get("/logout", isLoggedIn, users.logout);
 
-/* local & google login */
-router.post('/login/local',isNotLoggedIn,user.loginLocal);
-router.post("/login/google",isNotLoggedIn,user.loginGoogle);
+// ___________ create _____________
+router.post("/", isAdmin, users.create);
+router.post("/bulk", isAdmin, users.createBulk);
 
-/* connect to social account */
-router.post('/google',isLoggedIn,user.connectGoogle);
-router.delete('/google',isLoggedIn,user.disconnectGoogle);
+// ___________ find _____________
+router.get("/current", isLoggedIn, users.current);
+router.get("/:_id?", isLoggedIn, users.find);
 
-/* logout */
-router.get("/logout", isLoggedIn,user.logout);
+// ___________ update(onself) _____________
 
-// read & update oneself
-router.get('/',isLoggedIn,user.read);
-router.put('/:field',isLoggedIn,user.updateField);
+router.post("/profile", isLoggedIn, profile.upload);
+// router.get("/profile", isLoggedIn, profile.read);
+router.delete("/profile", isLoggedIn, profile.delete);
 
-// ____________ owner ____________
-router.post('/owners',isOwner,user.validateOwner,user.createOwner);
-router.get('/owners/list',isOwner, user.readOwners);
-router.get('/admins',isOwner, user.readAdmin);
+router.put("/google", isLoggedIn, users.connectGoogle);
+router.delete("/google", isLoggedIn, users.disconnectGoogle);
 
-// ____________ admin ____________
-// admin appoints member as manager
-router.post('/managers/:_id',isAdmin,user.appointManager);
-router.delete('/managers/:_id',isAdmin,user.cancelManager);
+router.put("/email", isLoggedIn, users.updateEmail);
+router.put("/tel", isLoggedIn, users.updateTel);
+router.put("/password", isLoggedIn, users.updatePassword);
 
-// ____________ admin + manager ____________
-router.post('/members',isAdManager,user.validateMembers,user.createMembers);
-router.get('/members/list',isAdManager,user.readMembers);
-router.put('/members/:_id/:field',isAdManager,user.validateUpdate,user.updateMemberField);
-router.delete('/members/:_id',isAdManager,user.deleteMember);
+// ___________ update _____________
+
+router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
+router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
+
+router.put("/:_id", isLoggedIn, users.update);
+
+// ___________ delete _____________
+router.delete("/:_ids", isAdmin, users.delete);
 
 module.exports = router;

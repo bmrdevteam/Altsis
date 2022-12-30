@@ -1,90 +1,337 @@
-import React from "react";
-import FIleUploader from "../../../components/fileUploader/FIleUploader";
+/**
+ * @file Users Page
+ * viewing academy Users
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
 
-import Select from "../../../components/select/Select";
-import Table from "../../../components/table/Table";
-import useSearch from "../../../hooks/useSearch";
-import style from "../../../style/pages/admin/users.module.scss";
+import { useEffect, useState, useRef } from "react";
+
+// style
+import style from "style/pages/admin/users.module.scss";
+
+// hooks
+import useDatabase from "hooks/useDatabase";
+
+// components
+import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import Button from "components/button/Button";
+import Input from "components/input/Input";
+import Popup from "components/popup/Popup";
+import Table from "components/tableV2/Table";
+import Select from "components/select/Select";
+
+// popup/tab elements
+import Basic from "./tab/Basic";
+import Add from "./tab/Add";
+import AddBulk from "./tab/AddBulk";
+import SchoolBulk from "./tab/SchoolBulk";
+import _ from "lodash";
 
 type Props = {};
 
 const Users = (props: Props) => {
-  const search = useSearch([
-    { id: "asdf", name: "namefusefas" },
-    { id: "aassdf", name: "namefuefas" },
-    { id: "asdqwef", name: "1" },
-    { id: "asdsfasddf", name: "namefuefas" },
-    { id: "asdf", name: "namefuefas" },
-    { id: "asdwqef", name: "namefuefas" },
-    { id: "asdf", name: "namefuefas" },
-    { id: "asdf", name: "namefuefas" },
-    { id: "dasdf", name: "asdfkje4sadnfeevdfdw" },
-  ]);
+  const database = useDatabase();
+  const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
+  const [isUserListLoading, setIsUserListLoading] = useState(false);
 
-  console.log(search.result());
+  /* user list */
+  const [userList, setUserList] = useState<any>();
+  const [user, setUser] = useState<string>();
+
+  /* school list */
+  const [schoolList, setSchoolList] = useState<any>();
+  const [school, setSchool] = useState<any>();
+
+  const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
+  const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
+  const [addBulkPopupActive, setAddBulkPopupActive] = useState<boolean>(false);
+  const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
+  const userSelectRef = useRef<any[]>([]);
+
+  async function getAcademyUsers() {
+    const { users: res } = await database.R({
+      location: `users?${
+        school?._id ? `schools.school=${school._id}` : `no-school=true`
+      }`,
+    });
+    console.log("res[0] is ", res[0]);
+    return res;
+  }
+
+  const schools = () => {
+    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
+
+    for (let i = 0; i < schoolList?.length; i++) {
+      result.push({
+        text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
+        value: JSON.stringify(schoolList[i]),
+      });
+    }
+    return result;
+  };
+
+  async function getSchoolList() {
+    const { schools } = await database.R({
+      location: `schools`,
+    });
+    return schools;
+  }
+
+  async function deleteUsers() {
+    const res = await database.D({
+      location: `users/${_.join(
+        _.filter(userSelectRef.current, (user) => user.auth !== "admin").map(
+          (user) => user._id
+        ),
+        "&"
+      )}`,
+    });
+    return res;
+  }
+
+  useEffect(() => {
+    if (isSchoolListLoading) {
+      getSchoolList()
+        .then((res) => {
+          setSchoolList(res);
+          setIsSchoolListLoading(false);
+          setIsUserListLoading(true);
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
+    return () => {};
+  }, [isSchoolListLoading]);
+
+  useEffect(() => {
+    if (isUserListLoading) {
+      getAcademyUsers()
+        .then((res) => {
+          setUserList(res);
+          setIsUserListLoading(false);
+          userSelectRef.current = [];
+        })
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
+    return () => {};
+  }, [isUserListLoading]);
 
   return (
-    <div className={style.section}>
-      <div className={style.title}>아카데미 유저 관리</div>
-      <div className={style.filter_container}>
-        <div className={style.filter}>
-          <Select
-            options={[
-              { text: "ID", value: "id" },
-              { text: "Name", value: "name" },
-              { text: "Role", value: "role" },
-            ]}
-          />
+    <>
+      <div className={style.section}>
+        <NavigationLinks />
+        <div className={style.title}>아카데미 사용자 관리</div>
+        <div style={{ height: "24px" }}></div>
+        <Select
+          style={{ minHeight: "30px" }}
+          required
+          label={"학교 선택"}
+          options={!isSchoolListLoading ? schools() : [{ text: "", value: "" }]}
+          setValue={(e: string) => {
+            setSchool(e ? JSON.parse(e) : {});
+            setIsUserListLoading(true);
+          }}
+          appearence={"flat"}
+        />
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            setAddPopupActive(true);
+          }}
+        >
+          + 단일 사용자 생성
+        </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            setAddBulkPopupActive(true);
+          }}
+        >
+          + 사용자 일괄 생성
+        </Button>
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            console.log("userSelectRef.current is ", userSelectRef.current);
+            if (userSelectRef.current.length === 0) {
+              alert("선택된 사용자가 없습니다.");
+            } else {
+              deleteUsers()
+                .then((res: any) => {
+                  alert("success");
+                  userSelectRef.current = [];
+                  setIsUserListLoading(true);
+                })
+                .catch((err) => alert(err.response.data.message));
+            }
+          }}
+        >
+          선택된 사용자 삭제
+        </Button>
 
-          <Select
-            options={[
-              { text: "=", value: "=" },
-              { text: ">", value: ">" },
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            margin: "24px 0",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={async () => {
+            console.log("userSelectRef.current is ", userSelectRef.current);
+            if (userSelectRef.current.length === 0) {
+              alert("선택된 사용자가 없습니다.");
+            } else {
+              setSchoolBulkPopupActive(true);
+            }
+          }}
+        >
+          선택된 사용자 학교 설정
+        </Button>
+
+        <div>
+          <Table
+            type="object-array"
+            control
+            data={userList || []}
+            defaultPageBy={50}
+            onChange={(value: any[]) => {
+              userSelectRef.current = _.filter(value, {
+                tableRowChecked: true,
+              });
+            }}
+            header={[
+              {
+                text: "",
+                key: "checkbox",
+                type: "checkbox",
+                width: "48px",
+              },
+              { text: "ID", key: "userId", type: "text", textAlign: "center" },
+              {
+                text: "이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
+              },
+
+              // {
+              //   text: "학교",
+              //   key: "schools",
+              //   type: "text",
+
+              //   // returnFunction: (val) =>
+              //   //   _.join(
+              //   //     val.map((school: any) => school.schoolName),
+              //   //     ", "
+              //   //   ),
+              // },
+              {
+                text: "등급",
+                key: "auth",
+                textAlign: "center",
+                type: "status",
+                fontSize: "12px",
+                fontWeight: "600",
+                status: {
+                  admin: { text: "관리자", color: "red" },
+                  manager: { text: "매니저", color: "violet" },
+                  member: { text: "멤버", color: "gray" },
+                },
+                width: "100px",
+              },
+              {
+                text: "자세히",
+                type: "button",
+                onClick: (e: any) => {
+                  setUser(e._id);
+                  setEditPopupActive(true);
+                },
+                width: "80px",
+                textAlign: "center",
+              },
             ]}
           />
-          <input type="text" placeholder="검색" className={style.value} />
         </div>
       </div>
-      <div style={{ height: "24px" }}></div>
-      <div style={{ backgroundColor: "#fff" }}>
-        <FIleUploader />
-
-        <Table
-          data={search.result()}
-          header={[
-            {
-              text: "",
-              key: "",
-              type: "checkbox",
-              width: "48px",
-              align: "center",
-            },
-            {
-              text: "id",
-              key: "",
-              type: "index",
-              width: "48px",
-              align: "center",
-            },
-            { text: "the firsta", key: "id", type: "string", align: "right" },
-            { text: "namefield", key: "name", type: "string" },
-          ]}
+      {editPopupActive && user && (
+        <Basic
+          user={user}
+          schoolList={schoolList}
+          setPopupAcitve={setEditPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
         />
-      </div>
-
-      {/* <List
-        header={[
-          { text: "ID", value: "id" },
-          { text: "Name", value: "name" },
-          { text: "Role", value: "role" },
-        ]}
-        data={[
-          { id: "asdf", name: "namefuefas" },
-          { id: "dasdf", name: "asdfkje4sadnfeevdfdw" },
-        ]}
-        widthRatio={[1, 2, 1]}
-      /> */}
-    </div>
+      )}
+      {addPopupActive && (
+        <Add
+          schoolData={school}
+          schoolList={schoolList}
+          setPopupAcitve={setAddPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+        />
+      )}
+      {addBulkPopupActive && (
+        <AddBulk
+          schoolData={school}
+          schoolList={schoolList}
+          setPopupActive={setAddBulkPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+        />
+      )}
+      {schoolBulkPopup && (
+        <SchoolBulk
+          schoolList={schoolList}
+          setPopupActive={setSchoolBulkPopupActive}
+          setIsUserListLoading={setIsUserListLoading}
+          selectedUserList={userSelectRef.current}
+        />
+      )}
+    </>
   );
 };
 

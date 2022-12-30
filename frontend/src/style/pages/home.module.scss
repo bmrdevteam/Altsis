@@ -1,0 +1,95 @@
+.section {
+    /* margin: 24px; */
+    padding: 24px;
+    height: calc(100% - 56px);
+    overflow: hidden;
+    .title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        color: var(--accent-1);
+    }
+
+    .overview_container {
+        overflow-y: scroll;
+
+        .overview {
+            display: flex;
+            gap: 12px;
+
+            .card {
+                border: var(--border-default);
+                border-radius: 8px;
+                padding: 12px;
+                min-width: 240px;
+                width: 240px;
+            }
+        }
+
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .overview_container::-webkit-scrollbar {
+        display: none;
+    }
+
+
+    .schedule_container {
+        border-radius: 8px;
+        // border: var(--border-default);
+        margin-top: 12px;
+
+        .title {
+            font-size: 16px;
+        }
+
+        .schedule {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+
+            .item:before {
+                content: "";
+                width: 4px;
+                border-radius: 10px;
+                left: 10px;
+                height: calc(100% - 24px);
+                background-color: rgb(70, 133, 222);
+                position: absolute;
+
+            }
+
+            .item:hover {
+                background-color: var(--background-hover-color);
+            }
+
+            .item {
+                border: var(--border-default);
+                cursor: pointer;
+                border-radius: 8px;
+                color: var(--accent-1);
+                padding: 12px 12px 12px 24px;
+                max-width: 300px;
+                position: relative;
+
+
+
+                .description {
+                    font-size: 13px;
+                    font-weight: 600;
+                    padding-bottom: 8px;
+                }
+
+
+                .controls {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: var(--accent-4);
+                    display: flex;
+                    justify-content: space-between;
+                }
+            }
+        }
+    }
+}

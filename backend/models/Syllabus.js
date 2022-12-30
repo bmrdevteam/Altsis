@@ -1,128 +1,118 @@
-const mongoose = require('mongoose')
-const moment = require('moment');
-const { conn } = require('../databases/connection')
-const TimeBlock=require('./TimeBlock');
+const mongoose = require("mongoose");
+const { conn } = require("../databases/connection");
+const TimeBlock = require("./TimeBlock");
 
+const syllabusSchema = mongoose.Schema(
+  {
+    season: {
+      type: mongoose.Types.ObjectId,
+      required: true,
+    },
+    school: mongoose.Types.ObjectId,
+    schoolId: String,
+    schoolName: String,
+    year: String,
+    term: String,
+    userId: {
+      type: String,
+      required: true,
+    },
+    userName: {
+      type: String,
+      required: true,
+    },
+    classTitle: {
+      type: String,
+      required: true,
+    },
+    time: {
+      type: [TimeBlock],
+    },
+    classroom: String,
+    subject: {
+      type: [String],
+    },
+    point: {
+      type: Number,
+      default: 0,
+    },
+    limit: {
+      type: Number,
+      default: 0,
+    },
 
-const syllabusSchema = mongoose.Schema({
-    classTitle:{
-        type:String,
-        required:true
+    info: Object,
+    teachers: {
+      type: [
+        mongoose.Schema(
+          {
+            userId: {
+              type: String,
+              required: true,
+            },
+            userName: {
+              type: String,
+              required: true,
+            },
+            confirmed: {
+              type: Boolean,
+              default: false,
+            },
+          },
+          { _id: false }
+        ),
+      ],
+      validate: (v) => Array.isArray(v) && v.length > 0,
+      required: true,
     },
-    userId:{
-        type:String,
-        required:true
-    },
-    userName:{
-        type:String,
-        required:true
-    },
-    schoolId:{
-        type:String,
-        required:true
-    },
-    schoolName:{
-        type:String,
-        required:true
-    },
-    year:{
-        type:String,
-        required:true
-    },
-    term:{
-        type:String,
-        required:true
-    },
-    confirmed:{
-        type:Boolean,
-        default:false
-    },
-    time:{
-        type:[TimeBlock],
-        validate: v => Array.isArray(v) && v.length > 0,
-        required:true
-    },
-    classroom:String,
-    point:{
-        type:Number,
-        default:0
-    },
-    subject:{
-        type:Array,
-        required:true
-    },
-    teachers:{
-        type:[
-            mongoose.Schema({
-                userId:{
-                    type:String,
-                    required:true
-                },
-                userName:{
-                    type:String,
-                    required:true
-                }
-            },{_id:false})],
-        validate: v => Array.isArray(v) && v.length > 0,
-        required:true
-        },
-    info: Object
-},{ timestamps: true });
+    temp: Object,
+  },
+  { timestamps: true }
+);
 
-syllabusSchema.methods.getSubdocument=function(){
-    console.log('methods... ',this);
-    return {
-        _id: this._id,
-        schoolId: this.schoolId,
-        schoolName: this.schoolName,
-        year: this.year,
-        term: this.term,
-        classTitle: this.classTitle,
-        time: this.time,
-        point: this.point,
-        subject: this.subject
-    }
-}
+syllabusSchema.index({
+  season: 1,
+});
 
-syllabusSchema.methods.isTimeEqual=function(time){
-    if(this.time.length!=time.legth){
-        return false;
-    }
-    for(let i=0;i<this.time;i++){
-        if(!this.time[i].isEqual(time[i])){
-            return false;
-        }
-    }
-    return true;
-}
+const days = { 월: 0, 화: 1, 수: 2, 목: 3, 금: 4, 토: 5, 일: 6 };
+const compare = (timeBlock1, timeBlock2) => {
+  if (timeBlock1["day"] === timeBlock2["day"])
+    return timeBlock1["start"] < timeBlock2["start"] ? -1 : 1;
+  return days[timeBlock1["day"]] - days[timeBlock2["day"]];
+};
 
-syllabusSchema.methods.isTimeOverlapped=function(syllabus){
-    for(let block1 of this.time){
-        for(let block2 of syllabus.time){
-            if (block1.isOverlapped(block2)) {
-                return block1;
-            }
-        }
-    }
-    return null;
-}
+syllabusSchema.pre("save", function (next) {
+  var syllabus = this;
 
+  //timeBlock 정렬해서 저장
+  if (syllabus.isModified("time")) {
+    syllabus.time.sort(compare);
+  }
+  next();
+});
 
-syllabusSchema.methods.isTeachersEqual=function(teachers){
-    if(this.teachers.length!=teachers.legth){
-        return false;
-    }
-    for(let i=0;i<this.teachers;i++){
-        if(!this.teachers[i].userId!=teachers[i].userId){
-            return false;
-        }
-    }
-    return true;
-}
-
-
-
+syllabusSchema.methods.getSubdocument = function () {
+  return {
+    syllabus: this._id,
+    userId: this.userId,
+    userName: this.userName,
+    season: this.season,
+    school: this.school,
+    schoolId: this.schoolId,
+    schoolName: this.schoolName,
+    year: this.year,
+    term: this.term,
+    classTitle: this.classTitle,
+    time: this.time,
+    classroom: this.classroom,
+    subject: this.subject,
+    point: this.point,
+    limit: this.limit,
+    info: this.info,
+    teachers: this.teachers,
+  };
+};
 
 module.exports = (dbName) => {
-    return conn[dbName].model('Syllabus', syllabusSchema);
-}
+  return conn[dbName].model("Syllabus", syllabusSchema);
+};

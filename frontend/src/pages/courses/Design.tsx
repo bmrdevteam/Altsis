@@ -1,92 +1,68 @@
-import React, { useEffect, useState } from "react";
-import Autofill from "../../components/input/Autofill";
-import Input from "../../components/input/Input";
-import NavigationLinks from "../../components/navigationLinks/NavigationLinks";
-import Select from "../../components/select/Select";
-import { useAuth } from "../../contexts/authContext";
-import useDatabase from "../../hooks/useDatabase";
-import style from "../../style/pages/courses/courseDesign.module.scss";
+/**
+ * @file Courses Design Page
+ *
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
+
+// Navigation Bar
+import Navbar from "layout/navbar/Navbar";
+
+// tab pages
+import Add from "./tab/Add";
+
 type Props = {};
 
+// create new syllabus
 const CourseDesign = (props: Props) => {
-  const { currentUser } = useAuth();
-  const database = useDatabase();
-
-  const [schoolData, setSchoolData] = useState<any>();
-
-  async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools/list" });
-    setSchoolData(res.filter((val: any) => val._id === currentUser.schools[0])[0]);
-    return res;
-  }
-
-
-
+  const { currentRegistration, currentPermission } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    getSchoolList()
+    if (!currentRegistration) {
+      alert("등록된 학기가 없습니다.");
+      navigate("/");
+    }
+  }, [currentRegistration]);
 
-    
-  }, [])
-  
-  
-  console.log(schoolData);
+  useEffect(() => {
+    if (!currentPermission.permissionSyllabus) {
+      alert("수업 개설 권한이 없습니다.");
+      navigate("/courses");
+    }
+  }, [currentPermission]);
 
   return (
-    <div className={style.section}>
-      <NavigationLinks />
-      <div className={style.title}>수업 개설</div>
-      <div style={{ display: "flex", gap: "24px" }}>
-        <Input label="수업명" required={true} />
-      </div>
-      <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-        <Input
-          label="작성자"
-          required={true}
-          disabled
-          defaultValue={currentUser.userName}
-        />
-        <Select
-          options={[
-            { text: "이세찬", value: "1" },
-            { text: "나도몰라", value: "2" },
-          ]}
-          label="멘토 선택"
-          required
-        />
-
-        <div style={{ display: "flex", flex: "1 1 0", gap: "24px" }}>
-          <Autofill
-            options={[
-              { text: "1", value: "1" },
-              { text: "2", value: "2  " },
-            ]}
-            label="학점"
-            required
-          />
-          <Autofill
-            options={[
-              { text: "상", value: "1" },
-              { text: "중", value: "3" },
-              { text: "하", value: "4" },
-            ]}
-            label="난의도"
-            required
-          />
-        </div>
-      </div>
-      <div style={{ display: "flex", marginTop: "24px" }}>
-        <Select
-          options={[
-            { text: "101호", value: "1" },
-            { text: "201호", value: "2  " },
-          ]}
-          label="강의실 선택"
-          required
-        />
-        <div>시간표 양식</div>
-      </div>
-    </div>
+    <>
+      <Navbar />
+      <Add />
+    </>
   );
 };
 

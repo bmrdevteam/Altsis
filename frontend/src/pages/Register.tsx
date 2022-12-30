@@ -1,12 +1,38 @@
-import React, { Suspense, useEffect, useRef, useState } from "react";
+/**
+ * @file Register Page
+ * 
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ * 
+ * - Register Page
+ * 
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ */
+
+import React, { useEffect, useRef, useState } from "react";
 import style from "../style/pages/login.module.scss";
-import AuthForm, {
-  FormColumn,
-  FormInput,
-  FormSubmit,
-} from "../components/authForm/AuthForm";
 import axios from "axios";
 import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
+import Input from "../components/input/Input";
+import Button from "../components/button/Button";
 
 type Props = {};
 
@@ -17,13 +43,13 @@ const Register = (props: Props) => {
   const passwordCheckRef = useRef<{ value: any }>();
 
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const status = useGoogleLogin();
+  // const status = useGoogleLogin();
 
   useEffect(() => {
     console.log("first");
 
     return () => {
-      console.log(status);
+      // console.log(status);
     };
   }, []);
 
@@ -77,45 +103,36 @@ const Register = (props: Props) => {
       <div className={style.container}>
         <h1 className={style.title}>회원가입</h1>
         <p className={style.error}>{errorMessage}</p>
-        <AuthForm handleSubmit={onRegisterFormSubmit}>
-          <FormColumn>
-            <FormInput
-              name="아이디"
-              placeholder="아이디 입력"
-              handleChange={(e: React.FormEvent<HTMLInputElement>) => {
-                console.log(usernameRef.current?.value);
-              }}
-              useRef={usernameRef}
-              required={true}
-            />
-            <FormInput
-              name="이메일"
-              placeholder="이메일 입력"
-              valueType="email"
-              useRef={emailRef}
-              required
-            />
-          </FormColumn>
-          <FormColumn>
-            <FormInput
-              name="패스워드"
-              placeholder="패스워드 입력"
-              valueType="password"
-              required
-              useRef={passwordRef}
-            />
-            <FormInput
-              name="패스워드 확인"
-              placeholder="패스워드 제 입력"
-              valueType="password"
-              required
-              useRef={passwordCheckRef}
-            />
-          </FormColumn>
-          <FormSubmit placeholder="회원가입" />
-        </AuthForm>
+        <Input
+
+          placeholder="아이디 입력"
+          onChange={(e: React.FormEvent<HTMLInputElement>) => {
+            console.log(usernameRef.current?.value);
+          }}
+          required={true}
+        />
+        <Input
+
+          placeholder="이메일 입력"
+          type="email"
+          required
+        />
+        <Input
+
+          placeholder="패스워드 입력"
+          type="password"
+          required
+
+        />
+        <Input
+
+          placeholder="패스워드 제 입력"
+          type="password"
+          required
+        />
+        <Button>회원 가입</Button>
         <div style={{ height: "4px" }}></div>
-        <GoogleLoginBtn />
+        {/* <GoogleLoginBtn /> */}
       </div>
     </div>
   );

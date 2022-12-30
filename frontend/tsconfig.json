@@ -18,8 +18,15 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": "src/", 
+    "outDir": "bulid/",
+    "paths": {
+      "@conponents/*": ["conponents/*"],
+      "@img/*": ["assets/img/*"],
+    },
   },
+
   "include": [
     "src"
 , "src/types", "src/global.d.ts"  ]
