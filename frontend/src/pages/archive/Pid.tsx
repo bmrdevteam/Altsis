@@ -8,7 +8,7 @@ import useApi from "hooks/useApi";
 import useDatabase from "hooks/useDatabase";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
 import Group from "./tab/Group";
@@ -19,7 +19,7 @@ type Props = {};
 const ArchiveField = (props: Props) => {
   const database = useDatabase();
   const { pid } = useParams();
-  const { RegistrationApi } = useApi();
+  const { RegistrationApi, ArchiveApi } = useApi();
 
   const { currentSchool, currentSeason } = useAuth();
 
@@ -29,6 +29,7 @@ const ArchiveField = (props: Props) => {
   const [userId, setUserId] = useState<string>("");
   const [archiveData, setArchiveData] = useState<any>();
   const [archiveForm, setArchiveForm] = useState<any>();
+  const formData = useRef<any>();
 
   useEffect(() => {
     RegistrationApi.RRegistrations({
@@ -88,6 +89,11 @@ const ArchiveField = (props: Props) => {
                   <Autofill
                     style={{ borderRadius: "4px" }}
                     setState={setUserId}
+                    onChange={(v) => {
+                      ArchiveApi.RArchives({ userId: v ,school:currentSchool.school}).then((res) => {
+                        formData.current = res;
+                      });
+                    }}
                     defaultValue={userId}
                     options={[
                       { text: "", value: "" },
@@ -105,6 +111,7 @@ const ArchiveField = (props: Props) => {
                 </div>
                 <Divider />
                 <One
+                  formData={formData}
                   users={users}
                   archive={pid}
                   setUserId={setUserId}
