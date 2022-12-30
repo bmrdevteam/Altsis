@@ -291,67 +291,73 @@ const CourseEnrollment = (props: Props) => {
 
         <>
           <Divider />
-          <div style={{ display: "flex", marginTop: "24px" }}>
-            <div
-              style={{
-                flex: "auto",
-                marginLeft: "12px",
-                display: "flex",
-                gap: "12px",
-              }}
-            >
-              <div className={style.title}>평가</div>
-            </div>
-          </div>
-          {permissionEvaluation ? (
-            <Table
-              type="object-array"
-              data={[enrollmentData]}
-              header={[
-                ...formEvaluationHeader,
-                {
-                  text: "저장",
-                  key: "evaluation",
-                  onClick: (e: any) => {
-                    const evaluation: any = {};
-                    for (let obj of fieldEvaluationList) {
-                      evaluation[obj.text] = e[obj.key];
-                      console.log(
-                        `evaluation[${obj.text}] is ${evaluation[obj.text]}`
-                      );
-                    }
-                    updateEvaluation(evaluation)
-                      .then((res: any) => {
-                        alert("수정되었습니다.");
-                        console.log("update eval: res is ", res);
-                        setEnrollmentData({
-                          ...enrollmentData,
-                          evaluation: res,
-                        });
-                      })
-                      .catch((err: any) => alert(err.response.data.message));
-                  },
-                  type: "button",
 
-                  textAlign: "center",
-                  width: "80px",
-                  btnStyle: {
-                    round: true,
-                    border: true,
-                    padding: "4px",
-                    color: "red",
-                    background: "#FFF1F1",
-                  },
-                  fontWeight: "600",
-                },
-              ]}
-            />
-          ) : (
-            <Table
-              type="object-array"
-              data={[enrollmentData]}
-              header={formEvaluationHeader}
-            />
+          {formEvaluationHeader.length !== 0 && (
+            <div style={{ display: "flex", marginTop: "24px" }}>
+              <div
+                style={{
+                  flex: "auto",
+                  marginLeft: "12px",
+                  display: "flex",
+                  gap: "12px",
+                }}
+              >
+                <div className={style.title}>평가</div>
+              </div>
+
+              {permissionEvaluation ? (
+                <Table
+                  type="object-array"
+                  data={[enrollmentData]}
+                  header={[
+                    ...formEvaluationHeader,
+                    {
+                      text: "저장",
+                      key: "evaluation",
+                      onClick: (e: any) => {
+                        const evaluation: any = {};
+                        for (let obj of fieldEvaluationList) {
+                          evaluation[obj.text] = e[obj.key];
+                          console.log(
+                            `evaluation[${obj.text}] is ${evaluation[obj.text]}`
+                          );
+                        }
+                        updateEvaluation(evaluation)
+                          .then((res: any) => {
+                            alert("수정되었습니다.");
+                            console.log("update eval: res is ", res);
+                            setEnrollmentData({
+                              ...enrollmentData,
+                              evaluation: res,
+                            });
+                          })
+                          .catch((err: any) =>
+                            alert(err.response.data.message)
+                          );
+                      },
+                      type: "button",
+
+                      textAlign: "center",
+                      width: "80px",
+                      btnStyle: {
+                        round: true,
+                        border: true,
+                        padding: "4px",
+                        color: "red",
+                        background: "#FFF1F1",
+                      },
+                      fontWeight: "600",
+                    },
+                  ]}
+                />
+              ) : (
+                <Table
+                  type="object-array"
+                  data={[enrollmentData]}
+                  header={formEvaluationHeader}
+                />
+              )}
+            </div>
           )}
           <div style={{ height: "24px" }}></div>
           <div className={style.title}>수강생 목록</div>
