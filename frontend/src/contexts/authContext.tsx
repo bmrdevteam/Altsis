@@ -104,6 +104,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           (r: any) => r.school === s._id && r.isActivated
         )[0]
       );
+      SeasonApi.RSeason(
+        _registrations.filter(
+          (r: any) => r.school === s._id && r.isActivated
+        )[0]?.season
+      )
+        .then((res) => {
+          setCurrentSeason(res);
+        })
+        .catch(() => {});
     });
   }
 
