@@ -8,6 +8,7 @@ const passport = require("passport");
 
 const passportConfig = require("./passport");
 const routers = require("./routes/index");
+const { initializeWebSocket } = require("./utils/webSocket");
 
 const app = express();
 
@@ -59,6 +60,9 @@ routers.forEach((router) => {
 module.exports = app;
 
 app.set("port", process.env["SERVER_PORT"].trim() || 3000);
-var server = app.listen(app.get("port"), function () {
+
+const server = app.listen(app.get("port"), function () {
   console.log("Express server listening on port " + server.address().port);
 });
+
+initializeWebSocket(server);
