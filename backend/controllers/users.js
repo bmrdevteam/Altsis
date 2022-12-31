@@ -7,7 +7,9 @@ const {
   School,
   Notification,
 } = require("../models");
+const client = require("../caches/redis");
 const { getPayload } = require("../utils/payload");
+const { getIo } = require("../utils/webSocket");
 
 const validate = require("../utils/validate");
 
@@ -54,9 +56,14 @@ module.exports.loginGoogle = async (req, res) => {
   })(req, res);
 };
 
-module.exports.logout = (req, res) => {
+module.exports.logout = async (req, res) => {
+  const sid = await client.hGet(req.user.academyId, req.user.userId);
+  getIo().in(sid).disconnectSockets();
+  await client.hDel(req.user.academyId, req.user.userId);
+
   req.logout((err) => {
     if (err) return res.status(500).send({ err });
+
     req.session.destroy();
     res.clearCookie("connect.sid");
     return res.status(200).send();
@@ -168,7 +175,7 @@ module.exports.current = async (req, res) => {
         "term",
         "isActivated",
         "role",
-        "period"
+        "period",
       ]);
 
     // notifications
@@ -177,9 +184,11 @@ module.exports.current = async (req, res) => {
       checked: false,
     });
 
-    return res
-      .status(200)
-      .send({ ...user.toObject(), registrations, notifications });
+    return res.status(200).send({
+      ...user.toObject(),
+      registrations,
+      notifications: _.sortBy(notifications, "createdAt").reverse(),
+    });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
