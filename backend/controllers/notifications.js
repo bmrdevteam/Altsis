@@ -1,6 +1,7 @@
 const _ = require("lodash");
 const { Notification } = require("../models");
 const client = require("../caches/redis");
+const { getIo } = require("../utils/webSocket");
 
 module.exports.send = async (req, res) => {
   try {
@@ -35,10 +36,30 @@ module.exports.send = async (req, res) => {
     );
 
     for (let notification of _.filter(newNotifications, { type: "received" })) {
-      await client.set(
-        `isReceivedNotifications/${req.user.academyId}/${notification.userId}`,
-        "true"
+      // await client.set(
+      //   `isReceivedNotifications/${req.user.academyId}/${notification.userId}`,
+      //   "true"
+      // );
+
+      const sid = await client.v4.hGet(req.user.academyId, notification.userId);
+      console.log(
+        `receiver ${notification.userId} is ${
+          sid ? `currently logged in. sid is ${sid}` : `not logged in`
+        }`
       );
+      if (sid)
+        getIo()
+          .to(sid)
+          .emit(
+            "checkNotifications",
+            "you should check your new notifications"
+          );
+
+      // if (sid) {
+      //   getIo()
+      //     .sockets.socket(sid)
+      //     .send("you should check your new notifications");
+      // }
     }
 
     return res.status(200).send({ notifications: newNotifications });
@@ -67,13 +88,15 @@ module.exports.find = async (req, res) => {
       .find(req.query)
       .select("-description");
 
-    if (req.query.type === "received") {
-      await client.del(
-        `isReceivedNotifications/${req.user.academyId}/${req.query.userId}`
-      );
-    }
+    // if (req.query.type === "received") {
+    //   await client.del(
+    //     `isReceivedNotifications/${req.user.academyId}/${req.query.userId}`
+    //   );
+    // }
 
-    return res.status(200).send({ notifications });
+    return res
+      .status(200)
+      .send({ notifications: _.sortBy(notifications, "createdAt").reverse() });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

@@ -86,3 +86,9 @@ module.exports.removeRedis = async (req, res) => {
   await client.del(req.params.key);
   return res.status(200).send({ success: true });
 };
+
+module.exports.testRedisHash = async (req, res) => {
+  await client.v4.HSET(req.body.academyId, req.body.userId, "socket.id");
+  const sid = await client.v4.HGET(req.body.academyId, req.body.userId);
+  return res.status(200).send({ sid });
+};
