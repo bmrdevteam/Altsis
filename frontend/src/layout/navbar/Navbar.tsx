@@ -6,8 +6,7 @@
  * @example <Notification/>
  */
 
-import React, { useEffect, useRef, useState } from "react";
-import useDatabase from "hooks/useDatabase";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import useInterval from "hooks/useInterval";
 import { useNavigate } from "react-router-dom";
@@ -24,21 +23,30 @@ import _ from "lodash";
 import audioURL from "assets/audio/notification-a.mp3";
 import useApi from "hooks/useApi";
 
+import View from "pages/notifications/popup/View";
+
 const Notification = () => {
   /**
    * active state for notification contents
    */
-  const { currentUser, currentNotifications, setCurrentNotifications } =
+  const { currentUser, currentNotifications, setCurrentNotifications, socket } =
     useAuth();
   const { NotificationApi } = useApi();
   const navigate = useNavigate();
 
   const [notificationContentActive, setNotificationContentActive] =
     useState(false);
+  const [notificationPopupActive, setNotificationPopupAcitve] = useState(false);
+
+  const [isNotificationLoading, setIsNotifiationLoading] = useState(false);
+  const [isNotificationContenLoading, setIsNotifiationContenLoading] =
+    useState(false);
+  const [notification, setNotification] = useState<any>();
 
   const notificationtRef = useRef<HTMLDivElement>(null);
 
   const audio = new Audio(audioURL);
+
   function handleMousedown(e: MouseEvent) {
     if (
       notificationtRef.current &&
@@ -48,17 +56,45 @@ const Notification = () => {
     }
   }
 
-  useInterval(() => {
-    NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
-      if (res) {
-        audio.play().catch((e: any) => {
-          console.log(e);
-        });
-        setCurrentNotifications([...res]);
-        console.log(res);
-      }
+  // useInterval(() => {
+  //   NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
+  //     if (res) {
+  //       audio.play().catch((e: any) => {
+  //         console.log(e);
+  //       });
+  //       setCurrentNotifications([...res]);
+  //       console.log(res);
+  //     }
+  //   });
+  // }, 1000 * 60 * 10); //10분
+
+  useEffect(() => {
+    if (isNotificationLoading) {
+      NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
+        if (res) {
+          audio.play().catch((e: any) => {
+            console.log(e);
+          });
+          setCurrentNotifications(res);
+          setIsNotifiationLoading(false);
+        }
+      });
+    }
+
+    return () => {};
+  }, [isNotificationLoading]);
+
+  useEffect(() => {
+    const socketHandler = () => setIsNotifiationLoading(true);
+
+    socket.on("checkNotifications", socketHandler);
+    socket.emit("login", {
+      academyId: currentUser.academyId,
+      userId: currentUser.userId,
     });
-  }, 1000 * 60 * 10); //10분
+
+    return () => {};
+  }, []);
 
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
@@ -67,83 +103,108 @@ const Notification = () => {
     };
   }, []);
 
-  return (
-    <div className={style.notification} ref={notificationtRef}>
-      <div
-        className={`${style.icon} ${
-          currentNotifications.length > 0 && style.active
-        }`}
-        onClick={() => {
-          setNotificationContentActive((prev) => !prev);
-        }}
-        data-count={
-          currentNotifications.length > 0 ? currentNotifications.length : ""
-        }
-      >
-        <Svg type="notification" width="20px" height="20px" />
-      </div>
+  useEffect(() => {
+    if (isNotificationContenLoading) {
+      setIsNotifiationContenLoading(false);
+    }
+    return () => {};
+  }, [isNotificationContenLoading]);
 
-      {notificationContentActive && (
-        <div className={style.contents}>
-          <div className={style.title}>알림</div>
-          {_.sortBy(currentNotifications, "createdAt").map(
-            (notification: any) => {
-              return (
-                <div className={style.item} style={{ marginBottom: "12px" }}>
-                  <div className={style.description}>
-                    {notification.category && (
-                      <span className={style.type}>
-                        [{notification.category}]
-                      </span>
-                    )}
-                    {notification.title}
-                  </div>
-                  <Button
-                    type="ghost"
-                    onClick={(e: any) => {
-                      NotificationApi.UCheckNotification(notification._id)
-                        .then(() => {
-                          currentNotifications.splice(
-                            _.findIndex(
-                              currentNotifications,
-                              (x: any) => x._id === notification._id
-                            ),
-                            1
-                          );
-
-                          setCurrentNotifications([...currentNotifications]);
-                        })
-                        .catch((err) => {
-                          alert(err.response.data.message);
-                        });
-                    }}
-                    style={{
-                      border: 0,
-                      color: "gray",
-                    }}
-                  >
-                    x
-                  </Button>
-                </div>
-              );
-            }
-          )}
-
+  const notifications = () => {
+    return currentNotifications.map((notification: any) => {
+      return (
+        <div className={style.item} style={{ marginBottom: "12px" }}>
+          <div
+            className={style.description}
+            onClick={() => {
+              setNotification(notification);
+              setNotificationPopupAcitve(true);
+            }}
+          >
+            {notification.category && (
+              <span className={style.type}>[{notification.category}]</span>
+            )}
+            {notification.title}
+          </div>
           <Button
             type="ghost"
             onClick={(e: any) => {
-              navigate("/notifications");
+              NotificationApi.UCheckNotification(notification._id)
+                .then(() => {
+                  currentNotifications.splice(
+                    _.findIndex(
+                      currentNotifications,
+                      (x: any) => x._id === notification._id
+                    ),
+                    1
+                  );
+                  setCurrentNotifications(currentNotifications);
+                  setIsNotifiationContenLoading(true);
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
             }}
             style={{
               border: 0,
               color: "gray",
             }}
           >
-            모두보기
+            x
           </Button>
         </div>
-      )}
-    </div>
+      );
+    });
+  };
+
+  return (
+    <>
+      <div className={style.notification} ref={notificationtRef}>
+        <div
+          className={`${style.icon} ${
+            currentNotifications.length > 0 && style.active
+          }`}
+          onClick={() => {
+            setNotificationContentActive((prev) => !prev);
+          }}
+          data-count={
+            currentNotifications.length > 0 ? currentNotifications.length : ""
+          }
+        >
+          <Svg type="notification" width="20px" height="20px" />
+        </div>
+
+        {notificationContentActive && !isNotificationLoading && (
+          <>
+            <div className={style.contents}>
+              <div className={style.title}>알림</div>
+              {!isNotificationContenLoading && notifications()}
+
+              <Button
+                type="ghost"
+                onClick={(e: any) => {
+                  setNotificationContentActive(false);
+                  navigate("/notifications");
+                }}
+                style={{
+                  border: 0,
+                  color: "gray",
+                }}
+              >
+                모두보기
+              </Button>
+            </div>
+            {notificationPopupActive && (
+              <View
+                setState={setNotificationPopupAcitve}
+                data={notification}
+                type={"received"}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 };
 

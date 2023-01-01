@@ -185,9 +185,9 @@ function Basic(props: Props) {
               )
                 .then((res: any) => {
                   props.setSubjectObjectList(
-                    parseSubjectDataList(res.data.label, res.data.data)
+                    parseSubjectDataList(res.label, res.data)
                   );
-                  props.seasonData.subjects = res.data;
+                  props.seasonData.subjects = res;
                   props.setSelectedSeason(props.seasonData);
 
                   alert("success");
