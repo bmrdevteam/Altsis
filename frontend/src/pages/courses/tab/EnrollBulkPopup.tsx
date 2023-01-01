@@ -50,7 +50,7 @@ type Props = {
 };
 
 const EnrollBulkPopup = (props: Props) => {
-  const { currentSeason } = useAuth();
+  const { currentSeason, currentRegistration } = useAuth();
   const database = useDatabase();
 
   const [registrationList, setRegistrationList] = useState<any[]>();
@@ -73,6 +73,7 @@ const EnrollBulkPopup = (props: Props) => {
     const { enrollments } = await database.C({
       location: `enrollments/bulk`,
       data: {
+        registration: currentRegistration._id,
         syllabus: props.courseData._id,
         students: selectRef.current.map((registration: any) => {
           return {

@@ -1,14 +1,13 @@
-import { archiveTestData } from "archiveTest";
 import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
 import _ from "lodash";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import style from "style/pages/archive.module.scss";
 type Props = {
   users: any[];
   archive?: string;
+  formData?: React.MutableRefObject<any>;
   setUserId: React.Dispatch<React.SetStateAction<string>>;
   userId: string;
   userArchiveData: any;
@@ -16,11 +15,11 @@ type Props = {
 
 const One = (props: Props) => {
   console.log(props.userArchiveData);
-  
-  const {currentSchool} = useAuth()
+
+  const { currentSchool } = useAuth();
   function archiveData() {
     return (
-      currentSchool.formArchive?.filter((val:any) => {
+      currentSchool.formArchive?.filter((val: any) => {
         return val.label === props.archive;
       })[0] ?? { fields: [] }
     );
@@ -87,7 +86,7 @@ const One = (props: Props) => {
     </div>
   ) : (
     <>
-      {props.userArchiveData && (
+      {props.formData?.current && (
         <>
           <Button type="ghost"> 저장</Button>
           <div style={{ marginTop: "24px" }}>

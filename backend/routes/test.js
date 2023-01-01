@@ -19,4 +19,6 @@ router.get("/redis", test.getRedis);
 
 router.delete("/redis/:key", test.removeRedis);
 
+router.post("/redis/hash", test.testRedisHash);
+
 module.exports = router;

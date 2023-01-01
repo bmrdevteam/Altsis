@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import useDatabase from "../hooks/useDatabase";
 import _ from "lodash";
 import { checkPermissionBySeason } from "functions/functions";
+import { io } from "socket.io-client";
 
 const AuthContext = createContext<any>(null);
 
@@ -24,6 +25,7 @@ export function useAuth(): {
   currentNotifications: any;
   setCurrentNotifications: React.Dispatch<any>;
   currentPermission: any;
+  socket: any;
 } {
   return useContext(AuthContext);
 }
@@ -38,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [registrations, setRegistration] = useState<any>([]);
   const [currentSeason, setCurrentSeason] = useState<any>();
   const [currentNotifications, setCurrentNotifications] = useState<any>([]);
+  const [socket, setSocket] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
   async function getLoggedInUser() {
@@ -74,6 +77,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             checkPermissionBySeason(seasonData, res.userId, re[0].role)
           );
         });
+
+        setSocket(
+          io(`${process.env.REACT_APP_SERVER_URL}`, {
+            path: "/socket.io",
+            withCredentials: true,
+          })
+        );
       }
     });
   }
@@ -154,6 +164,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentNotifications,
     currentPermission,
     setCurrentSchool,
+    socket,
   };
   return (
     <AuthContext.Provider value={value}>
