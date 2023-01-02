@@ -28,7 +28,7 @@ const initializeWebSocket = (_server) => {
       console.log(`[${ip}] 에러가 발생했습니다. ${error}`);
     });
 
-    socket.on("login", async (data) => {
+    socket.on("activate real-time notification", async (data) => {
       academyId = data.academyId;
       userId = data.userId;
       await client.hSet(data.academyId, data.userId, socket.id);
