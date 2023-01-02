@@ -36,7 +36,6 @@
  import Overview from "./tab/Overview";
  import List from "./tab/List";
  import Point from "./tab/Point";
- import Nav from "layout/sidebar/sidebar.components";
  import Navbar from "layout/navbar/Navbar";
  
  const AppsIndex = () => {
@@ -51,18 +50,18 @@
            <div className={style.description}>
              리스트와 포인트를 활용하여 앱을 만들 수 있습니다.
            </div>
+            <div style={{marginBottom: "24px"}}>
+                <Tab
+                  items={{
+                    앱: <Overview />,
+                    리스트: <List />,
+                    포인트: <Point />
+                    }}
+                  align={"flex-start"}
+                  >
+                </Tab>
+            </div>
          </div>
-       </div>
-       <div style={{marginBottom: "24px"}}>
-          <Tab
-            items={{
-              앱: <Overview />,
-              리스트: <List />,
-              포인트: <Point />
-              }}
-            align={"flex-start"}
-            >
-          </Tab>
        </div>
      </div>
      </>
