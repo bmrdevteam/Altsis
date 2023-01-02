@@ -21,7 +21,24 @@ const initializeWebSocket = (_server) => {
     socket.on("disconnect", async () => {
       console.log(`[${ip}] 접속을 해제했습니다.`);
       console.log(`debug: ${academyId}, ${userId}`);
-      await client.hDel(academyId, userId);
+
+      if (academyId && userId) {
+        const prev = await client.v4.hGet(academyId, userId);
+        if (prev) {
+          const prevSid = JSON.parse(prev).sid;
+          if (prevSid) {
+            if (prevSid.length === 1) await client.hDel(academyId, userId);
+            else
+              await client.hSet(
+                academyId,
+                userId,
+                JSON.stringify({
+                  sid: _.remove(prevSid, (sid) => sid === socket.id),
+                })
+              );
+          }
+        }
+      }
     });
 
     socket.on("error", () => {
@@ -29,9 +46,25 @@ const initializeWebSocket = (_server) => {
     });
 
     socket.on("activate real-time notification", async (data) => {
-      academyId = data.academyId;
-      userId = data.userId;
-      await client.hSet(data.academyId, data.userId, socket.id);
+      const prev = await client.v4.hGet(data.academyId, data.userId);
+      if (prev) {
+        const prevSid = JSON.parse(prev).sid;
+        if (prevSid) {
+          await client.hSet(
+            data.academyId,
+            data.userId,
+            JSON.stringify({ sid: [socket.id, ...prevSid] })
+          );
+        }
+      } else {
+        academyId = data.academyId;
+        userId = data.userId;
+        await client.hSet(
+          data.academyId,
+          data.userId,
+          JSON.stringify({ sid: [socket.id] })
+        );
+      }
     });
   });
 };
