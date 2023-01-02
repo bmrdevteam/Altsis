@@ -165,18 +165,6 @@ export const SidebarData = (
           path: "/notifications",
           icon: <Svg type="notification" />,
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
-        },
       ];
     case "admin":
       return [
@@ -298,18 +286,6 @@ export const SidebarData = (
           path: "/notifications",
           icon: <Svg type="notification" />,
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
-        // {
-        //   title: "settings",
-        //   name: "설정",
-        //   path: "/settings",
-        //   icon: <Svg type="gear" />,
-        // },
       ];
 
     default:
@@ -377,12 +353,6 @@ export const SidebarData = (
           name: "알림",
           path: "/notifications",
           icon: <Svg type="notification" />,
-        },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
         },
       ];
   }
