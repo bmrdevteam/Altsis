@@ -86,12 +86,13 @@ const Notification = () => {
 
   useEffect(() => {
     const socketHandler = () => setIsNotifiationLoading(true);
-
-    socket.on("checkNotifications", socketHandler);
-    socket.emit("login", {
-      academyId: currentUser.academyId,
-      userId: currentUser.userId,
-    });
+    if (socket) {
+      socket.on("checkNotifications", socketHandler);
+      socket.emit("login", {
+        academyId: currentUser.academyId,
+        userId: currentUser.userId,
+      });
+    }
 
     return () => {};
   }, []);
