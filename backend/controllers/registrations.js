@@ -143,7 +143,7 @@ module.exports.update = async (req, res) => {
 /* delete */
 exports.remove = async (req, res) => {
   try {
-    const ids = _.split(req.params._ids, ",");
+    const ids = _.split(req.query._id, ",");
     const result = await Registration(req.user.academyId).deleteMany({
       _id: { $in: ids },
     });

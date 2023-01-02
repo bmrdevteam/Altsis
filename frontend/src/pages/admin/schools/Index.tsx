@@ -28,10 +28,8 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
-
-import useDatabase from "hooks/useDatabase";
 
 // components
 import Button from "components/button/Button";
@@ -41,10 +39,11 @@ import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import { useAuth } from "contexts/authContext";
+import { validate } from "functions/functions";
 
 const Schools = () => {
   const navigate = useNavigate();
-  const database = useDatabase();
+  const { SchoolApi } = useApi();
   const { currentUser, currentSchool } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,11 +57,6 @@ const Schools = () => {
   /* document fields */
   const [schoolId, setSchoolId] = useState<string>();
   const [schoolName, setSchoolName] = useState<string>();
-
-  async function getSchoolList() {
-    const { schools: res } = await database.R({ location: "schools" });
-    setSchoolsList(res);
-  }
 
   useEffect(() => {
     console.log("test");
@@ -81,23 +75,13 @@ const Schools = () => {
 
   useEffect(() => {
     if (isLoading) {
-      getSchoolList().then(() => {
+      SchoolApi.RSchools().then((res) => {
+        setSchoolsList(res);
         setIsLoading(false);
       });
     }
     return () => {};
   }, [isLoading]);
-
-  async function addSchool() {
-    const result = await database.C({
-      location: `schools`,
-      data: {
-        schoolId,
-        schoolName,
-      },
-    });
-    return result;
-  }
 
   return isAuthenticated ? (
     <>
@@ -214,15 +198,17 @@ navigate("add", { replace: true });
             <Button
               type={"ghost"}
               onClick={() => {
-                addSchool()
-                  .then((res) => {
-                    alert("success");
-                    setAddPopupActive(false);
-                    setIsLoading(true);
-                  })
-                  .catch((err) => {
-                    alert(err.response.data.message);
-                  });
+                if (schoolId && schoolName) {
+                  SchoolApi.CSchools({ data: { schoolId, schoolName } })
+                    .then(() => {
+                      alert("success");
+                      setAddPopupActive(false);
+                      setIsLoading(true);
+                    })
+                    .catch((err) => {
+                      alert(err.response.data.message);
+                    });
+                }
               }}
               style={{
                 borderRadius: "4px",

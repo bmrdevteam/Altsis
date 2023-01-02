@@ -29,7 +29,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -46,7 +46,7 @@ import Divider from "components/divider/Divider";
 type Props = {};
 
 const Course = (props: Props) => {
-  const database = useDatabase();
+  const { EnrollmentApi } = useApi();
   const navigate = useNavigate();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
@@ -59,17 +59,16 @@ const Course = (props: Props) => {
   );
 
   async function getEnrolledCourseList() {
-    const { enrollments: myEnrollments } = await database.R({
-      location: `enrollments?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
+    const myEnrollments = await EnrollmentApi.REnrolllments({
+      season: currentRegistration?.season,
+      studentId: currentUser?.userId,
     });
     if (myEnrollments.length === 0) return [];
 
-    const { enrollments: sylEnrollments } = await database.R({
-      location: `enrollments?syllabuses=${_.join(
-        myEnrollments.map((e: any) => e.syllabus),
-        ","
-      )}`,
+    const sylEnrollments = await EnrollmentApi.REnrolllments({
+      syllabuses: myEnrollments.map((e: any) => e.syllabus),
     });
+
     const cnt = _.countBy(
       sylEnrollments.map((enrollment: any) => enrollment.syllabus)
     );

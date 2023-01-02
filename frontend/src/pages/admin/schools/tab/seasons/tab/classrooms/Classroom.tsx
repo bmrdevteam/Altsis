@@ -28,7 +28,7 @@
  */
 
 import { useState, useRef } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -47,7 +47,7 @@ type Props = {
 };
 
 const Classroom = (props: Props) => {
-  const database = useDatabase();
+  const { SeasonApi } = useApi();
 
   const [classroomList, setClassroomList] = useState<any[]>(
     props.seasonData.classrooms || []
@@ -56,16 +56,6 @@ const Classroom = (props: Props) => {
 
   /* popup activation */
   const [updateBulkPopup, setUpdateBulkPopupActive] = useState<boolean>(false);
-
-  async function updateClassrooms(classroomList: any[]) {
-    const result = await database.U({
-      location: `seasons/${props.seasonData._id}/classrooms`,
-      data: {
-        new: classroomList,
-      },
-    });
-    return result;
-  }
 
   return (
     <>
@@ -98,7 +88,10 @@ const Classroom = (props: Props) => {
             appearence={"flat"}
             onKeyDown={(e: any) => {
               if (classroomRef.current !== "" && e.key === "Enter") {
-                updateClassrooms([...classroomList, classroomRef.current])
+                SeasonApi.USeasonClassroom({
+                  _id: props.seasonData._id,
+                  data: [...classroomList, classroomRef.current],
+                })
                   .then((res: any) => {
                     setClassroomList(res);
                     props.seasonData.classrooms = res;
@@ -116,7 +109,10 @@ const Classroom = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateClassrooms([...classroomList, classroomRef.current])
+              SeasonApi.USeasonClassroom({
+                _id: props.seasonData._id,
+                data: [...classroomList, classroomRef.current],
+              })
                 .then((res: any) => {
                   setClassroomList(res);
                   props.seasonData.classrooms = res;
@@ -160,7 +156,10 @@ const Classroom = (props: Props) => {
               type: "button",
               onClick: (e: any) => {
                 classroomList.splice(e.rowIndex - 1, 1);
-                updateClassrooms([...classroomList])
+                SeasonApi.USeasonClassroom({
+                  _id: props.seasonData._id,
+                  data: classroomList,
+                })
                   .then((res: any) => {
                     setClassroomList(res);
                     alert("success");

@@ -28,19 +28,19 @@
  */
 import Button from "components/button/Button";
 import Input from "components/input/Input";
-import Select from "components/select/Select";
-import useDatabase from "hooks/useDatabase";
 import { useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
+import useApi from "hooks/useApi";
 
 type Props = {
   seasonData: any;
   setPopupActive: any;
   setIsLoading: any;
+  setSeasonData: any;
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  const { SeasonApi } = useApi();
 
   /* document fields */
   const [isActivated, setIsActivated] = useState<boolean>(
@@ -50,57 +50,6 @@ function Basic(props: Props) {
   const [period, setPeriod] = useState<any>(
     props.seasonData?.period || { start: "", end: "" }
   );
-
-  async function activateSeason() {
-    if (window.confirm("정말 활성화하시겠습니까?") === true) {
-      // 확인
-      const result = await database.C({
-        location: `seasons/${props.seasonData._id}/activate`,
-        data: {},
-      });
-      return result;
-    }
-    // 취소
-    return false;
-  }
-
-  async function inactivateSeason() {
-    if (window.confirm("정말 비활성화하시겠습니까?") === true) {
-      // 확인
-      const result = await database.C({
-        location: `seasons/${props.seasonData._id}/inactivate`,
-        data: {},
-      });
-      return result;
-    }
-    // 취소
-    return false;
-  }
-
-  async function deleteSeason() {
-    if (window.confirm("정말 삭제하시겠습니까?") === true) {
-      // 확인
-      const result = await database.D({
-        location: `seasons/${props.seasonData._id}`,
-      });
-      return result;
-    }
-    // 취소
-    return false;
-  }
-
-  async function updateSeason(start: string, end: string) {
-    const result = database.U({
-      location: `seasons/${props.seasonData._id}/period`,
-      data: {
-        new: {
-          start,
-          end,
-        },
-      },
-    });
-    return result;
-  }
 
   return (
     <div>
@@ -135,9 +84,16 @@ function Basic(props: Props) {
               marginTop: "24px",
             }}
             onClick={() => {
-              updateSeason(period.start, period.end)
-                .then(() => {
+              SeasonApi.USeason({
+                _id: props.seasonData._id,
+                field: "period",
+                data: { start: period.start, end: period.end },
+              })
+                .then((res) => {
                   alert("success");
+                  props.seasonData.period = res;
+                  props.setSeasonData(props.seasonData);
+                  console.log("res is ", res);
                   props.setIsLoading(true);
                 })
                 .catch((err) => {
@@ -158,29 +114,29 @@ function Basic(props: Props) {
           }}
           onClick={() => {
             if (isActivated) {
-              inactivateSeason()
-                .then((res) => {
-                  if (res) {
+              if (window.confirm("정말 활성화하시겠습니까?") === true) {
+                SeasonApi.UInactivateSeason(props.seasonData._id)
+                  .then(() => {
                     alert("success");
                     setIsActivated(false);
                     props.setIsLoading(true);
-                  }
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
+              }
             } else {
-              activateSeason()
-                .then((res) => {
-                  if (res) {
+              if (window.confirm("정말 활성화하시겠습니까?") === true) {
+                SeasonApi.UActivateSeason(props.seasonData._id)
+                  .then(() => {
                     alert("success");
                     setIsActivated(true);
                     props.setIsLoading(true);
-                  }
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
+              }
             }
           }}
         >
@@ -190,17 +146,17 @@ function Basic(props: Props) {
           <Button
             type={"ghost"}
             onClick={() => {
-              deleteSeason()
-                .then((res) => {
-                  if (res) {
+              if (window.confirm("정말 삭제하시겠습니까?") === true) {
+                SeasonApi.DSeason(props.seasonData._id)
+                  .then((res) => {
                     alert("success");
                     props.setIsLoading(true);
                     props.setPopupActive(false);
-                  }
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
+              }
             }}
             style={{
               borderRadius: "4px",

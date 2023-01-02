@@ -31,6 +31,7 @@ import { useEffect, useState } from "react";
 
 // hooks
 import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -49,6 +50,7 @@ type Props = {
 
 const User = (props: Props) => {
   const database = useDatabase();
+  const AcademyApi = useApi();
   const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
   const [isUserLoading, setIsUserLoading] = useState(false);
 

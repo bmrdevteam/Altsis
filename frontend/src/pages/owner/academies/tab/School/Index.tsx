@@ -29,6 +29,7 @@
 
 import { useEffect, useState } from "react";
 import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Tab from "components/tab/Tab";
@@ -48,6 +49,7 @@ type Props = {
 
 const School = (props: Props) => {
   const database = useDatabase();
+  const { AcademyApi } = useApi();
   const [isLoading, setIsLoading] = useState(false);
 
   /* document list */
@@ -240,8 +242,15 @@ const School = (props: Props) => {
             <Button
               type={"ghost"}
               onClick={() => {
-                addDocument()
-                  .then((res) => {
+                AcademyApi.CAcademyDocument({
+                  academyId: props.academyId,
+                  type: "schools",
+                  data: {
+                    schoolId,
+                    schoolName,
+                  },
+                })
+                  .then(() => {
                     setAddPopupActive(false);
                     setIsLoading(true);
                   })

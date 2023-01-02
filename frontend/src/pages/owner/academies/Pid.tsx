@@ -29,7 +29,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useDatabase from "../../../hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -80,28 +80,22 @@ const CannotFindAcademy = ({ schoolId }: { schoolId?: string }) => {
 
 const Academy = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const database = useDatabase();
+  const { AcademyApi } = useApi();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [isAcademy, setIsAcademy] = useState<boolean>(true);
   const [academyData, setAcademyData] = useState<any>();
 
-  async function getAcademyData() {
-    const res = await database.R({ location: `academies/${pid}` });
-    return res;
-  }
-
   useEffect(() => {
     if (isLoading) {
-      getAcademyData()
+      AcademyApi.RAcademy({ academyId: pid })
         .then((res) => {
           setAcademyData(res);
           setIsLoading(false);
         })
         .catch(() => {
           alert("failed to load data");
-          setIsAcademy(false);
         });
     }
   }, [isLoading]);
@@ -128,7 +122,12 @@ const Academy = (props: Props) => {
       {!isLoading ? (
         <Tab
           items={{
-            아카데미: <BasicInfo academyData={academyData} />,
+            아카데미: (
+              <BasicInfo
+                academyData={academyData}
+                setAcademyData={setAcademyData}
+              />
+            ),
             학교: <School academyId={academyData?.academyId} />,
             학기: <Season academyId={academyData?.academyId} />,
             사용자: <User academyId={academyData?.academyId} />,

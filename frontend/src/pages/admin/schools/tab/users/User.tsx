@@ -33,30 +33,23 @@ import { useEffect, useState, useRef } from "react";
 import style from "style/pages/admin/users.module.scss";
 
 // hooks
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
-import Button from "components/button/Button";
-import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-import Select from "components/select/Select";
+import Tab from "components/tab/Tab";
 
 // popup/tab elements
 import Basic from "./tab/Basic";
-// import Add from "./tab/Add";
-// import AddBulk from "./tab/AddBulk";
-// import SchoolBulk from "./tab/SchoolBulk";
-import _ from "lodash";
-import Tab from "components/tab/Tab";
 import Registrations from "./tab/Regiatrations";
+
+import _ from "lodash";
 
 type Props = { schoolData: any };
 
 const Users = (props: Props) => {
-  const database = useDatabase();
-
+  const { UserApi } = useApi();
 
   const [isUserListLoading, setIsUserListLoading] = useState(true);
 
@@ -66,22 +59,12 @@ const Users = (props: Props) => {
 
   /* school list */
 
-  const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
-  const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
-  const [addBulkPopupActive, setAddBulkPopupActive] = useState<boolean>(false);
-  const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
+  const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
   const userSelectRef = useRef<any[]>([]);
-
-  async function getSchoolUsers() {
-    const { users: res } = await database.R({
-      location: `users?schools.school=${props.schoolData._id}`,
-    });
-    return res;
-  }
 
   useEffect(() => {
     if (isUserListLoading) {
-      getSchoolUsers()
+      UserApi.RUsers({ school: props.schoolData._id })
         .then((res) => {
           setUserList(res);
           setIsUserListLoading(false);
@@ -142,7 +125,7 @@ const Users = (props: Props) => {
                 type: "button",
                 onClick: (e: any) => {
                   setUser(e);
-                  setEditPopupActive(true);
+                  setViewPopupActive(true);
                   console.log(e);
                 },
                 width: "72px",
@@ -158,9 +141,9 @@ const Users = (props: Props) => {
           />
         </div>
       </div>
-      {editPopupActive && (
+      {viewPopupActive && (
         <Popup
-          setState={setEditPopupActive}
+          setState={setViewPopupActive}
           style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
           closeBtn
           title={`${user.userName}(${user.userId})`}
@@ -169,17 +152,9 @@ const Users = (props: Props) => {
           <Tab
             dontUsePaths
             items={{
-              "기본 정보": (
-                <Basic
-                  userData={user}
-                  setIsUserListLoading={setIsUserListLoading}
-                />
-              ),
+              "기본 정보": <Basic userData={user} />,
               "등록 정보": (
-                <Registrations
-                  userData={user}
-                  setIsUserListLoading={setIsUserListLoading}
-                />
+                <Registrations userData={user} schoolData={props.schoolData} />
               ),
             }}
           />
