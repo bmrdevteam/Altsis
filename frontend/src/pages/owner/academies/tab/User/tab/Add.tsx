@@ -29,6 +29,7 @@
 
 import { useState } from "react";
 import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -44,6 +45,7 @@ type Props = {
 
 function Basic(props: Props) {
   const database = useDatabase();
+  const { AcademyApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /* document fields */
@@ -165,7 +167,28 @@ function Basic(props: Props) {
         <Button
           type={"ghost"}
           onClick={() => {
-            addDocument()
+            AcademyApi.CAcademyDocument({
+              academyId: props.academyId,
+              type: "users",
+              data: {
+                auth,
+                userId,
+                userName,
+                password,
+                tel,
+                email,
+
+                schools: props.school
+                  ? [
+                      {
+                        school: props.school._id,
+                        schoolId: props.school.schoolId,
+                        schoolName: props.school.schoolName,
+                      },
+                    ]
+                  : [],
+              },
+            })
               .then(() => {
                 alert("success");
               })

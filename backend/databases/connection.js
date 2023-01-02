@@ -19,11 +19,13 @@ Academy.find({}, (err, academies) => {
     }
   });
   console.log(Object.keys(conn));
-});
+}).select("+dbName");
 
-exports.addConnection = (academyId, dbName) => {
-  conn[academyId] = mongoose.createConnection(getURL(dbName));
-  console.log(`coonection to [${academyId}(${dbName})]is added`);
+exports.addConnection = (academy) => {
+  conn[academy.academyId] = mongoose.createConnection(getURL(academy.dbName));
+  console.log(
+    `coonection to [${academy.academyId}(${academy.dbName})]is added`
+  );
 };
 
 exports.deleteConnection = async (academyId) => {
