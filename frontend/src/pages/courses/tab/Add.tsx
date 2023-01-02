@@ -29,9 +29,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
-
+import useApi from "hooks/useApi";
 import style from "style/pages/courses/courseDesign.module.scss";
 
 // components
@@ -51,7 +50,7 @@ type Props = {};
 const CourseAdd = (props: Props) => {
   const { currentUser, currentSeason } = useAuth();
   const navigate = useNavigate();
-  const database = useDatabase();
+  const { SyllabusApi, RegistrationApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRef, setIsLoadingRef] = useState<boolean>(false);
 
@@ -63,7 +62,7 @@ const CourseAdd = (props: Props) => {
   const [courseSubject, setCourseSubject] = useState<string>("");
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
-  const [coursePoint, setCoursePoint] = useState<string>();
+  const [coursePoint, setCoursePoint] = useState<string>("0");
   const [courseTime, setCourseTime] = useState<any>([]);
   const [courseClassroom, setCourseClassroom] = useState<string>("");
   const [courseMoreInfo, setCourseMoreInfo] = useState<any>();
@@ -77,13 +76,6 @@ const CourseAdd = (props: Props) => {
   const [mentorSelectPopupActive, setMentorSelectPopupActive] =
     useState<boolean>(false);
 
-  async function getTeachers() {
-    const { registrations: res } = await database.R({
-      location: `registrations?season=${currentSeason?._id}&role=teacher`,
-    });
-    return res;
-  }
-
   const updateRef = () => {
     courseTimeRef.current = {};
     for (let lb of courseTime) {
@@ -91,13 +83,6 @@ const CourseAdd = (props: Props) => {
     }
     courseClassroomRef.current = courseClassroom;
   };
-
-  async function getSyllabusByClassroom(classroom: string) {
-    const { syllabuses: res } = await database.R({
-      location: `syllabuses?season=${currentSeason?._id}&classroom=${classroom}`,
-    });
-    return res;
-  }
 
   useEffect(() => {
     setCoursePoint(courseTime.length);
@@ -121,46 +106,31 @@ const CourseAdd = (props: Props) => {
   }
 
   async function setData() {
-    const res1 = await getTeachers();
+    const res1 = await RegistrationApi.RRegistrations({
+      season: currentSeason?._id,
+      role: "teacher",
+    });
     setTeacherList([...res1]);
   }
 
   async function submit() {
-    let submitObject = {
-      season: currentSeason?._id,
-      classTitle: courseTitle,
-      point: coursePoint,
-      subject: courseSubject.split("/"),
-      teachers: courseMentorList,
-      classroom: courseClassroom,
-      time: courseTime.map((lb: string) => {
-        return { label: lb };
-      }),
-      info: courseMoreInfo,
-      limit: courseLimit,
-    };
-    const res = await database.C({
-      location: "syllabuses",
-      data: submitObject,
+    return await SyllabusApi.CSyllabus({
+      data: {
+        season: currentSeason._id,
+        classTitle: courseTitle,
+        point: coursePoint,
+        subject: courseSubject.split("/"),
+        teachers: courseMentorList,
+        classroom: courseClassroom,
+        time: courseTime.map((lb: string) => {
+          return { label: lb };
+        }),
+        info: courseMoreInfo,
+        limit: courseLimit,
+      },
     });
-
-    return res;
   }
 
-  const teachers = () => {
-    const res = [{ text: "", value: "" }];
-    for (let i = 0; i < teacherList?.length; i++) {
-      res.push({
-        text: `${teacherList[i].userName}(${teacherList[i].userId})`,
-        value: JSON.stringify({
-          userId: teacherList[i].userId,
-          userName: teacherList[i].userName,
-        }),
-      });
-    }
-
-    return res;
-  };
   const subjects = () => {
     if (!currentSeason?.subjects) {
       return [{ text: "", value: "" }];
@@ -371,7 +341,6 @@ const CourseAdd = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                setIsLoadingRef(true);
                 setCourseClassroom(courseClassroomRef.current);
                 setCourseTime([
                   ...Object.keys(
@@ -383,6 +352,7 @@ const CourseAdd = (props: Props) => {
                   ),
                 ]);
                 setTimeSelectPopupActive(false);
+                setIsLoadingRef(true);
               }}
             >
               선택
@@ -399,7 +369,10 @@ const CourseAdd = (props: Props) => {
             ]}
             onChange={(e: any) => {
               courseClassroomRef.current = e;
-              getSyllabusByClassroom(e).then((res) => {
+              SyllabusApi.RSyllabuses({
+                season: currentSeason?._id,
+                classroom: courseClassroomRef.current,
+              }).then((res) => {
                 setSyllabusList(res);
               });
               courseTimeRef.current = [];

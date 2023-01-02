@@ -28,7 +28,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 import * as xlsx from "xlsx";
 import _ from "lodash";
 
@@ -48,7 +48,7 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  const { SchoolApi } = useApi();
 
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<any>();
@@ -69,22 +69,6 @@ function Basic(props: Props) {
   const parseSubjectObjectList = (objectList: any[]) => {
     return objectList.map((obj: any) => Object.values(obj));
   };
-
-  async function updateSubjects(
-    subjectLabelList: any[],
-    subjectDataList: any[]
-  ) {
-    const result = await database.U({
-      location: `schools/${props.schoolData._id}/subjects`,
-      data: {
-        new: {
-          label: subjectLabelList,
-          data: subjectDataList,
-        },
-      },
-    });
-    return result;
-  }
 
   const fileToUserList = (file: any) => {
     var reader = new FileReader();
@@ -169,19 +153,21 @@ function Basic(props: Props) {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateSubjects(
-                subjectLabelList,
-                parseSubjectObjectList(subjectObjectList)
-              )
-                .then((res: any) => {
-                  props.setSchoolData({
-                    ...props.schoolData,
-                    subjects: res.data,
-                  });
+              SchoolApi.USchoolSubject({
+                schoolId: props.schoolData?._id,
+                data: {
+                  label: subjectLabelList,
+                  data: parseSubjectObjectList(subjectObjectList),
+                },
+              })
+                .then((res) => {
+                  props.setSchoolData({ ...props.schoolData, subjects: res });
                   alert("success");
                   props.setPopupActive(false);
                 })
-                .catch((err) => alert(err.response.data.message));
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
             }}
             style={{
               borderRadius: "4px",

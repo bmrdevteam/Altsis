@@ -29,6 +29,7 @@
  */
 
 import useDatabase from "hooks/useDatabase";
+import _ from "lodash";
 export default function useApi() {
   const database = useDatabase();
 
@@ -46,11 +47,33 @@ export default function useApi() {
     return query;
   }
 
+  function QUERY_SUB_BUILDER(params: string[] | string) {
+    return _.join(params, ",");
+  }
+
   /**
    * Academy Api
    * ##########################################################################
    */
-
+  /**
+   * Create Academy
+   * @auth owner
+   */
+  async function CAcademy(props: {
+    data: {
+      academyId: string;
+      academyName: string;
+      adminId: string;
+      adminName: string;
+      email?: string;
+      tel?: string;
+    };
+  }) {
+    return await database.C({
+      location: `academies`,
+      data: props.data,
+    });
+  }
   /**
    * Get Academies
    * @type GET
@@ -62,19 +85,69 @@ export default function useApi() {
     return result;
   }
   /**
-   * Update Subjects in school
-   * @auth admin
+   * Get Academy
+   * @type GET
+   * @auth owner
+   * @returns academy
    */
-  async function USchoolSubject(props: {
-    academyId: string;
-    schoolId: string;
-    data: any;
-  }) {
-    return await database.U({
-      location: `academies/${props.academyId}/schools/${props.schoolId}/subjects`,
-      data: { new: props.data },
+  async function RAcademy(props: { academyId?: string }) {
+    return await database.R({
+      location: `academies/${props.academyId}`,
     });
   }
+  /**
+   * Update Academy
+   * @type PUT
+   * @auth owner
+   */
+  async function UAcademy(props: {
+    academyId: string;
+    data: { email: string; tel: string };
+  }) {
+    return await database.U({
+      location: `academies/${props.academyId}`,
+      data: props.data,
+    });
+  }
+  /**
+   * Activate Academy
+   * @type PUT
+   * @auth owner
+   */
+  async function UActivateAcademy(props: { academyId: string }) {
+    return await database.U({
+      location: `academies/${props.academyId}/activate`,
+      data: {},
+    });
+  }
+  /**
+   * Inactivate Academy
+   * @type PUT
+   * @auth owner
+   */
+  async function UInactivateAcademy(props: { academyId: string }) {
+    return await database.U({
+      location: `academies/${props.academyId}/inactivate`,
+      data: {},
+    });
+  }
+
+  /**
+   * Create Academy document(users, schools, seasons, registrations)
+   * @type PUT
+   * @auth owner
+   */
+  async function CAcademyDocument(props: {
+    academyId: string;
+    type: "users" | "schools" | "seasons" | "registrations";
+    data: any;
+  }) {
+    return await database.C({
+      location: `academies/${props.academyId}/${props.type}`,
+      data: props.data,
+    });
+  }
+
   /**
    * User Api
    * ##########################################################################
@@ -134,8 +207,7 @@ export default function useApi() {
    * @returns LoggedIn User
    */
   async function RMySelf() {
-    const result = await database.R({ location: "users/current" });
-    return result;
+    return await database.R({ location: "users/current" });
   }
 
   /**
@@ -145,13 +217,54 @@ export default function useApi() {
    * @returns Logout user
    */
   async function RLogout() {
-    const result = await database.R({ location: "users/logout" });
+    return await database.R({ location: "users/logout" });
+  }
+
+  /**
+   * Get user by userId or school
+   * @type GET
+   * @auth member
+   * @returns LoggedIn User
+   */
+  async function RUsers(params?: {
+    school?: string;
+    schoolId?: string;
+    "no-school"?: string;
+    fields?: string[] | string;
+    auth?: "owner" | "admin" | "member";
+  }) {
+    if (params?.fields) params.fields = QUERY_SUB_BUILDER(params.fields);
+    const { users: result } = await database.R({
+      location: "users" + QUERY_BUILDER(params),
+    });
     return result;
   }
+
   /**
    * Season Api
    * ##########################################################################
    */
+
+  /**
+   * Create Season
+   * @type POST
+   * @auth admin manager
+   * @returns Season
+   */
+  async function CSeason(props: {
+    data: {
+      school: string;
+      year: string;
+      term: string;
+      period?: {
+        start?: string;
+        end?: string;
+      };
+    };
+  }) {
+    const result = await database.C({ location: `seasons`, data: props.data });
+    return result;
+  }
 
   /**
    * Get Season by Id
@@ -163,11 +276,171 @@ export default function useApi() {
     const result = await database.R({ location: `seasons/${id}` });
     return result;
   }
+  /**
+   * Get Seasons
+   * @type GET
+   * @auth member
+   * @returns Season
+   */
+  async function RSeasons(params: { school: string }) {
+    const { seasons: result } = await database.R({
+      location: `seasons` + QUERY_BUILDER(params),
+    });
+    return result;
+  }
 
+  /**
+   * Update Season period
+   * @type PUT
+   * @auth admin manager
+   * @returns Season
+   */
+
+  async function USeason(props: {
+    _id: string;
+    field: string;
+    data: { start: string; end: string };
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/${props.field}`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Activate Season
+   * @type PUT
+   * @auth admin manager
+   * @returns Season
+   */
+
+  async function UActivateSeason(_id: string) {
+    return await database.U({
+      location: `seasons/${_id}/activate`,
+      data: {},
+    });
+  }
+
+  /**
+   * Inactivate Season
+   * @type PUT
+   * @auth admin manager
+   * @returns Season
+   */
+
+  async function UInactivateSeason(_id: string) {
+    return await database.U({
+      location: `seasons/${_id}/inactivate`,
+      data: {},
+    });
+  }
+
+  /**
+   * Update Classrooms in season
+   * @auth admin / manager
+   */
+  async function USeasonClassroom(props: { _id: string; data: string[] }) {
+    return await database.U({
+      location: `seasons/${props._id}/classrooms`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Update Subjects in season
+   * @auth admin / manager
+   */
+  async function USeasonSubject(props: {
+    _id: string;
+    data: { label: string[]; data: any[] };
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/subjects`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Update form in season
+   * @auth admin / manager
+   */
+  async function USeasonForm(props: {
+    _id: string;
+    type: "timetable" | "syllabus" | "evaluation";
+    data: any;
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/form/${props.type}`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Update permission in season
+   * @auth admin / manager
+   */
+  async function USeasonPermission(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluatoin";
+    data: any;
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/permission/${props.type}`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Delete Season
+   * @type DELETE
+   * @auth admin manager
+   * @returns Season
+   */
+
+  async function DSeason(_id: string) {
+    return await database.D({
+      location: `seasons/${_id}`,
+    });
+  }
   /**
    * Registration Api
    * ##########################################################################
    */
+  /**
+   * Create Registrations
+   * @type POST
+   * @auth admin / managers
+   * @returns Registrations
+   */
+  async function CRegistrations(props: {
+    data: { season: string; users: any[] };
+  }) {
+    const { registrations: result } = await database.C({
+      location: `registrations/bulk`,
+      data: props.data,
+    });
+    return result;
+  }
+
+  /**
+   * Create Registrations from other season
+   * @type POST
+   * @auth admin / managers
+   * @returns Registrations
+   */
+  async function CRegistrationsCopy(props: {
+    data: {
+      fromSeason: string;
+      toSeason: string;
+    };
+  }) {
+    const { registrations: result } = await database.C({
+      location: `registrations/copy`,
+      data: props.data,
+    });
+    return result;
+  }
+
   /**
    * Get Registration by param
    * @type GET
@@ -176,6 +449,7 @@ export default function useApi() {
    */
   async function RRegistrations(params?: {
     season?: string;
+    school?: string;
     schoolId?: string;
     schoolName?: string;
     year?: string;
@@ -186,6 +460,44 @@ export default function useApi() {
   }) {
     const { registrations: result } = await database.R({
       location: `registrations${QUERY_BUILDER(params)}`,
+    });
+    return result;
+  }
+  /**
+   * Update Registratio
+   * @type PUT
+   * @auth admin / manager
+   * @returns
+   */
+  async function URegistrations(props: {
+    _id?: string;
+    _ids?: string[];
+    data: {
+      role: string;
+      grade: string;
+      group: string;
+      teacherId: string;
+      teacherName: string;
+    };
+  }) {
+    if (props._ids) {
+      props._id = QUERY_SUB_BUILDER(props._ids);
+    }
+    return await database.U({
+      location: `registrations/${props._id}`,
+      data: props.data,
+    });
+  }
+  /**
+   * Delete Registratios
+   * @type DELETE
+   * @auth admin / manager
+   * @returns
+   */
+  async function DRegistrations(params: { _ids: string[] }) {
+    const _id = QUERY_SUB_BUILDER(params._ids);
+    const result = await database.D({
+      location: `registrations${QUERY_BUILDER({ _id })}`,
     });
     return result;
   }
@@ -245,15 +557,18 @@ export default function useApi() {
    * Create School
    * @auth admin
    */
-  async function CSchools(data: { schoolId: string; schoolName: string }) {
-    return await database.C({ location: "schools", data: data });
+  async function CSchools(props: {
+    data: { schoolId: string; schoolName: string };
+  }) {
+    return await database.C({ location: "schools", data: props.data });
   }
   /**
    * Read Schools
    * @auth admin
    */
   async function RSchools() {
-    return await database.R({ location: "schools" });
+    const { schools: result } = await database.R({ location: "schools" });
+    return result;
   }
   /**
    * Read Schools by id
@@ -267,12 +582,61 @@ export default function useApi() {
    * @auth admin
    */
   async function USchoolClassroom(props: {
-    academyId: string;
+    academyId?: string;
     schoolId: string;
     data: any;
   }) {
     return await database.U({
-      location: `academies/${props.academyId}/schools/${props.schoolId}/classrooms`,
+      location: `${
+        props.academyId ? `academies/${props.academyId}/` : ""
+      }schools/${props.schoolId}/classrooms`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Update Subjects in school
+   * @auth admin
+   */
+  async function USchoolSubject(props: {
+    academyId?: string;
+    schoolId: string;
+    data: any;
+  }) {
+    return await database.U({
+      location: `${
+        props.academyId ? `academies/${props.academyId}/` : ""
+      }schools/${props.schoolId}/subjects`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Update form in season
+   * @auth admin / manager
+   */
+  async function USchoolForm(props: {
+    _id: string;
+    type: "timetable" | "syllabus" | "evaluation";
+    data: any;
+  }) {
+    return await database.U({
+      location: `schools/${props._id}/form/${props.type}`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
+   * Update permission in season
+   * @auth admin / manager
+   */
+  async function USchoolPermission(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluatoin";
+    data: any;
+  }) {
+    return await database.U({
+      location: `schools/${props._id}/permission/${props.type}`,
       data: { new: props.data },
     });
   }
@@ -298,11 +662,15 @@ export default function useApi() {
    * @auth member
    * @returns Enrollments
    */
-  async function REnrolllments(params?: {
+  async function REnrolllments(params: {
     syllabus?: string;
     season?: string;
     studentId?: string | number;
+    syllabuses?: string[] | string;
   }) {
+    if (params.syllabuses)
+      params.syllabuses = QUERY_SUB_BUILDER(params?.syllabuses);
+
     const { enrollments } = await database.R({
       location: "enrollments" + QUERY_BUILDER(params),
     });
@@ -358,6 +726,79 @@ export default function useApi() {
   }
 
   /**
+   * Syllabus Api
+   * ##########################################################################
+   */
+  /**
+   * Create Syllabus
+   * @auth member
+   */
+  async function CSyllabus(props: {
+    data: {
+      season: string;
+      classTitle: string;
+      point: string;
+      subject: string[];
+      teachers: any[];
+      classroom: string;
+      time: any[];
+      info: any;
+      limit: number;
+    };
+  }) {
+    return await database.C({
+      location: `syllabuses`,
+      data: props.data,
+    });
+  }
+  /**
+   * Get Syllabuses
+   * @type GET
+   * @auth member
+   * @returns list of syllabuses
+   */
+  async function RSyllabuses(props: { season?: string; classroom?: string }) {
+    const { syllabuses: result } = await database.R({
+      location: "syllabuses" + QUERY_BUILDER(props),
+    });
+    return result;
+  }
+  /**
+   * Get Syllabus
+   * @type GET
+   * @auth member
+   * @returns syllabus
+   */
+  async function RSyllabus(_id?: string) {
+    return await database.R({
+      location: `syllabuses/${_id}`,
+    });
+  }
+  /**
+   * Update Syllabus
+   * @type PUT
+   * @auth member
+   */
+  async function USyllabus(props: {
+    _id: string;
+    data: {
+      classTitle: string;
+      point: string;
+      subject: string[];
+      teachers: any[];
+      classroom: string;
+      time: any[];
+      info: any;
+      limit: number;
+    };
+  }) {
+    return await database.U({
+      location: `syllabuses/${props._id}`,
+      data: { new: props.data },
+    });
+  }
+
+  /**
    * Notification Api
    * ##########################################################################
    */
@@ -377,7 +818,13 @@ export default function useApi() {
 
   return {
     AcademyApi: {
+      CAcademy,
       RAcademies,
+      RAcademy,
+      UAcademy,
+      UActivateAcademy,
+      UInactivateAcademy,
+      CAcademyDocument,
       USchoolSubject,
     },
     UserApi: {
@@ -386,16 +833,38 @@ export default function useApi() {
       RLogout,
       CGoogleLocal,
       CConnectGoogle,
+      RUsers,
     },
-    SeasonApi: { RSeason },
+    SeasonApi: {
+      CSeason,
+      RSeason,
+      RSeasons,
+      USeason,
+      UActivateSeason,
+      UInactivateSeason,
+      USeasonSubject,
+      USeasonClassroom,
+      USeasonForm,
+      USeasonPermission,
+      DSeason,
+    },
     SchoolApi: {
       CSchools,
       RSchools,
       RSchool,
       USchoolClassroom,
+      USchoolSubject,
+      USchoolForm,
+      USchoolPermission,
       USchoolFormArchive,
     },
-    RegistrationApi: { RRegistrations },
+    RegistrationApi: {
+      CRegistrations,
+      CRegistrationsCopy,
+      RRegistrations,
+      URegistrations,
+      DRegistrations,
+    },
     EnrollmentApi: { REnrolllment, REnrolllments },
     FormApi: {
       CForm,
@@ -404,6 +873,12 @@ export default function useApi() {
     },
     ArchiveApi: {
       RArchives,
+    },
+    SyllabusApi: {
+      CSyllabus,
+      RSyllabus,
+      RSyllabuses,
+      USyllabus,
     },
     NotificationApi: { CUpdatedNotifications, UCheckNotification },
   };

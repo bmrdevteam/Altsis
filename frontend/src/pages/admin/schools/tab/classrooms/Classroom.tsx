@@ -27,8 +27,8 @@
  *
  */
 
-import { useState, useEffect, useRef } from "react";
-import useDatabase from "hooks/useDatabase";
+import { useState, useRef } from "react";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -39,34 +39,20 @@ import Input from "components/input/Input";
 
 import UpdateBulk from "./tab/updateBulk";
 
-import _ from "lodash";
-
 type Props = {
   schoolData?: any;
   setSchoolData: any;
 };
 
 const Classroom = (props: Props) => {
-  const database = useDatabase();
-
+  const { SchoolApi } = useApi();
   const classroomRef = useRef<string>("");
 
   /* popup activation */
   const [updateBulkPopup, setUpdateBulkPopupActive] = useState<boolean>(false);
 
-  async function updateClassrooms(classroomList: any[]) {
-    const result = await database.U({
-      location: `schools/${props.schoolData?._id}/classrooms`,
-      data: {
-        new: classroomList,
-      },
-    });
-    return result;
-  }
-
   return (
     <>
-      {" "}
       <div className={style.popup}>
         <Button
           type={"ghost"}
@@ -96,14 +82,14 @@ const Classroom = (props: Props) => {
             appearence={"flat"}
             onKeyDown={(e: any) => {
               if (classroomRef.current !== "" && e.key === "Enter") {
-                updateClassrooms([
-                  ...props.schoolData?.classrooms,
-                  classroomRef.current,
-                ])
-                  .then((res: any) => {
+                SchoolApi.USchoolClassroom({
+                  schoolId: props.schoolData?._id,
+                  data: [...props.schoolData?.classrooms, classroomRef.current],
+                })
+                  .then((res) => {
                     props.setSchoolData({
                       ...props.schoolData,
-                      classrooms: res.data,
+                      classrooms: res,
                     });
                     alert("success");
                   })
@@ -118,14 +104,14 @@ const Classroom = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateClassrooms([
-                ...props.schoolData?.classrooms,
-                classroomRef.current,
-              ])
-                .then((res: any) => {
+              SchoolApi.USchoolClassroom({
+                schoolId: props.schoolData?._id,
+                data: [...props.schoolData?.classrooms, classroomRef.current],
+              })
+                .then((res) => {
                   props.setSchoolData({
                     ...props.schoolData,
-                    classrooms: res.data,
+                    classrooms: res,
                   });
                   alert("success");
                 })
@@ -166,11 +152,15 @@ const Classroom = (props: Props) => {
               type: "button",
               onClick: (e: any) => {
                 props.schoolData?.classrooms.splice(e.tableRowIndex - 1, 1);
-                updateClassrooms([...props.schoolData?.classrooms])
-                  .then((res: any) => {
+
+                SchoolApi.USchoolClassroom({
+                  schoolId: props.schoolData?._id,
+                  data: props.schoolData?.classrooms,
+                })
+                  .then((res) => {
                     props.setSchoolData({
                       ...props.schoolData,
-                      classrooms: res.data,
+                      classrooms: res,
                     });
                     alert("success");
                   })

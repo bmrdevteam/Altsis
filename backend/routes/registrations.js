@@ -15,6 +15,6 @@ router.get("/", isLoggedIn, registrations.find);
 
 router.put("/:_ids", isAdManager, registrations.update);
 
-router.delete("/:_ids", isAdManager, registrations.remove);
+router.delete("/", isAdManager, registrations.remove);
 
 module.exports = router;

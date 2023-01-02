@@ -28,7 +28,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -47,7 +47,7 @@ type Props = {
 };
 
 const Subjects = (props: Props) => {
-  const database = useDatabase();
+  const { SchoolApi } = useApi();
 
   /* subject label list */
   const [subjectLabelList, setSubjectLabelList] = useState<any[]>([]);
@@ -81,22 +81,6 @@ const Subjects = (props: Props) => {
       )
     );
   };
-
-  async function updateSubjects(
-    subjectLabelList: any[],
-    subjectDataList: any[]
-  ) {
-    const result = await database.U({
-      location: `schools/${props.schoolData?._id}/subjects`,
-      data: {
-        new: {
-          label: subjectLabelList,
-          data: subjectDataList,
-        },
-      },
-    });
-    return result;
-  }
 
   useEffect(() => {
     setSubjectLabelList(props.schoolData.subjects?.label);
@@ -147,15 +131,15 @@ const Subjects = (props: Props) => {
             placeholder="ex) 교과/과목"
             onKeyDown={(e: any) => {
               if (subjectLabelRef.current !== "" && e.key === "Enter") {
-                updateSubjects(
-                  subjectLabelRef.current.split("/"),
-                  props.schoolData?.subjects.data
-                )
-                  .then((res: any) => {
-                    props.setSchoolData({
-                      ...props.schoolData,
-                      subjects: res.data,
-                    });
+                SchoolApi.USchoolSubject({
+                  schoolId: props.schoolData?._id,
+                  data: {
+                    label: subjectLabelRef.current.split("/"),
+                    data: props.schoolData?.subjects.data,
+                  },
+                })
+                  .then((res) => {
+                    props.setSchoolData({ ...props.schoolData, subjects: res });
                     alert("success");
                   })
                   .catch((err) => {
@@ -167,15 +151,15 @@ const Subjects = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateSubjects(
-                subjectLabelRef.current.split("/"),
-                props.schoolData?.subjects.data
-              )
-                .then((res: any) => {
-                  props.setSchoolData({
-                    ...props.schoolData,
-                    subjects: res.data,
-                  });
+              SchoolApi.USchoolSubject({
+                schoolId: props.schoolData?._id,
+                data: {
+                  label: subjectLabelRef.current.split("/"),
+                  data: props.schoolData?.subjects.data,
+                },
+              })
+                .then((res) => {
+                  props.setSchoolData({ ...props.schoolData, subjects: res });
                   alert("success");
                 })
                 .catch((err) => {
@@ -206,15 +190,18 @@ const Subjects = (props: Props) => {
             placeholder={"ex) 미술/서양미술사"}
             onKeyDown={(e: any) => {
               if (subjectDataRef.current !== "" && e.key === "Enter") {
-                updateSubjects(subjectLabelList, [
-                  ...props.schoolData?.subjects.data,
-                  subjectDataRef.current.split("/"),
-                ])
-                  .then((res: any) => {
-                    props.setSchoolData({
-                      ...props.schoolData,
-                      subjects: res.data,
-                    });
+                SchoolApi.USchoolSubject({
+                  schoolId: props.schoolData?._id,
+                  data: {
+                    label: subjectLabelList,
+                    data: [
+                      ...props.schoolData?.subjects.data,
+                      subjectDataRef.current.split("/"),
+                    ],
+                  },
+                })
+                  .then((res) => {
+                    props.setSchoolData({ ...props.schoolData, subjects: res });
                     alert("success");
                   })
                   .catch((err) => {
@@ -227,15 +214,18 @@ const Subjects = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateSubjects(subjectLabelList, [
-                ...props.schoolData?.subjects.data,
-                subjectDataRef.current.split("/"),
-              ])
-                .then((res: any) => {
-                  props.setSchoolData({
-                    ...props.schoolData,
-                    subjects: res.data,
-                  });
+              SchoolApi.USchoolSubject({
+                schoolId: props.schoolData?._id,
+                data: {
+                  label: subjectLabelList,
+                  data: [
+                    ...props.schoolData?.subjects.data,
+                    subjectDataRef.current.split("/"),
+                  ],
+                },
+              })
+                .then((res) => {
+                  props.setSchoolData({ ...props.schoolData, subjects: res });
                   alert("success");
                 })
                 .catch((err) => {
@@ -273,14 +263,15 @@ const Subjects = (props: Props) => {
               onClick: (e: any) => {
                 props.schoolData?.subjects.data.splice(e.tableRowIndex - 1, 1);
 
-                updateSubjects(subjectLabelList, [
-                  ...props.schoolData?.subjects.data,
-                ])
-                  .then((res: any) => {
-                    props.setSchoolData({
-                      ...props.schoolData,
-                      subjects: res.data,
-                    });
+                SchoolApi.USchoolSubject({
+                  schoolId: props.schoolData?._id,
+                  data: {
+                    label: subjectLabelList,
+                    data: props.schoolData?.subjects.data || [],
+                  },
+                })
+                  .then((res) => {
+                    props.setSchoolData({ ...props.schoolData, subjects: res });
                     alert("success");
                   })
                   .catch((err) => {

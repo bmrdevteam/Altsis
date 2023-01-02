@@ -34,7 +34,6 @@ import Input from "components/input/Input";
 
 type Props = {
   userData: any;
-  setIsUserListLoading: any;
 };
 
 function Basic(props: Props) {

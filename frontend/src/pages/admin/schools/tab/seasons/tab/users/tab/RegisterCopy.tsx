@@ -27,8 +27,8 @@
  *
  */
 
-import { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
+import { useState, useEffect } from "react";
+import useApi from "hooks/useApi";
 import _ from "lodash";
 
 // components
@@ -42,30 +42,11 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
-
+  const { RegistrationApi, SeasonApi } = useApi();
   const [seasonList, setSeasonList] = useState<any[]>();
 
-  async function getSeasonList() {
-    const { seasons: result } = await database.R({
-      location: `seasons?schoolId=${props.seasonData.schoolId}`,
-    });
-    return result;
-  }
-
-  async function registerCopyFromSeason(_id: string) {
-    const result = await database.C({
-      location: `registrations/copy`,
-      data: {
-        fromSeason: _id,
-        toSeason: props.seasonData._id,
-      },
-    });
-    return result;
-  }
-
   useEffect(() => {
-    getSeasonList().then((res) => {
+    SeasonApi.RSeasons({ school: props.seasonData.school }).then((res) => {
       setSeasonList(res);
     });
   }, []);
@@ -106,7 +87,12 @@ function Basic(props: Props) {
               key: "select",
               type: "button",
               onClick: (e: any) => {
-                registerCopyFromSeason(e._id).then(() => {
+                RegistrationApi.CRegistrationsCopy({
+                  data: {
+                    fromSeason: e._id,
+                    toSeason: props.seasonData._id,
+                  },
+                }).then(() => {
                   props.setIsLoading(true);
                   props.setPopupActive(false);
                 });
