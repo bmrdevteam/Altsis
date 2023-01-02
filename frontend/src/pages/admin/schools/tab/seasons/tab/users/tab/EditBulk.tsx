@@ -26,9 +26,9 @@
  * @version 1.0
  *
  */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Input from "components/input/Input";
@@ -47,26 +47,13 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  const { RegistrationApi } = useApi();
   const [role, setRole] = useState<string>("student");
   const [grade, setGrade] = useState<string>("");
   const [group, setGroup] = useState<string>("");
   const [teacherId, setTeacherId] = useState<string>("");
   const [teacherName, setTeacherName] = useState<string>("");
 
-  async function updateRegistration() {
-    const result = await database.U({
-      location: `registrations/${_.join(props.selectedRegistrationList, ",")}`,
-      data: {
-        role,
-        grade,
-        group,
-        teacherId,
-        teacherName,
-      },
-    });
-    return result;
-  }
   return (
     <Popup
       title={`일괄 수정`}
@@ -150,7 +137,16 @@ function Basic(props: Props) {
           type={"ghost"}
           style={{ marginTop: "24px" }}
           onClick={() => {
-            updateRegistration()
+            RegistrationApi.URegistrations({
+              _ids: props.selectedRegistrationList,
+              data: {
+                role,
+                grade,
+                group,
+                teacherId,
+                teacherName,
+              },
+            })
               .then(() => {
                 alert("success");
                 props.setIsLoading(true);

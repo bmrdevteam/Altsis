@@ -8,6 +8,7 @@ const {
   Registration,
 } = require("../models");
 
+const _ = require("lodash");
 const validate = require("../utils/validate");
 
 module.exports.create = async (req, res) => {
@@ -28,7 +29,7 @@ module.exports.create = async (req, res) => {
     await academy.save();
 
     /* create db */
-    addConnection(academy.academyId, academy.dbName);
+    addConnection(academy);
 
     /* create & save admin document  */
     const _User = User(academy.academyId);
@@ -51,36 +52,6 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.activate = async (req, res) => {
-  try {
-    /* find document */
-    const academy = await Academy.findOne({ academyId: req.params.academyId });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    /* activate academy */
-    academy.isActivated = true;
-    await academy.save();
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-module.exports.inactivate = async (req, res) => {
-  try {
-    /* find document */
-    const academy = await Academy.findOne({ academyId: req.params.academyId });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
-
-    /* activate academy */
-    academy.isActivated = false;
-    await academy.save();
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 module.exports.find = async (req, res) => {
   try {
     /* if one academy info is requested */
@@ -90,7 +61,7 @@ module.exports.find = async (req, res) => {
 
       const academy = await Academy.findOne({
         academyId: req.params.academyId,
-      }).select("-dbName");
+      });
 
       if (!academy) {
         return res.status(404).send({ message: "Academy not found" });
@@ -127,7 +98,37 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.updateField = async (req, res) => {
+module.exports.activate = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findOne({ academyId: req.params.academyId });
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    /* activate academy */
+    academy.isActivated = true;
+    await academy.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.inactivate = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findOne({ academyId: req.params.academyId });
+    if (!academy) return res.status(404).send({ message: "academy not found" });
+
+    /* activate academy */
+    academy.isActivated = false;
+    await academy.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.update = async (req, res) => {
   try {
     if (req.body.email && !validate("email", req.body.email))
       return res.status(400).send({ message: "validation failed" });
@@ -140,8 +141,8 @@ module.exports.updateField = async (req, res) => {
     });
     if (!academy) return res.status(404).send({ message: "academy not found" });
 
-    academy["email"] = req.body.email;
-    academy["tel"] = req.body.tel;
+    academy["email"] = req.body.email || undefined;
+    academy["tel"] = req.body.tel || undefined;
     await academy.save();
     return res.status(200).send(academy);
   } catch (err) {
@@ -159,6 +160,9 @@ const typeToModel = (docType, academyId) => {
 
 module.exports.findDocuments = async (req, res) => {
   try {
+    if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
+      return res.status(400).send();
+
     if (req.params.docId) {
       const document = await typeToModel(
         req.params.docType,
@@ -180,6 +184,9 @@ module.exports.findDocuments = async (req, res) => {
 
 module.exports.deleteDocument = async (req, res) => {
   try {
+    if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
+      return res.status(400).send();
+
     const document = await typeToModel(
       req.params.docType,
       req.user.academyId

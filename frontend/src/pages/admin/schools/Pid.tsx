@@ -29,7 +29,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
+import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
 
 // components
@@ -41,7 +41,6 @@ import BasicInfo from "./tab/BasicInfo";
 import Classroom from "./tab/classrooms/Classroom";
 import Season from "./tab/seasons/Season";
 import Subject from "./tab/subjects/Subject";
-import useDatabase from "../../../hooks/useDatabase";
 import Skeleton from "../../../components/skeleton/Skeleton";
 import Archive from "./tab/Archive";
 import Form from "./tab/Form";
@@ -50,7 +49,6 @@ import User from "./tab/users/User";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
-import Evaluation from "./tab/Evaluation";
 
 type Props = {};
 
@@ -83,24 +81,18 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentUser, currentSchool } = useAuth();
+  const { currentSchool } = useAuth();
+  const { SchoolApi } = useApi();
 
-  const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<any>();
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
-  async function getSchool() {
-    const res = await database.R({ location: `schools/${pid}` });
-    return res;
-  }
-
   useEffect(() => {
     if (isLoading) {
       if (pid) {
-        getSchool()
+        SchoolApi.RSchool(pid)
           .then((res) => {
-            console.log(res);
             setSchoolData(res);
           })
           .catch(() => {
@@ -134,7 +126,7 @@ const School = (props: Props) => {
           <Tab
             items={{
               "기본 정보": <BasicInfo schoolData={schoolData} />,
-              학기: <Season />,
+              학기: <Season schoolData={schoolData} />,
               사용자: <User schoolData={schoolData} />,
               교과목: (
                 <Subject
@@ -148,15 +140,21 @@ const School = (props: Props) => {
                   setSchoolData={setSchoolData}
                 />
               ),
-              양식: <Form />,
+              양식: (
+                <Form schoolData={schoolData} setSchoolData={setSchoolData} />
+              ),
               권한: (
                 <Permission
                   schoolData={schoolData}
                   setSchoolData={setSchoolData}
                 />
               ),
-              평가: <Evaluation schoolData={schoolData} />,
-              "기록 관리": <Archive schoolData={schoolData} />,
+              "기록 관리": (
+                <Archive
+                  schoolData={schoolData}
+                  setSchoolData={setSchoolData}
+                />
+              ),
             }}
           />
         )}

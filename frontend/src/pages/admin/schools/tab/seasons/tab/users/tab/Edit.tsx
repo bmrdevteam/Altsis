@@ -28,7 +28,7 @@
  */
 import { useState, useEffect } from "react";
 import style from "style/pages/admin/schools.module.scss";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Input from "components/input/Input";
@@ -47,7 +47,7 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  const { RegistrationApi } = useApi();
   const [role, setRole] = useState<string>(props.registrationData.role);
   const [grade, setGrade] = useState<string>(props.registrationData.grade);
   const [group, setGroup] = useState<string>(props.registrationData.group);
@@ -58,19 +58,6 @@ function Basic(props: Props) {
     props.registrationData.teacherName
   );
 
-  async function updateRegistration() {
-    const result = await database.U({
-      location: `registrations/${props.registrationData._id}`,
-      data: {
-        role,
-        grade,
-        group,
-        teacherId,
-        teacherName,
-      },
-    });
-    return result;
-  }
   return (
     <Popup
       title={`${props.registrationData.userName}(${props.registrationData.userId})`}
@@ -154,7 +141,16 @@ function Basic(props: Props) {
           type={"ghost"}
           style={{ marginTop: "24px" }}
           onClick={() => {
-            updateRegistration()
+            RegistrationApi.URegistrations({
+              _id: props.registrationData._id,
+              data: {
+                role,
+                grade,
+                group,
+                teacherId,
+                teacherName,
+              },
+            })
               .then(() => {
                 alert("success");
                 props.setIsLoading(true);

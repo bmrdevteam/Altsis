@@ -27,9 +27,8 @@
  *
  */
 
-import React, { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
-import * as xlsx from "xlsx";
+import { useState, useRef, useEffect } from "react";
+import useApi from "hooks/useApi";
 import _ from "lodash";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -39,8 +38,6 @@ import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 
-import exampleData from "../../../../../exampleData/subjectExampleData";
-
 type Props = {
   setPopupActive: any;
   seasonData: any;
@@ -49,31 +46,13 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  const { UserApi, RegistrationApi } = useApi();
 
   const [userList, setUserList] = useState<any>();
   const selectedSchoolUsers = useRef<any>(null);
 
-  async function getUserList() {
-    const { users: result } = await database.R({
-      location: `users?schoolId=${props.seasonData.schoolId}`,
-    });
-    return result;
-  }
-
-  async function registerSelectedUsers() {
-    const result = await database.C({
-      location: `registrations/bulk`,
-      data: {
-        season: props.seasonData._id,
-        users: selectedSchoolUsers.current,
-      },
-    });
-    return result;
-  }
-
   useEffect(() => {
-    getUserList().then((res) => {
+    UserApi.RUsers({ school: props.seasonData.school }).then((res) => {
       setUserList(res);
     });
   }, []);
@@ -89,7 +68,12 @@ function Basic(props: Props) {
         <Button
           type={"ghost"}
           onClick={() => {
-            registerSelectedUsers()
+            RegistrationApi.CRegistrations({
+              data: {
+                season: props.seasonData._id,
+                users: selectedSchoolUsers.current,
+              },
+            })
               .then(() => {
                 props.setIsLoading(true);
                 props.setPopupActive(false);

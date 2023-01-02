@@ -27,7 +27,7 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -46,7 +46,7 @@ type Props = {
 };
 
 const Permission = (props: Props) => {
-  const database = useDatabase();
+  const { SeasonApi, RegistrationApi } = useApi();
 
   /* document list */
   const [permissionSyllabus, setPermissionSyllabus] = useState<any>(
@@ -67,7 +67,7 @@ const Permission = (props: Props) => {
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
 
   /* permission type */
-  const [permissionType, setPermissionType] = useState<string>("");
+  const [permissionType, setPermissionType] = useState<string>("syllabus");
 
   /* document fields */
   const [isTeacherAllowed, setIsTeacherAllowed] = useState<any>(false);
@@ -126,30 +126,13 @@ const Permission = (props: Props) => {
       : { userName: "", role: "" };
   };
 
-  async function updatePermission(_permission: any) {
-    const result = await database.U({
-      location: `seasons/${props.seasonData?._id}/permission/${permissionType}`,
-      data: {
-        new: _permission,
-      },
-    });
-
-    return result;
-  }
-
-  async function getRegistrationList() {
-    const { registrations } = await database.R({
-      location: `registrations?season=${props.seasonData._id}`,
-    });
-
-    return registrations;
-  }
-
   useEffect(() => {
     if (editPopupActive) {
-      getRegistrationList().then((res) => {
-        setRegistrationList(res);
-      });
+      RegistrationApi.RRegistrations({ season: props.seasonData._id }).then(
+        (res) => {
+          setRegistrationList(res);
+        }
+      );
     }
   }, [editPopupActive]);
 
@@ -368,21 +351,24 @@ const Permission = (props: Props) => {
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
               }}
               onClick={(e: any) => {
-                const _permission = zipPermission();
-                updatePermission(_permission)
+                SeasonApi.USeasonPermission({
+                  _id: props.seasonData?._id,
+                  type: permissionType,
+                  data: zipPermission(),
+                })
                   .then((res: any) => {
                     alert("success");
                     if (permissionType === "syllabus") {
-                      setPermissionSyllabus(res.data);
-                      props.seasonData.permissionSyllabus = res.data;
+                      setPermissionSyllabus(res);
+                      props.seasonData.permissionSyllabus = res;
                       props.setSelectedSeason(props.seasonData);
                     } else if (permissionType === "enrollment") {
-                      setPermissionEnrollment(res.data);
-                      props.seasonData.permissionEnrollment = res.data;
+                      setPermissionEnrollment(res);
+                      props.seasonData.permissionEnrollment = res;
                       props.setSelectedSeason(props.seasonData);
                     } else if (permissionType === "evaluation") {
-                      setPermissionEvaluation(res.data);
-                      props.seasonData.permissionEvaluation = res.data;
+                      setPermissionEvaluation(res);
+                      props.seasonData.permissionEvaluation = res;
                       props.setSelectedSeason(props.seasonData);
                     }
                   })

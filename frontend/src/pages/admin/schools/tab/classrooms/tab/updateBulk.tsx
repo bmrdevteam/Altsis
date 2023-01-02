@@ -28,9 +28,9 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
 import * as xlsx from "xlsx";
 import _ from "lodash";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -48,7 +48,7 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  const { SchoolApi } = useApi();
 
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<any>();
@@ -61,20 +61,6 @@ function Basic(props: Props) {
 
   const description = `1. 엑셀을 열어 A1셀에 '강의실'을 입력합니다.\n
 2. 강의실을 B1셀부터 입력합니다.`;
-
-  const parseSubjectObjectList = (objectList: any[]) => {
-    return objectList.map((obj: any) => Object.values(obj));
-  };
-
-  async function updateClassrooms(classroomList: any[]) {
-    const result = await database.U({
-      location: `schools/${props.schoolData?._id}/classrooms`,
-      data: {
-        new: classroomList,
-      },
-    });
-    return result;
-  }
 
   const fileToUserList = (file: any) => {
     var reader = new FileReader();
@@ -143,16 +129,20 @@ function Basic(props: Props) {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateClassrooms(classroomList)
-                .then((res: any) => {
+              SchoolApi.USchoolClassroom({
+                schoolId: props.schoolData?._id,
+                data: classroomList,
+              })
+                .then((res) => {
                   props.setSchoolData({
                     ...props.schoolData,
-                    classrooms: res.data,
+                    classrooms: res,
                   });
                   alert("success");
-                  props.setPopupActive(false);
                 })
-                .catch((err) => alert(err.response.data.message));
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
             }}
             style={{
               borderRadius: "4px",
