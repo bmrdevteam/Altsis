@@ -4,7 +4,7 @@ import Textarea from "../../../components/textarea/Textarea";
 import { useAuth } from "../../../contexts/authContext";
 import style from "../../../style/pages/settings/settings.module.scss";
 import Button from "components/button/Button";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import useDatabase from "../../../hooks/useDatabase";
 
 type Props = {}
@@ -89,27 +89,32 @@ const Overview = (props: Props) => {
           <div className={style.container_title}>앱 리스트</div>
           <div style={{ gap: "12px", marginTop: "24px" }}>
           <Table
+            control
+            defaultPageBy={50}
             type="object-array"
-            filter
-            filterSearch
-            data={AppsList}
+            data={AppsList || []}
             header={[
               {
-                text: "",
-                key: "",
-                type: "checkbox",
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
               {
-                text: "id",
-                key: "",
-                type: "index",
+                text: "이름",
+                type: "text",
+                key: "title",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
-              { text: "이름", key: "title", type: "string", align: "center" },
-              { text: "설명", key: "description", type: "string", align: "center"  },
+              {
+                text: "설명",
+                type: "text",
+                key: "description",
+                width: "48px",
+                textAlign: "center",
+              },
             ]}
           />
           </div>
