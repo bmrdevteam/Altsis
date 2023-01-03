@@ -40,6 +40,8 @@ import Tree from "components/tree/Tree";
 import useDatabase from "hooks/useDatabase";
 import style from "style/pages/admin/schools.module.scss";
 
+import useApi from "hooks/useApi";
+
 // tab
 import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
@@ -48,15 +50,10 @@ import Permission from "./tab/Permission";
 import Subject from "./tab/subjects/Subject";
 import Users from "./tab/users/Users";
 
-import { useAuth } from "contexts/authContext";
-
-type Props = {};
+type Props = { schoolData: any };
 
 const Season = (props: Props) => {
-  const database = useDatabase();
-
-  const { pid } = useParams();
-  const { currentSchool } = useAuth();
+  const { SeasonApi } = useApi();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -68,50 +65,15 @@ const Season = (props: Props) => {
   const [start, setStart] = useState<string>();
   const [end, setEnd] = useState<string>();
 
-  const [classroomList, setClassroomList] = useState<any[]>([]);
-
   const [addSeasonPopupActive, setAddSeasonPopupActive] =
     useState<boolean>(false);
   const [editSeasonPopupActive, setEditSeasonPopupActive] =
     useState<boolean>(false);
 
-  /**
-   *
-   * @returns seasons from the database
-   */
-  async function getSeasons() {
-    const { seasons: result } = await database.R({
-      location: `seasons?school=${currentSchool.school ?? " "}`,
-    });
-    return result;
-  }
-  async function getSelectedSeason(id: string) {
-    const result = await database.R({ location: `seasons/${id}` });
-    return result;
-  }
-
-  async function addSeason() {
-    const result = await database.C({
-      location: `seasons`,
-      data: {
-        school: currentSchool.school,
-        year: year,
-        term: term,
-        period: {
-          start: start,
-          end: end,
-        },
-      },
-    });
-    return result;
-  }
-
   useEffect(() => {
     if (isLoading) {
-      getSeasons()
+      SeasonApi.RSeasons({ school: props.schoolData._id })
         .then((res) => {
-          console.log(res);
-
           setSeasons(res);
           setIsLoading(false);
         })
@@ -198,11 +160,9 @@ const Season = (props: Props) => {
               key: "detail",
               type: "button",
               onClick: (e: any) => {
-                getSelectedSeason(e._id).then((res) => {
+                SeasonApi.RSeason(e._id).then((res) => {
                   setSelectedSeason(res);
-                  setClassroomList(res.classrooms);
                   setEditSeasonPopupActive(true);
-                  console.log(res);
                 });
               },
               width: "80px",
@@ -271,13 +231,25 @@ const Season = (props: Props) => {
               type={"ghost"}
               disabled={!year || !term}
               onClick={() => {
-                addSeason()
-                  .then((res) => {
-                    alert("success");
-                    setIsLoading(true);
-                    setAddSeasonPopupActive(false);
+                if (year && term) {
+                  SeasonApi.CSeason({
+                    data: {
+                      school: props.schoolData._id,
+                      year: year,
+                      term: term,
+                      period: {
+                        start: start,
+                        end: end,
+                      },
+                    },
                   })
-                  .catch((err) => alert(err.response.data.message));
+                    .then(() => {
+                      alert("success");
+                      setIsLoading(true);
+                      setAddSeasonPopupActive(false);
+                    })
+                    .catch((err) => alert(err.response.data.message));
+                }
               }}
               style={{
                 borderRadius: "4px",
@@ -307,6 +279,7 @@ const Season = (props: Props) => {
                   seasonData={selectedSeason}
                   setPopupActive={setEditSeasonPopupActive}
                   setIsLoading={setIsLoading}
+                  setSeasonData={setSelectedSeason}
                 />
               ),
               사용자: <Users seasonData={selectedSeason} />,

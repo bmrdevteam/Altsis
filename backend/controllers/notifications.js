@@ -41,19 +41,20 @@ module.exports.send = async (req, res) => {
       //   "true"
       // );
 
-      const sid = await client.v4.hGet(req.user.academyId, notification.userId);
-      console.log(
-        `receiver ${notification.userId} is ${
-          sid ? `currently logged in. sid is ${sid}` : `not logged in`
-        }`
-      );
-      if (sid)
-        getIo()
-          .to(sid)
-          .emit(
-            "checkNotifications",
-            "you should check your new notifications"
-          );
+      const socketData = await client.v4.hGet(
+        req.user.academyId,
+        notification.userId
+      ); // if receiver is logged in
+      if (socketData) {
+        JSON.parse(socketData).sid.forEach((sid) => {
+          getIo()
+            .to(sid)
+            .emit(
+              "checkNotifications",
+              "you should check your new notifications"
+            );
+        });
+      }
 
       // if (sid) {
       //   getIo()

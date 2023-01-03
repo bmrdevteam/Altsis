@@ -27,7 +27,7 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -39,8 +39,7 @@ import style from "style/pages/admin/schools.module.scss";
 type Props = { seasonData: any; setSelectedSeason: any };
 
 const Form = (props: Props) => {
-  const database = useDatabase();
-
+  const { SeasonApi, FormApi } = useApi();
   const [forms, setForms] = useState<any>();
   const [formEvaluation, setFormEvaluation] = useState<any[]>(
     props.seasonData.formEvaluation || []
@@ -53,39 +52,8 @@ const Form = (props: Props) => {
   const [formEvaluationPopupActive, setFormEvaluationPopupActive] =
     useState<boolean>(false);
 
-  async function getForms() {
-    const { forms: result } = await database.R({ location: "forms" });
-    return result;
-  }
-  async function getForm(id: string) {
-    const result = await database.R({ location: `forms/${id}` });
-    return result;
-  }
-
-  async function updateFormTimetable(data: any) {
-    const { formTimetable: result } = await database.U({
-      location: `seasons/${props.seasonData._id}/form/timetable`,
-      data: { new: data },
-    });
-    return result;
-  }
-  async function updateFormSyllabus(data: any) {
-    const { formSyllabus: result } = await database.U({
-      location: `seasons/${props.seasonData._id}/form/syllabus`,
-      data: { new: data },
-    });
-    return result;
-  }
-  async function updateFormEvaluation(data: any) {
-    const res = await database.U({
-      location: `seasons/${props.seasonData._id}/form/evaluation`,
-      data: { new: data },
-    });
-    return res;
-  }
-
   useEffect(() => {
-    getForms().then((res) => {
+    FormApi.RForms().then((res) => {
       setForms(res);
     });
   }, []);
@@ -156,9 +124,12 @@ const Form = (props: Props) => {
                 key: "select",
                 type: "button",
                 onClick: (e: any) => {
-                  const id = e._id;
-                  getForm(id).then((res) => {
-                    updateFormTimetable(res).then(() => {
+                  FormApi.RForm(e._id).then((res) => {
+                    SeasonApi.USeasonForm({
+                      _id: props.seasonData?._id,
+                      type: "timetable",
+                      data: res,
+                    }).then((res) => {
                       props.seasonData.formTimetable = res;
                       props.setSelectedSeason(props.seasonData);
                       setFormTimetablePopupActive(false);
@@ -202,10 +173,12 @@ const Form = (props: Props) => {
                 key: "select",
                 type: "button",
                 onClick: (e: any) => {
-                  const id = e._id;
-
-                  getForm(id).then((res) => {
-                    updateFormSyllabus(res).then(() => {
+                  FormApi.RForm(e._id).then((res) => {
+                    SeasonApi.USeasonForm({
+                      _id: props.seasonData?._id,
+                      type: "syllabus",
+                      data: res,
+                    }).then((res) => {
                       props.seasonData.formSyllabus = res;
                       props.setSelectedSeason(props.seasonData);
                       setFormSyllabusPopupActive(false);
@@ -258,7 +231,11 @@ const Form = (props: Props) => {
                   return elem;
                 });
 
-                updateFormEvaluation(_formEvaluation).then((res: any) => {
+                SeasonApi.USeasonForm({
+                  _id: props.seasonData?._id,
+                  type: "evaluation",
+                  data: _formEvaluation,
+                }).then((res) => {
                   props.seasonData.formEvaluation = res;
                   setFormEvaluation([...res]);
                   props.setSelectedSeason(props.seasonData);

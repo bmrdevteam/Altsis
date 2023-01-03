@@ -77,14 +77,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             checkPermissionBySeason(seasonData, res.userId, re[0].role)
           );
         });
-
-        setSocket(
-          io(`${process.env.REACT_APP_SERVER_URL}`, {
-            path: "/socket.io",
-            withCredentials: true,
-          })
-        );
       }
+
+      setSocket(
+        io(`${process.env.REACT_APP_SERVER_URL}`, {
+          path: "/socket.io",
+          withCredentials: true,
+        })
+      );
     });
   }
 
@@ -98,6 +98,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         });
   }, [loading]);
+
+  useEffect(() => {
+    if (socket !== undefined && currentUser.academyId && currentUser.userId) {
+      socket.emit("activate real-time notification", {
+        academyId: currentUser.academyId,
+        userId: currentUser.userId,
+      });
+    }
+  }, [socket]);
 
   function changeSchool(to: string) {
     SchoolApi.RSchool(to).then((s) => {

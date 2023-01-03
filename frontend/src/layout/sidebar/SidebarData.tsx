@@ -1,4 +1,4 @@
-import { archiveTestData } from "archiveTest";
+
 import { apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
@@ -105,7 +105,7 @@ export const SidebarData = (
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
-        currentSchool.formArchive && {
+        currentSchool?.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
@@ -165,18 +165,6 @@ export const SidebarData = (
           path: "/notifications",
           icon: <Svg type="notification" />,
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
-        },
       ];
     case "admin":
       return [
@@ -232,7 +220,7 @@ export const SidebarData = (
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
-        currentSchool.formArchive && {
+        currentSchool?.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
@@ -298,18 +286,6 @@ export const SidebarData = (
           path: "/notifications",
           icon: <Svg type="notification" />,
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
-        // {
-        //   title: "settings",
-        //   name: "설정",
-        //   path: "/settings",
-        //   icon: <Svg type="gear" />,
-        // },
       ];
 
     default:
@@ -377,12 +353,6 @@ export const SidebarData = (
           name: "알림",
           path: "/notifications",
           icon: <Svg type="notification" />,
-        },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
         },
       ];
   }
