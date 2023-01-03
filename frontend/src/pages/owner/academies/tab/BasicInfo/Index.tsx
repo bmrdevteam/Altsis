@@ -27,9 +27,8 @@
  *
  */
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
+import { useState } from "react";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -37,68 +36,17 @@ import Input from "components/input/Input";
 
 type Props = {
   academyData: any;
+  setAcademyData: any;
 };
 
 const Academy = (props: Props) => {
-  const database = useDatabase();
-  const navigate = useNavigate();
+  const { AcademyApi } = useApi();
 
   const [isActivated, setIsActivated] = useState<boolean>(
     props.academyData.isActivated
   );
   const [email, setEmail] = useState<string>(props.academyData.email);
   const [tel, setTel] = useState<any>(props.academyData.tel);
-
-  async function updateAcademy() {
-    const result = await database.U({
-      location: `academies/${props.academyData.academyId}`,
-      data: {
-        email,
-        tel,
-      },
-    });
-    return result;
-  }
-
-  async function activateAcademy() {
-    if (window.confirm("정말 활성화하시겠습니까?") === true) {
-      // 확인
-      const result = await database.C({
-        location: `academies/${props.academyData.academyId}/activate`,
-        data: {},
-      });
-      return result;
-    }
-    // 취소
-    return false;
-  }
-
-  async function inactivateAcademy() {
-    if (window.confirm("정말 비활성화하시겠습니까?") === true) {
-      // 확인
-      const result = await database.C({
-        location: `academies/${props.academyData.academyId}/inactivate`,
-        data: {},
-      });
-      return result;
-    }
-    // 취소
-    return false;
-  }
-
-  async function deleteAcademy() {
-    if (window.confirm("정말 삭제하시겠습니까?") === true) {
-      //확인
-      // const result = await database.D({
-      //   location: `academies/${props.academy?.academyId}`,
-      // });
-      return true;
-    } else {
-      //취소
-
-      return false;
-    }
-  }
 
   return (
     <div>
@@ -178,9 +126,16 @@ const Academy = (props: Props) => {
           marginTop: "24px",
         }}
         onClick={() => {
-          updateAcademy()
+          AcademyApi.UAcademy({
+            academyId: props.academyData.academyId,
+            data: {
+              email,
+              tel,
+            },
+          })
             .then((res) => {
               alert("success");
+              props.setAcademyData(res);
             })
             .catch((err) => {
               alert(err.response.data.message);
@@ -198,23 +153,31 @@ const Academy = (props: Props) => {
         }}
         onClick={() => {
           if (isActivated) {
-            inactivateAcademy()
-              .then((res) => {
-                alert("success");
-                setIsActivated(false);
+            if (window.confirm("정말 비활성화하시겠습니까?")) {
+              AcademyApi.UInactivateAcademy({
+                academyId: props.academyData.academyId,
               })
-              .catch((err) => {
-                alert(err.response.data.message);
-              });
+                .then((res) => {
+                  alert("success");
+                  setIsActivated(false);
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
+            }
           } else {
-            activateAcademy()
-              .then((res) => {
-                alert("success");
-                setIsActivated(true);
+            if (window.confirm("정말 활성화하시겠습니까?")) {
+              AcademyApi.UActivateAcademy({
+                academyId: props.academyData.academyId,
               })
-              .catch((err) => {
-                alert(err.response.data.message);
-              });
+                .then((res) => {
+                  alert("success");
+                  setIsActivated(true);
+                })
+                .catch((err) => {
+                  alert(err.response.data.message);
+                });
+            }
           }
         }}
       >

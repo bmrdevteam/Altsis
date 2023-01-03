@@ -27,40 +27,29 @@
  *
  */
 
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
 // components
-import Input from "components/input/Input";
 import { useEffect, useState } from "react";
 import Table from "components/tableV2/Table";
 
 type Props = {
   userData: any;
-  setIsUserListLoading: any;
+  schoolData: any;
 };
 
 function Registrations(props: Props) {
-  const database = useDatabase();
+  const { RegistrationApi } = useApi();
   const [registrationList, setRegistrationList] = useState<any[]>([]);
-  const [registration, setRegistration] = useState<any>();
-
-  // popup activation
-  const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
-
-  async function getRegistrationList() {
-    const { registrations } = await database.R({
-      location: `registrations?userId=${props.userData.userId}`,
-    });
-
-    return registrations;
-  }
 
   useEffect(() => {
-    getRegistrationList().then((res: any) => {
+    RegistrationApi.RRegistrations({
+      userId: props.userData.userId,
+      school: props.schoolData._id,
+    }).then((res: any) => {
       setRegistrationList(res);
-      console.log("res is ", res);
     });
 
     return () => {};

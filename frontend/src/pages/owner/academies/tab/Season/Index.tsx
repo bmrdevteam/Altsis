@@ -29,6 +29,7 @@
 
 import { useEffect, useState } from "react";
 import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -52,6 +53,7 @@ type Props = {
 
 const Season = (props: Props) => {
   const database = useDatabase();
+  const { AcademyApi } = useApi();
   const [isLoading, setIsLoading] = useState(false);
 
   /* document list */
@@ -354,7 +356,19 @@ const Season = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              addDocument()
+              AcademyApi.CAcademyDocument({
+                academyId: props.academyId,
+                type: "seasons",
+                data: {
+                  school,
+                  year,
+                  term,
+                  period: {
+                    start: start,
+                    end: end,
+                  },
+                },
+              })
                 .then(() => {
                   getDocumentList().then((res) => {
                     setDocumentList(res);

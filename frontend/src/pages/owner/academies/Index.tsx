@@ -29,7 +29,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/owner/academy.module.scss";
 
@@ -48,7 +48,7 @@ type Props = {};
 
 const Academies = (props: Props) => {
   const navigate = useNavigate();
-  const database = useDatabase();
+  const { AcademyApi } = useApi();
 
   /* document list */
   const [documentList, setDocumentList] = useState<any>([]);
@@ -60,33 +60,13 @@ const Academies = (props: Props) => {
     useState<boolean>(false);
 
   /* document fields */
-  const [academyId, setAcademyId] = useState<string>();
-  const [academyName, setAcademyName] = useState<string>();
-  const [adminId, setAdminId] = useState<string>();
-  const [adminName, setAdminName] = useState<string>();
-  const [email, setEmail] = useState<string>();
+  const [academyId, setAcademyId] = useState<string>("");
+  const [academyName, setAcademyName] = useState<string>("");
+  const [adminId, setAdminId] = useState<string>("");
+  const [adminName, setAdminName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [tel, setTel] = useState<string>();
   const [adminPassword, setAdminPassword] = useState<string>();
-
-  async function getDocumentList() {
-    const { academies } = await database.R({ location: "academies" });
-    setDocumentList(academies);
-  }
-
-  async function addDocument() {
-    const result = await database.C({
-      location: `academies`,
-      data: {
-        academyId,
-        academyName,
-        adminId,
-        adminName,
-        email,
-        tel,
-      },
-    });
-    return result;
-  }
 
   const getDocumentString = () => {
     let info = `아카데미 ID: ${academyId}\n아카데미 이름: ${academyName}\n관리자 ID: ${adminId}\n관리자 이름: ${adminName}\n관리자 비밀번호: ${adminPassword}`;
@@ -97,9 +77,14 @@ const Academies = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      getDocumentList().then(() => {
-        setIsLoading(false);
-      });
+      AcademyApi.RAcademies()
+        .then((res) => {
+          setDocumentList(res);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          alert("failed to load data");
+        });
     }
     return () => {};
   }, [isLoading]);
@@ -246,10 +231,20 @@ const Academies = (props: Props) => {
               type={"ghost"}
               disableOnclick
               onClick={() => {
-                addDocument().then((res) => {
+                AcademyApi.CAcademy({
+                  data: {
+                    academyId,
+                    academyName,
+                    adminId,
+                    adminName,
+                    email: email && email !== "" ? email : undefined,
+                    tel: tel && tel !== "" ? tel : undefined,
+                  },
+                }).then((res) => {
                   setAddPopupActive(false);
-                  setAdminPassword(res?.data.adminPassword);
+                  setAdminPassword(res.adminPassword);
                   setAddResultPopupActive(true);
+                  setIsLoading(true);
                 });
               }}
               style={{

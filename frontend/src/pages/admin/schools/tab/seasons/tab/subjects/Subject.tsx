@@ -28,8 +28,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import useDatabase from "hooks/useDatabase";
-
+import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
 
 // components
@@ -39,15 +38,13 @@ import Table from "components/tableV2/Table";
 
 import UpdateBulk from "./tab/updateBulk";
 
-import _ from "lodash";
-
 type Props = {
   seasonData?: any;
   setSelectedSeason?: any;
 };
 
 const Subjects = (props: Props) => {
-  const database = useDatabase();
+  const { SeasonApi } = useApi();
 
   /* subject label list */
   const [subjectLabelList, setSubjectLabelList] = useState<any[]>([]);
@@ -63,7 +60,7 @@ const Subjects = (props: Props) => {
 
   const updateSubjectDataHeader = () => {
     const subjectDataList = [];
-    for (let j = 0; j < subjectLabelList.length; j++) {
+    for (let j = 0; j < subjectLabelList?.length; j++) {
       subjectDataList.push({
         text: subjectLabelList[j],
         key: subjectLabelList[j],
@@ -81,22 +78,6 @@ const Subjects = (props: Props) => {
       )
     );
   };
-
-  async function updateSubjects(
-    subjectLabelList: any[],
-    subjectDataList: any[]
-  ) {
-    const result = await database.U({
-      location: `seasons/${props.seasonData?._id}/subjects`,
-      data: {
-        new: {
-          label: subjectLabelList,
-          data: subjectDataList,
-        },
-      },
-    });
-    return result;
-  }
 
   useEffect(() => {
     setSubjectLabelList(props.seasonData.subjects?.label || []);
@@ -147,13 +128,16 @@ const Subjects = (props: Props) => {
             placeholder="ex) 교과/과목"
             onKeyDown={(e: any) => {
               if (subjectLabelRef.current !== "" && e.key === "Enter") {
-                updateSubjects(
-                  subjectLabelRef.current.split("/"),
-                  props.seasonData?.subjects.data
-                )
+                SeasonApi.USeasonSubject({
+                  _id: props.seasonData?._id,
+                  data: {
+                    label: subjectLabelRef.current.split("/"),
+                    data: props.seasonData?.subjects.data,
+                  },
+                })
                   .then((res: any) => {
-                    setSubjectLabelList(res.data.label);
-                    props.seasonData.subjects = res.data;
+                    setSubjectLabelList(res.label);
+                    props.seasonData.subjects = [...res];
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
@@ -166,13 +150,16 @@ const Subjects = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateSubjects(
-                subjectLabelRef.current.split("/"),
-                props.seasonData?.subjects.data
-              )
+              SeasonApi.USeasonSubject({
+                _id: props.seasonData?._id,
+                data: {
+                  label: subjectLabelRef.current.split("/"),
+                  data: props.seasonData?.subjects.data,
+                },
+              })
                 .then((res: any) => {
-                  setSubjectLabelList(res.data.label);
-                  props.seasonData.subjects = res.data;
+                  setSubjectLabelList(res.label);
+                  props.seasonData.subjects = [...res];
                   props.setSelectedSeason(props.seasonData);
                   alert("success");
                 })
@@ -204,15 +191,19 @@ const Subjects = (props: Props) => {
             placeholder={"ex) 미술/서양미술사"}
             onKeyDown={(e: any) => {
               if (subjectDataRef.current !== "" && e.key === "Enter") {
-                updateSubjects(subjectLabelList, [
-                  ...props.seasonData?.subjects.data,
-                  subjectDataRef.current.split("/"),
-                ])
+                SeasonApi.USeasonSubject({
+                  _id: props.seasonData?._id,
+                  data: {
+                    label: subjectLabelList,
+                    data: [
+                      ...props.seasonData?.subjects.data,
+                      subjectDataRef.current.split("/"),
+                    ],
+                  },
+                })
                   .then((res: any) => {
-                    setSubjectObjectList(
-                      parseSubjectDataList(res.data.label, res.data.data)
-                    );
-                    props.seasonData.subjects = res.data;
+                    setSubjectLabelList(res.label);
+                    props.seasonData.subjects = [...res];
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
@@ -226,15 +217,19 @@ const Subjects = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateSubjects(subjectLabelList, [
-                ...props.seasonData?.subjects.data,
-                subjectDataRef.current.split("/"),
-              ])
+              SeasonApi.USeasonSubject({
+                _id: props.seasonData?._id,
+                data: {
+                  label: subjectLabelList,
+                  data: [
+                    ...props.seasonData?.subjects.data,
+                    subjectDataRef.current.split("/"),
+                  ],
+                },
+              })
                 .then((res: any) => {
-                  setSubjectObjectList(
-                    parseSubjectDataList(res.data.label, res.data.data)
-                  );
-                  props.seasonData.subjects = res.data;
+                  setSubjectLabelList(res.label);
+                  props.seasonData.subjects = [...res];
                   props.setSelectedSeason(props.seasonData);
                   alert("success");
                 })
@@ -272,14 +267,18 @@ const Subjects = (props: Props) => {
               onClick: (e: any) => {
                 props.seasonData?.subjects.data.splice(e.tableRowIndex - 1, 1);
 
-                updateSubjects(subjectLabelList, [
-                  ...props.seasonData?.subjects.data,
-                ])
+                SeasonApi.USeasonSubject({
+                  _id: props.seasonData?._id,
+                  data: {
+                    label: subjectLabelList,
+                    data: [...props.seasonData?.subjects.data],
+                  },
+                })
                   .then((res: any) => {
                     setSubjectObjectList(
-                      parseSubjectDataList(res.data.label, res.data.data)
+                      parseSubjectDataList(res.label, res.data)
                     );
-                    props.seasonData.subjects = res.data;
+                    props.seasonData.subjects = [...res];
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })

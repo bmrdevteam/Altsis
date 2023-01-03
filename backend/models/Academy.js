@@ -32,6 +32,7 @@ const academySchema = mongoose.Schema(
     },
     dbName: {
       type: String,
+      select: false,
     },
     isActivated: { type: Boolean, default: true },
   },
@@ -50,9 +51,9 @@ academySchema.statics.isValid = function (academy) {
 };
 
 academySchema.pre("save", function (next) {
-  var user = this;
-  if (user.isModified("academyId")) {
-    user.dbName = user.academyId + "-db";
+  var academy = this;
+  if (academy.isModified("academyId")) {
+    academy.dbName = academy.academyId + "-db";
   }
   next();
 });
