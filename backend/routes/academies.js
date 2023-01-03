@@ -13,13 +13,13 @@ const registrations = require("../controllers/registrations");
 //=================================
 
 router.post("/", isOwner, academies.create);
-router.post("/:academyId/activate", isOwner, academies.activate);
-router.post("/:academyId/inactivate", isOwner, academies.inactivate);
 router.get("/:academyId?", academies.find);
 
-// update academy email, tel
-router.put("/:academyId", isOwner, academies.updateField);
-router.delete("/:academyId", isOwner, academies.remove);
+router.put("/:academyId/activate", isOwner, academies.activate);
+router.put("/:academyId/inactivate", isOwner, academies.inactivate);
+router.put("/:academyId", isOwner, academies.update);
+
+// router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */
 router.get("/:academyId/users/:_id?", isOwner, users.find);

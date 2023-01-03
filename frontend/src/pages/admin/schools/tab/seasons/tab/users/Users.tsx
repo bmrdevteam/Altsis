@@ -29,11 +29,10 @@
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-import useDatabase from "hooks/useDatabase";
-import React from "react";
 import { useRef } from "react";
 import { useState } from "react";
 import { useEffect } from "react";
+import useApi from "hooks/useApi";
 
 import _ from "lodash";
 
@@ -46,7 +45,7 @@ type Props = {
   seasonData: any;
 };
 const Users = (props: Props) => {
-  const database = useDatabase();
+  const { RegistrationApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [registrationList, setRegistrationList] = useState<any>();
@@ -61,25 +60,14 @@ const Users = (props: Props) => {
   const [editBulkPopupActive, setEditBulkPopupActive] =
     useState<boolean>(false);
 
-  async function getRegistrations() {
-    const { registrations: result } = await database.R({
-      location: `registrations?season=${props.seasonData._id}`,
-    });
-    return result;
-  }
-  async function deleteRegistrations() {
-    const result = await database.D({
-      location: `registrations/${_.join(selectedRegistrations.current, ",")}`,
-    });
-    return result;
-  }
-
   useEffect(() => {
     if (isLoading) {
-      getRegistrations().then((res: any) => {
-        setRegistrationList(res);
-        setIsLoading(false);
-      });
+      RegistrationApi.RRegistrations({ season: props.seasonData._id }).then(
+        (res: any) => {
+          setRegistrationList(res);
+          setIsLoading(false);
+        }
+      );
     }
     return () => {};
   }, [isLoading]);
@@ -132,8 +120,11 @@ const Users = (props: Props) => {
           marginTop: "12px",
         }}
         onClick={() => {
-          deleteRegistrations()
-            .then((res: any) => {
+          RegistrationApi.DRegistrations({
+            _ids: selectedRegistrations.current,
+          })
+            .then(() => {
+              alert("success");
               setIsLoading(true);
             })
             .catch((err: any) => alert(err.response.data.message));

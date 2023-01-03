@@ -24,7 +24,7 @@ const pattern: any = {
   password: "^(?=.*?[!@#$%^&*()])[a-z|A-Z|0-9|!@#$%^&*()]{8,26}$", // password must be 8-26 characters long and contain at least one special character
   email:
     "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$", // email must contain an '@' symbol
-  tel: "^[0-9]{3}-[0-9]{4}-[0-9]{4}$", // phone number must be in the format 'XXX-XXXX-XXXX'
+  tel: "^[0-9]{3}-[0-9]{4}-[0-9]{4}$", // phone number must be in the format 'XXX-XXXX-XXXX',
 };
 
 /**

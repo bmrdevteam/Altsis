@@ -11,8 +11,8 @@ router.post("/", isAdManager, seasons.create);
 
 router.get("/:_id?", isLoggedIn, seasons.find);
 
-router.post("/:_id/activate", isAdManager, seasons.activate);
-router.post("/:_id/inactivate", isAdManager, seasons.inactivate);
+router.put("/:_id/activate", isAdManager, seasons.activate);
+router.put("/:_id/inactivate", isAdManager, seasons.inactivate);
 
 router.put("/:_id/:field/:fieldType?", isAdManager, seasons.updateField);
 

@@ -27,7 +27,7 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -46,7 +46,7 @@ type Props = {
 };
 
 const Permission = (props: Props) => {
-  const database = useDatabase();
+  const { SchoolApi, UserApi } = useApi();
 
   /* document list */
   const [permissionSyllabus, setPermissionSyllabus] = useState<any>(
@@ -67,7 +67,7 @@ const Permission = (props: Props) => {
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
 
   /* permission type */
-  const [permissionType, setPermissionType] = useState<string>("");
+  const [permissionType, setPermissionType] = useState<string>("syllabus");
 
   /* document fields */
   const [isTeacherAllowed, setIsTeacherAllowed] = useState<any>(false);
@@ -94,17 +94,12 @@ const Permission = (props: Props) => {
           index: i,
           userId: permission[i][1],
           isAllowed: permission[i][2],
-          ...getUserDataByUserId(permission[i][1]),
+          ...getRegistrationDataByUserId(permission[i][1]),
         });
       }
     }
 
     setExceptions(_exceptions);
-  };
-
-  const getUserDataByUserId = (userId: string) => {
-    const res = _.find(userList, { userId });
-    return res ? { userName: res.userName } : { userName: "" };
   };
 
   const zipPermission = () => {
@@ -123,28 +118,17 @@ const Permission = (props: Props) => {
     return _permission;
   };
 
-  async function updatePermission(_permission: any) {
-    const result = await database.U({
-      location: `schools/${props.schoolData?._id}/permission/${permissionType}`,
-      data: {
-        new: _permission,
-      },
-    });
-
-    return result;
-  }
-
-  async function getSchoolUserList() {
-    const { users } = await database.R({
-      location: `users?schools.school=${props.schoolData?._id}`,
-    });
-
-    return users;
-  }
+  const getRegistrationDataByUserId = (userId: string) => {
+    const res = _.find(userList, { userId });
+    // return { userName: "임시", role: "임시" };
+    return res
+      ? { userName: res.userName, role: res.role }
+      : { userName: "", role: "" };
+  };
 
   useEffect(() => {
     if (editPopupActive) {
-      getSchoolUserList().then((res) => {
+      UserApi.RUsers({ school: props.schoolData._id }).then((res) => {
         setUserList(res);
       });
     }
@@ -239,8 +223,8 @@ const Permission = (props: Props) => {
               <span>학생</span>
               <ToggleSwitch
                 defaultChecked={isStudentAllowed}
-                onChange={(e) => {
-                  setIsStudentAllowed(e);
+                onChange={(b) => {
+                  setIsStudentAllowed(b);
                 }}
               />
             </div>
@@ -276,7 +260,7 @@ const Permission = (props: Props) => {
                       {
                         userId: selectedUserId,
                         isAllowed: selectedIsAllowed === "허용",
-                        ...getUserDataByUserId(selectedUserId),
+                        ...getRegistrationDataByUserId(selectedUserId),
                       },
                     ]);
                   }
@@ -318,11 +302,16 @@ const Permission = (props: Props) => {
                   type: "text",
                   textAlign: "center",
                 },
-
+                {
+                  text: "역할",
+                  key: "role",
+                  type: "text",
+                  textAlign: "center",
+                },
                 {
                   text: "상태",
                   key: "isAllowed",
-                  width: "80px",
+                  width: "120px",
                   textAlign: "center",
                   type: "status",
                   status: {
@@ -356,25 +345,28 @@ const Permission = (props: Props) => {
               style={{
                 borderRadius: "4px",
                 height: "32px",
-                margin: "24px 0",
+                marginTop: "24px",
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
               }}
               onClick={(e: any) => {
-                const _permission = zipPermission();
-                updatePermission(_permission)
+                SchoolApi.USchoolPermission({
+                  _id: props.schoolData?._id,
+                  type: permissionType,
+                  data: zipPermission(),
+                })
                   .then((res: any) => {
                     alert("success");
                     if (permissionType === "syllabus") {
-                      setPermissionSyllabus(res.data);
-                      props.schoolData.permissionSyllabus = res.data;
+                      setPermissionSyllabus(res);
+                      props.schoolData.permissionSyllabus = res;
                       props.setSchoolData(props.schoolData);
                     } else if (permissionType === "enrollment") {
-                      setPermissionEnrollment(res.data);
-                      props.schoolData.permissionEnrollment = res.data;
+                      setPermissionEnrollment(res);
+                      props.schoolData.permissionEnrollment = res;
                       props.setSchoolData(props.schoolData);
                     } else if (permissionType === "evaluation") {
-                      setPermissionEvaluation(res.data);
-                      props.schoolData.permissionEvaluation = res.data;
+                      setPermissionEvaluation(res);
+                      props.schoolData.permissionEvaluation = res;
                       props.setSchoolData(props.schoolData);
                     }
                   })
