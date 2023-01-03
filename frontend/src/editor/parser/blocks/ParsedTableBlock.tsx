@@ -12,6 +12,7 @@ type Props = {
   dbData?: any;
 };
 const ParsedTableBlock = (props: Props) => {
+  const { currentSchool } = useAuth();
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
     if (columns && isArray(columns)) {
@@ -31,6 +32,37 @@ const ParsedTableBlock = (props: Props) => {
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
   );
+  // sort
+  if (
+    props.blockData.data?.dataRepeat?.by.split("//").includes("archive") &&
+    repeat
+  ) {
+    const z =
+      props.blockData.data?.dataRepeat?.by.split("//")[
+        props.blockData.data?.dataRepeat?.by.split("//").length - 1
+      ];
+    for (const e of currentSchool.formArchive.find((o: any) => o.label === z)
+      .fields) {
+      if (e.runningTotal) {
+        let track = 0;
+        repeat.map((ob: any) => {
+          track += parseFloat(ob[e.label]);
+
+          return (ob[`${e.label}[누계합산]`] = track);
+        });
+      }
+      if (e.total) {
+        console.log(z);
+        let track = 0;
+        repeat.map((ob: any) => {
+          track += parseFloat(ob[e.label]);
+        });
+        repeat.map((ob: any) => {
+          return (ob[`${e.label}[합산]`] = track);
+        });
+      }
+    }
+  }
 
   const Cell = ({
     data,
@@ -223,7 +255,6 @@ const ParsedTableBlock = (props: Props) => {
     colStart: number;
     colEnd: number;
   }[] = [];
-
   return (
     <div className={style.parsed_block}>
       <table
@@ -237,9 +268,6 @@ const ParsedTableBlock = (props: Props) => {
               return (
                 repeat &&
                 repeat.map((v: any, i: number) => {
-                  //filter map  ()
-                  // console.log(props.blockData.data.dataFilter);
-
                   if (props.blockData.data.dataFilter?.length > 0) {
                     let boolCount: number = 0;
                     let boola: string = "";
