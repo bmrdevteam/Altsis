@@ -31,7 +31,7 @@ import { CSSProperties, useState } from "react";
 import btnStyle from "./button.module.scss";
 
 type Props = {
-  children?: string;
+  children?: string | JSX.Element;
   onClick?: any;
   type?: "ghost" | "solid" | "hover";
   round?: boolean;
@@ -126,7 +126,7 @@ const Button = ({
       }}
     >
       {children}
-      {loading&& <Svg type={"loader"} />}
+      {loading && <Svg type={"loader"} />}
     </div>
   );
 };
