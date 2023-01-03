@@ -8,12 +8,13 @@ import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 type Props = {
   schoolData: any;
+  setSchoolData: any;
 };
 
 function Archive(props: Props) {
   const { SchoolApi } = useApi();
   const { currentSchool } = useAuth();
-  const formData = useRef<any>(currentSchool.formArchive);
+  const formData = useRef<any>(props.schoolData.formArchive || []);
   const [editArchivePopupActive, setEditArchivePopupActive] =
     useState<boolean>(false);
   const [editArchivefield, setEditArchivefield] = useState<string>();
@@ -32,7 +33,10 @@ function Archive(props: Props) {
               schoolId: props.schoolData._id,
               data: formData.current,
             })
-              .then(() => alert("저장 성공"))
+              .then((res) => {
+                alert("저장 성공");
+                props.setSchoolData({ ...props.schoolData, formArchive: res });
+              })
               .catch(() => alert("저장 실패"));
           }}
         >
@@ -194,14 +198,14 @@ function Archive(props: Props) {
               {
                 text: "합산",
                 key: "total",
-                textAlign:"center",
+                textAlign: "center",
                 width: "80px",
                 type: "toggle",
               },
               {
                 text: "누계합산",
                 key: "runningTotal",
-                textAlign:"center",
+                textAlign: "center",
                 width: "80px",
                 type: "toggle",
               },

@@ -1,5 +1,5 @@
-import { archiveTestData } from "archiveTest";
-import { Apps } from "apps";
+
+import { apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
 import { useEffect, useState } from "react";
@@ -105,19 +105,19 @@ export const SidebarData = (
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
-        currentSchool.formArchive && {
+        currentSchool?.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
           icon: <Svg type="edit" />,
-          // subLink: currentSchool.formArchive?.map((val: any) => {
-            // return {
-            //   title: val.label,
-            //   name: val.label,
-            //   path: `/archive/${val.label}`,
-            //   icon: <Svg type="file" />,
-            // };
-          // }),
+          subLink: currentSchool.formArchive?.map((val: any) => {
+            return {
+              title: val.label,
+              name: val.label,
+              path: `/archive/${val.label}`,
+              icon: <Svg type="file" />,
+            };
+          }),
         },
         {
           title: "docs",
@@ -130,14 +130,14 @@ export const SidebarData = (
           name: "앱",
           path: "/apps",
           icon: <Svg type="app_menu" />,
-          subLink: Apps.map((val) => {
-            return {
-              title: val.title,
-              name: val.title,
-              path: `/apps/${val.title}`,
+          subLink: [
+            {
+              title: "classroom",
+              name: "강의실",
+              path: "/apps/apps",
               icon: <Svg type="app" />,
-            };
-          }),
+            },
+          ],
         },
         {
           title: "admin",
@@ -164,18 +164,6 @@ export const SidebarData = (
           name: "알림",
           path: "/notifications",
           icon: <Svg type="notification" />,
-        },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
         },
       ];
     case "admin":
@@ -232,7 +220,7 @@ export const SidebarData = (
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
-        currentSchool.formArchive && {
+        currentSchool?.formArchive && {
           title: "archive",
           name: "기록",
           path: "/archive",
@@ -298,18 +286,6 @@ export const SidebarData = (
           path: "/notifications",
           icon: <Svg type="notification" />,
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
-        // {
-        //   title: "settings",
-        //   name: "설정",
-        //   path: "/settings",
-        //   icon: <Svg type="gear" />,
-        // },
       ];
 
     default:
@@ -377,12 +353,6 @@ export const SidebarData = (
           name: "알림",
           path: "/notifications",
           icon: <Svg type="notification" />,
-        },
-        {
-          title: "settings",
-          name: "설정",
-          path: "/settings",
-          icon: <Svg type="gear" />,
         },
       ];
   }

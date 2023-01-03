@@ -1,5 +1,5 @@
 /**
- * @file Schools Page Tab Item - Form
+ * @file School Page Tab Item - Form
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -27,8 +27,7 @@
  *
  */
 import { useEffect, useState } from "react";
-import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -37,16 +36,13 @@ import Table from "components/tableV2/Table";
 
 import style from "style/pages/admin/schools.module.scss";
 
-type Props = {};
+type Props = { schoolData: any; setSchoolData: any };
 
 const Form = (props: Props) => {
-  const database = useDatabase();
-
-  const { currentSchool, setCurrentSchool } = useAuth();
-
+  const { SchoolApi, FormApi } = useApi();
   const [forms, setForms] = useState<any>();
   const [formEvaluation, setFormEvaluation] = useState<any[]>(
-    currentSchool.formEvaluation || []
+    props.schoolData.formEvaluation || []
   );
 
   const [formTimetablePopupActive, setFormTimetablePopupActive] =
@@ -56,39 +52,8 @@ const Form = (props: Props) => {
   const [formEvaluationPopupActive, setFormEvaluationPopupActive] =
     useState<boolean>(false);
 
-  async function getForms() {
-    const { forms: result } = await database.R({ location: "forms" });
-    return result;
-  }
-  async function getForm(id: string) {
-    const result = await database.R({ location: `forms/${id}` });
-    return result;
-  }
-
-  async function updateFormTimetable(data: any) {
-    const { formTimetable: result } = await database.U({
-      location: `schools/${currentSchool.school}/form/timetable`,
-      data: { new: data },
-    });
-    return result;
-  }
-  async function updateFormSyllabus(data: any) {
-    const { formSyllabus: result } = await database.U({
-      location: `schools/${currentSchool.school}/form/syllabus`,
-      data: { new: data },
-    });
-    return result;
-  }
-  async function updateFormEvaluation(data: any) {
-    const { formEvaluation: result } = await database.U({
-      location: `schools/${currentSchool.school}/form/evaluation`,
-      data: { new: data },
-    });
-    return result;
-  }
-
   useEffect(() => {
-    getForms().then((res) => {
+    FormApi.RForms().then((res) => {
       setForms(res);
     });
   }, []);
@@ -106,7 +71,7 @@ const Form = (props: Props) => {
               setFormTimetablePopupActive(true);
             }}
           >
-            {currentSchool.formTimetable?.title ?? "선택"}
+            {props.schoolData.formTimetable?.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
@@ -118,7 +83,7 @@ const Form = (props: Props) => {
               setFormSyllabusPopupActive(true);
             }}
           >
-            {currentSchool.formSyllabus?.title ?? "선택"}
+            {props.schoolData.formSyllabus?.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
@@ -134,6 +99,7 @@ const Form = (props: Props) => {
           </Button>
         </div>
       </div>
+
       {formTimetablePopupActive && (
         <Popup
           style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
@@ -158,15 +124,14 @@ const Form = (props: Props) => {
                 key: "select",
                 type: "button",
                 onClick: (e: any) => {
-                  const id = e._id;
-
-                  getForm(id).then((res) => {
-                    updateFormTimetable(res).then(() => {
-                      console.log("res is ", res);
-                      setCurrentSchool({
-                        ...currentSchool,
-                        formTimetable: res,
-                      });
+                  FormApi.RForm(e._id).then((res) => {
+                    SchoolApi.USchoolForm({
+                      _id: props.schoolData?._id,
+                      type: "timetable",
+                      data: res,
+                    }).then((res) => {
+                      props.schoolData.formTimetable = res;
+                      props.setSchoolData(props.schoolData);
                       setFormTimetablePopupActive(false);
                     });
                   });
@@ -208,15 +173,14 @@ const Form = (props: Props) => {
                 key: "select",
                 type: "button",
                 onClick: (e: any) => {
-                  const id = e._id;
-
-                  getForm(id).then((res) => {
-                    updateFormSyllabus(res).then(() => {
-                      console.log("res is ", res);
-                      setCurrentSchool({
-                        ...currentSchool,
-                        formSyllabus: res,
-                      });
+                  FormApi.RForm(e._id).then((res) => {
+                    SchoolApi.USchoolForm({
+                      _id: props.schoolData?._id,
+                      type: "syllabus",
+                      data: res,
+                    }).then((res) => {
+                      props.schoolData.formSyllabus = res;
+                      props.setSchoolData(props.schoolData);
                       setFormSyllabusPopupActive(false);
                     });
                   });
@@ -267,12 +231,15 @@ const Form = (props: Props) => {
                   return elem;
                 });
 
-                updateFormEvaluation(_formEvaluation).then((res: any) => {
-                  console.log("res is ", res);
-                  setFormEvaluation(res);
-                  currentSchool.formEvaluation = res;
+                SchoolApi.USchoolForm({
+                  _id: props.schoolData?._id,
+                  type: "evaluation",
+                  data: _formEvaluation,
+                }).then((res) => {
+                  props.schoolData.formEvaluation = res;
+                  setFormEvaluation([...res]);
+                  props.setSchoolData(props.schoolData);
 
-                  setCurrentSchool(currentSchool);
                   // setFormEvaluationPopupActive(false);
                 });
               }}
@@ -283,7 +250,7 @@ const Form = (props: Props) => {
         >
           <Table
             type="object-array"
-            data={currentSchool.formEvaluation ?? []}
+            data={formEvaluation ?? []}
             onChange={(e: any[]) => {
               setFormEvaluation(e.filter((elem: any) => elem.label));
             }}

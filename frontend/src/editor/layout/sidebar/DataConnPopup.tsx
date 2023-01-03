@@ -1,4 +1,3 @@
-import { archiveTestData } from "archiveTest";
 import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";

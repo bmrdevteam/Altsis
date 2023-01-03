@@ -28,7 +28,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 import * as xlsx from "xlsx";
 import _ from "lodash";
 
@@ -49,7 +49,8 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  // const database = useDatabase();
+  const { SeasonApi } = useApi();
 
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<any>();
@@ -79,22 +80,6 @@ function Basic(props: Props) {
       )
     );
   };
-
-  async function updateSubjects(
-    subjectLabelList: any[],
-    subjectDataList: any[]
-  ) {
-    const result = await database.U({
-      location: `seasons/${props.seasonData._id}/subjects`,
-      data: {
-        new: {
-          label: subjectLabelList,
-          data: subjectDataList,
-        },
-      },
-    });
-    return result;
-  }
 
   const fileToUserList = (file: any) => {
     var reader = new FileReader();
@@ -173,16 +158,19 @@ function Basic(props: Props) {
         setState={props.setPopupActive}
         style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
         closeBtn
-        title="사용자 일괄 생성"
+        title="교과목 일괄 수성"
         contentScroll
         footer={
           <Button
             type={"ghost"}
             onClick={() => {
-              updateSubjects(
-                subjectLabelList,
-                parseSubjectObjectList(subjectObjectList)
-              )
+              SeasonApi.USeasonSubject({
+                _id: props.seasonData?._id,
+                data: {
+                  label: subjectLabelList,
+                  data: parseSubjectObjectList(subjectObjectList),
+                },
+              })
                 .then((res: any) => {
                   props.setSubjectObjectList(
                     parseSubjectDataList(res.label, res.data)

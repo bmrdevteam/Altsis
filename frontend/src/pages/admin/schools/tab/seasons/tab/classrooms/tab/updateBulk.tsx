@@ -28,7 +28,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 import * as xlsx from "xlsx";
 import _ from "lodash";
 
@@ -49,7 +49,7 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
+  const { SeasonApi } = useApi();
 
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<any>();
@@ -62,16 +62,6 @@ function Basic(props: Props) {
 
   const description = `1. 엑셀을 열어 A1셀에 '강의실'을 입력합니다.\n
 2. 강의실을 B1셀부터 입력합니다.`;
-
-  async function updateClassrooms(classroomList: any[]) {
-    const result = await database.U({
-      location: `seasons/${props.seasonData._id}/classrooms`,
-      data: {
-        new: classroomList,
-      },
-    });
-    return result;
-  }
 
   const fileToUserList = (file: any) => {
     var reader = new FileReader();
@@ -141,10 +131,13 @@ function Basic(props: Props) {
           <Button
             type={"ghost"}
             onClick={() => {
-              updateClassrooms(classroomList)
+              SeasonApi.USeasonClassroom({
+                _id: props.seasonData?._id,
+                data: classroomList,
+              })
                 .then((res: any) => {
-                  props.setClassroomList(res.data);
-                  props.seasonData.classrooms = res.data;
+                  props.setClassroomList(res);
+                  props.seasonData.classrooms = [...res];
                   props.setSelectedSeason(props.seasonData);
                   alert("success");
                   props.setPopupActive(false);
