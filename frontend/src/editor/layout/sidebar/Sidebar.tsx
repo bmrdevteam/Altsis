@@ -291,8 +291,8 @@ const Sidebar = (props: Props) => {
             <label>헤더</label>
             <ToggleSwitch
               defaultChecked={getCurrentCell()?.isHeader}
-              onChange={(e: any) => {
-                changeCurrentCell({ isHeader: e.target.checked });
+              onChange={(e: boolean) => {
+                changeCurrentCell({ isHeader: e });
                 props.callPageReload();
               }}
             />
@@ -591,8 +591,8 @@ const Sidebar = (props: Props) => {
           <label>필수</label>
           <ToggleSwitch
             defaultChecked={getCurrentBlock().data?.required}
-            onChange={(e: any) => {
-              changeCurrentBlockData({ required: e.target.checked });
+            onChange={(b) => {
+              changeCurrentBlockData({ required: b });
               props.callPageReload();
             }}
           />

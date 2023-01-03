@@ -180,18 +180,48 @@ const DataConnPopup = (props: Props) => {
                                     subItem={
                                       archive.fields &&
                                       archive.fields?.map((v: any) => {
-                                        return (
+                                        console.log();
+
+                                        let returnArchive = [
                                           <TreeItem
                                             key={`${school.schoolId}//archive//${archive.label}//${v.label}`}
-                                            text={`${v.label} - ${v.type}`}
+                                            text={`${v.label}`}
                                             onClick={() => {
                                               handleOnclick({
                                                 location: `${school.schoolId}//archive//${archive.label}//${v.label}`,
                                                 label: v.label,
                                               });
                                             }}
-                                          />
-                                        );
+                                          />,
+                                        ];
+                                        if (v.runningTotal)
+                                          returnArchive.push(
+                                            <TreeItem
+                                              key={`${school.schoolId}//archive//${archive.label}//${v.label}[누계합산]`}
+                                              text={`${v.label}[누계합산]`}
+                                              onClick={() => {
+                                                handleOnclick({
+                                                  location: `${school.schoolId}//archive//${archive.label}//${v.label}[누계합산]`,
+                                                  label: `${v.label}[누계합산]`,
+                                                });
+                                              }}
+                                            />
+                                          );
+                                        if (v.total)
+                                          returnArchive.push(
+                                            <TreeItem
+                                              key={`${school.schoolId}//archive//${archive.label}//${v.label}[합산]`}
+                                              text={`${v.label}[합산]`}
+                                              onClick={() => {
+                                                handleOnclick({
+                                                  location: `${school.schoolId}//archive//${archive.label}//${v.label}[합산]`,
+                                                  label: `${v.label}[합산]`,
+                                                });
+                                              }}
+                                            />
+                                          );
+
+                                        return returnArchive;
                                       })
                                     }
                                   />
