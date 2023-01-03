@@ -381,7 +381,7 @@ export default function useApi() {
    */
   async function USeasonPermission(props: {
     _id: string;
-    type: string | "syllabus" | "enrollment" | "evaluatoin";
+    type: string | "syllabus" | "enrollment" | "evaluation";
     data: any;
   }) {
     return await database.U({
@@ -464,7 +464,7 @@ export default function useApi() {
     return result;
   }
   /**
-   * Update Registratio
+   * Update Registration
    * @type PUT
    * @auth admin / manager
    * @returns
