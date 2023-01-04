@@ -137,7 +137,7 @@ const Subjects = (props: Props) => {
                 })
                   .then((res: any) => {
                     setSubjectLabelList(res.label);
-                    props.seasonData.subjects = [...res];
+                    props.seasonData.subjects = { ...res };
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
@@ -278,7 +278,7 @@ const Subjects = (props: Props) => {
                     setSubjectObjectList(
                       parseSubjectDataList(res.label, res.data)
                     );
-                    props.seasonData.subjects = [...res];
+                    props.seasonData.subjects = { ...res };
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
@@ -303,6 +303,7 @@ const Subjects = (props: Props) => {
           setPopupActive={setUpdateBulkPopupActive}
           seasonData={props.seasonData}
           setSelectedSeason={props.setSelectedSeason}
+          setSubjectHeaderList={setSubjectDataHeader}
           setSubjectObjectList={setSubjectObjectList}
         />
       )}
