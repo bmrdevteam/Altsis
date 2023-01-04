@@ -31,16 +31,14 @@
 import { useEffect, useState, useRef } from "react";
 
 // style
-import style from "style/pages/admin/users.module.scss";
+import style from "style/pages/admin/schools.module.scss";
 
 // hooks
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
-import Input from "components/input/Input";
-import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 import Select from "components/select/Select";
 
@@ -54,7 +52,7 @@ import _ from "lodash";
 type Props = {};
 
 const Users = (props: Props) => {
-  const database = useDatabase();
+  const { UserApi, SchoolApi } = useApi();
   const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
   const [isUserListLoading, setIsUserListLoading] = useState(false);
 
@@ -72,16 +70,6 @@ const Users = (props: Props) => {
   const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
   const userSelectRef = useRef<any[]>([]);
 
-  async function getAcademyUsers() {
-    const { users: res } = await database.R({
-      location: `users?${
-        school?._id ? `schools.school=${school._id}` : `no-school=true`
-      }`,
-    });
-    console.log("res[0] is ", res[0]);
-    return res;
-  }
-
   const schools = () => {
     let result: { text: string; value: string }[] = [{ text: "", value: "" }];
 
@@ -94,28 +82,9 @@ const Users = (props: Props) => {
     return result;
   };
 
-  async function getSchoolList() {
-    const { schools } = await database.R({
-      location: `schools`,
-    });
-    return schools;
-  }
-
-  async function deleteUsers() {
-    const res = await database.D({
-      location: `users/${_.join(
-        _.filter(userSelectRef.current, (user) => user.auth !== "admin").map(
-          (user) => user._id
-        ),
-        "&"
-      )}`,
-    });
-    return res;
-  }
-
   useEffect(() => {
     if (isSchoolListLoading) {
-      getSchoolList()
+      SchoolApi.RSchools()
         .then((res) => {
           setSchoolList(res);
           setIsSchoolListLoading(false);
@@ -130,7 +99,10 @@ const Users = (props: Props) => {
 
   useEffect(() => {
     if (isUserListLoading) {
-      getAcademyUsers()
+      console.log("school is ", school);
+      UserApi.RUsers(
+        school?._id ? { school: school._id } : { "no-school": "true" }
+      )
         .then((res) => {
           setUserList(res);
           setIsUserListLoading(false);
@@ -201,8 +173,13 @@ const Users = (props: Props) => {
             if (userSelectRef.current.length === 0) {
               alert("선택된 사용자가 없습니다.");
             } else {
-              deleteUsers()
-                .then((res: any) => {
+              UserApi.DUsers({
+                _ids: _.filter(
+                  userSelectRef.current,
+                  (user) => user.auth !== "admin"
+                ).map((user) => user._id),
+              })
+                .then(() => {
                   alert("success");
                   userSelectRef.current = [];
                   setIsUserListLoading(true);

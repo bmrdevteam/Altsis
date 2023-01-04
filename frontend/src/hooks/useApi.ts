@@ -241,6 +241,19 @@ export default function useApi() {
   }
 
   /**
+   * Delete users
+   * @type DELETE
+   * @auth member
+   * @returns Admin
+   */
+  async function DUsers(params: { _ids: string[] }) {
+    const _users_string = QUERY_SUB_BUILDER(params._ids);
+    return await database.D({
+      location: "users" + QUERY_BUILDER({ _ids: _users_string }),
+    });
+  }
+
+  /**
    * Season Api
    * ##########################################################################
    */
@@ -834,6 +847,7 @@ export default function useApi() {
       CGoogleLocal,
       CConnectGoogle,
       RUsers,
+      DUsers,
     },
     SeasonApi: {
       CSeason,

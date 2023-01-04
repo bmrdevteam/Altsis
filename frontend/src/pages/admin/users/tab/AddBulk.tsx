@@ -69,7 +69,7 @@ function Basic(props: Props) {
         ]
       : []
   );
-  const schoolSelectRef = useRef<any[]>([]);
+  const schoolSelectRef = useRef<any[]>();
 
   // popup activation
   const [isHelpPopupActive, setIsHelpPopupActive] = useState<boolean>(false);
@@ -87,7 +87,8 @@ function Basic(props: Props) {
 4. ID와 이름은 추후 수정될 수 없습니다.`;
 
   async function addUserBulk() {
-    const schools = schoolSelectRef.current.map((school) => {
+    console.log("schoolSelectRef.current: ", schoolSelectRef.current);
+    const schools = schoolSelectRef.current?.map((school) => {
       return {
         school: school._id,
         schoolId: school.schoolId,
@@ -251,8 +252,6 @@ function Basic(props: Props) {
               } else if (invalidUserCnt > 0) {
                 alert(`수정이 필요한 항목이 ${invalidUserCnt}개 있습니다.`);
               } else {
-                console.log("props.schoolList: ", props.schoolList);
-                schoolSelectRef.current = [props.schoolData];
                 setIsAddPopupActive(true);
               }
             }}
@@ -461,17 +460,11 @@ function Basic(props: Props) {
               <Table
                 type="object-array"
                 data={props.schoolList}
-                // onSelectChange={(value) => {
-                //   console.log(value);
-                //   schoolSelectRef.current = value;
-                // }}
-                // checkFunction={(value) => {
-                //   console.log("schools: ", schools, " value: ", value);
-                //   return _.includes(
-                //     schools.map((schoolData: any) => schoolData.school),
-                //     value._id
-                //   );
-                // }}
+                onChange={(value: any[]) => {
+                  schoolSelectRef.current = _.filter(value, {
+                    tableRowChecked: true,
+                  });
+                }}
                 header={[
                   {
                     text: "선택",

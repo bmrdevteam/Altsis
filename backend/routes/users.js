@@ -47,6 +47,6 @@ router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
 router.put("/:_id", isLoggedIn, users.update);
 
 // ___________ delete _____________
-router.delete("/:_ids", isAdmin, users.delete);
+router.delete("/", isAdmin, users.delete);
 
 module.exports = router;

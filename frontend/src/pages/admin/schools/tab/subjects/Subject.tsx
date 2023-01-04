@@ -135,7 +135,7 @@ const Subjects = (props: Props) => {
                   schoolId: props.schoolData?._id,
                   data: {
                     label: subjectLabelRef.current.split("/"),
-                    data: props.schoolData?.subjects.data,
+                    data: props.schoolData?.subjects?.data || [],
                   },
                 })
                   .then((res) => {
