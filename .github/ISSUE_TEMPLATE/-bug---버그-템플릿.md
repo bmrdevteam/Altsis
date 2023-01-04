@@ -2,7 +2,7 @@
 name: "[BUG]: 버그 템플릿"
 about: 버그 발생시 작성해주세요
 title: "[BUG] : 제목 없음"
-labels: bug(버그), enhancement(제안 사항)
+labels: bug(버그)
 assignees: ''
 
 ---
@@ -19,6 +19,8 @@ assignees: ''
 3. 회원가입 버튼 클릭시 - 404 에러 발생
 
 **사용환경**
+USER : userid
+URL : http://localhost:3030/admin/
 OS: Windows 11/OS X/Windows XP ..
 BROWSER: Chrome/FireFox ..
 
