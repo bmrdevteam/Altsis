@@ -45,6 +45,7 @@ type Props = {
   setPopupActive: any;
   seasonData: any;
   setSelectedSeason: any;
+  setSubjectHeaderList: any;
   setSubjectObjectList: any;
 };
 
@@ -138,18 +139,11 @@ function Basic(props: Props) {
   };
 
   useEffect(() => {
-    setSubjectDataHeader([
-      {
-        text: "No",
-        key: "",
-        type: "index",
-        width: "48px",
-        align: "center",
-      },
-      ...subjectLabelList.map((label: string) => {
+    setSubjectDataHeader(
+      subjectLabelList.map((label: string) => {
         return { text: label, key: label, type: "string" };
-      }),
-    ]);
+      })
+    );
   }, [subjectLabelList]);
 
   return (
@@ -172,6 +166,7 @@ function Basic(props: Props) {
                 },
               })
                 .then((res: any) => {
+                  props.setSubjectHeaderList(subjectDataHeader);
                   props.setSubjectObjectList(
                     parseSubjectDataList(res.label, res.data)
                   );
@@ -251,7 +246,16 @@ function Basic(props: Props) {
             <Table
               type="object-array"
               data={subjectObjectList}
-              header={subjectDataHeader}
+              header={[
+                {
+                  text: "No",
+                  key: "",
+                  type: "index",
+                  width: "48px",
+                  align: "center",
+                },
+                ...subjectDataHeader,
+              ]}
             />
           </div>
         </div>
