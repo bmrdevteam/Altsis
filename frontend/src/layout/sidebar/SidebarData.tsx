@@ -1,5 +1,5 @@
 
-import { apps } from "apps";
+import { Apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
 import { useEffect, useState } from "react";
