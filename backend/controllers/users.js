@@ -481,9 +481,9 @@ module.exports.update = async (req, res) => {
 
 module.exports.delete = async (req, res) => {
   try {
-    const ids = _.split(req.params._ids, "&");
+    const _idList = _.split(req.query._ids, ",");
     const result = await User(req.user.academyId).deleteMany({
-      _id: { $in: ids },
+      _id: { $in: _idList },
     });
     return res.status(200).send(result);
   } catch (err) {
