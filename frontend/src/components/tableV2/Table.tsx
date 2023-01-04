@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import style from "./table.module.scss";
 import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
-import { flattenObject } from "functions/functions";
+import {
+  flattenObject,
+  objectDownloadAsCSV,
+  objectDownloadAsJson,
+  unflattenObject,
+} from "functions/functions";
 import useOutsideClick from "hooks/useOutsideClick";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
@@ -331,10 +336,28 @@ const Table = (props: Props) => {
                       <Svg type={"horizontalDots"} width="20px" height="20px" />
                       {moreOutSideClick.active && (
                         <div className={style.menu_container}>
-                          <div className={style.menu_item}>
+                          <div
+                            className={style.menu_item}
+                            onClick={() => {
+                              objectDownloadAsCSV(
+                                filteredData().map((o: any) =>
+                                  unflattenObject(o)
+                                )
+                              );
+                            }}
+                          >
                             CSV 으로 다운로드
                           </div>
-                          <div className={style.menu_item}>
+                          <div
+                            className={style.menu_item}
+                            onClick={() => {
+                              objectDownloadAsJson(
+                                filteredData().map((o: any) =>
+                                  unflattenObject(o)
+                                )
+                              );
+                            }}
+                          >
                             JSON 으로 다운로드
                           </div>
                         </div>
