@@ -220,10 +220,11 @@ type Props = { title?: string };
  */
 const Navbar = (props: Props) => {
   const { registrations, currentRegistration, changeCurrentSeason } = useAuth();
+
   return (
     <div className={style.navbar_container}>
       {props.title && <div className={style.title}>{props.title}</div>}
-      <input className={style.search} type="text" placeholder="검색" />
+      <UserSearchBox />
       <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
         <Select
           appearence="flat"
@@ -243,5 +244,35 @@ const Navbar = (props: Props) => {
     </div>
   );
 };
+
+const UserSearchBox = () => {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState<string>('');
+
+  function submit() {
+    navigate(`/search?query=${query}`);
+  }
+
+  return <div className={style.search_container}>
+    <input 
+      className={style.search} 
+      type="text" 
+      placeholder="검색"
+      value={query}
+      onChange={(e) => {setQuery(e.currentTarget.value)}}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          submit();
+        }
+      }}
+    />
+    <Button 
+      style={{width: '42px', height: '42px', borderRadius: '21px'}}
+      onClick={submit}
+    >
+      <Svg type={"search"} />
+    </Button>
+  </div>
+}
 
 export default Navbar;
