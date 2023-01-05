@@ -40,6 +40,9 @@ import Notifications from "pages/notifications/Index";
 //error pages
 import Http404 from "../pages/error/404";
 
+// search result pages
+import UserSearchResult from "pages/userSearchResult/Index";
+
 //components
 import Sidebar from "../layout/sidebar/Sidebar";
 
@@ -385,6 +388,10 @@ function RouterPage() {
             ></Route>
 
             {/* ----------------------------------------------------- */}
+
+            {/* ----------------------------------------------------- */}
+            {/* search result routes */}
+            <Route path="search" element={<UserSearchResult />}></Route>
 
             {/* dev routes */}
             <Route path="dev">
