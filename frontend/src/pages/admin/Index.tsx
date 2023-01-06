@@ -31,19 +31,22 @@ import style from "style/pages/admin/schools.module.scss";
 // components
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Divider from "components/divider/Divider";
+import Navbar from "layout/navbar/Navbar";
 
 const Admin = () => {
   return (
-    <div className={style.section}>
-      <NavigationLinks />
-      <div style={{ display: "flex", gap: "24px" }}>
-        <div style={{ flex: "1 1 0" }}>
-          <div className={style.title}>관리자 메뉴</div>
-          <div className={style.description}>description...</div>
+    <>
+      <Navbar />
+      <div className={style.section}>
+        <div style={{ display: "flex", gap: "24px" }}>
+          <div style={{ flex: "1 1 0" }}>
+            <div className={style.title}>관리자 메뉴</div>
+
+            <div className={style.description}>description...</div>
+          </div>
         </div>
       </div>
-      <Divider />
-    </div>
+    </>
   );
 };
 

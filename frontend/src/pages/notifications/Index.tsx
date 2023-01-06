@@ -42,16 +42,23 @@ type Props = {};
 
 const Courses = (props: Props) => {
   return (
-    <div>
+    <>
       <Navbar />
+      <div className={style.section}>
+        <div style={{ display: "flex", gap: "24px" }}>
+          <div style={{ flex: "1 1 0" }}>
+            <div className={style.title}>알림</div>
 
-      <Tab
-        items={{
-          "받은 알림": <Inbox />,
-          "보낸 알림": <Sent />,
-        }}
-      />
-    </div>
+            <Tab
+              items={{
+                "받은 알림": <Inbox />,
+                "보낸 알림": <Sent />,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 

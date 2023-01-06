@@ -1,4 +1,3 @@
-
 import { apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
@@ -159,12 +158,6 @@ export const SidebarData = (
             },
           ],
         },
-        {
-          title: "notifications",
-          name: "알림",
-          path: "/notifications",
-          icon: <Svg type="notification" />,
-        },
       ];
     case "admin":
       return [
@@ -280,12 +273,6 @@ export const SidebarData = (
             },
           ],
         },
-        {
-          title: "notifications",
-          name: "알림",
-          path: "/notifications",
-          icon: <Svg type="notification" />,
-        },
       ];
 
     default:
@@ -348,12 +335,6 @@ export const SidebarData = (
         //   path: "/myaccount",
         //   icon: <Svg type="gear" />,
         // },
-        {
-          title: "notifications",
-          name: "알림",
-          path: "/notifications",
-          icon: <Svg type="notification" />,
-        },
       ];
   }
 };
