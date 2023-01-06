@@ -723,17 +723,15 @@ export default function useApi() {
     return result;
   }
   /**
-   * Update Archives
+   * Update Archive
    * @type PUT
    * @auth admin
-   * @returns Archives
+   * @returns Archive
    */
-  async function UArchives(params: {
-    school?: string;
-    userId?: string | number;
-  }) {
-    const result = await database.R({
-      location: "archives" + QUERY_BUILDER(params),
+  async function UArchive(params: { _id: string; data: object }) {
+    const result = await database.U({
+      location: `archives/${params._id}`,
+      data: params.data,
     });
     return result;
   }
@@ -887,6 +885,7 @@ export default function useApi() {
     },
     ArchiveApi: {
       RArchives,
+      UArchive,
     },
     SyllabusApi: {
       CSyllabus,
