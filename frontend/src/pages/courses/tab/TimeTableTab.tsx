@@ -1,5 +1,5 @@
 /**
- * @file Mentoring Page
+ * @file Course Index Page
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -29,7 +29,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -40,37 +40,48 @@ import Navbar from "layout/navbar/Navbar";
 import Table from "components/tableV2/Table";
 
 import _ from "lodash";
+import EditorParser from "editor/EditorParser";
+import Divider from "components/divider/Divider";
 
-type Props = {};
+type Props = { courseList: any[] };
 
-const CoursesMentoring = (props: Props) => {
-  const database = useDatabase();
+const Timetable = (props: Props) => {
+  const { EnrollmentApi } = useApi();
   const navigate = useNavigate();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
-  const [courseList, setCourseList] = useState<any[]>([]);
-
-  const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
+  const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
 
   /* subject label header list */
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
     []
   );
 
-  async function getCreatedCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&teacherId=${currentUser?.userId}`,
+  async function getEnrolledCourseList() {
+    const myEnrollments = await EnrollmentApi.REnrolllments({
+      season: currentRegistration?.season,
+      studentId: currentUser?.userId,
     });
-    if (syllabuses.length === 0) return [];
+    if (myEnrollments.length === 0) return [];
 
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
+    const sylEnrollments = await EnrollmentApi.REnrolllments({
+      syllabuses: myEnrollments.map((e: any) => e.syllabus),
+    });
+
+    const cnt = _.countBy(
+      sylEnrollments.map((enrollment: any) => enrollment.syllabus)
     );
 
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
-    }
+    // enrollments to syllabus
+    const syllabuses = myEnrollments.map((e: any) => {
+      return {
+        ...e,
+        enrollment: e._id,
+        _id: e.syllabus,
+        count_limit: `${cnt[e.syllabus] || 0}/${e.limit}`,
+      };
+    });
 
     return syllabuses;
   }
@@ -88,13 +99,6 @@ const CoursesMentoring = (props: Props) => {
         syllabus.teachers.map((teacher: any) => teacher.userName),
         ", "
       );
-      syllabus.confirmed = true;
-      for (let teacher of syllabus.teachers) {
-        if (!teacher.confirmed) {
-          syllabus.confirmed = false;
-          break;
-        }
-      }
       return syllabus;
     });
   };
@@ -127,12 +131,6 @@ const CoursesMentoring = (props: Props) => {
       textAlign: "center",
     },
     {
-      text: "수강/정원",
-      key: "count_limit",
-      type: "string",
-      textAlign: "center",
-    },
-    {
       text: "개설자",
       key: "userName",
       type: "string",
@@ -145,22 +143,11 @@ const CoursesMentoring = (props: Props) => {
       textAlign: "center",
     },
     {
-      text: "상태",
-      key: "confirmed",
-      width: "72px",
-      textAlign: "center",
-      type: "status",
-      status: {
-        false: { text: "미승인", color: "red" },
-        true: { text: "승인됨", color: "green" },
-      },
-    },
-    {
       text: "자세히",
       key: "detail",
       type: "button",
       onClick: (e: any) => {
-        navigate(`${e._id}`, {
+        navigate(`${e.enrollment}`, {
           replace: true,
         });
       },
@@ -179,16 +166,13 @@ const CoursesMentoring = (props: Props) => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
       navigate("/");
-    } else if (currentRegistration.role !== "teacher") {
-      alert("멘토링 권한이 없습니다.");
-      navigate("/courses");
     } else {
-      getCreatedCourseList().then((res: any) => {
-        setCourseList(structuring(res));
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(structuring(res));
       });
       if (currentSeason?.subjects?.label) {
         setSubjectLabelHeaderList([
-          ...currentSeason?.subjects?.label.map((label: string) => {
+          ...currentSeason?.subjects?.label?.map((label: string) => {
             return {
               text: label,
               key: label,
@@ -201,32 +185,38 @@ const CoursesMentoring = (props: Props) => {
     }
   }, [currentRegistration]);
 
-  return (
-    <>
-      <Navbar />
-      <div className={style.section}>
-        <div className={style.title}>담당 수업 목록</div>
-        <div style={{ height: "24px" }}></div>
+  function syllabusToTime(s: any) {
+    let result = {};
+    if (s) {
+      for (let i = 0; i < s.length; i++) {
+        const element = s[i];
+        for (let ii = 0; ii < element.time.length; ii++) {
+          Object.assign(result, {
+            [element.time[ii].label]: element.classTitle,
+          });
+        }
+      }
+    }
 
-        <Table
-          control
-          type="object-array"
-          data={courseList}
-          header={[
-            {
-              text: "No",
-              type: "text",
-              key: "tableRowIndex",
-              width: "48px",
-              textAlign: "center",
-            },
-            ...subjectLabelHeaderList,
-            ...subjectHeaderList,
-          ]}
-        />
-      </div>
-    </>
+    return result;
+  }
+
+  return (
+    <div className={style.section}>
+      {currentSeason?.formTimetable && (
+        <>
+          <EditorParser
+            auth="view"
+            defaultTimetable={syllabusToTime(props.courseList)}
+            data={currentSeason?.formTimetable}
+          />
+          <div style={{ height: "24px" }}></div>
+          <Divider />
+          <div style={{ height: "24px" }}></div>
+        </>
+      )}
+    </div>
   );
 };
 
-export default CoursesMentoring;
+export default Timetable;
