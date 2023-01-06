@@ -12,6 +12,7 @@ import { useParams } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
 import Group from "./tab/Group";
 import One from "./tab/One";
+import Three from "./tab/Three";
 
 type Props = {};
 
@@ -89,7 +90,10 @@ const ArchiveField = (props: Props) => {
                     style={{ borderRadius: "4px" }}
                     setState={setUserId}
                     onChange={(v) => {
-                      ArchiveApi.RArchives({ userId: v ,school:currentSchool.school}).then((res) => {
+                      ArchiveApi.RArchives({
+                        userId: v,
+                        school: currentSchool.school,
+                      }).then((res) => {
                         formData.current = res;
                       });
                     }}
@@ -109,7 +113,7 @@ const ArchiveField = (props: Props) => {
                   />
                 </div>
                 <Divider />
-                <One
+                <Three
                   formData={formData}
                   users={users}
                   archive={pid}
