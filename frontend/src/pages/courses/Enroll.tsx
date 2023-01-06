@@ -42,7 +42,7 @@ import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import Input from "components/input/Input";
 
-import ViewPopup from "./tab/ViewPopup";
+import ViewPopup from "./view/ViewPopup";
 
 import _ from "lodash";
 import Select from "components/select/Select";
