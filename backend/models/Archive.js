@@ -10,12 +10,12 @@ const archiveSchema = mongoose.Schema(
     },
     userName: {
       type: String,
-      required: true,
     },
     school: mongoose.Types.ObjectId,
     schoolId: String,
     schoolName: String,
     data: Object,
+    files: Object,
   },
   { timestamps: true }
 );
@@ -31,7 +31,7 @@ archiveSchema.index(
 archiveSchema.plugin(encrypt, {
   encryptionKey: process.env["ENCKEY_A"],
   signingKey: process.env["SIGKEY_A"],
-  encryptedFields: ["data"],
+  encryptedFields: ["data", "files"],
 });
 
 archiveSchema.methods.clean = async function () {
