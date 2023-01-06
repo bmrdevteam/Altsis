@@ -10,7 +10,6 @@ const apps = (props: Props) => {
     <>
       <Navbar />
         <div className={style.section}>
-          <NavigationLinks />
               <div style={{ display: "flex", gap: "24px" }}>
                 <div style={{ flex: "1 1 0" }}>
                   <div className={style.title}>강의실</div>

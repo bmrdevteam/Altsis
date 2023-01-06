@@ -43,7 +43,6 @@
    <>
     <Navbar />
      <div className={style.section}>
-       <NavigationLinks />
        <div style={{ display: "flex", gap: "24px" }}>
          <div style={{ flex: "1 1 0" }}>
            <div className={style.title}>앱</div>

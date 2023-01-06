@@ -280,7 +280,6 @@ const CourseEnrollment = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
         <div className={style.title}>{enrollmentData?.classTitle}</div>
         <div className={style.categories_container}>
           <div className={style.categories}>{categories()}</div>
