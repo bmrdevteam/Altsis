@@ -48,6 +48,7 @@ import Add from "./tab/Add";
 import AddBulk from "./tab/AddBulk";
 import SchoolBulk from "./tab/SchoolBulk";
 import _ from "lodash";
+import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
@@ -117,8 +118,8 @@ const Users = (props: Props) => {
 
   return (
     <>
+      <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
         <div className={style.title}>아카데미 사용자 관리</div>
         <div style={{ height: "24px" }}></div>
         <Select

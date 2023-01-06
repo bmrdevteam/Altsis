@@ -55,6 +55,7 @@ import _ from "lodash";
 import ViewPopup from "../tab/ViewPopup";
 
 import { checkPermission } from "functions/functions";
+import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
@@ -288,317 +289,319 @@ const CoursePid = (props: Props) => {
   }, [isLoading]);
 
   return !isLoading ? (
-    <div className={style.section}>
-      <NavigationLinks />
-      <div className={style.title}>{courseData?.classTitle}</div>
-      <div className={style.categories_container}>
-        <div className={style.categories}>
-          <div
-            className={style.category}
-            onClick={() => {
-              setViewPopupActive(true);
-            }}
-          >
-            강의계획서 조회
-          </div>
-
-          <div
-            className={style.category}
-            onClick={() => {
-              setConfirmStatusPopupActive(true);
-            }}
-          >
-            상태: {mentorConfirmed ? "승인됨" : "미승인"}
-          </div>
-        </div>
-      </div>
-      <Divider />
-
-      <div style={{ height: "24px" }}></div>
-
-      <>
-        <div style={{ display: "flex" }}>
-          <div
-            style={{
-              flex: "auto",
-              marginLeft: "12px",
-              display: "flex",
-              gap: "12px",
-            }}
-          >
-            <div className={style.title}>수강생 목록 및 평가</div>
-          </div>
-          <div
-            style={{
-              flex: "auto",
-              marginRight: "24px",
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "12px",
-              alignItems: "center",
-            }}
-          >
+    <>
+      <Navbar />
+      <div className={style.section}>
+        <div className={style.title}>{courseData?.classTitle}</div>
+        <div className={style.categories_container}>
+          <div className={style.categories}>
             <div
-              className={style.icon}
-              onClick={(e: any) => {
-                if (!confirmed) {
-                  alert("수업이 승인되지 않아 학생을 초대할 수 없습니다.");
-                } else {
-                  setEnrollBulkPopupActive(true);
-                }
+              className={style.category}
+              onClick={() => {
+                setViewPopupActive(true);
               }}
-              style={{ display: "flex", gap: "4px", alignItems: "center" }}
             >
-              <Svg type="user_check" width="24px" height="24px" />
-              초대
+              강의계획서 조회
             </div>
 
             <div
-              className={style.icon}
-              onClick={(e: any) => {
-                const receiverSelectedList: receiverSelectedList = {};
-                for (let e of enrollmentList || []) {
-                  receiverSelectedList[
-                    JSON.stringify({
-                      userId: e.studentId,
-                      userName: e.studentName,
-                    })
-                  ] = true;
-                }
-
-                setReceiverSelectedList({ ...receiverSelectedList });
-                setSendNotificationPopupActive(true);
+              className={style.category}
+              onClick={() => {
+                setConfirmStatusPopupActive(true);
               }}
-              style={{ display: "flex", gap: "4px" }}
             >
-              <Svg type="send" width="20px" height="20px" />
-              알림
+              상태: {mentorConfirmed ? "승인됨" : "미승인"}
             </div>
           </div>
         </div>
-        {permissionEvaluation ? (
-          <Table
-            type="object-array"
-            data={enrollmentList || []}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
+        <Divider />
 
-              {
-                text: "학년",
-                key: "studentGrade",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "ID",
-                key: "studentId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "이름",
-                key: "studentName",
-                type: "text",
-                textAlign: "center",
-              },
-              ...formEvaluationHeader,
-              {
-                text: "저장",
-                key: "evaluation",
-                onClick: (e: any) => {
-                  const evaluation: any = {};
-                  for (let obj of fieldEvaluationList) {
-                    evaluation[obj.text] = e[obj.key];
+        <div style={{ height: "24px" }}></div>
+
+        <>
+          <div style={{ display: "flex" }}>
+            <div
+              style={{
+                flex: "auto",
+                marginLeft: "12px",
+                display: "flex",
+                gap: "12px",
+              }}
+            >
+              <div className={style.title}>수강생 목록 및 평가</div>
+            </div>
+            <div
+              style={{
+                flex: "auto",
+                marginRight: "24px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                alignItems: "center",
+              }}
+            >
+              <div
+                className={style.icon}
+                onClick={(e: any) => {
+                  if (!confirmed) {
+                    alert("수업이 승인되지 않아 학생을 초대할 수 없습니다.");
+                  } else {
+                    setEnrollBulkPopupActive(true);
                   }
-                  updateEvaluationByMentor(e._id, evaluation)
+                }}
+                style={{ display: "flex", gap: "4px", alignItems: "center" }}
+              >
+                <Svg type="user_check" width="24px" height="24px" />
+                초대
+              </div>
+
+              <div
+                className={style.icon}
+                onClick={(e: any) => {
+                  const receiverSelectedList: receiverSelectedList = {};
+                  for (let e of enrollmentList || []) {
+                    receiverSelectedList[
+                      JSON.stringify({
+                        userId: e.studentId,
+                        userName: e.studentName,
+                      })
+                    ] = true;
+                  }
+
+                  setReceiverSelectedList({ ...receiverSelectedList });
+                  setSendNotificationPopupActive(true);
+                }}
+                style={{ display: "flex", gap: "4px" }}
+              >
+                <Svg type="send" width="20px" height="20px" />
+                알림
+              </div>
+            </div>
+          </div>
+          {permissionEvaluation ? (
+            <Table
+              type="object-array"
+              data={enrollmentList || []}
+              header={[
+                {
+                  text: "No",
+                  type: "text",
+                  key: "tableRowIndex",
+                  width: "48px",
+                  textAlign: "center",
+                },
+
+                {
+                  text: "학년",
+                  key: "studentGrade",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "ID",
+                  key: "studentId",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "이름",
+                  key: "studentName",
+                  type: "text",
+                  textAlign: "center",
+                },
+                ...formEvaluationHeader,
+                {
+                  text: "저장",
+                  key: "evaluation",
+                  onClick: (e: any) => {
+                    const evaluation: any = {};
+                    for (let obj of fieldEvaluationList) {
+                      evaluation[obj.text] = e[obj.key];
+                    }
+                    updateEvaluationByMentor(e._id, evaluation)
+                      .then((res) => {
+                        alert("수정되었습니다.");
+
+                        setIsLoading(true);
+                      })
+                      .catch((err: any) => alert(err.response.data.message));
+                  },
+                  type: "button",
+
+                  textAlign: "center",
+                  width: "80px",
+                  btnStyle: {
+                    round: true,
+                    border: true,
+                    padding: "4px",
+                    color: "red",
+                    background: "#FFF1F1",
+                  },
+                  fontWeight: "600",
+                },
+              ]}
+            />
+          ) : (
+            <Table
+              type="object-array"
+              data={enrollmentList || []}
+              header={[
+                {
+                  text: "No",
+                  type: "text",
+                  key: "tableRowIndex",
+                  width: "48px",
+                  textAlign: "center",
+                },
+
+                {
+                  text: "학년",
+                  key: "studentGrade",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "ID",
+                  key: "studentId",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "이름",
+                  key: "studentName",
+                  type: "text",
+                  textAlign: "center",
+                },
+                ...formEvaluationHeader,
+              ]}
+            />
+          )}
+        </>
+
+        {confirmStatusPopupActive && (
+          <Popup
+            setState={setConfirmStatusPopupActive}
+            title="승인 상태"
+            closeBtn
+          >
+            <Table
+              type="object-array"
+              data={courseData?.teachers}
+              onChange={(value) => {
+                console.log(value);
+              }}
+              header={[
+                {
+                  text: "No",
+                  type: "text",
+                  key: "tableRowIndex",
+                  width: "48px",
+                  textAlign: "center",
+                },
+                {
+                  text: "멘토 ID",
+                  key: "userId",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "멘토 이름",
+                  key: "userName",
+                  type: "text",
+                  textAlign: "center",
+                },
+
+                {
+                  text: "상태",
+                  key: "confirmed",
+                  width: "120px",
+                  textAlign: "center",
+                  type: "status",
+                  status: {
+                    false: { text: "미승인", color: "red" },
+                    true: { text: "승인됨", color: "green" },
+                  },
+                },
+              ]}
+            />
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                marginTop: "24px",
+              }}
+              disabled={enrollmentList && enrollmentList.length > 0}
+              onClick={() => {
+                if (mentorConfirmed) {
+                  unconfirmCourse()
                     .then((res) => {
-                      alert("수정되었습니다.");
-
-                      setIsLoading(true);
+                      alert("unconfirmed");
+                      const teachers = courseData.teachers;
+                      teachers[mentorIdx].confirmed = false;
+                      setCourseData({
+                        ...courseData,
+                        teachers,
+                      });
+                      setMentorConfirmed(false);
+                      setConfirmStatusPopupActive(false);
                     })
-                    .catch((err: any) => alert(err.response.data.message));
-                },
-                type: "button",
+                    .catch((err) => {
+                      alert("failed to unconfirm");
+                    });
+                } else {
+                  confirmCourse()
+                    .then((res) => {
+                      alert("confirmed");
+                      const teachers = courseData.teachers;
+                      teachers[mentorIdx].confirmed = true;
 
-                textAlign: "center",
-                width: "80px",
-                btnStyle: {
-                  round: true,
-                  border: true,
-                  padding: "4px",
-                  color: "red",
-                  background: "#FFF1F1",
-                },
-                fontWeight: "600",
-              },
-            ]}
-          />
-        ) : (
-          <Table
-            type="object-array"
-            data={enrollmentList || []}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-
-              {
-                text: "학년",
-                key: "studentGrade",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "ID",
-                key: "studentId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "이름",
-                key: "studentName",
-                type: "text",
-                textAlign: "center",
-              },
-              ...formEvaluationHeader,
-            ]}
+                      setCourseData({
+                        ...courseData,
+                        teachers,
+                      });
+                      setMentorConfirmed(true);
+                      setConfirmStatusPopupActive(false);
+                    })
+                    .catch((err) => {
+                      alert("failed to confirm");
+                    });
+                }
+              }}
+            >
+              {mentorConfirmed ? "승인 취소" : "승인하기"}
+            </Button>
+          </Popup>
+        )}
+        {sendNotificationPopupActive && (
+          <Send
+            setState={setSendNotificationPopupActive}
+            receiverOptionList={receiverOptionList}
+            receiverSelectedList={receiverSelectedList}
+            category={courseData?.classTitle}
+            receiverList={enrollmentList?.map((enrollment: any) => {
+              return {
+                ...enrollment,
+                userId: enrollment.studentId,
+                userName: enrollment.studentName,
+              };
+            })}
+            receiverType={"enrollment"}
           />
         )}
-      </>
-
-      {confirmStatusPopupActive && (
-        <Popup
-          setState={setConfirmStatusPopupActive}
-          title="승인 상태"
-          closeBtn
-        >
-          <Table
-            type="object-array"
-            data={courseData?.teachers}
-            onChange={(value) => {
-              console.log(value);
-            }}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              {
-                text: "멘토 ID",
-                key: "userId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "멘토 이름",
-                key: "userName",
-                type: "text",
-                textAlign: "center",
-              },
-
-              {
-                text: "상태",
-                key: "confirmed",
-                width: "120px",
-                textAlign: "center",
-                type: "status",
-                status: {
-                  false: { text: "미승인", color: "red" },
-                  true: { text: "승인됨", color: "green" },
-                },
-              },
-            ]}
+        {enrollBulkPopupActive && (
+          <EnrollBulkPopup
+            setPopupActive={setEnrollBulkPopupActive}
+            courseData={courseData}
+            setIsEnrollmentListLoading={setIsEnrollmentListLoading}
           />
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              marginTop: "24px",
-            }}
-            disabled={enrollmentList && enrollmentList.length > 0}
-            onClick={() => {
-              if (mentorConfirmed) {
-                unconfirmCourse()
-                  .then((res) => {
-                    alert("unconfirmed");
-                    const teachers = courseData.teachers;
-                    teachers[mentorIdx].confirmed = false;
-                    setCourseData({
-                      ...courseData,
-                      teachers,
-                    });
-                    setMentorConfirmed(false);
-                    setConfirmStatusPopupActive(false);
-                  })
-                  .catch((err) => {
-                    alert("failed to unconfirm");
-                  });
-              } else {
-                confirmCourse()
-                  .then((res) => {
-                    alert("confirmed");
-                    const teachers = courseData.teachers;
-                    teachers[mentorIdx].confirmed = true;
-
-                    setCourseData({
-                      ...courseData,
-                      teachers,
-                    });
-                    setMentorConfirmed(true);
-                    setConfirmStatusPopupActive(false);
-                  })
-                  .catch((err) => {
-                    alert("failed to confirm");
-                  });
-              }
-            }}
-          >
-            {mentorConfirmed ? "승인 취소" : "승인하기"}
-          </Button>
-        </Popup>
-      )}
-      {sendNotificationPopupActive && (
-        <Send
-          setState={setSendNotificationPopupActive}
-          receiverOptionList={receiverOptionList}
-          receiverSelectedList={receiverSelectedList}
-          category={courseData?.classTitle}
-          receiverList={enrollmentList?.map((enrollment: any) => {
-            return {
-              ...enrollment,
-              userId: enrollment.studentId,
-              userName: enrollment.studentName,
-            };
-          })}
-          receiverType={"enrollment"}
-        />
-      )}
-      {enrollBulkPopupActive && (
-        <EnrollBulkPopup
-          setPopupActive={setEnrollBulkPopupActive}
-          courseData={courseData}
-          setIsEnrollmentListLoading={setIsEnrollmentListLoading}
-        />
-      )}
-      {viewPopupActive && pid && (
-        <ViewPopup course={pid} setPopupActive={setViewPopupActive} />
-      )}
-    </div>
+        )}
+        {viewPopupActive && pid && (
+          <ViewPopup course={pid} setPopupActive={setViewPopupActive} />
+        )}
+      </div>
+    </>
   ) : (
     <>로딩중</>
   );
