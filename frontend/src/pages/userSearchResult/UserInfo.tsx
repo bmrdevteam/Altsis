@@ -2,14 +2,33 @@ import defaultProfilePic from "assets/img/default_profile.png";
 import style from "style/pages/userSearchResult/userInfo.module.scss";
 
 type Props = {
-	user: any
+	user: any,
 }
+
+const roleInKorean = new Map<string, string>();
+roleInKorean.set('student', '학생');
+roleInKorean.set('teacher', '교사');
+roleInKorean.set('parents', '학부모');
+roleInKorean.set('admin', '관리자');
 
 const UserInfo = (props: Props) => {
 	const { user } = props;
 
   if (!user) {
     return <div className={style.user_info}></div>
+  }
+
+  let roleSchoolTeacher;
+  if (user.role === 'student') {
+    roleSchoolTeacher = <>
+      <span className={style.user_school}>{user.schoolName}</span>
+      <span className={style.user_role}>{`교사 ${user.teacherName} 담당 학생`}</span>
+    </>;
+  } else {
+    roleSchoolTeacher = <div>
+      <span className={style.user_school}>{user.schoolName + ' '}</span>
+      <span className={style.user_role}>{roleInKorean.get(user.role)}</span>
+    </div>;
   }
   
 	return <div className={style.user_info}>
@@ -26,10 +45,7 @@ const UserInfo = (props: Props) => {
         alt="profile"
 			/>
 		</div>
-    <div>
-      <span className={style.user_school}>{user.schools[0].schoolName + ' '}</span>
-      <span className={style.user_auth}>{user.auth}</span>
-    </div>
+    {roleSchoolTeacher}
     <div className={style.user_name}>{user.userName + '님의 정보'}</div>
 	</div>
 }
