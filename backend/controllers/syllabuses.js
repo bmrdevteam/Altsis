@@ -2,13 +2,12 @@ const { Season, Registration, Syllabus, Enrollment } = require("../models");
 const _ = require("lodash");
 
 const getUnavailableTimeLabels = async (academyId, syllabus) => {
-  const { schoolId, year, term, classroom, time } = syllabus;
+  const { schoolId, season, classroom, time } = syllabus;
   if (!classroom) return [];
   const syllabuses = await Syllabus(academyId).find(
     {
       schoolId,
-      year,
-      term,
+      season,
       classroom,
       _id: { $ne: syllabus._id },
     },
