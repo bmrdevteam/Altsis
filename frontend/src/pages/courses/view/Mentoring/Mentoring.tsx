@@ -47,12 +47,12 @@ import EditorParser from "editor/EditorParser";
 
 import Svg from "assets/svg/Svg";
 
-import Send from "../../notifications/popup/Send";
-import EnrollBulkPopup from "../tab/EnrollBulkPopup";
+import Send from "../../../notifications/popup/Send";
+import EnrollBulkPopup from "./EnrollBulkPopup";
 
 import _ from "lodash";
 
-import ViewPopup from "../tab/ViewPopup";
+import ViewPopup from "../ViewPopup";
 
 import { checkPermission } from "functions/functions";
 import Navbar from "layout/navbar/Navbar";
@@ -208,12 +208,13 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      if (!currentSeason) navigate("/", { replace: true });
-
       getCourseData()
         .then((result) => {
-          if (result.season !== currentSeason._id)
-            navigate("/courses/mentoring", { replace: true });
+          if (
+            result.season !== currentSeason._id ||
+            !_.find(result.teachers, { userId: currentUser.userId })
+          )
+            navigate("/courses#담당%20수업%20목록", { replace: true });
 
           setCourseData(result);
           getEnrollments(result._id).then((res: any) => {
@@ -292,6 +293,28 @@ const CoursePid = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
+        <div
+          style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            marginBottom: "18px",
+            display: "flex",
+            color: "var(--accent-1)",
+          }}
+        >
+          <div style={{ wordBreak: "keep-all" }}>
+            <span>&nbsp;/&nbsp;</span>
+            <span
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                navigate("/courses#담당%20수업%20목록", { replace: true });
+              }}
+            >
+              {`담당 수업 목록 / ${pid}`}
+            </span>
+          </div>
+        </div>
+
         <div className={style.title}>{courseData?.classTitle}</div>
         <div className={style.categories_container}>
           <div className={style.categories}>
@@ -389,6 +412,7 @@ const CoursePid = (props: Props) => {
                   key: "tableRowIndex",
                   width: "48px",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
 
                 {
@@ -396,18 +420,21 @@ const CoursePid = (props: Props) => {
                   key: "studentGrade",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
                 {
                   text: "ID",
                   key: "studentId",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
                 {
                   text: "이름",
                   key: "studentName",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
                 ...formEvaluationHeader,
                 {
