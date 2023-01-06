@@ -305,7 +305,7 @@ const CourseAdd = (props: Props) => {
                 submit()
                   .then((res: any) => {
                     alert("success");
-                    navigate(`/courses/mylist/${res._id}`, {
+                    navigate(`/courses/created/${res._id}`, {
                       replace: true,
                     });
                   })

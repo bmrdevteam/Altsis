@@ -39,7 +39,7 @@ import Navbar from "layout/navbar/Navbar";
 // components
 import Table from "components/tableV2/Table";
 
-import ViewPopup from "./tab/ViewPopup";
+import ViewPopup from "./view/ViewPopup";
 
 import _ from "lodash";
 

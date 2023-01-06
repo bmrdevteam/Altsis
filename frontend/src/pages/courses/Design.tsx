@@ -35,7 +35,7 @@ import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
 
 // tab pages
-import Add from "./tab/Add";
+import Add from "./view/Add";
 
 type Props = {};
 
