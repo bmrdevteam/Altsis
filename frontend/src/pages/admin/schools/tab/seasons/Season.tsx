@@ -50,36 +50,45 @@ import Permission from "./tab/Permission";
 import Subject from "./tab/subjects/Subject";
 import Users from "./tab/users/Users";
 
-type Props = { schoolData: any };
+type Props = { school: string; seasonList: any[]; setSeasonList: any };
 
 const Season = (props: Props) => {
   const { SeasonApi } = useApi();
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  const [seasons, setSeasons] = useState<any[]>();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedSeason, setSelectedSeason] = useState<any>();
 
   const [year, setYear] = useState();
   const [term, setTerm] = useState<string>();
   const [start, setStart] = useState<string>();
   const [end, setEnd] = useState<string>();
+  const [selectedSeasonToCopy, setSelectedSeasonToCopy] = useState<any>();
+  const [isLoadingSelectedSeasonToCopy, setIsLoadingSelectedSeasonToCopy] =
+    useState<boolean>(false);
 
   const [addSeasonPopupActive, setAddSeasonPopupActive] =
+    useState<boolean>(false);
+  const [selectSeasonToCopyPopupActive, setSelectSeasonToCopyPopupActive] =
     useState<boolean>(false);
   const [editSeasonPopupActive, setEditSeasonPopupActive] =
     useState<boolean>(false);
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeasons({ school: props.schoolData._id })
+      SeasonApi.RSeasons({ school: props.school })
         .then((res) => {
-          setSeasons(res);
+          props.setSeasonList(res);
           setIsLoading(false);
         })
         .catch((err) => alert(err.response.data.message));
     }
   }, [isLoading]);
+
+  useEffect(() => {
+    if (isLoadingSelectedSeasonToCopy) setIsLoadingSelectedSeasonToCopy(false);
+
+    return () => {};
+  }, [isLoadingSelectedSeasonToCopy]);
 
   return (
     <div className={style.seasons_tab}>
@@ -92,6 +101,7 @@ const Season = (props: Props) => {
           boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
         }}
         onClick={() => {
+          setSelectedSeasonToCopy(undefined);
           setAddSeasonPopupActive(true);
         }}
       >
@@ -101,7 +111,7 @@ const Season = (props: Props) => {
         <Table
           type="object-array"
           data={
-            seasons?.sort((a, b) => {
+            props.seasonList?.sort((a, b) => {
               return (
                 new Date(b.period?.start).getTime() -
                 new Date(a.period?.start).getTime()
@@ -181,9 +191,10 @@ const Season = (props: Props) => {
       {addSeasonPopupActive && (
         <Popup
           setState={setAddSeasonPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          style={{ borderRadius: "8px", maxWidth: "800px", width: "100%" }}
           closeBtn
           title={"학기 추가"}
+          contentScroll
         >
           <div>
             <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
@@ -210,22 +221,52 @@ const Season = (props: Props) => {
             <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
               <Input
                 appearence="flat"
-                label="시작일"
+                label="학기 시작"
                 type="date"
                 onChange={(e: any) => {
                   setStart(e.target.value);
                 }}
               />
-            </div>
-            <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
               <Input
                 appearence="flat"
-                label="종료일"
+                label="학기 종료"
                 type="date"
                 onChange={(e: any) => {
                   setEnd(e.target.value);
                 }}
               />
+            </div>
+            <div style={{ marginTop: "24px" }}>
+              <div className={style.label}>복사할 학기 선택</div>
+              <div className={style.description}>
+                사용자 등록 정보, 교과목, 강의실, 양식, 권한이 복사됩니다.
+              </div>
+              <div style={{ display: "flex", gap: "24px" }}>
+                {!isLoadingSelectedSeasonToCopy && (
+                  <Input
+                    appearence="flat"
+                    defaultValue={
+                      selectedSeasonToCopy
+                        ? `${selectedSeasonToCopy.year} ${selectedSeasonToCopy.term}`
+                        : "선택된 학기 없음"
+                    }
+                    disabled
+                  />
+                )}
+                <Button
+                  type={"ghost"}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                  }}
+                  onClick={() => {
+                    setSelectSeasonToCopyPopupActive(true);
+                  }}
+                >
+                  학기 선택
+                </Button>
+              </div>
             </div>
             <Button
               type={"ghost"}
@@ -234,18 +275,20 @@ const Season = (props: Props) => {
                 if (year && term) {
                   SeasonApi.CSeason({
                     data: {
-                      school: props.schoolData._id,
+                      school: props.school,
                       year: year,
                       term: term,
                       period: {
                         start: start,
                         end: end,
                       },
+                      copyFrom: selectedSeasonToCopy?._id,
                     },
                   })
                     .then(() => {
                       alert("success");
                       setIsLoading(true);
+                      setSelectedSeasonToCopy(undefined);
                       setAddSeasonPopupActive(false);
                     })
                     .catch((err) => alert(err.response.data.message));
@@ -261,6 +304,85 @@ const Season = (props: Props) => {
               생성
             </Button>
           </div>
+        </Popup>
+      )}
+      {selectSeasonToCopyPopupActive && (
+        <Popup
+          title="복사할 학기 선택"
+          setState={setSelectSeasonToCopyPopupActive}
+          style={{ borderRadius: "4px", maxWidth: "800px", width: "100%" }}
+          closeBtn
+          contentScroll
+          footer={
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+              }}
+              onClick={() => {
+                setSelectedSeasonToCopy(undefined);
+                setIsLoadingSelectedSeasonToCopy(true);
+                setSelectSeasonToCopyPopupActive(false);
+              }}
+            >
+              선택하지 않고 진행하기
+            </Button>
+          }
+        >
+          <Table
+            type="object-array"
+            data={
+              props.seasonList?.sort((a, b) => {
+                return (
+                  new Date(b.period?.start).getTime() -
+                  new Date(a.period?.start).getTime()
+                );
+              }) ?? []
+            }
+            control
+            defaultPageBy={10}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+              {
+                text: "학년도",
+                key: "year",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "학기",
+                key: "term",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "선택",
+                key: "select",
+                type: "button",
+                onClick: (e: any) => {
+                  setSelectedSeasonToCopy(e);
+                  setIsLoadingSelectedSeasonToCopy(true);
+                  setSelectSeasonToCopyPopupActive(false);
+                },
+                width: "80px",
+                textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "black",
+                  padding: "4px",
+                  round: true,
+                },
+              },
+            ]}
+          />
         </Popup>
       )}
       {editSeasonPopupActive && (

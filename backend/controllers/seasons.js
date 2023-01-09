@@ -70,20 +70,52 @@ module.exports.create = async (req, res) => {
     const school = await School(req.user.academyId).findById(req.body.school);
     if (!school) return res.status(404).send();
 
+    if (req.body.copyFrom) {
+      const seasonToCopy = await _Season.findById(req.body.copyFrom);
+      if (!seasonToCopy)
+        return res.status(404).send({
+          message: `season(${req.body.copyFrom}) not found`,
+        });
+
+      /* create and save document */
+      const season = new _Season({
+        ...seasonToCopy.toObject(),
+        _id: undefined,
+        year: req.body.year,
+        term: req.body.term,
+        period: req.body.period ? req.body.period : { start: "", end: "" },
+        isActivated: false,
+      });
+
+      await season.save();
+
+      const registrationsToCopy = await Registration(req.user.academyId).find({
+        season: seasonToCopy._id,
+      });
+      const registrations = registrationsToCopy.map((reg) => {
+        return {
+          ...reg.toObject(),
+          _id: undefined,
+          season: season._id,
+          year: season.year,
+          term: season.term,
+          period: season.period,
+          isActivated: season.isActivated,
+        };
+      });
+      await Registration(req.user.academyId).insertMany(registrations);
+
+      return res.status(200).send(season);
+    }
+
     /* create and save document */
     const season = new _Season({
-      ...req.body,
+      school: school._id,
       schoolId: school.schoolId,
       schoolName: school.schoolName,
-      classrooms: school.classrooms,
-      subjects: school.subjects,
-      permissionSyllabus: school.permissionSyllabus,
-      permissionEnrollment: school.permissionEnrollment,
-      permissionEvaluation: school.permissionEvaluation,
-      formTimetable: school.formTimetable,
-      formSyllabus: school.formSyllabus,
-      formEvaluation: school.formEvaluation,
-      formArchive: school.formArchive,
+      year: req.body.year,
+      term: req.body.term,
+      period: req.body.period ? req.body.period : { start: "", end: "" },
     });
 
     await season.save();
