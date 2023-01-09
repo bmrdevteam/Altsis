@@ -26,6 +26,27 @@
   }
 }
 
+.table_header {
+  display: flex;
+
+  .page {
+    color: var(--accent-3);
+  }
+  .icon {
+    cursor: pointer;
+    color: var(--accent-3);
+    svg {
+      fill: var(--accent-3);
+    }
+  }
+
+  .icon_disabled {
+    svg {
+      fill: var(--accent-5);
+    }
+  }
+}
+
 .section {
   height: calc(100vh - 56px);
   overflow-y: auto;
