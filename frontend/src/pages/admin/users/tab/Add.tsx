@@ -58,7 +58,9 @@ function Basic(props: Props) {
   const [password, setPassword] = useState<string>("");
   const [email, setEmail] = useState<any>(undefined);
   const [tel, setTel] = useState<any>(undefined);
-  const [schools, setSchools] = useState<any[]>(
+
+  const [schoolList, setSchoolList] = useState<any[]>(props.schoolList);
+  const [selectedSchoolList, setSelectedSchoolList] = useState<any[]>(
     !_.isEmpty(props.schoolData)
       ? [
           {
@@ -79,20 +81,20 @@ function Basic(props: Props) {
   useEffect(() => {
     setSchoolsText(
       _.join(
-        schools.map(
+        selectedSchoolList.map(
           (schoolData: any) =>
             `${schoolData.schoolName}(${schoolData.schoolId})`
         ),
         ", "
       )
     );
-  }, [schools]);
+  }, [selectedSchoolList]);
 
   async function addDocument() {
     const result = await database.C({
       location: `users`,
       data: {
-        schools,
+        schools: selectedSchoolList,
         auth,
         userId,
         userName,
@@ -106,7 +108,6 @@ function Basic(props: Props) {
 
   return (
     <>
-      {" "}
       <Popup
         setState={props.setPopupAcitve}
         style={{ borderRadius: "8px", maxWidth: "600px", width: "100%" }}
@@ -130,7 +131,15 @@ function Basic(props: Props) {
             <Button
               type={"ghost"}
               onClick={() => {
-                schoolSelectRef.current = schools;
+                schoolSelectRef.current = selectedSchoolList;
+                setSchoolList(
+                  props.schoolList.map((school: any) => {
+                    if (_.find(selectedSchoolList, { school: school._id }))
+                      school.tableRowChecked = true;
+                    else school.tableRowChecked = false;
+                    return school;
+                  })
+                );
                 setIsEditSchoolPopupActive(true);
               }}
               style={{
@@ -229,7 +238,7 @@ function Basic(props: Props) {
             생성
           </Button>
         </div>
-      </Popup>{" "}
+      </Popup>
       {isEditSchoolPopupActive && (
         <Popup
           closeBtn
@@ -241,11 +250,12 @@ function Basic(props: Props) {
             <div className={style.row}>
               <Table
                 type="object-array"
-                data={props.schoolList}
+                data={schoolList}
                 onChange={(value: any[]) => {
                   schoolSelectRef.current = _.filter(value, {
                     tableRowChecked: true,
                   });
+                  console.log(schoolSelectRef.current);
                 }}
                 header={[
                   {
@@ -275,15 +285,15 @@ function Basic(props: Props) {
                 type={"ghost"}
                 disableOnclick
                 onClick={() => {
-                  setSchools([
-                    ...schoolSelectRef.current.map((schoolData: any) => {
+                  setSelectedSchoolList(
+                    schoolSelectRef.current.map((schoolData: any) => {
                       return {
                         school: schoolData._id,
                         schoolId: schoolData.schoolId,
                         schoolName: schoolData.schoolName,
                       };
-                    }),
-                  ]);
+                    })
+                  );
                   setIsEditSchoolPopupActive(false);
                 }}
                 style={{
