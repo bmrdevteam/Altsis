@@ -285,11 +285,13 @@ const Season = (props: Props) => {
                       copyFrom: selectedSeasonToCopy?._id,
                     },
                   })
-                    .then(() => {
+                    .then((res) => {
                       alert("success");
                       setIsLoading(true);
                       setSelectedSeasonToCopy(undefined);
                       setAddSeasonPopupActive(false);
+                      setSelectedSeason(res);
+                      setEditSeasonPopupActive(true);
                     })
                     .catch((err) => alert(err.response.data.message));
                 }
@@ -310,7 +312,7 @@ const Season = (props: Props) => {
         <Popup
           title="복사할 학기 선택"
           setState={setSelectSeasonToCopyPopupActive}
-          style={{ borderRadius: "4px", maxWidth: "800px", width: "100%" }}
+          style={{ borderRadius: "4px" }}
           closeBtn
           contentScroll
           footer={

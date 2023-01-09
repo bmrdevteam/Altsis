@@ -64,7 +64,7 @@ module.exports.create = async (req, res) => {
     });
     if (exSeason)
       return res.status(409).send({
-        message: `season(${req.body.school},${req.body.year},${req.body.term}) is already in use`,
+        message: `동일한 이름의 시즌(${req.body.year}, ${req.body.term})이 존재합니다.`,
       });
 
     const school = await School(req.user.academyId).findById(req.body.school);

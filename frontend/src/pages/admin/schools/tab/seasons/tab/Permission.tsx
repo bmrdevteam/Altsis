@@ -422,6 +422,7 @@ const Permission = (props: Props) => {
                       props.seasonData.permissionEvaluation = res;
                       props.setSelectedSeason(props.seasonData);
                     }
+                    setEditPopupActive(false);
                   })
                   .catch((err) => {
                     alert(err.response.data.message);
