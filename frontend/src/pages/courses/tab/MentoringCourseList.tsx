@@ -44,7 +44,8 @@ const CoursesMentoring = (props: Props) => {
       key: "classTitle",
       type: "text",
       textAlign: "center",
-      whiteSpace: "pre",
+      wordBreak: "keep-all",
+      width: "320px",
     },
 
     {
@@ -52,12 +53,16 @@ const CoursesMentoring = (props: Props) => {
       key: "timeText",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "120px",
     },
     {
       text: "강의실",
       key: "classroom",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "80px",
     },
 
     {
@@ -65,6 +70,8 @@ const CoursesMentoring = (props: Props) => {
       key: "point",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "60px",
     },
     {
       text: "수강/정원",
@@ -72,18 +79,23 @@ const CoursesMentoring = (props: Props) => {
       type: "string",
       textAlign: "center",
       whiteSpace: "pre",
+      width: "80px",
     },
     {
       text: "개설자",
       key: "userName",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "80px",
     },
     {
       text: "멘토",
       key: "mentorText",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "80px",
     },
     {
       text: "상태",
