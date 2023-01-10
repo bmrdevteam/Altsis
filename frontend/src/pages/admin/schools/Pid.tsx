@@ -82,7 +82,7 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSchool } = useAuth();
-  const { SchoolApi } = useApi();
+  const { SchoolApi, SeasonApi } = useApi();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<any>();
@@ -94,6 +94,7 @@ const School = (props: Props) => {
       if (pid) {
         SchoolApi.RSchoolWithSeasons(pid)
           .then((res) => {
+            console.log("res is ", res);
             setSchoolData(res.school);
             setSeasonList(res.seasons || []);
           })
@@ -102,6 +103,11 @@ const School = (props: Props) => {
           });
       } else {
         setSchoolData(currentSchool);
+        SeasonApi.RSeasons({ school: currentSchool.school })
+          .then((res) => setSeasonList(res || []))
+          .catch(() => {
+            setIsSchool(false);
+          });
       }
 
       setIsLoading(false);
