@@ -46,6 +46,7 @@ import { useNavigate } from "react-router-dom";
 type Props = {
   setPopupActive: any;
   course: string;
+  hideStudentList?: boolean;
 };
 
 const CourseView = (props: Props) => {
@@ -171,42 +172,46 @@ const CourseView = (props: Props) => {
           <Divider />
           <ClassInfo />
           <div style={{ height: "24px" }}></div>
-          <Divider />
 
-          <div style={{ height: "24px" }}></div>
-          <div className={style.title}>수강생 목록</div>
+          {!props?.hideStudentList && (
+            <>
+              <Divider />
+              <div style={{ height: "24px" }}></div>
+              <div className={style.title}>수강생 목록</div>
 
-          <Table
-            type="object-array"
-            data={enrollments || []}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              {
-                text: "학년",
-                key: "studentGrade",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "ID",
-                key: "studentId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "이름",
-                key: "studentName",
-                type: "text",
-                textAlign: "center",
-              },
-            ]}
-          />
+              <Table
+                type="object-array"
+                data={enrollments || []}
+                header={[
+                  {
+                    text: "No",
+                    type: "text",
+                    key: "tableRowIndex",
+                    width: "48px",
+                    textAlign: "center",
+                  },
+                  {
+                    text: "학년",
+                    key: "studentGrade",
+                    type: "text",
+                    textAlign: "center",
+                  },
+                  {
+                    text: "ID",
+                    key: "studentId",
+                    type: "text",
+                    textAlign: "center",
+                  },
+                  {
+                    text: "이름",
+                    key: "studentName",
+                    type: "text",
+                    textAlign: "center",
+                  },
+                ]}
+              />
+            </>
+          )}
 
           {confirmStatusPopupActive && (
             <Popup
