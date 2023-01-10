@@ -44,6 +44,7 @@ import Table from "components/tableV2/Table";
 import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
@@ -452,7 +453,7 @@ const CourseAdd = (props: Props) => {
       )}
     </>
   ) : (
-    <>로딩중</>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 

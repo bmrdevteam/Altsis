@@ -41,6 +41,7 @@ import Button from "components/button/Button";
 import EditorParser from "editor/EditorParser";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
@@ -501,7 +502,7 @@ const CoursePid = (props: Props) => {
       )}
     </>
   ) : (
-    <>로딩중</>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 

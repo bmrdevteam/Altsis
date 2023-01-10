@@ -56,12 +56,9 @@ import ViewPopup from "../ViewPopup";
 
 import { checkPermission } from "functions/functions";
 import Navbar from "layout/navbar/Navbar";
+import Loading from "components/loading/Loading";
 
 type Props = {};
-
-type receiverSelectedList = {
-  [key: string]: boolean;
-};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
@@ -94,9 +91,7 @@ const CoursePid = (props: Props) => {
 
   const [sendNotificationPopupActive, setSendNotificationPopupActive] =
     useState<boolean>(false);
-  const [receiverSelectedList, setReceiverSelectedList] =
-    useState<receiverSelectedList>({});
-  const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
+  const [receiverList, setReceiverList] = useState<any[]>([]);
 
   async function unconfirmCourse() {
     const result = database.D({
@@ -180,14 +175,12 @@ const CoursePid = (props: Props) => {
     if (isEnrollmentListLoading) {
       getEnrollments(courseData._id).then((res: any) => {
         setEnrollmentList(res);
-        setReceiverOptionList(
-          res.map((e: any) => {
+        setReceiverList(
+          res.map((enrollment: any) => {
             return {
-              value: JSON.stringify({
-                userId: e.studentId,
-                userName: e.studentName,
-              }),
-              text: `${e.studentName}(${e.studentId})`,
+              ...enrollment,
+              userId: enrollment.studentId,
+              userName: enrollment.studentName,
             };
           })
         );
@@ -219,14 +212,12 @@ const CoursePid = (props: Props) => {
           setCourseData(result);
           getEnrollments(result._id).then((res: any) => {
             setEnrollmentList(res);
-            setReceiverOptionList(
-              res.map((e: any) => {
+            setReceiverList(
+              res.map((enrollment: any) => {
                 return {
-                  value: JSON.stringify({
-                    userId: e.studentId,
-                    userName: e.studentName,
-                  }),
-                  text: `${e.studentName}(${e.studentId})`,
+                  ...enrollment,
+                  userId: enrollment.studentId,
+                  userName: enrollment.studentName,
                 };
               })
             );
@@ -254,6 +245,7 @@ const CoursePid = (props: Props) => {
                       text,
                       key,
                       type: "input",
+                      whiteSpace: "pre-wrap",
                     });
                   } else if (val.auth.view.student) {
                     _formEvaluationHeader.push({
@@ -381,17 +373,6 @@ const CoursePid = (props: Props) => {
               <div
                 className={style.icon}
                 onClick={(e: any) => {
-                  const receiverSelectedList: receiverSelectedList = {};
-                  for (let e of enrollmentList || []) {
-                    receiverSelectedList[
-                      JSON.stringify({
-                        userId: e.studentId,
-                        userName: e.studentName,
-                      })
-                    ] = true;
-                  }
-
-                  setReceiverSelectedList({ ...receiverSelectedList });
                   setSendNotificationPopupActive(true);
                 }}
                 style={{ display: "flex", gap: "4px" }}
@@ -524,24 +505,27 @@ const CoursePid = (props: Props) => {
                   key: "tableRowIndex",
                   width: "48px",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
                 {
                   text: "멘토 ID",
                   key: "userId",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
                 {
                   text: "멘토 이름",
                   key: "userName",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
 
                 {
                   text: "상태",
                   key: "confirmed",
-                  width: "120px",
+                  width: "80px",
                   textAlign: "center",
                   type: "status",
                   status: {
@@ -604,16 +588,9 @@ const CoursePid = (props: Props) => {
         {sendNotificationPopupActive && (
           <Send
             setState={setSendNotificationPopupActive}
-            receiverOptionList={receiverOptionList}
-            receiverSelectedList={receiverSelectedList}
+            receiverSelectedList={receiverList}
             category={courseData?.classTitle}
-            receiverList={enrollmentList?.map((enrollment: any) => {
-              return {
-                ...enrollment,
-                userId: enrollment.studentId,
-                userName: enrollment.studentName,
-              };
-            })}
+            receiverList={receiverList}
             receiverType={"enrollment"}
           />
         )}
@@ -630,7 +607,7 @@ const CoursePid = (props: Props) => {
       </div>
     </>
   ) : (
-    <>로딩중</>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 

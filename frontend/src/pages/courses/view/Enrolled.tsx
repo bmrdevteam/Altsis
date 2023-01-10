@@ -47,6 +47,7 @@ import _ from "lodash";
 
 import { checkPermission } from "functions/functions";
 import Navbar from "layout/navbar/Navbar";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
@@ -459,7 +460,7 @@ const CourseEnrollment = (props: Props) => {
       </div>
     </>
   ) : (
-    <>로딩중</>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 

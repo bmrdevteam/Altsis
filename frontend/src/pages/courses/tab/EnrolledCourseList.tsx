@@ -52,6 +52,7 @@ const Timetable = (props: Props) => {
       key: "classTitle",
       type: "text",
       textAlign: "center",
+      whiteSpace: "pre",
     },
 
     {
@@ -78,6 +79,7 @@ const Timetable = (props: Props) => {
       key: "count_limit",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
     },
     {
       text: "개설자",
@@ -123,6 +125,7 @@ const Timetable = (props: Props) => {
             key: "tableRowIndex",
             width: "48px",
             textAlign: "center",
+            whiteSpace: "pre",
           },
           ...props.subjectLabelHeaderList,
           ...subjectHeaderList,
