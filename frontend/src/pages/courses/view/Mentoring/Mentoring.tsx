@@ -28,7 +28,7 @@
  * @version 1.0
  *
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
@@ -88,6 +88,7 @@ const CoursePid = (props: Props) => {
   const [isEnrollmentListLoading, setIsEnrollmentListLoading] =
     useState<boolean>(false);
   const [enrollmentList, setEnrollmentList] = useState<any[]>([]);
+  const enrollmentListRef = useRef<any[]>([]);
 
   const [sendNotificationPopupActive, setSendNotificationPopupActive] =
     useState<boolean>(false);
@@ -121,16 +122,6 @@ const CoursePid = (props: Props) => {
     });
     return enrollments;
   }
-
-  // async function updateEvaluation(enrollment: string, evaluation: any[]) {
-  //   const { evaluation: res } = await database.U({
-  //     location: `enrollments/${enrollment}/evaluation`,
-  //     data: {
-  //       new: evaluation,
-  //     },
-  //   });
-  //   return res;
-  // }
 
   async function updateEvaluationByMentor(
     enrollment: string,
@@ -173,8 +164,13 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isEnrollmentListLoading) {
-      getEnrollments(courseData._id).then((res: any) => {
-        setEnrollmentList(res);
+      getEnrollments(courseData?._id).then((res: any) => {
+        setEnrollmentList(
+          res.map((enrollment: any) => {
+            return { ...enrollment, isModified: false };
+          })
+        );
+        enrollmentListRef.current = [];
         setReceiverList(
           res.map((enrollment: any) => {
             return {
@@ -184,15 +180,14 @@ const CoursePid = (props: Props) => {
             };
           })
         );
+        setIsEnrollmentListLoading(false);
       });
-      setIsEnrollmentListLoading(false);
     }
 
     return () => {};
   }, [isEnrollmentListLoading]);
 
   async function getCourseData() {
-    console.log("pid is ", pid);
     const result = await database.R({
       location: `syllabuses/${pid}`,
     });
@@ -204,14 +199,19 @@ const CoursePid = (props: Props) => {
       getCourseData()
         .then((result) => {
           if (
-            result.season !== currentSeason._id ||
+            result.season !== currentSeason?._id ||
             !_.find(result.teachers, { userId: currentUser.userId })
           )
             navigate("/courses#담당%20수업%20목록", { replace: true });
 
           setCourseData(result);
           getEnrollments(result._id).then((res: any) => {
-            setEnrollmentList(res);
+            setEnrollmentList(
+              res.map((enrollment: any) => {
+                return { ...enrollment, isModified: false };
+              })
+            );
+            enrollmentListRef.current = [];
             setReceiverList(
               res.map((enrollment: any) => {
                 return {
@@ -245,14 +245,14 @@ const CoursePid = (props: Props) => {
                       text,
                       key,
                       type: "input",
-                      whiteSpace: "pre-wrap",
+                      whiteSpace: "pre",
                     });
                   } else if (val.auth.view.student) {
                     _formEvaluationHeader.push({
                       text,
                       key,
                       type: "text",
-                      whiteSpace: "pre-wrap",
+                      whiteSpace: "pre",
                     });
                   }
                 });
@@ -262,17 +262,17 @@ const CoursePid = (props: Props) => {
                     text: val.label,
                     key: "evaluation." + val.label,
                     type: "text",
-                    whiteSpace: "pre-wrap",
+                    whiteSpace: "pre",
                   });
                 });
               }
+              setFieldEvaluationList(fieldEvaluationList);
               setFormEvaluationHeader(_formEvaluationHeader);
               setIsLoading(false);
             });
           });
         })
         .catch((err) => {
-          console.log("err: ", err);
           alert(err.response.data.message);
           navigate("/courses");
         });
@@ -281,7 +281,7 @@ const CoursePid = (props: Props) => {
     return () => {};
   }, [isLoading]);
 
-  return !isLoading ? (
+  return !isLoading && !isEnrollmentListLoading ? (
     <>
       <Navbar />
       <div className={style.section}>
@@ -386,6 +386,9 @@ const CoursePid = (props: Props) => {
             <Table
               type="object-array"
               data={enrollmentList || []}
+              onChange={(e: any) => {
+                enrollmentListRef.current = e;
+              }}
               header={[
                 {
                   text: "No",
@@ -420,7 +423,14 @@ const CoursePid = (props: Props) => {
                 ...formEvaluationHeader,
                 {
                   text: "저장",
-                  key: "evaluation",
+                  key: "isModified",
+                  width: "72px",
+                  textAlign: "center",
+                  type: "status",
+                  status: {
+                    false: { text: "저장", color: "gray" },
+                    true: { text: "저장", color: "red" },
+                  },
                   onClick: (e: any) => {
                     const evaluation: any = {};
                     for (let obj of fieldEvaluationList) {
@@ -428,24 +438,16 @@ const CoursePid = (props: Props) => {
                     }
                     updateEvaluationByMentor(e._id, evaluation)
                       .then((res) => {
-                        alert("수정되었습니다.");
-
-                        setIsLoading(true);
+                        alert("저장되었습니다");
+                        if (enrollmentListRef.current.length !== 0) {
+                          enrollmentListRef.current[
+                            e.tableRowIndex - 1
+                          ].isModified = false;
+                          setEnrollmentList([...enrollmentListRef.current]);
+                        }
                       })
-                      .catch((err: any) => alert(err.response.data.message));
+                      .catch((err: any) => console.log(err));
                   },
-                  type: "button",
-
-                  textAlign: "center",
-                  width: "80px",
-                  btnStyle: {
-                    round: true,
-                    border: true,
-                    padding: "4px",
-                    color: "red",
-                    background: "#FFF1F1",
-                  },
-                  fontWeight: "600",
                 },
               ]}
             />
@@ -460,6 +462,7 @@ const CoursePid = (props: Props) => {
                   key: "tableRowIndex",
                   width: "48px",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
 
                 {
@@ -467,18 +470,22 @@ const CoursePid = (props: Props) => {
                   key: "studentGrade",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
+                  width: "120px",
                 },
                 {
                   text: "ID",
                   key: "studentId",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
                 {
                   text: "이름",
                   key: "studentName",
                   type: "text",
                   textAlign: "center",
+                  whiteSpace: "pre",
                 },
                 ...formEvaluationHeader,
               ]}
@@ -495,9 +502,6 @@ const CoursePid = (props: Props) => {
             <Table
               type="object-array"
               data={courseData?.teachers}
-              onChange={(value) => {
-                console.log(value);
-              }}
               header={[
                 {
                   text: "No",
@@ -602,7 +606,11 @@ const CoursePid = (props: Props) => {
           />
         )}
         {viewPopupActive && pid && (
-          <ViewPopup course={pid} setPopupActive={setViewPopupActive} />
+          <ViewPopup
+            course={pid}
+            setPopupActive={setViewPopupActive}
+            hideStudentList={true}
+          />
         )}
       </div>
     </>
