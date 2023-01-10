@@ -196,14 +196,14 @@ const Subjects = (props: Props) => {
                   data: {
                     label: subjectLabelList,
                     data: [
-                      ...props.seasonData?.subjects.data,
+                      ...props.seasonData?.subjects?.data,
                       subjectDataRef.current.split("/"),
                     ],
                   },
                 })
                   .then((res: any) => {
                     setSubjectLabelList(res.label);
-                    props.seasonData.subjects = [...res];
+                    props.seasonData.subjects = { ...res };
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
@@ -229,7 +229,7 @@ const Subjects = (props: Props) => {
               })
                 .then((res: any) => {
                   setSubjectLabelList(res.label);
-                  props.seasonData.subjects = [...res];
+                  props.seasonData.subjects = { ...res };
                   props.setSelectedSeason(props.seasonData);
                   alert("success");
                 })

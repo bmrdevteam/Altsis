@@ -25,7 +25,7 @@ const seasonSchema = mongoose.Schema(
       required: true,
     },
     classrooms: [String],
-    subjects: subjectSchema,
+    subjects: { type: subjectSchema, default: { label: [], data: [] } },
     year: {
       type: String,
       required: true,
