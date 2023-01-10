@@ -109,6 +109,7 @@ const Course = (props: Props) => {
               key: label,
               type: "text",
               textAlign: "center",
+              whiteSpace: "pre",
             };
           }),
         ]);

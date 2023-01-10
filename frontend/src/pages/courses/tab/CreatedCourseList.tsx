@@ -43,6 +43,7 @@ const CoursesMyList = (props: Props) => {
       key: "classTitle",
       type: "text",
       textAlign: "center",
+      whiteSpace: "pre",
     },
 
     {
@@ -68,6 +69,7 @@ const CoursesMyList = (props: Props) => {
       key: "count_limit",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
     },
     {
       text: "멘토",
@@ -119,6 +121,7 @@ const CoursesMyList = (props: Props) => {
             key: "tableRowIndex",
             width: "48px",
             textAlign: "center",
+            whiteSpace: "pre",
           },
           ...props.subjectLabelHeaderList,
           ...subjectHeaderList,
