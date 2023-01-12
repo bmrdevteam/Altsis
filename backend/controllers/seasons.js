@@ -141,6 +141,7 @@ module.exports.find = async (req, res) => {
         "term",
         "period",
         "isActivated",
+        "isActivatedFirst",
       ]);
 
     return res.status(200).send({ seasons });
@@ -218,6 +219,7 @@ module.exports.activate = async (req, res) => {
     if (!season) return res.status(404).send({ message: "season not found" });
 
     /* activate season */
+    if (!season.isActivatedFirst) season.isActivatedFirst = true;
     season.isActivated = true;
     await season.save();
 
@@ -260,23 +262,25 @@ module.exports.updateField = async (req, res) => {
     const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send({ message: "season not found" });
 
+    console.log(season);
     let field = req.params.field;
     if (req.params.fieldType)
       field +=
         req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
 
     switch (field) {
+      case "formTimetable":
+      case "formSyllabus":
+      case "formEvaluation":
+        if (season.isActivatedFirst)
+          return res.status(409).send({
+            message: "한 번 활성화된 시즌의 양식을 변경할 수 업습니다.",
+          });
+
       // classrooms, subjects, formTimetable, formSyllabus => 해당 시즌에 syllabus가 존재하면 수정할 수 없다.
       case "classrooms":
       case "subjects":
-      case "formTimetable":
-      case "formSyllabus":
-        // await checkSyllabus(req.user.academyId, season); -> !TEMP!
-        break;
-      // formEvaluation => 해당 시즌에 evaluation이 존재하면 수정할 수 없다.
-      case "formEvaluation":
-        // await checkEvaluation(req.user.academyId, season); -> !TEMP!
-        break;
+
       // permissionSyllabus, permissionEnrollment, permissionEvaluation, period => 수정 제약 없음
       case "permissionSyllabus":
       case "permissionEnrollment":

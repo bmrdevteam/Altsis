@@ -35,7 +35,13 @@ module.exports.find = async (req, res) => {
       if (req.query?.includes === "seasons") {
         const seasons = await Season(req.user.academyId)
           .find({ schoolId: school.schoolId })
-          .select(["year", "term", "period", "isActivated"]);
+          .select([
+            "year",
+            "term",
+            "period",
+            "isActivated",
+            "isActivatedFirst",
+          ]);
 
         return res.status(200).send({
           school,
