@@ -11,6 +11,7 @@ type Props = {
   ref?: any;
   style?: any;
   textareaStyle?: "flat";
+  rows?: number;
 };
 
 const Textarea = (props: Props) => {
@@ -32,7 +33,7 @@ const Textarea = (props: Props) => {
         disabled={props.disabled}
         onKeyDown={props.onKeyDown}
         style={props.style}
-        rows={3}
+        rows={props.rows || 3}
       />
     </div>
   );

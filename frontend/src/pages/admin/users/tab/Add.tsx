@@ -40,12 +40,12 @@ import Popup from "components/popup/Popup";
 
 import _ from "lodash";
 import Table from "components/tableV2/Table";
+import Textarea from "components/textarea/Textarea";
 
 type Props = {
-  schoolData: any;
   schoolList: any;
   setPopupAcitve: any;
-  setIsUserListLoading: any;
+  addUserList: any;
 };
 
 function Basic(props: Props) {
@@ -59,18 +59,7 @@ function Basic(props: Props) {
   const [email, setEmail] = useState<any>(undefined);
   const [tel, setTel] = useState<any>(undefined);
 
-  const [schoolList, setSchoolList] = useState<any[]>(props.schoolList);
-  const [selectedSchoolList, setSelectedSchoolList] = useState<any[]>(
-    !_.isEmpty(props.schoolData)
-      ? [
-          {
-            school: props.schoolData._id,
-            schoolId: props.schoolData.schoolId,
-            schoolName: props.schoolData.schoolName,
-          },
-        ]
-      : []
-  );
+  const [selectedSchoolList, setSelectedSchoolList] = useState<any[]>([]);
   const [schoolsText, setSchoolsText] = useState<string>("");
   const schoolSelectRef = useRef<any[]>([]);
 
@@ -80,13 +69,12 @@ function Basic(props: Props) {
 
   useEffect(() => {
     setSchoolsText(
-      _.join(
-        selectedSchoolList.map(
-          (schoolData: any) =>
-            `${schoolData.schoolName}(${schoolData.schoolId})`
-        ),
-        ", "
-      )
+      selectedSchoolList.length !== 0
+        ? _.join(
+            selectedSchoolList.map((schoolData: any) => schoolData.schoolName),
+            "\n"
+          )
+        : "*가입된 학교 없음"
     );
   }, [selectedSchoolList]);
 
@@ -113,33 +101,29 @@ function Basic(props: Props) {
         style={{ borderRadius: "8px", maxWidth: "600px", width: "100%" }}
         closeBtn
         title="사용자 생성"
+        contentScroll
       >
         <div className={style.popup}>
+          <div className={style.label} style={{ marginBottom: "0px" }}>
+            소속 학교
+          </div>
           <div
             style={{
               display: "flex",
-              alignItems: "flex-end",
+              alignItems: "baseline",
               gap: "12px",
             }}
           >
-            <Input
-              label="소속 학교"
+            <Textarea
               defaultValue={schoolsText}
-              appearence="flat"
               disabled
+              rows={selectedSchoolList.length || 1}
+              style={{ resize: "none" }}
             />
             <Button
               type={"ghost"}
               onClick={() => {
                 schoolSelectRef.current = selectedSchoolList;
-                setSchoolList(
-                  props.schoolList.map((school: any) => {
-                    if (_.find(selectedSchoolList, { school: school._id }))
-                      school.tableRowChecked = true;
-                    else school.tableRowChecked = false;
-                    return school;
-                  })
-                );
                 setIsEditSchoolPopupActive(true);
               }}
               style={{
@@ -219,9 +203,9 @@ function Basic(props: Props) {
             type={"ghost"}
             onClick={() => {
               addDocument()
-                .then(() => {
+                .then((res) => {
                   alert("success");
-                  props.setIsUserListLoading(true);
+                  props.addUserList([res]);
                   props.setPopupAcitve(false);
                 })
                 .catch((err) => {
@@ -250,7 +234,14 @@ function Basic(props: Props) {
             <div className={style.row}>
               <Table
                 type="object-array"
-                data={schoolList}
+                data={
+                  props.schoolList?.map((school: any) => {
+                    if (_.find(schoolSelectRef.current, { school: school._id }))
+                      school.tableRowChecked = true;
+                    else school.tableRowChecked = false;
+                    return school;
+                  }) || []
+                }
                 onChange={(value: any[]) => {
                   schoolSelectRef.current = _.filter(value, {
                     tableRowChecked: true,

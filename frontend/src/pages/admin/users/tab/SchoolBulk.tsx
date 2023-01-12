@@ -45,7 +45,7 @@ import { validate } from "functions/functions";
 type Props = {
   schoolList: any;
   setPopupActive: any;
-  setIsUserListLoading: any;
+  updateUserList: any;
   selectedUserList: any[];
 };
 
@@ -70,7 +70,7 @@ function Basic(props: Props) {
       };
     });
 
-    const result = await database.U({
+    const { users: result } = await database.U({
       location: `users/schools/bulk`,
       data: {
         type: "add",
@@ -90,32 +90,12 @@ function Basic(props: Props) {
       };
     });
 
-    const result = await database.U({
+    const { users: result } = await database.U({
       location: `users/schools/bulk`,
       data: {
         type: "remove",
         schools: schools,
         userIds: props.selectedUserList.map((user: any) => user._id),
-      },
-    });
-    return result;
-  }
-
-  async function addUserBulk() {
-    const schools = schoolSelectRef.current.map((school) => {
-      return {
-        school: school._id,
-        schoolId: school.schoolId,
-        schoolName: school.schoolName,
-      };
-    });
-
-    const result = await database.C({
-      location: `users/bulk`,
-      data: {
-        users: userList.map((user) => {
-          return { ...user, schools };
-        }),
       },
     });
     return result;
@@ -254,6 +234,7 @@ function Basic(props: Props) {
         closeBtn
         setState={props.setPopupActive}
         style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        contentScroll
       >
         <div className={style.popup}>
           <div>
@@ -308,8 +289,10 @@ function Basic(props: Props) {
                   addSchoolBulk()
                     .then((res) => {
                       alert("success");
+                      res.forEach((user: any) => {
+                        props.updateUserList(user.userId, user);
+                      });
                       props.setPopupActive(false);
-                      props.setIsUserListLoading(true);
                     })
                     .catch((err) => alert(err.response.data.message));
                 }
@@ -332,9 +315,10 @@ function Basic(props: Props) {
                 } else {
                   deleteSchoolBulk()
                     .then((res) => {
-                      alert("success");
+                      res.forEach((user: any) => {
+                        props.updateUserList(user.userId, user);
+                      });
                       props.setPopupActive(false);
-                      props.setIsUserListLoading(true);
                     })
                     .catch((err) => alert(err.response.data.message));
                 }

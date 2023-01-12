@@ -231,7 +231,7 @@ export default function useApi() {
     schoolId?: string;
     "no-school"?: string;
     fields?: string[] | string;
-    auth?: "owner" | "admin" | "member";
+    auth?: "owner" | "admin" | "manager" | "member";
   }) {
     if (params?.fields) params.fields = QUERY_SUB_BUILDER(params.fields);
     const { users: result } = await database.R({
