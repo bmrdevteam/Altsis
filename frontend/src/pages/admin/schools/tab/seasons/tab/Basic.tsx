@@ -161,6 +161,10 @@ function Basic(props: Props) {
                   .then(() => {
                     alert("success");
                     setIsActivated(false);
+                    props.setSeasonData({
+                      ...props.seasonData,
+                      isActivated: false,
+                    });
                     props.setIsLoading(true);
                   })
                   .catch((err) => {
@@ -173,6 +177,10 @@ function Basic(props: Props) {
                   .then(() => {
                     alert("success");
                     setIsActivated(true);
+                    props.setSeasonData({
+                      ...props.seasonData,
+                      isActivated: true,
+                    });
                     props.setIsLoading(true);
                   })
                   .catch((err) => {
