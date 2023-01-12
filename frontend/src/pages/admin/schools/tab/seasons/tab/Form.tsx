@@ -69,8 +69,11 @@ const Form = (props: Props) => {
             onClick={() => {
               setFormTimetablePopupActive(true);
             }}
+            disabled={props.seasonData.isActivatedFirst}
           >
-            {props.seasonData.formTimetable?.title ?? "선택"}
+            {props.seasonData.isActivatedFirst
+              ? "없음"
+              : props.seasonData.formTimetable?.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
@@ -80,8 +83,11 @@ const Form = (props: Props) => {
             onClick={() => {
               setFormSyllabusPopupActive(true);
             }}
+            disabled={props.seasonData.isActivatedFirst}
           >
-            {props.seasonData.formSyllabus?.title ?? "선택"}
+            {props.seasonData.isActivatedFirst
+              ? "없음"
+              : props.seasonData.formSyllabus?.title ?? "선택"}
           </Button>
         </div>
       </div>
@@ -103,6 +109,7 @@ const Form = (props: Props) => {
               onClick={() => {
                 setFormEvaluationPopupActive(true);
               }}
+              disabled={props.seasonData.isActivatedFirst}
             >
               설정
             </Button>
@@ -211,11 +218,15 @@ const Form = (props: Props) => {
                       _id: props.seasonData?._id,
                       type: "timetable",
                       data: res,
-                    }).then((res) => {
-                      props.seasonData.formTimetable = res;
-                      props.setSelectedSeason(props.seasonData);
-                      setFormTimetablePopupActive(false);
-                    });
+                    })
+                      .then((res) => {
+                        props.seasonData.formTimetable = res;
+                        props.setSelectedSeason(props.seasonData);
+                        setFormTimetablePopupActive(false);
+                      })
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
                   });
                 },
                 width: "80px",
@@ -260,11 +271,15 @@ const Form = (props: Props) => {
                       _id: props.seasonData?._id,
                       type: "syllabus",
                       data: res,
-                    }).then((res) => {
-                      props.seasonData.formSyllabus = res;
-                      props.setSelectedSeason(props.seasonData);
-                      setFormSyllabusPopupActive(false);
-                    });
+                    })
+                      .then((res) => {
+                        props.seasonData.formSyllabus = res;
+                        props.setSelectedSeason(props.seasonData);
+                        setFormSyllabusPopupActive(false);
+                      })
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
                   });
                 },
                 width: "80px",
@@ -317,13 +332,17 @@ const Form = (props: Props) => {
                   _id: props.seasonData?._id,
                   type: "evaluation",
                   data: _formEvaluation,
-                }).then((res) => {
-                  props.seasonData.formEvaluation = res;
-                  setFormEvaluation([...res]);
-                  props.setSelectedSeason(props.seasonData);
+                })
+                  .then((res) => {
+                    props.seasonData.formEvaluation = res;
+                    setFormEvaluation([...res]);
+                    props.setSelectedSeason(props.seasonData);
 
-                  // setFormEvaluationPopupActive(false);
-                });
+                    // setFormEvaluationPopupActive(false);
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
               }}
             >
               저장

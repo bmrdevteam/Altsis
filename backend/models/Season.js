@@ -49,6 +49,10 @@ const seasonSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isActivatedFirst: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
