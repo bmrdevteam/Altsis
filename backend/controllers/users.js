@@ -138,6 +138,7 @@ module.exports.createBulk = async (req, res) => {
         });
 
         user.save();
+        users.push(user);
       }),
     ]);
 
@@ -217,6 +218,11 @@ module.exports.find = async (req, res) => {
     if (queries["no-school"]) {
       queries["schools"] = { $size: 0 };
       delete queries["no-school"];
+    }
+    if (queries.matches) {
+      queries[queries.field] = { $regex: queries.matches };
+      delete queries.matches;
+      delete queries.field;
     }
 
     if (queries["fields"]) {
@@ -471,7 +477,7 @@ module.exports.update = async (req, res) => {
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();
-    return res.status(200).send();
+    return res.status(200).send(user);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
