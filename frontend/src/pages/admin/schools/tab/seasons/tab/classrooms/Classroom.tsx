@@ -99,7 +99,8 @@ const Classroom = (props: Props) => {
                     alert("success");
                   })
                   .catch((err) => {
-                    alert(err.response.data.message);
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
                   });
               }
             }}
@@ -120,7 +121,8 @@ const Classroom = (props: Props) => {
                   alert("success");
                 })
                 .catch((err) => {
-                  alert(err.response.data.message);
+                  console.log(err.response.data.message);
+                  // alert(err.response.data.message);
                 });
             }}
             style={{
@@ -162,10 +164,13 @@ const Classroom = (props: Props) => {
                 })
                   .then((res: any) => {
                     setClassroomList(res);
+                    props.seasonData.classrooms = res;
+                    props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
                   .catch((err) => {
-                    alert(err.response.data.message);
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
                   });
               },
               width: "80px",
