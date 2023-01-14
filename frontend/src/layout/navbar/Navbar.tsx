@@ -278,7 +278,7 @@ const UserSearchBox = () => {
     ]}
     onChange={submit}
     style={{
-      borderRadius: '8px'
+      borderRadius: '4px'
     }}
   />
 }
