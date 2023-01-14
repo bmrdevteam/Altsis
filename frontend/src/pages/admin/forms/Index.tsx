@@ -40,7 +40,7 @@ import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
@@ -121,6 +121,7 @@ const Forms = (props: Props) => {
 
     const navigate = useNavigate();
     const outsideclick = useOutsideClick();
+
     let fileColor;
     switch (data.type) {
       case "timetable":
@@ -319,15 +320,12 @@ const Forms = (props: Props) => {
                     <Table
                       type="object-array"
                       data={search.result().filter((value: any) => {
-                        return (
-                          value.type === "timetable" && value.archived === false
-                        );
+                        return value.type === "timetable" && !value.archived;
                       })}
                       header={[
-                        { type: "index", key: "", text: "ID", width: "48px" },
-                        { type: "string", key: "title", text: "제목" },
+                        { type: "text", key: "title", text: "제목" },
                         {
-                          type: "string",
+                          type: "text",
                           key: "type",
                           text: "종류",
                           width: "240px",
@@ -345,15 +343,12 @@ const Forms = (props: Props) => {
                     <Table
                       type="object-array"
                       data={search.result().filter((value: any) => {
-                        return (
-                          value.type === "syllabus" && value.archived === false
-                        );
+                        return value.type === "syllabus" && !value.archived;
                       })}
                       header={[
-                        { type: "index", key: "", text: "ID", width: "48px" },
-                        { type: "string", key: "title", text: "제목" },
+                        { type: "text", key: "title", text: "제목" },
                         {
-                          type: "string",
+                          type: "text",
                           key: "type",
                           text: "종류",
                           width: "240px",
@@ -371,16 +366,16 @@ const Forms = (props: Props) => {
                   ) : (
                     <Table
                       type="object-array"
-                      data={search.result().filter((value: any) => {
-                        return (
-                          value.type === "print" && value.archived === false
-                        );
-                      })}
+                      data={search
+                        .result()
+                        .filter(
+                          (value: any) =>
+                            value.type === "print" && !value.archived
+                        )}
                       header={[
-                        { type: "index", key: "", text: "ID", width: "48px" },
-                        { type: "string", key: "title", text: "제목" },
+                        { type: "text", key: "title", text: "제목" },
                         {
-                          type: "string",
+                          type: "text",
                           key: "type",
                           text: "종류",
                           width: "240px",
@@ -397,12 +392,13 @@ const Forms = (props: Props) => {
                   ) : (
                     <Table
                       type="object-array"
-                      data={search.result()}
+                      data={search.result().filter((value: any) => {
+                        return !value.archived;
+                      })}
                       header={[
-                        { type: "index", key: "", text: "ID", width: "48px" },
-                        { type: "string", key: "title", text: "제목" },
+                        { type: "text", key: "title", text: "제목" },
                         {
-                          type: "string",
+                          type: "text",
                           key: "type",
                           text: "종류",
                           width: "240px",
@@ -423,10 +419,9 @@ const Forms = (props: Props) => {
                         return value.archived === true;
                       })}
                       header={[
-                        { type: "index", key: "", text: "ID", width: "48px" },
-                        { type: "string", key: "title", text: "제목" },
+                        { type: "text", key: "title", text: "제목" },
                         {
-                          type: "string",
+                          type: "text",
                           key: "type",
                           text: "종류",
                           width: "240px",
