@@ -1,0 +1,13 @@
+.container{
+	max-width: 1000px;
+	margin: 0 auto 240px auto;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+
+	.user_not_found_msg {
+		margin-top: 60px;
+		text-align: center;
+		color: var(--accent-3);
+	}
+}
