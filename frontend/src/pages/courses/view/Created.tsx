@@ -1,5 +1,5 @@
 /**
- * @file Courses View Page
+ * @file Courses Pid Page
  *
  * more info on selected courses
  *
@@ -29,37 +29,40 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
+import { useNavigate, useParams } from "react-router-dom";
+import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
-
 import style from "style/pages/courses/course.module.scss";
 
-// components
-import Divider from "components/divider/Divider";
-import Popup from "components/popup/Popup";
-import Table from "components/tableV2/Table";
-
-import EditorParser from "editor/EditorParser";
+import Navbar from "layout/navbar/Navbar";
 
 import _ from "lodash";
-import { useNavigate } from "react-router-dom";
-type Props = {
-  setPopupActive: any;
-  course: string;
-};
+import useDatabase from "hooks/useDatabase";
+import EditorParser from "editor/EditorParser";
+import Divider from "components/divider/Divider";
+import Button from "components/button/Button";
 
-const CourseView = (props: Props) => {
-  const { currentSeason } = useAuth();
-  const database = useDatabase();
+import Table from "components/tableV2/Table";
+import Popup from "components/popup/Popup";
+import Loading from "components/loading/Loading";
+
+type Props = {};
+
+const CoursePid = (props: Props) => {
+  const { pid } = useParams<"pid">();
+  const { SyllabusApi } = useApi();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [courseData, setCourseData] = useState<any>();
+
   const navigate = useNavigate();
+  const { currentSeason, currentUser } = useAuth();
+  const database = useDatabase();
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
 
-  const [courseData, setCourseData] = useState<any>();
   const [confirmed, setConfirmed] = useState<boolean>(true);
-
-  const [enrollments, setEnrollments] = useState<any[]>();
 
   const categories = () => {
     return (
@@ -69,14 +72,14 @@ const CourseView = (props: Props) => {
             {_.join(currentSeason?.subjects.label, "/")}:{" "}
             {_.join(courseData.subject, "/")}
           </div>
-        )}{" "}
+        )}
         <div className={style.category}>
           강의실: {courseData.classroom || "없음"}
         </div>
         <div className={style.category}>
           시간:{" "}
           {_.join(
-            courseData.time.map((timeBlock: any) => timeBlock.label),
+            courseData?.time.map((timeBlock: any) => timeBlock.label),
             ", "
           )}
         </div>
@@ -102,41 +105,47 @@ const CourseView = (props: Props) => {
     );
   };
 
-  async function getCourse(_id: string) {
-    const res = await database.R({
-      location: `syllabuses/${props.course}`,
-    });
-
-    return res;
-  }
-
-  async function getEnrollments() {
-    const { enrollments } = await database.R({
-      location: `enrollments/evaluations?syllabus=${props.course}`,
-    });
-    return enrollments;
+  async function deleteCourse() {
+    if (window.confirm("정말 삭제하시겠습니까?") === true) {
+      const result = database.D({
+        location: `syllabuses/${courseData._id}`,
+      });
+      return result;
+    } else {
+      return false;
+    }
   }
 
   useEffect(() => {
-    if (courseData) {
-      if (courseData.season !== currentSeason._id) {
-        navigate("/courses", { replace: true });
-      }
-      // is this syllabus fully confirmed?
-      for (let teacher of courseData.teachers) {
-        if (!teacher.confirmed) {
-          setConfirmed(false);
-          break;
-        }
-      }
+    if (isLoading) {
+      SyllabusApi.RSyllabus(pid)
+        .then((result) => {
+          setCourseData(result);
 
-      getEnrollments().then((res: any) => {
-        setEnrollments(res);
-      });
+          if (
+            result.season !== currentSeason._id ||
+            result.userId !== currentUser.userId
+          ) {
+            navigate("/courses#개설한%20수업%20목록", { replace: true });
+          }
+
+          // is this syllabus fully confirmed?
+          for (let teacher of result.teachers) {
+            if (!teacher.confirmed) {
+              setConfirmed(false);
+              break;
+            }
+          }
+
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          alert(err.response.data.message);
+          navigate("/courses");
+        });
     }
-
     return () => {};
-  }, [courseData]);
+  }, [isLoading]);
 
   const ClassInfo = () => {
     return (
@@ -148,23 +157,33 @@ const CourseView = (props: Props) => {
     );
   };
 
-  useEffect(() => {
-    getCourse(props.course).then((res) => {
-      setCourseData(res);
-    });
-    return () => {};
-  }, []);
-
-  return (
-    courseData && (
-      <Popup
-        setState={props.setPopupActive}
-        title={courseData.classTitle}
-        closeBtn
-        contentScroll
-        style={{ borderRadius: "4px", width: "900px" }}
-      >
-        <div className={style.section}>
+  return !isLoading ? (
+    <>
+      <Navbar />
+      <div className={style.section}>
+        <div
+          style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            marginBottom: "18px",
+            display: "flex",
+            color: "var(--accent-1)",
+          }}
+        >
+          <div style={{ wordBreak: "keep-all" }}>
+            <span>&nbsp;/&nbsp;</span>
+            <span
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                navigate("/courses#개설한%20수업%20목록", { replace: true });
+              }}
+            >
+              {`개설한 수업 목록 / ${pid}`}
+            </span>
+          </div>
+        </div>
+        <>
+          <div className={style.title}>{courseData.classTitle}</div>
           <div className={style.categories_container}>
             <div className={style.categories}>{categories()}</div>
           </div>
@@ -173,40 +192,47 @@ const CourseView = (props: Props) => {
           <div style={{ height: "24px" }}></div>
           <Divider />
 
+          {!confirmed && (
+            <>
+              <Button
+                type={"ghost"}
+                style={{
+                  borderRadius: "4px",
+                  height: "32px",
+                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                  marginTop: "12px",
+                }}
+                onClick={() => {
+                  alert("clicked");
+                  navigate(`/courses/edit/${pid}`, { replace: true });
+                }}
+              >
+                수정
+              </Button>
+              <Button
+                type={"ghost"}
+                style={{
+                  borderRadius: "4px",
+                  height: "32px",
+                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                  marginTop: "12px",
+                }}
+                onClick={() => {
+                  deleteCourse()
+                    .then((res) => {
+                      alert("success");
+                      navigate("/courses");
+                    })
+                    .catch((err) => {
+                      alert(err.response.body.message);
+                    });
+                }}
+              >
+                삭제
+              </Button>
+            </>
+          )}
           <div style={{ height: "24px" }}></div>
-          <div className={style.title}>수강생 목록</div>
-
-          <Table
-            type="object-array"
-            data={enrollments || []}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              {
-                text: "학년",
-                key: "studentGrade",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "ID",
-                key: "studentId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "이름",
-                key: "studentName",
-                type: "text",
-                textAlign: "center",
-              },
-            ]}
-          />
 
           {confirmStatusPopupActive && (
             <Popup
@@ -253,10 +279,12 @@ const CourseView = (props: Props) => {
               />
             </Popup>
           )}
-        </div>
-      </Popup>
-    )
+        </>
+      </div>
+    </>
+  ) : (
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
-export default CourseView;
+export default CoursePid;

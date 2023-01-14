@@ -48,6 +48,7 @@ import Registration from "./tab/Registration/Index";
 
 // import Setting from "./tab/Setting";
 import Skeleton from "components/skeleton/Skeleton";
+import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
@@ -105,39 +106,42 @@ const Academy = (props: Props) => {
   }
 
   return (
-    <div className={style.section}>
-      <NavigationLinks />
-      <div style={{ display: "flex", gap: "24px" }}>
-        <div style={{ flex: "1 1 0" }}>
-          <div className={style.title}>
-            {academyData !== undefined ? (
-              academyData.academyName
-            ) : (
-              <Skeleton height="22px" width="20%" />
-            )}
+    <>
+      <Navbar />
+
+      <div className={style.section}>
+        <div style={{ display: "flex", gap: "24px" }}>
+          <div style={{ flex: "1 1 0" }}>
+            <div className={style.title}>
+              {academyData !== undefined ? (
+                academyData.academyName
+              ) : (
+                <Skeleton height="22px" width="20%" />
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {!isLoading ? (
-        <Tab
-          items={{
-            아카데미: (
-              <BasicInfo
-                academyData={academyData}
-                setAcademyData={setAcademyData}
-              />
-            ),
-            학교: <School academyId={academyData?.academyId} />,
-            학기: <Season academyId={academyData?.academyId} />,
-            사용자: <User academyId={academyData?.academyId} />,
-            등록: <Registration academyId={academyData?.academyId} />,
-          }}
-        />
-      ) : (
-        <div />
-      )}
-    </div>
+        {!isLoading ? (
+          <Tab
+            items={{
+              아카데미: (
+                <BasicInfo
+                  academyData={academyData}
+                  setAcademyData={setAcademyData}
+                />
+              ),
+              학교: <School academyId={academyData?.academyId} />,
+              학기: <Season academyId={academyData?.academyId} />,
+              사용자: <User academyId={academyData?.academyId} />,
+              등록: <Registration academyId={academyData?.academyId} />,
+            }}
+          />
+        ) : (
+          <></>
+        )}
+      </div>
+    </>
   );
 };
 

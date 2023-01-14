@@ -142,7 +142,8 @@ const Subjects = (props: Props) => {
                     alert("success");
                   })
                   .catch((err) => {
-                    alert(err.response.data.message);
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
                   });
               }
             }}
@@ -164,7 +165,8 @@ const Subjects = (props: Props) => {
                   alert("success");
                 })
                 .catch((err) => {
-                  alert(err.response.data.message);
+                  console.log(err.response.data.message);
+                  // alert(err.response.data.message);
                 });
             }}
             style={{
@@ -196,19 +198,20 @@ const Subjects = (props: Props) => {
                   data: {
                     label: subjectLabelList,
                     data: [
-                      ...props.seasonData?.subjects.data,
+                      ...props.seasonData?.subjects?.data,
                       subjectDataRef.current.split("/"),
                     ],
                   },
                 })
                   .then((res: any) => {
                     setSubjectLabelList(res.label);
-                    props.seasonData.subjects = [...res];
+                    props.seasonData.subjects = { ...res };
                     props.setSelectedSeason(props.seasonData);
                     alert("success");
                   })
                   .catch((err) => {
-                    alert(err.response.data.message);
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
                   });
               }
             }}
@@ -229,12 +232,13 @@ const Subjects = (props: Props) => {
               })
                 .then((res: any) => {
                   setSubjectLabelList(res.label);
-                  props.seasonData.subjects = [...res];
+                  props.seasonData.subjects = { ...res };
                   props.setSelectedSeason(props.seasonData);
                   alert("success");
                 })
                 .catch((err) => {
-                  alert(err.response.data.message);
+                  console.log(err.response.data.message);
+                  // alert(err.response.data.message);
                 });
             }}
             style={{
@@ -283,7 +287,8 @@ const Subjects = (props: Props) => {
                     alert("success");
                   })
                   .catch((err) => {
-                    alert(err.response.data.message);
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
                   });
               },
               width: "80px",

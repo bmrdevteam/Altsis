@@ -11,4 +11,6 @@ module.exports = [
   "archives",
   "apps",
   "notifications",
+  "files",
+  "courses",
 ];

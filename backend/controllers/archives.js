@@ -41,16 +41,28 @@ module.exports.create = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
+    const _Archive = Archive(req.user.academyId);
     const { userId, school } = req.query;
     if (!userId || !school) {
       return res.status(400).send();
     }
-    const archive = await Archive(req.user.academyId).findOne({
+    const archive = await _Archive.findOne({
       userId,
       school,
     });
-    if (!archive) return res.status(404).send({ message: "archive not found" });
-    archive.clean(); //DEVELOPMENT MODE
+
+    if (!archive) {
+      /* create and save document */
+      console.log("create new archive");
+      const archive = new _Archive({
+        userId,
+        school,
+      });
+      archive.save();
+      return res.status(200).send(archive);
+    }
+    // archive.clean(); //DEVELOPMENT MODE
+    console.log(archive);
     return res.status(200).send(archive);
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -61,7 +73,21 @@ module.exports.findById = async (req, res) => {
   try {
     const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
-    archive.clean(); //DEVELOPMENT MODE
+    // archive.clean(); //DEVELOPMENT MODE
+    console.log(archive);
+    return res.status(200).send(archive);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.update = async (req, res) => {
+  try {
+    const archive = await Archive(req.user.academyId).findById(req.params._id);
+    if (!archive) return res.status(404).send({ message: "archive not found" });
+
+    archive.data = Object.assign(archive.data || {}, req.body);
+    await archive.save();
     return res.status(200).send(archive);
   } catch (err) {
     return res.status(500).send({ message: err.message });
@@ -89,6 +115,44 @@ exports.remove = async (req, res) => {
     const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
     await archive.delete();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ err: err.message });
+  }
+};
+
+exports.test = async (req, res) => {
+  try {
+    const archives = await Archive(req.user.academyId).find({
+      school: "635b3d1ef9127e9881019673",
+    });
+
+    for (let archive of archives) {
+      if (
+        !archive.files ||
+        !archive.files["사진"] ||
+        !archive.data ||
+        !archive.data["사진"]
+      ) {
+        console.log("exception: userId: ", archive.usreId);
+        continue;
+      }
+      archive.data["인적 사항"] = {
+        ...archive.data["인적 사항"],
+        ["사진"]: {
+          key: archive.files["사진"].key,
+          expiryDate: archive.data["사진"].expiryDate,
+          originalName: archive.files["사진"].key.split("/").pop(),
+          preSignedUrl: archive.data["사진"].url,
+          type: `image/${archive.files["사진"].key.split(".").pop()}`,
+          url: archive.data["사진"].url.split("?")[0],
+        },
+      };
+      await archive.save();
+
+      // return res.status(200).send(archive);
+    }
+
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });

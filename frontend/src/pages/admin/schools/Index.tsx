@@ -40,6 +40,8 @@ import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import { useAuth } from "contexts/authContext";
 import { validate } from "functions/functions";
+import Navbar from "layout/navbar/Navbar";
+import Loading from "components/loading/Loading";
 
 const Schools = () => {
   const navigate = useNavigate();
@@ -85,8 +87,8 @@ const Schools = () => {
 
   return isAuthenticated ? (
     <>
+      <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
             <div className={style.title}>학교 목록</div>
@@ -224,7 +226,7 @@ navigate("add", { replace: true });
       )}
     </>
   ) : (
-    <>로딩중</>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
