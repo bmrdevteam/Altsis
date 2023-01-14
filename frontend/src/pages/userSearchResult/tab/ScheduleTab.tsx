@@ -8,8 +8,6 @@ type Props = {
 }
 
 const ScheduleTab = (props: Props) => {
-	const {user} = props;
-	
 	const {EnrollmentApi} = useApi();
 	const {currentSeason} = useAuth();
 
@@ -50,18 +48,19 @@ const ScheduleTab = (props: Props) => {
     }
   }
 
+  // Get user enrollments in current season
 	useEffect(() => {
-    if (currentSeason && user) {
+    if (currentSeason && props.user) {
       EnrollmentApi.REnrolllments({
         season: currentSeason._id,
-        studentId: user.userId,
+        studentId: props.user.userId,
       })
       .then((res) => {
         setEnrollments(res);
       })
       .catch(() => {}); 
     }
-  }, [currentSeason, user]);
+  }, [currentSeason, props.user]);
 
 	return<Schedule
 		dayArray={["월", "화", "수", "목", "금"]}
