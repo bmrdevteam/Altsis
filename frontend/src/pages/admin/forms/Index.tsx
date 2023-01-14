@@ -45,6 +45,7 @@ import Table from "components/table/Table";
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
 import useApi from "hooks/useApi";
+import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
@@ -303,8 +304,8 @@ const Forms = (props: Props) => {
 
   return (
     <>
+      <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
         <div className={style.title}>양식 관리</div>
         <div style={{ marginTop: "24px" }}>
           <Tab

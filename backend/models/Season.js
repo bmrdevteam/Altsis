@@ -25,7 +25,7 @@ const seasonSchema = mongoose.Schema(
       required: true,
     },
     classrooms: [String],
-    subjects: subjectSchema,
+    subjects: { type: subjectSchema, default: { label: [], data: [] } },
     year: {
       type: String,
       required: true,
@@ -46,6 +46,10 @@ const seasonSchema = mongoose.Schema(
     formEvaluation: [],
     temp: Object,
     isActivated: {
+      type: Boolean,
+      default: false,
+    },
+    isActivatedFirst: {
       type: Boolean,
       default: false,
     },

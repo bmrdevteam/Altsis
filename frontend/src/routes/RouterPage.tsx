@@ -22,14 +22,13 @@ import Register from "../pages/Register";
 
 // course pages
 import Course from "pages/courses/Index";
-import CoursePid from "pages/courses/Pid";
 import CourseDesign from "../pages/courses/Design";
 import CourseEnroll from "../pages/courses/Enroll";
 import CourseList from "pages/courses/List";
-import CourseMyList from "pages/courses/MyList";
-import CourseMentoringList from "pages/courses/Mentoring/List";
-import CourseMentoringPid from "pages/courses/Mentoring/Pid";
-import CourseEnrollmentPid from "pages/courses/Enrollment";
+import CourseCreatedPid from "pages/courses/view/Created";
+import CourseMentoringPid from "pages/courses/view/Mentoring/Mentoring";
+import CourseEnrollmentPid from "pages/courses/view/Enrolled";
+import CourseEditPid from "pages/courses/view/Edit";
 
 // apps pages
 import AppsIndex from "pages/apps/Index";
@@ -260,30 +259,34 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
-                path="mylist"
+                path="enrolled/:pid"
                 element={
                   <RequireAuth>
-                    <CourseMyList />
+                    <CourseEnrollmentPid />
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
-                path="mylist/:pid"
+                path="created/:pid"
                 element={
                   <RequireAuth>
-                    <CoursePid />
+                    <CourseCreatedPid />
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
-                path="mentoring"
+                path="edit/:pid"
                 element={
                   <RequireAuth>
-                    <CourseMentoringList />
+                    <CourseEditPid />
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
                 path="mentoring/:pid"
                 element={

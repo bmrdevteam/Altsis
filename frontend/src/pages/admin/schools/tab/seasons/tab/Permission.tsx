@@ -47,17 +47,14 @@ type Props = {
 
 const Permission = (props: Props) => {
   const { SeasonApi, RegistrationApi } = useApi();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  /* document list */
-  const [permissionSyllabus, setPermissionSyllabus] = useState<any>(
-    props.seasonData.permissionSyllabus
-  );
-  const [permissionEnrollment, setPermissionEnrollment] = useState<any>(
-    props.seasonData.permissionEnrollment
-  );
-  const [permissionEvaluation, setPermissionEvaluation] = useState<any>(
-    props.seasonData.permissionEvaluation
-  );
+  const [permissionSyllabusParsed, setPermissionSyllabusParsed] =
+    useState<any>();
+  const [permissionEnrollmentParsed, setPermissionEnrollmentParsed] =
+    useState<any>();
+  const [permissionEvaluationParsed, setPermissionEvaluationParsed] =
+    useState<any>();
 
   /* additional document list */
   const [registrationList, setRegistrationList] = useState<any>([]);
@@ -65,32 +62,29 @@ const Permission = (props: Props) => {
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
+  const [permissionType, setPermissionType] = useState<string>("");
 
-  /* permission type */
-  const [permissionType, setPermissionType] = useState<string>("syllabus");
-
-  /* document fields */
-  const [isTeacherAllowed, setIsTeacherAllowed] = useState<any>(false);
-  const [isStudentAllowed, setIsStudentAllowed] = useState<any>(false);
-  const [exceptions, setExceptions] = useState<any>([]);
+  const [isLoadingPermissionData, setIsLoadingPermissionData] =
+    useState<boolean>(false);
+  const [permissionData, setPermissionData] = useState<any>();
 
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedIsAllowed, setSelectedIsAllowed] = useState<string>("");
 
   const parsePermission = (permission: Array<Array<any>>) => {
-    setIsTeacherAllowed(false);
-    setIsStudentAllowed(false);
-    const _exceptions = [];
+    let isTeacherAllowed = false;
+    let isStudentAllowed = false;
+    const exceptions = [];
 
     for (let i = 0; i < permission.length; i++) {
       if (permission[i][0] === "role") {
         if (permission[i][1] === "teacher") {
-          setIsTeacherAllowed(permission[i][2]);
+          isTeacherAllowed = permission[i][2];
         } else if (permission[i][1] === "student") {
-          setIsStudentAllowed(permission[i][2]);
+          isStudentAllowed = permission[i][2];
         }
       } else {
-        _exceptions.push({
+        exceptions.push({
           index: i,
           userId: permission[i][1],
           isAllowed: permission[i][2],
@@ -98,22 +92,22 @@ const Permission = (props: Props) => {
         });
       }
     }
-
-    setExceptions(_exceptions);
+    return { isTeacherAllowed, isStudentAllowed, exceptions };
   };
 
   const zipPermission = () => {
     const _permission = [];
 
-    for (let i = 0; i < exceptions.length; i++) {
+    console.log(permissionData);
+    for (let i = 0; i < permissionData.exceptions.length; i++) {
       _permission.push([
         "userId",
-        exceptions[i]["userId"],
-        exceptions[i]["isAllowed"],
+        permissionData.exceptions[i]["userId"],
+        permissionData.exceptions[i]["isAllowed"],
       ]);
     }
-    _permission.push(["role", "teacher", isTeacherAllowed]);
-    _permission.push(["role", "student", isStudentAllowed]);
+    _permission.push(["role", "teacher", permissionData?.isTeacherAllowed]);
+    _permission.push(["role", "student", permissionData?.isStudentAllowed]);
 
     return _permission;
   };
@@ -125,6 +119,32 @@ const Permission = (props: Props) => {
       ? { userName: res.userName, role: res.role }
       : { userName: "", role: "" };
   };
+
+  useEffect(() => {
+    if (isLoadingPermissionData) {
+      if (permissionType === "syllabus")
+        setPermissionData(permissionSyllabusParsed);
+      else if (permissionType === "enrollment")
+        setPermissionData(permissionEnrollmentParsed);
+      else setPermissionData(permissionEvaluationParsed);
+      setIsLoadingPermissionData(false);
+    }
+  }, [isLoadingPermissionData]);
+
+  useEffect(() => {
+    if (isLoading) {
+      setPermissionSyllabusParsed(
+        parsePermission(props.seasonData.permissionSyllabus)
+      );
+      setPermissionEnrollmentParsed(
+        parsePermission(props.seasonData.permissionEnrollment)
+      );
+      setPermissionEvaluationParsed(
+        parsePermission(props.seasonData.permissionEvaluation)
+      );
+      setIsLoading(false);
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     if (editPopupActive) {
@@ -157,49 +177,83 @@ const Permission = (props: Props) => {
   }, [registrationList]);
 
   return (
-    <>
-      <div className={style.form} style={{ marginTop: "24px" }}>
-        <div className={style.item}>
-          <div className={style.title}>수업 개설 권한</div>
-          <Button
-            type="ghost"
-            onClick={() => {
-              parsePermission(permissionSyllabus);
-              setPermissionType("syllabus");
-              setEditPopupActive(true);
-            }}
-          >
-            설정
-          </Button>
-        </div>
-        <div className={style.item}>
-          <div className={style.title}>수강신청 권한</div>
-          <Button
-            type="ghost"
-            onClick={() => {
-              parsePermission(permissionEnrollment);
-              setPermissionType("enrollment");
-              setEditPopupActive(true);
-            }}
-          >
-            설정
-          </Button>
-        </div>
-        <div className={style.item}>
-          <div className={style.title}>평가 권한</div>
-          <Button
-            type="ghost"
-            onClick={() => {
-              parsePermission(permissionEvaluation);
-              setPermissionType("evaluation");
-              setEditPopupActive(true);
-            }}
-          >
-            설정
-          </Button>
-        </div>
-      </div>
-      {editPopupActive && (
+    <div style={{ marginTop: "24px" }}>
+      {!isLoading && (
+        <Table
+          type="object-array"
+          data={[
+            {
+              type: "syllabus",
+              ...permissionSyllabusParsed,
+            },
+            {
+              type: "enrollment",
+              ...permissionEnrollmentParsed,
+            },
+            {
+              type: "evaluation",
+              ...permissionEvaluationParsed,
+            },
+          ]}
+          header={[
+            {
+              text: "권한",
+              key: "type",
+              width: "120px",
+              textAlign: "center",
+              type: "status",
+              status: {
+                syllabus: { text: "수업 개설 권한" },
+                enrollment: { text: "수강신청 권한" },
+                evaluation: { text: "평가 권한" },
+              },
+            },
+
+            {
+              text: "선생님",
+              key: "isTeacherAllowed",
+              width: "52px",
+              textAlign: "center",
+              type: "status",
+              status: {
+                false: { text: "N", color: "red" },
+                true: { text: "Y", color: "green" },
+              },
+            },
+            {
+              text: "학생",
+              key: "isStudentAllowed",
+              width: "52px",
+              textAlign: "center",
+              type: "status",
+              status: {
+                false: { text: "N", color: "red" },
+                true: { text: "Y", color: "green" },
+              },
+            },
+            {
+              text: "설정",
+              key: "detail",
+              type: "button",
+              onClick: (e: any) => {
+                setPermissionType(e.type);
+                setIsLoadingPermissionData(true);
+                setEditPopupActive(true);
+              },
+              width: "52px",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "var(--accent-1)",
+                padding: "4px",
+                round: true,
+              },
+            },
+          ]}
+        />
+      )}
+
+      {!isLoadingPermissionData && editPopupActive && (
         <Popup
           style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
           title={`${
@@ -217,16 +271,16 @@ const Permission = (props: Props) => {
             <div className={style.row}>
               <span>선생님</span>
               <ToggleSwitch
-                defaultChecked={isTeacherAllowed}
+                defaultChecked={permissionData?.isTeacherAllowed}
                 onChange={(b) => {
-                  setIsTeacherAllowed(b);
+                  permissionData.isTeacherAllowed = b;
                 }}
               />
               <span>학생</span>
               <ToggleSwitch
-                defaultChecked={isStudentAllowed}
+                defaultChecked={permissionData?.isStudentAllowed}
                 onChange={(b) => {
-                  setIsStudentAllowed(b);
+                  permissionData.isStudentAllowed = b;
                 }}
               />
             </div>
@@ -257,14 +311,11 @@ const Permission = (props: Props) => {
                 type={"ghost"}
                 onClick={() => {
                   if (selectedUserId) {
-                    setExceptions([
-                      ...exceptions,
-                      {
-                        userId: selectedUserId,
-                        isAllowed: selectedIsAllowed === "허용",
-                        ...getRegistrationDataByUserId(selectedUserId),
-                      },
-                    ]);
+                    permissionData?.exceptions.push({
+                      userId: selectedUserId,
+                      isAllowed: selectedIsAllowed === "허용",
+                      ...getRegistrationDataByUserId(selectedUserId),
+                    });
                   }
                 }}
                 style={{
@@ -283,7 +334,7 @@ const Permission = (props: Props) => {
 
             <Table
               type="object-array"
-              data={exceptions || []}
+              data={permissionData?.exceptions || []}
               header={[
                 {
                   text: "No",
@@ -326,8 +377,7 @@ const Permission = (props: Props) => {
                   key: "delete",
                   type: "button",
                   onClick: (e: any) => {
-                    exceptions.splice(e.tableRowIndex - 1, 1);
-                    setExceptions([...exceptions]);
+                    permissionData.exceptions.splice(e.tableRowIndex - 1, 1);
                   },
                   width: "80px",
                   textAlign: "center",
@@ -351,6 +401,7 @@ const Permission = (props: Props) => {
                 boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
               }}
               onClick={(e: any) => {
+                console.log("data is ", zipPermission());
                 SeasonApi.USeasonPermission({
                   _id: props.seasonData?._id,
                   type: permissionType,
@@ -358,19 +409,20 @@ const Permission = (props: Props) => {
                 })
                   .then((res: any) => {
                     alert("success");
-                    if (permissionType === "syllabus") {
-                      setPermissionSyllabus(res);
+                    if (permissionData.type === "syllabus") {
+                      setPermissionSyllabusParsed(parsePermission(res));
                       props.seasonData.permissionSyllabus = res;
                       props.setSelectedSeason(props.seasonData);
-                    } else if (permissionType === "enrollment") {
-                      setPermissionEnrollment(res);
+                    } else if (permissionData.type === "enrollment") {
+                      setPermissionEnrollmentParsed(parsePermission(res));
                       props.seasonData.permissionEnrollment = res;
                       props.setSelectedSeason(props.seasonData);
-                    } else if (permissionType === "evaluation") {
-                      setPermissionEvaluation(res);
+                    } else if (permissionData.type === "evaluation") {
+                      setPermissionEvaluationParsed(parsePermission(res));
                       props.seasonData.permissionEvaluation = res;
                       props.setSelectedSeason(props.seasonData);
                     }
+                    setEditPopupActive(false);
                   })
                   .catch((err) => {
                     alert(err.response.data.message);
@@ -382,7 +434,7 @@ const Permission = (props: Props) => {
           </div>
         </Popup>
       )}
-    </>
+    </div>
   );
 };
 

@@ -123,7 +123,7 @@ function Basic(props: Props) {
     <>
       <Popup
         setState={props.setPopupActive}
-        style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        style={{ borderRadius: "8px" }}
         closeBtn
         title="강의실 일괄 생성"
         contentScroll

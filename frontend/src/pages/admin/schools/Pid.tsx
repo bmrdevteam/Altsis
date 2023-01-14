@@ -82,24 +82,32 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSchool } = useAuth();
-  const { SchoolApi } = useApi();
+  const { SchoolApi, SeasonApi } = useApi();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<any>();
+  const [seasonList, setSeasonList] = useState<any>();
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   useEffect(() => {
     if (isLoading) {
       if (pid) {
-        SchoolApi.RSchool(pid)
+        SchoolApi.RSchoolWithSeasons(pid)
           .then((res) => {
-            setSchoolData(res);
+            console.log("res is ", res);
+            setSchoolData(res.school);
+            setSeasonList(res.seasons || []);
           })
           .catch(() => {
             setIsSchool(false);
           });
       } else {
         setSchoolData(currentSchool);
+        SeasonApi.RSeasons({ school: currentSchool.school })
+          .then((res) => setSeasonList(res || []))
+          .catch(() => {
+            setIsSchool(false);
+          });
       }
 
       setIsLoading(false);
@@ -125,36 +133,43 @@ const School = (props: Props) => {
         {schoolData && (
           <Tab
             items={{
-              "기본 정보": <BasicInfo schoolData={schoolData} />,
-              학기: <Season schoolData={schoolData} />,
-              사용자: <User schoolData={schoolData} />,
-              교과목: (
-                <Subject
-                  schoolData={schoolData}
-                  setSchoolData={setSchoolData}
+              // "기본 정보": <BasicInfo schoolData={schoolData} />,
+              학기: (
+                <Season
+                  school={schoolData._id}
+                  seasonList={seasonList}
+                  setSeasonList={setSeasonList}
                 />
               ),
-              강의실: (
-                <Classroom
-                  schoolData={schoolData}
-                  setSchoolData={setSchoolData}
-                />
-              ),
-              양식: (
-                <Form schoolData={schoolData} setSchoolData={setSchoolData} />
-              ),
-              권한: (
-                <Permission
-                  schoolData={schoolData}
-                  setSchoolData={setSchoolData}
-                />
-              ),
+
+              // 교과목: (
+              //   <Subject
+              //     schoolData={schoolData}
+              //     setSchoolData={setSchoolData}
+              //   />
+              // ),
+              // 강의실: (
+              //   <Classroom
+              //     schoolData={schoolData}
+              //     setSchoolData={setSchoolData}
+              //   />
+              // ),
+              // 양식: (
+              //   <Form schoolData={schoolData} setSchoolData={setSchoolData} />
+              // ),
+              // 권한: (
+              //   <Permission
+              //     schoolData={schoolData}
+              //     setSchoolData={setSchoolData}
+              //   />
+              // ),
               "기록 관리": (
                 <Archive
                   schoolData={schoolData}
                   setSchoolData={setSchoolData}
                 />
               ),
+              사용자: <User schoolData={schoolData} />,
             }}
           />
         )}

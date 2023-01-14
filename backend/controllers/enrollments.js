@@ -62,7 +62,7 @@ module.exports.enroll = async (req, res) => {
     // 2. 이미 신청한 수업인지 확인
     const exEnrollments = await _Enrollment.find({
       studentId: registration.userId,
-      season: registration.season,
+      syllabus: syllabus._id,
     });
     if (_.find(exEnrollments, { syllabus: syllabus._id }))
       return res.status(409).send({ message: "이미 신청한 수업입니다." });
@@ -164,7 +164,7 @@ module.exports.enrollbulk = async (req, res) => {
       // 3. 이미 신청한 수업인가?
       const exEnrollments = await _Enrollment.find({
         studentId: student.userId,
-        season: syllabus.season,
+        syllabus: syllabus._id,
       });
 
       if (_.find(exEnrollments, { syllabus: syllabus._id })) {

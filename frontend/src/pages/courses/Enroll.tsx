@@ -42,7 +42,7 @@ import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import Input from "components/input/Input";
 
-import ViewPopup from "./tab/ViewPopup";
+import ViewPopup from "./view/ViewPopup";
 
 import _ from "lodash";
 import Select from "components/select/Select";
@@ -159,6 +159,8 @@ const CourseEnroll = (props: Props) => {
       key: "classTitle",
       type: "text",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "320px",
     },
 
     {
@@ -166,12 +168,16 @@ const CourseEnroll = (props: Props) => {
       key: "timeText",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "120px",
     },
     {
       text: "강의실",
       key: "classroom",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "80px",
     },
 
     {
@@ -179,24 +185,32 @@ const CourseEnroll = (props: Props) => {
       key: "point",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "60px",
     },
     {
       text: "수강/정원",
       key: "count_limit",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "80px",
     },
     {
       text: "개설자",
       key: "userName",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "80px",
     },
     {
       text: "멘토",
       key: "mentorText",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "80px",
     },
     {
       text: "자세히",
@@ -247,6 +261,8 @@ const CourseEnroll = (props: Props) => {
               key: label,
               type: "text",
               textAlign: "center",
+              wordBreak: "keep-all",
+              width: "80px",
             };
           }),
         ]);

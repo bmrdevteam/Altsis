@@ -40,6 +40,8 @@ import Register from "./tab/Register";
 import Edit from "./tab/Edit";
 import EditBulk from "./tab/EditBulk";
 import SelectSeason from "./tab/RegisterCopy";
+import Svg from "assets/svg/Svg";
+import style from "style/pages/admin/schools.module.scss";
 
 type Props = {
   seasonData: any;
@@ -74,7 +76,7 @@ const Users = (props: Props) => {
 
   return (
     <div>
-      <Button
+      {/* <Button
         type={"ghost"}
         style={{
           marginTop: "24px",
@@ -100,9 +102,9 @@ const Users = (props: Props) => {
         }}
       >
         이전 학기 등록 정보 불러오기
-      </Button>
+      </Button> */}
 
-      <Button
+      {/* <Button
         type={"ghost"}
         style={{
           marginTop: "12px",
@@ -130,8 +132,97 @@ const Users = (props: Props) => {
             .catch((err: any) => alert(err.response.data.message));
         }}
       >
-        선택된 유저 삭제 (임시)
-      </Button>
+        선택된 유저 일괄 삭제
+      </Button> */}
+
+      <div
+        className={style.table_header}
+        style={{
+          display: "flex",
+          marginTop: "24px",
+          marginLeft: "12px",
+          marginRight: "12px",
+        }}
+      >
+        <div
+          style={{
+            flex: "auto",
+
+            display: "flex",
+            gap: "12px",
+          }}
+        >
+          <div
+            className={style.icon}
+            onClick={() => {
+              setRegisterUserPopupActive(true);
+            }}
+            style={{ display: "flex", gap: "4px" }}
+          >
+            <Svg type="userPlus" width="20px" height="20px" />
+            사용자 등록
+          </div>
+          {registrationList?.length === 0 && (
+            <div
+              className={style.icon}
+              onClick={() => {
+                setRegisterCopyPopupActive(true);
+              }}
+              style={{ display: "flex", gap: "4px" }}
+            >
+              <Svg type="arrowToBottom" width="20px" height="20px" />
+              이전 학기 등록 정보 불러오기
+            </div>
+          )}
+        </div>
+        <div
+          style={{
+            flex: "auto",
+            marginRight: "12px",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "12px",
+          }}
+        >
+          <div
+            className={style.icon}
+            onClick={() => {
+              if (_.isEmpty(selectedRegistrations?.current)) {
+                alert("선택된 사용자가 없습니다.");
+              } else {
+                setEditBulkPopupActive(true);
+              }
+            }}
+            style={{ display: "flex", gap: "4px" }}
+          >
+            <Svg type="edit" width="20px" height="20px" />
+            일괄 수정
+          </div>
+        </div>
+
+        <div
+          className={style.icon}
+          onClick={() => {
+            if (_.isEmpty(selectedRegistrations.current)) {
+              alert("선택된 사용자가 없습니다.");
+            } else {
+              RegistrationApi.DRegistrations({
+                _ids: selectedRegistrations.current,
+              })
+                .then(() => {
+                  alert("success");
+                  setIsLoading(true);
+                })
+                .catch((err: any) => alert(err.response.data.message));
+            }
+          }}
+          style={{ display: "flex", gap: "4px" }}
+        >
+          <Svg type="trash" width="20px" height="20px" />
+          일괄 삭제
+        </div>
+      </div>
+
       <div style={{ marginTop: "24px" }}></div>
       <>
         {!isLoading && (

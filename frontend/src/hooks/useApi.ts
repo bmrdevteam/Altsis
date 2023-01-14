@@ -231,7 +231,7 @@ export default function useApi() {
     schoolId?: string;
     "no-school"?: string;
     fields?: string[] | string;
-    auth?: "owner" | "admin" | "member";
+    auth?: "owner" | "admin" | "manager" | "member";
   }) {
     if (params?.fields) params.fields = QUERY_SUB_BUILDER(params.fields);
     const { users: result } = await database.R({
@@ -273,6 +273,7 @@ export default function useApi() {
         start?: string;
         end?: string;
       };
+      copyFrom?: string;
     };
   }) {
     const result = await database.C({ location: `seasons`, data: props.data });
@@ -583,13 +584,25 @@ export default function useApi() {
     const { schools: result } = await database.R({ location: "schools" });
     return result;
   }
+
   /**
-   * Read Schools by id
+   * Read School by id
    * @auth member
    */
   async function RSchool(id: string) {
     return await database.R({ location: "schools/" + id });
   }
+
+  /**
+   * Read School by id with seasons
+   * @auth member
+   */
+  async function RSchoolWithSeasons(id: string) {
+    return await database.R({
+      location: "schools/" + id + "?includes=seasons",
+    });
+  }
+
   /**
    * Update Classrooms in school
    * @auth admin
@@ -723,17 +736,15 @@ export default function useApi() {
     return result;
   }
   /**
-   * Update Archives
+   * Update Archive
    * @type PUT
    * @auth admin
-   * @returns Archives
+   * @returns Archive
    */
-  async function UArchives(params: {
-    school?: string;
-    userId?: string | number;
-  }) {
-    const result = await database.R({
-      location: "archives" + QUERY_BUILDER(params),
+  async function UArchive(params: { _id: string; data: object }) {
+    const result = await database.U({
+      location: `archives/${params._id}`,
+      data: params.data,
     });
     return result;
   }
@@ -866,6 +877,7 @@ export default function useApi() {
       CSchools,
       RSchools,
       RSchool,
+      RSchoolWithSeasons,
       USchoolClassroom,
       USchoolSubject,
       USchoolForm,
@@ -887,6 +899,7 @@ export default function useApi() {
     },
     ArchiveApi: {
       RArchives,
+      UArchive,
     },
     SyllabusApi: {
       CSyllabus,
