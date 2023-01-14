@@ -32,6 +32,8 @@ import { useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
 import useApi from "hooks/useApi";
 
+import _ from "lodash";
+
 type Props = {
   seasonData: any;
   setPopupActive: any;
@@ -45,6 +47,9 @@ function Basic(props: Props) {
   /* document fields */
   const [isActivated, setIsActivated] = useState<boolean>(
     props.seasonData.isActivated
+  );
+  const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>(
+    props.seasonData.isActivatedFirst
   );
 
   const [period, setPeriod] = useState<any>(
@@ -113,12 +118,53 @@ function Basic(props: Props) {
             marginTop: "24px",
           }}
           onClick={() => {
-            if (isActivated) {
-              if (window.confirm("정말 활성화하시겠습니까?") === true) {
+            if (!isActivatedFirst) {
+              const undefinedForms = [];
+              if (!props.seasonData.formTimetable)
+                undefinedForms.push("시간표");
+              if (!props.seasonData.formSyllabus)
+                undefinedForms.push("강의 계획서");
+              if (props.seasonData.formEvaluation.length === 0)
+                undefinedForms.push("평가");
+
+              if (
+                undefinedForms.length === 0
+                  ? window.confirm(
+                      "정말 활성화하시겠습니까? 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다."
+                    )
+                  : window.confirm(
+                      `정말 활성화하시겠습니까? 양식(${_.join(
+                        undefinedForms,
+                        ", "
+                      )})이 설정되지 않은 상태입니다. 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다.`
+                    )
+              ) {
+                SeasonApi.UActivateSeason(props.seasonData._id)
+                  .then(() => {
+                    alert("success");
+                    setIsActivated(true);
+                    setIsActivatedFirst(true);
+                    props.setSeasonData({
+                      ...props.seasonData,
+                      isActivated: true,
+                      isActivatedFirst: true,
+                    });
+                    props.setIsLoading(true);
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
+              }
+            } else if (isActivated) {
+              if (window.confirm("정말 비활성화하시겠습니까?") === true) {
                 SeasonApi.UInactivateSeason(props.seasonData._id)
                   .then(() => {
                     alert("success");
                     setIsActivated(false);
+                    props.setSeasonData({
+                      ...props.seasonData,
+                      isActivated: false,
+                    });
                     props.setIsLoading(true);
                   })
                   .catch((err) => {
@@ -131,6 +177,10 @@ function Basic(props: Props) {
                   .then(() => {
                     alert("success");
                     setIsActivated(true);
+                    props.setSeasonData({
+                      ...props.seasonData,
+                      isActivated: true,
+                    });
                     props.setIsLoading(true);
                   })
                   .catch((err) => {

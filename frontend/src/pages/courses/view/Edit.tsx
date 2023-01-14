@@ -1,5 +1,7 @@
 /**
- * @file Courses Edit Page
+ * @file Courses Pid Page
+ *
+ * more info on selected courses
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -26,37 +28,31 @@
  * @version 1.0
  *
  */
-
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
-
-import style from "style/pages/courses/courseDesign.module.scss";
-
-// components
-import Button from "components/button/Button";
-import Autofill from "components/input/Autofill";
-import Input from "components/input/Input";
-import Popup from "components/popup/Popup";
-import Select from "components/select/Select";
-import Table from "components/table/Table";
-import TableV2 from "components/tableV2/Table";
-
-import EditorParser from "editor/EditorParser";
+import style from "style/pages/courses/course.module.scss";
 
 import _ from "lodash";
+import Select from "components/select/Select";
+import Input from "components/input/Input";
+import Button from "components/button/Button";
+import EditorParser from "editor/EditorParser";
+import Popup from "components/popup/Popup";
+import Table from "components/tableV2/Table";
+import Loading from "components/loading/Loading";
 
-type Props = {
-  courseData: any;
-  setMode: any;
-  setCourseData: any;
-};
+type Props = {};
 
-const CourseEdit = (props: Props) => {
-  const { currentUser, currentSeason } = useAuth();
+const CoursePid = (props: Props) => {
+  const { pid } = useParams<"pid">();
   const { RegistrationApi, SyllabusApi } = useApi();
   const navigate = useNavigate();
+  const { currentUser, currentSeason } = useAuth();
+
+  const [courseData, setCourseData] = useState<any>();
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingTimeClassroomRef, setIsLoadingTimeClassroomRef] =
     useState<boolean>(false);
@@ -66,31 +62,15 @@ const CourseEdit = (props: Props) => {
   const [syllabusList, setSyllabusList] = useState<any>();
   const [teacherList, setTeacherList] = useState<any>();
 
-  const [courseSubject, setCourseSubject] = useState<string>(
-    _.join(props.courseData.subject, "/")
-  );
-  const [courseTitle, setCourseTitle] = useState<string>(
-    props.courseData.classTitle
-  );
-  const [courseMentorList, setCourseMentorList] = useState<any[]>(
-    props.courseData.teachers || []
-  );
+  const [courseSubject, setCourseSubject] = useState<string>("");
+  const [courseTitle, setCourseTitle] = useState<string>("");
+  const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
-  const [coursePoint, setCoursePoint] = useState<string>(
-    props.courseData.point
-  );
-  const [courseTime, setCourseTime] = useState<any>(
-    props.courseData.time || []
-  );
-  const [courseClassroom, setCourseClassroom] = useState<string>(
-    props.courseData.classroom
-  );
-  const [courseMoreInfo, setCourseMoreInfo] = useState<any>(
-    props.courseData.info
-  );
-  const [courseLimit, setCourseLimit] = useState<number>(
-    props.courseData.limit
-  );
+  const [coursePoint, setCoursePoint] = useState<string>("");
+  const [courseTime, setCourseTime] = useState<any>([]);
+  const [courseClassroom, setCourseClassroom] = useState<string>("");
+  const [courseMoreInfo, setCourseMoreInfo] = useState<any>({});
+  const [courseLimit, setCourseLimit] = useState<number>(0);
 
   const courseClassroomRef = useRef<any>("");
   const courseTimeRef = useRef<any>({});
@@ -129,21 +109,9 @@ const CourseEdit = (props: Props) => {
     return result;
   }
 
-  async function setData() {
-    const res = await RegistrationApi.RRegistrations({
-      season: currentSeason?._id,
-      role: "teacher",
-    });
-    setTeacherList([...res]);
-    setCourseTime([
-      ...props.courseData.time.map((timeBlock: any) => timeBlock.label),
-    ]);
-    setCourseClassroom(props.courseData.classroom);
-  }
-
   async function update() {
     return await SyllabusApi.USyllabus({
-      _id: props.courseData._id,
+      _id: courseData._id,
       data: {
         classTitle: courseTitle,
         point: coursePoint,
@@ -172,16 +140,46 @@ const CourseEdit = (props: Props) => {
   };
 
   useEffect(() => {
-    setData()
-      .then((res) => {
-        updateTimeClassroomRef();
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        alert("failed to load data");
-        navigate("/courses");
-      });
-  }, []);
+    if (isLoading) {
+      SyllabusApi.RSyllabus(pid)
+        .then((result) => {
+          if (
+            result.season !== currentSeason._id ||
+            result.userId !== currentUser.userId
+          ) {
+            navigate("/courses#개설한%20수업%20목록", { replace: true });
+          }
+
+          setCourseData(result);
+          setCourseSubject(_.join(result.subject, "/"));
+          setCourseTitle(result.classTitle);
+          setCourseMentorList(result.teachers || []);
+          setCoursePoint(result.point || "0");
+          setCourseTime([
+            ...result.time.map((timeBlock: any) => timeBlock.label),
+          ]);
+          setCourseClassroom(result.classroom);
+          setCourseMoreInfo(result.info || {});
+          setCourseLimit(result.limit || 0);
+          updateTimeClassroomRef();
+
+          RegistrationApi.RRegistrations({
+            season: result.season,
+            role: "teacher",
+          }).then((res) => {
+            console.log(res);
+            setTeacherList(res);
+            setIsLoading(false);
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          alert("failed to load data");
+          navigate("/courses");
+        });
+    }
+    return () => {};
+  }, [isLoading]);
 
   useEffect(() => {
     if (isLoadingTimeClassroomRef) {
@@ -329,9 +327,7 @@ const CourseEdit = (props: Props) => {
             onClick={() => {
               update()
                 .then((res: any) => {
-                  alert("sucess");
-                  props.setCourseData(res);
-                  props.setMode("view");
+                  navigate(`/courses/created/${pid}`, { replace: true });
                 })
                 .catch((err) => {
                   alert(err.response.body.message);
@@ -345,7 +341,7 @@ const CourseEdit = (props: Props) => {
             style={{ marginTop: "24px" }}
             type="ghost"
             onClick={() => {
-              props.setMode("view");
+              navigate(`/courses/created/${pid}`, { replace: true });
             }}
           >
             취소
@@ -443,9 +439,11 @@ const CourseEdit = (props: Props) => {
           <Table
             data={teacherList}
             type="object-array"
-            filter
-            onSelectChange={(value: any) => {
-              courseMentorRef.current = value;
+            control
+            onChange={(value: any[]) => {
+              courseMentorRef.current = _.filter(value, {
+                tableRowChecked: true,
+              });
             }}
             header={[
               {
@@ -458,14 +456,14 @@ const CourseEdit = (props: Props) => {
               {
                 text: "선생님 ID",
                 key: "userId",
-                type: "string",
-                align: "center",
+                type: "text",
+                textAlign: "center",
               },
               {
                 text: "선생님 이름",
                 key: "userName",
-                type: "string",
-                align: "center",
+                type: "text",
+                textAlign: "center",
               },
             ]}
           />
@@ -504,8 +502,8 @@ const CourseEdit = (props: Props) => {
       )}
     </>
   ) : (
-    <>로딩중</>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
-export default CourseEdit;
+export default CoursePid;

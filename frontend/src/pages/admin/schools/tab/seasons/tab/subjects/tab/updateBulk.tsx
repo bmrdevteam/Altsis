@@ -150,9 +150,9 @@ function Basic(props: Props) {
     <>
       <Popup
         setState={props.setPopupActive}
-        style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        style={{ borderRadius: "8px" }}
         closeBtn
-        title="교과목 일괄 수성"
+        title="교과목 일괄 수정"
         contentScroll
         footer={
           <Button
