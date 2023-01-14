@@ -17,7 +17,7 @@ import E from "../pages/dev/E";
 
 // basic pages
 import Home from "../pages/index/Home";
-import Login from "../pages/Login";
+import Login from "../pages/login/Login";
 import Register from "../pages/Register";
 
 // course pages
@@ -55,6 +55,7 @@ import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
 import Docs from "pages/docs/Index";
+import ChooseAcademy from "pages/login/ChooseAcademy";
 
 function RouterPage() {
   const { currentUser } = useAuth();
@@ -92,7 +93,7 @@ function RouterPage() {
             {/* ----------------------------------------------------- */}
 
             {/* basic routes */}
-            <Route path="login" element={<Login />}></Route>
+            <Route path="login" element={<ChooseAcademy />}></Route>
             <Route path=":pid/login" element={<Login />}></Route>
             <Route path="register" element={<Register />}></Route>
             {/* <Route path="/:academyId"> */}
