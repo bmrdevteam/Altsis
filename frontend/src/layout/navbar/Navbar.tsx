@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import useInterval from "hooks/useInterval";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 // components
 import Button from "components/button/Button";
@@ -24,6 +24,7 @@ import audioURL from "assets/audio/notification-a.mp3";
 import useApi from "hooks/useApi";
 
 import View from "pages/notifications/popup/View";
+import Autofill from "components/input/Autofill";
 
 const Notification = () => {
   /**
@@ -247,32 +248,39 @@ const Navbar = (props: Props) => {
 
 const UserSearchBox = () => {
   const navigate = useNavigate();
-  const [query, setQuery] = useState<string>('');
+  const {UserApi} = useApi();
+  const {currentSchool} = useAuth();
+  const [users, setUsers] = useState<Array<any>>([]);
 
-  function submit() {
-    navigate(`/search?query=${query}`);
+  const submit = (value: string | number) => {
+   navigate(`/search/${value}`);
   }
 
-  return <div className={style.search_container}>
-    <input 
-      className={style.search} 
-      type="text" 
-      placeholder="검색"
-      value={query}
-      onChange={(e) => {setQuery(e.currentTarget.value)}}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          submit();
-        }
-      }}
-    />
-    <Button 
-      style={{width: '42px', height: '42px', borderRadius: '21px'}}
-      onClick={submit}
-    >
-      <Svg type={"search"} />
-    </Button>
-  </div>
+  useEffect(() => {
+    if (!currentSchool) return;
+
+    UserApi.RUsers({school: currentSchool.school})
+      .then((result) => {
+        let newUsers = result.map((user: any) => {
+          return {
+            text: `${user.userName} / ${user.userId}`,
+            value: user.userId
+          }
+        });
+        setUsers(newUsers);
+      })
+      .catch((error) => console.error(error));
+  }, [currentSchool]);
+
+  return <Autofill
+    options={[
+      ...users
+    ]}
+    onChange={submit}
+    style={{
+      borderRadius: '8px'
+    }}
+  />
 }
 
 export default Navbar;

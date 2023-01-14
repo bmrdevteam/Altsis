@@ -394,7 +394,7 @@ function RouterPage() {
 
             {/* ----------------------------------------------------- */}
             {/* search result routes */}
-            <Route path="search" element={<UserSearchResult />}></Route>
+            <Route path="search/:uid" element={<UserSearchResult />}></Route>
 
             {/* dev routes */}
             <Route path="dev">
