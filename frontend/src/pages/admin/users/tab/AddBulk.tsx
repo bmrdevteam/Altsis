@@ -43,10 +43,9 @@ import { validate } from "functions/functions";
 // functions
 
 type Props = {
-  schoolData: any;
   schoolList: any;
   setPopupActive: any;
-  setIsUserListLoading: any;
+  addUserList: any;
 };
 
 function Basic(props: Props) {
@@ -58,17 +57,6 @@ function Basic(props: Props) {
   const [userList, setUserList] = useState<any[]>([]);
   const [invalidUserCnt, setInvalidUserCnt] = useState<number>(-1);
 
-  const [schools, setSchools] = useState<any[]>(
-    !_.isEmpty(props.schoolData)
-      ? [
-          {
-            school: props.schoolData._id,
-            schoolId: props.schoolData.schoolId,
-            schoolName: props.schoolData.schoolName,
-          },
-        ]
-      : []
-  );
   const schoolSelectRef = useRef<any[]>();
 
   // popup activation
@@ -96,7 +84,7 @@ function Basic(props: Props) {
       };
     });
 
-    const result = await database.C({
+    const { users: result } = await database.C({
       location: `users/bulk`,
       data: {
         users: userList.map((user) => {
@@ -484,9 +472,10 @@ function Basic(props: Props) {
               onClick={() => {
                 addUserBulk()
                   .then((res) => {
+                    console.log(res);
                     alert("success");
+                    props.addUserList(res);
                     props.setPopupActive(false);
-                    props.setIsUserListLoading(true);
                   })
                   .catch((err) => alert(err.response.data.message));
               }}

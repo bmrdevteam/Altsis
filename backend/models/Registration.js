@@ -30,7 +30,7 @@ const registrationSchema = mongoose.Schema({
   teacherName: String,
   isActivated: {
     type: Boolean,
-    default: true,
+    default: false,
   },
 });
 

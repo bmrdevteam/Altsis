@@ -55,11 +55,8 @@ const Sent = (props: Props) => {
   const [notificatnionPopupActive, setNotificatnionPopupActive] =
     useState<boolean>(false);
 
-  const [isReceiverOptionListLoaded, setIsReceiverOptionListLoaded] =
-    useState<boolean>(false);
   const [receiverType, setReceiverType] = useState<string>("");
   const [receiverList, setReceiverList] = useState<any[]>([]);
-  const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
 
   const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
 
@@ -124,6 +121,7 @@ const Sent = (props: Props) => {
         selectRef.current = [];
         setIsLoading(false);
       });
+      updateReceiverList();
     }
   }, [isLoading]);
 
@@ -134,11 +132,7 @@ const Sent = (props: Props) => {
     return res;
   }
 
-  useEffect(() => {
-    setIsReceiverOptionListLoaded(false);
-  }, [currentRegistration]);
-
-  async function updateReceiverOptionList() {
+  async function updateReceiverList() {
     if (currentRegistration) {
       setReceiverType("season");
       getRegistrationList().then((res: any) => {
@@ -156,24 +150,6 @@ const Sent = (props: Props) => {
       });
     }
   }
-
-  useEffect(() => {
-    if (receiverList) {
-      setReceiverOptionList(
-        receiverList.map((receiver: any) => {
-          return {
-            value: JSON.stringify({
-              userId: receiver.userId,
-              userName: receiver.userName,
-            }),
-            text: `${receiver.userName}(${receiver.userId})`,
-          };
-        })
-      );
-    }
-
-    return () => {};
-  }, [receiverList]);
 
   return !isLoading ? (
     <>
@@ -218,11 +194,6 @@ const Sent = (props: Props) => {
               <div
                 className={style.icon}
                 onClick={() => {
-                  if (!isReceiverOptionListLoaded) {
-                    updateReceiverOptionList().then(() => {
-                      setIsReceiverOptionListLoaded(true);
-                    });
-                  }
                   setSendPopupActive(true);
                 }}
                 style={{ display: "flex", gap: "4px" }}
@@ -303,10 +274,9 @@ const Sent = (props: Props) => {
           />
         )}
       </div>
-      {sendPopupActive && isReceiverOptionListLoaded && (
+      {sendPopupActive && (
         <Send
           setState={setSendPopupActive}
-          receiverOptionList={receiverOptionList}
           receiverList={receiverList}
           receiverType={receiverType}
         />

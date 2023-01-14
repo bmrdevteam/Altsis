@@ -27,7 +27,8 @@ type TTableHeader = {
   key?: string;
   width?: string;
   byteCalc?: boolean;
-  whiteSpace?: "pre" | "normal";
+  whiteSpace?: "pre" | "pre-wrap" | "normal";
+  wordBreak?: "normal" | "break-all" | "keep-all" | "break-word";
   textAlign?: "left" | "center" | "right";
   fontSize?: string;
   fontWeight?:
@@ -573,6 +574,7 @@ const Table = (props: Props) => {
                       <td
                         style={{
                           whiteSpace: val.whiteSpace,
+                          wordBreak: val.wordBreak,
                           textAlign: val.textAlign,
                           fontSize: val.fontSize,
                           fontWeight: val.fontWeight,
@@ -606,6 +608,7 @@ const Table = (props: Props) => {
                       <td
                         style={{
                           whiteSpace: val.whiteSpace,
+                          wordBreak: val.wordBreak,
                           textAlign: val.textAlign,
                           fontSize: val.fontSize,
                           fontWeight: val.fontWeight,
@@ -695,6 +698,7 @@ const Table = (props: Props) => {
                       <td
                         style={{
                           whiteSpace: val.whiteSpace,
+                          wordBreak: val.wordBreak,
                           textAlign: val.textAlign,
                           fontSize: val.fontSize,
                           fontWeight: val.fontWeight,
@@ -850,10 +854,11 @@ const Table = (props: Props) => {
                                       val.status[`${row[val.key]}`].background,
                                   }}
                                   onClick={() => {
-                                    val.status?.[row[`${val.key}`]].onClick &&
-                                      val.status[row[`${val.key}`]].onClick?.(
-                                        row
-                                      );
+                                    val.onClick && val.onClick(row);
+                                    // val.status?.[row[`${val.key}`]].onClick &&
+                                    //   val.status[row[`${val.key}`]].onClick?.(
+                                    //     row
+                                    //   );
                                   }}
                                 >
                                   {val.status[`${row[val.key]}`].text}
@@ -867,7 +872,6 @@ const Table = (props: Props) => {
                         return (
                           <td
                             style={{
-                              whiteSpace: val.whiteSpace,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
@@ -877,11 +881,21 @@ const Table = (props: Props) => {
                           >
                             <textarea
                               rows={1}
-                              onKeyUp={(e) => {
-                                const scrollHeight =
-                                  e.currentTarget.scrollHeight;
+                              onFocus={(e) => {
                                 e.currentTarget.style.height =
-                                  scrollHeight + "px";
+                                  e.currentTarget.scrollHeight + "px";
+                                e.currentTarget.style.width =
+                                  e.currentTarget.scrollWidth + "px";
+                              }}
+                              onKeyDown={(e) => {
+                                e.currentTarget.style.height =
+                                  e.currentTarget.scrollHeight + "px";
+                                e.currentTarget.style.width =
+                                  e.currentTarget.scrollWidth + "px";
+                              }}
+                              style={{
+                                whiteSpace: val.whiteSpace,
+                                wordBreak: val.wordBreak,
                               }}
                               value={row[`${val.key}`]}
                               onChange={(e) => {
@@ -890,6 +904,7 @@ const Table = (props: Props) => {
                                   (r) => r.tableRowIndex === row.tableRowIndex
                                 );
                                 arr[ii][`${val.key}`] = e.target.value;
+                                arr[ii].isModified = true;
                                 setTableData((prev) => ({
                                   ...prev,
                                   data: arr,
@@ -910,6 +925,7 @@ const Table = (props: Props) => {
                           <td
                             style={{
                               whiteSpace: val.whiteSpace,
+                              wordBreak: val.wordBreak,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
@@ -928,6 +944,7 @@ const Table = (props: Props) => {
                                 arr[ii][`${val.key}`] = parseInt(
                                   e.target.value
                                 );
+                                arr[ii].isModified = true;
                                 setTableData((prev) => ({
                                   ...prev,
                                   data: arr,
@@ -948,6 +965,7 @@ const Table = (props: Props) => {
                           <td
                             style={{
                               whiteSpace: val.whiteSpace,
+                              wordBreak: val.wordBreak,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
@@ -963,6 +981,7 @@ const Table = (props: Props) => {
                                   (r) => r.tableRowIndex === row.tableRowIndex
                                 );
                                 arr[ii][`${val.key}`] = e.target.value;
+                                arr[ii].isModified = true;
                                 setTableData((prev) => ({
                                   ...prev,
                                   data: arr,
@@ -1025,6 +1044,7 @@ const Table = (props: Props) => {
                           <td
                             style={{
                               whiteSpace: val.whiteSpace,
+                              wordBreak: val.wordBreak,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,

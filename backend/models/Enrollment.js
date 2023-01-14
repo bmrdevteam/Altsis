@@ -20,6 +20,7 @@ const enrollmentSchema = mongoose.Schema(
     subject: [String],
     point: Number,
     limit: Number,
+    count_limit: String,
     info: Object,
     teachers: Object,
     // enrollment data

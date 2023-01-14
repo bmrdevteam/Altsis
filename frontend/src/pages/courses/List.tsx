@@ -39,9 +39,10 @@ import Navbar from "layout/navbar/Navbar";
 // components
 import Table from "components/tableV2/Table";
 
-import ViewPopup from "./tab/ViewPopup";
+import ViewPopup from "./view/ViewPopup";
 
 import _ from "lodash";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
@@ -51,6 +52,7 @@ const Courses = (props: Props) => {
 
   const { currentSeason, currentRegistration } = useAuth();
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [courseList, setCourseList] = useState<any[]>([]);
 
   /* subject label header list */
@@ -108,6 +110,8 @@ const Courses = (props: Props) => {
       key: "classTitle",
       type: "text",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "320px",
     },
 
     {
@@ -115,12 +119,16 @@ const Courses = (props: Props) => {
       key: "timeText",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "120px",
     },
     {
       text: "강의실",
       key: "classroom",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "80px",
     },
 
     {
@@ -128,24 +136,32 @@ const Courses = (props: Props) => {
       key: "point",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "60px",
     },
     {
       text: "수강/정원",
       key: "count_limit",
       type: "string",
       textAlign: "center",
+      whiteSpace: "pre",
+      width: "80px",
     },
     {
       text: "개설자",
       key: "userName",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "80px",
     },
     {
       text: "멘토",
       key: "mentorText",
       type: "string",
       textAlign: "center",
+      wordBreak: "keep-all",
+      width: "80px",
     },
     {
       text: "상태",
@@ -165,9 +181,6 @@ const Courses = (props: Props) => {
       onClick: (e: any) => {
         setCourse(e._id);
         setViewPopupActive(true);
-        // navigate(`../${e._id}`, {
-        //   replace: true,
-        // });
       },
       width: "80px",
       textAlign: "center",
@@ -175,28 +188,34 @@ const Courses = (props: Props) => {
   ];
 
   useEffect(() => {
-    if (!currentRegistration) {
-      alert("등록된 학기가 없습니다.");
-      navigate("/");
-    } else {
-      getCreatedCourseList().then((res: any) => {
-        setCourseList(structuring(res));
-      });
-      if (currentSeason?.subjects?.label) {
-        setSubjectLabelHeaderList([
-          ...currentSeason?.subjects?.label.map((label: string) => {
-            return {
-              text: label,
-              key: label,
-              type: "text",
-              width: "120px",
-              textAlign: "center",
-            };
-          }),
-        ]);
+    if (isLoading) {
+      if (!currentRegistration) {
+        alert("등록된 학기가 없습니다.");
+        navigate("/");
+      } else {
+        getCreatedCourseList().then((res: any) => {
+          setCourseList(structuring(res));
+
+          if (currentSeason?.subjects?.label) {
+            setSubjectLabelHeaderList([
+              ...currentSeason?.subjects?.label.map((label: string) => {
+                return {
+                  text: label,
+                  key: label,
+                  type: "text",
+                  textAlign: "center",
+                  wordBreak: "keep-all",
+                  width: "80px",
+                };
+              }),
+            ]);
+          }
+
+          setIsLoading(false);
+        });
       }
     }
-  }, [currentRegistration]);
+  }, [isLoading]);
 
   return (
     <>
@@ -204,24 +223,28 @@ const Courses = (props: Props) => {
       <div className={style.section}>
         <div className={style.title}>수업 목록</div>
         <div style={{ height: "24px" }}></div>
-
-        <Table
-          control
-          defaultPageBy={50}
-          type="object-array"
-          data={courseList}
-          header={[
-            {
-              text: "No",
-              type: "text",
-              key: "tableRowIndex",
-              width: "48px",
-              textAlign: "center",
-            },
-            ...subjectLabelHeaderList,
-            ...subjectHeaderList,
-          ]}
-        />
+        {!isLoading ? (
+          <Table
+            control
+            defaultPageBy={50}
+            type="object-array"
+            data={courseList}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+                whiteSpace: "pre",
+              },
+              ...subjectLabelHeaderList,
+              ...subjectHeaderList,
+            ]}
+          />
+        ) : (
+          <Loading height={"calc(100vh - 55px)"} />
+        )}
       </div>
       {viewPopupActive && course && (
         <ViewPopup course={course} setPopupActive={setViewPopupActive} />

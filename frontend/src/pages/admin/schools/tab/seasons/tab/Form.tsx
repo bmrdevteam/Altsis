@@ -65,38 +65,127 @@ const Form = (props: Props) => {
           <div className={style.title}>시간표 양식</div>
 
           <Button
-            style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
               setFormTimetablePopupActive(true);
             }}
+            disabled={props.seasonData.isActivatedFirst}
           >
-            {props.seasonData.formTimetable?.title ?? "선택"}
+            {props.seasonData.isActivatedFirst
+              ? "없음"
+              : props.seasonData.formTimetable?.title ?? "선택"}
           </Button>
         </div>
         <div className={style.item}>
           <div className={style.title}>강의 계획서 양식</div>
           <Button
-            style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
               setFormSyllabusPopupActive(true);
             }}
+            disabled={props.seasonData.isActivatedFirst}
           >
-            {props.seasonData.formSyllabus?.title ?? "선택"}
+            {props.seasonData.isActivatedFirst
+              ? "없음"
+              : props.seasonData.formSyllabus?.title ?? "선택"}
           </Button>
         </div>
+      </div>
+
+      <div className={style.form} style={{ marginTop: "24px" }}>
         <div className={style.item}>
-          <div className={style.title}>평가 양식</div>
-          <Button
-            style={{ marginTop: "12px" }}
-            type="ghost"
-            onClick={() => {
-              setFormEvaluationPopupActive(true);
+          <div
+            className={style.title}
+            style={{
+              textAlign: "left",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            설정
-          </Button>
+            평가 양식
+            <Button
+              type="ghost"
+              onClick={() => {
+                setFormEvaluationPopupActive(true);
+              }}
+              disabled={props.seasonData.isActivatedFirst}
+            >
+              설정
+            </Button>
+          </div>
+          <Table
+            type="object-array"
+            data={formEvaluation ?? []}
+            header={[
+              {
+                type: "text",
+                text: "평가 항목",
+                key: "label",
+              },
+              {
+                text: "유형",
+                key: "type",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "status",
+                status: {
+                  input: {
+                    text: "텍스트",
+                    color: "#B33F00",
+                  },
+                  "input-number": {
+                    text: "숫자",
+                    color: "#00B3AD",
+                  },
+                },
+                width: "80px",
+                textAlign: "center",
+              },
+              {
+                text: "평가자",
+                key: "authOption",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "status",
+                status: {
+                  editByTeacher: {
+                    text: "선생님",
+                    color: "red",
+                  },
+                  editByStudent: {
+                    text: "학생",
+                    color: "blue",
+                  },
+                  editByTeacherAndStudentCanView: {
+                    text: "선생님(학생 조회 가능)",
+                    color: "purple",
+                  },
+                },
+                width: "180px",
+                textAlign: "center",
+              },
+              {
+                text: "평가단위",
+                key: "combineBy",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "status",
+                status: {
+                  term: {
+                    text: "학기",
+                    color: "green",
+                  },
+                  year: {
+                    text: "학년도",
+                    color: "gray",
+                  },
+                },
+                width: "100px",
+                textAlign: "center",
+              },
+            ]}
+          />
         </div>
       </div>
 
@@ -129,11 +218,15 @@ const Form = (props: Props) => {
                       _id: props.seasonData?._id,
                       type: "timetable",
                       data: res,
-                    }).then((res) => {
-                      props.seasonData.formTimetable = res;
-                      props.setSelectedSeason(props.seasonData);
-                      setFormTimetablePopupActive(false);
-                    });
+                    })
+                      .then((res) => {
+                        props.seasonData.formTimetable = res;
+                        props.setSelectedSeason(props.seasonData);
+                        setFormTimetablePopupActive(false);
+                      })
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
                   });
                 },
                 width: "80px",
@@ -178,11 +271,15 @@ const Form = (props: Props) => {
                       _id: props.seasonData?._id,
                       type: "syllabus",
                       data: res,
-                    }).then((res) => {
-                      props.seasonData.formSyllabus = res;
-                      props.setSelectedSeason(props.seasonData);
-                      setFormSyllabusPopupActive(false);
-                    });
+                    })
+                      .then((res) => {
+                        props.seasonData.formSyllabus = res;
+                        props.setSelectedSeason(props.seasonData);
+                        setFormSyllabusPopupActive(false);
+                      })
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
                   });
                 },
                 width: "80px",
@@ -235,13 +332,17 @@ const Form = (props: Props) => {
                   _id: props.seasonData?._id,
                   type: "evaluation",
                   data: _formEvaluation,
-                }).then((res) => {
-                  props.seasonData.formEvaluation = res;
-                  setFormEvaluation([...res]);
-                  props.setSelectedSeason(props.seasonData);
+                })
+                  .then((res) => {
+                    props.seasonData.formEvaluation = res;
+                    setFormEvaluation([...res]);
+                    props.setSelectedSeason(props.seasonData);
 
-                  // setFormEvaluationPopupActive(false);
-                });
+                    // setFormEvaluationPopupActive(false);
+                  })
+                  .catch((err) => {
+                    alert(err.response.data.message);
+                  });
               }}
             >
               저장

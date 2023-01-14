@@ -32,14 +32,24 @@ module.exports.find = async (req, res) => {
       const school = await School(req.user.academyId).findById(req.params._id);
       if (!school) return res.status(404).send({ message: "school not found" });
 
-      const seasons = await Season(req.user.academyId)
-        .find({ schoolId: school.schoolId })
-        .select(["year", "term"]);
+      if (req.query?.includes === "seasons") {
+        const seasons = await Season(req.user.academyId)
+          .find({ schoolId: school.schoolId })
+          .select([
+            "year",
+            "term",
+            "period",
+            "isActivated",
+            "isActivatedFirst",
+          ]);
 
-      return res.status(200).send({
-        ...school.toObject(),
-        seasons,
-      });
+        return res.status(200).send({
+          school,
+          seasons,
+        });
+      }
+
+      return res.status(200).send(school);
     }
     const schools = await School(req.user.academyId)
       .find({})

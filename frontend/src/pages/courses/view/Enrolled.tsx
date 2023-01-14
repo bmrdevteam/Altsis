@@ -38,7 +38,6 @@ import style from "style/pages/courses/course.module.scss";
 
 // components
 import Divider from "components/divider/Divider";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 
@@ -48,6 +47,7 @@ import _ from "lodash";
 
 import { checkPermission } from "functions/functions";
 import Navbar from "layout/navbar/Navbar";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
@@ -164,11 +164,11 @@ const CourseEnrollment = (props: Props) => {
     if (isLoading) {
       getEnrollmentData()
         .then((result) => {
-          if (result.season !== currentSeason._id) {
-            console.log("?");
-            navigate("/courses", { replace: true });
-
-            // navigate("/courses");
+          if (
+            result.season !== currentSeason._id ||
+            result.studentId !== currentUser.userId
+          ) {
+            navigate("/courses#수강신청%20현황", { replace: true });
           }
 
           console.log("result.teachers: ", result.teachers);
@@ -252,7 +252,7 @@ const CourseEnrollment = (props: Props) => {
                   });
               });
             }
-
+            setFieldEvaluationList([...fieldEvaluationList]);
             setFormEvaluationHeader(_formEvaluationHeader);
             setIsLoading(false);
           });
@@ -280,6 +280,27 @@ const CourseEnrollment = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
+        <div
+          style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            marginBottom: "18px",
+            display: "flex",
+            color: "var(--accent-1)",
+          }}
+        >
+          <div style={{ wordBreak: "keep-all" }}>
+            <span>&nbsp;/&nbsp;</span>
+            <span
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                navigate("/courses#수강신청%20현황", { replace: true });
+              }}
+            >
+              {`수강신청 현황 / ${pid}`}
+            </span>
+          </div>
+        </div>
         <div className={style.title}>{enrollmentData?.classTitle}</div>
         <div className={style.categories_container}>
           <div className={style.categories}>{categories()}</div>
@@ -292,16 +313,14 @@ const CourseEnrollment = (props: Props) => {
           <Divider />
 
           {formEvaluationHeader.length !== 0 && (
-            <div style={{ display: "flex", marginTop: "24px" }}>
+            <div style={{ marginTop: "24px" }}>
               <div
+                className={style.title}
                 style={{
-                  flex: "auto",
                   marginLeft: "12px",
-                  display: "flex",
-                  gap: "12px",
                 }}
               >
-                <div className={style.title}>평가</div>
+                평가
               </div>
 
               {permissionEvaluation ? (
@@ -441,7 +460,7 @@ const CourseEnrollment = (props: Props) => {
       </div>
     </>
   ) : (
-    <>로딩중</>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
