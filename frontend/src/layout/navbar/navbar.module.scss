@@ -34,22 +34,6 @@
     color: var(--accent-1);
   }
 
-  .search_container {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    gap: 8px;
-
-    .search {
-      outline: none;
-      border: none;
-      border-radius: 8px;
-      background-color: var(--component-color);
-      padding: 8px 18px;
-      flex: 1;
-    }
-  }
-
   .controls {
     margin-left: 24px;
 
