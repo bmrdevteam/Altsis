@@ -28,15 +28,15 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import style from "../style/pages/login.module.scss";
+import style from "style/pages/login.module.scss";
 import axios from "axios";
-import Button from "../components/button/Button";
+import Button from "components/button/Button";
 import { useNavigate, useParams } from "react-router-dom";
-import useGoogleLogin, { GoogleLoginBtn } from "../hooks/useGoogleLogin";
-import Select from "../components/select/Select";
+import useGoogleLogin, { GoogleLoginBtn } from "hooks/useGoogleLogin";
+import Select from "components/select/Select";
 import { useCookies } from "react-cookie";
-import useDatabase from "../hooks/useDatabase";
-import Input from "../components/input/Input";
+import useDatabase from "hooks/useDatabase";
+import Input from "components/input/Input";
 import useApi from "hooks/useApi";
 // import useFormValidation from "../hooks/useFormValidation";
 
@@ -56,7 +56,13 @@ const Login = () => {
    * the page id - to check which academy the user wants to login
    */
   const { pid } = useParams<"pid">();
-
+  const [formData, setFormData] = useState<{}>({
+    username: "",
+    password: "",
+    usernameInputValid: true,
+    passwordInputValid: true,
+    errorMsg: "",
+  });
   /**
    * usernamme and password input
    */
@@ -146,7 +152,7 @@ const Login = () => {
            * and ,,, reload? - werid behavior - not moving
            */
           navigate("/login");
-          navigate(0);
+          // navigate(0);
 
           /**
            * to get the academy list again
@@ -166,7 +172,7 @@ const Login = () => {
      */
     if (pid === "0") {
       navigate(`/${cookies.academyId}/login`);
-      navigate(0);
+      // navigate(0);
     }
     /**
      * if the pid is "undefined" due to the cookie being undefined
@@ -212,38 +218,6 @@ const Login = () => {
         }
       });
   };
-
-  if (academy === undefined || academy === "") {
-    let options: { text: string; value: string }[] = [{ text: "", value: "" }];
-    academies?.map((value, index) => {
-      options.push({ text: value.academyName, value: value.academyId });
-    });
-    return !loading ? (
-      <>
-        <div className={style.section}>
-          <div className={style.container}>
-            <div className={style.title}> 로그인 아카데미 선택</div>
-            <Select
-              appearence="flat"
-              onChange={(e: any) => {
-                if (e !== "") {
-                  setCookie("academyId", e, {
-                    path: "/",
-                    expires: date,
-                  });
-                  navigate(`/0/login`);
-                  navigate(0);
-                }
-              }}
-              options={options}
-            />
-          </div>
-        </div>
-      </>
-    ) : (
-      <div className={style.section}></div>
-    );
-  }
   return !loading ? (
     <>
       <div className={style.section}>
@@ -312,7 +286,6 @@ const Login = () => {
             type="ghost"
             onClick={() => {
               navigate("/login", { replace: false });
-              navigate(0);
             }}
             style={{ borderRadius: "8px" }}
           >
