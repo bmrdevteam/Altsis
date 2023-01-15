@@ -62,7 +62,7 @@ const getSubjectHeaderList = (options: {onDetail: any}) => [
     textAlign: "center",
     btnStyle: {
       border: true,
-      color: "black",
+      color: "var(--accent-2)",
       padding: "4px",
       round: true,
     },
