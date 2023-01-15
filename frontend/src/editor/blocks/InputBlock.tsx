@@ -12,7 +12,16 @@ const InputBlock = (props: Props) => {
 
   return (
     <div className={style.block}>
-      <Input label={block.data.label} required={block.data.required} placeholder={block.data.placeholder} />
+      <Input
+        style={{
+          fontSize: block.data?.fontSize,
+          // textAlign: block.data?.textAlign,
+          fontWeight: block.data?.fontWeight,
+        }}
+        label={block.data.label}
+        required={block.data.required}
+        placeholder={block.data.placeholder}
+      />
     </div>
   );
 };
