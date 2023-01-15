@@ -93,12 +93,12 @@ const UserSearchResult = (props: Props) => {
       allowedTab.수업 = coursesTab;
     }
 
-    allowedRoles = ['admin', 'teacher', 'parents'];
+    allowedRoles = ['admin', 'teacher'];
     if (allowedRoles.includes(currentRegistration.role)) {
       allowedTab.기록 = archiveTab;
     }
 
-    allowedRoles = ['admin', 'teacher', 'parents'];
+    allowedRoles = ['admin', 'teacher'];
     if (allowedRoles.includes(currentRegistration.role)) {
       allowedTab.문서 = docsTab;
     }
@@ -122,7 +122,6 @@ const UserSearchResult = (props: Props) => {
             <UserInfo user={user}/>
             <Tab
               items={getAllowedTab()}
-              dontUsePaths={true}
             />
           </>
         )}

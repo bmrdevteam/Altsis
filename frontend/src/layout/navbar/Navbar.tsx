@@ -234,7 +234,6 @@ const Navbar = (props: Props) => {
           })}
           defaultSelectedValue={currentRegistration}
           onChange={(value: any) => {
-            console.log(value);
             changeCurrentSeason(value);
           }}
         />
@@ -248,8 +247,8 @@ const Navbar = (props: Props) => {
 
 const UserSearchBox = () => {
   const navigate = useNavigate();
-  const {UserApi} = useApi();
-  const {currentSchool} = useAuth();
+  const {RegistrationApi} = useApi();
+  const {currentSchool, currentSeason} = useAuth();
   const [users, setUsers] = useState<Array<any>>([]);
 
   const submit = (value: string | number) => {
@@ -257,9 +256,9 @@ const UserSearchBox = () => {
   }
 
   useEffect(() => {
-    if (!currentSchool) return;
+    if (!currentSchool || !currentSeason) return;
 
-    UserApi.RUsers({school: currentSchool.school})
+    RegistrationApi.RRegistrations({season: currentSeason._id, school: currentSchool.school})
       .then((result) => {
         let newUsers = result.map((user: any) => {
           return {
@@ -270,7 +269,7 @@ const UserSearchBox = () => {
         setUsers(newUsers);
       })
       .catch((error) => console.error(error));
-  }, [currentSchool]);
+  }, [currentSchool, currentSeason]);
 
   return <Autofill
     options={[
