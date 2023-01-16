@@ -242,6 +242,10 @@ const Table = (props: Props) => {
                           ...prev,
                           searchParam: e.target.value,
                         }));
+                        setTableSettings((prev) => ({
+                          ...prev,
+                          pageIndex: 1,
+                        }));
                       }}
                     />
                     <div className={style.pager}>
