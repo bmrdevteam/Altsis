@@ -41,8 +41,7 @@ import Select from "components/select/Select";
 import _ from "lodash";
 
 type Props = {
-  seasonData: any;
-  setSelectedSeason: any;
+  _id: string;
 };
 
 const Permission = (props: Props) => {
@@ -95,7 +94,7 @@ const Permission = (props: Props) => {
     return { isTeacherAllowed, isStudentAllowed, exceptions };
   };
 
-  const zipPermission = () => {
+  const zipPermission = (permissionData: any) => {
     const _permission = [];
 
     console.log(permissionData);
@@ -120,6 +119,29 @@ const Permission = (props: Props) => {
       : { userName: "", role: "" };
   };
 
+  const updatePermissions = (seasonData: any) => {
+    setPermissionSyllabusParsed(
+      parsePermission(seasonData.permissionSyllabus || {})
+    );
+    setPermissionEnrollmentParsed(
+      parsePermission(seasonData.permissionEnrollment || {})
+    );
+    setPermissionEvaluationParsed(
+      parsePermission(seasonData.permissionEvaluation || {})
+    );
+  };
+
+  useEffect(() => {
+    if (isLoading) {
+      SeasonApi.RSeason(props._id)
+        .then((res) => {
+          updatePermissions(res);
+          setIsLoading(false);
+        })
+        .then(() => setIsLoading(false));
+    }
+  }, [isLoading]);
+
   useEffect(() => {
     if (isLoadingPermissionData) {
       if (permissionType === "syllabus")
@@ -132,27 +154,10 @@ const Permission = (props: Props) => {
   }, [isLoadingPermissionData]);
 
   useEffect(() => {
-    if (isLoading) {
-      setPermissionSyllabusParsed(
-        parsePermission(props.seasonData.permissionSyllabus)
-      );
-      setPermissionEnrollmentParsed(
-        parsePermission(props.seasonData.permissionEnrollment)
-      );
-      setPermissionEvaluationParsed(
-        parsePermission(props.seasonData.permissionEvaluation)
-      );
-      setIsLoading(false);
-    }
-  }, [isLoading]);
-
-  useEffect(() => {
     if (editPopupActive) {
-      RegistrationApi.RRegistrations({ season: props.seasonData._id }).then(
-        (res) => {
-          setRegistrationList(res);
-        }
-      );
+      RegistrationApi.RRegistrations({ season: props._id }).then((res) => {
+        setRegistrationList(res);
+      });
     }
   }, [editPopupActive]);
 
@@ -178,80 +183,82 @@ const Permission = (props: Props) => {
 
   return (
     <div style={{ marginTop: "24px" }}>
-      {!isLoading && (
-        <Table
-          type="object-array"
-          data={[
-            {
-              type: "syllabus",
-              ...permissionSyllabusParsed,
+      <Table
+        type="object-array"
+        data={
+          !isLoading
+            ? [
+                {
+                  type: "syllabus",
+                  ...permissionSyllabusParsed,
+                },
+                {
+                  type: "enrollment",
+                  ...permissionEnrollmentParsed,
+                },
+                {
+                  type: "evaluation",
+                  ...permissionEvaluationParsed,
+                },
+              ]
+            : []
+        }
+        header={[
+          {
+            text: "권한",
+            key: "type",
+            width: "120px",
+            textAlign: "center",
+            type: "status",
+            status: {
+              syllabus: { text: "수업 개설 권한" },
+              enrollment: { text: "수강신청 권한" },
+              evaluation: { text: "평가 권한" },
             },
-            {
-              type: "enrollment",
-              ...permissionEnrollmentParsed,
-            },
-            {
-              type: "evaluation",
-              ...permissionEvaluationParsed,
-            },
-          ]}
-          header={[
-            {
-              text: "권한",
-              key: "type",
-              width: "120px",
-              textAlign: "center",
-              type: "status",
-              status: {
-                syllabus: { text: "수업 개설 권한" },
-                enrollment: { text: "수강신청 권한" },
-                evaluation: { text: "평가 권한" },
-              },
-            },
+          },
 
-            {
-              text: "선생님",
-              key: "isTeacherAllowed",
-              width: "52px",
-              textAlign: "center",
-              type: "status",
-              status: {
-                false: { text: "N", color: "red" },
-                true: { text: "Y", color: "green" },
-              },
+          {
+            text: "선생님",
+            key: "isTeacherAllowed",
+            width: "52px",
+            textAlign: "center",
+            type: "status",
+            status: {
+              false: { text: "N", color: "red" },
+              true: { text: "Y", color: "green" },
             },
-            {
-              text: "학생",
-              key: "isStudentAllowed",
-              width: "52px",
-              textAlign: "center",
-              type: "status",
-              status: {
-                false: { text: "N", color: "red" },
-                true: { text: "Y", color: "green" },
-              },
+          },
+          {
+            text: "학생",
+            key: "isStudentAllowed",
+            width: "52px",
+            textAlign: "center",
+            type: "status",
+            status: {
+              false: { text: "N", color: "red" },
+              true: { text: "Y", color: "green" },
             },
-            {
-              text: "설정",
-              key: "detail",
-              type: "button",
-              onClick: (e: any) => {
-                setPermissionType(e.type);
-                setIsLoadingPermissionData(true);
-                setEditPopupActive(true);
-              },
-              width: "52px",
-              textAlign: "center",
-              btnStyle: {
-                border: true,
-                color: "var(--accent-1)",
-                padding: "4px",
-                round: true,
-              },
+          },
+          {
+            text: "설정",
+            key: "detail",
+            type: "button",
+            onClick: (e: any) => {
+              setPermissionType(e.type);
+              setIsLoadingPermissionData(true);
+              setEditPopupActive(true);
             },
-          ]}
-        />
-      )}
+            width: "52px",
+            textAlign: "center",
+            btnStyle: {
+              border: true,
+              color: "var(--accent-1)",
+              padding: "4px",
+              round: true,
+            },
+          },
+        ]}
+      />
 
       {!isLoadingPermissionData && editPopupActive && (
         <Popup
@@ -265,6 +272,7 @@ const Permission = (props: Props) => {
           } 권한 설정`}
           setState={setEditPopupActive}
           closeBtn
+          contentScroll
         >
           <div className={style.popup}>
             <div className={style.title}>역할별 설정</div>
@@ -273,7 +281,21 @@ const Permission = (props: Props) => {
               <ToggleSwitch
                 defaultChecked={permissionData?.isTeacherAllowed}
                 onChange={(b) => {
-                  permissionData.isTeacherAllowed = b;
+                  SeasonApi.USeasonPermission({
+                    _id: props._id,
+                    type: permissionType,
+                    data: zipPermission({
+                      ...permissionData,
+                      isTeacherAllowed: b,
+                    }),
+                  })
+                    .then((res: any) => {
+                      alert("success");
+                      updatePermissions(res);
+                    })
+                    .catch((err) => {
+                      alert(err.response.data.message);
+                    });
                 }}
               />
               <span>학생</span>
@@ -281,6 +303,21 @@ const Permission = (props: Props) => {
                 defaultChecked={permissionData?.isStudentAllowed}
                 onChange={(b) => {
                   permissionData.isStudentAllowed = b;
+                  SeasonApi.USeasonPermission({
+                    _id: props._id,
+                    type: permissionType,
+                    data: zipPermission({
+                      ...permissionData,
+                      isStudentAllowed: b,
+                    }),
+                  })
+                    .then((res: any) => {
+                      alert("success");
+                      updatePermissions(res);
+                    })
+                    .catch((err) => {
+                      alert(err.response.data.message);
+                    });
                 }}
               />
             </div>
@@ -310,12 +347,32 @@ const Permission = (props: Props) => {
               <Button
                 type={"ghost"}
                 onClick={() => {
+                  console.log(permissionData);
                   if (selectedUserId) {
-                    permissionData?.exceptions.push({
-                      userId: selectedUserId,
-                      isAllowed: selectedIsAllowed === "허용",
-                      ...getRegistrationDataByUserId(selectedUserId),
-                    });
+                    SeasonApi.USeasonPermission({
+                      _id: props._id,
+                      type: permissionType,
+                      data: zipPermission({
+                        ...permissionData,
+                        exceptions: [
+                          ...permissionData?.exceptions,
+                          {
+                            userId: selectedUserId,
+                            isAllowed: selectedIsAllowed === "허용",
+                            ...getRegistrationDataByUserId(selectedUserId),
+                          },
+                        ],
+                      }),
+                    })
+                      .then((res: any) => {
+                        alert("success");
+                        setSelectedUserId("");
+                        updatePermissions(res);
+                      })
+                      .then(() => setIsLoadingPermissionData(true))
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
                   }
                 }}
                 style={{
@@ -378,6 +435,20 @@ const Permission = (props: Props) => {
                   type: "button",
                   onClick: (e: any) => {
                     permissionData.exceptions.splice(e.tableRowIndex - 1, 1);
+
+                    SeasonApi.USeasonPermission({
+                      _id: props._id,
+                      type: permissionType,
+                      data: zipPermission(permissionData),
+                    })
+                      .then((res: any) => {
+                        alert("success");
+                        updatePermissions(res);
+                        setIsLoadingPermissionData(true);
+                      })
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
                   },
                   width: "80px",
                   textAlign: "center",
@@ -390,47 +461,6 @@ const Permission = (props: Props) => {
                 },
               ]}
             />
-          </div>
-          <div className={style.row}>
-            <Button
-              type={"ghost"}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                marginTop: "24px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-              onClick={(e: any) => {
-                console.log("data is ", zipPermission());
-                SeasonApi.USeasonPermission({
-                  _id: props.seasonData?._id,
-                  type: permissionType,
-                  data: zipPermission(),
-                })
-                  .then((res: any) => {
-                    alert("success");
-                    if (permissionData.type === "syllabus") {
-                      setPermissionSyllabusParsed(parsePermission(res));
-                      props.seasonData.permissionSyllabus = res;
-                      props.setSelectedSeason(props.seasonData);
-                    } else if (permissionData.type === "enrollment") {
-                      setPermissionEnrollmentParsed(parsePermission(res));
-                      props.seasonData.permissionEnrollment = res;
-                      props.setSelectedSeason(props.seasonData);
-                    } else if (permissionData.type === "evaluation") {
-                      setPermissionEvaluationParsed(parsePermission(res));
-                      props.seasonData.permissionEvaluation = res;
-                      props.setSelectedSeason(props.seasonData);
-                    }
-                    setEditPopupActive(false);
-                  })
-                  .catch((err) => {
-                    alert(err.response.data.message);
-                  });
-              }}
-            >
-              수정하기
-            </Button>
           </div>
         </Popup>
       )}
