@@ -85,6 +85,7 @@ module.exports.create = async (req, res) => {
         term: req.body.term,
         period: req.body.period ? req.body.period : { start: "", end: "" },
         isActivated: false,
+        isActivatedFirst: false,
       });
 
       await season.save();
@@ -229,7 +230,7 @@ module.exports.activate = async (req, res) => {
       { isActivated: true }
     );
 
-    return res.status(200).send();
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -251,7 +252,7 @@ module.exports.inactivate = async (req, res) => {
       { isActivated: false }
     );
 
-    return res.status(200).send();
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -303,7 +304,7 @@ module.exports.updateField = async (req, res) => {
       );
     }
 
-    return res.status(200).send(season[field]);
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

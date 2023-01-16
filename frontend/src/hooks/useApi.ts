@@ -352,6 +352,7 @@ export default function useApi() {
   /**
    * Update Classrooms in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonClassroom(props: { _id: string; data: string[] }) {
     return await database.U({
@@ -363,6 +364,7 @@ export default function useApi() {
   /**
    * Update Subjects in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonSubject(props: {
     _id: string;
@@ -377,6 +379,7 @@ export default function useApi() {
   /**
    * Update form in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonForm(props: {
     _id: string;
@@ -392,6 +395,7 @@ export default function useApi() {
   /**
    * Update permission in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonPermission(props: {
     _id: string;
@@ -408,7 +412,6 @@ export default function useApi() {
    * Delete Season
    * @type DELETE
    * @auth admin manager
-   * @returns Season
    */
 
   async function DSeason(_id: string) {
