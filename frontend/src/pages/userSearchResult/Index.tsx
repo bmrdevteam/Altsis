@@ -15,7 +15,6 @@
  *
  * IN DEVELOPMENT
  * 
- * -
  *
  * -------------------------------------------------------
  *
@@ -49,7 +48,7 @@ type Props = {};
 
 const UserSearchResult = (props: Props) => {
   const {currentSchool, currentSeason, currentRegistration} = useAuth();
-  const {RegistrationApi} = useApi();
+  const {RegistrationApi, UserApi} = useApi();
   const params = useParams();
   
   const [user, setUser] = useState<any>();
@@ -57,17 +56,31 @@ const UserSearchResult = (props: Props) => {
   // Find match user
   useEffect(() => {
     if (currentSchool && currentSeason) {
-      const userId = params?.uid;
+      const userId = params?.uid ? params.uid : '';
 
-      RegistrationApi.RRegistrations({schoolId: currentSchool.schoolId, userId, season: currentSeason._id})
-      .then((users) => {
-        if (users) {
-          setUser(users[0]);
+      const getUser = async () => {
+        try {
+          const rawRegistrations =  await RegistrationApi.RRegistrations({schoolId: currentSchool.schoolId, userId, season: currentSeason._id});
+          const rawUsers: Array<any> = await UserApi.RUsers({userId});
+          if (!rawRegistrations.length || !rawUsers.length) {
+            throw new Error('No such user');
+          }
+          const result = {...rawRegistrations[0]};
+          if (rawUsers[0]?.profile) {
+            result.profile = rawUsers[0].profile;
+          }
+          return result;
         }
-      })
-      .catch(() => {
+        catch (e) {
 
+        }
+      }
+     
+      getUser()
+      .then((user) => {
+        setUser(user);
       })
+      .catch();
     }
   }, [currentSchool, currentSeason, params]);
 
