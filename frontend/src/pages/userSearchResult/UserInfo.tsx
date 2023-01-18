@@ -30,14 +30,14 @@ const UserInfo = (props: Props) => {
       <span className={style.user_role}>{roleInKorean.get(user.role)}</span>
     </div>;
   }
-  
+
 	return <div className={style.user_info}>
 		<div className={style.user_profile_img_container}>
 			<img 
-				src={user?.profile || defaultProfilePic}
+				src={user.profile || defaultProfilePic}
         onError={(e) => {
 					e.currentTarget.onerror = null;
-					e.currentTarget.src = user?.profile.replace(
+					e.currentTarget.src = user.profile.replace(
 					"/thumb/",
 					"/original/"
 					);
