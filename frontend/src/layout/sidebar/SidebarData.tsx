@@ -124,15 +124,9 @@ export const SidebarData = (
         {
           title: "admin",
           name: "관리자",
-          path: "/admin",
-          icon: <Svg type="calender" />,
+          path: `/admin/schools`,
+          icon: <Svg type="school" />,
           subLink: [
-            {
-              title: "schools",
-              name: "학교 관리",
-              path: `/admin/schools`,
-              icon: <Svg type="file" />,
-            },
             {
               title: "forms",
               name: "양식 관리",
@@ -217,15 +211,9 @@ export const SidebarData = (
         {
           title: "admin",
           name: "관리자",
-          path: "/admin",
-          icon: <Svg type="calender" />,
+          path: "/admin/schools/list",
+          icon: <Svg type="school" />,
           subLink: [
-            {
-              title: "schools",
-              name: "학교 관리",
-              path: "/admin/schools/list",
-              icon: <Svg type="file" />,
-            },
             {
               title: "forms",
               name: "양식 관리",
@@ -236,7 +224,7 @@ export const SidebarData = (
               title: "users",
               name: "사용자 관리",
               path: "/admin/users",
-              icon: <Svg type="file" />,
+              icon: <Svg type="user" />,
             },
           ],
         },
