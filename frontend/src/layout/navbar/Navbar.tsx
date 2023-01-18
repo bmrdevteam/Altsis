@@ -225,7 +225,14 @@ const Navbar = (props: Props) => {
   return (
     <div className={style.navbar_container}>
       {props.title && <div className={style.title}>{props.title}</div>}
-      <UserSearchBox />
+      {/* <UserSearchBox /> */}
+      <div className={style.user_search}>
+        <input type="text" className={style.search} placeholder={"검색"}/>
+        <div className={style.result}>
+
+        </div>
+      </div>
+
       <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
         <Select
           appearence="flat"
@@ -247,39 +254,42 @@ const Navbar = (props: Props) => {
 
 const UserSearchBox = () => {
   const navigate = useNavigate();
-  const {RegistrationApi} = useApi();
-  const {currentSchool, currentSeason} = useAuth();
+  const { RegistrationApi } = useApi();
+  const { currentSchool, currentSeason } = useAuth();
   const [users, setUsers] = useState<Array<any>>([]);
 
   const submit = (value: string | number) => {
-   navigate(`/search/${value}`);
-  }
+    navigate(`/search/${value}`);
+  };
 
   useEffect(() => {
     if (!currentSchool || !currentSeason) return;
 
-    RegistrationApi.RRegistrations({season: currentSeason._id, school: currentSchool.school})
+    RegistrationApi.RRegistrations({
+      season: currentSeason._id,
+      school: currentSchool.school,
+    })
       .then((result) => {
         let newUsers = result.map((user: any) => {
           return {
             text: `${user.userName} / ${user.userId}`,
-            value: user.userId
-          }
+            value: user.userId,
+          };
         });
         setUsers(newUsers);
       })
       .catch((error) => console.error(error));
   }, [currentSchool, currentSeason]);
 
-  return <Autofill
-    options={[
-      ...users
-    ]}
-    onChange={submit}
-    style={{
-      borderRadius: '4px'
-    }}
-  />
-}
+  return (
+    <Autofill
+      options={[...users]}
+      onChange={submit}
+      style={{
+        borderRadius: "4px",
+      }}
+    />
+  );
+};
 
 export default Navbar;

@@ -227,6 +227,7 @@ export default function useApi() {
    * @returns LoggedIn User
    */
   async function RUsers(params?: {
+    userId?: string | number;
     school?: string;
     schoolId?: string;
     "no-school"?: string;
