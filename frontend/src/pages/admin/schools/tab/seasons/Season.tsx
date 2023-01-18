@@ -392,7 +392,12 @@ const Season = (props: Props) => {
           closeBtn
           title={`${selectedSeason.year} ${selectedSeason.term}`}
           setState={setEditSeasonPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "800px", width: "100%" }}
+          style={{
+            borderRadius: "8px",
+            // minHeight: "620px",
+            maxWidth: "800px",
+            width: "100%",
+          }}
           contentScroll
         >
           <Tab
@@ -400,38 +405,17 @@ const Season = (props: Props) => {
             items={{
               "기본 정보": (
                 <Basic
-                  seasonData={selectedSeason}
+                  _id={selectedSeason._id}
                   setPopupActive={setEditSeasonPopupActive}
                   setIsLoading={setIsLoading}
-                  setSeasonData={setSelectedSeason}
                 />
               ),
               사용자: <Users seasonData={selectedSeason} />,
-              교과목: (
-                <Subject
-                  seasonData={selectedSeason}
-                  setSelectedSeason={setSelectedSeason}
-                />
-              ),
-              강의실: (
-                <Classroom
-                  seasonData={selectedSeason}
-                  setSelectedSeason={setSelectedSeason}
-                />
-              ),
-              양식: (
-                <Form
-                  seasonData={selectedSeason}
-                  setSelectedSeason={setSelectedSeason}
-                />
-              ),
+              교과목: <Subject _id={selectedSeason._id} />,
+              강의실: <Classroom _id={selectedSeason._id} />,
+              양식: <Form _id={selectedSeason._id} />,
 
-              권한: (
-                <Permission
-                  seasonData={selectedSeason}
-                  setSelectedSeason={setSelectedSeason}
-                />
-              ),
+              권한: <Permission _id={selectedSeason._id} />,
             }}
             align={"flex-start"}
           />

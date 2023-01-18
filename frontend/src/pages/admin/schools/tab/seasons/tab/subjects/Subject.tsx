@@ -39,15 +39,17 @@ import Table from "components/tableV2/Table";
 import UpdateBulk from "./tab/updateBulk";
 
 type Props = {
-  seasonData?: any;
-  setSelectedSeason?: any;
+  _id: string;
 };
 
 const Subjects = (props: Props) => {
   const { SeasonApi } = useApi();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* subject label list */
   const [subjectLabelList, setSubjectLabelList] = useState<any[]>([]);
+  const [subjectDataList, setSubjectDataList] = useState<any[]>([]);
+
   const subjectDataRef = useRef<string>("");
   const subjectLabelRef = useRef<string>("");
 
@@ -58,46 +60,48 @@ const Subjects = (props: Props) => {
   /* popup activation */
   const [updateBulkPopup, setUpdateBulkPopupActive] = useState<boolean>(false);
 
-  const updateSubjectDataHeader = () => {
-    const subjectDataList = [];
-    for (let j = 0; j < subjectLabelList?.length; j++) {
-      subjectDataList.push({
+  const setSubjects = (subjects: any) => {
+    const subjectLabelList = subjects?.label || [];
+    const subjectDataList = subjects?.data || [];
+
+    setSubjectLabelList(subjectLabelList);
+    setSubjectDataList(subjectDataList);
+
+    // updateSubjectDataHeader
+    const _subjectDataHeader = [];
+    for (let j = 0; j < subjectLabelList.length; j++) {
+      _subjectDataHeader.push({
         text: subjectLabelList[j],
         key: subjectLabelList[j],
         type: "string",
       });
     }
-    setSubjectDataHeader(subjectDataList);
-  };
+    setSubjectDataHeader(_subjectDataHeader);
 
-  const parseSubjectDataList = (labalList: any[], dataList: any[]) => {
-    return dataList.map((data: any) =>
-      labalList.reduce(
-        (ac: any[], a: string, idx: number) => ({ ...ac, [a]: data[idx] }),
-        {}
+    // parse data
+    setSubjectObjectList(
+      subjectDataList.map((data: any) =>
+        subjectLabelList.reduce(
+          (ac: any[], a: string, idx: number) => ({ ...ac, [a]: data[idx] }),
+          {}
+        )
       )
     );
   };
 
   useEffect(() => {
-    setSubjectLabelList(props.seasonData.subjects?.label || []);
-    return () => {};
-  }, [props.seasonData]);
-
-  useEffect(() => {
-    updateSubjectDataHeader();
-    if (props.seasonData?.subjects?.data) {
-      setSubjectObjectList(
-        parseSubjectDataList(subjectLabelList, props.seasonData?.subjects?.data)
-      );
+    if (isLoading) {
+      SeasonApi.RSeason(props._id)
+        .then((res) => {
+          setSubjects(res.subjects);
+        })
+        .then(() => setIsLoading(false));
     }
-
     return () => {};
-  }, [subjectLabelList]);
+  }, [isLoading]);
 
   return (
     <>
-      {" "}
       <div className={style.popup}>
         <Button
           type={"ghost"}
@@ -129,17 +133,15 @@ const Subjects = (props: Props) => {
             onKeyDown={(e: any) => {
               if (subjectLabelRef.current !== "" && e.key === "Enter") {
                 SeasonApi.USeasonSubject({
-                  _id: props.seasonData?._id,
+                  _id: props._id,
                   data: {
                     label: subjectLabelRef.current.split("/"),
-                    data: props.seasonData?.subjects.data,
+                    data: subjectDataList,
                   },
                 })
                   .then((res: any) => {
-                    setSubjectLabelList(res.label);
-                    props.seasonData.subjects = { ...res };
-                    props.setSelectedSeason(props.seasonData);
                     alert("success");
+                    setSubjects(res.subjects);
                   })
                   .catch((err) => {
                     console.log(err.response.data.message);
@@ -151,23 +153,23 @@ const Subjects = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              SeasonApi.USeasonSubject({
-                _id: props.seasonData?._id,
-                data: {
-                  label: subjectLabelRef.current.split("/"),
-                  data: props.seasonData?.subjects.data,
-                },
-              })
-                .then((res: any) => {
-                  setSubjectLabelList(res.label);
-                  props.seasonData.subjects = [...res];
-                  props.setSelectedSeason(props.seasonData);
-                  alert("success");
+              if (subjectLabelRef.current !== "") {
+                SeasonApi.USeasonSubject({
+                  _id: props._id,
+                  data: {
+                    label: subjectLabelRef.current.split("/"),
+                    data: subjectDataList,
+                  },
                 })
-                .catch((err) => {
-                  console.log(err.response.data.message);
-                  // alert(err.response.data.message);
-                });
+                  .then((res: any) => {
+                    alert("success");
+                    setSubjects(res.subjects);
+                  })
+                  .catch((err) => {
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
+                  });
+              }
             }}
             style={{
               borderRadius: "4px",
@@ -194,20 +196,18 @@ const Subjects = (props: Props) => {
             onKeyDown={(e: any) => {
               if (subjectDataRef.current !== "" && e.key === "Enter") {
                 SeasonApi.USeasonSubject({
-                  _id: props.seasonData?._id,
+                  _id: props._id,
                   data: {
                     label: subjectLabelList,
                     data: [
-                      ...props.seasonData?.subjects?.data,
+                      ...subjectDataList,
                       subjectDataRef.current.split("/"),
                     ],
                   },
                 })
                   .then((res: any) => {
-                    setSubjectLabelList(res.label);
-                    props.seasonData.subjects = { ...res };
-                    props.setSelectedSeason(props.seasonData);
                     alert("success");
+                    setSubjects(res.subjects);
                   })
                   .catch((err) => {
                     console.log(err.response.data.message);
@@ -220,26 +220,26 @@ const Subjects = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              SeasonApi.USeasonSubject({
-                _id: props.seasonData?._id,
-                data: {
-                  label: subjectLabelList,
-                  data: [
-                    ...props.seasonData?.subjects.data,
-                    subjectDataRef.current.split("/"),
-                  ],
-                },
-              })
-                .then((res: any) => {
-                  setSubjectLabelList(res.label);
-                  props.seasonData.subjects = { ...res };
-                  props.setSelectedSeason(props.seasonData);
-                  alert("success");
+              if (subjectDataRef.current !== "") {
+                SeasonApi.USeasonSubject({
+                  _id: props._id,
+                  data: {
+                    label: subjectLabelList,
+                    data: [
+                      ...subjectDataList,
+                      subjectDataRef.current.split("/"),
+                    ],
+                  },
                 })
-                .catch((err) => {
-                  console.log(err.response.data.message);
-                  // alert(err.response.data.message);
-                });
+                  .then((res: any) => {
+                    alert("success");
+                    setSubjects(res.subjects);
+                  })
+                  .catch((err) => {
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
+                  });
+              }
             }}
             style={{
               borderRadius: "4px",
@@ -252,64 +252,61 @@ const Subjects = (props: Props) => {
         </div>
 
         <div style={{ marginTop: "24px" }} />
-        <Table
-          type="object-array"
-          data={subjectObjectList || []}
-          header={[
-            {
-              text: "No",
-              type: "text",
-              key: "tableRowIndex",
-              width: "48px",
-              textAlign: "center",
-            },
-            ...subjectDataHeader,
-            {
-              text: "삭제",
-              key: "delete",
-              type: "button",
-              onClick: (e: any) => {
-                props.seasonData?.subjects.data.splice(e.tableRowIndex - 1, 1);
+        {!isLoading && (
+          <Table
+            type="object-array"
+            data={subjectObjectList || []}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+              ...subjectDataHeader,
+              {
+                text: "삭제",
+                key: "delete",
+                type: "button",
+                onClick: (e: any) => {
+                  subjectDataList.splice(e.tableRowIndex - 1, 1);
 
-                SeasonApi.USeasonSubject({
-                  _id: props.seasonData?._id,
-                  data: {
-                    label: subjectLabelList,
-                    data: [...props.seasonData?.subjects.data],
-                  },
-                })
-                  .then((res: any) => {
-                    setSubjectObjectList(
-                      parseSubjectDataList(res.label, res.data)
-                    );
-                    props.seasonData.subjects = { ...res };
-                    props.setSelectedSeason(props.seasonData);
-                    alert("success");
+                  SeasonApi.USeasonSubject({
+                    _id: props._id,
+                    data: {
+                      label: subjectLabelList,
+                      data: subjectDataList,
+                    },
                   })
-                  .catch((err) => {
-                    console.log(err.response.data.message);
-                    // alert(err.response.data.message);
-                  });
+                    .then((res: any) => {
+                      alert("success");
+                      setSubjects(res.subjects);
+                    })
+                    .catch((err) => {
+                      console.log(err.response.data.message);
+                      // alert(err.response.data.message);
+                    });
+                },
+                width: "80px",
+                textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "red",
+                  padding: "4px",
+                  round: true,
+                },
               },
-              width: "80px",
-              textAlign: "center",
-              btnStyle: {
-                border: true,
-                color: "red",
-                padding: "4px",
-                round: true,
-              },
-            },
-          ]}
-        />
+            ]}
+          />
+        )}
       </div>
+
       {updateBulkPopup && (
         <UpdateBulk
           setPopupActive={setUpdateBulkPopupActive}
-          seasonData={props.seasonData}
-          setSelectedSeason={props.setSelectedSeason}
-          setSubjectHeaderList={setSubjectDataHeader}
-          setSubjectObjectList={setSubjectObjectList}
+          _id={props._id}
+          setSubjects={setSubjects}
         />
       )}
     </>

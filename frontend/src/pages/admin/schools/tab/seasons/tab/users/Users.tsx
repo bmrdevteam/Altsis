@@ -37,6 +37,7 @@ import useApi from "hooks/useApi";
 import _ from "lodash";
 
 import Register from "./tab/Register";
+import Register2 from "./tab/Register2";
 import Edit from "./tab/Edit";
 import EditBulk from "./tab/EditBulk";
 import SelectSeason from "./tab/RegisterCopy";
@@ -227,7 +228,17 @@ const Users = (props: Props) => {
       <>
         {!isLoading && (
           <Table
-            data={registrationList}
+            data={registrationList.map((registration: any) => {
+              return {
+                ...registration,
+                teacherTxt: registration.teacherId
+                  ? `${registration.teacherName}\n(${registration.teacherId})`
+                  : "",
+                subTeacherTxt: registration.subTeacherId
+                  ? `${registration.subTeacherName}\n(${registration.subTeacherId})`
+                  : "",
+              };
+            })}
             type="object-array"
             control
             onChange={(value: any[]) => {
@@ -251,18 +262,21 @@ const Users = (props: Props) => {
                   teacher: { text: "선생님", color: "blue" },
                   student: { text: "학생", color: "orange" },
                 },
+                width: "84px",
               },
               {
                 text: "ID",
                 key: "userId",
                 type: "text",
                 textAlign: "center",
+                whiteSpace: "pre",
               },
               {
                 text: "이름",
                 key: "userName",
                 type: "text",
                 textAlign: "center",
+                whiteSpace: "pre",
               },
 
               {
@@ -270,6 +284,7 @@ const Users = (props: Props) => {
                 key: "grade",
                 type: "text",
                 textAlign: "center",
+                whiteSpace: "pre",
               },
               {
                 text: "그룹",
@@ -278,16 +293,18 @@ const Users = (props: Props) => {
                 textAlign: "center",
               },
               {
-                text: "선생님 ID",
-                key: "teacherId",
+                text: "담임 선생님",
+                key: "teacherTxt",
                 type: "text",
                 textAlign: "center",
+                whiteSpace: "pre-wrap",
               },
               {
-                text: "선생님 이름",
-                key: "teacherName",
+                text: "부담임 선생님",
+                key: "subTeacherTxt",
                 type: "text",
                 textAlign: "center",
+                whiteSpace: "pre-wrap",
               },
               {
                 text: "수정",
@@ -311,7 +328,7 @@ const Users = (props: Props) => {
         )}
       </>
       {registerUserPopupActive && (
-        <Register
+        <Register2
           setPopupActive={setRegisterUserPopupActive}
           seasonData={props.seasonData}
           setIsLoading={setIsLoading}

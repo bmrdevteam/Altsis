@@ -50,17 +50,20 @@ module.exports.registerBulk = async (req, res) => {
 
     const registerations = [];
     const seasonSubdocument = season.getSubdocument();
+    const info = req.body.info;
 
     for (let user of req.body.users) {
       registerations.push({
         ...seasonSubdocument,
         userId: user.userId,
         userName: user.userName,
-        role: user.role,
-        grade: user.grade,
-        group: user.group,
-        teacherId: user.teacherId,
-        teacherName: user.teacherName,
+        role: info.role,
+        grade: info.grade,
+        group: info.group,
+        teacherId: info.teacherId,
+        teacherName: info.teacherName,
+        subTeacherId: info.subTeacherId,
+        subTeacherName: info.subTeacherName,
       });
     }
     const newRegistrations = await Registration(req.user.academyId).insertMany(
@@ -93,6 +96,8 @@ module.exports.registerCopy = async (req, res) => {
         group: registration.group,
         teacherId: registration.teacherId,
         teacherName: registration.teacherName,
+        subTeacherId: registration.subTeacherId,
+        subTeacherName: registration.subTeacherName,
         ...seasonSubdocument,
       };
     });
@@ -125,13 +130,29 @@ module.exports.find = async (req, res) => {
 module.exports.update = async (req, res) => {
   try {
     const ids = _.split(req.params._ids, ",");
-    const { role, grade, group, teacherId, teacherName } = req.body;
+    const {
+      role,
+      grade,
+      group,
+      teacherId,
+      teacherName,
+      subTeacherId,
+      subTeacherName,
+    } = req.body;
 
     const registrations = await Registration(req.user.academyId).updateMany(
       {
         _id: { $in: ids },
       },
-      { role, grade, group, teacherId, teacherName }
+      {
+        role,
+        grade,
+        group,
+        teacherId,
+        teacherName,
+        subTeacherId,
+        subTeacherName,
+      }
     );
 
     return res.status(200).send(registrations);

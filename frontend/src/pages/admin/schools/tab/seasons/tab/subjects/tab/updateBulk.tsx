@@ -43,10 +43,8 @@ import exampleData from "../../../../../exampleData/subjectExampleData";
 
 type Props = {
   setPopupActive: any;
-  seasonData: any;
-  setSelectedSeason: any;
-  setSubjectHeaderList: any;
-  setSubjectObjectList: any;
+  _id: string;
+  setSubjects: any;
 };
 
 function Basic(props: Props) {
@@ -159,21 +157,15 @@ function Basic(props: Props) {
             type={"ghost"}
             onClick={() => {
               SeasonApi.USeasonSubject({
-                _id: props.seasonData?._id,
+                _id: props._id,
                 data: {
                   label: subjectLabelList,
                   data: parseSubjectObjectList(subjectObjectList),
                 },
               })
                 .then((res: any) => {
-                  props.setSubjectHeaderList(subjectDataHeader);
-                  props.setSubjectObjectList(
-                    parseSubjectDataList(res.label, res.data)
-                  );
-                  props.seasonData.subjects = res;
-                  props.setSelectedSeason(props.seasonData);
-
                   alert("success");
+                  props.setSubjects(res.subjects);
                   props.setPopupActive(false);
                 })
                 .catch((err) => alert(err.response.data.message));

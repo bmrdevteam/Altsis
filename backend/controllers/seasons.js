@@ -85,6 +85,7 @@ module.exports.create = async (req, res) => {
         term: req.body.term,
         period: req.body.period ? req.body.period : { start: "", end: "" },
         isActivated: false,
+        isActivatedFirst: false,
       });
 
       await season.save();
@@ -215,21 +216,27 @@ module.exports.update = async (req, res) => {
 module.exports.activate = async (req, res) => {
   try {
     /* find document */
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
+
+    const _season = await Season(req.user.academyId).findById(req.params._id);
+    if (!_season) return res.status(404).send({ message: "season not found" });
 
     /* activate season */
-    if (!season.isActivatedFirst) season.isActivatedFirst = true;
-    season.isActivated = true;
-    await season.save();
+    if (!_season.isActivatedFirst) _season.isActivatedFirst = true;
+
+    /* inactivate season */
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      _season._id,
+      { isActivated: true },
+      { new: true }
+    );
 
     /* activate registrations */
     await Registration(req.user.academyId).updateMany(
-      { season },
+      { season: _season },
       { isActivated: true }
     );
 
-    return res.status(200).send();
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -237,13 +244,13 @@ module.exports.activate = async (req, res) => {
 
 module.exports.inactivate = async (req, res) => {
   try {
-    /* find document */
-    const season = await Season(req.user.academyId).findById(req.params._id);
+    /* inactivate season */
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { isActivated: false },
+      { new: true }
+    );
     if (!season) return res.status(404).send({ message: "season not found" });
-
-    /* activate season */
-    season.isActivated = false;
-    await season.save();
 
     /* activate registrations */
     await Registration(req.user.academyId).updateMany(
@@ -251,7 +258,7 @@ module.exports.inactivate = async (req, res) => {
       { isActivated: false }
     );
 
-    return res.status(200).send();
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -259,10 +266,9 @@ module.exports.inactivate = async (req, res) => {
 
 module.exports.updateField = async (req, res) => {
   try {
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
+    const _season = await Season(req.user.academyId).findById(req.params._id);
+    if (!_season) return res.status(404).send({ message: "season not found" });
 
-    console.log(season);
     let field = req.params.field;
     if (req.params.fieldType)
       field +=
@@ -272,7 +278,7 @@ module.exports.updateField = async (req, res) => {
       case "formTimetable":
       case "formSyllabus":
       case "formEvaluation":
-        if (season.isActivatedFirst)
+        if (_season.isActivatedFirst)
           return res.status(409).send({
             message: "한 번 활성화된 시즌의 양식을 변경할 수 업습니다.",
           });
@@ -291,19 +297,24 @@ module.exports.updateField = async (req, res) => {
         return res.status(400).send();
     }
 
-    season[field] = req.body.new;
-    await season.save();
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      _season._id,
+      { [field]: req.body.new },
+      { new: true }
+    );
+    // season[field] = req.body.new;
+    // await season.save();
 
     // period가 변경되면
     // registration 일괄 수정
     if (field === "period") {
       await Registration(req.user.academyId).updateMany(
-        { season: season._id },
-        { period: season.period }
+        { season: _season._id },
+        { period: _season.period }
       );
     }
 
-    return res.status(200).send(season[field]);
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

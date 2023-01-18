@@ -60,7 +60,19 @@ function Registrations(props: Props) {
       <div className={style.popup}>
         <div style={{ marginTop: "24px" }}>
           <Table
-            data={registrationList || []}
+            data={
+              registrationList.map((registration: any) => {
+                return {
+                  ...registration,
+                  teacherTxt: registration.teacherId
+                    ? `${registration.teacherName}\n(${registration.teacherId})`
+                    : "",
+                  subTeacherTxt: registration.subTeacherId
+                    ? `${registration.subTeacherName}\n(${registration.subTeacherId})`
+                    : "",
+                };
+              }) || []
+            }
             defaultPageBy={50}
             control
             type="object-array"
@@ -104,16 +116,18 @@ function Registrations(props: Props) {
                 textAlign: "center",
               },
               {
-                text: "선생님 ID",
-                key: "teacherId",
+                text: "담임",
+                key: "teacherTxt",
                 type: "text",
                 textAlign: "center",
+                whiteSpace: "pre-wrap",
               },
               {
-                text: "선생님 이름",
-                key: "teacherName",
+                text: "부담임",
+                key: "subTeacherTxt",
                 type: "text",
                 textAlign: "center",
+                whiteSpace: "pre-wrap",
               },
               {
                 text: "상태",

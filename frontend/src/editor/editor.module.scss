@@ -190,6 +190,27 @@
                         border-radius: 8px;
                     }
 
+                    .add_block {
+                        height: 30px;
+                        display: flex;
+                        width: 100%;
+                        align-items: center;
+                        border-radius: 8px;
+
+                        background-color: var(--component-color);
+
+                        .option {
+                            flex: 1 1 0;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            cursor: pointer;
+                            padding: 4px 6px;
+                        }
+
+                    }
+
+
                     .align {
 
                         justify-content: space-between;

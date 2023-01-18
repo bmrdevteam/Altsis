@@ -230,7 +230,7 @@ const Permission = (props: Props) => {
             </div>
 
             <div className={style.title} style={{ marginTop: "24px" }}>
-              예외 추가히기
+              예외 추가하기
             </div>
 
             <div className={style.row}>
