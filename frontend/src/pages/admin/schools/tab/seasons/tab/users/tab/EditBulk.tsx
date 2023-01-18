@@ -53,6 +53,8 @@ function Basic(props: Props) {
   const [group, setGroup] = useState<string>("");
   const [teacherId, setTeacherId] = useState<string>("");
   const [teacherName, setTeacherName] = useState<string>("");
+  const [subTeacherId, setSubTeacherId] = useState<string>("");
+  const [subTeacherName, setSubTeacherName] = useState<string>("");
 
   return (
     <Popup
@@ -106,22 +108,27 @@ function Basic(props: Props) {
         </div>
 
         <div className={style.row} style={{ marginTop: "24px" }}>
-          <Autofill
-            options={_.filter(props.registrationList, {
-              role: "teacher",
-            }).map((registration: any) => {
-              return {
-                text: `${registration.userName}(${registration.userId})`,
+          <Select
+            options={[
+              {
+                text: ``,
                 value: JSON.stringify({
-                  teacherId: registration.userId,
-                  teacherName: registration.userName,
+                  teacherId: "",
+                  teacherName: "",
                 }),
-              };
-            })}
-            defaultValue={JSON.stringify({
-              teacherId,
-              teacherName,
-            })}
+              },
+              ..._.filter(props.registrationList, {
+                role: "teacher",
+              }).map((registration: any) => {
+                return {
+                  text: `${registration.userName}(${registration.userId})`,
+                  value: JSON.stringify({
+                    teacherId: registration.userId,
+                    teacherName: registration.userName,
+                  }),
+                };
+              }),
+            ]}
             appearence="flat"
             label="담임 선생님"
             onChange={(e: any) => {
@@ -129,6 +136,39 @@ function Basic(props: Props) {
                 JSON.parse(e);
               setTeacherId(_teacherId);
               setTeacherName(_teacherName);
+            }}
+          />
+        </div>
+
+        <div className={style.row} style={{ marginTop: "24px" }}>
+          <Select
+            options={[
+              {
+                text: ``,
+                value: JSON.stringify({
+                  teacherId: "",
+                  teacherName: "",
+                }),
+              },
+              ..._.filter(props.registrationList, {
+                role: "teacher",
+              }).map((registration: any) => {
+                return {
+                  text: `${registration.userName}(${registration.userId})`,
+                  value: JSON.stringify({
+                    teacherId: registration.userId,
+                    teacherName: registration.userName,
+                  }),
+                };
+              }),
+            ]}
+            appearence="flat"
+            label="부담임 선생님"
+            onChange={(e: any) => {
+              const { teacherId: _teacherId, teacherName: _teacherName } =
+                JSON.parse(e);
+              setSubTeacherId(_teacherId);
+              setSubTeacherName(_teacherName);
             }}
           />
         </div>
@@ -145,6 +185,8 @@ function Basic(props: Props) {
                 group,
                 teacherId,
                 teacherName,
+                subTeacherId,
+                subTeacherName,
               },
             })
               .then(() => {

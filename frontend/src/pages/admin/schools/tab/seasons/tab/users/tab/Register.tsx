@@ -68,19 +68,19 @@ function Basic(props: Props) {
         <Button
           type={"ghost"}
           onClick={() => {
-            RegistrationApi.CRegistrations({
-              data: {
-                season: props.seasonData._id,
-                users: selectedSchoolUsers.current,
-              },
-            })
-              .then(() => {
-                props.setIsLoading(true);
-                props.setPopupActive(false);
-              })
-              .catch(() => {
-                // getRegistrations();
-              });
+            // RegistrationApi.CRegistrations({
+            //   data: {
+            //     season: props.seasonData._id,
+            //     users: selectedSchoolUsers.current,
+            //   },
+            // })
+            //   .then((res) => {
+            //     props.setIsLoading(true);
+            //     props.setPopupActive(false);
+            //   })
+            //   .catch(() => {
+            //     // getRegistrations();
+            //   });
           }}
         >
           + 학기에 유저 등록
