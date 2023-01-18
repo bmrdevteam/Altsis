@@ -52,7 +52,8 @@ const Timetable = (props: Props) => {
       key: "classTitle",
       type: "text",
       textAlign: "center",
-      whiteSpace: "pre",
+      wordBreak: "keep-all",
+      width: "320px",
     },
 
     {
