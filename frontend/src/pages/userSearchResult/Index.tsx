@@ -14,7 +14,7 @@
  * -------------------------------------------------------
  *
  * IN DEVELOPMENT
- * 
+ *
  *
  * -------------------------------------------------------
  *
@@ -47,76 +47,76 @@ import style from "style/pages/userSearchResult/userSearchResult.module.scss";
 type Props = {};
 
 const UserSearchResult = (props: Props) => {
-  const {currentSchool, currentSeason, currentRegistration} = useAuth();
-  const {RegistrationApi, UserApi} = useApi();
+  const { currentSchool, currentSeason, currentRegistration } = useAuth();
+  const { RegistrationApi, UserApi } = useApi();
   const params = useParams();
-  
+
   const [user, setUser] = useState<any>();
 
   // Find match user
   useEffect(() => {
     if (currentSchool && currentSeason) {
-      const userId = params?.uid ? params.uid : '';
+      const userId = params?.uid ? params.uid : "";
 
       const getUser = async () => {
         try {
-          const rawRegistrations =  await RegistrationApi.RRegistrations({schoolId: currentSchool.schoolId, userId, season: currentSeason._id});
-          const rawUsers: Array<any> = await UserApi.RUsers({userId});
+          const rawRegistrations = await RegistrationApi.RRegistrations({
+            schoolId: currentSchool.schoolId,
+            userId,
+            season: currentSeason._id,
+          });
+          const rawUsers: Array<any> = await UserApi.RUsers({ userId });
           if (!rawRegistrations.length || !rawUsers.length) {
-            throw new Error('No such user');
+            throw new Error("No such user");
           }
-          const result = {...rawRegistrations[0]};
+          const result = { ...rawRegistrations[0] };
           if (rawUsers[0]?.profile) {
             result.profile = rawUsers[0].profile;
           }
           return result;
-        }
-        catch (e) {
+        } catch (e) {}
+      };
 
-        }
-      }
-     
       getUser()
-      .then((user) => {
-        setUser(user);
-      })
-      .catch();
+        .then((user) => {
+          setUser(user);
+        })
+        .catch();
     }
   }, [currentSchool, currentSeason, params]);
 
-
-  let scheduleTab = <ScheduleTab user={user}/>;
-  let coursesTab = <CoursesTab user={user}/>;
-  let archiveTab = <ArchiveTab user={user}/>;
-  let docsTab = <DocsTab user={user}/>;
-  let appsTab = <AppsTab user={user}/>;
+  let scheduleTab = <ScheduleTab user={user} />;
+  let coursesTab = <CoursesTab user={user} />;
+  let archiveTab = <ArchiveTab user={user} />;
+  let docsTab = <DocsTab user={user} />;
+  let appsTab = <AppsTab user={user} />;
 
   function getAllowedTab() {
     if (!currentRegistration?.role) return {};
     let allowedTab: any = {};
     let allowedRoles;
-    
-    allowedRoles = ['admin', 'teacher', 'parents', 'student'];
+
+    allowedRoles = ["admin", "teacher", "parents", "student"];
     if (allowedRoles.includes(currentRegistration.role)) {
       allowedTab.일정 = scheduleTab;
     }
 
-    allowedRoles = ['admin', 'teacher', 'parents', 'student'];
+    allowedRoles = ["admin", "teacher", "parents", "student"];
     if (allowedRoles.includes(currentRegistration.role)) {
       allowedTab.수업 = coursesTab;
     }
 
-    allowedRoles = ['admin', 'teacher'];
+    allowedRoles = ["admin", "teacher"];
     if (allowedRoles.includes(currentRegistration.role)) {
       allowedTab.기록 = archiveTab;
     }
 
-    allowedRoles = ['admin', 'teacher'];
+    allowedRoles = ["admin", "teacher"];
     if (allowedRoles.includes(currentRegistration.role)) {
       allowedTab.문서 = docsTab;
     }
 
-    allowedRoles = ['admin', 'teacher', 'parents', 'student'];
+    allowedRoles = ["admin", "teacher", "parents", "student"];
     if (allowedRoles.includes(currentRegistration.role)) {
       allowedTab.앱 = appsTab;
     }
@@ -127,18 +127,20 @@ const UserSearchResult = (props: Props) => {
   return (
     <>
       <Navbar />
-      <div className={style.container}>
-        {(
-          !user ? 
-          <div className={style.user_not_found_msg}>{'해당 사용자를 찾지 못했습니다.'}</div> : 
-          <>
-            <UserInfo user={user}/>
-            <Tab
-              items={getAllowedTab()}
-            />
-          </>
-        )}
-      </div>
+      <div className={style.section}>
+        <div className={style.container}>
+          {!user ? (
+            <div className={style.user_not_found_msg}>
+              {"해당 사용자를 찾지 못했습니다."}
+            </div>
+          ) : (
+            <>
+              <UserInfo user={user} />
+              <Tab items={getAllowedTab()} />
+            </>
+          )}
+        </div>
+      </div>  
     </>
   );
 };

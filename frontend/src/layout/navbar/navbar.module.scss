@@ -35,6 +35,8 @@
   }
 
   .user_search {
+    position: relative;
+    z-index: 100000;
     flex: 1 1 0;
 
     .search {
@@ -45,6 +47,29 @@
       width: 100%;
       outline: none;
       border: none;
+    }
+
+    .result {
+      position: absolute;
+      background-color: var(--component-color);
+      border-radius: 4px;
+      width: 100%;
+      top: 32px;
+      max-height: 150px;
+      overflow-y: scroll;
+
+      .row {
+        cursor: pointer;
+        font-size: 14px;
+        padding: 6.5px 15px;
+      }
+
+      .row:hover{
+      background-color: var(--component-hover-color);
+      border-radius: 4px;
+
+      }
+
     }
   }
 
