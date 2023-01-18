@@ -32,6 +32,15 @@ export function useAuth(): {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { UserApi, SeasonApi, SchoolApi, RegistrationApi } = useApi();
+  const [current, setCurrent] = useState<{
+    user: any;
+    school: any;
+    loading: boolean;
+  }>({
+    user: {},
+    school: {},
+    loading: true,
+  });
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [currentSchool, setCurrentSchool] = useState<any>();
   const [currentRegistration, setCurrentRegistration] = useState<any>();

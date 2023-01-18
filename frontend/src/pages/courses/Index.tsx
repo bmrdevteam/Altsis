@@ -121,37 +121,33 @@ const Course = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <div style={{ display: "flex", gap: "24px" }}>
-          <div style={{ flex: "1 1 0" }}>
-            {currentSeason?.formTimetable ? (
-              <Tab
-                items={{
-                  시간표: <TimeTable courseList={enrolledCourseList} />,
-                  "수강신청 현황": (
-                    <EnrolledCourseList
-                      courseList={enrolledCourseList}
-                      subjectLabelHeaderList={subjectLabelHeaderList}
-                    />
-                  ),
-                  "개설한 수업 목록": (
-                    <CreatedCourseList
-                      courseList={createdCourseList}
-                      subjectLabelHeaderList={subjectLabelHeaderList}
-                    />
-                  ),
-                  "담당 수업 목록": (
-                    <MentoringCourseList
-                      courseList={mentoringCourseList}
-                      subjectLabelHeaderList={subjectLabelHeaderList}
-                    />
-                  ),
-                }}
-              />
-            ) : (
-              <></>
-            )}
-          </div>
-        </div>
+        {currentSeason?.formTimetable ? (
+          <Tab
+            items={{
+              시간표: <TimeTable courseList={enrolledCourseList} />,
+              "수강신청 현황": (
+                <EnrolledCourseList
+                  courseList={enrolledCourseList}
+                  subjectLabelHeaderList={subjectLabelHeaderList}
+                />
+              ),
+              "개설한 수업 목록": (
+                <CreatedCourseList
+                  courseList={createdCourseList}
+                  subjectLabelHeaderList={subjectLabelHeaderList}
+                />
+              ),
+              "담당 수업 목록": (
+                <MentoringCourseList
+                  courseList={mentoringCourseList}
+                  subjectLabelHeaderList={subjectLabelHeaderList}
+                />
+              ),
+            }}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </>
   );

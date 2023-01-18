@@ -55,7 +55,7 @@ const Sidebar = (props: Props) => {
     }
   };
 
-  const [addNewBlockType, setAddNewBlockType] = useState<string>("paragraph");
+  // const [addNewBlockType, setAddNewBlockType] = useState<string>("paragraph");
   const blockTypes = [
     { text: "텍스트", value: "paragraph" },
     { text: "테이블", value: "table" },
@@ -68,7 +68,7 @@ const Sidebar = (props: Props) => {
     return (
       <Menu name="블록">
         <div className={style.item}>
-          <label>유형</label>
+          {/* <label>유형</label>
           <Select
             style={{ fontSize: "12px" }}
             appearence="flat"
@@ -77,7 +77,47 @@ const Sidebar = (props: Props) => {
             }}
             selectedValue={addNewBlockType}
             options={blockTypes}
-          />
+          /> */}
+          <div className={style.add_block}>
+            <div
+              className={style.option}
+              onClick={() => {
+                addBlockAfterCurrentBlock("paragraph");
+              }}
+            >
+              <Svg type={"text"} />
+            </div>
+            <div
+              className={style.option}
+              onClick={() => {
+                addBlockAfterCurrentBlock("table");
+              }}
+            >
+              <Svg type={"table"} />
+            </div>
+            <div
+              className={style.option}
+              onClick={() => {
+                addBlockAfterCurrentBlock("divider");
+              }}
+            >
+              <Svg type={"minus"} />
+            </div>
+            <div
+              className={style.option}
+              onClick={() => {
+                addBlockAfterCurrentBlock("input");
+              }}
+            >
+              <Svg
+                type={"text"}
+                style={{
+                  border: "var(--border-default)",
+                  borderColor: "var(--accent-1)",
+                }}
+              />
+            </div>
+          </div>
         </div>
         <Button
           type="ghost"
@@ -88,10 +128,10 @@ const Sidebar = (props: Props) => {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
           onClick={() => {
-            addBlockAfterCurrentBlock(addNewBlockType);
+            removeCurrentBlock();
           }}
         >
-          추가
+          삭제
         </Button>
       </Menu>
     );
@@ -191,6 +231,18 @@ const Sidebar = (props: Props) => {
             ]}
           />
         </div>
+        <div className={style.item}>
+          <label>텍스트 크기</label>
+          <input
+            type="number"
+            placeholder=""
+            defaultValue={parseInt(getCurrentBlock()?.data?.fontSize) || ""}
+            onChange={(e) => {
+              changeCurrentBlockData({ fontSize: `${e.target.value}px` });
+              props.callPageReload();
+            }}
+          />
+        </div>
         <div style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
@@ -222,7 +274,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            {`${getCurrentCellIndex().row + 1} 행 아래 추가`}
+            {`행 추가`}
           </Button>
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
@@ -239,7 +291,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            {`${getCurrentCellIndex().column + 1} 열 삭제`}
+            {`열 삭제`}
           </Button>
           <Button
             type="ghost"
@@ -255,7 +307,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            {`${getCurrentCellIndex().row + 1} 행 삭제`}
+            {`행 삭제`}
           </Button>
         </div>
       </Menu>
@@ -341,7 +393,7 @@ const Sidebar = (props: Props) => {
               }}
               placeholder=""
               type="number"
-              defaultValue={parseInt(getCurrentCell()?.fontSize)||""}
+              defaultValue={parseInt(getCurrentCell()?.fontSize) || ""}
             />
           </div>
           <div className={style.item}>
@@ -554,7 +606,8 @@ const Sidebar = (props: Props) => {
   };
   const InputBlockMenu = () => {
     return (
-      <Menu name="input">
+      <Menu name="입력">
+         
         <div className={style.item}>
           <label>이름</label>
           <input
@@ -588,6 +641,18 @@ const Sidebar = (props: Props) => {
           />
         </div>
         <div className={style.item}>
+          <label>텍스트 크기</label>
+          <input
+            type="number"
+            placeholder=""
+            defaultValue={parseInt(getCurrentBlock()?.data?.fontSize) || ""}
+            onChange={(e) => {
+              changeCurrentBlockData({ fontSize: `${e.target.value}px` });
+              props.callPageReload();
+            }}
+          />
+        </div>
+        <div className={style.item}>
           <label>필수</label>
           <ToggleSwitch
             defaultChecked={getCurrentBlock().data?.required}
@@ -606,9 +671,9 @@ const Sidebar = (props: Props) => {
         <div className={style.item}>
           <label>크기</label>
           <input
-            type="text"
+            type="number"
             placeholder=""
-            defaultValue={parseInt(getCurrentBlock()?.data?.fontSize)||""}
+            defaultValue={parseInt(getCurrentBlock()?.data?.fontSize) || ""}
             onChange={(e) => {
               changeCurrentBlockData({ fontSize: `${e.target.value}px` });
               props.callPageReload();
@@ -692,14 +757,13 @@ const Sidebar = (props: Props) => {
     >
       <div className={style.sidebar}>
         <AddBlockMenu />
-        {getCurrentBlock() && <BlockMenu />}
         {getCurrentBlock()?.type === "table" && <TableBlockMenu />}
         {getCurrentBlock()?.type === "table" && getCurrentCell() && (
           <TableCellMenu />
         )}
         {getCurrentBlock()?.type === "dataTable" && <DatatableMenu />}
         {getCurrentBlock()?.type === "input" && <InputBlockMenu />}
-        {getCurrentBlock() && <TextMenu />}
+        {getCurrentBlock()?.type === "paragraph" && <TextMenu />}
       </div>
     </div>
   );
