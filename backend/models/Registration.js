@@ -28,6 +28,8 @@ const registrationSchema = mongoose.Schema({
   group: String,
   teacherId: String,
   teacherName: String,
+  subTeacherId: String,
+  subTeacherName: String,
   isActivated: {
     type: Boolean,
     default: false,

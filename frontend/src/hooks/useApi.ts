@@ -430,7 +430,7 @@ export default function useApi() {
    * @returns Registrations
    */
   async function CRegistrations(props: {
-    data: { season: string; users: any[] };
+    data: { season: string; users: any[]; info: any };
   }) {
     const { registrations: result } = await database.C({
       location: `registrations/bulk`,
@@ -491,10 +491,12 @@ export default function useApi() {
     _ids?: string[];
     data: {
       role: string;
-      grade: string;
-      group: string;
-      teacherId: string;
-      teacherName: string;
+      grade?: string;
+      group?: string;
+      teacherId?: string;
+      teacherName?: string;
+      subTeacherId?: string;
+      subTeacherName?: string;
     };
   }) {
     if (props._ids) {
