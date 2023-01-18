@@ -34,6 +34,20 @@
     color: var(--accent-1);
   }
 
+  .user_search {
+    flex: 1 1 0;
+
+    .search {
+      border-radius: 4px;
+      background-color: var(--component-color);
+      padding: 6.5px 15px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      border: none;
+    }
+  }
+
   .controls {
     margin-left: 24px;
 
