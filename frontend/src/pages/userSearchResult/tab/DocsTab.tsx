@@ -7,7 +7,7 @@ import useApi from "hooks/useApi";
 import useDatabase from "hooks/useDatabase";
 import _ from "lodash";
 import { useEffect, useState } from "react";
-import style from "style/pages/docs/docs.module.scss";
+import style from "style/pages/userSearchResult/docsTab.module.scss";
 type Props = {
   user: any
 };

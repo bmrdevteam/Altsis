@@ -62,13 +62,18 @@ const ScheduleTab = (props: Props) => {
     }
   }, [currentSeason, props.user]);
 
-	return<Schedule
-		dayArray={["월", "화", "수", "목", "금"]}
-		defaultEvents={enrollmentsToEvents(enrollments)}
-		title={`${currentSeason?.year ?? ""} ${
-			currentSeason?.term ?? ""
-		} 일정`}
-	/>
+	return <div style={{
+    height: 'calc(100vh - 240px',
+    minHeight: '240px'
+  }}>
+    <Schedule
+      dayArray={["월", "화", "수", "목", "금"]}
+      defaultEvents={enrollmentsToEvents(enrollments)}
+      title={`${currentSeason?.year ?? ""} ${
+        currentSeason?.term ?? ""
+      } 일정`}
+    />
+  </div>
 }
 
 export default ScheduleTab;

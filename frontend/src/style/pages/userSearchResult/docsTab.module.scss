@@ -1,0 +1,39 @@
+@media print {
+    .search {
+        display: none !important;
+    }
+
+    .section {
+        height: 100% !important;
+        display: block !important;
+        padding: none;
+    }
+    @page{
+        margin: 10mm 4mm 10mm 4mm;
+    }
+}
+
+
+.section {
+    color: var(--accent-1);
+
+    .title {
+        font-weight: 600;
+    }
+
+
+
+    .search {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        height: 100px;
+        padding: 6px;
+
+        .label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+    }
+}
