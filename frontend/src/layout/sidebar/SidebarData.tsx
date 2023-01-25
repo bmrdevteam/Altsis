@@ -1,8 +1,5 @@
-import { apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
-import { useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 
 export interface INavLink {
   title: string;
@@ -37,16 +34,8 @@ export const SidebarData = (
         {
           title: "owner",
           name: "소유자",
-          path: "/owner",
+          path: "/owner/academies",
           icon: <Svg type="school" />,
-          subLink: [
-            {
-              title: "academies",
-              name: "아카데미 관리",
-              path: "/owner/academies",
-              icon: <Svg type="file" />,
-            },
-          ],
         },
       ];
     case "manager":
