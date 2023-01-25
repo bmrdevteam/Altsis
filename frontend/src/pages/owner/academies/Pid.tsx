@@ -33,18 +33,13 @@ import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
-// NavigationLinks component
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
-
 // tab component
 import Tab from "components/tab/Tab";
 
 // tab elements
 import BasicInfo from "./tab/BasicInfo/Index";
 import User from "./tab/User/Index";
-import Season from "./tab/Season/Index";
 import School from "./tab/School/Index";
-import Registration from "./tab/Registration/Index";
 
 // import Setting from "./tab/Setting";
 import Skeleton from "components/skeleton/Skeleton";
@@ -93,10 +88,13 @@ const Academy = (props: Props) => {
       AcademyApi.RAcademy({ academyId: pid })
         .then((res) => {
           setAcademyData(res);
+        })
+        .then(() => {
           setIsLoading(false);
         })
         .catch(() => {
           alert("failed to load data");
+          setIsAcademy(false);
         });
     }
   }, [isLoading]);
@@ -114,7 +112,7 @@ const Academy = (props: Props) => {
           <div style={{ flex: "1 1 0" }}>
             <div className={style.title}>
               {academyData !== undefined ? (
-                academyData.academyName
+                `${academyData.academyName}(${academyData.academyId})`
               ) : (
                 <Skeleton height="22px" width="20%" />
               )}
@@ -123,20 +121,20 @@ const Academy = (props: Props) => {
         </div>
 
         {!isLoading ? (
-          <Tab
-            items={{
-              아카데미: (
-                <BasicInfo
-                  academyData={academyData}
-                  setAcademyData={setAcademyData}
-                />
-              ),
-              학교: <School academyId={academyData?.academyId} />,
-              학기: <Season academyId={academyData?.academyId} />,
-              사용자: <User academyId={academyData?.academyId} />,
-              등록: <Registration academyId={academyData?.academyId} />,
-            }}
-          />
+          <>
+            <Tab
+              items={{
+                아카데미: (
+                  <BasicInfo
+                    academyData={academyData}
+                    setIsLoading={setIsLoading}
+                  />
+                ),
+                학교: <School />,
+                사용자: <User />,
+              }}
+            />
+          </>
         ) : (
           <></>
         )}

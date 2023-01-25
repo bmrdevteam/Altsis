@@ -33,13 +33,10 @@ import useApi from "hooks/useApi";
 
 import style from "style/pages/owner/academy.module.scss";
 
-// NavigationLinks component
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
-
 // components
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Textarea from "components/textarea/Textarea";
@@ -97,7 +94,6 @@ const Academies = (props: Props) => {
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
             <div className={style.title}>아카데미 목록</div>
-            <div className={style.description}>description...</div>
           </div>
         </div>
         <Divider />
@@ -117,49 +113,63 @@ const Academies = (props: Props) => {
         <div style={{ marginTop: "24px" }}>
           <Table
             type="object-array"
-            filter
+            control
             data={!isLoading ? documentList : []}
             header={[
               {
-                text: "ID",
-                key: "",
-                type: "index",
+                text: "No",
+                key: "tableRowIndex",
+                type: "text",
                 width: "48px",
-                align: "center",
+                textAlign: "center",
               },
               {
                 text: "아카데미 ID",
                 key: "academyId",
-                type: "string",
+                type: "text",
               },
               {
                 text: "아카데미 이름",
                 key: "academyName",
-                type: "string",
+                type: "text",
               },
               {
-                text: "관리자",
-                key: "adminName",
-                type: "string",
+                text: "관리자 ID",
+                key: "adminId",
+                type: "text",
               },
+              {
+                text: "관리자 이름",
+                key: "adminName",
+                type: "text",
+              },
+
               {
                 text: "상태",
                 key: "isActivated",
-                type: "string",
-
-                returnFunction: (e: boolean) => {
-                  return e ? "활성화됨" : "비활성화됨";
+                width: "120px",
+                type: "status",
+                status: {
+                  false: { text: "비활성화됨", color: "red" },
+                  true: { text: "활성화됨", color: "green" },
                 },
+                textAlign: "center",
               },
               {
                 text: "자세히",
-                key: "_id",
+                key: "detail",
                 type: "button",
                 onClick: (e: any) => {
                   navigate(`${e.academyId}`);
                 },
                 width: "80px",
-                align: "center",
+                textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "var(--accent-1)",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />
