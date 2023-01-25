@@ -24,6 +24,8 @@ type Props = {
   setValue?: any;
   onChange?: any;
   appearence?: "flat";
+
+  onEdit?: any;
 };
 
 /**
@@ -78,6 +80,12 @@ const Select = (props: Props) => {
       );
     }
   }, [props.selectedValue]);
+
+  useEffect(() => {
+    if (props.onEdit) {
+      props.onEdit(edit);
+    }
+  }, [edit]);
 
   // useEffect(() => {
   //   if (selected >= 0 && typeof selected === "number") {
