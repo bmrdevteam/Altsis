@@ -395,7 +395,14 @@ function RouterPage() {
 
             {/* ----------------------------------------------------- */}
             {/* search result routes */}
-            <Route path="search/:uid" element={<UserSearchResult />}></Route>
+            <Route
+              path="search/:uid"
+              element={
+                <RequireAuth>
+                  <UserSearchResult />
+                </RequireAuth>
+              }
+            ></Route>
 
             {/* dev routes */}
             <Route path="dev">
