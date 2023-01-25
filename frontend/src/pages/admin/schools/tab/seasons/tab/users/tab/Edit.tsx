@@ -63,6 +63,8 @@ function Basic(props: Props) {
   const [subTeacherName, setSubTeacherName] = useState<string>(
     props.registrationData.subTeacherName
   );
+  const [isLastSelectorOpened, setIsLastSelectorOpened] =
+    useState<boolean>(false);
 
   return (
     <Popup
@@ -75,8 +77,42 @@ function Basic(props: Props) {
       }}
       closeBtn
       contentScroll
+      footer={
+        <Button
+          type={"ghost"}
+          onClick={() => {
+            RegistrationApi.URegistrations({
+              _id: props.registrationData._id,
+              data: {
+                role,
+                grade,
+                group,
+                teacherId,
+                teacherName,
+                subTeacherId,
+                subTeacherName,
+              },
+            })
+              .then(() => {
+                alert("success");
+                props.setIsLoading(true);
+                props.setPopupActive(false);
+              })
+              .catch((err: any) => alert(err.response.data.message));
+          }}
+        >
+          수정
+        </Button>
+      }
     >
-      <div className={style.popup}>
+      <div
+        className={style.popup}
+        style={
+          isLastSelectorOpened
+            ? { display: "flex", flexDirection: "column", minHeight: "460px" }
+            : { display: "flex", flexDirection: "column", height: "368px" }
+        }
+      >
         <div className={style.row}>
           <Select
             options={[
@@ -154,6 +190,9 @@ function Basic(props: Props) {
 
         <div className={style.row} style={{ marginTop: "24px" }}>
           <Select
+            onEdit={(edit: boolean) => {
+              setIsLastSelectorOpened(edit);
+            }}
             options={[
               {
                 text: ``,
@@ -188,33 +227,6 @@ function Basic(props: Props) {
             }}
           />
         </div>
-
-        <Button
-          type={"ghost"}
-          style={{ marginTop: "24px" }}
-          onClick={() => {
-            RegistrationApi.URegistrations({
-              _id: props.registrationData._id,
-              data: {
-                role,
-                grade,
-                group,
-                teacherId,
-                teacherName,
-                subTeacherId,
-                subTeacherName,
-              },
-            })
-              .then(() => {
-                alert("success");
-                props.setIsLoading(true);
-                props.setPopupActive(false);
-              })
-              .catch((err: any) => alert(err.response.data.message));
-          }}
-        >
-          수정
-        </Button>
       </div>
     </Popup>
   );
