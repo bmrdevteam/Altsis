@@ -491,7 +491,7 @@ export default function useApi() {
     _id?: string;
     _ids?: string[];
     data: {
-      role: string;
+      role?: string;
       grade?: string;
       group?: string;
       teacherId?: string;
@@ -503,6 +503,10 @@ export default function useApi() {
     if (props._ids) {
       props._id = QUERY_SUB_BUILDER(props._ids);
     }
+    return await database.U({
+      location: `registrations/${props._id}`,
+      data: props.data,
+    });
   }
   /**
    * Delete Registratios
