@@ -148,6 +148,18 @@ const Table = (props: Props) => {
     return filteredData();
   }
   useEffect(() => {
+    const headers = props.header
+      .map((o) => {
+        return o.key;
+      })
+      .filter((o) => {
+        if (o) {
+          return true;
+        }
+        return false;
+      });
+    console.log(headers);
+
     if (props.type === "object-array") {
       setTableData((prev) => ({
         ...prev,
@@ -155,7 +167,11 @@ const Table = (props: Props) => {
           [
             ...props.data.map((val, index) => {
               return {
-                ...flattenObject(val),
+                ...flattenObject(
+                  Object.fromEntries(
+                    Object.entries(val).filter(([key]) => headers.includes(key))
+                  )
+                ),
                 // tableRowId: generateRandomId(8),
                 tableRowIndex: index + 1,
               };
@@ -345,9 +361,9 @@ const Table = (props: Props) => {
                             className={style.menu_item}
                             onClick={() => {
                               objectDownloadAsCSV(
-                                filteredData().map((o: any) =>
-                                  unflattenObject(o)
-                                )
+                                filteredData().map((o: any) => {
+                                  return unflattenObject(o);
+                                })
                               );
                             }}
                           >
