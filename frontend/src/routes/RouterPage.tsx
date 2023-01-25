@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Owner from "../pages/owner/Index";
 import Academies from "../pages/owner/academies/Index";
 import Academy from "../pages/owner/academies/Pid";
+import AcademySchool from "../pages/owner/academies/School";
 
 //admin pages
 import Admin from "../pages/admin/Index";
@@ -134,6 +135,14 @@ function RouterPage() {
                 element={
                   <RequireAuth auth={["owner"]}>
                     <Academy />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="academies/:pid/:school"
+                element={
+                  <RequireAuth auth={["owner"]}>
+                    <AcademySchool />
                   </RequireAuth>
                 }
               ></Route>

@@ -34,14 +34,17 @@ import useDatabase from "hooks/useDatabase";
 import { copyClipBoard } from "functions/functions";
 
 // components
+import Button from "components/button/Button";
+import Input from "components/input/Input";
 import Table from "components/tableV2/Table";
 import Tab from "components/tab/Tab";
 import Popup from "components/popup/Popup";
+import Select from "components/select/Select";
 
 // tab elements
-import Basic from "./tab/Basic";
+import _ from "lodash";
 
-type Props = {};
+type Props = { season: string };
 
 const Registration = (props: Props) => {
   const database = useDatabase();
@@ -53,11 +56,13 @@ const Registration = (props: Props) => {
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState(false);
+  const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
 
   async function getDocumentList() {
     const { documents } = await database.R({
-      location: `academies/${academyId}/registrations`,
+      location: `academies/${academyId}/registrations?season=${props.season}`,
     });
+    console.log(documents);
     return documents;
   }
 
@@ -107,24 +112,15 @@ const Registration = (props: Props) => {
             width: "96px",
           },
           {
-            text: "학교 ID",
-            key: "schoolId",
-            type: "text",
-          },
-          {
-            text: "학교 이름",
-            key: "schoolName",
-            type: "text",
-          },
-          {
-            text: "학년도",
-            key: "year",
-            type: "text",
-          },
-          {
-            text: "학기",
-            key: "term",
-            type: "text",
+            text: "역할",
+            key: "role",
+            textAlign: "center",
+            type: "status",
+            status: {
+              teacher: { text: "선생님", color: "blue" },
+              student: { text: "학생", color: "orange" },
+            },
+            width: "84px",
           },
           {
             text: "ID",
@@ -140,6 +136,7 @@ const Registration = (props: Props) => {
             textAlign: "center",
             whiteSpace: "pre",
           },
+
           {
             text: "학년",
             key: "grade",
@@ -147,47 +144,28 @@ const Registration = (props: Props) => {
             textAlign: "center",
             whiteSpace: "pre",
           },
-
           {
-            text: "자세히",
-            key: "detail",
-            type: "button",
-            onClick: (e: any) => {
-              getDocument(e._id).then((res) => {
-                setDoc(res);
-                setEditPopupActive(true);
-              });
-            },
-            width: "72px",
+            text: "그룹",
+            key: "group",
+            type: "text",
             textAlign: "center",
-            btnStyle: {
-              border: true,
-              color: "black",
-              padding: "4px",
-              round: true,
-            },
+          },
+          {
+            text: "담임 선생님",
+            key: "teacherTxt",
+            type: "text",
+            textAlign: "center",
+            whiteSpace: "pre-wrap",
+          },
+          {
+            text: "부담임 선생님",
+            key: "subTeacherTxt",
+            type: "text",
+            textAlign: "center",
+            whiteSpace: "pre-wrap",
           },
         ]}
       />
-      {editPopupActive && (
-        <Popup
-          closeBtn
-          title="Edit Document"
-          setState={setEditPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
-          contentScroll
-        >
-          <Tab
-            dontUsePaths
-            items={{
-              "기본 정보": (
-                <Basic academyId={academyId} registrationData={doc} />
-              ),
-            }}
-            align={"flex-start"}
-          />
-        </Popup>
-      )}
     </div>
   );
 };
