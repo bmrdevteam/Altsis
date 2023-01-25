@@ -261,3 +261,12 @@ export function checkPermissionBySeason(
         permissionNotification: false,
       };
 }
+
+export async function copyClipBoard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return text;
+  } catch (error) {
+    return error;
+  }
+}
