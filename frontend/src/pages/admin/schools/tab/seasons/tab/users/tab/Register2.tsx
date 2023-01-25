@@ -107,6 +107,7 @@ function Basic(props: Props) {
           flexDirection: "row",
           gap: "24px",
           alignItems: "flex-start",
+          height: "480px",
         }}
       >
         <div className={style.popup}>
