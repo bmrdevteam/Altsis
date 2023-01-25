@@ -148,18 +148,6 @@ const Table = (props: Props) => {
     return filteredData();
   }
   useEffect(() => {
-    const headers = props.header
-      .map((o) => {
-        return o.key;
-      })
-      .filter((o) => {
-        if (o) {
-          return true;
-        }
-        return false;
-      });
-    console.log(headers);
-
     if (props.type === "object-array") {
       setTableData((prev) => ({
         ...prev,
@@ -167,11 +155,7 @@ const Table = (props: Props) => {
           [
             ...props.data.map((val, index) => {
               return {
-                ...flattenObject(
-                  Object.fromEntries(
-                    Object.entries(val).filter(([key]) => headers.includes(key))
-                  )
-                ),
+                ...flattenObject(val),
                 // tableRowId: generateRandomId(8),
                 tableRowIndex: index + 1,
               };
@@ -360,9 +344,26 @@ const Table = (props: Props) => {
                           <div
                             className={style.menu_item}
                             onClick={() => {
+                              const headers = props.header
+                                .map((o) => {
+                                  return o.key;
+                                })
+                                .filter((o) => {
+                                  if (o) {
+                                    return true;
+                                  }
+                                  return false;
+                                });
+
                               objectDownloadAsCSV(
                                 filteredData().map((o: any) => {
-                                  return unflattenObject(o);
+                                  return unflattenObject(
+                                    Object.fromEntries(
+                                      Object.entries(o).filter(([key]) =>
+                                        headers.includes(key)
+                                      )
+                                    )
+                                  );
                                 })
                               );
                             }}
@@ -372,10 +373,26 @@ const Table = (props: Props) => {
                           <div
                             className={style.menu_item}
                             onClick={() => {
+                              const headers = props.header
+                                .map((o) => {
+                                  return o.key;
+                                })
+                                .filter((o) => {
+                                  if (o) {
+                                    return true;
+                                  }
+                                  return false;
+                                });
                               objectDownloadAsJson(
-                                filteredData().map((o: any) =>
-                                  unflattenObject(o)
-                                )
+                                filteredData().map((o: any) => {
+                                  return unflattenObject(
+                                    Object.fromEntries(
+                                      Object.entries(o).filter(([key]) =>
+                                        headers.includes(key)
+                                      )
+                                    )
+                                  );
+                                })
                               );
                             }}
                           >
