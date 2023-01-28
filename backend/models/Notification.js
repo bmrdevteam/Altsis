@@ -3,6 +3,7 @@ const { conn } = require("../databases/connection");
 
 const userSchema = mongoose.Schema(
   {
+    user: mongoose.Types.ObjectId,
     userId: {
       type: String,
       required: true,
@@ -22,6 +23,7 @@ const notificationSchema = mongoose.Schema(
       enum: ["sent", "received"],
       required: true,
     },
+    user: mongoose.Types.ObjectId,
     userId: {
       type: String,
       required: true,
@@ -34,6 +36,7 @@ const notificationSchema = mongoose.Schema(
     // when type is 'sent'
     toUserList: [userSchema],
     // when type is 'received'
+    fromUser: mongoose.Types.ObjectId,
     fromUserId: String,
     fromUserName: String,
     checked: Boolean,
@@ -48,11 +51,11 @@ const notificationSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-notificationSchema.index({
-  type: 1,
-  userId: 1,
-  createdAt: -1,
-});
+// notificationSchema.index({
+//   type: 1,
+//   userId: 1,
+//   createdAt: -1,
+// });
 
 module.exports = (dbName) => {
   return conn[dbName].model("Notification", notificationSchema);
