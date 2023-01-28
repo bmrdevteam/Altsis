@@ -727,14 +727,15 @@ export default function useApi() {
    * ##########################################################################
    */
   /**
-   * Read Archives
+   * Read Archive
    * @type GET
    * @auth admin
    * @returns Archives
    */
   async function RArchives(params: {
     school?: string;
-    userId?: string | number;
+    user?: string | number;
+    registration?: string | number;
   }) {
     const result = await database.R({
       location: "archives" + QUERY_BUILDER(params),
