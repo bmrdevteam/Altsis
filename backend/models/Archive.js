@@ -4,6 +4,7 @@ const encrypt = require("mongoose-encryption");
 
 const archiveSchema = mongoose.Schema(
   {
+    user: mongoose.Types.ObjectId,
     userId: {
       type: String,
       required: true,
@@ -20,13 +21,13 @@ const archiveSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-archiveSchema.index(
-  {
-    school: 1,
-    userId: 1,
-  },
-  { unique: true }
-);
+// archiveSchema.index(
+//   {
+//     school: 1,
+//     userId: 1,
+//   },
+//   { unique: true }
+// );
 
 archiveSchema.plugin(encrypt, {
   encryptionKey: process.env["ENCKEY_A"],

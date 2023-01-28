@@ -12,6 +12,7 @@ const registrationSchema = mongoose.Schema({
   year: String,
   term: String,
   period: Object,
+  user: mongoose.Types.ObjectId,
   userId: {
     type: String,
     required: true,
@@ -26,8 +27,10 @@ const registrationSchema = mongoose.Schema({
   },
   grade: String,
   group: String,
+  teacher: mongoose.Types.ObjectId,
   teacherId: String,
   teacherName: String,
+  subTeacher: mongoose.Types.ObjectId,
   subTeacherId: String,
   subTeacherName: String,
   isActivated: {
@@ -36,18 +39,18 @@ const registrationSchema = mongoose.Schema({
   },
 });
 
-registrationSchema.index({
-  userId: 1,
-});
+// registrationSchema.index({
+//   userId: 1,
+// });
 
-registrationSchema.index(
-  {
-    season: 1,
-    role: 1,
-    userId: 1,
-  },
-  { unique: true }
-);
+// registrationSchema.index(
+//   {
+//     season: 1,
+//     role: 1,
+//     userId: 1,
+//   },
+//   { unique: true }
+// );
 
 module.exports = (dbName) => {
   return conn[dbName].model("Registration", registrationSchema);
