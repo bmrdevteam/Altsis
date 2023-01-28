@@ -28,7 +28,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -51,11 +51,11 @@ type Props = {
   receiverList?: any[];
   receiverSelectedList?: any[];
   receiverType?: string;
+  setIsLoading?: any;
 };
 
 const NotificationSend = (props: Props) => {
-  const database = useDatabase();
-
+  const { NotificationApi } = useApi();
   const [receiverList, setReceiverList] = useState<any[]>();
   const [receiverSelectedList, setReceiverSelectedList] = useState<any[]>(
     props.receiverSelectedList || []
@@ -70,25 +70,6 @@ const NotificationSend = (props: Props) => {
   const [title, setTitle] = useState<string>(props.title || "");
   const [category, setCategory] = useState<string>(props.category || "");
   const [description, setDescription] = useState<string>("");
-
-  async function sendNotifications() {
-    const res = await database.C({
-      location: `notifications`,
-      data: {
-        toUserList: receiverSelectedList.map((receiver: any) => {
-          return {
-            userId: receiver.userId,
-            userName: receiver.userName,
-          };
-        }),
-        category,
-        title,
-        description,
-      },
-    });
-
-    return res;
-  }
 
   useEffect(() => {
     if (props.receiverType === "academy") {
@@ -293,6 +274,7 @@ const NotificationSend = (props: Props) => {
                   receiverList?.map((e: any) => {
                     return {
                       value: JSON.stringify({
+                        user: props.receiverType === "season" ? e.user : e._id,
                         userId: e.userId,
                         userName: e.userName,
                       }),
@@ -429,9 +411,25 @@ const NotificationSend = (props: Props) => {
                 } else if (title === "") {
                   alert("타이틀 없이 메일을 보낼 수 없습니다.");
                 } else {
-                  sendNotifications()
+                  console.log(receiverSelectedList);
+                  NotificationApi.SendNotifications({
+                    data: {
+                      toUserList: receiverSelectedList.map((receiver: any) => {
+                        return {
+                          user: receiver.user,
+                          userId: receiver.userId,
+                          userName: receiver.userName,
+                        };
+                      }),
+                      category,
+                      title,
+                      description,
+                    },
+                  })
                     .then((res: any) => {
                       alert("success");
+
+                      props.setIsLoading(true);
                       props.setState(false);
                     })
                     .catch((err) => alert(err.response.data.message));

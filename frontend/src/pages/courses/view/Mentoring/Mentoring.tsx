@@ -32,6 +32,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
+import useApi from "hooks/useApi";
 
 // tab pages
 import style from "style/pages/courses/course.module.scss";
@@ -63,6 +64,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentSeason } = useAuth();
+  const { NotificationApi } = useApi();
   const navigate = useNavigate();
 
   const database = useDatabase();
@@ -174,7 +176,7 @@ const CoursePid = (props: Props) => {
         setReceiverList(
           res.map((enrollment: any) => {
             return {
-              ...enrollment,
+              user: enrollment.student,
               userId: enrollment.studentId,
               userName: enrollment.studentName,
             };
@@ -215,7 +217,7 @@ const CoursePid = (props: Props) => {
             setReceiverList(
               res.map((enrollment: any) => {
                 return {
-                  ...enrollment,
+                  user: enrollment.student,
                   userId: enrollment.studentId,
                   userName: enrollment.studentName,
                 };

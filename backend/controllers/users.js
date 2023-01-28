@@ -181,7 +181,7 @@ module.exports.current = async (req, res) => {
 
     // notifications
     const notifications = await Notification(user.academyId).find({
-      userId: user.userId,
+      user: user._id,
       checked: false,
     });
 
@@ -487,6 +487,7 @@ module.exports.update = async (req, res) => {
 
 module.exports.delete = async (req, res) => {
   try {
+    if (!req.query._ids) return res.status(400).send();
     const _idList = _.split(req.query._ids, ",");
     const result = await User(req.user.academyId).deleteMany({
       _id: { $in: _idList },
