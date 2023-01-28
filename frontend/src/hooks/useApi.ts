@@ -472,6 +472,7 @@ export default function useApi() {
     schoolName?: string;
     year?: string;
     term?: string;
+    user?: string;
     userId?: string;
     userName?: string;
     role?: "student" | "teacher";
@@ -494,8 +495,10 @@ export default function useApi() {
       role?: string;
       grade?: string;
       group?: string;
+      teacher?: string;
       teacherId?: string;
       teacherName?: string;
+      subTeacher?: string;
       subTeacherId?: string;
       subTeacherName?: string;
     };

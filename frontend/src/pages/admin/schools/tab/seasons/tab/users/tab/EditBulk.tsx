@@ -51,10 +51,35 @@ function Basic(props: Props) {
   const [role, setRole] = useState<string>("student");
   const [grade, setGrade] = useState<string>("");
   const [group, setGroup] = useState<string>("");
+  const [teacher, setTeacher] = useState<string>("");
   const [teacherId, setTeacherId] = useState<string>("");
   const [teacherName, setTeacherName] = useState<string>("");
+  const [subTeacher, setSubTeacher] = useState<string>("");
   const [subTeacherId, setSubTeacherId] = useState<string>("");
   const [subTeacherName, setSubTeacherName] = useState<string>("");
+
+  const teachers = [
+    {
+      text: ``,
+      value: JSON.stringify({
+        teacher: "",
+        teacherId: "",
+        teacherName: "",
+      }),
+    },
+    ..._.filter(props.registrationList, {
+      role: "teacher",
+    }).map((registration: any) => {
+      return {
+        text: `${registration.userName}(${registration.userId})`,
+        value: JSON.stringify({
+          teacher: registration.user,
+          teacherId: registration.userId,
+          teacherName: registration.userName,
+        }),
+      };
+    }),
+  ];
 
   return (
     <Popup
@@ -109,31 +134,16 @@ function Basic(props: Props) {
 
         <div className={style.row} style={{ marginTop: "24px" }}>
           <Select
-            options={[
-              {
-                text: ``,
-                value: JSON.stringify({
-                  teacherId: "",
-                  teacherName: "",
-                }),
-              },
-              ..._.filter(props.registrationList, {
-                role: "teacher",
-              }).map((registration: any) => {
-                return {
-                  text: `${registration.userName}(${registration.userId})`,
-                  value: JSON.stringify({
-                    teacherId: registration.userId,
-                    teacherName: registration.userName,
-                  }),
-                };
-              }),
-            ]}
+            options={teachers}
             appearence="flat"
             label="담임 선생님"
             onChange={(e: any) => {
-              const { teacherId: _teacherId, teacherName: _teacherName } =
-                JSON.parse(e);
+              const {
+                teacher: _teacher,
+                teacherId: _teacherId,
+                teacherName: _teacherName,
+              } = JSON.parse(e);
+              setTeacher(_teacher);
               setTeacherId(_teacherId);
               setTeacherName(_teacherName);
             }}
@@ -142,31 +152,16 @@ function Basic(props: Props) {
 
         <div className={style.row} style={{ marginTop: "24px" }}>
           <Select
-            options={[
-              {
-                text: ``,
-                value: JSON.stringify({
-                  teacherId: "",
-                  teacherName: "",
-                }),
-              },
-              ..._.filter(props.registrationList, {
-                role: "teacher",
-              }).map((registration: any) => {
-                return {
-                  text: `${registration.userName}(${registration.userId})`,
-                  value: JSON.stringify({
-                    teacherId: registration.userId,
-                    teacherName: registration.userName,
-                  }),
-                };
-              }),
-            ]}
+            options={teachers}
             appearence="flat"
             label="부담임 선생님"
             onChange={(e: any) => {
-              const { teacherId: _teacherId, teacherName: _teacherName } =
-                JSON.parse(e);
+              const {
+                teacher: _teacher,
+                teacherId: _teacherId,
+                teacherName: _teacherName,
+              } = JSON.parse(e);
+              setSubTeacher(_teacher);
               setSubTeacherId(_teacherId);
               setSubTeacherName(_teacherName);
             }}
@@ -183,8 +178,10 @@ function Basic(props: Props) {
                 role,
                 grade,
                 group,
+                teacher,
                 teacherId,
                 teacherName,
+                subTeacher,
                 subTeacherId,
                 subTeacherName,
               },

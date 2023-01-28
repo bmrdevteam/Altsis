@@ -36,7 +36,6 @@ import useApi from "hooks/useApi";
 
 import _ from "lodash";
 
-import Register from "./tab/Register";
 import Register2 from "./tab/Register2";
 import Edit from "./tab/Edit";
 import EditBulk from "./tab/EditBulk";

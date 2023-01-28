@@ -56,12 +56,38 @@ function Basic(props: Props) {
 
   const registrationInfo = useRef<any>({
     role: "student",
+    grade: "",
     group: "",
+    teacher: undefined,
     teacherId: undefined,
     teacherName: undefined,
+    subTeacher: undefined,
     subTeacherId: undefined,
     subTeacherName: undefined,
   }); //role, grade, group, teacher, subTeacher
+
+  const teachers = [
+    {
+      text: ``,
+      value: JSON.stringify({
+        teacher: "",
+        teacherId: "",
+        teacherName: "",
+      }),
+    },
+    ..._.filter(props.registrationList, {
+      role: "teacher",
+    }).map((registration: any) => {
+      return {
+        text: `${registration.userName}(${registration.userId})`,
+        value: JSON.stringify({
+          teacher: registration.user,
+          teacherId: registration.userId,
+          teacherName: registration.userName,
+        }),
+      };
+    }),
+  ];
 
   useEffect(() => {
     UserApi.RUsers({ school: props.seasonData.school }).then((res) => {
@@ -120,6 +146,7 @@ function Basic(props: Props) {
                   tableRowChecked: true,
                 }).map((val: any) => {
                   return {
+                    _id: val._id,
                     userId: val.userId,
                     userName: val.userName,
                     role: "student",
@@ -191,31 +218,16 @@ function Basic(props: Props) {
 
           <div className={style.row} style={{ marginTop: "24px" }}>
             <Select
-              options={[
-                {
-                  text: ``,
-                  value: JSON.stringify({
-                    teacherId: "",
-                    teacherName: "",
-                  }),
-                },
-                ..._.filter(props.registrationList, {
-                  role: "teacher",
-                }).map((registration: any) => {
-                  return {
-                    text: `${registration.userName}(${registration.userId})`,
-                    value: JSON.stringify({
-                      teacherId: registration.userId,
-                      teacherName: registration.userName,
-                    }),
-                  };
-                }),
-              ]}
+              options={teachers}
               appearence="flat"
               label="담임 선생님"
               onChange={(e: any) => {
-                const { teacherId: _teacherId, teacherName: _teacherName } =
-                  JSON.parse(e);
+                const {
+                  teacher: _teacher,
+                  teacherId: _teacherId,
+                  teacherName: _teacherName,
+                } = JSON.parse(e);
+                registrationInfo.current.teacher = _teacher;
                 registrationInfo.current.teacherId = _teacherId;
                 registrationInfo.current.teacherName = _teacherName;
               }}
@@ -223,32 +235,17 @@ function Basic(props: Props) {
           </div>
           <div className={style.row} style={{ marginTop: "24px" }}>
             <Select
-              options={[
-                {
-                  text: ``,
-                  value: JSON.stringify({
-                    teacherId: "",
-                    teacherName: "",
-                  }),
-                },
-                ..._.filter(props.registrationList, {
-                  role: "teacher",
-                }).map((registration: any) => {
-                  return {
-                    text: `${registration.userName}(${registration.userId})`,
-                    value: JSON.stringify({
-                      teacherId: registration.userId,
-                      teacherName: registration.userName,
-                    }),
-                  };
-                }),
-              ]}
+              options={teachers}
               appearence="flat"
               label="부담임 선생님"
               onChange={(e: any) => {
                 console.log(e);
-                const { teacherId: _teacherId, teacherName: _teacherName } =
-                  JSON.parse(e);
+                const {
+                  teacher: _teacher,
+                  teacherId: _teacherId,
+                  teacherName: _teacherName,
+                } = JSON.parse(e);
+                registrationInfo.current.subTeacher = _teacher;
                 registrationInfo.current.subTeacherId = _teacherId;
                 registrationInfo.current.subTeacherName = _teacherName;
               }}
