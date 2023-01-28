@@ -21,15 +21,15 @@ function Docs({}: Props) {
   const [formData, setFormData] = useState<any>();
   const [printForms, setPrintForms] = useState<any>([]);
   const [DBData, setDBData] = useState<any>();
+  /* not users but registrations */
   const [users, setUsers] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
   const [selectedGrade, setSelectedGrade] = useState<string>();
   const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
 
-  async function getDBData(userId: any) {
+  async function getDBData(rid: any, userId: any) {
     const archive = await ArchiveApi.RArchives({
-      school: currentSchool.school,
-      userId: userId,
+      registration: rid,
     });
 
     let processedEvaluation: any[] = [];
@@ -174,14 +174,18 @@ function Docs({}: Props) {
                 ?.filter((val) => val.grade === selectedGrade)
                 .map((val) => {
                   return {
-                    value: val.userId,
+                    value: JSON.stringify({
+                      rid: val._id,
+                      userId: val.userId,
+                    }),
                     text: `${val.userName} / ${val.userId}`,
                   };
                 }),
             ]}
-            onChange={(value) => {
+            onChange={(value: string | number) => {
               setLoading(true);
-              getDBData(value).then((res) => {
+              const { rid, userId } = JSON.parse(`${value}`);
+              getDBData(rid, userId).then((res) => {
                 setDBData(res);
                 setLoading(false);
               });

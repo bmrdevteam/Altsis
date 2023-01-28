@@ -22,11 +22,11 @@ const ArchiveField = (props: Props) => {
   const { RegistrationApi, ArchiveApi } = useApi();
 
   const { currentSchool, currentSeason } = useAuth();
-
+  /* not users but registrations */
   const [users, setUsers] = useState<any[]>([]);
   const [grades, setGrades] = useState<{ text: string; value: string }[]>([]);
   const [selectedGrade, setSelectedGrade] = useState<string>("");
-  const [userId, setUserId] = useState<string>("");
+  const [rid, setRid] = useState<string>("");
   const [archiveData, setArchiveData] = useState<any>();
   const [archiveForm, setArchiveForm] = useState<any>();
   const formData = useRef<any>();
@@ -57,16 +57,14 @@ const ArchiveField = (props: Props) => {
   }, [currentSeason]);
 
   useEffect(() => {
-    if (userId !== "") {
-      database
-        .R({
-          location: `archives?school=${currentSchool.school}&userId=${userId}`,
-        })
-        .then((res) => {
-          setArchiveData(res.data);
-        });
+    if (rid !== "") {
+      ArchiveApi.RArchives({
+        registration: rid,
+      }).then((res) => {
+        setArchiveData(res.data);
+      });
     }
-  }, [userId]);
+  }, [rid]);
 
   return (
     <>
@@ -88,23 +86,22 @@ const ArchiveField = (props: Props) => {
                   />
                   <Autofill
                     style={{ borderRadius: "4px" }}
-                    setState={setUserId}
+                    setState={setRid}
                     onChange={(v) => {
                       ArchiveApi.RArchives({
-                        userId: v,
-                        school: currentSchool.school,
+                        registration: v,
                       }).then((res) => {
                         formData.current = res;
                       });
                     }}
-                    defaultValue={userId}
+                    defaultValue={rid}
                     options={[
                       { text: "", value: "" },
                       ...users
                         ?.filter((val) => val.grade === selectedGrade)
                         .map((val) => {
                           return {
-                            value: val.userId,
+                            value: val._id,
                             text: `${val.userName} / ${val.userId}`,
                           };
                         }),
@@ -117,8 +114,8 @@ const ArchiveField = (props: Props) => {
                   formData={formData}
                   users={users}
                   archive={pid}
-                  setUserId={setUserId}
-                  userId={userId}
+                  setUserId={setRid}
+                  userId={rid}
                   userArchiveData={archiveData?.[pid ?? ""]}
                 />
               </>
