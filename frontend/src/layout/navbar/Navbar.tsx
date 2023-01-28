@@ -8,8 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "contexts/authContext";
-import useInterval from "hooks/useInterval";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 // components
 import Button from "components/button/Button";
@@ -72,7 +71,11 @@ const Notification = () => {
 
   useEffect(() => {
     if (isNotificationLoading) {
-      NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
+      NotificationApi.RNotifications({
+        type: "received",
+        user: currentUser._id,
+        checked: false,
+      }).then((res) => {
         if (res) {
           audio.play().catch((e: any) => {
             console.log(e);
