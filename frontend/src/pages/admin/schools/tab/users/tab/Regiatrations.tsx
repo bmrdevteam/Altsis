@@ -46,7 +46,7 @@ function Registrations(props: Props) {
 
   useEffect(() => {
     RegistrationApi.RRegistrations({
-      userId: props.userData.userId,
+      user: props.userData._id,
       school: props.schoolData._id,
     }).then((res: any) => {
       setRegistrationList(res);

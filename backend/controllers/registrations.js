@@ -1,52 +1,23 @@
 const _ = require("lodash");
 const { User, Registration, Season } = require("../models");
 
-/* create */
-module.exports.register = async (req, res) => {
-  try {
-    const _Registration = Registration(req.user.academyId);
-
-    const exRegistration = await Registration(req.user.academyId).findOne({
-      season: req.body.season,
-      userId: req.body.userId,
-    });
-    if (exRegistration)
-      return res
-        .status(409)
-        .send({ message: "user is already registered in this season" });
-
-    const season = await Season(req.user.academyId).findById(req.body.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
-    const user = await User(req.user.academyId).findOne({
-      userId: req.body.userId,
-    });
-    if (!user) return res.status(404).send({ message: "user not found" });
-
-    /* create and save document */
-    const registration = new _Registration({
-      ...season.getSubdocument(),
-      userId: user.userId,
-      userName: user.userName,
-      role: req.body.role,
-      grade: req.body.grade,
-      group: req.body.group,
-      teacherId: req.body.teacherId,
-      teacherName: req.body.teacherName,
-    });
-    await registration.save();
-    return res.status(200).send(registration);
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 module.exports.registerBulk = async (req, res) => {
   try {
     const season = await Season(req.user.academyId).findById(req.body.season);
     if (!season) {
       return res.status(404).send({ message: "season is not found" });
     }
+    const exRegistrations = await Registration(req.user.academyId).find({
+      season: season._id,
+      user: { $in: req.body.users.map((user) => user._id) },
+    });
+    if (exRegistrations.length !== 0)
+      return res.status(409).send({
+        message: `users with _id ${_.join(
+          exRegistrations.map((reg) => reg.user),
+          ", "
+        )} are already registered `,
+      });
 
     const registerations = [];
     const seasonSubdocument = season.getSubdocument();
@@ -55,13 +26,16 @@ module.exports.registerBulk = async (req, res) => {
     for (let user of req.body.users) {
       registerations.push({
         ...seasonSubdocument,
+        user: user._id,
         userId: user.userId,
         userName: user.userName,
         role: info.role,
         grade: info.grade,
         group: info.group,
+        teacher: info.teacher,
         teacherId: info.teacherId,
         teacherName: info.teacherName,
+        subTeacher: info.subTeacher,
         subTeacherId: info.subTeacherId,
         subTeacherName: info.subTeacherName,
       });
@@ -89,13 +63,16 @@ module.exports.registerCopy = async (req, res) => {
         school: registration.school,
         schoolId: registration.schoolId,
         schoolName: registration.schoolName,
+        user: registration.user,
         userId: registration.userId,
         userName: registration.userName,
         role: registration.role,
         grade: registration.grade,
         group: registration.group,
+        teacher: registration.teacher,
         teacherId: registration.teacherId,
         teacherName: registration.teacherName,
+        subTeacher: registration.subTeacher,
         subTeacherId: registration.subTeacherId,
         subTeacherName: registration.subTeacherName,
         ...seasonSubdocument,
@@ -134,8 +111,10 @@ module.exports.update = async (req, res) => {
       role,
       grade,
       group,
+      teacher,
       teacherId,
       teacherName,
+      subTeacher,
       subTeacherId,
       subTeacherName,
     } = req.body;
@@ -148,8 +127,10 @@ module.exports.update = async (req, res) => {
         role,
         grade,
         group,
+        teacher,
         teacherId,
         teacherName,
+        subTeacher,
         subTeacherId,
         subTeacherName,
       }
