@@ -324,6 +324,7 @@ module.exports.findEvaluations = async (req, res) => {
         enrollments: enrollments.map((eval) => {
           return {
             _id: eval._id,
+            student: eval.student,
             studentId: eval.studentId,
             studentName: eval.studentName,
             studentGrade: eval.studentGrade,
