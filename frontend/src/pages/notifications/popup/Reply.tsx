@@ -41,6 +41,7 @@ import Textarea from "components/textarea/Textarea";
 type Props = {
   setState: any;
   title: string;
+  toUser: string;
   toUserName: string;
   toUserId: string;
 };
@@ -56,7 +57,13 @@ const NotificationSend = (props: Props) => {
     const res = await database.C({
       location: `notifications`,
       data: {
-        toUserList: [{ userId: props.toUserId, userName: props.toUserName }],
+        toUserList: [
+          {
+            user: props.toUser,
+            userId: props.toUserId,
+            userName: props.toUserName,
+          },
+        ],
         category,
         title,
         description,

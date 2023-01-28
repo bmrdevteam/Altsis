@@ -833,11 +833,34 @@ export default function useApi() {
    * Notification Api
    * ##########################################################################
    */
-  async function CUpdatedNotifications(userId: string) {
+  async function SendNotifications(props: {
+    data: {
+      toUserList: any[];
+      category: string;
+      title: string;
+      description: string;
+    };
+  }) {
+    return await database.C({
+      location: `notifications`,
+      data: props.data,
+    });
+  }
+
+  async function RNotifications(props: {
+    type: "received" | "sent";
+    user: string;
+    checked?: boolean;
+  }) {
     const { notifications } = await database.R({
-      location: `notifications?type=received&userId=${userId}&checked=false&updated=true`,
+      location: "notifications" + QUERY_BUILDER(props),
     });
     return notifications;
+  }
+  async function RNotificationById(_id: string) {
+    return await database.R({
+      location: `notifications/${_id}`,
+    });
   }
   async function UCheckNotification(_id: string) {
     const res = await database.U({
@@ -845,6 +868,13 @@ export default function useApi() {
       data: {},
     });
     return res;
+  }
+
+  async function DNotifications(_ids: string[]) {
+    const _notifications_ids = QUERY_SUB_BUILDER(_ids);
+    return await database.D({
+      location: "notifications" + QUERY_BUILDER({ _ids: _notifications_ids }),
+    });
   }
 
   return {
@@ -914,6 +944,12 @@ export default function useApi() {
       RSyllabuses,
       USyllabus,
     },
-    NotificationApi: { CUpdatedNotifications, UCheckNotification },
+    NotificationApi: {
+      SendNotifications,
+      RNotifications,
+      RNotificationById,
+      UCheckNotification,
+      DNotifications,
+    },
   };
 }
