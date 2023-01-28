@@ -9,7 +9,8 @@ import _ from "lodash";
 import { useEffect, useState } from "react";
 import style from "style/pages/userSearchResult/docsTab.module.scss";
 type Props = {
-  user: any
+  /* not user but registration */
+  user: any;
 };
 
 function Docs(props: Props) {
@@ -21,12 +22,9 @@ function Docs(props: Props) {
   const [printForms, setPrintForms] = useState<any>([]);
   const [DBData, setDBData] = useState<any>();
 
-  async function getDBData(userId: any) {
-    console.log(userId);
-
+  async function getDBData(rid: string, userId: string) {
     const archive = await ArchiveApi.RArchives({
-      school: currentSchool.school,
-      userId: userId,
+      registration: rid,
     });
 
     let processedEvaluation: any[] = [];
@@ -108,7 +106,7 @@ function Docs(props: Props) {
   }
 
   useEffect(() => {
-    getDBData(props.user.userId).then((res) => {
+    getDBData(props.user._id, props.user.user).then((res) => {
       setDBData(res);
       setLoading(false);
     });
