@@ -116,7 +116,11 @@ module.exports.includeUid = async (req, res) => {
 
     let finds = [
       Enrollment(academyId).find({
-        $or: [{ user: { $exists: false } }, { student: { $exists: false } }],
+        $or: [
+          { user: { $exists: false } },
+          { student: { $exists: false } },
+          { "teachers._id": { $exists: false } },
+        ],
       }),
       Registration(academyId).find({
         $or: [
@@ -175,6 +179,8 @@ module.exports.includeUid = async (req, res) => {
       enrollments.map((doc) => {
         doc.user = userIdToUid[doc.userId];
         doc.student = userIdToUid[doc.studentId];
+        for (let i = 0; i < doc.teachers.length; i++)
+          doc.teachers[i]._id = userIdToUid[doc.teachers[i].userId];
         return doc.save();
       }),
 
