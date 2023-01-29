@@ -37,7 +37,7 @@ module.exports.enroll = async (req, res) => {
     if (!registration)
       return res.status(404).send({ message: "등록 정보를 찾을 수 없습니다." });
 
-    if (req.user.userId !== registration.userId)
+    if (!req.user._id.equals(registration.user))
       return res
         .status(401)
         .send({ message: "유저 정보와 등록 정보가 일치하지 않습니다." });
@@ -61,7 +61,7 @@ module.exports.enroll = async (req, res) => {
 
     // 2. 이미 신청한 수업인지 확인
     const exEnrollments = await _Enrollment.find({
-      studentId: registration.userId,
+      student: registration.user,
       syllabus: syllabus._id,
     });
     if (_.find(exEnrollments, { syllabus: syllabus._id }))
@@ -97,7 +97,7 @@ module.exports.enroll = async (req, res) => {
       if (obj.combineBy === "term") {
         const e2 = await _Enrollment.findOne({
           season: enrollment.season,
-          studentId: enrollment.studentId,
+          student: enrollment.student,
           subject: enrollment.subject,
         });
         if (e2) {
@@ -107,7 +107,7 @@ module.exports.enroll = async (req, res) => {
         const e2 = await _Enrollment.findOne({
           school: enrollment.school,
           year: enrollment.year,
-          studentId: enrollment.studentId,
+          student: enrollment.student,
           subject: enrollment.subject,
         });
         if (e2) {
@@ -135,7 +135,7 @@ module.exports.enrollbulk = async (req, res) => {
     // mentor 확인 & confirmed 확인
     let isMentor = false;
     for (let teacher of syllabus.teachers) {
-      if (teacher.userId === req.user.userId) {
+      if (teacher._id.equals(req.user._id)) {
         isMentor = true;
         break;
       }
@@ -164,7 +164,7 @@ module.exports.enrollbulk = async (req, res) => {
     for (let student of req.body.students) {
       // 3. 이미 신청한 수업인가?
       const exEnrollments = await _Enrollment.find({
-        studentId: student.userId,
+        student: student._id,
         syllabus: syllabus._id,
       });
 
@@ -185,6 +185,7 @@ module.exports.enrollbulk = async (req, res) => {
         try {
           const enrollment = new _Enrollment({
             ...syllabusSubdocument,
+            student: student._id,
             studentId: student.userId,
             studentName: student.userName,
             studentGrade: student.grade,
@@ -196,7 +197,7 @@ module.exports.enrollbulk = async (req, res) => {
             if (obj.combineBy === "term") {
               const e2 = await _Enrollment.findOne({
                 season: enrollment.season,
-                studentId: enrollment.studentId,
+                student: enrollment.student,
                 subject: enrollment.subject,
               });
               if (e2) {
@@ -207,7 +208,7 @@ module.exports.enrollbulk = async (req, res) => {
               const e2 = await _Enrollment.findOne({
                 school: enrollment.school,
                 year: enrollment.year,
-                studentId: enrollment.studentId,
+                student: enrollment.student,
                 subject: enrollment.subject,
               });
               if (e2) {
@@ -251,9 +252,10 @@ module.exports.find = async (req, res) => {
       return res.status(200).send(enrollment);
     }
 
-    const { season, year, studentId, syllabus, syllabuses } = req.query;
+    const { season, year, student, studentId, syllabus, syllabuses } =
+      req.query;
 
-    // find by season & studentId
+    // find by season & studentId (deprecated)
     if (season && studentId) {
       const enrollments = await Enrollment(req.user.academyId).find({
         season,
@@ -263,7 +265,18 @@ module.exports.find = async (req, res) => {
       return res.status(200).send({ enrollments });
     }
 
+    // find by season & studentId
+    if (season && student) {
+      const enrollments = await Enrollment(req.user.academyId).find({
+        season,
+        student,
+      });
+      //  .select("-evaluation"); 임시적으로 권한 허용
+      return res.status(200).send({ enrollments });
+    }
+
     if (year && studentId) {
+      //deprecated
       const enrollments = await Enrollment(req.user.academyId).find({
         year,
         studentId,
@@ -272,9 +285,28 @@ module.exports.find = async (req, res) => {
       return res.status(200).send({ enrollments });
     }
 
+    if (year && student) {
+      //deprecated
+      const enrollments = await Enrollment(req.user.academyId).find({
+        year,
+        student,
+      });
+      //   .select("-evaluation"); // 임시적으로 권한 허용
+      return res.status(200).send({ enrollments });
+    }
+
     if (studentId) {
+      //deprecated
       const enrollments = await Enrollment(req.user.academyId).find({
         studentId,
+      });
+      //  .select("-evaluation"); 임시적으로 권한 허용
+      return res.status(200).send({ enrollments });
+    }
+
+    if (student) {
+      const enrollments = await Enrollment(req.user.academyId).find({
+        student,
       });
       //  .select("-evaluation"); 임시적으로 권한 허용
       return res.status(200).send({ enrollments });
@@ -284,7 +316,7 @@ module.exports.find = async (req, res) => {
     if (syllabus) {
       const enrollments = await Enrollment(req.user.academyId)
         .find({ syllabus })
-        .select(["studentId", "studentName", "studentGrade"]);
+        .select(["student", "studentId", "studentName", "studentGrade"]);
       return res.status(200).send({ enrollments });
     }
 
@@ -360,7 +392,7 @@ module.exports.updateEvaluation = async (req, res) => {
 
     const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
-      userId: req.user.userId,
+      user: req.user._id,
     });
     if (!registration)
       return res.status(404).send({ message: "registration not found" });
@@ -372,8 +404,8 @@ module.exports.updateEvaluation = async (req, res) => {
 
     //authentication 다시 설정해야 함
     if (
-      enrollment.studentId === req.user.userId ||
-      _.find(enrollment.teachers, { userId: req.user.userId })
+      enrollment.student.equals(req.user._id) ||
+      _.find(enrollment.teachers, { _id: req.user._id })
     ) {
       enrollment.evaluation = { ...enrollment.evaluation, ...req.body.new };
       await enrollment.save();
@@ -400,13 +432,23 @@ module.exports.updateEvaluation2 = async (req, res) => {
     if (!enrollment)
       return res.status(404).send({ message: "enrollment not found" });
 
+    console.log("enrollment.teachers", enrollment.teachers);
+    if (
+      (req.query.by === "mentor" &&
+        !_.find(enrollment.teachers, { _id: req.user._id })) ||
+      (req.query.by === "student" && !enrollment.student.equals(req.user._id))
+    )
+      return res.status(401).send({
+        message: "you are not a mentor or student of this enrollment",
+      });
+
     // 유저 권한 확인
     const season = await Season(req.user.academyId).findById(enrollment.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
     const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
-      userId: req.user.userId,
+      user: req.user._id,
     });
     if (!registration)
       return res.status(404).send({ message: "registration not found" });
@@ -420,7 +462,7 @@ module.exports.updateEvaluation2 = async (req, res) => {
       .find({
         _id: { $ne: enrollment._id },
         season: enrollment.season,
-        studentId: enrollment.studentId,
+        student: enrollment.student,
         subject: enrollment.subject,
       })
       .select("+evaluation");
@@ -430,52 +472,24 @@ module.exports.updateEvaluation2 = async (req, res) => {
         _id: { $ne: enrollment._id },
         school: enrollment.school,
         year: enrollment.year,
-        studentId: enrollment.studentId,
+        student: enrollment.student,
         subject: enrollment.subject,
       })
       .select("+evaluation");
 
-    //by mentor
-    if (
-      req.query.by === "mentor" &&
-      _.find(enrollment.teachers, { userId: req.user.userId })
-    ) {
-      for (let label in req.body.new) {
-        const obj = _.find(season.formEvaluation, { label });
-        if (obj.auth.edit.teacher) {
-          enrollment.evaluation = {
-            ...enrollment.evaluation,
-            [label]: req.body.new[label],
-          };
-          if (obj.combineBy === "term") {
-            for (let e of enrollmentsByTerm) {
-              e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
-            }
-          } else {
-            for (let e of enrollmentsByYear)
-              e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
-          }
-        }
-      }
-    }
-    if (
-      req.query.by === "student" &&
-      enrollment.studentId === req.user.userId
-    ) {
-      for (let label in req.body.new) {
-        const obj = _.find(season.formEvaluation, { label });
-        if (obj.auth.edit.student) {
-          enrollment.evaluation = {
-            ...enrollment.evaluation,
-            [label]: req.body.new[label],
-          };
-          if (obj.combineBy === "term") {
-            for (let e of enrollmentsByTerm)
-              e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
-          } else {
-            for (let e of enrollmentsByYear)
-              e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
-          }
+    for (let label in req.body.new) {
+      const obj = _.find(season.formEvaluation, { label });
+      if (obj.auth.edit[req.query.by === "mentor" ? "teacher" : "student"]) {
+        enrollment.evaluation = {
+          ...enrollment.evaluation,
+          [label]: req.body.new[label],
+        };
+        if (obj.combineBy === "term") {
+          for (let e of enrollmentsByTerm)
+            e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
+        } else {
+          for (let e of enrollmentsByYear)
+            e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
         }
       }
     }
@@ -487,9 +501,7 @@ module.exports.updateEvaluation2 = async (req, res) => {
       ),
     ]);
 
-    return res.status(200).send({
-      enrollment,
-    });
+    return res.status(200).send(enrollment);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -511,7 +523,7 @@ module.exports.remove = async (req, res) => {
 
     const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
-      userId: enrollment.studentId,
+      user: enrollment.student,
     });
     if (!registration) {
       return res.status(404).send({ message: "등록 정보를 찾을 수 없습니다." });
@@ -519,8 +531,7 @@ module.exports.remove = async (req, res) => {
 
     const season = await Season(req.user.academyId).findById(enrollment.season);
     if (!season) return res.status(404).send({ message: "season not found" });
-    console.log("permissionEnrollment: ", season.permissionEnrollment);
-    console.log("registration is ", registration);
+
     if (
       !season.checkPermission(
         "enrollment",

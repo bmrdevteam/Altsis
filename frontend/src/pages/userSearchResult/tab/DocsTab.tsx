@@ -15,22 +15,23 @@ type Props = {
 
 function Docs(props: Props) {
   const database = useDatabase();
-  const { ArchiveApi, FormApi } = useApi();
+  const { ArchiveApi, FormApi, EnrollmentApi } = useApi();
   const { currentSchool } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
   const [printForms, setPrintForms] = useState<any>([]);
   const [DBData, setDBData] = useState<any>();
 
-  async function getDBData(rid: string, userId: string) {
+  async function getDBData(rid: string, uid: string) {
     const archive = await ArchiveApi.RArchives({
       registration: rid,
     });
 
     let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
-    const { enrollments: evaluations } = await database.R({
-      location: `enrollments/evaluations?studentId=${userId}&school=${currentSchool.school}`,
+    const evaluations = await EnrollmentApi.REnrollmentWithEvaluations({
+      student: uid,
+      school: currentSchool.school,
     });
 
     for (let i = 0; i < evaluations.length; i++) {

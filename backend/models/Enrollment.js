@@ -23,7 +23,28 @@ const enrollmentSchema = mongoose.Schema(
     limit: Number,
     count_limit: String,
     info: Object,
-    teachers: Object,
+    teachers: {
+      type: [
+        mongoose.Schema(
+          {
+            _id: mongoose.Types.ObjectId,
+            userId: {
+              type: String,
+              required: true,
+            },
+            userName: {
+              type: String,
+              required: true,
+            },
+            confirmed: {
+              type: Boolean,
+              default: false,
+            },
+          },
+          { _id: false }
+        ),
+      ],
+    },
     // enrollment data
     student: mongoose.Types.ObjectId,
     studentId: String,

@@ -53,7 +53,7 @@ type Props = {};
 const CourseEnroll = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
-  const { SyllabusApi } = useApi();
+  const { SyllabusApi, EnrollmentApi } = useApi();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -96,17 +96,17 @@ const CourseEnroll = (props: Props) => {
   }
 
   async function getEnrolledCourseList() {
-    const { enrollments: myEnrollments } = await database.R({
-      location: `enrollments?season=${currentRegistration?.season}&studentId=${currentUser?.userId}`,
+    const myEnrollments = await EnrollmentApi.REnrolllments({
+      season: currentRegistration?.season,
+      student: currentUser?._id,
     });
+
     if (myEnrollments.length === 0) return [];
 
-    const { enrollments: sylEnrollments } = await database.R({
-      location: `enrollments?syllabuses=${_.join(
-        myEnrollments.map((e: any) => e.syllabus),
-        ","
-      )}`,
+    const sylEnrollments = await EnrollmentApi.REnrolllments({
+      syllabuses: myEnrollments.map((e: any) => e.syllabus),
     });
+
     const cnt = _.countBy(
       sylEnrollments.map((enrollment: any) => enrollment.syllabus)
     );
@@ -140,24 +140,6 @@ const CourseEnroll = (props: Props) => {
       return syllabus;
     });
   };
-
-  async function enroll(e: any) {
-    const res = database.C({
-      location: "enrollments",
-      data: {
-        syllabus: e._id,
-        registration: currentRegistration?._id,
-      },
-    });
-    return res;
-  }
-
-  async function cancel(e: any) {
-    const res = database.D({
-      location: `enrollments/${e.enrollment}`,
-    });
-    return res;
-  }
 
   const subjectHeaderList = [
     {
@@ -355,7 +337,12 @@ const CourseEnroll = (props: Props) => {
               key: "enroll",
               type: "button",
               onClick: (e: any) => {
-                enroll(e)
+                EnrollmentApi.CEnrollment({
+                  data: {
+                    syllabus: e._id,
+                    registration: currentRegistration?._id,
+                  },
+                })
                   .then(() => {
                     alert("success");
                     setIsLoading(true);
@@ -393,7 +380,7 @@ const CourseEnroll = (props: Props) => {
               key: "cancel",
               type: "button",
               onClick: (e: any) => {
-                cancel(e)
+                EnrollmentApi.DEnrollment(e.enrollment)
                   .then(() => {
                     alert("success");
                     setIsLoading(true);

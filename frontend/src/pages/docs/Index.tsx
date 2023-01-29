@@ -15,7 +15,7 @@ type Props = {};
 
 function Docs({}: Props) {
   const database = useDatabase();
-  const { RegistrationApi, ArchiveApi, FormApi } = useApi();
+  const { RegistrationApi, ArchiveApi, FormApi, EnrollmentApi } = useApi();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
@@ -27,15 +27,17 @@ function Docs({}: Props) {
   const [selectedGrade, setSelectedGrade] = useState<string>();
   const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
 
-  async function getDBData(rid: any, userId: any) {
+  async function getDBData(rid: string, uid: string) {
     const archive = await ArchiveApi.RArchives({
       registration: rid,
     });
 
     let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
-    const { enrollments: evaluations } = await database.R({
-      location: `enrollments/evaluations?studentId=${userId}&school=${currentSchool.school}`,
+
+    const evaluations = await EnrollmentApi.REnrollmentWithEvaluations({
+      student: uid,
+      school: currentSchool.school,
     });
 
     for (let i = 0; i < evaluations.length; i++) {
@@ -176,7 +178,7 @@ function Docs({}: Props) {
                   return {
                     value: JSON.stringify({
                       rid: val._id,
-                      userId: val.userId,
+                      uid: val.user,
                     }),
                     text: `${val.userName} / ${val.userId}`,
                   };
@@ -184,8 +186,8 @@ function Docs({}: Props) {
             ]}
             onChange={(value: string | number) => {
               setLoading(true);
-              const { rid, userId } = JSON.parse(`${value}`);
-              getDBData(rid, userId).then((res) => {
+              const { rid, uid } = JSON.parse(`${value}`);
+              getDBData(rid, uid).then((res) => {
                 setDBData(res);
                 setLoading(false);
               });
