@@ -692,6 +692,39 @@ export default function useApi() {
    */
 
   /**
+   * Create Enrollment
+   * @type POST
+   * @auth member
+   */
+  async function CEnrollment(props: {
+    data: { syllabus: string; registration: string };
+  }) {
+    return await database.C({
+      location: "enrollments",
+      data: props.data,
+    });
+  }
+
+  /**
+   * Create Enrollments (bulk)
+   * @type POST
+   * @auth member(teacher)
+   */
+  async function CEnrollments(props: {
+    data: {
+      registration: string;
+      syllabus: string;
+      students: any[];
+    };
+  }) {
+    const { enrollments: res } = await database.C({
+      location: "enrollments/bulk",
+      data: props.data,
+    });
+    return res;
+  }
+
+  /**
    * Read Enrollments
    * @type GET
    * @auth member
@@ -700,7 +733,8 @@ export default function useApi() {
   async function REnrolllments(params: {
     syllabus?: string;
     season?: string;
-    studentId?: string | number;
+    studentId?: string | number; //deprecated
+    student?: string | number;
     syllabuses?: string[] | string;
   }) {
     if (params.syllabuses)
@@ -718,11 +752,59 @@ export default function useApi() {
    * @auth member
    * @returns Enrollment
    */
-  async function REnrolllment(id: string) {
+  async function REnrolllment(id?: string) {
     const result = await database.R({
-      location: "enrollments" + id,
+      location: "enrollments/" + id,
     });
     return result;
+  }
+
+  /**
+   * Delete Enrollment
+   * @type DELETE
+   * @auth member
+   * @returns Enrollment
+   */
+  async function DEnrollment(id?: string) {
+    const result = await database.D({
+      location: "enrollments/" + id,
+    });
+    return result;
+  }
+
+  /**
+   * Read Enrollment with Evaluations
+   * @type GET
+   * @auth member
+   * @returns Enrollments
+   */
+  async function REnrollmentWithEvaluations(params: {
+    syllabus?: string;
+    student?: string;
+    school?: string;
+  }) {
+    const { enrollments } = await database.R({
+      location: "enrollments/evaluations" + QUERY_BUILDER(params),
+    });
+    return enrollments;
+  }
+
+  /**
+   * Update Evaluation
+   * @type GET
+   * @auth member
+   * @returns Enrollments
+   */
+  async function UEvaluation(props: {
+    enrollment?: string;
+    by: "mentor" | "student";
+    data: any;
+  }) {
+    console.log("props.data is ", props.data);
+    return await database.U({
+      location: `enrollments/${props.enrollment}/evaluation2?by=${props.by}`,
+      data: { new: props.data },
+    });
   }
 
   /**
@@ -980,7 +1062,15 @@ export default function useApi() {
       URegistrations,
       DRegistrations,
     },
-    EnrollmentApi: { REnrolllment, REnrolllments },
+    EnrollmentApi: {
+      CEnrollment,
+      CEnrollments,
+      REnrolllment,
+      REnrolllments,
+      DEnrollment,
+      REnrollmentWithEvaluations,
+      UEvaluation,
+    },
     FormApi: {
       CForm,
       RForms,

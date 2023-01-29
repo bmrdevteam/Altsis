@@ -32,7 +32,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
-
+import useApi from "hooks/useApi";
 // tab pages
 import style from "style/pages/courses/course.module.scss";
 
@@ -55,6 +55,7 @@ const CourseEnrollment = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentRegistration, currentSeason } = useAuth();
   const navigate = useNavigate();
+  const { EnrollmentApi } = useApi();
 
   const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -72,13 +73,6 @@ const CourseEnrollment = (props: Props) => {
 
   const [enrollments, setEnrollments] = useState<any[]>();
 
-  async function getEnrollmentData() {
-    const result = await database.R({
-      location: `enrollments/${pid}`,
-    });
-    return result;
-  }
-
   async function getSeason(_id: string) {
     const res = await database.R({
       location: `seasons/${_id}`,
@@ -91,24 +85,6 @@ const CourseEnrollment = (props: Props) => {
       location: `syllabuses/${_id}`,
     });
     return res;
-  }
-
-  async function updateEvaluation(evaluation: any[]) {
-    console.log("updateEvalu: pid is", pid, " eval is ", evaluation);
-    const { evaluation: res } = await database.U({
-      location: `enrollments/${pid}/evaluation`,
-      data: {
-        new: evaluation,
-      },
-    });
-    console.log("res is ", res);
-    return res;
-  }
-  async function getEnrollments(syllabus: string) {
-    const { enrollments } = await database.R({
-      location: `enrollments/evaluations?syllabus=${syllabus}`,
-    });
-    return enrollments;
   }
 
   const categories = () => {
@@ -162,7 +138,7 @@ const CourseEnrollment = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      getEnrollmentData()
+      EnrollmentApi.REnrolllment(pid)
         .then((result) => {
           if (
             result.season !== currentSeason._id ||
@@ -263,10 +239,11 @@ const CourseEnrollment = (props: Props) => {
               break;
             }
           }
-
-          getEnrollments(result.syllabus).then((res: any) => {
-            setEnrollments(res);
-          });
+          EnrollmentApi.REnrolllments({ syllabus: result.syllabus }).then(
+            (res: any) => {
+              setEnrollments(res);
+            }
+          );
         })
         .catch((err) => {
           alert(err.response.data.message);
@@ -340,7 +317,11 @@ const CourseEnrollment = (props: Props) => {
                             `evaluation[${obj.text}] is ${evaluation[obj.text]}`
                           );
                         }
-                        updateEvaluation(evaluation)
+                        EnrollmentApi.UEvaluation({
+                          enrollment: pid,
+                          by: "student",
+                          data: evaluation,
+                        })
                           .then((res: any) => {
                             alert("수정되었습니다.");
                             console.log("update eval: res is ", res);
