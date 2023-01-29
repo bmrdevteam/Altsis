@@ -57,6 +57,9 @@ jobs:
           echo "SIGKEY_E= ${{secrets.SIGKEY_E}}" >> .env
           echo "ENCKEY_A= ${{secrets.ENCKEY_A}}" >> .env
           echo "SIGKEY_A= ${{secrets.SIGKEY_A}}" >> .env
+          echo "s3_accessKeyId2 = ${{secrets.S3_ACCESSKEYID2}}" >> .env
+          echo "s3_secretAccessKey2= ${{secrets.S3_SECRETACCESSKEY2}}" >> .env
+          echo "s3_bucket2=${{secrets.S3_BUCKET2}}" >> .env
 
       # 빌드 후 푸쉬
       - name: Build and push
