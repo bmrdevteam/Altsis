@@ -22,16 +22,17 @@ function Docs(props: Props) {
   const [printForms, setPrintForms] = useState<any>([]);
   const [DBData, setDBData] = useState<any>();
 
-  async function getDBData(rid: string, uid: string) {
+  async function getDBData() {
     const archive = await ArchiveApi.RArchives({
-      registration: rid,
+      school: currentSchool.school,
+      user: props.user._id,
     });
 
     let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
     const evaluations = await EnrollmentApi.REnrollmentWithEvaluations({
-      student: uid,
-      school: currentSchool.school,
+      school: props.user.school,
+      student: props.user._id,
     });
 
     for (let i = 0; i < evaluations.length; i++) {
@@ -107,7 +108,7 @@ function Docs(props: Props) {
   }
 
   useEffect(() => {
-    getDBData(props.user._id, props.user.user).then((res) => {
+    getDBData().then((res) => {
       setDBData(res);
       setLoading(false);
     });
