@@ -76,15 +76,17 @@ const Home = () => {
     }
   }
   useEffect(() => {
-    EnrollmentApi.REnrolllments({
-      season: currentSeason?._id,
-      studentId: currentUser.userId,
-    })
-      .then((res) => {
-        setEnrollments(res);
-        console.log(res);
+    if (currentSeason?._id) {
+      EnrollmentApi.REnrolllments({
+        season: currentSeason._id,
+        student: currentUser._id,
       })
-      .catch(() => {});
+        .then((res) => {
+          setEnrollments(res);
+          console.log(res);
+        })
+        .catch(() => {});
+    }
   }, [currentSeason]);
 
   return (
