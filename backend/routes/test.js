@@ -24,6 +24,9 @@ router.post("/redis/hash", test.testRedisHash);
 router.put("/uids", test.includeUid);
 router.put("/uids/archives", test.includeUidinArchive);
 
-router.put("/archives/schools", test.includeSchoolIdAndSchoolNameinArchive);
+router.put(
+  "/uids/archives/schools",
+  test.includeSchoolIdAndSchoolNameinArchive
+);
 
 module.exports = router;
