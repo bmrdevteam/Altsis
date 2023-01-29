@@ -89,6 +89,12 @@ module.exports.registerCopy = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
+    if (req.params._id) {
+      const registration = await Registration(req.user.academyId).findById(
+        req.params._id
+      );
+      return res.status(200).send(registration);
+    }
     const registrations = await Registration(req.user.academyId).find(
       req.query
     );
