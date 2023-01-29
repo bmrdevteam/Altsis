@@ -195,6 +195,17 @@ module.exports.current = async (req, res) => {
   }
 };
 
+module.exports.findProfile = async (req, res) => {
+  try {
+    const user = await User(req.user.academyId)
+      .findById(req.params._id)
+      .select("profile");
+    return res.status(200).send(user);
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.find = async (req, res) => {
   try {
     // 소속 아카데미의 user 정보 조회 가능

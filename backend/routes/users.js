@@ -24,6 +24,7 @@ router.post("/bulk", isAdmin, users.createBulk);
 
 // ___________ find _____________
 router.get("/current", isLoggedIn, users.current);
+router.get("/:_id?/profile", isLoggedIn, users.findProfile);
 router.get("/:_id?", isLoggedIn, users.find);
 
 // ___________ update(onself) _____________
