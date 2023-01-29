@@ -27,10 +27,9 @@ const getUnavailableTimeLabels = async (academyId, syllabus) => {
 module.exports.create = async (req, res) => {
   try {
     // 유저의 학기 등록 정보 확인
-    const registration = await Registration(req.user.academyId).findOne({
-      season: req.body.season,
-      userId: req.user.userId,
-    });
+    const registration = await Registration(req.user.academyId).findById(
+      req.body.registration
+    );
     if (!registration)
       return res.status(404).send({ message: "registration not found" });
 
@@ -47,9 +46,9 @@ module.exports.create = async (req, res) => {
     )
       return res.status(409).send({ message: "you have no permission" });
 
-    const _Syllabus = Syllabus(req.user.academyId);
-    const syllabus = new _Syllabus({
+    const syllabus = new (Syllabus(req.user.academyId))({
       ...season.getSubdocument(),
+      user: req.user._id,
       userId: req.user.userId,
       userName: req.user.userName,
       classTitle: req.body.classTitle,
@@ -90,6 +89,10 @@ module.exports.find = async (req, res) => {
     }
 
     const queries = req.query;
+    if (queries.teacher) {
+      queries["teachers._id"] = queries.teacher;
+      delete queries.teacherId;
+    }
     if (queries.teacherId) {
       queries["teachers.userId"] = queries.teacherId;
       delete queries.teacherId;
@@ -103,14 +106,14 @@ module.exports.find = async (req, res) => {
       delete queries.matches;
       delete queries.field;
     }
-    if (queries.season && queries.studentId) {
+    if (queries.season && queries.student) {
       const studentEnrollements = await Enrollment(req.user.academyId)
         .find({
           season: queries.season,
-          studentId: queries.studentId,
+          student: queries.student,
         })
         .select("syllabus");
-      console.log("studentEnrollments: ", studentEnrollements);
+
       queries["_id"] = { $in: studentEnrollements.map((e) => e.syllabus) };
       delete queries.studentId;
     }
@@ -144,7 +147,7 @@ module.exports.confirm = async (req, res) => {
       req.params._id
     );
     for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (syllabus.teachers[i].userId == req.user.userId) {
+      if (syllabus.teachers[i]._id.equals(req.user._id)) {
         syllabus.teachers[i].confirmed = true;
         await syllabus.save();
         return res.status(200).send(syllabus);
@@ -166,7 +169,7 @@ module.exports.unconfirm = async (req, res) => {
     );
 
     for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (syllabus.teachers[i].userId == req.user.userId) {
+      if (syllabus.teachers[i]._id.equals(req.user._id)) {
         const enrollments = await Enrollment(req.user.academyId).find({
           syllabus: syllabus._id,
         });
@@ -184,118 +187,6 @@ module.exports.unconfirm = async (req, res) => {
     return res
       .status(403)
       .send({ message: "you cannot unconfirm this syllabus" });
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-module.exports.updateTime = async (req, res) => {
-  try {
-    // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.academyId).findById(
-      req.params._id
-    );
-    if (req.user.userId != syllabus.userId) {
-      return res
-        .status(403)
-        .send({ message: "you cannot update this syllabus" });
-    }
-
-    // confirmed 상태에서는 수정할 수 없다.
-    for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (syllabus.teachers[i].confirmed) {
-        return res.status(409).send({
-          message: "you cannot update this syllabus becuase it is confirmed",
-        });
-      }
-    }
-
-    syllabus.time = req.body.new;
-
-    // classroom 시간 확인
-    const unavailableTimeLabels = await getUnavailableTimeLabels(
-      req.user.academyId,
-      syllabus
-    );
-    console.log("unavailableTimeLabels is ", unavailableTimeLabels);
-    if (!_.isEmpty(unavailableTimeLabels)) {
-      return res.status(409).send({
-        message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
-      });
-    }
-
-    await syllabus.save();
-    return res.status(200).send(syllabus);
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-module.exports.updateClassroom = async (req, res) => {
-  try {
-    // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.academyId).findById(
-      req.params._id
-    );
-    if (req.user.userId != syllabus.userId) {
-      return res
-        .status(403)
-        .send({ message: "you cannot update this syllabus" });
-    }
-
-    // confirmed 상태에서는 수정할 수 없다.
-    for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (syllabus.teachers[i].confirmed) {
-        return res.status(409).send({
-          message: "you cannot update this syllabus becuase it is confirmed",
-        });
-      }
-    }
-
-    syllabus.classroom = req.body.new;
-
-    // classroom 시간 확인
-    const unavailableTimeLabels = await getUnavailableTimeLabels(
-      req.user.academyId,
-      syllabus
-    );
-    if (!_.isEmpty(unavailableTimeLabels)) {
-      return res.status(409).send({
-        message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
-      });
-    }
-
-    await syllabus.save();
-    return res.status(200).send(syllabus);
-  } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
-  }
-};
-
-module.exports.removeClassroom = async (req, res) => {
-  try {
-    // 내가 만든 syllabus인가?
-    const syllabus = await Syllabus(req.user.academyId).findById(
-      req.params._id
-    );
-    if (req.user.userId != syllabus.userId) {
-      return res
-        .status(403)
-        .send({ message: "you cannot update this syllabus" });
-    }
-
-    // confirmed 상태에서는 수정할 수 없다.
-    for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (syllabus.teachers[i].confirmed) {
-        return res.status(409).send({
-          message: "you cannot update this syllabus becuase it is confirmed",
-        });
-      }
-    }
-
-    syllabus.classroom = undefined;
-    await syllabus.save();
-    return res.status(200).send(syllabus);
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }

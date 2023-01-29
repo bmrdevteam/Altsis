@@ -3,13 +3,13 @@ const _ = require("lodash");
 
 module.exports.find = async (req, res) => {
   try {
-    const { season, userId } = req.query;
-    if (!season || !userId) return res.status(400).send();
+    const { season, user } = req.query;
+    if (!season || !user) return res.status(400).send();
 
     // find enrollments
     const enrolled = await Enrollment(req.user.academyId).find({
       season,
-      studentId: userId,
+      student: user,
     });
     for (let enrollment of enrolled) {
       const cnt = await Enrollment(req.user.academyId).countDocuments({
@@ -21,13 +21,13 @@ module.exports.find = async (req, res) => {
     // find created syllabuses
     const created = await Syllabus(req.user.academyId).find({
       season,
-      userId,
+      user,
     });
 
     // find mentoring syllabuses
     const mentoring = await Syllabus(req.user.academyId).find({
       season,
-      "teachers.userId": userId,
+      "teachers._id": user,
     });
 
     for (let syl of [...created, ...mentoring]) {

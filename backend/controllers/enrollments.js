@@ -85,6 +85,7 @@ module.exports.enroll = async (req, res) => {
     // 수강신청 완료 (도큐먼트 저장)
     const enrollment = new _Enrollment({
       ...syllabus.getSubdocument(),
+      student: registration.user,
       studentId: registration.userId,
       studentName: registration.userName,
       studentGrade: registration.grade,

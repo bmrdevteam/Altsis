@@ -770,6 +770,7 @@ export default function useApi() {
   async function CSyllabus(props: {
     data: {
       season: string;
+      registration: string;
       classTitle: string;
       point: string;
       subject: string[];
@@ -786,16 +787,21 @@ export default function useApi() {
     });
   }
   /**
-   * Get Syllabuses
+   * Get Syllabuses and enrollments
    * @type GET
    * @auth member
    * @returns list of syllabuses
    */
-  async function RSyllabuses(props: { season?: string; classroom?: string }) {
-    const { syllabuses: result } = await database.R({
+  async function RSyllabuses(props: {
+    season?: string;
+    classroom?: string;
+    matches?: string;
+    field?: string;
+    confirmed?: boolean;
+  }) {
+    return await database.R({
       location: "syllabuses" + QUERY_BUILDER(props),
     });
-    return result;
   }
   /**
    * Get Syllabus
@@ -830,6 +836,49 @@ export default function useApi() {
       location: `syllabuses/${props._id}`,
       data: { new: props.data },
     });
+  }
+  /**
+   * Confirm Syllabus
+   * @type PUT
+   * @auth member
+   */
+  async function ConfirmSyllabus(_id: string) {
+    return await database.U({
+      location: `syllabuses/${_id}/confirmed`,
+      data: {},
+    });
+  }
+  /**
+   * Unconfirm Syllabus
+   * @type DELETE
+   * @auth member
+   */
+  async function UnconfirmSyllabus(_id: string) {
+    return await database.D({
+      location: `syllabuses/${_id}/confirmed`,
+    });
+  }
+  /**
+   * Delete Syllabus
+   * @type Delete
+   * @auth member
+   */
+  async function DSyllabus(_id: string) {
+    return await database.D({
+      location: `syllabuses/${_id}`,
+    });
+  }
+  /**
+   * Read CourseList(enrolled,created,mentoring)
+   * @type GET
+   * @auth member
+   * @returns syllabuses
+   */
+  async function RCourses(props: { season: string; user: string }) {
+    const { courses } = await database.R({
+      location: "courses" + QUERY_BUILDER(props),
+    });
+    return courses;
   }
 
   /**
@@ -946,6 +995,10 @@ export default function useApi() {
       RSyllabus,
       RSyllabuses,
       USyllabus,
+      DSyllabus,
+      RCourses,
+      ConfirmSyllabus,
+      UnconfirmSyllabus,
     },
     NotificationApi: {
       SendNotifications,
