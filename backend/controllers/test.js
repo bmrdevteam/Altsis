@@ -115,43 +115,52 @@ module.exports.includeUid = async (req, res) => {
     for (let u of users) userIdToUid[u.userId] = u._id;
 
     let finds = [
-      Enrollment(academyId).find({
-        $or: [
-          { user: { $exists: false } },
-          { student: { $exists: false } },
-          { "teachers._id": { $exists: false } },
-        ],
-      }),
-      Registration(academyId).find({
-        $or: [
-          { user: { $exists: false } },
-          {
-            $and: [
-              { teacherId: { $exists: true } },
-              { teacher: { $exists: false } },
-            ],
-          },
-          {
-            $and: [
-              { subTeacherId: { $exists: true } },
-              { subTeacher: { $exists: false } },
-            ],
-          },
-        ],
-      }),
-      Syllabus(academyId).find({
-        $or: [
-          { user: { $exists: false } },
-          {
-            $and: [
-              { "teachers.userId": { $exists: true } },
-              { "teachers._id": { $exists: false } },
-            ],
-          },
-        ],
-      }),
+      Enrollment(academyId)
+        .find({
+          $or: [
+            { user: { $exists: false } },
+            { student: { $exists: false } },
+            { "teachers._id": { $exists: false } },
+          ],
+        })
+        .limit(10000),
+      Registration(academyId)
+        .find({
+          $or: [
+            { user: { $exists: false } },
+            {
+              $and: [
+                { teacherId: { $exists: true } },
+                { teacher: { $exists: false } },
+              ],
+            },
+            {
+              $and: [
+                { subTeacherId: { $exists: true } },
+                { subTeacher: { $exists: false } },
+              ],
+            },
+          ],
+        })
+        .limit(100),
+      Syllabus(academyId)
+        .find({
+          $or: [
+            { user: { $exists: false } },
+            {
+              $and: [
+                { "teachers.userId": { $exists: true } },
+                { "teachers._id": { $exists: false } },
+              ],
+            },
+          ],
+        })
+        .limit(100),
     ];
     const [enrollments, registrations, syllabuses] = await Promise.all(finds);
+    console.log("enrollments.length: ", enrollments.length);
+    console.log("registrations.length: ", registrations.length);
+    console.log("syllabuses.length: ", syllabuses.length);
 
     // const userNotFoundSet = new Set();
     // enrollments.forEach((doc) => {
@@ -215,14 +224,21 @@ module.exports.includeUid = async (req, res) => {
 //Archive에 user(oid)필드 추가
 module.exports.includeUidinArchive = async (req, res) => {
   try {
-    const users = await User(req.user.academyId).find(req.query);
+    const academyId = req.query.academyId;
+    if (!academyId) {
+      return res.status(400).send({ message: "academyId is not defined" });
+    }
+
+    const users = await User(academyId).find();
+    const userIdToUid = {};
+    for (let u of users) userIdToUid[u.userId] = u._id;
 
     let finds = [];
     let uids = [];
     for (let u of users) {
       for (let s of u.schools) {
         finds.push(
-          Archive(req.user.academyId).findOne({
+          Archive(academyId).findOne({
             userId: u.userId,
             school: s.school,
           })
@@ -237,7 +253,7 @@ module.exports.includeUidinArchive = async (req, res) => {
     for (let idx = 0; idx < archives.length; idx++) {
       if (archives[idx]) {
         updates.push(
-          Archive(req.user.academyId).findByIdAndUpdate(archives[idx]._id, {
+          Archive(academyId).findByIdAndUpdate(archives[idx]._id, {
             user: uids[idx],
           })
         );
@@ -270,7 +286,7 @@ module.exports.includeSchoolIdAndSchoolNameinArchive = async (req, res) => {
       finds.push(
         Archive(academyId).findOne({
           userId: a.userId,
-          schoolId: a.schoolId,
+          school: a.school,
         })
       );
     }
