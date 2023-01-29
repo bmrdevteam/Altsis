@@ -44,13 +44,11 @@ import EnrolledCourseList from "./tab/EnrolledCourseList";
 import CreatedCourseList from "./tab/CreatedCourseList";
 import MentoringCourseList from "./tab/MentoringCourseList";
 
-import useDatabase from "hooks/useDatabase";
-
 type Props = {};
 
 const Course = (props: Props) => {
-  const database = useDatabase();
   const navigate = useNavigate();
+  const { SyllabusApi } = useApi();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
@@ -62,13 +60,6 @@ const Course = (props: Props) => {
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
     []
   );
-
-  async function getCourseList() {
-    const { courses: result } = await database.R({
-      location: `courses?season=${currentRegistration?.season}&userId=${currentUser?.userId}`,
-    });
-    return result;
-  }
 
   const structuring = (courseList: any[]) => {
     return courseList.map((course: any) => {
@@ -95,7 +86,10 @@ const Course = (props: Props) => {
       alert("등록된 학기가 없습니다.");
       navigate("/");
     } else {
-      getCourseList().then((res: any) => {
+      SyllabusApi.RCourses({
+        season: currentRegistration.season,
+        user: currentUser._id,
+      }).then((res: any) => {
         console.log("res: ", res);
         setEnrolledCourseList(structuring(res.enrolled));
         setCreatedCourseList(structuring(res.created));

@@ -49,7 +49,7 @@ import Loading from "components/loading/Loading";
 type Props = {};
 
 const CourseAdd = (props: Props) => {
-  const { currentUser, currentSeason } = useAuth();
+  const { currentUser, currentSeason, currentRegistration } = useAuth();
   const navigate = useNavigate();
   const { SyllabusApi, RegistrationApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -118,6 +118,7 @@ const CourseAdd = (props: Props) => {
     return await SyllabusApi.CSyllabus({
       data: {
         season: currentSeason._id,
+        registration: currentRegistration._id,
         classTitle: courseTitle,
         point: coursePoint,
         subject: courseSubject.split("/"),
@@ -408,7 +409,11 @@ const CourseAdd = (props: Props) => {
               onClick={() => {
                 setCourseMentorList(
                   selectedTeacherListRef.current.map((val: any) => {
-                    return { userId: val.userId, userName: val.userName };
+                    return {
+                      _id: val.user,
+                      userId: val.userId,
+                      userName: val.userName,
+                    };
                   })
                 );
                 setMentorSelectPopupActive(false);

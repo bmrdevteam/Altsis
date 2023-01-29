@@ -30,6 +30,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -52,6 +53,8 @@ type Props = {};
 const CourseEnroll = (props: Props) => {
   const database = useDatabase();
   const navigate = useNavigate();
+  const { SyllabusApi } = useApi();
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const { currentSeason, currentUser, currentRegistration, currentPermission } =
@@ -73,8 +76,11 @@ const CourseEnroll = (props: Props) => {
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
 
   async function getCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}&matches=${courseTitle}&field=${searchField}&confirmed=true`,
+    const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
+      season: currentRegistration.season,
+      matches: courseTitle,
+      field: searchField,
+      confirmed: true,
     });
     if (syllabuses.length === 0) return [];
 

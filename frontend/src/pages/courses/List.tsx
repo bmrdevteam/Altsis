@@ -29,7 +29,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -47,8 +47,8 @@ import Loading from "components/loading/Loading";
 type Props = {};
 
 const Courses = (props: Props) => {
-  const database = useDatabase();
   const navigate = useNavigate();
+  const { SyllabusApi } = useApi();
 
   const { currentSeason, currentRegistration } = useAuth();
 
@@ -64,8 +64,8 @@ const Courses = (props: Props) => {
   const [course, setCourse] = useState<string>();
 
   async function getCreatedCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${currentRegistration?.season}`,
+    const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
+      season: currentRegistration?.season,
     });
     if (syllabuses.length === 0) return [];
 

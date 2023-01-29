@@ -64,7 +64,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentSeason } = useAuth();
-  const { NotificationApi } = useApi();
+  const { NotificationApi, SyllabusApi, SeasonApi } = useApi();
   const navigate = useNavigate();
 
   const database = useDatabase();
@@ -95,28 +95,6 @@ const CoursePid = (props: Props) => {
   const [sendNotificationPopupActive, setSendNotificationPopupActive] =
     useState<boolean>(false);
   const [receiverList, setReceiverList] = useState<any[]>([]);
-
-  async function unconfirmCourse() {
-    const result = database.D({
-      location: `syllabuses/${courseData?._id}/confirmed`,
-    });
-    return result;
-  }
-
-  async function confirmCourse() {
-    const result = database.U({
-      location: `syllabuses/${courseData?._id}/confirmed`,
-      data: {},
-    });
-    return result;
-  }
-
-  async function getSeason(_id: string) {
-    const res = await database.R({
-      location: `seasons/${_id}`,
-    });
-    return res;
-  }
 
   async function getEnrollments(_id: string) {
     const { enrollments } = await database.R({
@@ -189,16 +167,9 @@ const CoursePid = (props: Props) => {
     return () => {};
   }, [isEnrollmentListLoading]);
 
-  async function getCourseData() {
-    const result = await database.R({
-      location: `syllabuses/${pid}`,
-    });
-    return result;
-  }
-
   useEffect(() => {
     if (isLoading) {
-      getCourseData()
+      SyllabusApi.RSyllabus(pid)
         .then((result) => {
           if (
             result.season !== currentSeason?._id ||
@@ -223,7 +194,7 @@ const CoursePid = (props: Props) => {
                 };
               })
             );
-            getSeason(result.season).then((res: any) => {
+            SeasonApi.RSeason(result.season).then((res: any) => {
               let _formEvaluationHeader: any[] = [];
 
               if (
@@ -552,7 +523,7 @@ const CoursePid = (props: Props) => {
               disabled={enrollmentList && enrollmentList.length > 0}
               onClick={() => {
                 if (mentorConfirmed) {
-                  unconfirmCourse()
+                  SyllabusApi.UnconfirmSyllabus(courseData?._id)
                     .then((res) => {
                       alert("unconfirmed");
                       const teachers = courseData.teachers;
@@ -568,7 +539,7 @@ const CoursePid = (props: Props) => {
                       alert("failed to unconfirm");
                     });
                 } else {
-                  confirmCourse()
+                  SyllabusApi.ConfirmSyllabus(courseData?._id)
                     .then((res) => {
                       alert("confirmed");
                       const teachers = courseData.teachers;
