@@ -221,6 +221,30 @@ export default function useApi() {
   }
 
   /**
+   * Get user
+   * @type GET
+   * @auth member
+   * @returns User
+   */
+  async function RUser(_id: string) {
+    return await database.R({
+      location: `users/${_id}`,
+    });
+  }
+
+  /**
+   * Get user profile by _id
+   * @type GET
+   * @auth member
+   * @returns User
+   */
+  async function RUserProfile(_id: string) {
+    return await database.R({
+      location: `users/${_id}/profile`,
+    });
+  }
+
+  /**
    * Get user by userId or school
    * @type GET
    * @auth member
@@ -482,6 +506,19 @@ export default function useApi() {
     });
     return result;
   }
+
+  /**
+   * Get Registration by _id
+   * @type GET
+   * @auth member
+   * @returns Registration
+   */
+  async function RRegistration(_id: string) {
+    return await database.R({
+      location: `registrations/${_id}`,
+    });
+  }
+
   /**
    * Update Registration
    * @type PUT
@@ -880,6 +917,8 @@ export default function useApi() {
     matches?: string;
     field?: string;
     confirmed?: boolean;
+    user?: string;
+    teacher?: string;
   }) {
     return await database.R({
       location: "syllabuses" + QUERY_BUILDER(props),
@@ -1029,6 +1068,8 @@ export default function useApi() {
       CGoogleLocal,
       CConnectGoogle,
       RUsers,
+      RUser,
+      RUserProfile,
       DUsers,
     },
     SeasonApi: {
@@ -1059,6 +1100,7 @@ export default function useApi() {
       CRegistrations,
       CRegistrationsCopy,
       RRegistrations,
+      RRegistration,
       URegistrations,
       DRegistrations,
     },
