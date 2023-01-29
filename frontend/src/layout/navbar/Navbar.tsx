@@ -224,13 +224,7 @@ type Props = { title?: string };
  * @returns Navbar component
  */
 const Navbar = (props: Props) => {
-  const {
-    registrations,
-    currentRegistration,
-    changeCurrentSeason,
-    currentSchool,
-    currentSeason,
-  } = useAuth();
+  const { registrations, currentRegistration, changeCurrentSeason } = useAuth();
   const { RegistrationApi } = useApi();
   const navigate = useNavigate();
   const [users, setUsers] = useState<Array<any>>([]);
@@ -238,27 +232,27 @@ const Navbar = (props: Props) => {
   const outsideClick = useOutsideClick();
 
   const submit = (value: string | number) => {
+    alert(`value is ${value}`);
     navigate(`/search/${value}`);
   };
 
   useEffect(() => {
-    if (!currentSchool || !currentSeason) return;
+    if (!currentRegistration) return;
 
     RegistrationApi.RRegistrations({
-      season: currentSeason._id,
-      school: currentSchool.school,
+      season: currentRegistration.season,
     })
       .then((result) => {
         const newUsers = result.map((user: any) => {
           return {
             text: `${user.userName} / ${user.userId}`,
-            value: user.userId,
+            value: user.user,
           };
         });
         setUsers(newUsers);
       })
       .catch((error) => console.error(error));
-  }, [currentSchool, currentSeason]);
+  }, [currentRegistration]);
   console.log(users);
 
   return (

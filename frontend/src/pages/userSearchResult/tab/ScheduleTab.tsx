@@ -4,16 +4,16 @@ import useApi from "hooks/useApi";
 import { useEffect, useState } from "react";
 
 type Props = {
-	user: any
-}
+  user: any;
+};
 
 const ScheduleTab = (props: Props) => {
-	const {EnrollmentApi} = useApi();
-	const {currentSeason} = useAuth();
+  const { EnrollmentApi } = useApi();
+  const { currentRegistration } = useAuth();
 
-	const [enrollments, setEnrollments] = useState<any>();
+  const [enrollments, setEnrollments] = useState<any>();
 
-	function enrollmentsToEvents(data: any[]) {
+  function enrollmentsToEvents(data: any[]) {
     if (data) {
       let result: any[] = [];
       for (let i = 0; i < data.length; i++) {
@@ -49,31 +49,35 @@ const ScheduleTab = (props: Props) => {
   }
 
   // Get user enrollments in current season
-	useEffect(() => {
-    if (currentSeason && props.user) {
+  useEffect(() => {
+    if (currentRegistration && props.user) {
       EnrollmentApi.REnrolllments({
-        season: currentSeason._id,
-        studentId: props.user.userId,
+        season: currentRegistration.season,
+        student: props.user._id,
       })
-      .then((res) => {
-        setEnrollments(res);
-      })
-      .catch(() => {}); 
+        .then((res) => {
+          setEnrollments(res);
+        })
+        .catch(() => {});
     }
-  }, [currentSeason, props.user]);
+  }, [currentRegistration, props.user]);
 
-	return <div style={{
-    height: 'calc(100vh - 240px',
-    minHeight: '240px'
-  }}>
-    <Schedule
-      dayArray={["월", "화", "수", "목", "금"]}
-      defaultEvents={enrollmentsToEvents(enrollments)}
-      title={`${currentSeason?.year ?? ""} ${
-        currentSeason?.term ?? ""
-      } 일정`}
-    />
-  </div>
-}
+  return (
+    <div
+      style={{
+        height: "calc(100vh - 240px",
+        minHeight: "240px",
+      }}
+    >
+      <Schedule
+        dayArray={["월", "화", "수", "목", "금"]}
+        defaultEvents={enrollmentsToEvents(enrollments)}
+        title={`${currentRegistration?.year ?? ""} ${
+          currentRegistration?.term ?? ""
+        } 일정`}
+      />
+    </div>
+  );
+};
 
 export default ScheduleTab;
