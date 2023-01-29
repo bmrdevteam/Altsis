@@ -29,17 +29,14 @@
  *
  */
 import { useEffect, useState, useRef } from "react";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/courses/course.module.scss";
 
 // components
-import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-
-import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
 import Button from "components/button/Button";
@@ -50,8 +47,8 @@ type Props = {
 };
 
 const EnrollBulkPopup = (props: Props) => {
-  const { currentSeason, currentRegistration } = useAuth();
-  const database = useDatabase();
+  const { currentRegistration } = useAuth();
+  const { RegistrationApi, EnrollmentApi } = useApi();
 
   const [registrationList, setRegistrationList] = useState<any[]>();
   const selectRef = useRef<any[]>([]);
@@ -61,37 +58,12 @@ const EnrollBulkPopup = (props: Props) => {
 
   const [enrollments, setEnrollments] = useState<any[]>();
 
-  async function getRegistrationList() {
-    const { registrations } = await database.R({
-      location: `registrations?season=${props.courseData.season}`,
-    });
-
-    return registrations;
-  }
-
-  async function enrollBulk() {
-    const { enrollments } = await database.C({
-      location: `enrollments/bulk`,
-      data: {
-        registration: currentRegistration._id,
-        syllabus: props.courseData._id,
-        students: selectRef.current.map((registration: any) => {
-          return {
-            userId: registration.userId,
-            userName: registration.userName,
-            grade: registration.grade,
-          };
-        }),
-      },
-    });
-
-    return enrollments;
-  }
-
   useEffect(() => {
-    getRegistrationList().then((res: any) => {
-      setRegistrationList(res);
-    });
+    RegistrationApi.RRegistrations({ season: props.courseData.season }).then(
+      (res: any) => {
+        setRegistrationList(res);
+      }
+    );
     return () => {};
   }, []);
 
@@ -110,7 +82,20 @@ const EnrollBulkPopup = (props: Props) => {
                 if (selectRef.current.length === 0) {
                   alert("초대할 학생을 선택해주세요.");
                 } else {
-                  enrollBulk()
+                  EnrollmentApi.CEnrollments({
+                    data: {
+                      registration: currentRegistration._id,
+                      syllabus: props.courseData._id,
+                      students: selectRef.current.map((registration: any) => {
+                        return {
+                          _id: registration.user,
+                          userId: registration.userId,
+                          userName: registration.userName,
+                          grade: registration.grade,
+                        };
+                      }),
+                    },
+                  })
                     .then((res: any) => {
                       setEnrollments(res);
                       setResultPopupActive(true);

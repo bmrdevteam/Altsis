@@ -4,25 +4,24 @@ import { useAuth } from "contexts/authContext";
 import Table from "components/table/Table";
 import style from "style/pages/myaccount/myaccount.module.scss";
 import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 const Overview = () => {
   const { currentUser, currentSeason } = useAuth();
+  const { EnrollmentApi } = useApi();
   const database = useDatabase();
   const [Enrollments, setEnrollments] = useState<any>();
   const [courses, setCourses] = useState<any>();
   const [alertPopupActive, setAlertPopupActive] = useState<boolean>(false);
 
-  async function getEnrollments() {
-    const { enrollments: res } = await database.R({
-      location: `enrollments?season=${currentSeason.season}&studentId=${currentUser.userId}`,
-    });
-    return res;
-  }
   useEffect(() => {
     if (currentSeason === null || currentSeason === undefined) {
       setAlertPopupActive(true);
     } else {
-      getEnrollments().then((res) => {
+      EnrollmentApi.REnrolllments({
+        season: currentSeason.season,
+        student: currentUser._id,
+      }).then((res) => {
         setEnrollments(res);
       });
     }

@@ -64,7 +64,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentSeason } = useAuth();
-  const { NotificationApi, SyllabusApi, SeasonApi } = useApi();
+  const { NotificationApi, SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
   const navigate = useNavigate();
 
   const database = useDatabase();
@@ -96,26 +96,6 @@ const CoursePid = (props: Props) => {
     useState<boolean>(false);
   const [receiverList, setReceiverList] = useState<any[]>([]);
 
-  async function getEnrollments(_id: string) {
-    const { enrollments } = await database.R({
-      location: `enrollments/evaluations?syllabus=${_id}`,
-    });
-    return enrollments;
-  }
-
-  async function updateEvaluationByMentor(
-    enrollment: string,
-    evaluation: any[]
-  ) {
-    const res = await database.U({
-      location: `enrollments/${enrollment}/evaluation2?by=mentor`,
-      data: {
-        new: evaluation,
-      },
-    });
-    return res;
-  }
-
   useEffect(() => {
     if (courseData) {
       // is this syllabus fully confirmed?
@@ -144,7 +124,9 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isEnrollmentListLoading) {
-      getEnrollments(courseData?._id).then((res: any) => {
+      EnrollmentApi.REnrollmentWithEvaluations({
+        syllabus: courseData?._id,
+      }).then((res: any) => {
         setEnrollmentList(
           res.map((enrollment: any) => {
             return { ...enrollment, isModified: false };
@@ -178,7 +160,9 @@ const CoursePid = (props: Props) => {
             navigate("/courses#담당%20수업%20목록", { replace: true });
 
           setCourseData(result);
-          getEnrollments(result._id).then((res: any) => {
+          EnrollmentApi.REnrollmentWithEvaluations({
+            syllabus: result._id,
+          }).then((res: any) => {
             setEnrollmentList(
               res.map((enrollment: any) => {
                 return { ...enrollment, isModified: false };
@@ -409,8 +393,13 @@ const CoursePid = (props: Props) => {
                     for (let obj of fieldEvaluationList) {
                       evaluation[obj.text] = e[obj.key];
                     }
-                    updateEvaluationByMentor(e._id, evaluation)
-                      .then((res) => {
+                    EnrollmentApi.UEvaluation({
+                      enrollment: e._id,
+                      by: "mentor",
+                      data: evaluation,
+                    })
+                      .then((res: any) => {
+                        console.log("res.evaluation: ", res.evaluation);
                         alert("저장되었습니다");
                         if (enrollmentListRef.current.length !== 0) {
                           enrollmentListRef.current[

@@ -31,6 +31,7 @@
 import { useEffect, useState } from "react";
 import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/courses/course.module.scss";
 
@@ -53,6 +54,7 @@ const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
   const database = useDatabase();
   const navigate = useNavigate();
+  const { EnrollmentApi } = useApi();
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
@@ -111,13 +113,6 @@ const CourseView = (props: Props) => {
     return res;
   }
 
-  async function getEnrollments() {
-    const { enrollments } = await database.R({
-      location: `enrollments/evaluations?syllabus=${props.course}`,
-    });
-    return enrollments;
-  }
-
   useEffect(() => {
     if (courseData) {
       if (courseData.season !== currentSeason._id) {
@@ -130,10 +125,11 @@ const CourseView = (props: Props) => {
           break;
         }
       }
-
-      getEnrollments().then((res: any) => {
-        setEnrollments(res);
-      });
+      EnrollmentApi.REnrolllments({ syllabus: props.course }).then(
+        (res: any) => {
+          setEnrollments(res);
+        }
+      );
     }
 
     return () => {};
