@@ -30,7 +30,6 @@
  */
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 
@@ -39,12 +38,9 @@ import style from "style/pages/courses/course.module.scss";
 
 // components
 import Divider from "components/divider/Divider";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-
-import EditorParser from "editor/EditorParser";
 
 import Svg from "assets/svg/Svg";
 
@@ -64,10 +60,8 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentSeason } = useAuth();
-  const { NotificationApi, SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
+  const { SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
   const navigate = useNavigate();
-
-  const database = useDatabase();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [courseData, setCourseData] = useState<any>();
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
@@ -94,7 +88,8 @@ const CoursePid = (props: Props) => {
 
   const [sendNotificationPopupActive, setSendNotificationPopupActive] =
     useState<boolean>(false);
-  const [receiverList, setReceiverList] = useState<any[]>([]);
+
+  const [isChecked, setIsChecked] = useState<boolean>(false);
 
   useEffect(() => {
     if (courseData) {
@@ -133,15 +128,6 @@ const CoursePid = (props: Props) => {
           })
         );
         enrollmentListRef.current = [];
-        setReceiverList(
-          res.map((enrollment: any) => {
-            return {
-              user: enrollment.student,
-              userId: enrollment.studentId,
-              userName: enrollment.studentName,
-            };
-          })
-        );
         setIsEnrollmentListLoading(false);
       });
     }
@@ -169,15 +155,7 @@ const CoursePid = (props: Props) => {
               })
             );
             enrollmentListRef.current = [];
-            setReceiverList(
-              res.map((enrollment: any) => {
-                return {
-                  user: enrollment.student,
-                  userId: enrollment.studentId,
-                  userName: enrollment.studentName,
-                };
-              })
-            );
+
             SeasonApi.RSeason(result.season).then((res: any) => {
               let _formEvaluationHeader: any[] = [];
 
@@ -312,31 +290,57 @@ const CoursePid = (props: Props) => {
                 alignItems: "center",
               }}
             >
-              <div
-                className={style.icon}
-                onClick={(e: any) => {
-                  if (!confirmed) {
-                    alert("수업이 승인되지 않아 학생을 초대할 수 없습니다.");
-                  } else {
-                    setEnrollBulkPopupActive(true);
-                  }
-                }}
-                style={{ display: "flex", gap: "4px", alignItems: "center" }}
-              >
-                <Svg type="user_check" width="24px" height="24px" />
-                초대
-              </div>
-
-              <div
-                className={style.icon}
-                onClick={(e: any) => {
-                  setSendNotificationPopupActive(true);
-                }}
-                style={{ display: "flex", gap: "4px" }}
-              >
-                <Svg type="send" width="20px" height="20px" />
-                알림
-              </div>
+              {!isChecked ? (
+                <div
+                  className={style.icon}
+                  onClick={(e: any) => {
+                    if (!confirmed) {
+                      alert("수업이 승인되지 않아 학생을 초대할 수 없습니다.");
+                    } else {
+                      setEnrollBulkPopupActive(true);
+                    }
+                  }}
+                  style={{ display: "flex", gap: "4px", alignItems: "center" }}
+                >
+                  <Svg type="user_check" width="24px" height="24px" />
+                  초대
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={style.icon}
+                    onClick={(e: any) => {
+                      EnrollmentApi.DEnrollments(
+                        _.filter(enrollmentListRef.current, {
+                          tableRowChecked: true,
+                        }).map((e: any) => e._id)
+                      ).then(() => {
+                        alert("success");
+                        setIsLoading(true);
+                        setIsChecked(false);
+                      });
+                    }}
+                    style={{
+                      display: "flex",
+                      gap: "4px",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Svg type="user_check" width="24px" height="24px" />
+                    초대 취소
+                  </div>
+                  <div
+                    className={style.icon}
+                    onClick={(e: any) => {
+                      setSendNotificationPopupActive(true);
+                    }}
+                    style={{ display: "flex", gap: "4px" }}
+                  >
+                    <Svg type="send" width="20px" height="20px" />
+                    알림
+                  </div>
+                </>
+              )}
             </div>
           </div>
           {permissionEvaluation ? (
@@ -345,15 +349,18 @@ const CoursePid = (props: Props) => {
               data={enrollmentList || []}
               onChange={(e: any) => {
                 enrollmentListRef.current = e;
+                setIsChecked(
+                  _.find(e, {
+                    tableRowChecked: true,
+                  })
+                );
               }}
               header={[
                 {
-                  text: "No",
-                  type: "text",
-                  key: "tableRowIndex",
+                  text: "checkbox",
+                  key: "",
+                  type: "checkbox",
                   width: "48px",
-                  textAlign: "center",
-                  whiteSpace: "pre",
                 },
 
                 {
@@ -554,9 +561,23 @@ const CoursePid = (props: Props) => {
         {sendNotificationPopupActive && (
           <Send
             setState={setSendNotificationPopupActive}
-            receiverSelectedList={receiverList}
+            receiverSelectedList={_.filter(enrollmentListRef.current, {
+              tableRowChecked: true,
+            }).map((e: any) => {
+              return {
+                user: e.student,
+                userId: e.studentId,
+                userName: e.studentName,
+              };
+            })}
             category={courseData?.classTitle}
-            receiverList={receiverList}
+            receiverList={enrollmentListRef.current.map((e) => {
+              return {
+                user: e.student,
+                userId: e.studentId,
+                userName: e.studentName,
+              };
+            })}
             receiverType={"enrollment"}
           />
         )}
