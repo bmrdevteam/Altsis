@@ -12,7 +12,7 @@ const registrationSchema = mongoose.Schema({
   year: String,
   term: String,
   period: Object,
-  user: mongoose.Types.ObjectId,
+  user: { type: mongoose.Types.ObjectId, required: true },
   userId: {
     type: String,
     required: true,
@@ -39,18 +39,17 @@ const registrationSchema = mongoose.Schema({
   },
 });
 
-// registrationSchema.index({
-//   userId: 1,
-// });
+registrationSchema.index({
+  user: 1,
+});
 
-// registrationSchema.index(
-//   {
-//     season: 1,
-//     role: 1,
-//     userId: 1,
-//   },
-//   { unique: true }
-// );
+registrationSchema.index(
+  {
+    season: 1,
+    user: 1,
+  },
+  { unique: true }
+);
 
 module.exports = (dbName) => {
   return conn[dbName].model("Registration", registrationSchema);
