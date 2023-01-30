@@ -203,7 +203,6 @@ const CoursePid = (props: Props) => {
                   marginTop: "12px",
                 }}
                 onClick={() => {
-                  alert("clicked");
                   navigate(`/courses/edit/${pid}`, { replace: true });
                 }}
               >
