@@ -60,7 +60,7 @@ const CoursePid = (props: Props) => {
 
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
-  const [teacherList, setTeacherList] = useState<any>();
+  const teacherListRef = useRef<any[]>([]);
 
   const [courseSubject, setCourseSubject] = useState<string>("");
   const [courseTitle, setCourseTitle] = useState<string>("");
@@ -74,24 +74,11 @@ const CoursePid = (props: Props) => {
 
   const courseClassroomRef = useRef<any>("");
   const courseTimeRef = useRef<any>({});
-  const courseMentorRef = useRef<any[]>([]);
 
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
     useState<boolean>(false);
   const [mentorSelectPopupActive, setMentorSelectPopupActive] =
     useState<boolean>(false);
-
-  const updateTimeClassroomRef = () => {
-    courseTimeRef.current = {};
-    for (let lb of courseTime) {
-      courseTimeRef.current[lb] = true;
-    }
-    courseClassroomRef.current = courseClassroom;
-  };
-
-  const updateMentorRef = () => {
-    courseMentorRef.current = [];
-  };
 
   function syllabusToTime(s: any) {
     let result = {};
@@ -145,7 +132,7 @@ const CoursePid = (props: Props) => {
         .then((result) => {
           if (
             result.season !== currentSeason._id ||
-            result.userId !== currentUser.userId
+            result.user !== currentUser._id
           ) {
             navigate("/courses#개설한%20수업%20목록", { replace: true });
           }
@@ -161,17 +148,28 @@ const CoursePid = (props: Props) => {
           setCourseClassroom(result.classroom);
           setCourseMoreInfo(result.info || {});
           setCourseLimit(result.limit || 0);
-          updateTimeClassroomRef();
 
           RegistrationApi.RRegistrations({
             season: result.season,
             role: "teacher",
           }).then((res) => {
-            console.log(res);
-            setTeacherList(res);
-            setIsLoading(false);
+            for (let teacher of result.teachers) {
+              const idx = _.findIndex(res, { user: teacher._id });
+              console.log(
+                `idx of  _.findIndex(res, { user: teacher._id }) is ${_.findIndex(
+                  res,
+                  { user: teacher._id }
+                )}`
+              );
+              if (idx !== -1) {
+                res[idx].tableRowChecked = true;
+              }
+            }
+            teacherListRef.current = res;
           });
         })
+        .then(() => setIsLoadingTimeClassroomRef(true))
+        .then(() => setIsLoading(false))
         .catch((err) => {
           console.log(err);
           alert("failed to load data");
@@ -183,7 +181,11 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isLoadingTimeClassroomRef) {
-      updateTimeClassroomRef();
+      courseTimeRef.current = {};
+      for (let lb of courseTime) {
+        courseTimeRef.current[lb] = true;
+      }
+      courseClassroomRef.current = courseClassroom;
       setIsLoadingTimeClassroomRef(false);
     }
     return () => {};
@@ -191,7 +193,6 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isLoadingMentorRef) {
-      updateMentorRef();
       setIsLoadingMentorRef(false);
     }
     return () => {};
@@ -424,11 +425,17 @@ const CoursePid = (props: Props) => {
               type="ghost"
               onClick={() => {
                 setCourseMentorList(
-                  courseMentorRef.current.map((val: any) => {
-                    return { userId: val.userId, userName: val.userName };
+                  _.filter(teacherListRef.current, {
+                    tableRowChecked: true,
+                  }).map((val: any) => {
+                    return {
+                      _id: val.user,
+                      userId: val.userId,
+                      userName: val.userName,
+                    };
                   })
                 );
-                setIsLoadingTimeClassroomRef(true);
+                setIsLoadingMentorRef(true);
                 setMentorSelectPopupActive(false);
               }}
             >
@@ -437,13 +444,11 @@ const CoursePid = (props: Props) => {
           }
         >
           <Table
-            data={teacherList}
+            data={teacherListRef.current}
             type="object-array"
             control
             onChange={(value: any[]) => {
-              courseMentorRef.current = _.filter(value, {
-                tableRowChecked: true,
-              });
+              teacherListRef.current = value;
             }}
             header={[
               {
