@@ -509,40 +509,91 @@ module.exports.updateEvaluation2 = async (req, res) => {
 
 module.exports.remove = async (req, res) => {
   try {
-    const enrollment = await Enrollment(req.user.academyId).findById(
-      req.params._id
-    );
+    if (req.params._id) {
+      const enrollment = await Enrollment(req.user.academyId).findById(
+        req.params._id
+      );
 
-    if (!enrollment)
-      return res.status(404).send({ message: "enrollment not found" });
+      if (!enrollment)
+        return res.status(404).send({ message: "enrollment not found" });
 
-    if (req.user.auth === "member" && enrollment.studentId != req.user.userId)
-      return res.status(401).send();
+      if (req.user.auth === "member" && enrollment.studentId != req.user.userId)
+        return res.status(401).send();
 
-    // 유저 권한 확인
+      // 유저 권한 확인
 
-    const registration = await Registration(req.user.academyId).findOne({
-      season: enrollment.season,
-      user: enrollment.student,
-    });
-    if (!registration) {
-      return res.status(404).send({ message: "등록 정보를 찾을 수 없습니다." });
+      const registration = await Registration(req.user.academyId).findOne({
+        season: enrollment.season,
+        user: enrollment.student,
+      });
+      if (!registration) {
+        return res
+          .status(404)
+          .send({ message: "등록 정보를 찾을 수 없습니다." });
+      }
+
+      const season = await Season(req.user.academyId).findById(
+        enrollment.season
+      );
+      if (!season) return res.status(404).send({ message: "season not found" });
+
+      if (
+        !season.checkPermission(
+          "enrollment",
+          registration.userId,
+          registration.role
+        )
+      )
+        return res.status(401).send({ message: "you have no permission" });
+
+      await enrollment.remove();
+      return res.status(200).send();
     }
 
-    const season = await Season(req.user.academyId).findById(enrollment.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
+    if (req.query._ids) {
+      const _idList = _.split(req.query._ids, ",");
 
-    if (
-      !season.checkPermission(
-        "enrollment",
-        registration.userId,
-        registration.role
-      )
-    )
-      return res.status(401).send({ message: "you have no permission" });
+      const enrollments = await Enrollment(req.user.academyId).find({
+        _id: { $in: _idList },
+      });
+      if (enrollments.length === 0)
+        return res.status(404).send({ message: "enrollments not found" });
 
-    await enrollment.remove();
-    return res.status(200).send();
+      for (let e of enrollments) {
+        if (!e.syllabus.equals(enrollments[0].syllabus))
+          return res.status(409).send({
+            message: "enrollments are mixed",
+          });
+      }
+
+      const syllabus = await Syllabus(req.user.academyId).findById(
+        enrollments[0].syllabus
+      );
+      if (!syllabus)
+        return res
+          .status(404)
+          .send({ message: "수업 정보를 찾을 수 없습니다." });
+
+      // mentor 확인
+      let isMentor = false;
+      for (let teacher of syllabus.teachers) {
+        if (teacher._id.equals(req.user._id)) {
+          isMentor = true;
+          break;
+        }
+      }
+      if (!isMentor)
+        return res
+          .status(403)
+          .send({ message: "수업 초대 취소 권한이 없습니다." });
+
+      await Enrollment(req.user.academyId).deleteMany({
+        _id: { $in: _idList },
+      });
+
+      return res.status(200).send({});
+    }
+    return res.status(400).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }

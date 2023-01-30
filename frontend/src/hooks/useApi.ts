@@ -810,6 +810,19 @@ export default function useApi() {
   }
 
   /**
+   * Delete Enrollments
+   * @type DELETE
+   * @auth member
+   * @returns Enrollment
+   */
+  async function DEnrollments(_ids: any[]) {
+    const _enrollments_ids = QUERY_SUB_BUILDER(_ids);
+    return await database.D({
+      location: "enrollments" + QUERY_BUILDER({ _ids: _enrollments_ids }),
+    });
+  }
+
+  /**
    * Read Enrollment with Evaluations
    * @type GET
    * @auth member
@@ -1110,6 +1123,7 @@ export default function useApi() {
       REnrolllment,
       REnrolllments,
       DEnrollment,
+      DEnrollments,
       REnrollmentWithEvaluations,
       UEvaluation,
     },
