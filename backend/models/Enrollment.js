@@ -46,7 +46,7 @@ const enrollmentSchema = mongoose.Schema(
       ],
     },
     // enrollment data
-    student: mongoose.Types.ObjectId,
+    student: { type: mongoose.Types.ObjectId, required: true },
     studentId: String,
     studentName: String,
     studentGrade: String,
@@ -56,18 +56,18 @@ const enrollmentSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-// enrollmentSchema.index(
-//   {
-//     syllabus: 1,
-//     studentId: 1,
-//   },
-//   { unique: true }
-// );
+enrollmentSchema.index(
+  {
+    syllabus: 1,
+    student: 1,
+  },
+  { unique: true }
+);
 
-// enrollmentSchema.index({
-//   season: 1,
-//   studentId: 1,
-// });
+enrollmentSchema.index({
+  student: 1,
+  season: 1,
+});
 
 enrollmentSchema.methods.isTimeOverlapped = function (time) {
   for (let block1 of this.syllabus.time) {
