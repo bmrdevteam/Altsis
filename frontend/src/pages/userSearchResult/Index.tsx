@@ -116,10 +116,10 @@ const UserSearchResult = (props: Props) => {
       allowedTab.문서 = docsTab;
     }
 
-    allowedRoles = ["admin", "teacher", "parents", "student"];
-    if (allowedRoles.includes(currentRegistration.role)) {
-      allowedTab.앱 = appsTab;
-    }
+    // allowedRoles = ["admin", "teacher", "parents", "student"];
+    // if (allowedRoles.includes(currentRegistration.role)) {
+    //   allowedTab.앱 = appsTab;
+    // }
 
     return allowedTab;
   }
@@ -140,7 +140,7 @@ const UserSearchResult = (props: Props) => {
             </>
           )}
         </div>
-      </div>  
+      </div>
     </>
   );
 };
