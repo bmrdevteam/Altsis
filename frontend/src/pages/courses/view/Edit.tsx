@@ -314,6 +314,7 @@ const CoursePid = (props: Props) => {
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           <EditorParser
+          type="syllabus"
             auth="edit"
             onChange={(data) => {
               setCourseMoreInfo(data);
@@ -403,6 +404,7 @@ const CoursePid = (props: Props) => {
           />
           <div style={{ height: "24px" }}></div>
           <EditorParser
+          type="timetable"
             auth="edit"
             onChange={(data) => {
               Object.assign(courseTimeRef.current, data);

@@ -71,6 +71,7 @@ const Timetable = (props: Props) => {
       {currentSeason?.formTimetable && (
         <>
           <EditorParser
+          type={"timetable"}
             auth="view"
             defaultTimetable={syllabusToTime(props.courseList)}
             data={currentSeason?.formTimetable}

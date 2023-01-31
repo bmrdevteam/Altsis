@@ -150,6 +150,7 @@ const CoursePid = (props: Props) => {
   const ClassInfo = () => {
     return (
       <EditorParser
+      type="syllabus"
         auth="view"
         defaultValues={courseData.info}
         data={currentSeason?.formSyllabus}
