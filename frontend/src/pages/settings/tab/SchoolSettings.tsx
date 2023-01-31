@@ -58,14 +58,14 @@ const SchoolSettings = (props: Props) => {
               className={style.controls}
               style={{ alignItems: "flex-start", cursor: "pointer" }}
             >
-              <div style={{}}>
+              {/* <div style={{}}>
                 <Svg type="verticalDots" />
-              </div>
+              </div> */}
             </div>
           </div>
         );
       })}
-      <Button
+      {/* <Button
         type={"ghost"}
         style={{
           borderRadius: "4px",
@@ -73,7 +73,7 @@ const SchoolSettings = (props: Props) => {
         }}
       >
         새로 등록하기
-      </Button>
+      </Button> */}
     </div>
   );
 };

@@ -63,12 +63,12 @@ const SocialLoginSettings = (props: Props) => {
           className={style.controls}
           style={{ alignItems: "flex-start", cursor: "pointer" }}
         >
-          <div style={{}}>
+          {/* <div style={{}}>
             <Svg type="verticalDots" />
-          </div>
+          </div> */}
         </div>
       </div>
-      <Button
+      {/* <Button
         type={"ghost"}
         style={{
           borderRadius: "4px",
@@ -76,7 +76,7 @@ const SocialLoginSettings = (props: Props) => {
         }}
       >
         연동하기
-      </Button>
+      </Button> */}
     </div>
   );
 };
