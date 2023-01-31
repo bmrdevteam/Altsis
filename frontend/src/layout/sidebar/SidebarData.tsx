@@ -96,20 +96,7 @@ export const SidebarData = (
           path: "/docs",
           icon: <Svg type="docs" />,
         },
-        {
-          title: "apps",
-          name: "앱",
-          path: "/apps",
-          icon: <Svg type="app_menu" />,
-          subLink: [
-            {
-              title: "classroom",
-              name: "강의실",
-              path: "/apps/apps",
-              icon: <Svg type="app" />,
-            },
-          ],
-        },
+
         {
           title: "admin",
           name: "관리자",
@@ -183,20 +170,7 @@ export const SidebarData = (
           path: "/docs",
           icon: <Svg type="docs" />,
         },
-        {
-          title: "apps",
-          name: "앱",
-          path: "/apps",
-          icon: <Svg type="app_menu" />,
-          subLink: [
-            {
-              title: "classroom",
-              name: "강의실",
-              path: "/apps/apps",
-              icon: <Svg type="app" />,
-            },
-          ],
-        },
+
         {
           title: "admin",
           name: "관리자",
