@@ -450,6 +450,7 @@ const Sidebar = (props: Props) => {
                 <input
                   type="time"
                   defaultValue={
+                    getCurrentCell().timeRangeStart ??
                     getCurrentBlock().data.table[
                       getCurrentCellIndex().row
                     ].filter((o: any) => o.type === "timeRange")[0]
@@ -466,6 +467,7 @@ const Sidebar = (props: Props) => {
                 <input
                   type="time"
                   defaultValue={
+                    getCurrentCell().timeRangeEnd??
                     getCurrentBlock().data.table[
                       getCurrentCellIndex().row
                     ].filter((o: any) => o.type === "timeRange")[0]
