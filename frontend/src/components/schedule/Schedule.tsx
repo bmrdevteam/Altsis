@@ -135,7 +135,7 @@ const EventEditor = () => {
       setState={setEditor}
       style={{
         borderRadius: "8px",
-        width: "60%",
+        width: "640px",
         display: "flex",
         flexDirection: "column",
       }}
@@ -261,7 +261,7 @@ const EventEditor = () => {
       <div
         style={{
           display: "flex",
-          gap: "24px",
+          gap: "12px",
           alignItems: "flex-end",
         }}
       >
@@ -288,7 +288,7 @@ const EventEditor = () => {
           />
         )}
 
-        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           <Input
             type="time"
             appearence="flat"
