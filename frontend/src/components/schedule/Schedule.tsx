@@ -160,7 +160,9 @@ const EventEditor = () => {
                   })
                   .catch((err) => alert("error!"));
               } else {
-                if (title && day && start && end) {
+                if (!title) alert("제목을 입력해주세요");
+                else if (!day || !start || !end) alert("시간을 선택해주세요");
+                else {
                   if (currentEvent) {
                     RegistrationApi.UMemo({
                       _id: currentEvent._id,
