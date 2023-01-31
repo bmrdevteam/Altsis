@@ -315,6 +315,12 @@ export default function useApi() {
     const result = await database.R({ location: `seasons/${id}` });
     return result;
   }
+  async function RSeasonWithRegistrations(id: string) {
+    const result = await database.R({
+      location: `seasons/${id}?withRegistrations=true`,
+    });
+    return result;
+  }
   /**
    * Get Seasons
    * @type GET
@@ -1165,6 +1171,7 @@ export default function useApi() {
     SeasonApi: {
       CSeason,
       RSeason,
+      RSeasonWithRegistrations,
       RSeasons,
       USeason,
       UActivateSeason,
