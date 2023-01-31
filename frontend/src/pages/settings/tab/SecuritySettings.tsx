@@ -58,7 +58,7 @@ const SecuritySettings = (props: Props) => {
     const res = database.U({
       location: `users/password`,
       data: {
-        old: oldPassword,
+        // old: oldPassword,
         new: newPassword,
       },
     });
@@ -130,7 +130,7 @@ const SecuritySettings = (props: Props) => {
           }
         >
           <div style={{ width: "500px", marginTop: "24px" }}>
-            <Input
+            {/* <Input
               appearence="flat"
               label="기존 비밀번호 입력"
               placeholder="기존 비밀번호 입력"
@@ -140,7 +140,7 @@ const SecuritySettings = (props: Props) => {
               }}
               required
             />
-            <div style={{ margin: "24px" }}></div>
+            <div style={{ margin: "24px" }}></div> */}
             <Input
               appearence="flat"
               label="새로운 비밀번호 입력"
