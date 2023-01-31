@@ -95,6 +95,7 @@ const Home = () => {
           endTime: element.end,
           day: element.day,
           _id: element._id,
+          memo: element.memo,
         });
       }
       return result;
