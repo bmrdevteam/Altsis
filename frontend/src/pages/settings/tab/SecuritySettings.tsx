@@ -69,7 +69,7 @@ const SecuritySettings = (props: Props) => {
     <>
       <div className={style.settings_container}>
         <div className={style.container_title}>보안 설정</div>
-        <div className={style.setting_item}>
+        {/* <div className={style.setting_item}>
           <div className={style.info}>
             <label className={style.label}>이 기기에서 로그인 기억 하기</label>
           </div>
@@ -77,7 +77,7 @@ const SecuritySettings = (props: Props) => {
             <ToggleSwitch />
           </div>
         </div>
-        <Divider />
+        <Divider /> */}
         <div className={style.setting_item}>
           <div className={style.info}>
             <label className={style.label}>비밀번호 재설정</label>
