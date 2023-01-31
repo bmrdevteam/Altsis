@@ -153,6 +153,7 @@ const EventEditor = () => {
                   _id: currentEvent._id,
                   memo,
                 })
+                  .then(() => updateCurrentRegistration())
                   .then(() => {
                     alert("success");
                     setEditor(false);

@@ -57,6 +57,7 @@ const Home = () => {
             endTime: element?.time[0].end,
             day: element?.time[0].day,
             _id: element._id,
+            memo: element?.memo,
           });
         } else {
           for (let ii = 0; ii < element?.time.length; ii++) {
@@ -70,6 +71,7 @@ const Home = () => {
               endTime: time.end,
               day: time.day,
               _id: element._id,
+              memo: element?.memo,
             });
           }
         }
