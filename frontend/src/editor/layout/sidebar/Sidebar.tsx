@@ -196,39 +196,15 @@ const Sidebar = (props: Props) => {
           <label>테두리 색상</label>
           <input type="color" defaultValue={1} />
         </div> */}
-
         <div className={style.item}>
-          <label>비율</label>
-          <Select
-            onChange={(value: any) => {
-              setCurrentCellColumn(value);
+          <label>너비 (%)</label>
+          <input
+            onChange={(e) => {
+              changeCurrentBlockData({ width: parseFloat(e.target.value) });
               props.callPageReload();
             }}
-            style={{ fontSize: "12px" }}
-            selectedValue={getCurrentCellColumn()}
-            appearence="flat"
-            options={[
-              { text: "1", value: 1 },
-              { text: "2", value: 2 },
-              { text: "3", value: 3 },
-              { text: "4", value: 4 },
-              { text: "5", value: 5 },
-              { text: "6", value: 6 },
-              { text: "7", value: 7 },
-              { text: "8", value: 8 },
-              { text: "9", value: 9 },
-              { text: "10", value: 10 },
-              { text: "11", value: 11 },
-              { text: "12", value: 12 },
-              { text: "13", value: 13 },
-              { text: "14", value: 14 },
-              { text: "15", value: 15 },
-              { text: "16", value: 16 },
-              { text: "17", value: 17 },
-              { text: "18", value: 18 },
-              { text: "19", value: 19 },
-              { text: "20", value: 20 },
-            ]}
+            type="number"
+            defaultValue={getCurrentBlock().data.width ?? 100}
           />
         </div>
         <div className={style.item}>
@@ -317,6 +293,40 @@ const Sidebar = (props: Props) => {
     return (
       <>
         <Menu name="셀">
+          <div className={style.item}>
+            <label>비율</label>
+            <Select
+              onChange={(value: any) => {
+                setCurrentCellColumn(value);
+                props.callPageReload();
+              }}
+              style={{ fontSize: "12px" }}
+              selectedValue={getCurrentCellColumn()}
+              appearence="flat"
+              options={[
+                { text: "1", value: 1 },
+                { text: "2", value: 2 },
+                { text: "3", value: 3 },
+                { text: "4", value: 4 },
+                { text: "5", value: 5 },
+                { text: "6", value: 6 },
+                { text: "7", value: 7 },
+                { text: "8", value: 8 },
+                { text: "9", value: 9 },
+                { text: "10", value: 10 },
+                { text: "11", value: 11 },
+                { text: "12", value: 12 },
+                { text: "13", value: 13 },
+                { text: "14", value: 14 },
+                { text: "15", value: 15 },
+                { text: "16", value: 16 },
+                { text: "17", value: 17 },
+                { text: "18", value: 18 },
+                { text: "19", value: 19 },
+                { text: "20", value: 20 },
+              ]}
+            />
+          </div>
           <div className={style.item}>
             <label>셀 타입</label>
             <Select
@@ -607,7 +617,6 @@ const Sidebar = (props: Props) => {
   const InputBlockMenu = () => {
     return (
       <Menu name="입력">
-         
         <div className={style.item}>
           <label>이름</label>
           <input

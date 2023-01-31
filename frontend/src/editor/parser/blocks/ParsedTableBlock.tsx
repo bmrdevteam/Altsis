@@ -256,7 +256,10 @@ const ParsedTableBlock = (props: Props) => {
     colEnd: number;
   }[] = [];
   return (
-    <div className={style.parsed_block}>
+    <div
+      className={style.parsed_block}
+      style={{ width: `${props.blockData.data.width ?? 100}%` }}
+    >
       <table
         className={style.table}
         style={{ fontSize: props.blockData.data?.fontSize }}
