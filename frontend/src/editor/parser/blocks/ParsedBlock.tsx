@@ -17,6 +17,7 @@ const ParsedBlock = (props: Props) => {
         <div
           className={style.parsed_block}
           style={{
+            width: `${props.blockData.data.width ?? 100}%`,
             fontSize: props.blockData.data.fontSize,
             fontWeight: props.blockData.data.fontWeight,
           }}
@@ -37,13 +38,21 @@ const ParsedBlock = (props: Props) => {
       );
     case "divider":
       return (
-        <div className={`${style.parsed_block} ${style.line}`}>
+        <div
+          className={`${style.parsed_block} ${style.line}`}
+          style={{ width: `${props.blockData.data.width ?? 100}%` }}
+        >
           <div className={style.line}></div>
         </div>
       );
     default:
       return (
-        <div className={style.parsed_block}>{props.blockData.data.text}</div>
+        <div
+          className={style.parsed_block}
+          style={{ width: `${props.blockData.data.width ?? 100}%` }}
+        >
+          {props.blockData.data.text}
+        </div>
       );
   }
 };
