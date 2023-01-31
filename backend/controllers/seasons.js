@@ -223,24 +223,17 @@ module.exports.update = async (req, res) => {
 
 module.exports.activate = async (req, res) => {
   try {
-    /* find document */
-
-    const _season = await Season(req.user.academyId).findById(req.params._id);
-    if (!_season) return res.status(404).send({ message: "season not found" });
-
     /* activate season */
-    if (!_season.isActivatedFirst) _season.isActivatedFirst = true;
-
-    /* inactivate season */
     const season = await Season(req.user.academyId).findByIdAndUpdate(
-      _season._id,
-      { isActivated: true },
+      req.params._id,
+      { isActivated: true, isActivatedFirst: true },
       { new: true }
     );
+    if (!season) return res.status(404).send({ message: "season not found" });
 
     /* activate registrations */
     await Registration(req.user.academyId).updateMany(
-      { season: _season },
+      { season: season._id },
       { isActivated: true }
     );
 
@@ -252,7 +245,7 @@ module.exports.activate = async (req, res) => {
 
 module.exports.inactivate = async (req, res) => {
   try {
-    /* inactivate season */
+    /* activate season */
     const season = await Season(req.user.academyId).findByIdAndUpdate(
       req.params._id,
       { isActivated: false },
@@ -262,7 +255,7 @@ module.exports.inactivate = async (req, res) => {
 
     /* activate registrations */
     await Registration(req.user.academyId).updateMany(
-      { season },
+      { season: season._id },
       { isActivated: false }
     );
 
