@@ -231,8 +231,8 @@ const ParsedTableBlock = (props: Props) => {
                       };
                       if (props.type === "timetable") {
                         Object.assign(props.returnData[data?.id], {
-                          start: row[0].timeRangeStart,
-                          end: row[0].timeRangeEnd, 
+                          start: data?.timeRangeStart ?? row[0]?.timeRangeStart,
+                          end: data?.timeRangeEnd ?? row[0]?.timeRangeEnd,
                         });
                       }
                     } else {
@@ -241,8 +241,8 @@ const ParsedTableBlock = (props: Props) => {
                       };
                       if (props.type === "timetable") {
                         Object.assign(props.returnData[data?.name], {
-                          start: row[0].timeRangeStart,
-                          end: row[0].timeRangeEnd,
+                          start: data?.timeRangeStart ?? row[0]?.timeRangeStart,
+                          end: data?.timeRangeEnd ?? row[0]?.timeRangeEnd,
                         });
                       }
                     }

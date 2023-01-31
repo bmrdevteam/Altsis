@@ -66,7 +66,7 @@ const Select = (props: Props) => {
   }
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    props.setValue && props.setValue(props.options[selected].value);
+    props.setValue && props.setValue(props.options[selected]?.value);
 
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
