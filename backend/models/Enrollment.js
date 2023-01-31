@@ -52,6 +52,7 @@ const enrollmentSchema = mongoose.Schema(
     studentGrade: String,
     evaluation: Object,
     temp: Object,
+    memo: String,
   },
   { timestamps: true }
 );
