@@ -91,7 +91,6 @@ const Select = (props: Props) => {
   //   if (selected >= 0 && typeof selected === "number") {
   //     props.onChange?.(props.options[selected].value);
   //   }
-  //   console.log(selected);
   // }, [selected]);
 
   const Options = () => {

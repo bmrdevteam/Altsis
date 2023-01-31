@@ -252,7 +252,6 @@ const Navbar = (props: Props) => {
     });
     setUsers(users);
   }, [currentSchool, currentSeason]);
-  console.log(users);
 
   // useEffect(() => {
   //   if (!currentSchool || !currentSeason) return;
@@ -272,7 +271,6 @@ const Navbar = (props: Props) => {
   //     })
   //     .catch((error) => console.error(error));
   // }, [currentSchool, currentSeason]);
-  // console.log(users);
 
   return (
     <div className={style.navbar_container}>

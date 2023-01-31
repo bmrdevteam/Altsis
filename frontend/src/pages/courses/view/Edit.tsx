@@ -155,12 +155,7 @@ const CoursePid = (props: Props) => {
           }).then((res) => {
             for (let teacher of result.teachers) {
               const idx = _.findIndex(res, { user: teacher._id });
-              console.log(
-                `idx of  _.findIndex(res, { user: teacher._id }) is ${_.findIndex(
-                  res,
-                  { user: teacher._id }
-                )}`
-              );
+
               if (idx !== -1) {
                 res[idx].tableRowChecked = true;
               }
@@ -171,7 +166,6 @@ const CoursePid = (props: Props) => {
         .then(() => setIsLoadingTimeClassroomRef(true))
         .then(() => setIsLoading(false))
         .catch((err) => {
-          console.log(err);
           alert("failed to load data");
           navigate("/courses");
         });
@@ -314,7 +308,7 @@ const CoursePid = (props: Props) => {
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           <EditorParser
-          type="syllabus"
+            type="syllabus"
             auth="edit"
             onChange={(data) => {
               setCourseMoreInfo(data);
@@ -404,7 +398,7 @@ const CoursePid = (props: Props) => {
           />
           <div style={{ height: "24px" }}></div>
           <EditorParser
-          type="timetable"
+            type="timetable"
             auth="edit"
             onChange={(data) => {
               Object.assign(courseTimeRef.current, data);
