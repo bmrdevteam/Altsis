@@ -4,6 +4,11 @@ import create from "zustand";
 import useGenerateId from "hooks/useGenerateId";
 import Svg from "assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
+import Select from "components/select/Select";
+import Input from "components/input/Input";
+import Textarea from "components/textarea/Textarea";
+import Popup from "components/popup/Popup";
+import Button from "components/button/Button";
 
 type TEvent = {
   id: string;
@@ -13,6 +18,7 @@ type TEvent = {
   classroom?: string;
   startTime: string;
   endTime: string;
+  memo?: string;
 };
 
 interface ICalendarState {
@@ -83,90 +89,171 @@ const RowFunction = ({ day }: { day: string }) => {
   );
 };
 const EventEditor = () => {
-  const { editor, setEditor, currentEvent, addEvent } = useStore();
-  const { currentSchool } = useAuth();
+  const { editor, setEditor, currentEvent } = useStore();
+  const { currentSeason } = useAuth();
   const today = new Date();
 
-  return editor ? (
-    <>
-      <div
-        className={style.editor_background}
-        onClick={() => {
-          setEditor(false);
-        }}
-      ></div>
-      <div className={style.editor_container}>
-        {/* <div className={style.title}>일정</div> */}
-        <div className={style.content}>
-          <input
-            disabled={currentEvent?.type === "course"}
-            className={style.title_input}
-            type="text"
-            defaultValue={currentEvent?.title}
-            placeholder="제목 입력"
-          />
-          <div className={style.date}>
-            <select
-              disabled={currentEvent?.type === "course"}
-              defaultValue={currentEvent?.day }
-            >
-              <option value={"일"}>일</option>
-              <option value={"월"}>월</option>
-              <option value={"화"}>화</option>
-              <option value={"수"}>수</option>
-              <option value={"목"}>목</option>
-              <option value={"금"}>금</option>
-              <option value={"토"}>토</option>
-            </select>
-          </div>
-          <div className={style.room}>
-            <select disabled={currentEvent?.type === "course"}>
-              <option value="" key={"noClassroomSelected🔥"}>
-                없음
-              </option>
-              {currentSchool.classrooms?.map((val: string) => {
-                return (
-                  <option key={val} value={val}>
-                    {val}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-          <div className={style.time}>
-            <input
-              defaultValue={currentEvent?.startTime}
-              type="time"
-              disabled={currentEvent?.type === "course"}
-            />
-            ~
-            <input
-              defaultValue={currentEvent?.endTime}
-              type="time"
-              disabled={currentEvent?.type === "course"}
-            />
-          </div>
-          <div className={style.other}>
-            <label>추가 설명</label>
-            <textarea
-              rows={10}
-              disabled={currentEvent?.type === "course"}
-            ></textarea>
-          </div>
-        </div>
-        <div
-          className="btn"
-          onClick={() => {
-            console.log(currentEvent);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [title, setTitle] = useState<string>("");
+  const [day, setDay] = useState<string>("");
+  const [start, setStart] = useState<string>();
+  const [end, setEnd] = useState<string>();
+  const [classroom, setClassroom] = useState<string>("");
+  const [memo, setMemo] = useState<string>("");
 
-            if (!currentEvent) {
-            }
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+
+  async function update() {
+    setTitle(currentEvent?.title || "");
+    setDay(currentEvent?.day || days[today.getDay()]);
+    setStart(currentEvent?.startTime);
+    setEnd(currentEvent?.endTime);
+    setClassroom(currentEvent?.classroom || "");
+    setMemo(currentEvent?.memo || "");
+  }
+
+  useEffect(() => {
+    setIsLoading(true);
+  }, [currentEvent]);
+
+  useEffect(() => {
+    if (isLoading) {
+      update().then(() => setIsLoading(false));
+      console.log(today);
+    }
+  }, [isLoading]);
+
+  return editor && !isLoading ? (
+    <Popup
+      setState={setEditor}
+      style={{
+        borderRadius: "8px",
+        width: "60%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+      closeBtn
+      title={currentEvent?.title || "일정 추가"}
+      contentScroll
+      footer={
+        <Button
+          type={"ghost"}
+          onClick={() => {
+            console.log({ title, day, start, end, classroom, memo });
+          }}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
         >
-          {currentEvent ? "저장" : "추가"}
+          {currentEvent ? "수정" : "추가"}
+        </Button>
+      }
+    >
+      {currentEvent?.type !== "course" ? (
+        <Input
+          appearence="flat"
+          type="text"
+          defaultValue={title}
+          label="제목"
+          required
+          onChange={(e: string) => {
+            setTitle(e);
+          }}
+          style={{ marginBottom: "24px" }}
+        />
+      ) : (
+        <></>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          gap: "24px",
+          alignItems: "flex-end",
+        }}
+      >
+        {currentEvent?.type === "course" ? (
+          <Input
+            type="text"
+            label="강의실"
+            appearence="flat"
+            defaultValue={classroom}
+            disabled
+          />
+        ) : (
+          <Select
+            required
+            label={"시간"}
+            defaultSelectedValue={day}
+            options={days.map((day: string) => {
+              return { text: day, value: day };
+            })}
+            onChange={(e: any) => {
+              setDay(e);
+            }}
+            appearence="flat"
+          />
+        )}
+
+        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+          <Input
+            type="time"
+            appearence="flat"
+            defaultValue={start}
+            onChange={(e: any) => setStart(e.target.value)}
+            disabled={currentEvent?.type === "course"}
+          />
+          ~
+          <Input
+            type="time"
+            appearence="flat"
+            defaultValue={end}
+            onChange={(e: any) => setEnd(e.target.value)}
+            disabled={currentEvent?.type === "course"}
+          />
         </div>
       </div>
-    </>
+
+      <div style={{ marginTop: "24px" }}>
+        {currentEvent?.type === "course" ? (
+          <Input
+            type="text"
+            label="강의실"
+            appearence="flat"
+            defaultValue={classroom}
+            disabled
+          />
+        ) : (
+          <Select
+            label="강의실"
+            options={[
+              { text: "없음", value: "" },
+              ...currentSeason.classrooms?.map((classroom: string) => {
+                return { text: classroom, value: classroom };
+              }),
+            ]}
+            onChange={(e: string) => {
+              setClassroom(e);
+            }}
+            appearence="flat"
+          />
+        )}
+      </div>
+
+      <div style={{ marginTop: "24px" }}>
+        <Textarea
+          label="메모"
+          rows={10}
+          defaultValue={memo}
+          onChange={(e: any) => {
+            setMemo(e.target.value);
+          }}
+        />
+      </div>
+      <div className={style.row}></div>
+    </Popup>
   ) : (
     <></>
   );
