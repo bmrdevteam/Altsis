@@ -91,7 +91,7 @@ const UserSettings = (props: Props) => {
         data: formData,
       })
       .then((res) => {
-        updateUserProfile(res?.data.profile);
+        updateUserProfile(res?.profile);
       })
       .catch((error) => {
         alert(error);
