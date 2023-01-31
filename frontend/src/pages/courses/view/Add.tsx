@@ -35,7 +35,6 @@ import style from "style/pages/courses/courseDesign.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Autofill from "components/input/Autofill";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
@@ -53,16 +52,18 @@ const CourseAdd = (props: Props) => {
   const navigate = useNavigate();
   const { SyllabusApi, RegistrationApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingRef, setIsLoadingRef] = useState<boolean>(false);
+  const [isLoadingTimeClassroomRef, setIsLoadingTimeClassroomRef] =
+    useState<boolean>(false);
+  const [isLoadingMentorRef, setIsLoadingMentorRef] = useState<boolean>(false);
 
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
-  const [teacherList, setTeacherList] = useState<any>();
-  const selectedTeacherListRef = useRef<any[]>([]);
+  const teacherListRef = useRef<any[]>([]);
 
   const [courseSubject, setCourseSubject] = useState<string>("");
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
+
   const [coursePoint, setCoursePoint] = useState<string>("0");
   const [courseTime, setCourseTime] = useState<any>([]);
   const [courseClassroom, setCourseClassroom] = useState<string>("");
@@ -76,14 +77,6 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
   const [mentorSelectPopupActive, setMentorSelectPopupActive] =
     useState<boolean>(false);
-
-  const updateRef = () => {
-    courseTimeRef.current = {};
-    for (let lb of courseTime) {
-      courseTimeRef.current[lb] = true;
-    }
-    courseClassroomRef.current = courseClassroom;
-  };
 
   useEffect(() => {
     setCoursePoint(courseTime.length);
@@ -111,7 +104,24 @@ const CourseAdd = (props: Props) => {
       season: currentSeason?._id,
       role: "teacher",
     });
-    setTeacherList([...res1]);
+
+    if (currentRegistration?.role === "teacher") {
+      setCourseMentorList([
+        {
+          _id: currentUser?._id,
+          userId: currentUser?.userId,
+          userName: currentUser?.userName,
+        },
+      ]);
+
+      const idx = _.findIndex(res1, { userId: currentUser?.userId });
+      if (idx !== -1) {
+        res1[idx].tableRowChecked = true;
+        teacherListRef.current = res1;
+      }
+    } else {
+      teacherListRef.current = res1;
+    }
   }
 
   async function submit() {
@@ -150,9 +160,7 @@ const CourseAdd = (props: Props) => {
 
   useEffect(() => {
     setData()
-      .then(() => {
-        setIsLoading(false);
-      })
+      .then(() => setIsLoading(false))
       .catch((err) => {
         alert("failed to load data");
         navigate("/courses");
@@ -160,20 +168,25 @@ const CourseAdd = (props: Props) => {
   }, []);
 
   useEffect(() => {
-    if (isLoadingRef) {
-      updateRef();
-      setIsLoadingRef(false);
+    if (isLoadingTimeClassroomRef) {
+      courseTimeRef.current = {};
+      for (let lb of courseTime) {
+        courseTimeRef.current[lb] = true;
+      }
+      courseClassroomRef.current = courseClassroom;
+      setIsLoadingTimeClassroomRef(false);
     }
     return () => {};
-  }, [isLoadingRef]);
+  }, [isLoadingTimeClassroomRef]);
 
   useEffect(() => {
-    if (mentorSelectPopupActive) {
-      selectedTeacherListRef.current = [];
+    if (isLoadingMentorRef) {
+      setIsLoadingMentorRef(false);
     }
-  }, [mentorSelectPopupActive]);
+    return () => {};
+  }, [isLoadingMentorRef]);
 
-  return !isLoading && !isLoadingRef ? (
+  return !isLoading && !isLoadingTimeClassroomRef && !isLoadingMentorRef ? (
     <>
       <div className={style.section}>
         <div className={style.design_form}>
@@ -287,6 +300,7 @@ const CourseAdd = (props: Props) => {
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           <EditorParser
+            type={"syllabus"}
             auth="edit"
             onChange={(data) => {
               setCourseMoreInfo(data);
@@ -354,7 +368,7 @@ const CourseAdd = (props: Props) => {
                   ),
                 ]);
                 setTimeSelectPopupActive(false);
-                setIsLoadingRef(true);
+                setIsLoadingTimeClassroomRef(true);
               }}
             >
               선택
@@ -385,6 +399,7 @@ const CourseAdd = (props: Props) => {
           />
           <div style={{ height: "24px" }}></div>
           <EditorParser
+            type="timetable"
             auth="edit"
             onChange={(data) => {
               Object.assign(courseTimeRef.current, data);
@@ -408,7 +423,9 @@ const CourseAdd = (props: Props) => {
               type="ghost"
               onClick={() => {
                 setCourseMentorList(
-                  selectedTeacherListRef.current.map((val: any) => {
+                  _.filter(teacherListRef.current, {
+                    tableRowChecked: true,
+                  }).map((val: any) => {
                     return {
                       _id: val.user,
                       userId: val.userId,
@@ -416,6 +433,7 @@ const CourseAdd = (props: Props) => {
                     };
                   })
                 );
+                setIsLoadingMentorRef(true);
                 setMentorSelectPopupActive(false);
               }}
             >
@@ -424,13 +442,11 @@ const CourseAdd = (props: Props) => {
           }
         >
           <Table
-            data={teacherList}
+            data={teacherListRef.current}
             type="object-array"
             control
             onChange={(value: any[]) => {
-              selectedTeacherListRef.current = _.filter(value, {
-                tableRowChecked: true,
-              });
+              teacherListRef.current = value;
             }}
             header={[
               {

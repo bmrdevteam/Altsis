@@ -1,14 +1,14 @@
 /**
  * @file Settings Page tab - ThemeSettings
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
  *
  * IN PRODUCTION
- * 
+ *
  * - ThemeSettings Page
- * 
+ *
  * -------------------------------------------------------
  *
  * IN MAINTENANCE
@@ -38,7 +38,6 @@ const ThemeSettings = (props: Props) => {
   const { currentUser } = useAuth();
   const { setDefaultAppTheme, darkModeActive } = useTheme();
 
-  
   return (
     <div className={style.settings_container}>
       <div className={style.container_title}>테마</div>
@@ -58,7 +57,7 @@ const ThemeSettings = (props: Props) => {
           />
         </div>
       </div>
-      <div className={style.setting_item}>
+      {/* <div className={style.setting_item}>
         <div className={style.info}>
           <label className={style.label}>기기의 테마를 따라가기</label>
           <span className={style.description}>
@@ -68,7 +67,7 @@ const ThemeSettings = (props: Props) => {
         <div className={style.controls}>
           <ToggleSwitch />
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

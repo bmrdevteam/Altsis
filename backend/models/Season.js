@@ -60,7 +60,7 @@ const seasonSchema = mongoose.Schema(
 seasonSchema.index(
   {
     school: 1,
-    year: 1,
+    year: -1,
     term: 1,
   },
   { unique: true }

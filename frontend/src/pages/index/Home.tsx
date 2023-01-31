@@ -38,7 +38,7 @@ import useApi from "hooks/useApi";
 const Home = () => {
   const { EnrollmentApi } = useApi();
 
-  const { currentSeason, currentUser } = useAuth();
+  const { currentUser, currentRegistration } = useAuth();
   const [enrollments, setEnrollments] = useState<any>();
 
   function enrollmentsToEvents(data: any[]) {
@@ -56,6 +56,8 @@ const Home = () => {
             startTime: element?.time[0].start,
             endTime: element?.time[0].end,
             day: element?.time[0].day,
+            _id: element._id,
+            memo: element?.memo,
           });
         } else {
           for (let ii = 0; ii < element?.time.length; ii++) {
@@ -68,6 +70,8 @@ const Home = () => {
               startTime: time.start,
               endTime: time.end,
               day: time.day,
+              _id: element._id,
+              memo: element?.memo,
             });
           }
         }
@@ -75,10 +79,32 @@ const Home = () => {
       return result;
     }
   }
+
+  function memosToEvents(data: any[]) {
+    if (data) {
+      let result: any[] = [];
+      for (let i = 0; i < data.length; i++) {
+        const element = data[i];
+        console.log(element);
+        result.push({
+          id: element._id,
+          type: "memo",
+          classroom: element.classroom,
+          title: element.title,
+          startTime: element.start,
+          endTime: element.end,
+          day: element.day,
+          _id: element._id,
+        });
+      }
+      return result;
+    }
+  }
+
   useEffect(() => {
-    if (currentSeason?._id) {
+    if (currentRegistration?._id) {
       EnrollmentApi.REnrolllments({
-        season: currentSeason._id,
+        season: currentRegistration.season,
         student: currentUser._id,
       })
         .then((res) => {
@@ -87,7 +113,7 @@ const Home = () => {
         })
         .catch(() => {});
     }
-  }, [currentSeason]);
+  }, [currentRegistration]);
 
   return (
     <>
@@ -96,9 +122,12 @@ const Home = () => {
       <div className={style.section}>
         <Schedule
           dayArray={["월", "화", "수", "목", "금"]}
-          defaultEvents={enrollmentsToEvents(enrollments)}
-          title={`${currentSeason?.year ?? ""} ${
-            currentSeason?.term ?? ""
+          defaultEvents={[
+            ...(enrollmentsToEvents(enrollments) || []),
+            ...(memosToEvents(currentRegistration?.memos) || []),
+          ]}
+          title={`${currentRegistration?.year ?? ""} ${
+            currentRegistration?.term ?? ""
           } 일정`}
         />
       </div>
