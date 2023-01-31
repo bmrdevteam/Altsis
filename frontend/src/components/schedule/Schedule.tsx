@@ -94,8 +94,9 @@ const RowFunction = ({ day }: { day: string }) => {
 };
 const EventEditor = () => {
   const { editor, setEditor, currentEvent } = useStore();
-  const { currentSeason } = useAuth();
-  const { EnrollmentApi } = useApi();
+  const { currentSeason, currentRegistration, updateCurrentRegistration } =
+    useAuth();
+  const { EnrollmentApi, RegistrationApi } = useApi();
 
   const today = new Date();
 
@@ -142,41 +143,103 @@ const EventEditor = () => {
       title={currentEvent?.title || "일정 추가"}
       contentScroll
       footer={
-        <Button
-          type={"ghost"}
-          onClick={() => {
-            if (currentEvent?.type === "course" && currentEvent?._id !== "") {
-              EnrollmentApi.UEnrollmentMemo({
-                _id: currentEvent._id,
-                memo,
-              })
-                .then(() => {
-                  alert("success");
-                  setEditor(false);
+        <div>
+          {" "}
+          <Button
+            type={"ghost"}
+            onClick={() => {
+              if (currentEvent?.type === "course" && currentEvent?._id !== "") {
+                EnrollmentApi.UEnrollmentMemo({
+                  _id: currentEvent._id,
+                  memo,
                 })
-                .catch((err) => alert("error!"));
-            } else {
-            }
+                  .then(() => {
+                    alert("success");
+                    setEditor(false);
+                  })
+                  .catch((err) => alert("error!"));
+              } else {
+                if (title && day && start && end) {
+                  if (currentEvent) {
+                    RegistrationApi.UMemo({
+                      _id: currentEvent._id,
+                      rid: currentRegistration?._id,
+                      memo: { title, day, start, end, classroom, memo },
+                    })
+                      .then((res) => {
+                        updateCurrentRegistration();
+                      })
+                      .then(() => {
+                        alert("success");
+                        setEditor(false);
+                      })
+                      .catch((err) => alert("error!"));
+                  } else {
+                    RegistrationApi.CMemo({
+                      rid: currentRegistration?._id,
+                      memo: { title, day, start, end, classroom, memo },
+                    })
+                      .then((res) => {
+                        updateCurrentRegistration();
+                      })
+                      .then(() => {
+                        alert("success");
+                        setEditor(false);
+                      })
+                      .catch((err) => alert("error!"));
+                  }
+                }
+              }
 
-            console.log({
-              id: currentEvent?.id,
-              _id: currentEvent?._id,
-              title,
-              day,
-              start,
-              end,
-              classroom,
-              memo,
-            });
-          }}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-        >
-          {currentEvent ? "수정" : "추가"}
-        </Button>
+              console.log({
+                id: currentEvent?.id,
+                _id: currentEvent?._id,
+                title,
+                day,
+                start,
+                end,
+                classroom,
+                memo,
+              });
+            }}
+            style={{
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+          >
+            {currentEvent ? "수정" : "추가"}
+          </Button>
+          {currentEvent?.type !== "course" && currentEvent?._id ? (
+            <Button
+              type={"ghost"}
+              onClick={() => {
+                RegistrationApi.DMemo({
+                  _id: currentEvent._id,
+                  rid: currentRegistration?._id,
+                })
+                  .then((res) => {
+                    updateCurrentRegistration();
+                  })
+                  .then(() => {
+                    alert("success");
+                    setEditor(false);
+                  })
+                  .catch((err) => alert("error!"));
+              }}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                marginTop: "12px",
+              }}
+            >
+              삭제
+            </Button>
+          ) : (
+            <></>
+          )}
+        </div>
       }
     >
       {currentEvent?.type !== "course" ? (
@@ -186,8 +249,8 @@ const EventEditor = () => {
           defaultValue={title}
           label="제목"
           required
-          onChange={(e: string) => {
-            setTitle(e);
+          onChange={(e: any) => {
+            setTitle(e.target.value);
           }}
           style={{ marginBottom: "24px" }}
         />
