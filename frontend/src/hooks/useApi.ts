@@ -561,6 +561,70 @@ export default function useApi() {
     });
     return result;
   }
+
+  /**
+   * Create Memo
+   * @type POST
+   * @auth member
+   * @returns memos
+   */
+  async function CMemo(params: {
+    rid: string;
+    memo: {
+      title: string;
+      day: string;
+      start: string;
+      end: string;
+      classroom?: string;
+      memo?: string;
+    };
+  }) {
+    const result = await database.C({
+      location: "memos",
+      data: { registration: params.rid, ...params.memo },
+    });
+    return result;
+  }
+
+  /**
+   * Update Memo
+   * @type PUT
+   * @auth member
+   * @returns memos
+   */
+  async function UMemo(params: {
+    _id: string;
+    rid: string;
+    memo: {
+      title: string;
+      day: string;
+      start: string;
+      end: string;
+      classroom?: string;
+      memo?: string;
+    };
+  }) {
+    const result = await database.U({
+      location: "memos/" + params._id,
+      data: { registration: params.rid, ...params.memo },
+    });
+    return result;
+  }
+
+  /**
+   * Delete Memo
+   * @type DELETE
+   * @auth member
+   * @returns memos
+   */
+  async function DMemo(params: { _id: string; rid: string }) {
+    const result = await database.D({
+      location:
+        "memos/" + params._id + QUERY_BUILDER({ registration: params.rid }),
+    });
+    return result;
+  }
+
   /**
    * Form Api
    * ##########################################################################
@@ -1129,6 +1193,9 @@ export default function useApi() {
       RRegistration,
       URegistrations,
       DRegistrations,
+      CMemo,
+      UMemo,
+      DMemo,
     },
     EnrollmentApi: {
       CEnrollment,
