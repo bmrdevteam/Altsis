@@ -151,7 +151,7 @@ function Docs(props: Props) {
           </div>
         </div>
         {!loading ? (
-          <EditorParser auth="view" data={formData} dbData={DBData} />
+          <EditorParser auth="view" data={formData} dbData={DBData} type="archive" />
         ) : (
           <Loading height={"calc(100vh - 55px)"} />
         )}

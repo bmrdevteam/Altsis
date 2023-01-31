@@ -13,7 +13,7 @@ const syllabusSchema = mongoose.Schema(
     schoolName: String,
     year: String,
     term: String,
-    user: mongoose.Types.ObjectId,
+    user: { type: mongoose.Types.ObjectId, required: true },
     userId: {
       type: String,
       required: true,

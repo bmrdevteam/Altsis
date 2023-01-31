@@ -204,7 +204,7 @@ function Docs({}: Props) {
           </div>
         </div>
         {!loading ? (
-          <EditorParser auth="edit" data={formData} dbData={DBData} />
+          <EditorParser auth="edit" data={formData} dbData={DBData} type="archive"/>
         ) : (
           <Loading height={"calc(100vh - 55px)"} />
         )}

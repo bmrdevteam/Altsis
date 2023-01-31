@@ -208,18 +208,17 @@ const TimeTable = (props: {
     return result;
   }
 
-  if (props.selected !== "timeTable") {
-    return null;
-  }
+  if (props.selected !== 'timeTable') {
+		return (null);
+	}
 
-  return (
-    <EditorParser
-      auth="view"
-      defaultTimetable={syllabusToTime(props.enrolledCourseList)}
-      data={currentSeason?.formTimetable}
-    />
-  );
-};
+	return <EditorParser
+  type="timetable"
+  auth="view"
+  defaultTimetable={syllabusToTime(props.enrolledCourseList)}
+  data={currentSeason?.formTimetable}
+/>;
+}
 
 const Enrollments = (props: {
   selected: string;

@@ -13,4 +13,5 @@ module.exports = [
   "notifications",
   "files",
   "courses",
+  "memos",
 ];

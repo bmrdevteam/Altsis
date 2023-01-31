@@ -209,6 +209,7 @@ const Course = (props: Props) => {
           <>
             <div className={style.title}>시간표</div>
             <EditorParser
+              type={"timetable"}
               auth="view"
               defaultTimetable={syllabusToTime(enrolledCourseList)}
               data={currentSeason?.formTimetable}

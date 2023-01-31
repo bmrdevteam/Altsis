@@ -315,6 +315,12 @@ export default function useApi() {
     const result = await database.R({ location: `seasons/${id}` });
     return result;
   }
+  async function RSeasonWithRegistrations(id: string) {
+    const result = await database.R({
+      location: `seasons/${id}?withRegistrations=true`,
+    });
+    return result;
+  }
   /**
    * Get Seasons
    * @type GET
@@ -561,6 +567,70 @@ export default function useApi() {
     });
     return result;
   }
+
+  /**
+   * Create Memo
+   * @type POST
+   * @auth member
+   * @returns memos
+   */
+  async function CMemo(params: {
+    rid: string;
+    memo: {
+      title: string;
+      day: string;
+      start: string;
+      end: string;
+      classroom?: string;
+      memo?: string;
+    };
+  }) {
+    const result = await database.C({
+      location: "memos",
+      data: { registration: params.rid, ...params.memo },
+    });
+    return result;
+  }
+
+  /**
+   * Update Memo
+   * @type PUT
+   * @auth member
+   * @returns memos
+   */
+  async function UMemo(params: {
+    _id: string;
+    rid: string;
+    memo: {
+      title: string;
+      day: string;
+      start: string;
+      end: string;
+      classroom?: string;
+      memo?: string;
+    };
+  }) {
+    const result = await database.U({
+      location: "memos/" + params._id,
+      data: { registration: params.rid, ...params.memo },
+    });
+    return result;
+  }
+
+  /**
+   * Delete Memo
+   * @type DELETE
+   * @auth member
+   * @returns memos
+   */
+  async function DMemo(params: { _id: string; rid: string }) {
+    const result = await database.D({
+      location:
+        "memos/" + params._id + QUERY_BUILDER({ registration: params.rid }),
+    });
+    return result;
+  }
+
   /**
    * Form Api
    * ##########################################################################
@@ -797,6 +867,19 @@ export default function useApi() {
   }
 
   /**
+   * Update Enrollment memo
+   * @type Post
+   * @auth member
+   */
+  async function UEnrollmentMemo(props: { _id?: string; memo: string }) {
+    const result = await database.U({
+      location: "enrollments/" + props._id + "/memo",
+      data: { memo: props.memo },
+    });
+    return result;
+  }
+
+  /**
    * Delete Enrollment
    * @type DELETE
    * @auth member
@@ -807,6 +890,19 @@ export default function useApi() {
       location: "enrollments/" + id,
     });
     return result;
+  }
+
+  /**
+   * Delete Enrollments
+   * @type DELETE
+   * @auth member
+   * @returns Enrollment
+   */
+  async function DEnrollments(_ids: any[]) {
+    const _enrollments_ids = QUERY_SUB_BUILDER(_ids);
+    return await database.D({
+      location: "enrollments" + QUERY_BUILDER({ _ids: _enrollments_ids }),
+    });
   }
 
   /**
@@ -1075,6 +1171,7 @@ export default function useApi() {
     SeasonApi: {
       CSeason,
       RSeason,
+      RSeasonWithRegistrations,
       RSeasons,
       USeason,
       UActivateSeason,
@@ -1103,6 +1200,9 @@ export default function useApi() {
       RRegistration,
       URegistrations,
       DRegistrations,
+      CMemo,
+      UMemo,
+      DMemo,
     },
     EnrollmentApi: {
       CEnrollment,
@@ -1110,8 +1210,10 @@ export default function useApi() {
       REnrolllment,
       REnrolllments,
       DEnrollment,
+      DEnrollments,
       REnrollmentWithEvaluations,
       UEvaluation,
+      UEnrollmentMemo,
     },
     FormApi: {
       CForm,

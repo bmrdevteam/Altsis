@@ -177,6 +177,7 @@ module.exports.current = async (req, res) => {
         "isActivated",
         "role",
         "period",
+        "memos",
       ]);
 
     // notifications
@@ -407,6 +408,34 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
   }
 };
 
+// 기존 비밀번호가 필요한 버전
+// module.exports.updatePassword = async (req, res) => {
+//   try {
+//     /* validate */
+//     if (!validate("password", req.body.new))
+//       return res.status(400).send({ message: "validation failed" });
+
+//     const user = req.user;
+//     req.body.academyId = req.user.academyId;
+//     req.body.userId = req.user.userId;
+//     req.body.password = req.body.old;
+
+//     passport.authenticate("local2", async (authError, user, academyId) => {
+//       try {
+//         if (authError) throw authError;
+//         console.log("DEBUG: authentication is over");
+//         user.password = req.body.new;
+//         await user.save();
+//         return res.status(200).send();
+//       } catch (err) {
+//         return res.status(err.status || 500).send({ message: err.message });
+//       }
+//     })(req, res);
+//   } catch (err) {
+//     return res.status(500).send({ message: err.message });
+//   }
+// };
+
 module.exports.updatePassword = async (req, res) => {
   try {
     /* validate */
@@ -414,21 +443,9 @@ module.exports.updatePassword = async (req, res) => {
       return res.status(400).send({ message: "validation failed" });
 
     const user = req.user;
-    req.body.academyId = req.user.academyId;
-    req.body.userId = req.user.userId;
-    req.body.password = req.body.old;
-
-    passport.authenticate("local2", async (authError, user, academyId) => {
-      try {
-        if (authError) throw authError;
-        console.log("DEBUG: authentication is over");
-        user.password = req.body.new;
-        await user.save();
-        return res.status(200).send();
-      } catch (err) {
-        return res.status(err.status || 500).send({ message: err.message });
-      }
-    })(req, res);
+    user.password = req.body.new;
+    await user.save();
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
