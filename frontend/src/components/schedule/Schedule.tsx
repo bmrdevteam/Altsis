@@ -9,6 +9,7 @@ import Input from "components/input/Input";
 import Textarea from "components/textarea/Textarea";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
+import useApi from "hooks/useApi";
 
 type TEvent = {
   id: string;
@@ -19,6 +20,7 @@ type TEvent = {
   startTime: string;
   endTime: string;
   memo?: string;
+  _id: string;
 };
 
 interface ICalendarState {
@@ -27,7 +29,8 @@ interface ICalendarState {
     type: string,
     day: string,
     startTime: string,
-    endTime: string
+    endTime: string,
+    _id: string
   ) => void;
   setEvents: (events: TEvent[]) => void;
   editor: boolean;
@@ -45,7 +48,7 @@ const useStore = create<ICalendarState>()((set) => {
       set((state) => ({
         editor: to,
       })),
-    addEvent: (type, day, startTime, endTime) =>
+    addEvent: (type, day, startTime, endTime, _id) =>
       set((state) => ({
         events: [
           ...state.events,
@@ -56,6 +59,7 @@ const useStore = create<ICalendarState>()((set) => {
             type: type,
             startTime: startTime,
             endTime: endTime,
+            _id: _id,
           },
         ],
       })),
@@ -91,6 +95,8 @@ const RowFunction = ({ day }: { day: string }) => {
 const EventEditor = () => {
   const { editor, setEditor, currentEvent } = useStore();
   const { currentSeason } = useAuth();
+  const { EnrollmentApi } = useApi();
+
   const today = new Date();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -139,7 +145,29 @@ const EventEditor = () => {
         <Button
           type={"ghost"}
           onClick={() => {
-            console.log({ title, day, start, end, classroom, memo });
+            if (currentEvent?.type === "course" && currentEvent?._id !== "") {
+              EnrollmentApi.UEnrollmentMemo({
+                _id: currentEvent._id,
+                memo,
+              })
+                .then(() => {
+                  alert("success");
+                  setEditor(false);
+                })
+                .catch((err) => alert("error!"));
+            } else {
+            }
+
+            console.log({
+              id: currentEvent?.id,
+              _id: currentEvent?._id,
+              title,
+              day,
+              start,
+              end,
+              classroom,
+              memo,
+            });
           }}
           style={{
             borderRadius: "4px",
