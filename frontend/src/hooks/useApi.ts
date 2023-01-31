@@ -868,7 +868,7 @@ export default function useApi() {
   async function UEnrollmentMemo(props: { _id?: string; memo: string }) {
     const result = await database.U({
       location: "enrollments/" + props._id + "/memo",
-      data: props.memo,
+      data: { memo: props.memo },
     });
     return result;
   }
