@@ -441,10 +441,12 @@ function Schedule({
   defaultEvents,
   title,
   dayArray,
+  mode = "edit",
 }: {
   defaultEvents?: TEvent[];
   title: string;
   dayArray: Array<"일" | "월" | "화" | "수" | "목" | "금" | "토">;
+  mode?: "edit" | "view";
 }) {
   const { setEvents, setEditor, setCurrentEvent } = useStore();
   const today = new Date();
@@ -461,15 +463,17 @@ function Schedule({
         <div className={style.controls}>
           <div className={style.title}>{title}</div>
           <div style={{ flex: "1 1 0" }}></div>
-          <div
-            className={style.btn}
-            onClick={() => {
-              setCurrentEvent("");
-              setEditor(true);
-            }}
-          >
-            일정추가
-          </div>
+          {mode === "edit" && (
+            <div
+              className={style.btn}
+              onClick={() => {
+                setCurrentEvent("");
+                setEditor(true);
+              }}
+            >
+              일정추가
+            </div>
+          )}
           {/* <div>
             <Svg type={"chevronLeft"} width={"24px"} height={"24px"} />
           </div>
