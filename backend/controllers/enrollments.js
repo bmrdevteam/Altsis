@@ -507,6 +507,27 @@ module.exports.updateEvaluation2 = async (req, res) => {
   }
 };
 
+module.exports.updateMemo = async (req, res) => {
+  try {
+    const enrollment = await Enrollment(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!enrollment)
+      return res.status(404).send({ message: "enrollment not found" });
+
+    if (!enrollment.student.equals(req.user._id))
+      return res
+        .status(409)
+        .send({ message: "you cannot edit memo of this enrollment" });
+
+    enrollment.memo = req.body.memo;
+    await enrollment.save();
+    return res.status(200).send();
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.remove = async (req, res) => {
   try {
     if (req.params._id) {

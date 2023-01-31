@@ -797,6 +797,19 @@ export default function useApi() {
   }
 
   /**
+   * Update Enrollment memo
+   * @type Post
+   * @auth member
+   */
+  async function UEnrollmentMemo(props: { _id?: string; memo: string }) {
+    const result = await database.U({
+      location: "enrollments/" + props._id + "/memo",
+      data: props.memo,
+    });
+    return result;
+  }
+
+  /**
    * Delete Enrollment
    * @type DELETE
    * @auth member
@@ -1126,6 +1139,7 @@ export default function useApi() {
       DEnrollments,
       REnrollmentWithEvaluations,
       UEvaluation,
+      UEnrollmentMemo,
     },
     FormApi: {
       CForm,
