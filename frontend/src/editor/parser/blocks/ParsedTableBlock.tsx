@@ -7,6 +7,7 @@ type Props = {
   blockData: any;
   auth: "edit" | "view";
   returnData: any;
+  type: "timetable" | "archive" | "syllabus";
   defaultValues?: any;
   defaultTimetable?: any;
   dbData?: any;
@@ -67,9 +68,11 @@ const ParsedTableBlock = (props: Props) => {
   const Cell = ({
     data,
     dataRepeatIndex,
+    row,
   }: {
     data: any;
     dataRepeatIndex?: number;
+    row: any;
   }) => {
     switch (data.type) {
       case "paragraph":
@@ -221,11 +224,36 @@ const ParsedTableBlock = (props: Props) => {
                   props.defaultValues?.[data?.name] === true
                 }
                 onChange={(e) => {
-                  if (data?.name === undefined) {
-                    props.returnData[data?.id] = e.target.checked;
+                  if (e.target.checked) {
+                    if (data?.name === undefined) {
+                      props.returnData[data?.id] = {
+                        name: data?.id,
+                      };
+                      if (props.type === "timetable") {
+                        Object.assign(props.returnData[data?.id], {
+                          start: row[0].timeRangeStart,
+                          end: row[0].timeRangeEnd, 
+                        });
+                      }
+                    } else {
+                      props.returnData[data?.name] = {
+                        name: data?.name,
+                      };
+                      if (props.type === "timetable") {
+                        Object.assign(props.returnData[data?.name], {
+                          start: row[0].timeRangeStart,
+                          end: row[0].timeRangeEnd,
+                        });
+                      }
+                    }
                   } else {
-                    props.returnData[data?.name] = e.target.checked;
+                    if (data?.name === undefined) {
+                      delete props.returnData[data?.id];
+                    } else {
+                      delete props.returnData[data?.name];
+                    }
                   }
+                  console.log(props.returnData);
                 }}
               />
             )}
@@ -344,7 +372,7 @@ const ParsedTableBlock = (props: Props) => {
                             rowSpan={val?.rowSpan}
                             style={{ fontSize: val?.fontSize }}
                           >
-                            <Cell data={val} dataRepeatIndex={i} />
+                            <Cell data={val} dataRepeatIndex={i} row={value} />
                           </th>
                         ) : (
                           <td
@@ -353,7 +381,7 @@ const ParsedTableBlock = (props: Props) => {
                             rowSpan={val?.rowSpan}
                             style={{ fontSize: val?.fontSize }}
                           >
-                            <Cell data={val} dataRepeatIndex={i} />
+                            <Cell data={val} dataRepeatIndex={i} row={value} />
                           </td>
                         );
                       })}
@@ -403,7 +431,7 @@ const ParsedTableBlock = (props: Props) => {
                         rowSpan={val?.rowSpan}
                         style={{ fontSize: val?.fontSize }}
                       >
-                        <Cell data={val} />
+                        <Cell data={val} row={value} />
                       </th>
                     ) : (
                       <td
@@ -412,7 +440,7 @@ const ParsedTableBlock = (props: Props) => {
                         rowSpan={val?.rowSpan}
                         style={{ fontSize: val?.fontSize }}
                       >
-                        <Cell data={val} />
+                        <Cell data={val} row={value} />
                       </td>
                     );
                   })}

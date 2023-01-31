@@ -31,6 +31,7 @@ const ParsedBlock = (props: Props) => {
         <ParsedTableBlock
           blockData={props.blockData}
           auth={props.auth}
+          type={props.type}
           defaultValues={props.defaultValues}
           returnData={props.returnData}
           defaultTimetable={props.defaultTimetable}
