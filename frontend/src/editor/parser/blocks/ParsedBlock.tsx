@@ -8,6 +8,7 @@ type Props = {
   defaultValues?: any;
   defaultTimetable?: any;
   dbData?: any;
+  type: "timetable" | "archive" | "syllabus";
 };
 
 const ParsedBlock = (props: Props) => {
