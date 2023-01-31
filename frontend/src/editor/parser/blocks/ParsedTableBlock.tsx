@@ -69,10 +69,14 @@ const ParsedTableBlock = (props: Props) => {
     data,
     dataRepeatIndex,
     row,
+    table,
+    colIndex,
   }: {
     data: any;
     dataRepeatIndex?: number;
     row: any;
+    table:any;
+    colIndex:number;
   }) => {
     switch (data.type) {
       case "paragraph":
@@ -231,6 +235,7 @@ const ParsedTableBlock = (props: Props) => {
                       };
                       if (props.type === "timetable") {
                         Object.assign(props.returnData[data?.id], {
+                          day:table[0][colIndex]?.data?.text,
                           start: data?.timeRangeStart ?? row[0]?.timeRangeStart,
                           end: data?.timeRangeEnd ?? row[0]?.timeRangeEnd,
                         });
@@ -241,6 +246,7 @@ const ParsedTableBlock = (props: Props) => {
                       };
                       if (props.type === "timetable") {
                         Object.assign(props.returnData[data?.name], {
+                          day:table[0][colIndex]?.data?.text,
                           start: data?.timeRangeStart ?? row[0]?.timeRangeStart,
                           end: data?.timeRangeEnd ?? row[0]?.timeRangeEnd,
                         });
@@ -372,7 +378,10 @@ const ParsedTableBlock = (props: Props) => {
                             rowSpan={val?.rowSpan}
                             style={{ fontSize: val?.fontSize }}
                           >
-                            <Cell data={val} dataRepeatIndex={i} row={value} />
+                            <Cell data={val} dataRepeatIndex={i} row={value} table={props.blockData.data.table}
+                            colIndex={i}
+                            
+                            />
                           </th>
                         ) : (
                           <td
@@ -381,7 +390,10 @@ const ParsedTableBlock = (props: Props) => {
                             rowSpan={val?.rowSpan}
                             style={{ fontSize: val?.fontSize }}
                           >
-                            <Cell data={val} dataRepeatIndex={i} row={value} />
+                            <Cell data={val} dataRepeatIndex={i} row={value} table={props.blockData.data.table}
+                            colIndex={i}
+                            />
+
                           </td>
                         );
                       })}
@@ -431,7 +443,7 @@ const ParsedTableBlock = (props: Props) => {
                         rowSpan={val?.rowSpan}
                         style={{ fontSize: val?.fontSize }}
                       >
-                        <Cell data={val} row={value} />
+                        <Cell data={val} row={value}table={props.blockData.data.table} colIndex={index}/>
                       </th>
                     ) : (
                       <td
@@ -440,7 +452,7 @@ const ParsedTableBlock = (props: Props) => {
                         rowSpan={val?.rowSpan}
                         style={{ fontSize: val?.fontSize }}
                       >
-                        <Cell data={val} row={value} />
+                        <Cell data={val} row={value} table={props.blockData.data.table}colIndex={index}/>
                       </td>
                     );
                   })}
