@@ -130,6 +130,14 @@ module.exports.find = async (req, res) => {
   try {
     if (req.params._id) {
       const season = await Season(req.user.academyId).findById(req.params._id);
+      if (req.query.withRegistrations === "true") {
+        const registrations = await Registration(req.user.academyId)
+          .find({
+            season: season._id,
+          })
+          .select(["userId", "userName"]);
+        return res.status(200).send({ ...season.toObject(), registrations });
+      }
       return res.status(200).send(season);
     }
     const seasons = await Season(req.user.academyId)
