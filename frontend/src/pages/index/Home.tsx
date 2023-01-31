@@ -85,7 +85,6 @@ const Home = () => {
       let result: any[] = [];
       for (let i = 0; i < data.length; i++) {
         const element = data[i];
-        console.log(element);
         result.push({
           id: element._id,
           type: "memo",
@@ -110,7 +109,6 @@ const Home = () => {
       })
         .then((res) => {
           setEnrollments(res);
-          console.log(res);
         })
         .catch(() => {});
     }

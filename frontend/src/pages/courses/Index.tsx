@@ -90,7 +90,6 @@ const Course = (props: Props) => {
         season: currentRegistration.season,
         user: currentUser._id,
       }).then((res: any) => {
-        console.log("res: ", res);
         setEnrolledCourseList(structuring(res.enrolled));
         setCreatedCourseList(structuring(res.created));
         setMentoringCourseList(structuring(res.mentoring));
