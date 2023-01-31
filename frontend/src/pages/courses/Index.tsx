@@ -111,37 +111,50 @@ const Course = (props: Props) => {
     }
   }, [currentRegistration]);
 
+  const items = () => {
+    if (currentRegistration.role === "teacher")
+      return {
+        시간표: <TimeTable courseList={enrolledCourseList} />,
+        "수강신청 현황": (
+          <EnrolledCourseList
+            courseList={enrolledCourseList}
+            subjectLabelHeaderList={subjectLabelHeaderList}
+          />
+        ),
+        "개설한 수업 목록": (
+          <CreatedCourseList
+            courseList={createdCourseList}
+            subjectLabelHeaderList={subjectLabelHeaderList}
+          />
+        ),
+        "담당 수업 목록": (
+          <MentoringCourseList
+            courseList={mentoringCourseList}
+            subjectLabelHeaderList={subjectLabelHeaderList}
+          />
+        ),
+      };
+    return {
+      시간표: <TimeTable courseList={enrolledCourseList} />,
+      "수강신청 현황": (
+        <EnrolledCourseList
+          courseList={enrolledCourseList}
+          subjectLabelHeaderList={subjectLabelHeaderList}
+        />
+      ),
+      "개설한 수업 목록": (
+        <CreatedCourseList
+          courseList={createdCourseList}
+          subjectLabelHeaderList={subjectLabelHeaderList}
+        />
+      ),
+    };
+  };
   return (
     <>
       <Navbar />
       <div className={style.section}>
-        {currentSeason?.formTimetable ? (
-          <Tab
-            items={{
-              시간표: <TimeTable courseList={enrolledCourseList} />,
-              "수강신청 현황": (
-                <EnrolledCourseList
-                  courseList={enrolledCourseList}
-                  subjectLabelHeaderList={subjectLabelHeaderList}
-                />
-              ),
-              "개설한 수업 목록": (
-                <CreatedCourseList
-                  courseList={createdCourseList}
-                  subjectLabelHeaderList={subjectLabelHeaderList}
-                />
-              ),
-              "담당 수업 목록": (
-                <MentoringCourseList
-                  courseList={mentoringCourseList}
-                  subjectLabelHeaderList={subjectLabelHeaderList}
-                />
-              ),
-            }}
-          />
-        ) : (
-          <></>
-        )}
+        {currentSeason?.formTimetable ? <Tab items={items()} /> : <></>}
       </div>
     </>
   );
