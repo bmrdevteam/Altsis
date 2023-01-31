@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         setRegistration(re);
         setCurrentRegistration(re[0]);
-        SeasonApi.RSeason(re[0].season).then((seasonData) => {
+        SeasonApi.RSeasonWithRegistrations(re[0].season).then((seasonData) => {
           setCurrentSeason(seasonData);
           setCurrentPermission(
             checkPermissionBySeason(seasonData, res.userId, re[0].role)
@@ -132,7 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (re.length > 0) {
         setCurrentRegistration(re[0]);
-        SeasonApi.RSeason(re[0].season).then((seasonData) => {
+        SeasonApi.RSeasonWithRegistrations(re[0].season).then((seasonData) => {
           setCurrentSeason(seasonData);
           setCurrentPermission(
             checkPermissionBySeason(seasonData, currentUser.userId, re[0].role)
@@ -148,7 +148,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
-    const result = await SeasonApi.RSeason(registration?.season)
+    const result = await SeasonApi.RSeasonWithRegistrations(
+      registration?.season
+    )
       .then((res) => {
         setCurrentSeason(res);
         setCurrentPermission(

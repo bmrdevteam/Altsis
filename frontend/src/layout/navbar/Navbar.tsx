@@ -231,7 +231,6 @@ const Navbar = (props: Props) => {
     currentSchool,
     currentSeason,
   } = useAuth();
-  const { RegistrationApi } = useApi();
   const navigate = useNavigate();
   const [users, setUsers] = useState<Array<any>>([]);
   const [searchParam, setSearchParam] = useState<string>("");
@@ -242,24 +241,38 @@ const Navbar = (props: Props) => {
   };
 
   useEffect(() => {
-    if (!currentSchool || !currentSeason) return;
+    if (!currentSchool || !currentSeason || !currentSeason.registrations)
+      return;
 
-    RegistrationApi.RRegistrations({
-      season: currentSeason._id,
-      school: currentSchool.school,
-    })
-      .then((result) => {
-        const newUsers = result.map((user: any) => {
-          return {
-            text: `${user.userName} / ${user.userId}`,
-            value: user.userId,
-          };
-        });
-        setUsers(newUsers);
-      })
-      .catch((error) => console.error(error));
+    const users = currentSeason.registrations.map((user: any) => {
+      return {
+        text: `${user.userName} / ${user.userId}`,
+        value: user.userId,
+      };
+    });
+    setUsers(users);
   }, [currentSchool, currentSeason]);
   console.log(users);
+
+  // useEffect(() => {
+  //   if (!currentSchool || !currentSeason) return;
+
+  //   RegistrationApi.RRegistrations({
+  //     season: currentSeason._id,
+  //     school: currentSchool.school,
+  //   })
+  //     .then((result) => {
+  //       const users = result.map((user: any) => {
+  //         return {
+  //           text: `${user.userName} / ${user.userId}`,
+  //           value: user.userId,
+  //         };
+  //       });
+  //       setUsers(users);
+  //     })
+  //     .catch((error) => console.error(error));
+  // }, [currentSchool, currentSeason]);
+  // console.log(users);
 
   return (
     <div className={style.navbar_container}>
@@ -278,12 +291,13 @@ const Navbar = (props: Props) => {
           onKeyUp={(e) => {
             if (e.key === "Enter") {
               setSearchParam(
-                users.filter((val) => val.text?.includes(searchParam))[0]
+                users.filter((val: any) => val.text?.includes(searchParam))[0]
                   .text ?? ""
               );
-              users.filter((val) => val.text?.includes(searchParam))[0].value &&
+              users.filter((val: any) => val.text?.includes(searchParam))[0]
+                .value &&
                 submit(
-                  users.filter((val) => val.text?.includes(searchParam))[0]
+                  users.filter((val: any) => val.text?.includes(searchParam))[0]
                     .value
                 );
               outsideClick.setActive(false);
@@ -293,8 +307,8 @@ const Navbar = (props: Props) => {
         {outsideClick.active && (
           <div className={style.result}>
             {users
-              .filter((val) => val.text?.includes(searchParam))
-              .map((val, ind) => {
+              .filter((val: any) => val.text?.includes(searchParam))
+              .map((val: any, ind: any) => {
                 return (
                   <div
                     className={style.row}
