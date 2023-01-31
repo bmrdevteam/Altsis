@@ -1,6 +1,14 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
 
+const memoSchema = mongoose.Schema({
+  title: String,
+  day: String,
+  start: String,
+  end: String,
+  memo: String,
+});
+
 const registrationSchema = mongoose.Schema({
   season: {
     type: mongoose.Types.ObjectId,
@@ -37,6 +45,7 @@ const registrationSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  memos: [memoSchema],
 });
 
 registrationSchema.index({
