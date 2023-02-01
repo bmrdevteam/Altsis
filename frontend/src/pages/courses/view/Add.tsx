@@ -64,10 +64,10 @@ const CourseAdd = (props: Props) => {
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
-  const [coursePoint, setCoursePoint] = useState<number>(0);
+  const [coursePoint, setCoursePoint] = useState<string>("");
   const [courseTime, setCourseTime] = useState<any>({});
   const [courseClassroom, setCourseClassroom] = useState<string>("");
-  const [courseLimit, setCourseLimit] = useState<number>(0);
+  const [courseLimit, setCourseLimit] = useState<string>("");
   const courseMoreInfo = useRef<any>({});
   const courseClassroomRef = useRef<any>("");
   const courseTimeRef = useRef<any>({});
@@ -78,7 +78,7 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
 
   useEffect(() => {
-    setCoursePoint(Object.keys(courseTime).length);
+    setCoursePoint(`${Object.keys(courseTime).length}`);
     return () => {};
   }, [courseTime]);
 
@@ -141,13 +141,13 @@ const CourseAdd = (props: Props) => {
           season: currentSeason._id,
           registration: currentRegistration._id,
           classTitle: courseTitle,
-          point: coursePoint,
+          point: Number(coursePoint),
           subject: courseSubject.split("/"),
           teachers: courseMentorList,
           classroom: courseClassroom,
           time: Object.values(courseTime),
           info: courseMoreInfo.current,
-          limit: courseLimit,
+          limit: Number(courseLimit),
         },
       })
         .then((res: any) => {
@@ -333,13 +333,22 @@ const CourseAdd = (props: Props) => {
             style={{ marginTop: "24px" }}
             type="ghost"
             onClick={() => {
+              function isPositiveInteger(str: string) {
+                const num = Number(str);
+                return Number.isInteger(num) && num >= 0;
+              }
+
               if (!courseTitle || courseTitle === "") {
                 alert("제목을 입력해주세요.");
               } else if (courseMentorList.length === 0) {
                 alert("멘토를 선택해주세요.");
-              } else {
-                submit();
-              }
+              } else if (Object.keys(courseTime).length === 0) {
+                alert("시간을 선택해주세요.");
+              } else if (!isPositiveInteger(coursePoint)) {
+                alert("학점을 0 또는 양수로 입력해주세요.");
+              } else if (!isPositiveInteger(courseLimit)) {
+                alert("수강정원을 0 또는 양수로 입력해주세요.");
+              } else submit();
             }}
           >
             생성
