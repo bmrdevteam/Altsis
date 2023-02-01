@@ -64,8 +64,8 @@ const CourseAdd = (props: Props) => {
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
-  const [coursePoint, setCoursePoint] = useState<string>("0");
-  const [courseTime, setCourseTime] = useState<any>([]);
+  const [coursePoint, setCoursePoint] = useState<number>(0);
+  const [courseTime, setCourseTime] = useState<any>({});
   const [courseClassroom, setCourseClassroom] = useState<string>("");
   const [courseLimit, setCourseLimit] = useState<number>(0);
   const courseMoreInfo = useRef<any>({});
@@ -78,7 +78,7 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
 
   useEffect(() => {
-    setCoursePoint(courseTime.length);
+    setCoursePoint(Object.keys(courseTime).length);
     return () => {};
   }, [courseTime]);
 
@@ -145,9 +145,7 @@ const CourseAdd = (props: Props) => {
           subject: courseSubject.split("/"),
           teachers: courseMentorList,
           classroom: courseClassroom,
-          time: courseTime.map((lb: string) => {
-            return { label: lb };
-          }),
+          time: Object.values(courseTime),
           info: courseMoreInfo.current,
           limit: courseLimit,
         },
@@ -192,10 +190,7 @@ const CourseAdd = (props: Props) => {
 
   useEffect(() => {
     if (isLoadingTimeClassroomRef) {
-      courseTimeRef.current = {};
-      for (let lb of courseTime) {
-        courseTimeRef.current[lb] = true;
-      }
+      courseTimeRef.current = { ...courseTime };
       courseClassroomRef.current = courseClassroom;
       setIsLoadingTimeClassroomRef(false);
     }
@@ -294,7 +289,7 @@ const CourseAdd = (props: Props) => {
             <Input
               appearence="flat"
               label="시간"
-              defaultValue={courseTime}
+              defaultValue={_.join(Object.keys(courseTime), ", ")}
               required={true}
               disabled
             />
@@ -372,15 +367,7 @@ const CourseAdd = (props: Props) => {
               type="ghost"
               onClick={() => {
                 setCourseClassroom(courseClassroomRef.current);
-                setCourseTime([
-                  ...Object.keys(
-                    Object.fromEntries(
-                      Object.entries(courseTimeRef.current).filter(
-                        ([key, value]) => value
-                      )
-                    )
-                  ),
-                ]);
+                setCourseTime({ ...courseTimeRef.current });
                 setTimeSelectPopupActive(false);
                 setIsLoadingTimeClassroomRef(true);
               }}
@@ -402,8 +389,8 @@ const CourseAdd = (props: Props) => {
               SyllabusApi.RSyllabuses({
                 season: currentSeason?._id,
                 classroom: courseClassroomRef.current,
-              }).then((res) => {
-                setSyllabusList(res);
+              }).then(({ syllabuses }) => {
+                setSyllabusList(syllabuses);
               });
               courseTimeRef.current = [];
             }}
