@@ -126,7 +126,6 @@ const EventEditor = () => {
   useEffect(() => {
     if (isLoading) {
       update().then(() => setIsLoading(false));
-      console.log(today);
     }
   }, [isLoading]);
 
@@ -193,17 +192,6 @@ const EventEditor = () => {
                   }
                 }
               }
-
-              console.log({
-                id: currentEvent?.id,
-                _id: currentEvent?._id,
-                title,
-                day,
-                start,
-                end,
-                classroom,
-                memo,
-              });
             }}
             style={{
               borderRadius: "4px",

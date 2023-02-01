@@ -113,34 +113,26 @@ module.exports.find = async (req, res) => {
 module.exports.update = async (req, res) => {
   try {
     const ids = _.split(req.params._ids, ",");
-    const {
-      role,
-      grade,
-      group,
-      teacher,
-      teacherId,
-      teacherName,
-      subTeacher,
-      subTeacherId,
-      subTeacherName,
-    } = req.body;
 
-    const registrations = await Registration(req.user.academyId).updateMany(
-      {
-        _id: { $in: ids },
-      },
-      {
-        role,
-        grade,
-        group,
-        teacher,
-        teacherId,
-        teacherName,
-        subTeacher,
-        subTeacherId,
-        subTeacherName,
-      }
-    );
+    const registrations = await Registration(req.user.academyId).find({
+      _id: { $in: ids },
+    });
+
+    const updates = [];
+    for (let reg of registrations) {
+      reg.role = req.body.role;
+      reg.grade = req.body.grade;
+      reg.group = req.body.group;
+      reg.teacher = req.body.teacher;
+      reg.teacherId = req.body.teacherId;
+      reg.teacherName = req.body.teacherName;
+      reg.subTeacher = req.body.subTeacher;
+      reg.subTeacherId = req.body.subTeacherId;
+      reg.subTeacherName = req.body.subTeacherName;
+      updates.push(reg.save());
+    }
+
+    await Promise.all(updates);
 
     return res.status(200).send(registrations);
   } catch (err) {

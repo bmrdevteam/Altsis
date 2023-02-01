@@ -67,9 +67,8 @@ const CourseAdd = (props: Props) => {
   const [coursePoint, setCoursePoint] = useState<string>("0");
   const [courseTime, setCourseTime] = useState<any>([]);
   const [courseClassroom, setCourseClassroom] = useState<string>("");
-  const [courseMoreInfo, setCourseMoreInfo] = useState<any>();
   const [courseLimit, setCourseLimit] = useState<number>(0);
-
+  const courseMoreInfo = useRef<any>({});
   const courseClassroomRef = useRef<any>("");
   const courseTimeRef = useRef<any>({});
 
@@ -125,22 +124,46 @@ const CourseAdd = (props: Props) => {
   }
 
   async function submit() {
-    return await SyllabusApi.CSyllabus({
-      data: {
-        season: currentSeason._id,
-        registration: currentRegistration._id,
-        classTitle: courseTitle,
-        point: coursePoint,
-        subject: courseSubject.split("/"),
-        teachers: courseMentorList,
-        classroom: courseClassroom,
-        time: courseTime.map((lb: string) => {
-          return { label: lb };
-        }),
-        info: courseMoreInfo,
-        limit: courseLimit,
-      },
-    });
+    let filled = true;
+    document
+      .querySelectorAll("div[data-inputRequired=true]")
+      .forEach((node) => {
+        console.log(node.innerHTML);
+
+        if (node.innerHTML === "" || node.innerHTML === undefined) {
+          filled = false;
+        }
+      });
+    console.log(filled);
+    if (filled) {
+      return await SyllabusApi.CSyllabus({
+        data: {
+          season: currentSeason._id,
+          registration: currentRegistration._id,
+          classTitle: courseTitle,
+          point: coursePoint,
+          subject: courseSubject.split("/"),
+          teachers: courseMentorList,
+          classroom: courseClassroom,
+          time: courseTime.map((lb: string) => {
+            return { label: lb };
+          }),
+          info: courseMoreInfo.current,
+          limit: courseLimit,
+        },
+      })
+        .then((res: any) => {
+          alert("success");
+          navigate(`/courses/created/${res._id}`, {
+            replace: true,
+          });
+        })
+        .catch((err) => {
+          alert(err.response.data.message);
+        });
+    } else {
+      return alert("강의계획서를 작성해주세요");
+    }
   }
 
   const subjects = () => {
@@ -303,9 +326,9 @@ const CourseAdd = (props: Props) => {
             type={"syllabus"}
             auth="edit"
             onChange={(data) => {
-              setCourseMoreInfo(data);
+              courseMoreInfo.current = data;
             }}
-            defaultValues={courseMoreInfo}
+            defaultValues={courseMoreInfo.current}
             data={currentSeason?.formSyllabus}
           />
 
@@ -318,16 +341,7 @@ const CourseAdd = (props: Props) => {
               } else if (courseMentorList.length === 0) {
                 alert("멘토를 선택해주세요.");
               } else {
-                submit()
-                  .then((res: any) => {
-                    alert("success");
-                    navigate(`/courses/created/${res._id}`, {
-                      replace: true,
-                    });
-                  })
-                  .catch((err) => {
-                    alert(err.response.data.message);
-                  });
+                submit();
               }
             }}
           >

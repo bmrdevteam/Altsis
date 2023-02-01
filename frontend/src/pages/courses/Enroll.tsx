@@ -220,7 +220,6 @@ const CourseEnroll = (props: Props) => {
   ];
 
   const searchOptions = () => {
-    console.log("currentSeason: ", currentSeason);
     if (currentSeason?.subjects?.label) {
       return [
         { text: "수업명", value: "classTitle" },
@@ -260,7 +259,6 @@ const CourseEnroll = (props: Props) => {
   }, [currentRegistration]);
 
   useEffect(() => {
-    console.log("currentPermission is ", currentPermission);
     if (!currentPermission.permissionEnrollment) {
       alert("수강신청 권한이 없습니다.");
       navigate("/courses");
@@ -369,7 +367,7 @@ const CourseEnroll = (props: Props) => {
         <Divider />
         <div style={{ height: "24px" }}></div>
 
-        <div className={style.title}>수강신청 현황</div>
+        <div className={style.title}>수강 현황</div>
 
         <Table
           type="object-array"

@@ -51,12 +51,12 @@ function Basic(props: Props) {
   const [role, setRole] = useState<string>("student");
   const [grade, setGrade] = useState<string>("");
   const [group, setGroup] = useState<string>("");
-  const [teacher, setTeacher] = useState<string>("");
-  const [teacherId, setTeacherId] = useState<string>("");
-  const [teacherName, setTeacherName] = useState<string>("");
-  const [subTeacher, setSubTeacher] = useState<string>("");
-  const [subTeacherId, setSubTeacherId] = useState<string>("");
-  const [subTeacherName, setSubTeacherName] = useState<string>("");
+  const [teacher, setTeacher] = useState<string>();
+  const [teacherId, setTeacherId] = useState<string>();
+  const [teacherName, setTeacherName] = useState<string>();
+  const [subTeacher, setSubTeacher] = useState<string>();
+  const [subTeacherId, setSubTeacherId] = useState<string>();
+  const [subTeacherName, setSubTeacherName] = useState<string>();
 
   const teachers = [
     {
@@ -143,9 +143,15 @@ function Basic(props: Props) {
                 teacherId: _teacherId,
                 teacherName: _teacherName,
               } = JSON.parse(e);
-              setTeacher(_teacher);
-              setTeacherId(_teacherId);
-              setTeacherName(_teacherName);
+              if (_teacher) {
+                setTeacher(_teacher);
+                setTeacherId(_teacherId);
+                setTeacherName(_teacherName);
+              } else {
+                setTeacher(undefined);
+                setTeacherId(undefined);
+                setTeacherName(undefined);
+              }
             }}
           />
         </div>
@@ -161,9 +167,15 @@ function Basic(props: Props) {
                 teacherId: _teacherId,
                 teacherName: _teacherName,
               } = JSON.parse(e);
-              setSubTeacher(_teacher);
-              setSubTeacherId(_teacherId);
-              setSubTeacherName(_teacherName);
+              if (_teacher) {
+                setSubTeacher(_teacher);
+                setSubTeacherId(_teacherId);
+                setSubTeacherName(_teacherName);
+              } else {
+                setTeacher(undefined);
+                setTeacherId(undefined);
+                setTeacherName(undefined);
+              }
             }}
           />
         </div>

@@ -433,17 +433,55 @@ const Sidebar = (props: Props) => {
             />
           </div>
           {getCurrentCell()?.type === "checkbox" && (
-            <div className={style.item}>
-              <label>이름</label>
-              <input
-                type="text"
-                defaultValue={getCurrentCell()?.name}
-                onChange={(e) => {
-                  changeCurrentCell({ name: e.target.value });
-                  props.callPageReload();
-                }}
-              />
-            </div>
+            <>
+              <div className={style.item}>
+                <label>이름</label>
+                <input
+                  type="text"
+                  defaultValue={getCurrentCell()?.name}
+                  onChange={(e) => {
+                    changeCurrentCell({ name: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+              <div className={style.item}>
+                <label>시작 시간</label>
+                <input
+                  type="time"
+                  defaultValue={
+                    getCurrentCell().timeRangeStart ??
+                    getCurrentBlock().data.table[
+                      getCurrentCellIndex().row
+                    ].filter((o: any) => o.type === "timeRange")[0]
+                      ?.timeRangeStart ??
+                    "00:00"
+                  }
+                  onChange={(e) => {
+                    changeCurrentCell({ timeRangeStart: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+              <div className={style.item}>
+                <label>끝 시간</label>
+                <input
+                  type="time"
+                  defaultValue={
+                    getCurrentCell().timeRangeEnd ??
+                    getCurrentBlock().data.table[
+                      getCurrentCellIndex().row
+                    ].filter((o: any) => o.type === "timeRange")[0]
+                      ?.timeRangeEnd ??
+                    "00:00"
+                  }
+                  onChange={(e) => {
+                    changeCurrentCell({ timeRangeEnd: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+            </>
           )}
           {getCurrentCell()?.type === "timeRange" && (
             <>
@@ -497,6 +535,16 @@ const Sidebar = (props: Props) => {
                   defaultValue={getCurrentCell()?.placeholder}
                   onChange={(e) => {
                     changeCurrentCell({ placeholder: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+              <div className={style.item}>
+                <label>필수</label>
+                <ToggleSwitch
+                  defaultChecked={getCurrentCell()?.required}
+                  onChange={(e: boolean) => {
+                    changeCurrentCell({ required: e });
                     props.callPageReload();
                   }}
                 />
