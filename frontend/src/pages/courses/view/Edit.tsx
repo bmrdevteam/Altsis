@@ -66,11 +66,11 @@ const CoursePid = (props: Props) => {
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
-  const [coursePoint, setCoursePoint] = useState<number>(0);
+  const [coursePoint, setCoursePoint] = useState<string>("");
   const [courseTime, setCourseTime] = useState<any>({});
   const [courseClassroom, setCourseClassroom] = useState<string>("");
   const [courseMoreInfo, setCourseMoreInfo] = useState<any>({});
-  const [courseLimit, setCourseLimit] = useState<number>(0);
+  const [courseLimit, setCourseLimit] = useState<string>("");
 
   const courseClassroomRef = useRef<any>("");
   const courseTimeRef = useRef<any>({});
@@ -101,13 +101,13 @@ const CoursePid = (props: Props) => {
       _id: courseData._id,
       data: {
         classTitle: courseTitle,
-        point: coursePoint,
+        point: Number(coursePoint),
         subject: courseSubject.split("/"),
         teachers: courseMentorList,
         classroom: courseClassroom,
         time: Object.values(courseTime),
         info: courseMoreInfo,
-        limit: courseLimit,
+        limit: Number(courseLimit),
       },
     });
   }
@@ -186,7 +186,7 @@ const CoursePid = (props: Props) => {
   }, [isLoadingMentorRef]);
 
   useEffect(() => {
-    setCoursePoint(Object.keys(courseTime).length);
+    setCoursePoint(`${Object.keys(courseTime).length}`);
     return () => {};
   }, [courseTime]);
 
@@ -314,13 +314,29 @@ const CoursePid = (props: Props) => {
             style={{ marginTop: "24px" }}
             type="ghost"
             onClick={() => {
-              update()
-                .then((res: any) => {
-                  navigate(`/courses/created/${pid}`, { replace: true });
-                })
-                .catch((err) => {
-                  alert(err);
-                });
+              function isPositiveInteger(str: string) {
+                const num = Number(str);
+                return Number.isInteger(num) && num >= 0;
+              }
+
+              if (!courseTitle || courseTitle === "") {
+                alert("제목을 입력해주세요.");
+              } else if (courseMentorList.length === 0) {
+                alert("멘토를 선택해주세요.");
+              } else if (Object.keys(courseTime).length === 0) {
+                alert("시간을 선택해주세요.");
+              } else if (!isPositiveInteger(coursePoint)) {
+                alert("학점을 0 또는 양수로 입력해주세요.");
+              } else if (!isPositiveInteger(courseLimit)) {
+                alert("수강정원을 0 또는 양수로 입력해주세요.");
+              } else
+                update()
+                  .then((res: any) => {
+                    navigate(`/courses/created/${pid}`, { replace: true });
+                  })
+                  .catch((err) => {
+                    alert(err);
+                  });
             }}
           >
             수정
