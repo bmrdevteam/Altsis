@@ -163,7 +163,7 @@ const School = (props: Props) => {
               //     setSchoolData={setSchoolData}
               //   />
               // ),
-              "기록 관리": (
+              "기록": (
                 <Archive
                   schoolData={schoolData}
                   setSchoolData={setSchoolData}
