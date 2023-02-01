@@ -454,7 +454,8 @@ const Sidebar = (props: Props) => {
                     getCurrentBlock().data.table[
                       getCurrentCellIndex().row
                     ].filter((o: any) => o.type === "timeRange")[0]
-                      ?.timeRangeStart ?? "00:00"
+                      ?.timeRangeStart ??
+                    "00:00"
                   }
                   onChange={(e) => {
                     changeCurrentCell({ timeRangeStart: e.target.value });
@@ -467,11 +468,12 @@ const Sidebar = (props: Props) => {
                 <input
                   type="time"
                   defaultValue={
-                    getCurrentCell().timeRangeEnd??
+                    getCurrentCell().timeRangeEnd ??
                     getCurrentBlock().data.table[
                       getCurrentCellIndex().row
                     ].filter((o: any) => o.type === "timeRange")[0]
-                      ?.timeRangeEnd ?? "00:00"
+                      ?.timeRangeEnd ??
+                    "00:00"
                   }
                   onChange={(e) => {
                     changeCurrentCell({ timeRangeEnd: e.target.value });
@@ -533,6 +535,16 @@ const Sidebar = (props: Props) => {
                   defaultValue={getCurrentCell()?.placeholder}
                   onChange={(e) => {
                     changeCurrentCell({ placeholder: e.target.value });
+                    props.callPageReload();
+                  }}
+                />
+              </div>
+              <div className={style.item}>
+                <label>필수</label>
+                <ToggleSwitch
+                  defaultChecked={getCurrentCell()?.required}
+                  onChange={(e: boolean) => {
+                    changeCurrentCell({ required: e });
                     props.callPageReload();
                   }}
                 />
