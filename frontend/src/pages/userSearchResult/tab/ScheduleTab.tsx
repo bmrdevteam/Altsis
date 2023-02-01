@@ -52,15 +52,15 @@ const ScheduleTab = (props: Props) => {
   useEffect(() => {
     if (currentSeason && props.user) {
       EnrollmentApi.REnrolllments({
-        season: currentSeason._id,
-        studentId: props.user.userId,
+        season: currentRegistration.season,
+        student: props.user._id,
       })
         .then((res) => {
           setEnrollments(res);
         })
         .catch(() => {});
     }
-  }, [currentSeason, props.user]);
+  }, [currentRegistration, props.user]);
 
   return (
     <div
@@ -72,7 +72,7 @@ const ScheduleTab = (props: Props) => {
       <Schedule
         dayArray={["월", "화", "수", "목", "금"]}
         defaultEvents={enrollmentsToEvents(enrollments)}
-        title={`${currentSeason?.year ?? ""} ${currentSeason?.term ?? ""} 일정`}
+ title={`${currentSeason?.year ?? ""} ${currentSeason?.term ?? ""} 일정`}
         mode="view"
       />
     </div>
