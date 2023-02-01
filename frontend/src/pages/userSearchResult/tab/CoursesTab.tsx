@@ -2,19 +2,17 @@ import Select from "components/select/Select";
 import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
-import ViewPopup from "pages/courses/view/ViewPopup"
+import ViewPopup from "pages/courses/view/ViewPopup";
 
 import useApi from "hooks/useApi";
-import useDatabase from "hooks/useDatabase";
 import _ from "lodash";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 type Props = {
-	user: any
-}
+  user: any;
+};
 
-const getSubjectHeaderList = (options: {onDetail: any}) => [
+const getSubjectHeaderList = (options: { onDetail: any }) => [
   {
     text: "수업명",
     key: "classTitle",
@@ -70,13 +68,13 @@ const getSubjectHeaderList = (options: {onDetail: any}) => [
 ];
 
 const CoursesTab = (props: Props) => {
-	const {user} = props;
-	
-	const {EnrollmentApi} = useApi();
-	const {currentSeason} = useAuth();
+  const { user } = props;
 
-	const [selectedTab, setSelectedTab ] = useState<any>('timeTable');
-	const [enrollments, setEnrollments] = useState<any>();
+  const { EnrollmentApi } = useApi();
+  const { currentSeason, currentRegistration } = useAuth();
+
+  const [selectedTab, setSelectedTab] = useState<any>("timeTable");
+  const [enrollments, setEnrollments] = useState<any>();
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
 
   const [popupCourseId, setPopupCourseId] = useState<any>();
@@ -124,21 +122,21 @@ const CoursesTab = (props: Props) => {
   const showCourseDetail = (syllabusId: any) => {
     setIsPopupActive(true);
     setPopupCourseId(syllabusId);
-  }
+  };
 
   // Get user enrollments in current season
   useEffect(() => {
-    if (currentSeason && user) {
+    if (currentRegistration && user) {
       EnrollmentApi.REnrolllments({
-        season: currentSeason._id,
-        studentId: user.userId,
+        season: currentRegistration.season,
+        student: user._id,
       })
-      .then((res) => {
-        setEnrollments(res);
-      })
-      .catch(() => {}); 
+        .then((res) => {
+          setEnrollments(res);
+        })
+        .catch(() => {});
     }
-  }, [currentSeason, user]);
+  }, [currentRegistration, user]);
 
   // Get enrolled course
   useEffect(() => {
@@ -149,43 +147,50 @@ const CoursesTab = (props: Props) => {
     }
   }, [enrollments]);
 
-	return <>
-		<Select 
-      options={[
-        {text: '시간표', value: 'timeTable'},
-        {text: '수강 현황', value: 'enrollments'},
-        {text: '개설 수업', value: 'myDesgins'},
-        {text: '담당 수업', value: 'myCourses'},
-      ]}
-      onChange={setSelectedTab}
-      appearence={'flat'}
-      style={{marginBottom: '12px'}}
-    />
-		<TimeTable selected={selectedTab} enrolledCourseList={enrolledCourseList}/>
-		<Enrollments 
-      selected={selectedTab}
-      enrolledCourseList={enrolledCourseList} 
-      showCourseDetail={showCourseDetail}
-    />
-		<MyDesgins 
-      selected={selectedTab}
-      user={user}
-      showCourseDetail={showCourseDetail}
-    />
-		<MyCourses 
-      selected={selectedTab}
-      user={user}
-      showCourseDetail={showCourseDetail}
-    />
-    { popupCourseId && isPopupActive &&
-      <ViewPopup course={popupCourseId} setPopupActive={setIsPopupActive} />
-    }
-	</>
-}
+  return (
+    <>
+      <Select
+        options={[
+          { text: "시간표", value: "timeTable" },
+          { text: "수강신청 현황", value: "enrollments" },
+          { text: "개설한 수업 목록", value: "myDesgins" },
+          { text: "담당 수업 목록", value: "myCourses" },
+        ]}
+        onChange={setSelectedTab}
+        appearence={"flat"}
+        style={{ marginBottom: "12px" }}
+      />
+      <TimeTable
+        selected={selectedTab}
+        enrolledCourseList={enrolledCourseList}
+      />
+      <Enrollments
+        selected={selectedTab}
+        enrolledCourseList={enrolledCourseList}
+        showCourseDetail={showCourseDetail}
+      />
+      <MyDesgins
+        selected={selectedTab}
+        user={user}
+        showCourseDetail={showCourseDetail}
+      />
+      <MyCourses
+        selected={selectedTab}
+        user={user}
+        showCourseDetail={showCourseDetail}
+      />
+      {popupCourseId && isPopupActive && (
+        <ViewPopup course={popupCourseId} setPopupActive={setIsPopupActive} />
+      )}
+    </>
+  );
+};
 
-const TimeTable = (props: {selected: string, enrolledCourseList: Array<any>}) => {
-
-	const {currentSeason} = useAuth();
+const TimeTable = (props: {
+  selected: string;
+  enrolledCourseList: Array<any>;
+}) => {
+  const { currentSeason } = useAuth();
 
   function syllabusToTime(s: any) {
     let result = {};
@@ -215,8 +220,12 @@ const TimeTable = (props: {selected: string, enrolledCourseList: Array<any>}) =>
 />;
 }
 
-const Enrollments = (props: {selected: string, enrolledCourseList: Array<any>, showCourseDetail: Function }) => {
-  const {currentSeason} = useAuth();
+const Enrollments = (props: {
+  selected: string;
+  enrolledCourseList: Array<any>;
+  showCourseDetail: Function;
+}) => {
+  const { currentSeason } = useAuth();
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
     []
   );
@@ -234,36 +243,42 @@ const Enrollments = (props: {selected: string, enrolledCourseList: Array<any>, s
         }),
       ]);
     }
-  }, [currentSeason.subjects.label])
+  }, [currentSeason.subjects.label]);
 
-	if (props.selected !== 'enrollments') {
-		return (null);
-	}
+  if (props.selected !== "enrollments") {
+    return null;
+  }
 
-	return <Table
-  type="object-array"
-  data={props.enrolledCourseList}
-  header={[
-    {
-      text: "No",
-      type: "text",
-      key: "tableRowIndex",
-      width: "48px",
-      textAlign: "center",
-    },
-    ...subjectLabelHeaderList,
-    ...getSubjectHeaderList({
-      onDetail: (e: any) => {
-        props.showCourseDetail(e._id)
-      }
-    }),
-  ]}
-/>;
-}
+  return (
+    <Table
+      type="object-array"
+      data={props.enrolledCourseList}
+      header={[
+        {
+          text: "No",
+          type: "text",
+          key: "tableRowIndex",
+          width: "48px",
+          textAlign: "center",
+        },
+        ...subjectLabelHeaderList,
+        ...getSubjectHeaderList({
+          onDetail: (e: any) => {
+            props.showCourseDetail(e._id);
+          },
+        }),
+      ]}
+    />
+  );
+};
 
-const MyDesgins = (props: {selected: string, user: any, showCourseDetail: Function}) => {
-  const navigate = useNavigate();
-  const database = useDatabase();
+const MyDesgins = (props: {
+  selected: string;
+  user: any;
+  showCourseDetail: Function;
+}) => {
+  const { SyllabusApi } = useApi();
+  const { currentRegistration } = useAuth();
 
   const [courseList, setCourseList] = useState<any>();
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
@@ -271,9 +286,11 @@ const MyDesgins = (props: {selected: string, user: any, showCourseDetail: Functi
   );
 
   async function getCreatedCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${props.user?.season}&userId=${props.user?.userId}`,
+    const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
+      season: currentRegistration.season,
+      user: props.user._id,
     });
+
     if (syllabuses.length === 0) return [];
 
     const count = _.countBy(
@@ -289,8 +306,13 @@ const MyDesgins = (props: {selected: string, user: any, showCourseDetail: Functi
 
   const structuring = (courseList: any[]) => {
     return courseList.map((syllabus: any) => {
-      for (let idx = 0; idx < props.user.season?.subjects?.label.length; idx++) {
-        syllabus[props.user.season?.subjects?.label[idx]] = syllabus.subject[idx];
+      for (
+        let idx = 0;
+        idx < props.user.season?.subjects?.label.length;
+        idx++
+      ) {
+        syllabus[props.user.season?.subjects?.label[idx]] =
+          syllabus.subject[idx];
       }
       syllabus.timeText = _.join(
         syllabus.time.map((timeBlock: any) => timeBlock.label),
@@ -330,36 +352,41 @@ const MyDesgins = (props: {selected: string, user: any, showCourseDetail: Functi
     }
   }, [props.user]);
 
-	if (props.selected !== 'myDesgins') {
-		return (null);
-	}
+  if (props.selected !== "myDesgins") {
+    return null;
+  }
 
-	return <Table
-    control
-    type="object-array"
-    data={courseList}
-    header={[
-      {
-        text: "No",
-        type: "text",
-        key: "tableRowIndex",
-        width: "48px",
-        textAlign: "center",
-      },
-      ...subjectLabelHeaderList,
-      ...getSubjectHeaderList({
-        onDetail: (e: any) => {
-          props.showCourseDetail(e._id);
-        }
-      }),
-    ]}
-  />;
-}
+  return (
+    <Table
+      control
+      type="object-array"
+      data={courseList}
+      header={[
+        {
+          text: "No",
+          type: "text",
+          key: "tableRowIndex",
+          width: "48px",
+          textAlign: "center",
+        },
+        ...subjectLabelHeaderList,
+        ...getSubjectHeaderList({
+          onDetail: (e: any) => {
+            props.showCourseDetail(e._id);
+          },
+        }),
+      ]}
+    />
+  );
+};
 
-const MyCourses = (props: {selected: string, user: any, showCourseDetail: Function}) => {
-  const navigate = useNavigate();
-
-  const database = useDatabase();
+const MyCourses = (props: {
+  selected: string;
+  user: any;
+  showCourseDetail: Function;
+}) => {
+  const { SyllabusApi } = useApi();
+  const { currentRegistration } = useAuth();
 
   const [courseList, setCourseList] = useState<any[]>([]);
   const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
@@ -367,8 +394,9 @@ const MyCourses = (props: {selected: string, user: any, showCourseDetail: Functi
   );
 
   async function getCreatedCourseList() {
-    const { syllabuses, enrollments } = await database.R({
-      location: `syllabuses?season=${props.user?.season}&teacherId=${props.user?.userId}`,
+    const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
+      season: currentRegistration.season,
+      teacher: props.user._id,
     });
     if (syllabuses.length === 0) return [];
 
@@ -385,8 +413,13 @@ const MyCourses = (props: {selected: string, user: any, showCourseDetail: Functi
 
   const structuring = (courseList: any[]) => {
     return courseList.map((syllabus: any) => {
-      for (let idx = 0; idx < props.user.season?.subjects?.label.length; idx++) {
-        syllabus[props.user.season?.subjects?.label[idx]] = syllabus.subject[idx];
+      for (
+        let idx = 0;
+        idx < props.user.season?.subjects?.label.length;
+        idx++
+      ) {
+        syllabus[props.user.season?.subjects?.label[idx]] =
+          syllabus.subject[idx];
       }
       syllabus.timeText = _.join(
         syllabus.time.map((timeBlock: any) => timeBlock.label),
@@ -423,32 +456,33 @@ const MyCourses = (props: {selected: string, user: any, showCourseDetail: Functi
         }),
       ]);
     }
-  } );
+  });
 
-	if (props.selected !== 'myCourses') {
-		return (null);
-	}
-	return <Table
-    control
-    type="object-array"
-    data={courseList}
-    header={[
-      {
-        text: "No",
-        type: "text",
-        key: "tableRowIndex",
-        width: "48px",
-        textAlign: "center",
-      },
-      ...subjectLabelHeaderList,
-      ...getSubjectHeaderList({
-        onDetail: (e: any) => {
-          props.showCourseDetail(e._id);
-        }
-      }),
-    ]}
-  />;
-}
-
+  if (props.selected !== "myCourses") {
+    return null;
+  }
+  return (
+    <Table
+      control
+      type="object-array"
+      data={courseList}
+      header={[
+        {
+          text: "No",
+          type: "text",
+          key: "tableRowIndex",
+          width: "48px",
+          textAlign: "center",
+        },
+        ...subjectLabelHeaderList,
+        ...getSubjectHeaderList({
+          onDetail: (e: any) => {
+            props.showCourseDetail(e._id);
+          },
+        }),
+      ]}
+    />
+  );
+};
 
 export default CoursesTab;

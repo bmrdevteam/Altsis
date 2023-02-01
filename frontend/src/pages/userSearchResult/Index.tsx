@@ -47,31 +47,37 @@ import style from "style/pages/userSearchResult/userSearchResult.module.scss";
 type Props = {};
 
 const UserSearchResult = (props: Props) => {
-  const { currentSchool, currentSeason, currentRegistration } = useAuth();
+  const { currentRegistration } = useAuth();
   const { RegistrationApi, UserApi } = useApi();
   const params = useParams();
 
   const [user, setUser] = useState<any>();
 
-  // Find match user
   useEffect(() => {
-    if (currentSchool && currentSeason) {
-      const userId = params?.uid ? params.uid : "";
+    alert("useEffect is called");
+  }, []);
+
+  // Find match registration
+  useEffect(() => {
+    if (currentRegistration && params?.uid) {
+      const uid = params.uid;
 
       const getUser = async () => {
         try {
           const rawRegistrations = await RegistrationApi.RRegistrations({
-            schoolId: currentSchool.schoolId,
-            userId,
-            season: currentSeason._id,
+            season: currentRegistration.season,
+            user: uid,
           });
-          const rawUsers: Array<any> = await UserApi.RUsers({ userId });
-          if (!rawRegistrations.length || !rawUsers.length) {
+          const rawUser: any = await UserApi.RUser(uid);
+          if (!rawRegistrations.length || !rawUser) {
             throw new Error("No such user");
           }
-          const result = { ...rawRegistrations[0] };
-          if (rawUsers[0]?.profile) {
-            result.profile = rawUsers[0].profile;
+          const result = {
+            ...rawRegistrations[0],
+            _id: rawRegistrations[0].user,
+          };
+          if (rawUser?.profile) {
+            result.profile = rawUser.profile;
           }
           return result;
         } catch (e) {}
@@ -83,7 +89,7 @@ const UserSearchResult = (props: Props) => {
         })
         .catch();
     }
-  }, [currentSchool, currentSeason, params]);
+  }, [currentRegistration, params]);
 
   let scheduleTab = <ScheduleTab user={user} />;
   let coursesTab = <CoursesTab user={user} />;

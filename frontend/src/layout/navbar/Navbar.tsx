@@ -237,6 +237,7 @@ const Navbar = (props: Props) => {
   const outsideClick = useOutsideClick();
 
   const submit = (value: string | number) => {
+    alert(`value is ${value}`);
     navigate(`/search/${value}`);
   };
 
