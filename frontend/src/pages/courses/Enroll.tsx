@@ -259,7 +259,7 @@ const CourseEnroll = (props: Props) => {
   }, [currentRegistration]);
 
   useEffect(() => {
-    if (!currentPermission.permissionEnrollment) {
+    if (currentPermission && !currentPermission.permissionEnrollment) {
       alert("수강신청 권한이 없습니다.");
       navigate("/courses");
     }

@@ -180,13 +180,15 @@ const CourseAdd = (props: Props) => {
   };
 
   useEffect(() => {
-    setData()
-      .then(() => setIsLoading(false))
-      .catch((err) => {
-        alert("failed to load data");
-        navigate("/courses");
-      });
-  }, []);
+    if (currentSeason?._id) {
+      setData()
+        .then(() => setIsLoading(false))
+        .catch((err) => {
+          alert("failed to load data");
+          navigate("/courses");
+        });
+    }
+  }, [currentSeason]);
 
   useEffect(() => {
     if (isLoadingTimeClassroomRef) {
