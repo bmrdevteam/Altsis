@@ -113,6 +113,8 @@ const Login = () => {
   useEffect(() => {
     AcademyApi.RAcademies().then((res) => {
       setAcademies(res);
+      console.log(res);
+
       setLoading(false);
     });
 
@@ -140,54 +142,26 @@ const Login = () => {
         if (
           !loading &&
           !(
-            (
-              academies?.filter((val) => val.academyId === cookies.academyId) ??
-              []
-            ).length > 0
+            (academies?.filter((val) => val.academyId === pid) ?? []).length > 0
           )
         ) {
-          /**
-           * if there are no matches
-           * return to the select academy page
-           * and ,,, reload? - werid behavior - not moving
-           */
           navigate("/login");
-          // navigate(0);
-
-          /**
-           * to get the academy list again
-           */
-          setLoading(true);
         } else {
           /**
            * else set the academy with the current cookie
            */
-          setAcademy(cookies.academyId);
+          setCookie("academyId", pid, {
+            path: "/",
+            expires: date,
+          });
+          setAcademy(pid);
         }
       }
-    }
-    /**
-     * if the pid is 0 redirect the user to the login page using the cookie
-     * and ... reload
-     */
-    if (pid === "0") {
+    } else if (pid === "0") {
       navigate(`/${cookies.academyId}/login`);
-      // navigate(0);
+    } else {
+      navigate(`/login`, { replace: true });
     }
-    /**
-     * if the pid is "undefined" due to the cookie being undefined
-     */
-    if (pid === "undefined") {
-      navigate(`/login`);
-    }
-    /**
-     * if the pid is undefined that is frontend/login
-     */
-    if (pid === undefined) {
-      removeCookie("academyId");
-    }
-
-    return () => {};
   }, [loading]);
 
   const onLoginSubmit = () => {

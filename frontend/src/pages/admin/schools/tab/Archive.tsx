@@ -17,7 +17,14 @@ function Archive(props: Props) {
   const formData = useRef<any>(props.schoolData.formArchive || []);
   const [editArchivePopupActive, setEditArchivePopupActive] =
     useState<boolean>(false);
-  const [editArchivefield, setEditArchivefield] = useState<string>();
+  const [editArchivefieldIndex, setEditArchivefieldIndex] = useState<number>(0);
+  const [editArchivefieldSubIndex, setEditArchivefieldSubIndex] =
+    useState<number>(0);
+
+  const [
+    editArchivefieldSelectPopupActive,
+    setEditArchivefieldSelectPopupActive,
+  ] = useState<boolean>(false);
 
   useEffect(() => {
     console.log(props.schoolData);
@@ -101,7 +108,7 @@ function Archive(props: Props) {
               },
               onClick: (value: any) => {
                 setEditArchivePopupActive(true);
-                setEditArchivefield(value.label);
+                setEditArchivefieldIndex(value.tableRowIndex - 1);
               },
               width: "80px",
             },
@@ -118,27 +125,22 @@ function Archive(props: Props) {
       </div>
       {editArchivePopupActive && (
         <Popup
+          closeBtn
           contentScroll
-          style={{ width: "800px" }}
+          style={{ width: "800px", borderRadius: "4px" }}
           setState={setEditArchivePopupActive}
-          title={`${editArchivefield}`}
+          title={`${formData.current[editArchivefieldIndex].label}`}
         >
           <Table
             type="object-array"
-            data={
-              formData.current?.filter(
-                (val: any) => val.label === editArchivefield
-              )[0].fields ?? []
-            }
+            data={formData.current[editArchivefieldIndex].fields ?? []}
             onChange={(e) => {
               let fields = e.map((o) => unflattenObject(o));
-              formData.current.find(
-                (o: any) => o.label === editArchivefield
-              ).fields = fields;
+              formData.current[editArchivefieldIndex].fields = fields;
               SchoolApi.USchoolFormArchive({
                 schoolId: props.schoolData._id,
                 data: formData.current,
-              })
+              });
             }}
             header={[
               {
@@ -160,6 +162,10 @@ function Archive(props: Props) {
                   select: {
                     text: "선택",
                     color: "#006663",
+                    onClick: (row) => {
+                      setEditArchivefieldSubIndex(row.tableRowIndex - 1);
+                      setEditArchivefieldSelectPopupActive(true);
+                    },
                   },
                   "input-number": {
                     text: "숫자",
@@ -182,6 +188,53 @@ function Archive(props: Props) {
                 textAlign: "center",
                 width: "80px",
                 type: "toggle",
+              },
+              {
+                text: "수정",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "rowEdit",
+                width: "80px",
+                textAlign: "center",
+              },
+            ]}
+          />
+        </Popup>
+      )}
+      {editArchivefieldSelectPopupActive && (
+        <Popup
+          contentScroll
+          style={{ width: "600px", borderRadius: "4px" }}
+          closeBtn
+          setState={setEditArchivefieldSelectPopupActive}
+          title={`${formData.current[editArchivefieldIndex].label}`}
+        >
+          <Table
+            type="string-array"
+            data={
+              formData.current[editArchivefieldIndex].fields[
+                editArchivefieldSubIndex
+              ].options ?? []
+            }
+            onChange={(e) => {
+              let _data: string[] = [];
+              e.map((o) => {
+                _data.push(o["0"]);
+              });
+              formData.current[editArchivefieldIndex].fields[
+                editArchivefieldSubIndex
+              ].options = _data
+              
+              SchoolApi.USchoolFormArchive({
+                schoolId: props.schoolData._id,
+                data: formData.current,
+              });
+            }}
+            header={[
+              {
+                text: "옵션",
+                key: "0",
+                type: "text",
               },
               {
                 text: "수정",

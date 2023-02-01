@@ -891,7 +891,14 @@ const Table = (props: Props) => {
                                       val.status[`${row[val.key]}`].background,
                                   }}
                                   onClick={() => {
-                                    val.onClick && val.onClick(row);
+                                    if (
+                                      val.status &&
+                                      val.key !== undefined &&
+                                      val.status[`${row[val.key]}`].onClick
+                                    ) {
+                                      val.status[`${row[val.key]}`].onClick?.(row)
+                                    }
+
                                     // val.status?.[row[`${val.key}`]].onClick &&
                                     //   val.status[row[`${val.key}`]].onClick?.(
                                     //     row
