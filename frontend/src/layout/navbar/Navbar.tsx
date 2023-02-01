@@ -237,7 +237,6 @@ const Navbar = (props: Props) => {
   const outsideClick = useOutsideClick();
 
   const submit = (value: string | number) => {
-    alert(`value is ${value}`);
     navigate(`/search/${value}`);
   };
 
@@ -248,7 +247,7 @@ const Navbar = (props: Props) => {
     const users = currentSeason.registrations.map((user: any) => {
       return {
         text: `${user.userName} / ${user.userId}`,
-        value: user.userId,
+        value: user.user,
       };
     });
     setUsers(users);

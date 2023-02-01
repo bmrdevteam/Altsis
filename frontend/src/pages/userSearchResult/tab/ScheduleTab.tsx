@@ -9,7 +9,7 @@ type Props = {
 
 const ScheduleTab = (props: Props) => {
   const { EnrollmentApi } = useApi();
-  const { currentSeason } = useAuth();
+  const { currentSeason, currentRegistration } = useAuth();
 
   const [enrollments, setEnrollments] = useState<any>();
 
@@ -72,7 +72,7 @@ const ScheduleTab = (props: Props) => {
       <Schedule
         dayArray={["월", "화", "수", "목", "금"]}
         defaultEvents={enrollmentsToEvents(enrollments)}
- title={`${currentSeason?.year ?? ""} ${currentSeason?.term ?? ""} 일정`}
+        title={`${currentSeason?.year ?? ""} ${currentSeason?.term ?? ""} 일정`}
         mode="view"
       />
     </div>
