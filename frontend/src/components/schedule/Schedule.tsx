@@ -266,7 +266,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
         {currentEvent?.type === "course" ? (
           <Input
             type="text"
-            label="강의실"
+            label="시간"
             appearence="flat"
             defaultValue={classroom}
             disabled
