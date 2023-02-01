@@ -226,7 +226,7 @@ const ParsedTableBlock = (props: Props) => {
                 type="checkbox"
                 defaultChecked={
                   props.defaultValues?.[data?.id] === true ||
-                  props.defaultValues?.[data?.name] === true
+                  props.defaultValues?.[data?.name]
                 }
                 onChange={(e) => {
                   if (e.target.checked) {
