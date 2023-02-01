@@ -28,6 +28,8 @@ const ScheduleTab = (props: Props) => {
             startTime: element?.time[0].start,
             endTime: element?.time[0].end,
             day: element?.time[0].day,
+            _id: element._id,
+            memo: element?.memo,
           });
         } else {
           for (let ii = 0; ii < element?.time.length; ii++) {
@@ -40,6 +42,8 @@ const ScheduleTab = (props: Props) => {
               startTime: time.start,
               endTime: time.end,
               day: time.day,
+              _id: element._id,
+              memo: element?.memo,
             });
           }
         }
@@ -48,9 +52,30 @@ const ScheduleTab = (props: Props) => {
     }
   }
 
+  function memosToEvents(data: any[]) {
+    if (data) {
+      let result: any[] = [];
+      for (let i = 0; i < data.length; i++) {
+        const element = data[i];
+        result.push({
+          id: element._id,
+          type: "memo",
+          classroom: element.classroom,
+          title: element.title,
+          startTime: element.start,
+          endTime: element.end,
+          day: element.day,
+          _id: element._id,
+          memo: element.memo,
+        });
+      }
+      return result;
+    }
+  }
+
   // Get user enrollments in current season
   useEffect(() => {
-    if (currentSeason && props.user) {
+    if (currentRegistration?._id && props.user) {
       EnrollmentApi.REnrolllments({
         season: currentRegistration.season,
         student: props.user._id,
@@ -71,7 +96,10 @@ const ScheduleTab = (props: Props) => {
     >
       <Schedule
         dayArray={["월", "화", "수", "목", "금"]}
-        defaultEvents={enrollmentsToEvents(enrollments)}
+        defaultEvents={[
+          ...(enrollmentsToEvents(enrollments) || []),
+          ...(memosToEvents(props.user?.memos) || []),
+        ]}
         title={`${currentSeason?.year ?? ""} ${currentSeason?.term ?? ""} 일정`}
         mode="view"
       />
