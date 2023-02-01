@@ -933,7 +933,6 @@ export default function useApi() {
     by: "mentor" | "student";
     data: any;
   }) {
-    console.log("props.data is ", props.data);
     return await database.U({
       location: `enrollments/${props.enrollment}/evaluation2?by=${props.by}`,
       data: { new: props.data },

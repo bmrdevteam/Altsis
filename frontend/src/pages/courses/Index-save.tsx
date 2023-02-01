@@ -220,7 +220,7 @@ const Course = (props: Props) => {
           </>
         )}
 
-        <div className={style.title}>수강신청 현황</div>
+        <div className={style.title}>수강 현황</div>
 
         <Table
           type="object-array"

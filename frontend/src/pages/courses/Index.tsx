@@ -90,7 +90,6 @@ const Course = (props: Props) => {
         season: currentRegistration.season,
         user: currentUser._id,
       }).then((res: any) => {
-        console.log("res: ", res);
         setEnrolledCourseList(structuring(res.enrolled));
         setCreatedCourseList(structuring(res.created));
         setMentoringCourseList(structuring(res.mentoring));
@@ -115,19 +114,19 @@ const Course = (props: Props) => {
     if (currentRegistration.role === "teacher")
       return {
         시간표: <TimeTable courseList={enrolledCourseList} />,
-        "수강신청 현황": (
+        "수강 현황": (
           <EnrolledCourseList
             courseList={enrolledCourseList}
             subjectLabelHeaderList={subjectLabelHeaderList}
           />
         ),
-        "개설한 수업 목록": (
+        "개설 수업": (
           <CreatedCourseList
             courseList={createdCourseList}
             subjectLabelHeaderList={subjectLabelHeaderList}
           />
         ),
-        "담당 수업 목록": (
+        "담당 수업": (
           <MentoringCourseList
             courseList={mentoringCourseList}
             subjectLabelHeaderList={subjectLabelHeaderList}
@@ -136,13 +135,13 @@ const Course = (props: Props) => {
       };
     return {
       시간표: <TimeTable courseList={enrolledCourseList} />,
-      "수강신청 현황": (
+      "수강 현황": (
         <EnrolledCourseList
           courseList={enrolledCourseList}
           subjectLabelHeaderList={subjectLabelHeaderList}
         />
       ),
-      "개설한 수업 목록": (
+      "개설 수업": (
         <CreatedCourseList
           courseList={createdCourseList}
           subjectLabelHeaderList={subjectLabelHeaderList}

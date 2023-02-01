@@ -129,7 +129,7 @@ const CourseEnrollment = (props: Props) => {
   const ClassInfo = () => {
     return (
       <EditorParser
-      type="syllabus"
+        type="syllabus"
         auth="view"
         defaultValues={courseData?.info}
         data={currentSeason?.formSyllabus}
@@ -148,14 +148,12 @@ const CourseEnrollment = (props: Props) => {
             navigate("/courses#수강신청%20현황", { replace: true });
           }
 
-          console.log("result.teachers: ", result.teachers);
           if (_.find(result.teachers, { userId: currentUser.userId })) {
             navigate(`../mentoring/${result.syllabus}`, {
               replace: true,
             });
           }
           if (result.studentId !== currentUser.userId) {
-            console.log("?");
             navigate("/courses", { replace: true });
 
             // navigate("/courses");
@@ -275,7 +273,7 @@ const CourseEnrollment = (props: Props) => {
                 navigate("/courses#수강신청%20현황", { replace: true });
               }}
             >
-              {`수강신청 현황 / ${pid}`}
+              {`수강 현황 / ${pid}`}
             </span>
           </div>
         </div>
@@ -314,9 +312,6 @@ const CourseEnrollment = (props: Props) => {
                         const evaluation: any = {};
                         for (let obj of fieldEvaluationList) {
                           evaluation[obj.text] = e[obj.key];
-                          console.log(
-                            `evaluation[${obj.text}] is ${evaluation[obj.text]}`
-                          );
                         }
                         EnrollmentApi.UEvaluation({
                           enrollment: pid,
@@ -325,7 +320,6 @@ const CourseEnrollment = (props: Props) => {
                         })
                           .then((res: any) => {
                             alert("수정되었습니다.");
-                            console.log("update eval: res is ", res);
                             setEnrollmentData({
                               ...enrollmentData,
                               evaluation: res,

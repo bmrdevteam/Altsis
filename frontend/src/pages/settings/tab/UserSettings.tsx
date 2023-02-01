@@ -247,7 +247,6 @@ const UserSettings = (props: Props) => {
                 } else {
                   updateEmail()
                     .then((res: any) => {
-                      console.log(res);
                       alert("success");
                       setNewEmail("");
                       setCurrentUser({ ...currentUser, email: res.data.email });
