@@ -53,10 +53,6 @@ const UserSearchResult = (props: Props) => {
 
   const [user, setUser] = useState<any>();
 
-  useEffect(() => {
-    alert("useEffect is called");
-  }, []);
-
   // Find match registration
   useEffect(() => {
     if (currentRegistration && params?.uid) {

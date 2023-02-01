@@ -135,7 +135,7 @@ module.exports.find = async (req, res) => {
           .find({
             season: season._id,
           })
-          .select(["userId", "userName"]);
+          .select(["userId", "userName", "user"]);
         return res.status(200).send({ ...season.toObject(), registrations });
       }
       return res.status(200).send(season);
