@@ -143,7 +143,7 @@ const CoursePid = (props: Props) => {
             result.season !== currentSeason?._id ||
             !_.find(result.teachers, { userId: currentUser.userId })
           )
-            navigate("/courses#담당%20수업%20목록", { replace: true });
+            navigate("/courses#담당%20수업", { replace: true });
 
           setCourseData(result);
           EnrollmentApi.REnrollmentWithEvaluations({
@@ -234,7 +234,7 @@ const CoursePid = (props: Props) => {
             <span
               style={{ cursor: "pointer" }}
               onClick={() => {
-                navigate("/courses#담당%20수업%20목록", { replace: true });
+                navigate("/courses#담당%20수업", { replace: true });
               }}
             >
               {`담당 수업 목록 / ${pid}`}

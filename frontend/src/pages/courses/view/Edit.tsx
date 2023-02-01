@@ -132,7 +132,7 @@ const CoursePid = (props: Props) => {
             result.season !== currentSeason._id ||
             result.user !== currentUser._id
           ) {
-            navigate("/courses#개설한%20수업%20목록", { replace: true });
+            navigate("/courses#개설%20수업", { replace: true });
           }
 
           setCourseData(result);
