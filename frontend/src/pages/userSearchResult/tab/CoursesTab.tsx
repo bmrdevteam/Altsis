@@ -153,9 +153,9 @@ const CoursesTab = (props: Props) => {
 		<Select 
       options={[
         {text: '시간표', value: 'timeTable'},
-        {text: '수강신청 현황', value: 'enrollments'},
-        {text: '개설한 수업 목록', value: 'myDesgins'},
-        {text: '담당 수업 목록', value: 'myCourses'},
+        {text: '수강 현황', value: 'enrollments'},
+        {text: '개설 수업', value: 'myDesgins'},
+        {text: '담당 수업', value: 'myCourses'},
       ]}
       onChange={setSelectedTab}
       appearence={'flat'}

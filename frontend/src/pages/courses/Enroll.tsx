@@ -367,7 +367,7 @@ const CourseEnroll = (props: Props) => {
         <Divider />
         <div style={{ height: "24px" }}></div>
 
-        <div className={style.title}>수강신청 현황</div>
+        <div className={style.title}>수강 현황</div>
 
         <Table
           type="object-array"

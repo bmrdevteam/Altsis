@@ -63,7 +63,7 @@ export const SidebarData = (
             currentPermission?.permissionEnrollment
               ? {
                   title: "enroll",
-                  name: "수강신청",
+                  name: "수강 신청",
                   path: "/courses/enroll",
                   icon: <Svg type="school" />,
                 }
@@ -137,7 +137,7 @@ export const SidebarData = (
             currentPermission?.permissionEnrollment
               ? {
                   title: "enroll",
-                  name: "수강신청",
+                  name: "수강 신청",
                   path: "/courses/enroll",
                   icon: <Svg type="school" />,
                 }
@@ -218,7 +218,7 @@ export const SidebarData = (
             currentPermission?.permissionEnrollment
               ? {
                   title: "enroll",
-                  name: "수강신청",
+                  name: "수강 신청",
                   path: "/courses/enroll",
                   icon: <Svg type="school" />,
                 }
