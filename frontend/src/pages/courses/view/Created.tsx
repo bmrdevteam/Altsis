@@ -126,7 +126,7 @@ const CoursePid = (props: Props) => {
             result.season !== currentSeason._id ||
             result.userId !== currentUser.userId
           ) {
-            navigate("/courses#개설한%20수업%20목록", { replace: true });
+            navigate("/courses#개설%20수업", { replace: true });
           }
 
           // is this syllabus fully confirmed?
@@ -150,7 +150,7 @@ const CoursePid = (props: Props) => {
   const ClassInfo = () => {
     return (
       <EditorParser
-      type="syllabus"
+        type="syllabus"
         auth="view"
         defaultValues={courseData.info}
         data={currentSeason?.formSyllabus}
@@ -176,7 +176,7 @@ const CoursePid = (props: Props) => {
             <span
               style={{ cursor: "pointer" }}
               onClick={() => {
-                navigate("/courses#개설한%20수업%20목록", { replace: true });
+                navigate("/courses#개설%20수업", { replace: true });
               }}
             >
               {`개설한 수업 목록 / ${pid}`}

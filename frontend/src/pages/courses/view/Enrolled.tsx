@@ -270,7 +270,7 @@ const CourseEnrollment = (props: Props) => {
             <span
               style={{ cursor: "pointer" }}
               onClick={() => {
-                navigate("/courses#수강신청%20현황", { replace: true });
+                navigate("/courses#수강%20현황", { replace: true });
               }}
             >
               {`수강 현황 / ${pid}`}
