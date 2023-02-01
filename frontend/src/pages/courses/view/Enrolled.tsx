@@ -273,7 +273,7 @@ const CourseEnrollment = (props: Props) => {
                 navigate("/courses#수강신청%20현황", { replace: true });
               }}
             >
-              {`수강신청 현황 / ${pid}`}
+              {`수강 현황 / ${pid}`}
             </span>
           </div>
         </div>
