@@ -231,7 +231,7 @@ const ParsedTableBlock = (props: Props) => {
                   if (e.target.checked) {
                     if (data?.name === undefined) {
                       props.returnData[data?.id] = {
-                        name: data?.id,
+                        label: data?.id,
                       };
                       if (props.type === "timetable") {
                         Object.assign(props.returnData[data?.id], {
@@ -242,7 +242,7 @@ const ParsedTableBlock = (props: Props) => {
                       }
                     } else {
                       props.returnData[data?.name] = {
-                        name: data?.name,
+                        label: data?.name,
                       };
                       if (props.type === "timetable") {
                         Object.assign(props.returnData[data?.name], {
