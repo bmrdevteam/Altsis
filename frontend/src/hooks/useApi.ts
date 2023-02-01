@@ -986,7 +986,7 @@ export default function useApi() {
       season: string;
       registration: string;
       classTitle: string;
-      point: string;
+      point: number;
       subject: string[];
       teachers: any[];
       classroom: string;
@@ -1039,7 +1039,7 @@ export default function useApi() {
     _id: string;
     data: {
       classTitle: string;
-      point: string;
+      point: number;
       subject: string[];
       teachers: any[];
       classroom: string;

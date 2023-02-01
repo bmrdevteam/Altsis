@@ -66,8 +66,8 @@ const CoursePid = (props: Props) => {
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
-  const [coursePoint, setCoursePoint] = useState<string>("");
-  const [courseTime, setCourseTime] = useState<any>([]);
+  const [coursePoint, setCoursePoint] = useState<number>(0);
+  const [courseTime, setCourseTime] = useState<any>({});
   const [courseClassroom, setCourseClassroom] = useState<string>("");
   const [courseMoreInfo, setCourseMoreInfo] = useState<any>({});
   const [courseLimit, setCourseLimit] = useState<number>(0);
@@ -105,9 +105,7 @@ const CoursePid = (props: Props) => {
         subject: courseSubject.split("/"),
         teachers: courseMentorList,
         classroom: courseClassroom,
-        time: courseTime.map((lb: string) => {
-          return { label: lb };
-        }),
+        time: Object.values(courseTime),
         info: courseMoreInfo,
         limit: courseLimit,
       },
@@ -141,10 +139,8 @@ const CoursePid = (props: Props) => {
           setCourseSubject(_.join(result.subject, "/"));
           setCourseTitle(result.classTitle);
           setCourseMentorList(result.teachers || []);
-          setCoursePoint(result.point || "0");
-          setCourseTime([
-            ...result.time.map((timeBlock: any) => timeBlock.label),
-          ]);
+          setCoursePoint(result.point || 0);
+          setCourseTime(_.keyBy(result.time, "label"));
           setCourseClassroom(result.classroom);
           setCourseMoreInfo(result.info || {});
           setCourseLimit(result.limit || 0);
@@ -175,10 +171,7 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isLoadingTimeClassroomRef) {
-      courseTimeRef.current = {};
-      for (let lb of courseTime) {
-        courseTimeRef.current[lb] = true;
-      }
+      courseTimeRef.current = { ...courseTime };
       courseClassroomRef.current = courseClassroom;
       setIsLoadingTimeClassroomRef(false);
     }
@@ -193,7 +186,7 @@ const CoursePid = (props: Props) => {
   }, [isLoadingMentorRef]);
 
   useEffect(() => {
-    setCoursePoint(courseTime.length);
+    setCoursePoint(Object.keys(courseTime).length);
     return () => {};
   }, [courseTime]);
 
@@ -280,7 +273,7 @@ const CoursePid = (props: Props) => {
             <Input
               appearence="flat"
               label="시간"
-              defaultValue={courseTime}
+              defaultValue={_.join(Object.keys(courseTime), ", ")}
               required={true}
               disabled
             />
@@ -326,7 +319,7 @@ const CoursePid = (props: Props) => {
                   navigate(`/courses/created/${pid}`, { replace: true });
                 })
                 .catch((err) => {
-                  alert(err.response.body.message);
+                  alert(err);
                 });
             }}
           >
@@ -358,15 +351,7 @@ const CoursePid = (props: Props) => {
               onClick={() => {
                 setIsLoadingTimeClassroomRef(true);
                 setCourseClassroom(courseClassroomRef.current);
-                setCourseTime([
-                  ...Object.keys(
-                    Object.fromEntries(
-                      Object.entries(courseTimeRef.current).filter(
-                        ([key, value]) => value
-                      )
-                    )
-                  ),
-                ]);
+                setCourseTime({ ...courseTimeRef.current });
                 setTimeSelectPopupActive(false);
               }}
             >
@@ -387,8 +372,8 @@ const CoursePid = (props: Props) => {
               SyllabusApi.RSyllabuses({
                 season: currentSeason?._id,
                 classroom: courseClassroomRef.current,
-              }).then((res) => {
-                setSyllabusList(res);
+              }).then(({ syllabuses }) => {
+                setSyllabusList(syllabuses);
               });
               courseTimeRef.current = [];
             }}
@@ -403,7 +388,12 @@ const CoursePid = (props: Props) => {
             onChange={(data) => {
               Object.assign(courseTimeRef.current, data);
             }}
-            defaultTimetable={syllabusToTime(syllabusList)}
+            defaultTimetable={syllabusToTime(
+              _.filter(
+                syllabusList,
+                (syllabus: any) => syllabus._id !== courseData._id
+              )
+            )}
             defaultValues={courseTimeRef.current}
             data={currentSeason?.formTimetable}
           />
