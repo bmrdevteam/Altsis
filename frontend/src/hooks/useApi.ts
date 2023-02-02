@@ -221,23 +221,61 @@ export default function useApi() {
   }
 
   /**
+   * Get user
+   * @type GET
+   * @auth member
+   * @returns User
+   */
+  async function RUser(_id: string) {
+    return await database.R({
+      location: `users/${_id}`,
+    });
+  }
+
+  /**
+   * Get user profile by _id
+   * @type GET
+   * @auth member
+   * @returns User
+   */
+  async function RUserProfile(_id: string) {
+    return await database.R({
+      location: `users/${_id}/profile`,
+    });
+  }
+
+  /**
    * Get user by userId or school
    * @type GET
    * @auth member
    * @returns LoggedIn User
    */
   async function RUsers(params?: {
+    userId?: string | number;
     school?: string;
     schoolId?: string;
     "no-school"?: string;
     fields?: string[] | string;
-    auth?: "owner" | "admin" | "member";
+    auth?: "owner" | "admin" | "manager" | "member";
   }) {
     if (params?.fields) params.fields = QUERY_SUB_BUILDER(params.fields);
     const { users: result } = await database.R({
       location: "users" + QUERY_BUILDER(params),
     });
     return result;
+  }
+
+  /**
+   * Delete users
+   * @type DELETE
+   * @auth member
+   * @returns Admin
+   */
+  async function DUsers(params: { _ids: string[] }) {
+    const _users_string = QUERY_SUB_BUILDER(params._ids);
+    return await database.D({
+      location: "users" + QUERY_BUILDER({ _ids: _users_string }),
+    });
   }
 
   /**
@@ -260,6 +298,7 @@ export default function useApi() {
         start?: string;
         end?: string;
       };
+      copyFrom?: string;
     };
   }) {
     const result = await database.C({ location: `seasons`, data: props.data });
@@ -274,6 +313,12 @@ export default function useApi() {
    */
   async function RSeason(id: string) {
     const result = await database.R({ location: `seasons/${id}` });
+    return result;
+  }
+  async function RSeasonWithRegistrations(id: string) {
+    const result = await database.R({
+      location: `seasons/${id}?withRegistrations=true`,
+    });
     return result;
   }
   /**
@@ -338,6 +383,7 @@ export default function useApi() {
   /**
    * Update Classrooms in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonClassroom(props: { _id: string; data: string[] }) {
     return await database.U({
@@ -349,6 +395,7 @@ export default function useApi() {
   /**
    * Update Subjects in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonSubject(props: {
     _id: string;
@@ -363,6 +410,7 @@ export default function useApi() {
   /**
    * Update form in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonForm(props: {
     _id: string;
@@ -378,6 +426,7 @@ export default function useApi() {
   /**
    * Update permission in season
    * @auth admin / manager
+   * @returns Season
    */
   async function USeasonPermission(props: {
     _id: string;
@@ -394,7 +443,6 @@ export default function useApi() {
    * Delete Season
    * @type DELETE
    * @auth admin manager
-   * @returns Season
    */
 
   async function DSeason(_id: string) {
@@ -413,7 +461,7 @@ export default function useApi() {
    * @returns Registrations
    */
   async function CRegistrations(props: {
-    data: { season: string; users: any[] };
+    data: { season: string; users: any[]; info: any };
   }) {
     const { registrations: result } = await database.C({
       location: `registrations/bulk`,
@@ -454,6 +502,7 @@ export default function useApi() {
     schoolName?: string;
     year?: string;
     term?: string;
+    user?: string;
     userId?: string;
     userName?: string;
     role?: "student" | "teacher";
@@ -463,6 +512,19 @@ export default function useApi() {
     });
     return result;
   }
+
+  /**
+   * Get Registration by _id
+   * @type GET
+   * @auth member
+   * @returns Registration
+   */
+  async function RRegistration(_id: string) {
+    return await database.R({
+      location: `registrations/${_id}`,
+    });
+  }
+
   /**
    * Update Registration
    * @type PUT
@@ -473,11 +535,15 @@ export default function useApi() {
     _id?: string;
     _ids?: string[];
     data: {
-      role: string;
-      grade: string;
-      group: string;
-      teacherId: string;
-      teacherName: string;
+      role?: string;
+      grade?: string;
+      group?: string;
+      teacher?: string;
+      teacherId?: string;
+      teacherName?: string;
+      subTeacher?: string;
+      subTeacherId?: string;
+      subTeacherName?: string;
     };
   }) {
     if (props._ids) {
@@ -501,6 +567,70 @@ export default function useApi() {
     });
     return result;
   }
+
+  /**
+   * Create Memo
+   * @type POST
+   * @auth member
+   * @returns memos
+   */
+  async function CMemo(params: {
+    rid: string;
+    memo: {
+      title: string;
+      day: string;
+      start: string;
+      end: string;
+      classroom?: string;
+      memo?: string;
+    };
+  }) {
+    const result = await database.C({
+      location: "memos",
+      data: { registration: params.rid, ...params.memo },
+    });
+    return result;
+  }
+
+  /**
+   * Update Memo
+   * @type PUT
+   * @auth member
+   * @returns memos
+   */
+  async function UMemo(params: {
+    _id: string;
+    rid: string;
+    memo: {
+      title: string;
+      day: string;
+      start: string;
+      end: string;
+      classroom?: string;
+      memo?: string;
+    };
+  }) {
+    const result = await database.U({
+      location: "memos/" + params._id,
+      data: { registration: params.rid, ...params.memo },
+    });
+    return result;
+  }
+
+  /**
+   * Delete Memo
+   * @type DELETE
+   * @auth member
+   * @returns memos
+   */
+  async function DMemo(params: { _id: string; rid: string }) {
+    const result = await database.D({
+      location:
+        "memos/" + params._id + QUERY_BUILDER({ registration: params.rid }),
+    });
+    return result;
+  }
+
   /**
    * Form Api
    * ##########################################################################
@@ -570,13 +700,25 @@ export default function useApi() {
     const { schools: result } = await database.R({ location: "schools" });
     return result;
   }
+
   /**
-   * Read Schools by id
+   * Read School by id
    * @auth member
    */
   async function RSchool(id: string) {
     return await database.R({ location: "schools/" + id });
   }
+
+  /**
+   * Read School by id with seasons
+   * @auth member
+   */
+  async function RSchoolWithSeasons(id: string) {
+    return await database.R({
+      location: "schools/" + id + "?includes=seasons",
+    });
+  }
+
   /**
    * Update Classrooms in school
    * @auth admin
@@ -657,6 +799,39 @@ export default function useApi() {
    */
 
   /**
+   * Create Enrollment
+   * @type POST
+   * @auth member
+   */
+  async function CEnrollment(props: {
+    data: { syllabus: string; registration: string };
+  }) {
+    return await database.C({
+      location: "enrollments",
+      data: props.data,
+    });
+  }
+
+  /**
+   * Create Enrollments (bulk)
+   * @type POST
+   * @auth member(teacher)
+   */
+  async function CEnrollments(props: {
+    data: {
+      registration: string;
+      syllabus: string;
+      students: any[];
+    };
+  }) {
+    const { enrollments: res } = await database.C({
+      location: "enrollments/bulk",
+      data: props.data,
+    });
+    return res;
+  }
+
+  /**
    * Read Enrollments
    * @type GET
    * @auth member
@@ -665,7 +840,8 @@ export default function useApi() {
   async function REnrolllments(params: {
     syllabus?: string;
     season?: string;
-    studentId?: string | number;
+    studentId?: string | number; //deprecated
+    student?: string | number;
     syllabuses?: string[] | string;
   }) {
     if (params.syllabuses)
@@ -683,11 +859,84 @@ export default function useApi() {
    * @auth member
    * @returns Enrollment
    */
-  async function REnrolllment(id: string) {
+  async function REnrolllment(id?: string) {
     const result = await database.R({
-      location: "enrollments" + id,
+      location: "enrollments/" + id,
     });
     return result;
+  }
+
+  /**
+   * Update Enrollment memo
+   * @type Post
+   * @auth member
+   */
+  async function UEnrollmentMemo(props: { _id?: string; memo: string }) {
+    const result = await database.U({
+      location: "enrollments/" + props._id + "/memo",
+      data: { memo: props.memo },
+    });
+    return result;
+  }
+
+  /**
+   * Delete Enrollment
+   * @type DELETE
+   * @auth member
+   * @returns Enrollment
+   */
+  async function DEnrollment(id?: string) {
+    const result = await database.D({
+      location: "enrollments/" + id,
+    });
+    return result;
+  }
+
+  /**
+   * Delete Enrollments
+   * @type DELETE
+   * @auth member
+   * @returns Enrollment
+   */
+  async function DEnrollments(_ids: any[]) {
+    const _enrollments_ids = QUERY_SUB_BUILDER(_ids);
+    return await database.D({
+      location: "enrollments" + QUERY_BUILDER({ _ids: _enrollments_ids }),
+    });
+  }
+
+  /**
+   * Read Enrollment with Evaluations
+   * @type GET
+   * @auth member
+   * @returns Enrollments
+   */
+  async function REnrollmentWithEvaluations(params: {
+    syllabus?: string;
+    student?: string;
+    school?: string;
+  }) {
+    const { enrollments } = await database.R({
+      location: "enrollments/evaluations" + QUERY_BUILDER(params),
+    });
+    return enrollments;
+  }
+
+  /**
+   * Update Evaluation
+   * @type GET
+   * @auth member
+   * @returns Enrollments
+   */
+  async function UEvaluation(props: {
+    enrollment?: string;
+    by: "mentor" | "student";
+    data: any;
+  }) {
+    return await database.U({
+      location: `enrollments/${props.enrollment}/evaluation2?by=${props.by}`,
+      data: { new: props.data },
+    });
   }
 
   /**
@@ -695,14 +944,15 @@ export default function useApi() {
    * ##########################################################################
    */
   /**
-   * Read Archives
+   * Read Archive
    * @type GET
    * @auth admin
    * @returns Archives
    */
   async function RArchives(params: {
     school?: string;
-    userId?: string | number;
+    user?: string | number;
+    registration?: string | number;
   }) {
     const result = await database.R({
       location: "archives" + QUERY_BUILDER(params),
@@ -710,17 +960,15 @@ export default function useApi() {
     return result;
   }
   /**
-   * Update Archives
+   * Update Archive
    * @type PUT
    * @auth admin
-   * @returns Archives
+   * @returns Archive
    */
-  async function UArchives(params: {
-    school?: string;
-    userId?: string | number;
-  }) {
-    const result = await database.R({
-      location: "archives" + QUERY_BUILDER(params),
+  async function UArchive(params: { _id: string; data: object }) {
+    const result = await database.U({
+      location: `archives/${params._id}`,
+      data: params.data,
     });
     return result;
   }
@@ -736,8 +984,9 @@ export default function useApi() {
   async function CSyllabus(props: {
     data: {
       season: string;
+      registration: string;
       classTitle: string;
-      point: string;
+      point: number;
       subject: string[];
       teachers: any[];
       classroom: string;
@@ -752,16 +1001,23 @@ export default function useApi() {
     });
   }
   /**
-   * Get Syllabuses
+   * Get Syllabuses and enrollments
    * @type GET
    * @auth member
    * @returns list of syllabuses
    */
-  async function RSyllabuses(props: { season?: string; classroom?: string }) {
-    const { syllabuses: result } = await database.R({
+  async function RSyllabuses(props: {
+    season?: string;
+    classroom?: string;
+    matches?: string;
+    field?: string;
+    confirmed?: boolean;
+    user?: string;
+    teacher?: string;
+  }) {
+    return await database.R({
       location: "syllabuses" + QUERY_BUILDER(props),
     });
-    return result;
   }
   /**
    * Get Syllabus
@@ -783,7 +1039,7 @@ export default function useApi() {
     _id: string;
     data: {
       classTitle: string;
-      point: string;
+      point: number;
       subject: string[];
       teachers: any[];
       classroom: string;
@@ -797,16 +1053,82 @@ export default function useApi() {
       data: { new: props.data },
     });
   }
+  /**
+   * Confirm Syllabus
+   * @type PUT
+   * @auth member
+   */
+  async function ConfirmSyllabus(_id: string) {
+    return await database.U({
+      location: `syllabuses/${_id}/confirmed`,
+      data: {},
+    });
+  }
+  /**
+   * Unconfirm Syllabus
+   * @type DELETE
+   * @auth member
+   */
+  async function UnconfirmSyllabus(_id: string) {
+    return await database.D({
+      location: `syllabuses/${_id}/confirmed`,
+    });
+  }
+  /**
+   * Delete Syllabus
+   * @type Delete
+   * @auth member
+   */
+  async function DSyllabus(_id: string) {
+    return await database.D({
+      location: `syllabuses/${_id}`,
+    });
+  }
+  /**
+   * Read CourseList(enrolled,created,mentoring)
+   * @type GET
+   * @auth member
+   * @returns syllabuses
+   */
+  async function RCourses(props: { season: string; user: string }) {
+    const { courses } = await database.R({
+      location: "courses" + QUERY_BUILDER(props),
+    });
+    return courses;
+  }
 
   /**
    * Notification Api
    * ##########################################################################
    */
-  async function CUpdatedNotifications(userId: string) {
+  async function SendNotifications(props: {
+    data: {
+      toUserList: any[];
+      category: string;
+      title: string;
+      description: string;
+    };
+  }) {
+    return await database.C({
+      location: `notifications`,
+      data: props.data,
+    });
+  }
+
+  async function RNotifications(props: {
+    type: "received" | "sent";
+    user: string;
+    checked?: boolean;
+  }) {
     const { notifications } = await database.R({
-      location: `notifications?type=received&userId=${userId}&checked=false&updated=true`,
+      location: "notifications" + QUERY_BUILDER(props),
     });
     return notifications;
+  }
+  async function RNotificationById(_id: string) {
+    return await database.R({
+      location: `notifications/${_id}`,
+    });
   }
   async function UCheckNotification(_id: string) {
     const res = await database.U({
@@ -814,6 +1136,13 @@ export default function useApi() {
       data: {},
     });
     return res;
+  }
+
+  async function DNotifications(_ids: string[]) {
+    const _notifications_ids = QUERY_SUB_BUILDER(_ids);
+    return await database.D({
+      location: "notifications" + QUERY_BUILDER({ _ids: _notifications_ids }),
+    });
   }
 
   return {
@@ -834,10 +1163,14 @@ export default function useApi() {
       CGoogleLocal,
       CConnectGoogle,
       RUsers,
+      RUser,
+      RUserProfile,
+      DUsers,
     },
     SeasonApi: {
       CSeason,
       RSeason,
+      RSeasonWithRegistrations,
       RSeasons,
       USeason,
       UActivateSeason,
@@ -852,6 +1185,7 @@ export default function useApi() {
       CSchools,
       RSchools,
       RSchool,
+      RSchoolWithSeasons,
       USchoolClassroom,
       USchoolSubject,
       USchoolForm,
@@ -862,10 +1196,24 @@ export default function useApi() {
       CRegistrations,
       CRegistrationsCopy,
       RRegistrations,
+      RRegistration,
       URegistrations,
       DRegistrations,
+      CMemo,
+      UMemo,
+      DMemo,
     },
-    EnrollmentApi: { REnrolllment, REnrolllments },
+    EnrollmentApi: {
+      CEnrollment,
+      CEnrollments,
+      REnrolllment,
+      REnrolllments,
+      DEnrollment,
+      DEnrollments,
+      REnrollmentWithEvaluations,
+      UEvaluation,
+      UEnrollmentMemo,
+    },
     FormApi: {
       CForm,
       RForms,
@@ -873,13 +1221,24 @@ export default function useApi() {
     },
     ArchiveApi: {
       RArchives,
+      UArchive,
     },
     SyllabusApi: {
       CSyllabus,
       RSyllabus,
       RSyllabuses,
       USyllabus,
+      DSyllabus,
+      RCourses,
+      ConfirmSyllabus,
+      UnconfirmSyllabus,
     },
-    NotificationApi: { CUpdatedNotifications, UCheckNotification },
+    NotificationApi: {
+      SendNotifications,
+      RNotifications,
+      RNotificationById,
+      UCheckNotification,
+      DNotifications,
+    },
   };
 }

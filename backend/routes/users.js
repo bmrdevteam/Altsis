@@ -24,6 +24,7 @@ router.post("/bulk", isAdmin, users.createBulk);
 
 // ___________ find _____________
 router.get("/current", isLoggedIn, users.current);
+router.get("/:_id?/profile", isLoggedIn, users.findProfile);
 router.get("/:_id?", isLoggedIn, users.find);
 
 // ___________ update(onself) _____________
@@ -47,6 +48,6 @@ router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
 router.put("/:_id", isLoggedIn, users.update);
 
 // ___________ delete _____________
-router.delete("/:_ids", isAdmin, users.delete);
+router.delete("/", isAdmin, users.delete);
 
 module.exports = router;

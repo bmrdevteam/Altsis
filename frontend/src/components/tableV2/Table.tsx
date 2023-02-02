@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import style from "./table.module.scss";
 import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
-import { flattenObject } from "functions/functions";
+import {
+  flattenObject,
+  objectDownloadAsCSV,
+  objectDownloadAsJson,
+  unflattenObject,
+} from "functions/functions";
 import useOutsideClick from "hooks/useOutsideClick";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
@@ -22,7 +27,8 @@ type TTableHeader = {
   key?: string;
   width?: string;
   byteCalc?: boolean;
-  whiteSpace?: "pre" | "normal";
+  whiteSpace?: "pre" | "pre-wrap" | "normal";
+  wordBreak?: "normal" | "break-all" | "keep-all" | "break-word";
   textAlign?: "left" | "center" | "right";
   fontSize?: string;
   fontWeight?:
@@ -236,6 +242,10 @@ const Table = (props: Props) => {
                           ...prev,
                           searchParam: e.target.value,
                         }));
+                        setTableSettings((prev) => ({
+                          ...prev,
+                          pageIndex: 1,
+                        }));
                       }}
                     />
                     <div className={style.pager}>
@@ -331,10 +341,61 @@ const Table = (props: Props) => {
                       <Svg type={"horizontalDots"} width="20px" height="20px" />
                       {moreOutSideClick.active && (
                         <div className={style.menu_container}>
-                          <div className={style.menu_item}>
+                          <div
+                            className={style.menu_item}
+                            onClick={() => {
+                              const headers = props.header
+                                .map((o) => {
+                                  return o.key;
+                                })
+                                .filter((o) => {
+                                  if (o) {
+                                    return true;
+                                  }
+                                  return false;
+                                });
+
+                              objectDownloadAsCSV(
+                                filteredData().map((o: any) => {
+                                  return unflattenObject(
+                                    Object.fromEntries(
+                                      Object.entries(o).filter(([key]) =>
+                                        headers.includes(key)
+                                      )
+                                    )
+                                  );
+                                })
+                              );
+                            }}
+                          >
                             CSV 으로 다운로드
                           </div>
-                          <div className={style.menu_item}>
+                          <div
+                            className={style.menu_item}
+                            onClick={() => {
+                              const headers = props.header
+                                .map((o) => {
+                                  return o.key;
+                                })
+                                .filter((o) => {
+                                  if (o) {
+                                    return true;
+                                  }
+                                  return false;
+                                });
+                              objectDownloadAsJson(
+                                filteredData().map((o: any) => {
+                                  return unflattenObject(
+                                    Object.fromEntries(
+                                      Object.entries(o).filter(([key]) =>
+                                        headers.includes(key)
+                                      )
+                                    )
+                                  );
+                                })
+                              );
+                            }}
+                          >
                             JSON 으로 다운로드
                           </div>
                         </div>
@@ -550,6 +611,7 @@ const Table = (props: Props) => {
                       <td
                         style={{
                           whiteSpace: val.whiteSpace,
+                          wordBreak: val.wordBreak,
                           textAlign: val.textAlign,
                           fontSize: val.fontSize,
                           fontWeight: val.fontWeight,
@@ -583,6 +645,7 @@ const Table = (props: Props) => {
                       <td
                         style={{
                           whiteSpace: val.whiteSpace,
+                          wordBreak: val.wordBreak,
                           textAlign: val.textAlign,
                           fontSize: val.fontSize,
                           fontWeight: val.fontWeight,
@@ -672,6 +735,7 @@ const Table = (props: Props) => {
                       <td
                         style={{
                           whiteSpace: val.whiteSpace,
+                          wordBreak: val.wordBreak,
                           textAlign: val.textAlign,
                           fontSize: val.fontSize,
                           fontWeight: val.fontWeight,
@@ -827,10 +891,18 @@ const Table = (props: Props) => {
                                       val.status[`${row[val.key]}`].background,
                                   }}
                                   onClick={() => {
-                                    val.status?.[row[`${val.key}`]].onClick &&
-                                      val.status[row[`${val.key}`]].onClick?.(
-                                        row
-                                      );
+                                    if (
+                                      val.status &&
+                                      val.key !== undefined &&
+                                      val.status[`${row[val.key]}`].onClick
+                                    ) {
+                                      val.status[`${row[val.key]}`].onClick?.(row)
+                                    }
+
+                                    // val.status?.[row[`${val.key}`]].onClick &&
+                                    //   val.status[row[`${val.key}`]].onClick?.(
+                                    //     row
+                                    //   );
                                   }}
                                 >
                                   {val.status[`${row[val.key]}`].text}
@@ -844,7 +916,6 @@ const Table = (props: Props) => {
                         return (
                           <td
                             style={{
-                              whiteSpace: val.whiteSpace,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
@@ -854,11 +925,21 @@ const Table = (props: Props) => {
                           >
                             <textarea
                               rows={1}
-                              onKeyUp={(e) => {
-                                const scrollHeight =
-                                  e.currentTarget.scrollHeight;
+                              onFocus={(e) => {
                                 e.currentTarget.style.height =
-                                  scrollHeight + "px";
+                                  e.currentTarget.scrollHeight + "px";
+                                e.currentTarget.style.width =
+                                  e.currentTarget.scrollWidth + "px";
+                              }}
+                              onKeyDown={(e) => {
+                                e.currentTarget.style.height =
+                                  e.currentTarget.scrollHeight + "px";
+                                e.currentTarget.style.width =
+                                  e.currentTarget.scrollWidth + "px";
+                              }}
+                              style={{
+                                whiteSpace: val.whiteSpace,
+                                wordBreak: val.wordBreak,
                               }}
                               value={row[`${val.key}`]}
                               onChange={(e) => {
@@ -867,6 +948,7 @@ const Table = (props: Props) => {
                                   (r) => r.tableRowIndex === row.tableRowIndex
                                 );
                                 arr[ii][`${val.key}`] = e.target.value;
+                                arr[ii].isModified = true;
                                 setTableData((prev) => ({
                                   ...prev,
                                   data: arr,
@@ -887,6 +969,7 @@ const Table = (props: Props) => {
                           <td
                             style={{
                               whiteSpace: val.whiteSpace,
+                              wordBreak: val.wordBreak,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
@@ -905,6 +988,7 @@ const Table = (props: Props) => {
                                 arr[ii][`${val.key}`] = parseInt(
                                   e.target.value
                                 );
+                                arr[ii].isModified = true;
                                 setTableData((prev) => ({
                                   ...prev,
                                   data: arr,
@@ -925,6 +1009,7 @@ const Table = (props: Props) => {
                           <td
                             style={{
                               whiteSpace: val.whiteSpace,
+                              wordBreak: val.wordBreak,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
@@ -940,6 +1025,7 @@ const Table = (props: Props) => {
                                   (r) => r.tableRowIndex === row.tableRowIndex
                                 );
                                 arr[ii][`${val.key}`] = e.target.value;
+                                arr[ii].isModified = true;
                                 setTableData((prev) => ({
                                   ...prev,
                                   data: arr,
@@ -1002,6 +1088,7 @@ const Table = (props: Props) => {
                           <td
                             style={{
                               whiteSpace: val.whiteSpace,
+                              wordBreak: val.wordBreak,
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,

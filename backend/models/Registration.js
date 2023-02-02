@@ -1,6 +1,14 @@
 const mongoose = require("mongoose");
 const { conn } = require("../databases/connection");
 
+const memoSchema = mongoose.Schema({
+  title: String,
+  day: String,
+  start: String,
+  end: String,
+  memo: String,
+});
+
 const registrationSchema = mongoose.Schema({
   season: {
     type: mongoose.Types.ObjectId,
@@ -12,6 +20,7 @@ const registrationSchema = mongoose.Schema({
   year: String,
   term: String,
   period: Object,
+  user: { type: mongoose.Types.ObjectId, required: true },
   userId: {
     type: String,
     required: true,
@@ -26,23 +35,27 @@ const registrationSchema = mongoose.Schema({
   },
   grade: String,
   group: String,
+  teacher: mongoose.Types.ObjectId,
   teacherId: String,
   teacherName: String,
+  subTeacher: mongoose.Types.ObjectId,
+  subTeacherId: String,
+  subTeacherName: String,
   isActivated: {
     type: Boolean,
-    default: true,
+    default: false,
   },
+  memos: [memoSchema],
 });
 
 registrationSchema.index({
-  userId: 1,
+  user: 1,
 });
 
 registrationSchema.index(
   {
     season: 1,
-    role: 1,
-    userId: 1,
+    user: 1,
   },
   { unique: true }
 );

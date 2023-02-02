@@ -55,7 +55,7 @@ router.put(
 );
 
 /* create/update documents - registrations */
-router.post("/:academyId/registrations", isOwner, registrations.register);
+// router.post("/:academyId/registrations", isOwner, registrations.register);
 router.put("/:academyId/registrations/:_id", isOwner, registrations.update);
 
 module.exports = router;

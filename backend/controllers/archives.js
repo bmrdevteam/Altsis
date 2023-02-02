@@ -1,96 +1,68 @@
-const _ = require("lodash");
-const { Archive, School, User } = require("../models");
-
-/* create */
-module.exports.create = async (req, res) => {
-  try {
-    const user = await User(req.user.academyId).findOne({
-      userId: req.body.userId,
-    });
-    if (!user) return res.status(404).send();
-
-    const school = await School(req.user.academyId).findById(req.body.school);
-    if (!school) return res.status(404).send();
-
-    const _Archive = Archive(req.user.academyId);
-
-    /* check duplication */
-    const exArchive = await _Archive.findOne({
-      school: req.body.school,
-      userId: req.body.userId,
-    });
-
-    if (exArchive)
-      return res.status(409).send({ message: `archive already exists` });
-
-    /* create and save document */
-    const archive = new _Archive({
-      userId: user.userId,
-      userName: user.userName,
-      school: school._id,
-      schoolId: school.schoolId,
-      schoolName: school.schoolName,
-      data: req.body.data,
-    });
-    await archive.save();
-    return res.status(200).send(archive);
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
+const { Archive, User, School, Registration } = require("../models");
+const ObjectId = require("mongoose").Types.ObjectId;
 
 module.exports.find = async (req, res) => {
   try {
-    const { userId, school } = req.query;
-    if (!userId || !school) {
-      return res.status(400).send();
+    let { user, school, registration } = req.query;
+
+    if (registration) {
+      if (!ObjectId.isValid(registration))
+        return res
+          .status(400)
+          .send({ message: "registration(oid) is invalid" });
+
+      const _registration = await Registration(req.user.academyId).findById(
+        registration
+      );
+      if (!_registration)
+        return res.status(404).send({ message: "registration not found" });
+
+      user = _registration.user;
+      school = _registration.school;
     }
-    const archive = await Archive(req.user.academyId).findOne({
-      userId,
+
+    const _Archive = Archive(req.user.academyId);
+
+    let archive = await _Archive.findOne({
+      user,
       school,
     });
-    if (!archive) return res.status(404).send({ message: "archive not found" });
-    archive.clean(); //DEVELOPMENT MODE
+    if (!archive) {
+      const _user = await User(req.user.academyId).findById(user);
+      if (!_user) return res.status(404).send({ message: "user not found" });
+
+      const _school = await School(req.user.academyId).findById(school);
+      if (!_school)
+        return res.status(404).send({ message: "school not found" });
+
+      archive = new _Archive({
+        user,
+        userId: _user.userId,
+        userName: _user.userName,
+        school,
+        schoolId: _school.schoolId,
+        schoolName: _school.schoolName,
+      });
+      await archive.save();
+    }
+
     return res.status(200).send(archive);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
 };
 
-module.exports.findById = async (req, res) => {
+module.exports.update = async (req, res) => {
   try {
-    const archive = await Archive(req.user.academyId).findById(req.params._id);
-    if (!archive) return res.status(404).send({ message: "archive not found" });
-    archive.clean(); //DEVELOPMENT MODE
-    return res.status(200).send(archive);
-  } catch (err) {
-    return res.status(500).send({ message: err.message });
-  }
-};
+    if (!ObjectId.isValid(req.params._id)) return res.status(400).send();
 
-module.exports.updateDataField = async (req, res) => {
-  try {
     const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
 
-    const field = req.params.field;
-    archive.data[field] = req.body.new;
+    archive.data = Object.assign(archive.data || {}, req.body);
     await archive.save();
     return res.status(200).send(archive);
   } catch (err) {
     return res.status(500).send({ message: err.message });
-  }
-};
-
-/* delete */
-
-exports.remove = async (req, res) => {
-  try {
-    const archive = await Archive(req.user.academyId).findById(req.params._id);
-    if (!archive) return res.status(404).send({ message: "archive not found" });
-    await archive.delete();
-    return res.status(200).send();
-  } catch (err) {
-    return res.status(500).send({ err: err.message });
   }
 };

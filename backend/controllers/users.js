@@ -138,6 +138,7 @@ module.exports.createBulk = async (req, res) => {
         });
 
         user.save();
+        users.push(user);
       }),
     ]);
 
@@ -176,11 +177,12 @@ module.exports.current = async (req, res) => {
         "isActivated",
         "role",
         "period",
+        "memos",
       ]);
 
     // notifications
     const notifications = await Notification(user.academyId).find({
-      userId: user.userId,
+      user: user._id,
       checked: false,
     });
 
@@ -189,6 +191,17 @@ module.exports.current = async (req, res) => {
       registrations,
       notifications: _.sortBy(notifications, "createdAt").reverse(),
     });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.findProfile = async (req, res) => {
+  try {
+    const user = await User(req.user.academyId)
+      .findById(req.params._id)
+      .select("profile");
+    return res.status(200).send(user);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -217,6 +230,11 @@ module.exports.find = async (req, res) => {
     if (queries["no-school"]) {
       queries["schools"] = { $size: 0 };
       delete queries["no-school"];
+    }
+    if (queries.matches) {
+      queries[queries.field] = { $regex: queries.matches };
+      delete queries.matches;
+      delete queries.field;
     }
 
     if (queries["fields"]) {
@@ -390,6 +408,34 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
   }
 };
 
+// 기존 비밀번호가 필요한 버전
+// module.exports.updatePassword = async (req, res) => {
+//   try {
+//     /* validate */
+//     if (!validate("password", req.body.new))
+//       return res.status(400).send({ message: "validation failed" });
+
+//     const user = req.user;
+//     req.body.academyId = req.user.academyId;
+//     req.body.userId = req.user.userId;
+//     req.body.password = req.body.old;
+
+//     passport.authenticate("local2", async (authError, user, academyId) => {
+//       try {
+//         if (authError) throw authError;
+//         console.log("DEBUG: authentication is over");
+//         user.password = req.body.new;
+//         await user.save();
+//         return res.status(200).send();
+//       } catch (err) {
+//         return res.status(err.status || 500).send({ message: err.message });
+//       }
+//     })(req, res);
+//   } catch (err) {
+//     return res.status(500).send({ message: err.message });
+//   }
+// };
+
 module.exports.updatePassword = async (req, res) => {
   try {
     /* validate */
@@ -397,21 +443,9 @@ module.exports.updatePassword = async (req, res) => {
       return res.status(400).send({ message: "validation failed" });
 
     const user = req.user;
-    req.body.academyId = req.user.academyId;
-    req.body.userId = req.user.userId;
-    req.body.password = req.body.old;
-
-    passport.authenticate("local2", async (authError, user, academyId) => {
-      try {
-        if (authError) throw authError;
-        console.log("DEBUG: authentication is over");
-        user.password = req.body.new;
-        await user.save();
-        return res.status(200).send();
-      } catch (err) {
-        return res.status(err.status || 500).send({ message: err.message });
-      }
-    })(req, res);
+    user.password = req.body.new;
+    await user.save();
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -471,7 +505,7 @@ module.exports.update = async (req, res) => {
       return res.status(400).send({ message: "validation failed" });
 
     await user.save();
-    return res.status(200).send();
+    return res.status(200).send(user);
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -481,9 +515,10 @@ module.exports.update = async (req, res) => {
 
 module.exports.delete = async (req, res) => {
   try {
-    const ids = _.split(req.params._ids, "&");
+    if (!req.query._ids) return res.status(400).send();
+    const _idList = _.split(req.query._ids, ",");
     const result = await User(req.user.academyId).deleteMany({
-      _id: { $in: ids },
+      _id: { $in: _idList },
     });
     return res.status(200).send(result);
   } catch (err) {

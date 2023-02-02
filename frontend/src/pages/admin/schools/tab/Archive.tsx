@@ -17,7 +17,14 @@ function Archive(props: Props) {
   const formData = useRef<any>(props.schoolData.formArchive || []);
   const [editArchivePopupActive, setEditArchivePopupActive] =
     useState<boolean>(false);
-  const [editArchivefield, setEditArchivefield] = useState<string>();
+  const [editArchivefieldIndex, setEditArchivefieldIndex] = useState<number>(0);
+  const [editArchivefieldSubIndex, setEditArchivefieldSubIndex] =
+    useState<number>(0);
+
+  const [
+    editArchivefieldSelectPopupActive,
+    setEditArchivefieldSelectPopupActive,
+  ] = useState<boolean>(false);
 
   useEffect(() => {
     console.log(props.schoolData);
@@ -26,22 +33,6 @@ function Archive(props: Props) {
   return (
     <>
       <div style={{ marginTop: "24px" }}>
-        <Button
-          type={"ghost"}
-          onClick={() => {
-            SchoolApi.USchoolFormArchive({
-              schoolId: props.schoolData._id,
-              data: formData.current,
-            })
-              .then((res) => {
-                alert("저장 성공");
-                props.setSchoolData({ ...props.schoolData, formArchive: res });
-              })
-              .catch(() => alert("저장 실패"));
-          }}
-        >
-          저장
-        </Button>
         <div style={{ marginTop: "24px" }}></div>
 
         <Table
@@ -51,6 +42,12 @@ function Archive(props: Props) {
           onChange={(e) => {
             formData.current = e.map((v) => {
               return unflattenObject(v);
+            });
+            SchoolApi.USchoolFormArchive({
+              schoolId: props.schoolData._id,
+              data: formData.current,
+            }).then((res) => {
+              props.setSchoolData({ ...props.schoolData, formArchive: res });
             });
           }}
           header={[
@@ -78,25 +75,25 @@ function Archive(props: Props) {
                 },
               },
             },
-            {
-              text: "권한",
-              key: "auth",
-              fontSize: "12px",
-              fontWeight: "600",
-              type: "status",
-              textAlign: "center",
-              width: "120px",
-              status: {
-                teacher: {
-                  text: "모든 선생님",
-                  color: "#grey",
-                },
-                array: {
-                  text: "담임 선생님",
-                  color: "#3a44b5",
-                },
-              },
-            },
+            // {
+            //   text: "권한",
+            //   key: "auth",
+            //   fontSize: "12px",
+            //   fontWeight: "600",
+            //   type: "status",
+            //   textAlign: "center",
+            //   width: "120px",
+            //   status: {
+            //     teacher: {
+            //       text: "모든 선생님",
+            //       color: "#grey",
+            //     },
+            //     array: {
+            //       text: "담임 선생님",
+            //       color: "#3a44b5",
+            //     },
+            //   },
+            // },
             {
               text: "자세히",
               type: "button",
@@ -111,7 +108,7 @@ function Archive(props: Props) {
               },
               onClick: (value: any) => {
                 setEditArchivePopupActive(true);
-                setEditArchivefield(value.label);
+                setEditArchivefieldIndex(value.tableRowIndex - 1);
               },
               width: "80px",
             },
@@ -128,43 +125,22 @@ function Archive(props: Props) {
       </div>
       {editArchivePopupActive && (
         <Popup
+          closeBtn
           contentScroll
-          style={{ width: "800px" }}
+          style={{ width: "800px", borderRadius: "4px" }}
           setState={setEditArchivePopupActive}
-          title={`${editArchivefield}`}
-          footer={
-            <Button
-              type={"ghost"}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-              onClick={() => {
-                SchoolApi.USchoolFormArchive({
-                  schoolId: props.schoolData._id,
-                  data: formData.current,
-                })
-                  .then(() => alert("저장 성공"))
-                  .catch(() => alert("저장 실패"));
-              }}
-            >
-              저장
-            </Button>
-          }
+          title={`${formData.current[editArchivefieldIndex].label}`}
         >
           <Table
             type="object-array"
-            data={
-              formData.current?.filter(
-                (val: any) => val.label === editArchivefield
-              )[0].fields ?? []
-            }
+            data={formData.current[editArchivefieldIndex].fields ?? []}
             onChange={(e) => {
               let fields = e.map((o) => unflattenObject(o));
-              formData.current.find(
-                (o: any) => o.label === editArchivefield
-              ).fields = fields;
+              formData.current[editArchivefieldIndex].fields = fields;
+              SchoolApi.USchoolFormArchive({
+                schoolId: props.schoolData._id,
+                data: formData.current,
+              });
             }}
             header={[
               {
@@ -184,8 +160,12 @@ function Archive(props: Props) {
                     color: "#B33F00",
                   },
                   select: {
-                    text: "선택",
+                    text: "선택 +",
                     color: "#006663",
+                    onClick: (row) => {
+                      setEditArchivefieldSubIndex(row.tableRowIndex - 1);
+                      setEditArchivefieldSelectPopupActive(true);
+                    },
                   },
                   "input-number": {
                     text: "숫자",
@@ -208,6 +188,53 @@ function Archive(props: Props) {
                 textAlign: "center",
                 width: "80px",
                 type: "toggle",
+              },
+              {
+                text: "수정",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "rowEdit",
+                width: "80px",
+                textAlign: "center",
+              },
+            ]}
+          />
+        </Popup>
+      )}
+      {editArchivefieldSelectPopupActive && (
+        <Popup
+          contentScroll
+          style={{ width: "600px", borderRadius: "4px" }}
+          closeBtn
+          setState={setEditArchivefieldSelectPopupActive}
+          title={`${formData.current[editArchivefieldIndex].label}`}
+        >
+          <Table
+            type="string-array"
+            data={
+              formData.current[editArchivefieldIndex].fields[
+                editArchivefieldSubIndex
+              ].options ?? []
+            }
+            onChange={(e) => {
+              let _data: string[] = [];
+              e.map((o) => {
+                _data.push(o["0"]);
+              });
+              formData.current[editArchivefieldIndex].fields[
+                editArchivefieldSubIndex
+              ].options = _data
+              
+              SchoolApi.USchoolFormArchive({
+                schoolId: props.schoolData._id,
+                data: formData.current,
+              });
+            }}
+            header={[
+              {
+                text: "옵션",
+                key: "0",
+                type: "text",
               },
               {
                 text: "수정",

@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Owner from "../pages/owner/Index";
 import Academies from "../pages/owner/academies/Index";
 import Academy from "../pages/owner/academies/Pid";
+import AcademySchool from "../pages/owner/academies/School";
 
 //admin pages
 import Admin from "../pages/admin/Index";
@@ -17,19 +18,18 @@ import E from "../pages/dev/E";
 
 // basic pages
 import Home from "../pages/index/Home";
-import Login from "../pages/Login";
+import Login from "../pages/login/Login";
 import Register from "../pages/Register";
 
 // course pages
 import Course from "pages/courses/Index";
-import CoursePid from "pages/courses/Pid";
 import CourseDesign from "../pages/courses/Design";
 import CourseEnroll from "../pages/courses/Enroll";
 import CourseList from "pages/courses/List";
-import CourseMyList from "pages/courses/MyList";
-import CourseMentoringList from "pages/courses/Mentoring/List";
-import CourseMentoringPid from "pages/courses/Mentoring/Pid";
-import CourseEnrollmentPid from "pages/courses/Enrollment";
+import CourseCreatedPid from "pages/courses/view/Created";
+import CourseMentoringPid from "pages/courses/view/Mentoring/Mentoring";
+import CourseEnrollmentPid from "pages/courses/view/Enrolled";
+import CourseEditPid from "pages/courses/view/Edit";
 
 // apps pages
 import AppsIndex from "pages/apps/Index";
@@ -39,6 +39,9 @@ import Notifications from "pages/notifications/Index";
 
 //error pages
 import Http404 from "../pages/error/404";
+
+// search result pages
+import UserSearchResult from "pages/userSearchResult/Index";
 
 //components
 import Sidebar from "../layout/sidebar/Sidebar";
@@ -53,6 +56,7 @@ import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
 import Docs from "pages/docs/Index";
+import ChooseAcademy from "pages/login/ChooseAcademy";
 
 function RouterPage() {
   const { currentUser } = useAuth();
@@ -90,7 +94,7 @@ function RouterPage() {
             {/* ----------------------------------------------------- */}
 
             {/* basic routes */}
-            <Route path="login" element={<Login />}></Route>
+            <Route path="login" element={<ChooseAcademy />}></Route>
             <Route path=":pid/login" element={<Login />}></Route>
             <Route path="register" element={<Register />}></Route>
             {/* <Route path="/:academyId"> */}
@@ -131,6 +135,14 @@ function RouterPage() {
                 element={
                   <RequireAuth auth={["owner"]}>
                     <Academy />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="academies/:pid/:school"
+                element={
+                  <RequireAuth auth={["owner"]}>
+                    <AcademySchool />
                   </RequireAuth>
                 }
               ></Route>
@@ -257,30 +269,34 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
-                path="mylist"
+                path="enrolled/:pid"
                 element={
                   <RequireAuth>
-                    <CourseMyList />
+                    <CourseEnrollmentPid />
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
-                path="mylist/:pid"
+                path="created/:pid"
                 element={
                   <RequireAuth>
-                    <CoursePid />
+                    <CourseCreatedPid />
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
-                path="mentoring"
+                path="edit/:pid"
                 element={
                   <RequireAuth>
-                    <CourseMentoringList />
+                    <CourseEditPid />
                   </RequireAuth>
                 }
               ></Route>
+
               <Route
                 path="mentoring/:pid"
                 element={
@@ -385,6 +401,17 @@ function RouterPage() {
             ></Route>
 
             {/* ----------------------------------------------------- */}
+
+            {/* ----------------------------------------------------- */}
+            {/* search result routes */}
+            <Route
+              path="search/:uid"
+              element={
+                <RequireAuth>
+                  <UserSearchResult />
+                </RequireAuth>
+              }
+            ></Route>
 
             {/* dev routes */}
             <Route path="dev">

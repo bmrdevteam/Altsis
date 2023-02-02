@@ -31,16 +31,14 @@
 import { useEffect, useState, useRef } from "react";
 
 // style
-import style from "style/pages/admin/users.module.scss";
+import style from "style/pages/admin/schools.module.scss";
 
 // hooks
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
-import Input from "components/input/Input";
-import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 import Select from "components/select/Select";
 
@@ -50,21 +48,22 @@ import Add from "./tab/Add";
 import AddBulk from "./tab/AddBulk";
 import SchoolBulk from "./tab/SchoolBulk";
 import _ from "lodash";
+import Navbar from "layout/navbar/Navbar";
+import Input from "components/input/Input";
 
 type Props = {};
 
 const Users = (props: Props) => {
-  const database = useDatabase();
+  const { UserApi, SchoolApi } = useApi();
   const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
-  const [isUserListLoading, setIsUserListLoading] = useState(false);
+  const [isUserListLoading, setIsUserListLoading] = useState(true);
 
   /* user list */
-  const [userList, setUserList] = useState<any>();
+  const [userList, setUserList] = useState<any[]>([]);
   const [user, setUser] = useState<string>();
 
   /* school list */
   const [schoolList, setSchoolList] = useState<any>();
-  const [school, setSchool] = useState<any>();
 
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
@@ -72,50 +71,26 @@ const Users = (props: Props) => {
   const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
   const userSelectRef = useRef<any[]>([]);
 
-  async function getAcademyUsers() {
-    const { users: res } = await database.R({
-      location: `users?${
-        school?._id ? `schools.school=${school._id}` : `no-school=true`
-      }`,
-    });
-    console.log("res[0] is ", res[0]);
-    return res;
-  }
-
-  const schools = () => {
-    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
-
-    for (let i = 0; i < schoolList?.length; i++) {
-      result.push({
-        text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
-        value: JSON.stringify(schoolList[i]),
-      });
-    }
-    return result;
+  const updateUserList = (userId: string, userData: any) => {
+    const idx = _.findIndex(userList, { userId });
+    userList[idx] = userData;
   };
 
-  async function getSchoolList() {
-    const { schools } = await database.R({
-      location: `schools`,
-    });
-    return schools;
-  }
+  const addUserList = (users: any[]) => {
+    users.forEach((user) => userList.push(user));
+  };
 
-  async function deleteUsers() {
-    const res = await database.D({
-      location: `users/${_.join(
-        _.filter(userSelectRef.current, (user) => user.auth !== "admin").map(
-          (user) => user._id
-        ),
-        "&"
-      )}`,
-    });
-    return res;
-  }
+  const popUserList = (_ids: any[]) => {
+    setUserList(
+      _.filter(userList, (user) => {
+        return !_ids.find((_id) => _id === user._id);
+      })
+    );
+  };
 
   useEffect(() => {
     if (isSchoolListLoading) {
-      getSchoolList()
+      SchoolApi.RSchools()
         .then((res) => {
           setSchoolList(res);
           setIsSchoolListLoading(false);
@@ -127,14 +102,14 @@ const Users = (props: Props) => {
     }
     return () => {};
   }, [isSchoolListLoading]);
-
   useEffect(() => {
     if (isUserListLoading) {
-      getAcademyUsers()
+      UserApi.RUsers({})
         .then((res) => {
+          console.log(res);
           setUserList(res);
-          setIsUserListLoading(false);
           userSelectRef.current = [];
+          setIsUserListLoading(false);
         })
         .catch(() => {
           alert("failed to load data");
@@ -145,21 +120,10 @@ const Users = (props: Props) => {
 
   return (
     <>
+      <Navbar />
       <div className={style.section}>
-        <NavigationLinks />
         <div className={style.title}>아카데미 사용자 관리</div>
-        <div style={{ height: "24px" }}></div>
-        <Select
-          style={{ minHeight: "30px" }}
-          required
-          label={"학교 선택"}
-          options={!isSchoolListLoading ? schools() : [{ text: "", value: "" }]}
-          setValue={(e: string) => {
-            setSchool(e ? JSON.parse(e) : {});
-            setIsUserListLoading(true);
-          }}
-          appearence={"flat"}
-        />
+
         <Button
           type={"ghost"}
           style={{
@@ -201,11 +165,15 @@ const Users = (props: Props) => {
             if (userSelectRef.current.length === 0) {
               alert("선택된 사용자가 없습니다.");
             } else {
-              deleteUsers()
-                .then((res: any) => {
+              const _ids = _.filter(
+                userSelectRef.current,
+                (user) => user.auth !== "admin"
+              ).map((user) => user._id);
+              UserApi.DUsers({ _ids })
+                .then(() => {
                   alert("success");
                   userSelectRef.current = [];
-                  setIsUserListLoading(true);
+                  popUserList(_ids);
                 })
                 .catch((err) => alert(err.response.data.message));
             }
@@ -234,11 +202,24 @@ const Users = (props: Props) => {
           선택된 사용자 학교 설정
         </Button>
 
-        <div>
+        {!isUserListLoading && (
           <Table
             type="object-array"
             control
-            data={userList || []}
+            data={
+              userList.map((user: any) => {
+                return {
+                  ...user,
+                  schoolsText:
+                    user.schools.length > 0
+                      ? _.join(
+                          user.schools?.map((school: any) => school.schoolName),
+                          "\n"
+                        )
+                      : "",
+                };
+              }) || []
+            }
             defaultPageBy={50}
             onChange={(value: any[]) => {
               userSelectRef.current = _.filter(value, {
@@ -252,25 +233,18 @@ const Users = (props: Props) => {
                 type: "checkbox",
                 width: "48px",
               },
-              { text: "ID", key: "userId", type: "text", textAlign: "center" },
+              {
+                text: "ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
               {
                 text: "이름",
                 key: "userName",
                 type: "text",
                 textAlign: "center",
               },
-
-              // {
-              //   text: "학교",
-              //   key: "schools",
-              //   type: "text",
-
-              //   // returnFunction: (val) =>
-              //   //   _.join(
-              //   //     val.map((school: any) => school.schoolName),
-              //   //     ", "
-              //   //   ),
-              // },
               {
                 text: "등급",
                 key: "auth",
@@ -286,48 +260,60 @@ const Users = (props: Props) => {
                 width: "100px",
               },
               {
+                text: "학교",
+                key: "schoolsText",
+                textAlign: "center",
+                type: "text",
+                whiteSpace: "pre",
+              },
+              {
                 text: "자세히",
                 type: "button",
                 onClick: (e: any) => {
                   setUser(e._id);
                   setEditPopupActive(true);
                 },
-                width: "80px",
+
+                width: "72px",
                 textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "black",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />
-        </div>
+        )}
       </div>
       {editPopupActive && user && (
         <Basic
           user={user}
           schoolList={schoolList}
           setPopupAcitve={setEditPopupActive}
-          setIsUserListLoading={setIsUserListLoading}
+          updateUserList={updateUserList}
         />
       )}
       {addPopupActive && (
         <Add
-          schoolData={school}
           schoolList={schoolList}
           setPopupAcitve={setAddPopupActive}
-          setIsUserListLoading={setIsUserListLoading}
+          addUserList={addUserList}
         />
       )}
       {addBulkPopupActive && (
         <AddBulk
-          schoolData={school}
           schoolList={schoolList}
           setPopupActive={setAddBulkPopupActive}
-          setIsUserListLoading={setIsUserListLoading}
+          addUserList={addUserList}
         />
       )}
       {schoolBulkPopup && (
         <SchoolBulk
           schoolList={schoolList}
           setPopupActive={setSchoolBulkPopupActive}
-          setIsUserListLoading={setIsUserListLoading}
+          updateUserList={updateUserList}
           selectedUserList={userSelectRef.current}
         />
       )}

@@ -34,13 +34,43 @@
     color: var(--accent-1);
   }
 
-  .search {
-    outline: none;
-    border: none;
-    border-radius: 8px;
-    background-color: var(--component-color);
-    padding: 8px 18px;
-    width: 100%;
+  .user_search {
+    position: relative;
+    z-index: 1999;
+    flex: 1 1 0;
+
+    .search {
+      border-radius: 4px;
+      background-color: var(--component-color);
+      padding: 6.5px 15px;
+      font-size: 14px;
+      width: 100%;
+      outline: none;
+      border: none;
+    }
+
+    .result {
+      position: absolute;
+      background-color: var(--component-color);
+      border-radius: 4px;
+      width: 100%;
+      top: 32px;
+      max-height: 150px;
+      overflow-y: scroll;
+
+      .row {
+        cursor: pointer;
+        font-size: 14px;
+        padding: 6.5px 15px;
+      }
+
+      .row:hover{
+      background-color: var(--component-hover-color);
+      border-radius: 4px;
+
+      }
+
+    }
   }
 
   .controls {

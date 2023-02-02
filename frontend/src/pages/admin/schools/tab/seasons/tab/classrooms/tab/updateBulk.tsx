@@ -43,9 +43,8 @@ import exampleData from "../../../../../exampleData/classroomsExampleData";
 
 type Props = {
   setPopupActive: any;
-  seasonData: any;
+  _id: string;
   setClassroomList: any;
-  setSelectedSeason: any;
 };
 
 function Basic(props: Props) {
@@ -123,7 +122,7 @@ function Basic(props: Props) {
     <>
       <Popup
         setState={props.setPopupActive}
-        style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        style={{ borderRadius: "8px" }}
         closeBtn
         title="강의실 일괄 생성"
         contentScroll
@@ -132,14 +131,12 @@ function Basic(props: Props) {
             type={"ghost"}
             onClick={() => {
               SeasonApi.USeasonClassroom({
-                _id: props.seasonData?._id,
+                _id: props._id,
                 data: classroomList,
               })
                 .then((res: any) => {
-                  props.setClassroomList(res);
-                  props.seasonData.classrooms = [...res];
-                  props.setSelectedSeason(props.seasonData);
                   alert("success");
+                  props.setClassroomList(res.classrooms);
                   props.setPopupActive(false);
                 })
                 .catch((err) => alert(err.response.data.message));

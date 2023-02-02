@@ -39,26 +39,29 @@ import Select from "components/select/Select";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 import _ from "lodash";
+import Textarea from "components/textarea/Textarea";
 
 type Props = {
   user: string;
   setPopupAcitve: any;
   schoolList: any;
-  setIsUserListLoading: any;
+  updateUserList: any;
 };
 
 function Basic(props: Props) {
   const database = useDatabase();
   const schoolSelectRef = useRef<any[]>([]);
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
   /* document fields */
-  const [userId, setUserId] = useState<string>();
-  const [userName, setUserName] = useState<string>();
+  const [userId, setUserId] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
   const [schools, setSchools] = useState<any[]>();
-  const [schoolsText, setSchoolsText] = useState<string>();
-  const [auth, setAuth] = useState<string>();
-  const [email, setEmail] = useState<string>();
-  const [tel, setTel] = useState<string>();
+  const [schoolsText, setSchoolsText] = useState<string>("");
+  const [auth, setAuth] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [tel, setTel] = useState<string>("");
 
   /* Popup Activation */
   const [isEditSchoolPopupActive, setIsEditSchoolPopupActive] =
@@ -89,58 +92,66 @@ function Basic(props: Props) {
   }, [auth]);
 
   useEffect(() => {
-    getUser()
-      .then((res: any) => {
-        setUserId(res.userId);
-        setUserName(res.userName);
-        setSchools(res.schools);
-        setAuth(res.auth);
-        setEmail(res.email);
-        setTel(res.tel);
-      })
-      .catch((err: any) => alert(err.response.data.message));
-  }, []);
+    if (isLoading) {
+      getUser()
+        .then((res: any) => {
+          setUserId(res.userId);
+          setUserName(res.userName);
+          setSchools(res.schools);
+          setAuth(res.auth);
+          setEmail(res.email);
+          setTel(res.tel);
+        })
+        .then(() => setIsLoading(false))
+        .catch((err: any) => alert(err.response.data.message));
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     if (schools) {
       setSchoolsText(
-        _.join(
-          schools.map(
-            (schoolData: any) =>
-              `${schoolData.schoolName}(${schoolData.schoolId})`
-          ),
-          ", "
-        )
+        schools.length !== 0
+          ? _.join(
+              schools.map((schoolData: any) => schoolData.schoolName),
+              "\n"
+            )
+          : "*가입된 학교 없음"
       );
     }
   }, [schools]);
 
   return (
     <>
+      !isLoading&&
       <Popup
         closeBtn
         setState={props.setPopupAcitve}
         title={`${userName}(${userId})`}
         style={{ borderRadius: "4px" }}
+        contentScroll
       >
         <div className={style.popup}>
+          <div className={style.label} style={{ marginBottom: "0px" }}>
+            소속 학교
+          </div>
           <div
             style={{
               display: "flex",
-              alignItems: "flex-end",
+              alignItems: "baseline",
               gap: "12px",
             }}
           >
-            <Input
-              label="소속 학교"
+            <Textarea
               defaultValue={schoolsText}
-              appearence="flat"
               disabled
+              rows={schools?.length || 1}
+              style={{ resize: "none" }}
             />
             <Button
               type={"ghost"}
               onClick={() => {
-                schoolSelectRef.current = [];
+                console.log(schools);
+                schoolSelectRef.current = schools ? schools : [];
                 setIsEditSchoolPopupActive(true);
               }}
               style={{
@@ -154,19 +165,26 @@ function Basic(props: Props) {
           </div>
 
           <div style={{ marginTop: "24px" }}>
-            {auth && (
-              <Select
-                appearence="flat"
-                label="등급"
-                required
-                options={[
-                  { text: "멤버", value: "member" },
-                  { text: "매니저", value: "manager" },
-                ]}
-                defaultSelectedValue={auth}
-                onChange={setAuth}
-              />
-            )}
+            {!isLoading &&
+              (auth !== "admin" ? (
+                <Select
+                  appearence="flat"
+                  label="등급"
+                  required
+                  options={[
+                    { text: "멤버", value: "member" },
+                    { text: "매니저", value: "manager" },
+                  ]}
+                  defaultSelectedValue={auth}
+                  onChange={setAuth}
+                />
+              ) : (
+                <Select
+                  appearence="flat"
+                  label="등급"
+                  options={[{ text: "관리자", value: "admin" }]}
+                />
+              ))}
           </div>
           <div style={{ marginTop: "24px" }}>
             <Input
@@ -192,7 +210,7 @@ function Basic(props: Props) {
                 updateUser()
                   .then((res) => {
                     alert("success");
-                    props.setIsUserListLoading(true);
+                    props.updateUserList(userId, res);
                     props.setPopupAcitve(false);
                   })
                   .catch((err) => {
@@ -222,19 +240,20 @@ function Basic(props: Props) {
             <div className={style.row}>
               <Table
                 type="object-array"
-                data={props.schoolList}
+                data={
+                  props.schoolList?.map((school: any) => {
+                    console.log(schoolSelectRef.current);
+                    if (_.find(schoolSelectRef.current, { school: school._id }))
+                      school.tableRowChecked = true;
+                    else school.tableRowChecked = false;
+                    return school;
+                  }) || []
+                }
                 onChange={(value: any[]) => {
                   schoolSelectRef.current = _.filter(value, {
                     tableRowChecked: true,
                   });
                 }}
-                // checkFunction={(value) => {
-                //   console.log("schools: ", schools, " value: ", value);
-                //   return _.includes(
-                //     schools.map((schoolData: any) => schoolData.school),
-                //     value._id
-                //   );
-                // }}
                 header={[
                   {
                     text: "선택",

@@ -57,6 +57,9 @@ jobs:
           echo "SIGKEY_E= ${{secrets.SIGKEY_E}}" >> .env
           echo "ENCKEY_A= ${{secrets.ENCKEY_A}}" >> .env
           echo "SIGKEY_A= ${{secrets.SIGKEY_A}}" >> .env
+          echo "s3_accessKeyId2 = ${{secrets.S3_ACCESSKEYID2}}" >> .env
+          echo "s3_secretAccessKey2= ${{secrets.S3_SECRETACCESSKEY2}}" >> .env
+          echo "s3_bucket2=${{secrets.S3_BUCKET2}}" >> .env
 
       # 빌드 후 푸쉬
       - name: Build and push
@@ -117,7 +120,7 @@ jobs:
       - name: Docker run
         run: |
           docker rm -f bsis-dev_backend_1 &>/dev/null && echo 'Removed old container'
-          docker run --name bsis-dev_backend_1 -p ${{env.SERVER_PORT}}:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-dev_backend:latest
+          docker run --name bsis-dev_backend_1  --restart on-failure -p ${{env.SERVER_PORT}}:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-dev_backend:latest
 
       # 이전 이미지 삭제
       - name: Prune images

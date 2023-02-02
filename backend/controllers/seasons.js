@@ -64,26 +64,59 @@ module.exports.create = async (req, res) => {
     });
     if (exSeason)
       return res.status(409).send({
-        message: `season(${req.body.school},${req.body.year},${req.body.term}) is already in use`,
+        message: `동일한 이름의 시즌(${req.body.year}, ${req.body.term})이 존재합니다.`,
       });
 
     const school = await School(req.user.academyId).findById(req.body.school);
     if (!school) return res.status(404).send();
 
+    if (req.body.copyFrom) {
+      const seasonToCopy = await _Season.findById(req.body.copyFrom);
+      if (!seasonToCopy)
+        return res.status(404).send({
+          message: `season(${req.body.copyFrom}) not found`,
+        });
+
+      /* create and save document */
+      const season = new _Season({
+        ...seasonToCopy.toObject(),
+        _id: undefined,
+        year: req.body.year,
+        term: req.body.term,
+        period: req.body.period ? req.body.period : { start: "", end: "" },
+        isActivated: false,
+        isActivatedFirst: false,
+      });
+
+      await season.save();
+
+      const registrationsToCopy = await Registration(req.user.academyId).find({
+        season: seasonToCopy._id,
+      });
+      const registrations = registrationsToCopy.map((reg) => {
+        return {
+          ...reg.toObject(),
+          _id: undefined,
+          season: season._id,
+          year: season.year,
+          term: season.term,
+          period: season.period,
+          isActivated: season.isActivated,
+        };
+      });
+      await Registration(req.user.academyId).insertMany(registrations);
+
+      return res.status(200).send(season);
+    }
+
     /* create and save document */
     const season = new _Season({
-      ...req.body,
+      school: school._id,
       schoolId: school.schoolId,
       schoolName: school.schoolName,
-      classrooms: school.classrooms,
-      subjects: school.subjects,
-      permissionSyllabus: school.permissionSyllabus,
-      permissionEnrollment: school.permissionEnrollment,
-      permissionEvaluation: school.permissionEvaluation,
-      formTimetable: school.formTimetable,
-      formSyllabus: school.formSyllabus,
-      formEvaluation: school.formEvaluation,
-      formArchive: school.formArchive,
+      year: req.body.year,
+      term: req.body.term,
+      period: req.body.period ? req.body.period : { start: "", end: "" },
     });
 
     await season.save();
@@ -97,6 +130,14 @@ module.exports.find = async (req, res) => {
   try {
     if (req.params._id) {
       const season = await Season(req.user.academyId).findById(req.params._id);
+      if (req.query.withRegistrations === "true") {
+        const registrations = await Registration(req.user.academyId)
+          .find({
+            season: season._id,
+          })
+          .select(["userId", "userName", "user"]);
+        return res.status(200).send({ ...season.toObject(), registrations });
+      }
       return res.status(200).send(season);
     }
     const seasons = await Season(req.user.academyId)
@@ -109,6 +150,7 @@ module.exports.find = async (req, res) => {
         "term",
         "period",
         "isActivated",
+        "isActivatedFirst",
       ]);
 
     return res.status(200).send({ seasons });
@@ -181,21 +223,21 @@ module.exports.update = async (req, res) => {
 
 module.exports.activate = async (req, res) => {
   try {
-    /* find document */
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     /* activate season */
-    season.isActivated = true;
-    await season.save();
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { isActivated: true, isActivatedFirst: true },
+      { new: true }
+    );
+    if (!season) return res.status(404).send({ message: "season not found" });
 
     /* activate registrations */
     await Registration(req.user.academyId).updateMany(
-      { season },
+      { season: season._id },
       { isActivated: true }
     );
 
-    return res.status(200).send();
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -203,21 +245,21 @@ module.exports.activate = async (req, res) => {
 
 module.exports.inactivate = async (req, res) => {
   try {
-    /* find document */
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     /* activate season */
-    season.isActivated = false;
-    await season.save();
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { isActivated: false },
+      { new: true }
+    );
+    if (!season) return res.status(404).send({ message: "season not found" });
 
     /* activate registrations */
     await Registration(req.user.academyId).updateMany(
-      { season },
+      { season: season._id },
       { isActivated: false }
     );
 
-    return res.status(200).send();
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -225,8 +267,8 @@ module.exports.inactivate = async (req, res) => {
 
 module.exports.updateField = async (req, res) => {
   try {
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
+    const _season = await Season(req.user.academyId).findById(req.params._id);
+    if (!_season) return res.status(404).send({ message: "season not found" });
 
     let field = req.params.field;
     if (req.params.fieldType)
@@ -234,17 +276,18 @@ module.exports.updateField = async (req, res) => {
         req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
 
     switch (field) {
+      case "formTimetable":
+      case "formSyllabus":
+      case "formEvaluation":
+        if (_season.isActivatedFirst)
+          return res.status(409).send({
+            message: "한 번 활성화된 시즌의 양식을 변경할 수 업습니다.",
+          });
+
       // classrooms, subjects, formTimetable, formSyllabus => 해당 시즌에 syllabus가 존재하면 수정할 수 없다.
       case "classrooms":
       case "subjects":
-      case "formTimetable":
-      case "formSyllabus":
-        // await checkSyllabus(req.user.academyId, season); -> !TEMP!
-        break;
-      // formEvaluation => 해당 시즌에 evaluation이 존재하면 수정할 수 없다.
-      case "formEvaluation":
-        // await checkEvaluation(req.user.academyId, season); -> !TEMP!
-        break;
+
       // permissionSyllabus, permissionEnrollment, permissionEvaluation, period => 수정 제약 없음
       case "permissionSyllabus":
       case "permissionEnrollment":
@@ -255,19 +298,24 @@ module.exports.updateField = async (req, res) => {
         return res.status(400).send();
     }
 
-    season[field] = req.body.new;
-    await season.save();
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      _season._id,
+      { [field]: req.body.new },
+      { new: true }
+    );
+    // season[field] = req.body.new;
+    // await season.save();
 
     // period가 변경되면
     // registration 일괄 수정
     if (field === "period") {
       await Registration(req.user.academyId).updateMany(
-        { season: season._id },
-        { period: season.period }
+        { season: _season._id },
+        { period: _season.period }
       );
     }
 
-    return res.status(200).send(season[field]);
+    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

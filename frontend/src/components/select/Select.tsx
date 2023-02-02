@@ -24,6 +24,8 @@ type Props = {
   setValue?: any;
   onChange?: any;
   appearence?: "flat";
+
+  onEdit?: any;
 };
 
 /**
@@ -64,7 +66,7 @@ const Select = (props: Props) => {
   }
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
-    props.setValue && props.setValue(props.options[selected].value);
+    props.setValue && props.setValue(props.options[selected]?.value);
 
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
@@ -79,11 +81,16 @@ const Select = (props: Props) => {
     }
   }, [props.selectedValue]);
 
+  useEffect(() => {
+    if (props.onEdit) {
+      props.onEdit(edit);
+    }
+  }, [edit]);
+
   // useEffect(() => {
   //   if (selected >= 0 && typeof selected === "number") {
   //     props.onChange?.(props.options[selected].value);
   //   }
-  //   console.log(selected);
   // }, [selected]);
 
   const Options = () => {

@@ -43,9 +43,8 @@ import exampleData from "../../../../../exampleData/subjectExampleData";
 
 type Props = {
   setPopupActive: any;
-  seasonData: any;
-  setSelectedSeason: any;
-  setSubjectObjectList: any;
+  _id: string;
+  setSubjects: any;
 };
 
 function Basic(props: Props) {
@@ -138,47 +137,35 @@ function Basic(props: Props) {
   };
 
   useEffect(() => {
-    setSubjectDataHeader([
-      {
-        text: "No",
-        key: "",
-        type: "index",
-        width: "48px",
-        align: "center",
-      },
-      ...subjectLabelList.map((label: string) => {
+    setSubjectDataHeader(
+      subjectLabelList.map((label: string) => {
         return { text: label, key: label, type: "string" };
-      }),
-    ]);
+      })
+    );
   }, [subjectLabelList]);
 
   return (
     <>
       <Popup
         setState={props.setPopupActive}
-        style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        style={{ borderRadius: "8px" }}
         closeBtn
-        title="교과목 일괄 수성"
+        title="교과목 일괄 수정"
         contentScroll
         footer={
           <Button
             type={"ghost"}
             onClick={() => {
               SeasonApi.USeasonSubject({
-                _id: props.seasonData?._id,
+                _id: props._id,
                 data: {
                   label: subjectLabelList,
                   data: parseSubjectObjectList(subjectObjectList),
                 },
               })
                 .then((res: any) => {
-                  props.setSubjectObjectList(
-                    parseSubjectDataList(res.label, res.data)
-                  );
-                  props.seasonData.subjects = res;
-                  props.setSelectedSeason(props.seasonData);
-
                   alert("success");
+                  props.setSubjects(res.subjects);
                   props.setPopupActive(false);
                 })
                 .catch((err) => alert(err.response.data.message));
@@ -251,7 +238,16 @@ function Basic(props: Props) {
             <Table
               type="object-array"
               data={subjectObjectList}
-              header={subjectDataHeader}
+              header={[
+                {
+                  text: "No",
+                  key: "",
+                  type: "index",
+                  width: "48px",
+                  align: "center",
+                },
+                ...subjectDataHeader,
+              ]}
             />
           </div>
         </div>

@@ -28,7 +28,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -46,55 +46,32 @@ import Svg from "assets/svg/Svg";
 
 type Props = {
   setState: any;
-  receiverOptionList: any[];
-  receiverSelectedList?: any;
   category?: string;
   title?: string;
   receiverList?: any[];
+  receiverSelectedList?: any[];
   receiverType?: string;
+  setIsLoading?: any;
 };
 
 const NotificationSend = (props: Props) => {
-  const database = useDatabase();
-
-  const [receiverSelectedList, setReceiverSelectedList] = useState<any>(
-    props.receiverSelectedList || {}
+  const { NotificationApi } = useApi();
+  const [receiverList, setReceiverList] = useState<any[]>();
+  const [receiverSelectedList, setReceiverSelectedList] = useState<any[]>(
+    props.receiverSelectedList || []
   );
+
   const [receiverSelectPopupActive, setReceiverSelectPopupActive] =
     useState<boolean>(false);
   const [isReceiverListLoaded, setIsReceiverListLoaded] =
     useState<boolean>(false);
-  const [receiverList, setReceiverList] = useState<any[]>();
   const selectRef = useRef<any[]>([]);
 
   const [title, setTitle] = useState<string>(props.title || "");
   const [category, setCategory] = useState<string>(props.category || "");
   const [description, setDescription] = useState<string>("");
 
-  async function sendNotifications() {
-    const res = await database.C({
-      location: `notifications`,
-      data: {
-        toUserList: Object.keys(receiverSelectedList).map((receiver: any) =>
-          JSON.parse(receiver)
-        ),
-        category,
-        title,
-        description,
-      },
-    });
-
-    return res;
-  }
-
   useEffect(() => {
-    console.log("receiverList is updated: ", receiverList);
-
-    return () => {};
-  }, [receiverList]);
-
-  const loadReceiverList = () => {
-    console.log("loading");
     if (props.receiverType === "academy") {
       setReceiverList(
         props.receiverList?.map((receiver: any) => {
@@ -105,14 +82,21 @@ const NotificationSend = (props: Props) => {
               ", "
             ),
           };
-        })
+        }) || []
       );
-      setIsReceiverListLoaded(true);
     } else {
-      setReceiverList(props.receiverList);
+      setReceiverList(props.receiverList || []);
+    }
+    return () => {};
+  }, []);
+
+  useEffect(() => {
+    if (receiverList) {
+      console.log("receiverList", receiverList);
       setIsReceiverListLoaded(true);
     }
-  };
+    return () => {};
+  }, [receiverList]);
 
   const receiverListHeader: { [key: string]: any } = {
     season: [
@@ -269,167 +253,195 @@ const NotificationSend = (props: Props) => {
 
   return (
     <>
-      {" "}
-      <Popup
-        setState={props.setState}
-        title="알림 보내기"
-        style={{ maxWidth: "320px" }}
-        closeBtn
-      >
-        <div style={{ marginTop: "12px" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-            }}
-          >
-            <Autofill
-              label="수신자"
-              appearence="flat"
-              options={props.receiverOptionList}
-              setState={(e: string) => {
-                if (!receiverSelectedList[e]) {
-                  receiverSelectedList[e] = true;
-                  setReceiverSelectedList({
-                    ...receiverSelectedList,
-                  });
-                }
-              }}
-              required
-              placeholder={"이름 또는 아이디로 검색"}
-              resetOnClick
-            />
+      {isReceiverListLoaded && (
+        <Popup
+          setState={props.setState}
+          title="알림 보내기"
+          style={{ maxWidth: "320px" }}
+          closeBtn
+        >
+          <div style={{ marginTop: "12px" }}>
             <div
-              className={style.icon}
-              onClick={() => {
-                if (!isReceiverListLoaded) {
-                  loadReceiverList();
-                }
-                setReceiverSelectPopupActive(true);
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
               }}
             >
-              <Svg type="list_check" width="20px" height="20px" />
+              <Autofill
+                label="수신자"
+                appearence="flat"
+                options={
+                  receiverList?.map((e: any) => {
+                    return {
+                      value: JSON.stringify({
+                        user: props.receiverType === "season" ? e.user : e._id,
+                        userId: e.userId,
+                        userName: e.userName,
+                      }),
+                      text: `${e.userName}(${e.userId})`,
+                    };
+                  }) || []
+                }
+                setState={(e: string) => {
+                  setReceiverSelectedList(
+                    _.uniqBy(
+                      [...receiverSelectedList, JSON.parse(e)],
+                      (obj) => obj.userId
+                    )
+                  );
+                }}
+                required
+                placeholder={"이름 또는 아이디로 검색"}
+                resetOnClick
+              />
+              <div
+                className={style.icon}
+                onClick={() => {
+                  selectRef.current = receiverSelectedList;
+                  setReceiverSelectPopupActive(true);
+                }}
+              >
+                <Svg type="list_check" width="20px" height="20px" />
+              </div>
             </div>
-          </div>
-          <div
-            style={{
-              marginTop: "12px",
-              display: "flex",
-              gap: "4px",
-              overflow: "auto",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {Object.keys(receiverSelectedList).map((receiver: any) => {
-              const { userId, userName } = JSON.parse(receiver);
+            <div
+              style={{
+                marginTop: "12px",
+                display: "flex",
+                gap: "4px",
+                overflow: "auto",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {receiverSelectedList.map((receiver: any) => {
+                const { userId, userName } = receiver;
 
-              return (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    color: "gray",
-                    border: "1px solid",
-                    padding: "0px 4px 0px 4px",
-                    fontSize: "12px",
-                    fontWeight: "12px",
-                    borderRadius: "12px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {`${userName}(${userId})`}
-                  <Button
-                    type="ghost"
-                    onClick={(e: any) => {
-                      delete receiverSelectedList[receiver];
-                      setReceiverSelectedList({
-                        ...receiverSelectedList,
-                      });
-                    }}
+                return (
+                  <div
                     style={{
-                      border: 0,
+                      display: "flex",
+                      alignItems: "center",
                       color: "gray",
+                      border: "1px solid",
+                      padding: "0px 4px 0px 4px",
+                      fontSize: "12px",
+                      fontWeight: "12px",
+                      borderRadius: "12px",
+                      cursor: "pointer",
                     }}
                   >
-                    X
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
+                    {`${userName}(${userId})`}
+                    <Button
+                      type="ghost"
+                      onClick={(e: any) => {
+                        console.log("receiver is ", receiver);
 
-          <div
-            style={{
-              display: "flex",
-              gap: "24px",
-              marginTop: "12px",
-            }}
-          >
-            <Input
-              label="구분"
-              onChange={(e: any) => {
-                setCategory(e.target.value);
+                        setReceiverSelectedList(
+                          _.filter(receiverSelectedList, (val) => {
+                            return val.userId !== userId;
+                          })
+                        );
+                      }}
+                      style={{
+                        border: 0,
+                        color: "gray",
+                      }}
+                    >
+                      X
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "24px",
+                marginTop: "12px",
               }}
-              defaultValue={category}
-            />
-          </div>
+            >
+              <Input
+                label="구분"
+                onChange={(e: any) => {
+                  setCategory(e.target.value);
+                }}
+                defaultValue={category}
+              />
+            </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "24px",
-              marginTop: "24px",
-            }}
-          >
-            <Input
-              label="제목"
-              onChange={(e: any) => {
-                setTitle(e.target.value);
+            <div
+              style={{
+                display: "flex",
+                gap: "24px",
+                marginTop: "24px",
               }}
-              required
-              defaultValue={title}
-            />
-          </div>
+            >
+              <Input
+                label="제목"
+                onChange={(e: any) => {
+                  setTitle(e.target.value);
+                }}
+                required
+                defaultValue={title}
+              />
+            </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "24px",
-              marginTop: "24px",
-            }}
-          >
-            <Textarea
-              label="본문"
-              onChange={(e: any) => {
-                setDescription(e.target.value);
+            <div
+              style={{
+                display: "flex",
+                gap: "24px",
+                marginTop: "24px",
               }}
-            />
-          </div>
+            >
+              <Textarea
+                label="본문"
+                onChange={(e: any) => {
+                  setDescription(e.target.value);
+                }}
+              />
+            </div>
 
-          <Button
-            style={{ marginTop: "24px" }}
-            type="ghost"
-            onClick={() => {
-              console.log("receiverSelectedList: ", receiverSelectedList);
-              if (_.isEmpty(receiverSelectedList)) {
-                alert("받는사람을 한 명 이상 지정해야 합니다.");
-              } else if (title === "") {
-                alert("타이틀 없이 메일을 보낼 수 없습니다.");
-              } else {
-                sendNotifications()
-                  .then((res: any) => {
-                    alert("success");
-                    props.setState(false);
+            <Button
+              style={{ marginTop: "24px" }}
+              type="ghost"
+              onClick={() => {
+                if (_.isEmpty(receiverSelectedList)) {
+                  alert("받는사람을 한 명 이상 지정해야 합니다.");
+                } else if (title === "") {
+                  alert("타이틀 없이 메일을 보낼 수 없습니다.");
+                } else {
+                  console.log(receiverSelectedList);
+                  NotificationApi.SendNotifications({
+                    data: {
+                      toUserList: receiverSelectedList.map((receiver: any) => {
+                        return {
+                          user: receiver.user,
+                          userId: receiver.userId,
+                          userName: receiver.userName,
+                        };
+                      }),
+                      category,
+                      title,
+                      description,
+                    },
                   })
-                  .catch((err) => alert(err.response.data.message));
-              }
-            }}
-          >
-            전송
-          </Button>
-        </div>
-      </Popup>
-      {receiverSelectPopupActive && isReceiverListLoaded && (
+                    .then((res: any) => {
+                      alert("success");
+
+                      props.setIsLoading(true);
+                      props.setState(false);
+                    })
+                    .catch((err) => alert(err.response.data.message));
+                }
+              }}
+            >
+              전송
+            </Button>
+          </div>
+        </Popup>
+      )}
+      {receiverSelectPopupActive && (
         <Popup
           setState={setReceiverSelectPopupActive}
           closeBtn
@@ -439,20 +451,7 @@ const NotificationSend = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                setReceiverSelectedList(
-                  selectRef.current.reduce(
-                    (acc: any, receiver: any, i: number) => {
-                      acc[
-                        JSON.stringify({
-                          userId: receiver.userId,
-                          userName: receiver.userName,
-                        })
-                      ] = true;
-                      return acc;
-                    },
-                    {}
-                  )
-                );
+                setReceiverSelectedList(selectRef.current);
                 setReceiverSelectPopupActive(false);
               }}
             >
@@ -461,7 +460,14 @@ const NotificationSend = (props: Props) => {
           }
         >
           <Table
-            data={receiverList || []}
+            data={
+              receiverList?.map((receiver: any) => {
+                if (_.find(selectRef.current, { userId: receiver.userId }))
+                  receiver.tableRowChecked = true;
+                else receiver.tableRowChecked = false;
+                return receiver;
+              }) || []
+            }
             type="object-array"
             control
             defaultPageBy={50}
