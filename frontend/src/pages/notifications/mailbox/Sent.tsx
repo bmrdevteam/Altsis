@@ -29,7 +29,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "contexts/authContext";
 import useDatabase from "hooks/useDatabase";
-
+import useApi from "hooks/useApi";
 import style from "./mailbox.module.scss";
 
 // components
@@ -47,6 +47,7 @@ type Props = {};
 const Sent = (props: Props) => {
   const database = useDatabase();
   const { currentUser, currentRegistration, currentSchool } = useAuth();
+  const { NotificationApi } = useApi();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
   const [notification, setNotification] = useState<any>();
@@ -55,30 +56,12 @@ const Sent = (props: Props) => {
   const [notificatnionPopupActive, setNotificatnionPopupActive] =
     useState<boolean>(false);
 
-  const [isReceiverOptionListLoaded, setIsReceiverOptionListLoaded] =
-    useState<boolean>(false);
   const [receiverType, setReceiverType] = useState<string>("");
   const [receiverList, setReceiverList] = useState<any[]>([]);
-  const [receiverOptionList, setReceiverOptionList] = useState<any[]>([]);
 
   const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  async function getNotificationList() {
-    const { notifications } = await database.R({
-      location: `notifications?type=sent&userId=${currentUser?.userId}`,
-    });
-    return notifications;
-  }
-
-  async function getNotification(_id: string) {
-    const res = await database.R({
-      location: `notifications/${_id}`,
-    });
-
-    return res;
-  }
 
   async function getRegistrationList() {
     const { registrations } = await database.R({
@@ -106,39 +89,33 @@ const Sent = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      getNotificationList().then((res: any) => {
-        setNotificationList(
-          res.map((val: any) => {
-            return {
-              ...val,
-              toUser: `${val.toUserList[0].userName}(${
-                val.toUserList[0].userId
-              })${
-                val.toUserList.length > 1
-                  ? ` 외 ${val.toUserList.length - 1}명`
-                  : ``
-              }`,
-            };
-          })
-        );
-        selectRef.current = [];
-        setIsLoading(false);
-      });
+      NotificationApi.RNotifications({ type: "sent", user: currentUser._id })
+        .then((res) => {
+          setNotificationList(
+            res.map((val: any) => {
+              return {
+                ...val,
+                toUser: `${val.toUserList[0].userName}(${
+                  val.toUserList[0].userId
+                })${
+                  val.toUserList.length > 1
+                    ? ` 외 ${val.toUserList.length - 1}명`
+                    : ``
+                }`,
+              };
+            })
+          );
+        })
+        .then(() => {
+          selectRef.current = [];
+          setIsLoading(false);
+        });
+
+      updateReceiverList();
     }
   }, [isLoading]);
 
-  async function deleteNotifications(ids: string[]) {
-    const res = await database.D({
-      location: `notifications/${_.join(ids, "&")}`,
-    });
-    return res;
-  }
-
-  useEffect(() => {
-    setIsReceiverOptionListLoaded(false);
-  }, [currentRegistration]);
-
-  async function updateReceiverOptionList() {
+  async function updateReceiverList() {
     if (currentRegistration) {
       setReceiverType("season");
       getRegistrationList().then((res: any) => {
@@ -156,24 +133,6 @@ const Sent = (props: Props) => {
       });
     }
   }
-
-  useEffect(() => {
-    if (receiverList) {
-      setReceiverOptionList(
-        receiverList.map((receiver: any) => {
-          return {
-            value: JSON.stringify({
-              userId: receiver.userId,
-              userName: receiver.userName,
-            }),
-            text: `${receiver.userName}(${receiver.userId})`,
-          };
-        })
-      );
-    }
-
-    return () => {};
-  }, [receiverList]);
 
   return !isLoading ? (
     <>
@@ -194,7 +153,7 @@ const Sent = (props: Props) => {
                   if (_.isEmpty(selectRef.current)) {
                     alert("select notifications to delete");
                   } else {
-                    deleteNotifications(selectRef.current || [])
+                    NotificationApi.DNotifications(selectRef.current || [])
                       .then((res: any) => {
                         setIsLoading(true);
                         alert("success");
@@ -218,11 +177,6 @@ const Sent = (props: Props) => {
               <div
                 className={style.icon}
                 onClick={() => {
-                  if (!isReceiverOptionListLoaded) {
-                    updateReceiverOptionList().then(() => {
-                      setIsReceiverOptionListLoaded(true);
-                    });
-                  }
                   setSendPopupActive(true);
                 }}
                 style={{ display: "flex", gap: "4px" }}
@@ -282,11 +236,11 @@ const Sent = (props: Props) => {
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  getNotification(e._id)
+                  NotificationApi.RNotificationById(e._id)
                     .then((res) => {
                       setNotification(res);
-                      setNotificatnionPopupActive(true);
                     })
+                    .then(() => setNotificatnionPopupActive(true))
                     .catch((err) => alert(err.response.data.message));
                 },
                 width: "80px",
@@ -303,12 +257,12 @@ const Sent = (props: Props) => {
           />
         )}
       </div>
-      {sendPopupActive && isReceiverOptionListLoaded && (
+      {sendPopupActive && (
         <Send
           setState={setSendPopupActive}
-          receiverOptionList={receiverOptionList}
           receiverList={receiverList}
           receiverType={receiverType}
+          setIsLoading={setIsLoading}
         />
       )}
     </>

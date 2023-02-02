@@ -4,15 +4,10 @@ const encrypt = require("mongoose-encryption");
 
 const archiveSchema = mongoose.Schema(
   {
-    userId: {
-      type: String,
-      required: true,
-    },
-    userName: {
-      type: String,
-      required: true,
-    },
-    school: mongoose.Types.ObjectId,
+    user: { type: mongoose.Types.ObjectId, required: true },
+    userId: String,
+    userName: String,
+    school: { type: mongoose.Types.ObjectId, required: true },
     schoolId: String,
     schoolName: String,
     data: Object,
@@ -23,7 +18,7 @@ const archiveSchema = mongoose.Schema(
 archiveSchema.index(
   {
     school: 1,
-    userId: 1,
+    user: 1,
   },
   { unique: true }
 );

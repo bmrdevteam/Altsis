@@ -35,7 +35,7 @@ import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
 
 // tab pages
-import Add from "./tab/Add";
+import Add from "./view/Add";
 
 type Props = {};
 
@@ -52,7 +52,7 @@ const CourseDesign = (props: Props) => {
   }, [currentRegistration]);
 
   useEffect(() => {
-    if (!currentPermission.permissionSyllabus) {
+    if (currentPermission && !currentPermission?.permissionSyllabus) {
       alert("수업 개설 권한이 없습니다.");
       navigate("/courses");
     }

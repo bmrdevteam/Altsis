@@ -27,7 +27,7 @@
  *
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -39,23 +39,30 @@ import Input from "components/input/Input";
 
 import UpdateBulk from "./tab/updateBulk";
 
-import _ from "lodash";
-
 type Props = {
-  seasonData: any;
-  setSelectedSeason: any;
+  _id: string;
 };
 
 const Classroom = (props: Props) => {
   const { SeasonApi } = useApi();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [classroomList, setClassroomList] = useState<any[]>(
-    props.seasonData.classrooms || []
-  );
+  const [classroomList, setClassroomList] = useState<any[]>([]);
   const classroomRef = useRef<string>("");
 
   /* popup activation */
   const [updateBulkPopup, setUpdateBulkPopupActive] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      SeasonApi.RSeason(props._id)
+        .then((res) => {
+          setClassroomList(res.classrooms);
+        })
+        .then(() => setIsLoading(false));
+    }
+    return () => {};
+  }, [isLoading]);
 
   return (
     <>
@@ -89,17 +96,16 @@ const Classroom = (props: Props) => {
             onKeyDown={(e: any) => {
               if (classroomRef.current !== "" && e.key === "Enter") {
                 SeasonApi.USeasonClassroom({
-                  _id: props.seasonData._id,
+                  _id: props._id,
                   data: [...classroomList, classroomRef.current],
                 })
                   .then((res: any) => {
-                    setClassroomList(res);
-                    props.seasonData.classrooms = res;
-                    props.setSelectedSeason(props.seasonData);
                     alert("success");
+                    setClassroomList(res.classrooms);
                   })
                   .catch((err) => {
-                    alert(err.response.data.message);
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
                   });
               }
             }}
@@ -109,19 +115,20 @@ const Classroom = (props: Props) => {
           <Button
             type={"ghost"}
             onClick={() => {
-              SeasonApi.USeasonClassroom({
-                _id: props.seasonData._id,
-                data: [...classroomList, classroomRef.current],
-              })
-                .then((res: any) => {
-                  setClassroomList(res);
-                  props.seasonData.classrooms = res;
-                  props.setSelectedSeason(props.seasonData);
-                  alert("success");
+              if (classroomRef.current !== "") {
+                SeasonApi.USeasonClassroom({
+                  _id: props._id,
+                  data: [...classroomList, classroomRef.current],
                 })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
+                  .then((res: any) => {
+                    alert("success");
+                    setClassroomList(res.classrooms);
+                  })
+                  .catch((err) => {
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
+                  });
+              }
             }}
             style={{
               borderRadius: "4px",
@@ -134,8 +141,9 @@ const Classroom = (props: Props) => {
         </div>
 
         <div style={{ marginTop: "24px" }} />
+
         <Table
-          data={classroomList}
+          data={!isLoading ? classroomList : []}
           type="string-array"
           header={[
             {
@@ -155,17 +163,18 @@ const Classroom = (props: Props) => {
               key: "delete",
               type: "button",
               onClick: (e: any) => {
-                classroomList.splice(e.rowIndex - 1, 1);
+                classroomList.splice(e.tableRowIndex - 1, 1);
                 SeasonApi.USeasonClassroom({
-                  _id: props.seasonData._id,
+                  _id: props._id,
                   data: classroomList,
                 })
                   .then((res: any) => {
-                    setClassroomList(res);
                     alert("success");
+                    setClassroomList(res.classrooms);
                   })
                   .catch((err) => {
-                    alert(err.response.data.message);
+                    console.log(err.response.data.message);
+                    // alert(err.response.data.message);
                   });
               },
               width: "80px",
@@ -180,12 +189,12 @@ const Classroom = (props: Props) => {
           ]}
         />
       </div>
+
       {updateBulkPopup && (
         <UpdateBulk
+          _id={props._id}
           setPopupActive={setUpdateBulkPopupActive}
-          seasonData={props.seasonData}
           setClassroomList={setClassroomList}
-          setSelectedSeason={props.setSelectedSeason}
         />
       )}
     </>

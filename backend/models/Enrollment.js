@@ -12,6 +12,7 @@ const enrollmentSchema = mongoose.Schema(
     schoolName: String,
     year: String,
     term: String,
+    user: mongoose.Types.ObjectId,
     userId: String,
     userName: String,
     classTitle: String,
@@ -20,14 +21,38 @@ const enrollmentSchema = mongoose.Schema(
     subject: [String],
     point: Number,
     limit: Number,
+    count_limit: String,
     info: Object,
-    teachers: Object,
+    teachers: {
+      type: [
+        mongoose.Schema(
+          {
+            _id: mongoose.Types.ObjectId,
+            userId: {
+              type: String,
+              required: true,
+            },
+            userName: {
+              type: String,
+              required: true,
+            },
+            confirmed: {
+              type: Boolean,
+              default: false,
+            },
+          },
+          { _id: false }
+        ),
+      ],
+    },
     // enrollment data
+    student: { type: mongoose.Types.ObjectId, required: true },
     studentId: String,
     studentName: String,
     studentGrade: String,
     evaluation: Object,
     temp: Object,
+    memo: String,
   },
   { timestamps: true }
 );
@@ -35,14 +60,14 @@ const enrollmentSchema = mongoose.Schema(
 enrollmentSchema.index(
   {
     syllabus: 1,
-    studentId: 1,
+    student: 1,
   },
   { unique: true }
 );
 
 enrollmentSchema.index({
+  student: 1,
   season: 1,
-  studentId: 1,
 });
 
 enrollmentSchema.methods.isTimeOverlapped = function (time) {

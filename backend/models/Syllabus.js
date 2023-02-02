@@ -13,6 +13,7 @@ const syllabusSchema = mongoose.Schema(
     schoolName: String,
     year: String,
     term: String,
+    user: { type: mongoose.Types.ObjectId, required: true },
     userId: {
       type: String,
       required: true,
@@ -40,12 +41,14 @@ const syllabusSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    count_limit: String,
 
     info: Object,
     teachers: {
       type: [
         mongoose.Schema(
           {
+            _id: mongoose.Types.ObjectId,
             userId: {
               type: String,
               required: true,
@@ -94,6 +97,7 @@ syllabusSchema.pre("save", function (next) {
 syllabusSchema.methods.getSubdocument = function () {
   return {
     syllabus: this._id,
+    user: this.user,
     userId: this.userId,
     userName: this.userName,
     season: this.season,

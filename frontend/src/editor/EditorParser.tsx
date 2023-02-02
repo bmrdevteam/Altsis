@@ -6,6 +6,7 @@ type Props = {
   data: any;
   onChange?: (data: any) => void;
   auth: "edit" | "view";
+  type: "timetable" | "archive" | "syllabus";
   defaultValues?: any;
   defaultTimetable?: any;
   dbData?: any;
@@ -27,6 +28,7 @@ const EditorParser = (props: Props) => {
         props?.data?.data?.map((value: any, index: number) => {
           return (
             <ParsedBlock
+              type={props.type}
               key={index}
               returnData={returnData.current}
               blockData={value}

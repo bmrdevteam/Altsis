@@ -141,8 +141,15 @@
         }
     }
 
+    .nav_links::-webkit-scrollbar {
+        display: none;
+    }
+
     .nav_links {
         flex: 1 1 0;
+        overflow-y: auto;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
 
         .nav_link_container {
             display: flex;

@@ -7,11 +7,10 @@ const { isAdManager, isLoggedIn } = require("../middleware/auth");
 //             Registration
 //=================================
 
-router.post("/", isAdManager, registrations.register);
 router.post("/bulk", isAdManager, registrations.registerBulk);
 router.post("/copy", isAdManager, registrations.registerCopy);
 
-router.get("/", isLoggedIn, registrations.find);
+router.get("/:_id?", isLoggedIn, registrations.find);
 
 router.put("/:_ids", isAdManager, registrations.update);
 

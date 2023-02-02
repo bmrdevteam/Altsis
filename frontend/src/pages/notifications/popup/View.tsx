@@ -48,7 +48,6 @@ const NotificationSend = (props: Props) => {
 
   return (
     <>
-      {" "}
       <Popup
         setState={props.setState}
         closeBtn
@@ -109,6 +108,7 @@ const NotificationSend = (props: Props) => {
         <Reply
           setState={setReplyPopupActive}
           title={props.data.title}
+          toUser={props.data.fromUser}
           toUserId={props.data.fromUserId}
           toUserName={props.data.fromUserName}
         />

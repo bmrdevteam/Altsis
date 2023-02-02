@@ -28,283 +28,129 @@
  */
 
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+// hooks
 import useDatabase from "hooks/useDatabase";
+import { copyClipBoard } from "functions/functions";
 
 // components
-import Button from "components/button/Button";
-import Input from "components/input/Input";
-import Table from "components/table/Table";
+import Table from "components/tableV2/Table";
 import Tab from "components/tab/Tab";
 import Popup from "components/popup/Popup";
-import Select from "components/select/Select";
 
 // tab elements
 import Basic from "./tab/Basic";
-import _ from "lodash";
 
-type Props = {
-  academyId: string;
-};
+type Props = {};
 
 const Registration = (props: Props) => {
   const database = useDatabase();
-  const [isLoading, setIsLoading] = useState(false);
+  const { pid: academyId = "" } = useParams<"pid">();
 
   /* document list */
   const [documentList, setDocumentList] = useState<any>();
   const [doc, setDoc] = useState<any>();
 
-  /* additional document list */
-  const [registrationListByUserId, setRegistrationListByUserId] =
-    useState<any>();
-  const [schoolList, setSchoolList] = useState<any>();
-  const [school, setSchool] = useState<any>();
-  const [seasonList, setSeasonList] = useState<any>();
-  const [season, setSeason] = useState<any>();
-  const [userList, setUserList] = useState<any>();
-
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState(false);
-  const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
-
-  /* document fields */
-  const [schoolId, setSchoolId] = useState<string>("");
-  const [schoolName, setSchoolName] = useState<string>("");
-  const [year, setYear] = useState<string>("");
-  const [term, setTerm] = useState<string>("");
-  const [userId, setUserId] = useState<string>("");
-  const [role, setRole] = useState<string>("");
 
   async function getDocumentList() {
     const { documents } = await database.R({
-      location: `academies/${props.academyId}/registrations?season=${season}`,
+      location: `academies/${academyId}/registrations`,
     });
     return documents;
   }
 
   async function getDocument(id: string) {
     const result = await database.R({
-      location: `academies/${props.academyId}/registrations/${id}`,
+      location: `academies/${academyId}/registrations/${id}`,
     });
     return result;
   }
-
-  async function getSchoolList() {
-    const { documents } = await database.R({
-      location: `academies/${props.academyId}/schools`,
-    });
-    return documents;
-  }
-
-  async function getSeasonList() {
-    const { documents } = await database.R({
-      location: `academies/${props.academyId}/seasons?school=${school}`,
-    });
-    return documents;
-  }
-
-  async function getUserList() {
-    const { users } = await database.R({
-      location: `academies/${props.academyId}/users?school=${school}`,
-    });
-    return users;
-  }
-
-  async function addDocument() {
-    const result = await database.C({
-      location: `academies/${props.academyId}/registrations`,
-      data: {
-        season,
-        userId,
-        role,
-      },
-    });
-    return result;
-  }
-
-  async function deleteDocument(id: string) {
-    if (window.confirm("정말 삭제하시겠습니까?") === true) {
-      const result = database.D({
-        location: `academies/${props.academyId}/registrations/${id}`,
-      });
-      return result;
-    } else {
-      return false;
-    }
-  }
-
-  const schools = () => {
-    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
-
-    for (let i = 0; i < schoolList?.length; i++) {
-      result.push({
-        text: `${schoolList[i].schoolName}(${schoolList[i].schoolId})`,
-        value: schoolList[i]._id,
-      });
-    }
-
-    return result;
-  };
-
-  const seasons = () => {
-    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
-
-    for (let i = 0; i < seasonList?.length; i++) {
-      result.push({
-        text: `${seasonList[i].year}/${seasonList[i].term}`,
-        value: seasonList[i]._id,
-      });
-    }
-
-    return result;
-  };
-
-  const users = () => {
-    const registeredUserIds = _.map(documentList, "userId");
-
-    let result: { text: string; value: string }[] = [{ text: "", value: "" }];
-
-    for (let i = 0; i < userList?.length; i++) {
-      if (!registeredUserIds.includes(userList[i].userId))
-        result.push({
-          text: `${userList[i].userName}(${userList[i].userId})`,
-          value: userList[i].userId,
-        });
-    }
-    result = _.sortBy(result, "text");
-
-    return result;
-  };
 
   useEffect(() => {
-    getSchoolList()
+    getDocumentList()
       .then((res) => {
-        setSchoolList(res);
+        setDocumentList(res);
       })
       .catch(() => {
         alert("failed to load data");
       });
-    setIsLoading(false);
     return () => {};
   }, []);
 
-  useEffect(() => {
-    if (!school) {
-      setSeasonList([]);
-      setDocumentList([]);
-    } else {
-      getSeasonList()
-        .then((res) => {
-          setSeasonList(res);
-        })
-        .catch(() => {
-          alert("faled to load data");
-        });
-    }
-    setIsLoading(false);
-    return () => {};
-  }, [school]);
-
-  useEffect(() => {
-    if (!season) {
-      setDocumentList([]);
-    } else {
-      getDocumentList()
-        .then((res) => {
-          setDocumentList(res);
-        })
-        .catch(() => {
-          alert("faled to load data");
-        });
-    }
-    setIsLoading(false);
-    return () => {};
-  }, [season]);
-
   return (
     <div style={{ marginTop: "24px" }}>
-      <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-        <Select
-          style={{ minHeight: "30px" }}
-          required
-          label={"학교 선택"}
-          options={!isLoading ? schools() : []}
-          setValue={setSchool}
-          appearence={"flat"}
-        />
-
-        <Select
-          style={{ minHeight: "30px" }}
-          required
-          label={"시즌 선택"}
-          options={!isLoading ? seasons() : []}
-          setValue={setSeason}
-          appearence={"flat"}
-        />
-      </div>
-
-      <Button
-        type={"ghost"}
-        style={{
-          borderRadius: "4px",
-          height: "32px",
-          margin: "24px 0",
-          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-        }}
-        onClick={async () => {
-          if (school && season) {
-            const schoolDoc = _.find(schoolList, { _id: school });
-            const seasonDoc = _.find(seasonList, { _id: season });
-            setSchoolId(schoolDoc.schoolId);
-            setSchoolName(schoolDoc.schoolName);
-            setYear(seasonDoc.year);
-            setTerm(seasonDoc.term);
-            getUserList()
-              .then((res) => {
-                setUserList(res);
-                setAddPopupActive(true);
-              })
-              .catch((err) => {
-                alert(err.response.data.message);
-              });
-          }
-        }}
-      >
-        + 등록
-      </Button>
-      <div style={{ marginTop: "24px" }} />
-
       <Table
         type="object-array"
-        filter
-        data={!isLoading ? documentList : []}
+        control
+        defaultPageBy={50}
+        data={documentList || []}
         header={[
           {
-            text: "ID",
-            key: "",
-            type: "index",
+            text: "🗗",
+            key: "_id_copy",
+            type: "button",
+            textAlign: "center",
             width: "48px",
-            align: "center",
+            onClick: (e: any) => {
+              copyClipBoard(e._id).then((text) => {
+                alert(`copied => ${text}`);
+              });
+            },
           },
           {
-            text: "역할",
-            key: "role",
-            type: "string",
+            text: "_id",
+            key: "_id",
+            type: "text",
+            textAlign: "center",
+            width: "96px",
           },
           {
-            text: "사용자 ID",
+            text: "학교 ID",
+            key: "schoolId",
+            type: "text",
+          },
+          {
+            text: "학교 이름",
+            key: "schoolName",
+            type: "text",
+          },
+          {
+            text: "학년도",
+            key: "year",
+            type: "text",
+          },
+          {
+            text: "학기",
+            key: "term",
+            type: "text",
+          },
+          {
+            text: "ID",
             key: "userId",
-            type: "string",
+            type: "text",
+            textAlign: "center",
+            whiteSpace: "pre",
           },
           {
-            text: "사용자 이름",
+            text: "이름",
             key: "userName",
-            type: "string",
+            type: "text",
+            textAlign: "center",
+            whiteSpace: "pre",
+          },
+          {
+            text: "학년",
+            key: "grade",
+            type: "text",
+            textAlign: "center",
+            whiteSpace: "pre",
           },
 
           {
             text: "자세히",
-            key: "_id",
+            key: "detail",
             type: "button",
             onClick: (e: any) => {
               getDocument(e._id).then((res) => {
@@ -312,28 +158,14 @@ const Registration = (props: Props) => {
                 setEditPopupActive(true);
               });
             },
-            width: "80px",
-            align: "center",
-          },
-          {
-            text: "삭제",
-            key: "_id",
-            type: "button",
-            onClick: (e: any) => {
-              deleteDocument(e._id)
-                .then(() => {
-                  getDocumentList().then((res) => {
-                    setDocumentList(res);
-                    setAddPopupActive(false);
-                    alert("success");
-                  });
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
+            width: "72px",
+            textAlign: "center",
+            btnStyle: {
+              border: true,
+              color: "black",
+              padding: "4px",
+              round: true,
             },
-            width: "80px",
-            align: "center",
           },
         ]}
       />
@@ -349,100 +181,11 @@ const Registration = (props: Props) => {
             dontUsePaths
             items={{
               "기본 정보": (
-                <Basic academyId={props.academyId} registrationData={doc} />
+                <Basic academyId={academyId} registrationData={doc} />
               ),
             }}
             align={"flex-start"}
           />
-        </Popup>
-      )}
-      {addPopupActive && (
-        <Popup
-          setState={setAddPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
-          closeBtn
-          title={"Creaet Document"}
-        >
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Input
-              appearence="flat"
-              label="학교 ID"
-              required={true}
-              disabled={true}
-              defaultValue={schoolId}
-            />
-            <Input
-              appearence="flat"
-              label="학교 이름"
-              required={true}
-              disabled={true}
-              defaultValue={schoolName}
-            />
-            <Input
-              appearence="flat"
-              label="학년도"
-              required={true}
-              disabled={true}
-              defaultValue={year}
-            />
-            <Input
-              appearence="flat"
-              label="학기"
-              required={true}
-              disabled={true}
-              defaultValue={term}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Select
-              style={{ minHeight: "30px" }}
-              required
-              label={"사용자 선택"}
-              options={!isLoading ? users() : []}
-              setValue={setUserId}
-              appearence={"flat"}
-            />
-          </div>
-
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Select
-              style={{ minHeight: "30px" }}
-              label="role"
-              required
-              options={[
-                { text: "student", value: "student" },
-                { text: "teacher", value: "teacher" },
-              ]}
-              setValue={setRole}
-              appearence={"flat"}
-            />
-          </div>
-
-          <Button
-            type={"ghost"}
-            onClick={() => {
-              addDocument()
-                .then(() => {
-                  getDocumentList().then((res) => {
-                    setDocumentList(res);
-                    setAddPopupActive(false);
-                    alert("success");
-                  });
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
-            }}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              marginTop: "24px",
-            }}
-          >
-            생성
-          </Button>
         </Popup>
       )}
     </div>

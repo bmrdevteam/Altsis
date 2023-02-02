@@ -91,27 +91,10 @@ const UserSettings = (props: Props) => {
         data: formData,
       })
       .then((res) => {
-        updateUserProfile(res?.data.profile);
+        updateUserProfile(res?.profile);
       })
       .catch((error) => {
         alert(error);
-      });
-  };
-
-  const handleProfileDeleteButtonClick = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (!currentUser.profile) return alert("No Profile!");
-
-    await database
-      .D({
-        location: "users/profile",
-      })
-      .then((res) => {
-        deleteUserProfile("");
-      })
-      .catch((error) => {
-        alert(error.message);
       });
   };
 
@@ -137,14 +120,13 @@ const UserSettings = (props: Props) => {
 
   return (
     <>
-      {" "}
       <div className={style.settings_container}>
         <div className={style.container_title}>사용자 정보</div>
 
         <div className={style.profile_upload}>
           <div className={style.profile_boxed}>
             <img
-              src={currentUser.profile || defaultProfilePic}
+              src={currentUser?.profile || defaultProfilePic}
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = currentUser?.profile.replace(
@@ -265,7 +247,6 @@ const UserSettings = (props: Props) => {
                 } else {
                   updateEmail()
                     .then((res: any) => {
-                      console.log(res);
                       alert("success");
                       setNewEmail("");
                       setCurrentUser({ ...currentUser, email: res.data.email });

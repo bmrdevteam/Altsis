@@ -24,7 +24,7 @@ const schoolSchema = mongoose.Schema(
       validate: (val) => validate("schoolName", val),
     },
     classrooms: [String],
-    subjects: subjectSchema,
+    subjects: { type: subjectSchema, default: { label: [], data: [] } },
     permissionSyllabus: [[]],
     permissionEnrollment: [[]],
     permissionEvaluation: [[]],

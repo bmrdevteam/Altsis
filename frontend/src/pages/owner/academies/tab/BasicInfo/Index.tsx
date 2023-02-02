@@ -26,17 +26,14 @@
  * @version 1.0
  *
  */
-
 import { useState } from "react";
-import useApi from "hooks/useApi";
-
-// components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
+import useApi from "hooks/useApi";
 
 type Props = {
   academyData: any;
-  setAcademyData: any;
+  setIsLoading: any;
 };
 
 const Academy = (props: Props) => {
@@ -58,16 +55,14 @@ const Academy = (props: Props) => {
         }}
       >
         <Input
-          label="아카데미 ID"
-          defaultValue={props.academyData.academyId}
-          required
-          disabled
+          label="email"
+          defaultValue={email}
+          onChange={(e: any) => setEmail(e.target.value)}
         />
         <Input
-          label="아카데미 이름"
-          defaultValue={props.academyData.academyName}
-          required
-          disabled
+          label="tel"
+          defaultValue={tel}
+          onChange={(e: any) => setTel(e.target.value)}
         />
       </div>
 
@@ -78,30 +73,6 @@ const Academy = (props: Props) => {
           marginTop: "24px",
         }}
       >
-        <Input
-          label="email"
-          defaultValue={email}
-          onChange={(e: any) => {
-            setEmail(e.target.value);
-          }}
-        />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          gap: "24px",
-          marginTop: "24px",
-        }}
-      >
-        <Input
-          label="tel"
-          defaultValue={tel}
-          onChange={(e: any) => {
-            setTel(e.target.value);
-          }}
-        />
-      </div>
-      <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
         <Input
           appearence="flat"
           label="생성 날짜"
@@ -117,7 +88,6 @@ const Academy = (props: Props) => {
           disabled
         />
       </div>
-
       <Button
         type={"ghost"}
         style={{
@@ -135,7 +105,7 @@ const Academy = (props: Props) => {
           })
             .then((res) => {
               alert("success");
-              props.setAcademyData(res);
+              props.setIsLoading(true);
             })
             .catch((err) => {
               alert(err.response.data.message);

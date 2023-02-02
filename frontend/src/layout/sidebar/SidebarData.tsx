@@ -1,9 +1,5 @@
-
-import { Apps } from "apps";
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
-import { useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 
 export interface INavLink {
   title: string;
@@ -38,16 +34,8 @@ export const SidebarData = (
         {
           title: "owner",
           name: "소유자",
-          path: "/owner",
+          path: "/owner/academies",
           icon: <Svg type="school" />,
-          subLink: [
-            {
-              title: "academies",
-              name: "아카데미 관리",
-              path: "/owner/academies",
-              icon: <Svg type="file" />,
-            },
-          ],
         },
       ];
     case "manager":
@@ -72,27 +60,10 @@ export const SidebarData = (
                   icon: <Svg type="file" />,
                 }
               : undefined,
-            currentPermission?.permissionSyllabus
-              ? {
-                  title: "mylist",
-                  name: "나의 수업",
-                  path: "/courses/mylist",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
-
-            role === "teacher"
-              ? {
-                  title: "mentoring",
-                  name: "담당 수업",
-                  path: "/courses/mentoring",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
             currentPermission?.permissionEnrollment
               ? {
                   title: "enroll",
-                  name: "수강신청",
+                  name: "수강 신청",
                   path: "/courses/enroll",
                   icon: <Svg type="school" />,
                 }
@@ -125,32 +96,13 @@ export const SidebarData = (
           path: "/docs",
           icon: <Svg type="docs" />,
         },
-        {
-          title: "apps",
-          name: "앱",
-          path: "/apps",
-          icon: <Svg type="app_menu" />,
-          subLink: [
-            {
-              title: "classroom",
-              name: "강의실",
-              path: "/apps/apps",
-              icon: <Svg type="app" />,
-            },
-          ],
-        },
+
         {
           title: "admin",
           name: "관리자",
-          path: "/admin",
-          icon: <Svg type="calender" />,
+          path: `/admin/schools`,
+          icon: <Svg type="school" />,
           subLink: [
-            {
-              title: "schools",
-              name: "학교 관리",
-              path: `/admin/schools`,
-              icon: <Svg type="file" />,
-            },
             {
               title: "forms",
               name: "양식 관리",
@@ -158,12 +110,6 @@ export const SidebarData = (
               icon: <Svg type="file" />,
             },
           ],
-        },
-        {
-          title: "notifications",
-          name: "알림",
-          path: "/notifications",
-          icon: <Svg type="notification" />,
         },
       ];
     case "admin":
@@ -188,26 +134,10 @@ export const SidebarData = (
                   icon: <Svg type="file" />,
                 }
               : undefined,
-            currentPermission?.permissionSyllabus
-              ? {
-                  title: "mylist",
-                  name: "나의 수업",
-                  path: "/courses/mylist",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
-            role === "teacher"
-              ? {
-                  title: "mentoring",
-                  name: "담당 수업",
-                  path: "/courses/mentoring",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
             currentPermission?.permissionEnrollment
               ? {
                   title: "enroll",
-                  name: "수강신청",
+                  name: "수강 신청",
                   path: "/courses/enroll",
                   icon: <Svg type="school" />,
                 }
@@ -240,32 +170,13 @@ export const SidebarData = (
           path: "/docs",
           icon: <Svg type="docs" />,
         },
-        {
-          title: "apps",
-          name: "앱",
-          path: "/apps",
-          icon: <Svg type="app_menu" />,
-          subLink: [
-            {
-              title: "classroom",
-              name: "강의실",
-              path: "/apps/apps",
-              icon: <Svg type="app" />,
-            },
-          ],
-        },
+
         {
           title: "admin",
           name: "관리자",
-          path: "/admin",
-          icon: <Svg type="calender" />,
+          path: "/admin/schools/list",
+          icon: <Svg type="school" />,
           subLink: [
-            {
-              title: "schools",
-              name: "학교 관리",
-              path: "/admin/schools/list",
-              icon: <Svg type="file" />,
-            },
             {
               title: "forms",
               name: "양식 관리",
@@ -276,15 +187,9 @@ export const SidebarData = (
               title: "users",
               name: "사용자 관리",
               path: "/admin/users",
-              icon: <Svg type="file" />,
+              icon: <Svg type="user" />,
             },
           ],
-        },
-        {
-          title: "notifications",
-          name: "알림",
-          path: "/notifications",
-          icon: <Svg type="notification" />,
         },
       ];
 
@@ -310,26 +215,10 @@ export const SidebarData = (
                   icon: <Svg type="file" />,
                 }
               : undefined,
-            currentPermission?.permissionSyllabus
-              ? {
-                  title: "mylist",
-                  name: "나의 수업",
-                  path: "/courses/mylist",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
-            role === "teacher"
-              ? {
-                  title: "mentoring",
-                  name: "담당 수업",
-                  path: "/courses/mentoring",
-                  icon: <Svg type="file" />,
-                }
-              : undefined,
             currentPermission?.permissionEnrollment
               ? {
                   title: "enroll",
-                  name: "수강신청",
+                  name: "수강 신청",
                   path: "/courses/enroll",
                   icon: <Svg type="school" />,
                 }
@@ -348,12 +237,6 @@ export const SidebarData = (
         //   path: "/myaccount",
         //   icon: <Svg type="gear" />,
         // },
-        {
-          title: "notifications",
-          name: "알림",
-          path: "/notifications",
-          icon: <Svg type="notification" />,
-        },
       ];
   }
 };

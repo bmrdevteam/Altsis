@@ -38,9 +38,6 @@ import UserSettings from "./tab/UserSettings";
 type Props = {};
 
 const Settings = (props: Props) => {
-
-
-
   return (
     <>
       <div className={style.search_container}>
@@ -48,13 +45,13 @@ const Settings = (props: Props) => {
         <input className={style.search} type="text" placeholder="검색" />
       </div>
       <div className={style.section}>
-         <UserSettings/>
-         <SocialLoginSettings/>
-         <SecuritySettings/>
-         <SchoolSettings/>
-         <ThemeSettings/>
-         <NavbarSettings/>
-         <ResetSettings/>
+        <UserSettings />
+        <SocialLoginSettings />
+        <SecuritySettings />
+        <SchoolSettings />
+        <ThemeSettings />
+        {/* <NavbarSettings/> */}
+        {/* <ResetSettings /> */}
       </div>
     </>
   );

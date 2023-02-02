@@ -15,27 +15,29 @@ type Props = {};
 
 function Docs({}: Props) {
   const database = useDatabase();
-  const { RegistrationApi, ArchiveApi, FormApi } = useApi();
+  const { RegistrationApi, ArchiveApi, FormApi, EnrollmentApi } = useApi();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
   const [printForms, setPrintForms] = useState<any>([]);
   const [DBData, setDBData] = useState<any>();
+  /* not users but registrations */
   const [users, setUsers] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
   const [selectedGrade, setSelectedGrade] = useState<string>();
   const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
 
-  async function getDBData(userId: any) {
+  async function getDBData(rid: string, uid: string) {
     const archive = await ArchiveApi.RArchives({
-      school: currentSchool.school,
-      userId: userId,
+      registration: rid,
     });
 
     let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
-    const { enrollments: evaluations } = await database.R({
-      location: `enrollments/evaluations?studentId=${userId}&school=${currentSchool.school}`,
+
+    const evaluations = await EnrollmentApi.REnrollmentWithEvaluations({
+      student: uid,
+      school: currentSchool.school,
     });
 
     for (let i = 0; i < evaluations.length; i++) {
@@ -174,14 +176,18 @@ function Docs({}: Props) {
                 ?.filter((val) => val.grade === selectedGrade)
                 .map((val) => {
                   return {
-                    value: val.userId,
+                    value: JSON.stringify({
+                      rid: val._id,
+                      uid: val.user,
+                    }),
                     text: `${val.userName} / ${val.userId}`,
                   };
                 }),
             ]}
-            onChange={(value) => {
+            onChange={(value: string | number) => {
               setLoading(true);
-              getDBData(value).then((res) => {
+              const { rid, uid } = JSON.parse(`${value}`);
+              getDBData(rid, uid).then((res) => {
                 setDBData(res);
                 setLoading(false);
               });
@@ -198,7 +204,7 @@ function Docs({}: Props) {
           </div>
         </div>
         {!loading ? (
-          <EditorParser auth="edit" data={formData} dbData={DBData} />
+          <EditorParser auth="edit" data={formData} dbData={DBData} type="archive"/>
         ) : (
           <Loading height={"calc(100vh - 55px)"} />
         )}

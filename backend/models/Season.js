@@ -25,7 +25,7 @@ const seasonSchema = mongoose.Schema(
       required: true,
     },
     classrooms: [String],
-    subjects: subjectSchema,
+    subjects: { type: subjectSchema, default: { label: [], data: [] } },
     year: {
       type: String,
       required: true,
@@ -49,6 +49,10 @@ const seasonSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isActivatedFirst: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -56,7 +60,7 @@ const seasonSchema = mongoose.Schema(
 seasonSchema.index(
   {
     school: 1,
-    year: 1,
+    year: -1,
     term: 1,
   },
   { unique: true }

@@ -8,7 +8,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "contexts/authContext";
-import useInterval from "hooks/useInterval";
 import { useNavigate } from "react-router-dom";
 
 // components
@@ -24,6 +23,8 @@ import audioURL from "assets/audio/notification-a.mp3";
 import useApi from "hooks/useApi";
 
 import View from "pages/notifications/popup/View";
+import Autofill from "components/input/Autofill";
+import useOutsideClick from "hooks/useOutsideClick";
 
 const Notification = () => {
   /**
@@ -70,7 +71,11 @@ const Notification = () => {
 
   useEffect(() => {
     if (isNotificationLoading) {
-      NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
+      NotificationApi.RNotifications({
+        type: "received",
+        user: currentUser._id,
+        checked: false,
+      }).then((res) => {
         if (res) {
           audio.play().catch((e: any) => {
             console.log(e);
@@ -219,11 +224,107 @@ type Props = { title?: string };
  * @returns Navbar component
  */
 const Navbar = (props: Props) => {
-  const { registrations, currentRegistration, changeCurrentSeason } = useAuth();
+  const {
+    registrations,
+    currentRegistration,
+    changeCurrentSeason,
+    currentSchool,
+    currentSeason,
+  } = useAuth();
+  const navigate = useNavigate();
+  const [users, setUsers] = useState<Array<any>>([]);
+  const [searchParam, setSearchParam] = useState<string>("");
+  const outsideClick = useOutsideClick();
+
+  const submit = (value: string | number) => {
+    navigate(`/search/${value}`);
+  };
+
+  useEffect(() => {
+    if (!currentSchool || !currentSeason || !currentSeason.registrations)
+      return;
+
+    const users = currentSeason.registrations.map((user: any) => {
+      return {
+        text: `${user.userName} / ${user.userId}`,
+        value: user.user,
+      };
+    });
+    setUsers(users);
+  }, [currentSchool, currentSeason]);
+
+  // useEffect(() => {
+  //   if (!currentSchool || !currentSeason) return;
+
+  //   RegistrationApi.RRegistrations({
+  //     season: currentSeason._id,
+  //     school: currentSchool.school,
+  //   })
+  //     .then((result) => {
+  //       const users = result.map((user: any) => {
+  //         return {
+  //           text: `${user.userName} / ${user.userId}`,
+  //           value: user.userId,
+  //         };
+  //       });
+  //       setUsers(users);
+  //     })
+  //     .catch((error) => console.error(error));
+  // }, [currentSchool, currentSeason]);
+
   return (
     <div className={style.navbar_container}>
       {props.title && <div className={style.title}>{props.title}</div>}
-      <input className={style.search} type="text" placeholder="검색" />
+      {/* <UserSearchBox /> */}
+      <div className={style.user_search} ref={outsideClick.RefObject}>
+        <input
+          type="text"
+          onClick={() => outsideClick.handleOnClick()}
+          className={style.search}
+          placeholder={"검색"}
+          value={searchParam}
+          onChange={(e) => {
+            setSearchParam(e.target.value ?? "");
+          }}
+          onKeyUp={(e) => {
+            if (e.key === "Enter") {
+              setSearchParam(
+                users.filter((val: any) => val.text?.includes(searchParam))[0]
+                  .text ?? ""
+              );
+              users.filter((val: any) => val.text?.includes(searchParam))[0]
+                .value &&
+                submit(
+                  users.filter((val: any) => val.text?.includes(searchParam))[0]
+                    .value
+                );
+              outsideClick.setActive(false);
+            }
+          }}
+        />
+        {outsideClick.active && (
+          <div className={style.result}>
+            {users
+              .filter((val: any) => val.text?.includes(searchParam))
+              .map((val: any, ind: any) => {
+                return (
+                  <div
+                    className={style.row}
+                    key={`${ind}${val.text}`}
+                    onClick={() => {
+                      setSearchParam(val.text);
+                      submit(val.value);
+                      outsideClick.setActive(false);
+                    }}
+                  >
+                    {val.text}
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </div>
+
       <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
         <Select
           appearence="flat"
@@ -232,7 +333,6 @@ const Navbar = (props: Props) => {
           })}
           defaultSelectedValue={currentRegistration}
           onChange={(value: any) => {
-            console.log(value);
             changeCurrentSeason(value);
           }}
         />
