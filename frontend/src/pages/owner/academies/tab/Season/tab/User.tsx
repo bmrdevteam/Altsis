@@ -34,12 +34,7 @@ import useDatabase from "hooks/useDatabase";
 import { copyClipBoard } from "functions/functions";
 
 // components
-import Button from "components/button/Button";
-import Input from "components/input/Input";
 import Table from "components/tableV2/Table";
-import Tab from "components/tab/Tab";
-import Popup from "components/popup/Popup";
-import Select from "components/select/Select";
 
 // tab elements
 import _ from "lodash";
