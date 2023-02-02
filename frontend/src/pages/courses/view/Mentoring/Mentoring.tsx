@@ -176,12 +176,29 @@ const CoursePid = (props: Props) => {
                       text,
                       key,
                     });
-                    _formEvaluationHeader.push({
-                      text,
-                      key,
-                      type: "input",
-                      whiteSpace: "pre",
-                    });
+                    if (val.type === "input-number") {
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "input-number",
+                        whiteSpace: "pre",
+                      });
+                    } else if (val.type === "select") {
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "select",
+                        whiteSpace: "pre",
+                        option: val.options,
+                      });
+                    } else {
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "input",
+                        whiteSpace: "pre",
+                      });
+                    }
                   } else if (val.auth.view.student) {
                     _formEvaluationHeader.push({
                       text,
@@ -393,29 +410,32 @@ const CoursePid = (props: Props) => {
                   type: "status",
                   status: {
                     false: { text: "저장", color: "gray" },
-                    true: { text: "저장", color: "red" },
-                  },
-                  onClick: (e: any) => {
-                    const evaluation: any = {};
-                    for (let obj of fieldEvaluationList) {
-                      evaluation[obj.text] = e[obj.key];
-                    }
-                    EnrollmentApi.UEvaluation({
-                      enrollment: e._id,
-                      by: "mentor",
-                      data: evaluation,
-                    })
-                      .then((res: any) => {
-                        console.log("res.evaluation: ", res.evaluation);
-                        alert("저장되었습니다");
-                        if (enrollmentListRef.current.length !== 0) {
-                          enrollmentListRef.current[
-                            e.tableRowIndex - 1
-                          ].isModified = false;
-                          setEnrollmentList([...enrollmentListRef.current]);
+                    true: {
+                      text: "저장",
+                      color: "red",
+                      onClick: (e) => {
+                        const evaluation: any = {};
+                        for (let obj of fieldEvaluationList) {
+                          evaluation[obj.text] = e[obj.key];
                         }
-                      })
-                      .catch((err: any) => console.log(err));
+                        EnrollmentApi.UEvaluation({
+                          enrollment: e._id,
+                          by: "mentor",
+                          data: evaluation,
+                        })
+                          .then((res: any) => {
+                            console.log("res.evaluation: ", res.evaluation);
+                            alert("저장되었습니다");
+                            if (enrollmentListRef.current.length !== 0) {
+                              enrollmentListRef.current[
+                                e.tableRowIndex - 1
+                              ].isModified = false;
+                              setEnrollmentList([...enrollmentListRef.current]);
+                            }
+                          })
+                          .catch((err: any) => console.log(err));
+                      },
+                    },
                   },
                 },
               ]}

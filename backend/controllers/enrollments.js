@@ -472,6 +472,7 @@ module.exports.updateEvaluation2 = async (req, res) => {
         _id: { $ne: enrollment._id },
         school: enrollment.school,
         year: enrollment.year,
+        term: { $ne: enrollment.term },
         student: enrollment.student,
         subject: enrollment.subject,
       })
@@ -486,20 +487,27 @@ module.exports.updateEvaluation2 = async (req, res) => {
         };
         if (obj.combineBy === "term") {
           for (let e of enrollmentsByTerm)
-            e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
+            Object.assign(e.evaluation || {}, { [label]: req.body.new[label] });
         } else {
+          for (let e of enrollmentsByTerm)
+            Object.assign(e.evaluation || {}, { [label]: req.body.new[label] });
           for (let e of enrollmentsByYear)
-            e.evaluation = { ...e.evaluation, [label]: req.body.new[label] };
+            Object.assign(e.evaluation || {}, { [label]: req.body.new[label] });
         }
       }
     }
 
     /* save documents */
-    await Promise.all([
-      [enrollment, ...enrollmentsByTerm, ...enrollmentsByYear].forEach((e) =>
-        e.save()
-      ),
-    ]);
+    for (let e of [enrollment, ...enrollmentsByTerm, ...enrollmentsByYear]) {
+      console.log("before::", e);
+      await e.save();
+      console.log("after::", e);
+    }
+    // await Promise.all([
+    //   [enrollment, ...enrollmentsByTerm, ...enrollmentsByYear].map(
+    //     (e) => e.save
+    //   ),
+    // ]);
 
     return res.status(200).send(enrollment);
   } catch (err) {
