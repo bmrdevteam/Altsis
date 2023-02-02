@@ -202,7 +202,7 @@ const Form = (props: Props) => {
                             color: "#00B3AD",
                           },
                           select: {
-                            text: "선택",
+                            text: "선택 +",
                             color: "#8657ff",
                             onClick: (row) => {
                               setFormEvaluationSelectIndex(row.tableRowIndex);

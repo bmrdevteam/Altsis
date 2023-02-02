@@ -160,7 +160,7 @@ function Archive(props: Props) {
                     color: "#B33F00",
                   },
                   select: {
-                    text: "선택",
+                    text: "선택 +",
                     color: "#006663",
                     onClick: (row) => {
                       setEditArchivefieldSubIndex(row.tableRowIndex - 1);
