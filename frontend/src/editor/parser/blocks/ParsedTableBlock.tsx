@@ -164,6 +164,7 @@ const ParsedTableBlock = (props: Props) => {
                   props.returnData[data?.name] = e.target.value;
                 }
               }}
+              defaultValue={props.defaultValues?.[data?.name]}
             >
               {data.options.map((val: any) => {
                 return (
