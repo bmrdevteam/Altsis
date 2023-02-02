@@ -89,7 +89,7 @@ const CourseAdd = (props: Props) => {
         const element = s[i];
         for (let ii = 0; ii < element.time.length; ii++) {
           Object.assign(result, {
-            [element.time[ii].label]: element.classTitle,
+            [element.time[ii].label]: element.classTitle + "(" + element.classroom + ")",
           });
         }
       }
