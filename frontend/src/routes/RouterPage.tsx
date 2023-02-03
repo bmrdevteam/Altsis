@@ -96,6 +96,7 @@ function RouterPage() {
             {/* basic routes */}
             <Route path="login" element={<ChooseAcademy />}></Route>
             <Route path=":pid/login" element={<Login />}></Route>
+            <Route path=":pid" element={<Login />}></Route>
             <Route path="register" element={<Register />}></Route>
             {/* <Route path="/:academyId"> */}
             {/* ----------------------------------------------------- */}
