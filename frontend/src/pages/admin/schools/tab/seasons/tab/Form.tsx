@@ -285,6 +285,10 @@ const Form = (props: Props) => {
                             text: "숫자",
                             color: "#00B3AD",
                           },
+                          select: {
+                            text: "선택 +",
+                            color: "#8657ff",
+                          },
                         },
                         width: "80px",
                         textAlign: "center",
