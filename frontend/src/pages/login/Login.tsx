@@ -201,7 +201,6 @@ const Login = () => {
               academies?.filter((val) => val.academyId === academy)[0]
                 ?.academyName
             }
-            에 로그인
           </div>
           <div
             style={{ display: "flex", gap: "12px", flexDirection: "column" }}
@@ -263,7 +262,7 @@ const Login = () => {
             }}
             style={{ borderRadius: "8px" }}
           >
-            다른 아카데미에 로그인
+            다른 아카데미 선택
           </Button>
           <div style={{ height: "4px" }}></div>
           <GoogleLoginBtn academyId={academy} />
