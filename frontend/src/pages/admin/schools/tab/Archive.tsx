@@ -161,7 +161,7 @@ function Archive(props: Props) {
                   },
                   select: {
                     text: "선택 +",
-                    color: "#006663",
+                    color: "#8657ff",
                     onClick: (row) => {
                       setEditArchivefieldSubIndex(row.tableRowIndex - 1);
                       setEditArchivefieldSelectPopupActive(true);
