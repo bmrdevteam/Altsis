@@ -90,7 +90,7 @@ const ScheduleTab = (props: Props) => {
   return (
     <div
       style={{
-        height: "calc(100vh - 240px",
+        height: "calc(100vh - 340px",
         minHeight: "240px",
       }}
     >
