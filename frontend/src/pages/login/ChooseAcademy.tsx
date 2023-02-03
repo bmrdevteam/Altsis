@@ -35,7 +35,8 @@ const ChooseAcademy = (props: Props) => {
     <>
       <div className={style.section}>
         <div className={style.container}>
-          <div className={style.title}> 로그인 아카데미 입력</div>
+          <div className={style.title}> 아카데미</div>
+          <div className={style.subtitle}> 입장하실 아카데미 아이디를 입력하세요.</div>
           {/* <Select
             appearence="flat"
             onChange={(e: any) => {
@@ -47,6 +48,7 @@ const ChooseAcademy = (props: Props) => {
           <Input
             appearence="flat"
             type="text"
+            placeholder="academy ID"
             onChange={(e: any) => {
               formData.current.academyId = e.target.value;
             }}
@@ -60,7 +62,7 @@ const ChooseAcademy = (props: Props) => {
               });
             }}
           >
-            입력
+            입장
           </Button>
         </div>
       </div>
