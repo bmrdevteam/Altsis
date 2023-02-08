@@ -1,12 +1,11 @@
-export const apps: any[] = [
+export const Apps: any[] = [
   {
-    label: "강의실",
-    name: "apps",
+    title: "강의실",
   },
   {
-    label: "컴퓨터",
+    title: "컴퓨터",
   },
   {
-    label: "통학버스",
+    title: "통학버스",
   },
 ];

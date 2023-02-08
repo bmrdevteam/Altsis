@@ -33,7 +33,7 @@ import CourseEditPid from "pages/courses/view/Edit";
 
 // apps pages
 import AppsIndex from "pages/apps/Index";
-import Apps from "pages/apps/Apps";
+import AppsField from "pages/apps/Pid";
 // notification pages
 import Notifications from "pages/notifications/Index";
 
@@ -96,6 +96,7 @@ function RouterPage() {
             {/* basic routes */}
             <Route path="login" element={<ChooseAcademy />}></Route>
             <Route path=":pid/login" element={<Login />}></Route>
+            <Route path=":pid" element={<Login />}></Route>
             <Route path="register" element={<Register />}></Route>
             {/* <Route path="/:academyId"> */}
             {/* ----------------------------------------------------- */}
@@ -380,10 +381,10 @@ function RouterPage() {
               }
             ></Route>
             <Route
-              path="apps/apps"
+              path="apps/:pid"
               element={
                 <RequireAuth>
-                  <Apps />
+                  <AppsField />
                 </RequireAuth>
               }
             ></Route>
