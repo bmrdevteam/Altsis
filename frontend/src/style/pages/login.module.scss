@@ -16,7 +16,7 @@
         background: var(--background-color);
         box-shadow: var(--component-box-shadow);
         border-radius: 8px;
-        min-width: 450px;
+        min-width: 300px;
         padding: 24px;
 
         display: flex;
@@ -26,11 +26,18 @@
 
         .title {
             text-align: center;
-            font-size: 24px;
-            margin-bottom: 24px;
+            font-size: 20px;
+            margin-bottom: 12px;
             color: var(--accent-1);
             font-weight: 600;
 
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 12px;
+            color: var(--accent-1);
+            font-weight: 300;
         }
 
     }
