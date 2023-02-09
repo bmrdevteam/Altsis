@@ -62,7 +62,7 @@ module.exports.enroll = async (req, res) => {
     // 2. 이미 신청한 수업인지 확인
     const exEnrollments = await _Enrollment.find({
       student: registration.user,
-      syllabus: syllabus._id,
+      season: registration.season,
     });
     if (_.find(exEnrollments, { syllabus: syllabus._id }))
       return res.status(409).send({ message: "이미 신청한 수업입니다." });
