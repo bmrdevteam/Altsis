@@ -95,6 +95,7 @@ seasonSchema.methods.getSubdocument = function () {
     year: this.year,
     term: this.term,
     isActivated: this.isActivated,
+    period: this.period,
   };
 };
 
