@@ -908,7 +908,7 @@ export default function useApi() {
   }
 
   /**
-   * Read Enrollment with Evaluations
+   * Read Enrollment with Evaluations and Sort By 'createdAt'
    * @type GET
    * @auth member
    * @returns Enrollments
@@ -921,7 +921,8 @@ export default function useApi() {
     const { enrollments } = await database.R({
       location: "enrollments/evaluations" + QUERY_BUILDER(params),
     });
-    return enrollments;
+    // return enrollments;
+    return _.sortBy(enrollments, "createdAt");
   }
 
   /**
