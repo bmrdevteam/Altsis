@@ -316,7 +316,13 @@ module.exports.find = async (req, res) => {
     if (syllabus) {
       const enrollments = await Enrollment(req.user.academyId)
         .find({ syllabus })
-        .select(["student", "studentId", "studentName", "studentGrade"]);
+        .select([
+          "student",
+          "studentId",
+          "studentName",
+          "studentGrade",
+          "createdAt",
+        ]);
       return res.status(200).send({ enrollments });
     }
 
