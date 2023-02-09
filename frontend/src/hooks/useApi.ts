@@ -922,7 +922,7 @@ export default function useApi() {
       location: "enrollments/evaluations" + QUERY_BUILDER(params),
     });
     // return enrollments;
-    return _.sortBy(enrollments, "createdAt");
+    return _.orderBy(enrollments, ['createdAt'], ['asc']);
   }
 
   /**
