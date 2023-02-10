@@ -549,6 +549,7 @@ const CoursePid = (props: Props) => {
                         teachers,
                       });
                       setMentorConfirmed(false);
+                      if (confirmed) setConfirmed(false);
                       setConfirmStatusPopupActive(false);
                     })
                     .catch((err) => {
@@ -566,6 +567,7 @@ const CoursePid = (props: Props) => {
                         teachers,
                       });
                       setMentorConfirmed(true);
+                      setConfirmed(!_.find(teachers, { confirmed: false }));
                       setConfirmStatusPopupActive(false);
                     })
                     .catch((err) => {
