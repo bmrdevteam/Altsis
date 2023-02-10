@@ -365,17 +365,19 @@ const CoursePid = (props: Props) => {
               type="object-array"
               data={enrollmentList || []}
               onChange={(e: any) => {
-                enrollmentListRef.current = e;
-                setIsChecked(
-                  _.find(e, {
-                    tableRowChecked: true,
-                  })
-                );
+                setTimeout(() => {
+                  enrollmentListRef.current = e;
+                  setIsChecked(
+                    _.find(e, {
+                      tableRowChecked: true,
+                    })
+                  );
+                }, 50);
               }}
               header={[
                 {
                   text: "checkbox",
-                  key: "",
+                  key: "checkbox",
                   type: "checkbox",
                   width: "48px",
                 },
