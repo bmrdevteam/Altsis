@@ -64,9 +64,9 @@ const Notification = () => {
         checked: false,
       }).then((res) => {
         if (res) {
-          audio.play().catch((e: any) => {
-            // console.log(e);
-          });
+          // audio.play().catch((e: any) => {
+          //   // console.log(e);
+          // });
           currentNotificationsRef.current = res;
           setIsNotifiationLoading(false);
         }
