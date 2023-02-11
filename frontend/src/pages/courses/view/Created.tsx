@@ -63,6 +63,8 @@ const CoursePid = (props: Props) => {
     useState<boolean>(false);
 
   const [confirmed, setConfirmed] = useState<boolean>(true);
+  const [confirmedStatus, setConfirmedStatus] =
+    useState<string>("notConfirmed");
 
   const categories = () => {
     return (
@@ -101,6 +103,19 @@ const CoursePid = (props: Props) => {
         >
           상태: {confirmed ? "승인됨" : "미승인"}
         </div>
+        <div
+          className={style.category}
+          onClick={() => {
+            setConfirmStatusPopupActive(true);
+          }}
+        >
+          상태(new):{" "}
+          {confirmedStatus === "fullyConfirmed"
+            ? "승인됨"
+            : confirmedStatus === "notConfirmed"
+            ? "미승인"
+            : "승인중"}
+        </div>
       </>
     );
   };
@@ -136,6 +151,17 @@ const CoursePid = (props: Props) => {
               break;
             }
           }
+
+          const confirmedCnt = _.filter(result.teachers, {
+            confirmed: true,
+          }).length;
+          setConfirmedStatus(
+            confirmedCnt === 0
+              ? "notConfirmed"
+              : confirmedCnt === result.teachers.length
+              ? "fullyConfirmed"
+              : "semiConfirmed"
+          );
 
           setIsLoading(false);
         })

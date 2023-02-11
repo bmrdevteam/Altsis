@@ -77,6 +77,8 @@ const CoursePid = (props: Props) => {
     useState<boolean>(false);
 
   const [confirmed, setConfirmed] = useState<boolean>(true);
+  const [confirmedStatus, setConfirmedStatus] =
+    useState<string>("notConfirmed");
 
   const [mentorIdx, setMentorIdx] = useState<number>(-1);
   const [mentorConfirmed, setMentorConfirmed] = useState<boolean>();
@@ -100,6 +102,17 @@ const CoursePid = (props: Props) => {
           break;
         }
       }
+
+      const confirmedCnt = _.filter(courseData?.teachers, {
+        confirmed: true,
+      }).length;
+      setConfirmedStatus(
+        confirmedCnt === 0
+          ? "notConfirmed"
+          : confirmedCnt === courseData?.teachers.length
+          ? "fullyConfirmed"
+          : "semiConfirmed"
+      );
 
       // Is this user is mentor of this syllabus?
       const mentorIdx = _.findIndex(courseData?.teachers, {
@@ -278,6 +291,19 @@ const CoursePid = (props: Props) => {
               }}
             >
               상태: {mentorConfirmed ? "승인됨" : "미승인"}
+            </div>
+            <div
+              className={style.category}
+              onClick={() => {
+                setConfirmStatusPopupActive(true);
+              }}
+            >
+              상태(new):{" "}
+              {confirmedStatus === "fullyConfirmed"
+                ? "승인됨"
+                : confirmedStatus === "notConfirmed"
+                ? "미승인"
+                : "승인중"}
             </div>
           </div>
         </div>
@@ -528,58 +554,56 @@ const CoursePid = (props: Props) => {
                     true: { text: "승인됨", color: "green" },
                   },
                 },
+
+                {
+                  text: "상태(new)",
+                  key: "confirmed",
+                  width: "120px",
+                  textAlign: "center",
+                  type: "status",
+                  status: {
+                    false: {
+                      text: "미승인",
+                      color: "red",
+                      onClick: (e: any) => {
+                        if (e._id === currentUser._id) {
+                          SyllabusApi.ConfirmSyllabus(courseData?._id)
+                            .then(() => {
+                              alert("confirmed");
+                              setIsLoading(true);
+                            })
+                            .catch((err) => {
+                              alert("failed to confirm");
+                            });
+                        }
+                      },
+                    },
+                    true: {
+                      text: "승인됨",
+                      color: "green",
+                      onClick: (e: any) => {
+                        if (e._id === currentUser._id) {
+                          if (enrollmentList && enrollmentList.length !== 0)
+                            alert(
+                              "수강신청한 학생이 있으면 승인을 취소할 수 없습니다."
+                            );
+                          else {
+                            SyllabusApi.UnconfirmSyllabus(courseData?._id)
+                              .then((res) => {
+                                alert("unconfirmed");
+                                setIsLoading(true);
+                              })
+                              .catch((err) => {
+                                alert("failed to unconfirm");
+                              });
+                          }
+                        }
+                      },
+                    },
+                  },
+                },
               ]}
             />
-            <Button
-              type={"ghost"}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                marginTop: "24px",
-              }}
-              disabled={enrollmentList && enrollmentList.length > 0}
-              onClick={() => {
-                if (mentorConfirmed) {
-                  SyllabusApi.UnconfirmSyllabus(courseData?._id)
-                    .then((res) => {
-                      alert("unconfirmed");
-                      const teachers = courseData.teachers;
-                      teachers[mentorIdx].confirmed = false;
-                      setCourseData({
-                        ...courseData,
-                        teachers,
-                      });
-                      setMentorConfirmed(false);
-                      if (confirmed) setConfirmed(false);
-                      setConfirmStatusPopupActive(false);
-                    })
-                    .catch((err) => {
-                      alert("failed to unconfirm");
-                    });
-                } else {
-                  SyllabusApi.ConfirmSyllabus(courseData?._id)
-                    .then((res) => {
-                      alert("confirmed");
-                      const teachers = courseData.teachers;
-                      teachers[mentorIdx].confirmed = true;
-
-                      setCourseData({
-                        ...courseData,
-                        teachers,
-                      });
-                      setMentorConfirmed(true);
-                      setConfirmed(!_.find(teachers, { confirmed: false }));
-                      setConfirmStatusPopupActive(false);
-                    })
-                    .catch((err) => {
-                      alert("failed to confirm");
-                    });
-                }
-              }}
-            >
-              {mentorConfirmed ? "승인 취소" : "승인하기"}
-            </Button>
           </Popup>
         )}
         {sendNotificationPopupActive && (
