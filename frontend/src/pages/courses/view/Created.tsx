@@ -102,15 +102,7 @@ const CoursePid = (props: Props) => {
             setConfirmStatusPopupActive(true);
           }}
         >
-          상태: {confirmed ? "승인됨" : "미승인"}
-        </div>
-        <div
-          className={style.category}
-          onClick={() => {
-            setConfirmStatusPopupActive(true);
-          }}
-        >
-          상태(new):{" "}
+          상태:{" "}
           {confirmedStatus === "fullyConfirmed"
             ? "승인됨"
             : confirmedStatus === "notConfirmed"
