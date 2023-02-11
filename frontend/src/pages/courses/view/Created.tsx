@@ -45,6 +45,7 @@ import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
+import Svg from "assets/svg/Svg";
 
 type Props = {};
 
@@ -195,6 +196,7 @@ const CoursePid = (props: Props) => {
             marginBottom: "18px",
             display: "flex",
             color: "var(--accent-1)",
+            justifyContent: "space-between",
           }}
         >
           <div style={{ wordBreak: "keep-all" }}>
@@ -208,6 +210,20 @@ const CoursePid = (props: Props) => {
               {`개설한 수업 목록 / ${pid}`}
             </span>
           </div>
+          {_.find(courseData.teachers, { _id: currentUser._id }) && (
+            <div
+              className={style.icon}
+              onClick={(e: any) => {
+                navigate(`/courses/mentoring/${courseData._id}`, {
+                  replace: true,
+                });
+              }}
+              style={{ display: "flex", gap: "4px", alignItems: "center" }}
+              title="멘토링 페이지로 이동"
+            >
+              <Svg type="linkExternal" width="16px" height="16px" />
+            </div>
+          )}
         </div>
         <>
           <div className={style.title}>{courseData.classTitle}</div>

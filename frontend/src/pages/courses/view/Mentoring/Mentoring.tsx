@@ -257,6 +257,8 @@ const CoursePid = (props: Props) => {
             marginBottom: "18px",
             display: "flex",
             color: "var(--accent-1)",
+
+            justifyContent: "space-between",
           }}
         >
           <div style={{ wordBreak: "keep-all" }}>
@@ -270,6 +272,21 @@ const CoursePid = (props: Props) => {
               {`담당 수업 목록 / ${pid}`}
             </span>
           </div>
+
+          {courseData.user === currentUser._id && (
+            <div
+              className={style.icon}
+              onClick={(e: any) => {
+                navigate(`/courses/created/${courseData._id}`, {
+                  replace: true,
+                });
+              }}
+              style={{ display: "flex", gap: "4px", alignItems: "center" }}
+              title="강의계획서 상세 페이지로 이동"
+            >
+              <Svg type="linkExternal" width="16px" height="16px" />
+            </div>
+          )}
         </div>
 
         <div className={style.title}>{courseData?.classTitle}</div>
