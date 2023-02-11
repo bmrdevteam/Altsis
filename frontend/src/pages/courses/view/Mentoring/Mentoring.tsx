@@ -573,7 +573,7 @@ const CoursePid = (props: Props) => {
                 },
 
                 {
-                  text: "상태(new)",
+                  text: "상태",
                   key: "confirmed",
                   width: "120px",
                   textAlign: "center",
