@@ -61,6 +61,8 @@ const CourseView = (props: Props) => {
 
   const [courseData, setCourseData] = useState<any>();
   const [confirmed, setConfirmed] = useState<boolean>(true);
+  const [confirmedStatus, setConfirmedStatus] =
+    useState<string>("notConfirmed");
 
   const [enrollments, setEnrollments] = useState<any[]>();
 
@@ -99,7 +101,12 @@ const CourseView = (props: Props) => {
             setConfirmStatusPopupActive(true);
           }}
         >
-          상태: {confirmed ? "승인됨" : "미승인"}
+          상태:{" "}
+          {confirmedStatus === "fullyConfirmed"
+            ? "승인됨"
+            : confirmedStatus === "notConfirmed"
+            ? "미승인"
+            : "승인중"}
         </div>
       </>
     );
@@ -125,6 +132,17 @@ const CourseView = (props: Props) => {
           break;
         }
       }
+      const confirmedCnt = _.filter(courseData.teachers, {
+        confirmed: true,
+      }).length;
+      setConfirmedStatus(
+        confirmedCnt === 0
+          ? "notConfirmed"
+          : confirmedCnt === courseData.teachers.length
+          ? "fullyConfirmed"
+          : "semiConfirmed"
+      );
+
       EnrollmentApi.REnrolllments({ syllabus: props.course }).then(
         (res: any) => {
           setEnrollments(res);
@@ -138,7 +156,7 @@ const CourseView = (props: Props) => {
   const ClassInfo = () => {
     return (
       <EditorParser
-      type="syllabus"
+        type="syllabus"
         auth="view"
         defaultValues={courseData.info}
         data={currentSeason?.formSyllabus}
