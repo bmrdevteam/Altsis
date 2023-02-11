@@ -460,7 +460,7 @@ const CoursePid = (props: Props) => {
                           data: evaluation,
                         })
                           .then((res: any) => {
-                            console.log("res.evaluation: ", res.evaluation);
+                            // console.log("res.evaluation: ", res.evaluation);
                             alert("저장되었습니다");
                             if (enrollmentListRef.current.length !== 0) {
                               enrollmentListRef.current[
@@ -469,7 +469,9 @@ const CoursePid = (props: Props) => {
                               setEnrollmentList([...enrollmentListRef.current]);
                             }
                           })
-                          .catch((err: any) => console.log(err));
+                          .catch((err: any) =>
+                            alert("failed to update evaluation")
+                          );
                       },
                     },
                   },

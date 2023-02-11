@@ -36,12 +36,15 @@ const ChooseAcademy = (props: Props) => {
       <div className={style.section}>
         <div className={style.container}>
           <div className={style.title}> 아카데미</div>
-          <div className={style.subtitle}> 입장하실 아카데미 아이디를 입력하세요.</div>
+          <div className={style.subtitle}>
+            {" "}
+            입장하실 아카데미 아이디를 입력하세요.
+          </div>
           {/* <Select
             appearence="flat"
             onChange={(e: any) => {
               navigate("/" + e + "/login", { replace: true });
-              console.log(e);
+              // console.log(e);
             }}
             options={options}
           /> */}

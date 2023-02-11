@@ -11,7 +11,6 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import style from "style/pages/apps/apps.module.scss";
 
-
 type Props = {};
 
 const AppsField = (props: Props) => {
@@ -28,8 +27,8 @@ const AppsField = (props: Props) => {
   //   const { registrations: result } = await database.R({
   //     location: `registrations?schoolId=bmrhs&role=student`,
   //   });
-  //   console.log(result);
-    
+  //   // console.log(result);
+
   //   return result;
   // }
 
@@ -44,7 +43,7 @@ const AppsField = (props: Props) => {
   //       });
   //   }
   // }, [userId]);
-  // console.log(appsData);
+  // // console.log(appsData);
 
   return (
     <>

@@ -255,7 +255,6 @@ module.exports.test = async (req, res) => {
       ["사진"]: { url: preSignedUrl, expiryDate },
     };
     await archive.save();
-    console.log(`${idx}/${userIds.length}`);
     idx = idx + 1;
   }
   return res.status(200).send();

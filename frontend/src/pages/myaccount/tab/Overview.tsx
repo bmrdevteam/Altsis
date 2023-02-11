@@ -26,7 +26,7 @@ const Overview = () => {
       });
     }
   }, [currentSeason]);
-// 테스트
+  // 테스트
   async function getCourseList() {
     const { syllabuses: res } = await database.R({
       location: `syllabuses?season=${currentSeason.season}&userId=${currentUser.userId}`,
@@ -43,9 +43,9 @@ const Overview = () => {
     }
   }, [currentSeason]);
 
-  console.log(currentUser);
-  console.log(currentSeason);
-  console.log(Enrollments);
+  // console.log(currentUser);
+  // console.log(currentSeason);
+  // console.log(Enrollments);
   return (
     <div>
       <div className={style.settings_container}>
@@ -176,7 +176,7 @@ const Overview = () => {
                 return result;
               },
               onClick: (value) => {
-                console.log(value);
+                // console.log(value);
               },
               type: "string",
               align: "left",
@@ -190,7 +190,7 @@ const Overview = () => {
                 return result;
               },
               onClick: (value) => {
-                console.log(value);
+                // console.log(value);
               },
               type: "string",
               align: "left",
@@ -241,7 +241,7 @@ const Overview = () => {
                 return result;
               },
               onClick: (value) => {
-                console.log(value);
+                // console.log(value);
               },
               type: "string",
               align: "left",
@@ -255,7 +255,7 @@ const Overview = () => {
                 return result;
               },
               onClick: (value) => {
-                console.log(value);
+                // console.log(value);
               },
               type: "string",
               align: "left",

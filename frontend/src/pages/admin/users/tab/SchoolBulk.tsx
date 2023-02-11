@@ -61,7 +61,7 @@ function Basic(props: Props) {
   const schoolSelectRef = useRef<any[]>([]);
 
   async function addSchoolBulk() {
-    console.log(" props.selectedUserList is ", props.selectedUserList);
+    // console.log(" props.selectedUserList is ", props.selectedUserList);
     const schools = schoolSelectRef.current.map((school) => {
       return {
         school: school._id,
@@ -102,7 +102,7 @@ function Basic(props: Props) {
   }
 
   useEffect(() => {
-    console.log("invalidUserCnt: ", invalidUserCnt);
+    // console.log("invalidUserCnt: ", invalidUserCnt);
   }, [invalidUserCnt]);
   const fileToUserList = (file: any) => {
     var reader = new FileReader();

@@ -9,7 +9,7 @@ export default function useSetStateFromOtherComponent() {
   }
   function setState(to: any) {
     CSetState(to);
-    console.log("newstate set", to);
+    // console.log("newstate set", to);
     return returnState;
   }
 

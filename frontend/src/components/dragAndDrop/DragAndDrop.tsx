@@ -23,7 +23,7 @@
  * -------------------------------------------------------
  *
  * NOTES
- * 
+ *
  * implement drop
  *
  */
@@ -42,7 +42,7 @@ const Drop = () => {
   return (
     <div
       onDrop={() => {
-        console.log("drop");
+        // console.log("drop");
       }}
     >
       drop

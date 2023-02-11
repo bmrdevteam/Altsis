@@ -57,7 +57,7 @@ const Registration = (props: Props) => {
     const { documents } = await database.R({
       location: `academies/${academyId}/registrations?season=${props.season}`,
     });
-    console.log(documents);
+    // console.log(documents);
     return documents;
   }
 

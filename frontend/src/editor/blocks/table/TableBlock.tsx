@@ -89,7 +89,7 @@ const TableBlock = (props: Props) => {
         className={style.table}
         style={{ fontSize: block.data.fontSize }}
         onClick={() => {
-          console.log(spanTrack);
+          // console.log(spanTrack);
         }}
       >
         <SetColumn />

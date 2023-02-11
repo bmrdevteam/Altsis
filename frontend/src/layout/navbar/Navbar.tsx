@@ -61,10 +61,10 @@ const Notification = () => {
   //   NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
   //     if (res) {
   //       audio.play().catch((e: any) => {
-  //         console.log(e);
+  //         // console.log(e);
   //       });
   //       setCurrentNotifications([...res]);
-  //       console.log(res);
+  //       // console.log(res);
   //     }
   //   });
   // }, 1000 * 60 * 10); //10분
@@ -78,7 +78,7 @@ const Notification = () => {
       }).then((res) => {
         if (res) {
           audio.play().catch((e: any) => {
-            console.log(e);
+            // console.log(e);
           });
           setCurrentNotifications(res);
           setIsNotifiationLoading(false);

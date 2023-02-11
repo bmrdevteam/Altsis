@@ -36,10 +36,10 @@ type Props = {};
 
 const SocialLoginSettings = (props: Props) => {
   const { currentUser } = useAuth();
-  console.log(
-    "🚀 ~ file: SocialLoginSettings.tsx ~ line 40 ~ SocialLoginSettings ~ currentUser",
-    currentUser
-  );
+  // console.log(
+  //   "🚀 ~ file: SocialLoginSettings.tsx ~ line 40 ~ SocialLoginSettings ~ currentUser",
+  //   currentUser
+  // );
 
   return (
     <div className={style.settings_container}>

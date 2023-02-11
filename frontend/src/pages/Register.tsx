@@ -1,14 +1,14 @@
 /**
  * @file Register Page
- * 
+ *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
  *
  * IN PRODUCTION
- * 
+ *
  * - Register Page
- * 
+ *
  * -------------------------------------------------------
  *
  * IN MAINTENANCE
@@ -46,10 +46,10 @@ const Register = (props: Props) => {
   // const status = useGoogleLogin();
 
   useEffect(() => {
-    console.log("first");
+    // console.log("first");
 
     return () => {
-      // console.log(status);
+      // // console.log(status);
     };
   }, []);
 
@@ -62,14 +62,14 @@ const Register = (props: Props) => {
         email: emailRef.current?.value,
       })
       .then(function (response) {
-        console.log(response);
+        // console.log(response);
       })
       .catch(function (error) {
         const errorMsg = error.response.data.errors;
 
         for (let i = 0; i < errorMsg.length; i++) {
-          console.log(errorMsg[i]?.msg);
-          console.log(errorMsg[i]?.param);
+          // console.log(errorMsg[i]?.msg);
+          // console.log(errorMsg[i]?.param);
           setErrorMessage(errorMsg[i]?.msg);
 
           switch (errorMsg[i]?.msg) {
@@ -77,19 +77,19 @@ const Register = (props: Props) => {
               //conflict
               break;
             case "ID length error":
-              console.log(1);
+              // console.log(1);
 
               break;
             case "ID must be alphanumeric":
-              console.log(2);
+              // console.log(2);
 
               break;
             case "Password length error":
-              console.log(3);
+              // console.log(3);
 
               break;
             case "Password must contain one special character":
-              console.log(4);
+              // console.log(4);
 
               break;
 
@@ -104,32 +104,15 @@ const Register = (props: Props) => {
         <h1 className={style.title}>회원가입</h1>
         <p className={style.error}>{errorMessage}</p>
         <Input
-
           placeholder="아이디 입력"
           onChange={(e: React.FormEvent<HTMLInputElement>) => {
-            console.log(usernameRef.current?.value);
+            // console.log(usernameRef.current?.value);
           }}
           required={true}
         />
-        <Input
-
-          placeholder="이메일 입력"
-          type="email"
-          required
-        />
-        <Input
-
-          placeholder="패스워드 입력"
-          type="password"
-          required
-
-        />
-        <Input
-
-          placeholder="패스워드 제 입력"
-          type="password"
-          required
-        />
+        <Input placeholder="이메일 입력" type="email" required />
+        <Input placeholder="패스워드 입력" type="password" required />
+        <Input placeholder="패스워드 제 입력" type="password" required />
         <Button>회원 가입</Button>
         <div style={{ height: "4px" }}></div>
         {/* <GoogleLoginBtn /> */}

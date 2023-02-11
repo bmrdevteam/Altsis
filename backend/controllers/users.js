@@ -19,15 +19,12 @@ module.exports.loginLocal = async (req, res) => {
   passport.authenticate("local2", (authError, user, academyId) => {
     try {
       if (authError) throw authError;
-      console.log("DEBUG: authentication is over");
       return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
-        console.log("DEBUG: login is over");
         /* set maxAge as 1 year if auto login is requested */
         if (req.body.persist === "true") {
           req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
         }
-        console.log("DEBUG: sending response");
         return res.status(200).send(user);
       });
     } catch (err) {
@@ -37,7 +34,6 @@ module.exports.loginLocal = async (req, res) => {
 };
 
 module.exports.loginGoogle = async (req, res) => {
-  console.log("loginGoogle: req.body is ", req.body);
   passport.authenticate("google2", (authErr, user, academyId) => {
     try {
       if (authErr) throw authErr;
@@ -395,7 +391,6 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
     passport.authenticate("local2", async (authError, user, academyId) => {
       try {
         if (authError) throw authError;
-        console.log("DEBUG: authentication is over");
         user.password = req.body.new;
         await user.save();
         return res.status(200).send();

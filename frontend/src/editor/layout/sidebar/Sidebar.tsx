@@ -51,7 +51,7 @@ const Sidebar = (props: Props) => {
       editorPageRef.current.contains(e.target as Node)
     ) {
       forcefullyReloadSidebar();
-      console.log(getCurrentBlock());
+      // console.log(getCurrentBlock());
     }
   };
 
@@ -646,7 +646,7 @@ const Sidebar = (props: Props) => {
                     ];
                   }
 
-                  console.log(getCurrentCell()?.options);
+                  // console.log(getCurrentCell()?.options);
                   props.callPageReload();
                   forcefullyReloadSidebar();
                 }}
@@ -806,10 +806,10 @@ const Sidebar = (props: Props) => {
     <div
       className={style.sidebar_container}
       // onMouseEnter={() => {
-      //   console.log("a");
+      //   // console.log("a");
       // }}
       // onMouseLeave={() => {
-      //   console.log("aa");
+      //   // console.log("aa");
       // }}
     >
       <div className={style.sidebar}>

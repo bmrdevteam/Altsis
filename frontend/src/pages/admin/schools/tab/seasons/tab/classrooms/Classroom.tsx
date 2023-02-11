@@ -104,7 +104,7 @@ const Classroom = (props: Props) => {
                     setClassroomList(res.classrooms);
                   })
                   .catch((err) => {
-                    console.log(err.response.data.message);
+                    // console.log(err.response.data.message);
                     // alert(err.response.data.message);
                   });
               }
@@ -125,7 +125,7 @@ const Classroom = (props: Props) => {
                     setClassroomList(res.classrooms);
                   })
                   .catch((err) => {
-                    console.log(err.response.data.message);
+                    // console.log(err.response.data.message);
                     // alert(err.response.data.message);
                   });
               }
@@ -173,7 +173,7 @@ const Classroom = (props: Props) => {
                     setClassroomList(res.classrooms);
                   })
                   .catch((err) => {
-                    console.log(err.response.data.message);
+                    // console.log(err.response.data.message);
                     // alert(err.response.data.message);
                   });
               },

@@ -97,7 +97,7 @@ const Permission = (props: Props) => {
   const zipPermission = (permissionData: any) => {
     const _permission = [];
 
-    console.log(permissionData);
+    // console.log(permissionData);
     for (let i = 0; i < permissionData.exceptions.length; i++) {
       _permission.push([
         "userId",
@@ -347,7 +347,7 @@ const Permission = (props: Props) => {
               <Button
                 type={"ghost"}
                 onClick={() => {
-                  console.log(permissionData);
+                  // console.log(permissionData);
                   if (selectedUserId) {
                     SeasonApi.USeasonPermission({
                       _id: props._id,

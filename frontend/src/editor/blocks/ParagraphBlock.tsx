@@ -14,10 +14,10 @@ const ParagraphBlock = (props: Props) => {
       style={{
         fontSize: block.data?.fontSize,
         textAlign: block.data?.textAlign,
-        fontWeight:block.data?.fontWeight
+        fontWeight: block.data?.fontWeight,
       }}
       onInput={(e: any) => {
-        console.log(e.target.textContent);
+        // console.log(e.target.textContent);
         saveBlock({
           block: {
             id: block.id,

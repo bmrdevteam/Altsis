@@ -346,7 +346,7 @@ export const EditorProvider = (props: {
         },
       };
     }
-    console.log("inserting after", insertIndex);
+    // console.log("inserting after", insertIndex);
 
     const q = () => {
       if (editorData.current.length === 0) {
@@ -382,7 +382,7 @@ export const EditorProvider = (props: {
       if (update || update === undefined) {
         setReloadEditorData(true);
       }
-      console.log("updated", editorData.current);
+      // console.log("updated", editorData.current);
     }
     saveMoves();
   }
@@ -494,7 +494,7 @@ export const EditorProvider = (props: {
     data: any
   ) {
     Object.assign(editorData.current[blockIndex].data.table[row][column], data);
-    console.log(editorData.current[blockIndex]);
+    // console.log(editorData.current[blockIndex]);
     saveMoves();
   }
 
@@ -601,7 +601,7 @@ export const EditorProvider = (props: {
         editorDataMoves.current[editorDataMovesTrack.current]
       );
       editorDataMovesTrack.current += 1;
-      console.log(editorDataMoves.current);
+      // console.log(editorDataMoves.current);
       setReloadEditorData(true);
     } else if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -609,7 +609,7 @@ export const EditorProvider = (props: {
         editorDataMoves.current[editorDataMovesTrack.current - 2]
       );
       editorDataMovesTrack.current -= 1;
-      console.log(editorDataMoves.current);
+      // console.log(editorDataMoves.current);
 
       setReloadEditorData(true);
     }

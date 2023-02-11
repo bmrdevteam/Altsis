@@ -44,16 +44,16 @@ const DatatableMenu = (props: Props) => {
   }, []);
 
   function save() {
-    console.log(dataFrom);
-    console.log(columns);
-    console.log(headers);
-    console.log(body);
+    // console.log(dataFrom);
+    // console.log(columns);
+    // console.log(headers);
+    // console.log(body);
 
     changeCurrentBlockData({
       dataTableFrom: dataFrom,
       dataTableColumns: [1, 1, 1, 1],
       dataTableHeaders: ["1", "2", "3", "4"],
-      dataTableBody: ["point", "classTitle",'',''],
+      dataTableBody: ["point", "classTitle", "", ""],
     });
   }
   /**

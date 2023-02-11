@@ -53,7 +53,7 @@ const ParsedTableBlock = (props: Props) => {
         });
       }
       if (e.total) {
-        console.log(z);
+        // console.log(z);
         let track = 0;
         repeat.map((ob: any) => {
           track += parseFloat(ob[e.label]);
@@ -261,7 +261,7 @@ const ParsedTableBlock = (props: Props) => {
                       delete props.returnData[data?.name];
                     }
                   }
-                  console.log(props.returnData);
+                  // console.log(props.returnData);
                 }}
               />
             )}

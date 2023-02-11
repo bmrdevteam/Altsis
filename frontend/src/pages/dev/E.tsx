@@ -21,7 +21,7 @@ const E = (props: Props) => {
         control
         defaultPageBy={10}
         onChange={(e) => {
-          console.log(e);
+          // console.log(e);
         }}
         header={[
           {

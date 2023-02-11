@@ -456,13 +456,15 @@ const Form = (props: Props) => {
           <Table
             type="string-array"
             data={
-              formEvaluation.current[formEvaluationSelectIndex-1]?.options ?? []
+              formEvaluation.current[formEvaluationSelectIndex - 1]?.options ??
+              []
             }
             onChange={(e) => {
-              let _data:any[] = [];
+              let _data: any[] = [];
               e.map((o) => _data.push(o["0"]));
-              console.log(formEvaluation.current);
-              formEvaluation.current[formEvaluationSelectIndex-1].options = _data
+              // console.log(formEvaluation.current);
+              formEvaluation.current[formEvaluationSelectIndex - 1].options =
+                _data;
               SeasonApi.USeasonForm({
                 _id: props._id,
                 type: "evaluation",

@@ -14,7 +14,7 @@ type Props = {
 };
 
 const One = (props: Props) => {
-  console.log(props.userArchiveData);
+  // console.log(props.userArchiveData);
 
   const { currentSchool } = useAuth();
   function archiveData() {
@@ -92,7 +92,7 @@ const One = (props: Props) => {
           <div style={{ marginTop: "24px" }}>
             <Table
               onChange={(value) => {
-                console.log(value);
+                // console.log(value);
               }}
               type="object-array"
               data={props.userArchiveData ?? []}

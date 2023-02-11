@@ -19,7 +19,7 @@ const EditorParser = (props: Props) => {
   return (
     <div
       onInput={() => {
-        console.log(returnData.current);
+        // console.log(returnData.current);
 
         props.onChange && props.onChange(returnData.current);
       }}

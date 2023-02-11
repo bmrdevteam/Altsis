@@ -92,7 +92,7 @@ const NotificationSend = (props: Props) => {
 
   useEffect(() => {
     if (receiverList) {
-      console.log("receiverList", receiverList);
+      // console.log("receiverList", receiverList);
       setIsReceiverListLoaded(true);
     }
     return () => {};
@@ -334,7 +334,7 @@ const NotificationSend = (props: Props) => {
                     <Button
                       type="ghost"
                       onClick={(e: any) => {
-                        console.log("receiver is ", receiver);
+                        // console.log("receiver is ", receiver);
 
                         setReceiverSelectedList(
                           _.filter(receiverSelectedList, (val) => {
@@ -411,7 +411,7 @@ const NotificationSend = (props: Props) => {
                 } else if (title === "") {
                   alert("타이틀 없이 메일을 보낼 수 없습니다.");
                 } else {
-                  console.log(receiverSelectedList);
+                  // console.log(receiverSelectedList);
                   NotificationApi.SendNotifications({
                     data: {
                       toUserList: receiverSelectedList.map((receiver: any) => {
