@@ -1,6 +1,12 @@
 import Loading from "components/loading/Loading";
 import useApi from "hooks/useApi";
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import useDatabase from "../hooks/useDatabase";
 import _ from "lodash";
 import { checkPermissionBySeason } from "functions/functions";
@@ -23,8 +29,7 @@ export function useAuth(): {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
-  currentNotifications: any;
-  setCurrentNotifications: React.Dispatch<any>;
+  currentNotificationsRef: any;
   currentPermission: any;
   socket: any;
 } {
@@ -49,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [_registrations, _setRegistration] = useState<any>([]);
   const [registrations, setRegistration] = useState<any>([]);
   const [currentSeason, setCurrentSeason] = useState<any>();
-  const [currentNotifications, setCurrentNotifications] = useState<any>([]);
+  const currentNotificationsRef = useRef<any[]>([]);
   const [socket, setSocket] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -63,7 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       SchoolApi.RSchool(res.schools[0].school).then((s) => {
         setCurrentSchool((prev: any) => ({ ...prev, ...s }));
       });
-      setCurrentNotifications(res.notifications);
+      currentNotificationsRef.current = res.notifications;
 
       /** if there is a registration, set the season */
       if (res.registrations) _setRegistration(res.registrations);
@@ -195,8 +200,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentSchool,
     updateUserProfile,
     deleteUserProfile,
-    currentNotifications,
-    setCurrentNotifications,
+    currentNotificationsRef,
     currentPermission,
     setCurrentSchool,
     socket,
