@@ -265,7 +265,7 @@ const CourseEnrollment = (props: Props) => {
             color: "var(--accent-1)",
           }}
         >
-          <div style={{ wordBreak: "keep-all" }}>
+          <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
             <span>&nbsp;/&nbsp;</span>
             <span
               style={{ cursor: "pointer" }}

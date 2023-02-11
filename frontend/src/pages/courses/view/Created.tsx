@@ -191,7 +191,7 @@ const CoursePid = (props: Props) => {
             justifyContent: "space-between",
           }}
         >
-          <div style={{ wordBreak: "keep-all" }}>
+          <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
             <span>&nbsp;/&nbsp;</span>
             <span
               style={{ cursor: "pointer" }}
