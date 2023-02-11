@@ -43,6 +43,7 @@ import ViewPopup from "./view/ViewPopup";
 
 import _ from "lodash";
 import Loading from "components/loading/Loading";
+import Popup from "components/popup/Popup";
 
 type Props = {};
 
@@ -62,6 +63,9 @@ const Courses = (props: Props) => {
 
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
   const [course, setCourse] = useState<string>();
+  const [courseData, setCourseData] = useState<any>();
+  const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
+    useState<boolean>(false);
 
   async function getCreatedCourseList() {
     const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
@@ -100,6 +104,17 @@ const Courses = (props: Props) => {
           break;
         }
       }
+
+      const confirmedCnt = _.filter(syllabus.teachers, {
+        confirmed: true,
+      }).length;
+      syllabus.confirmedStatus =
+        confirmedCnt === 0
+          ? "notConfirmed"
+          : confirmedCnt === syllabus.teachers.length
+          ? "fullyConfirmed"
+          : "semiConfirmed";
+
       return syllabus;
     });
   };
@@ -172,6 +187,31 @@ const Courses = (props: Props) => {
       status: {
         false: { text: "미승인", color: "red" },
         true: { text: "승인됨", color: "green" },
+      },
+    },
+    {
+      text: "상태(new)",
+      key: "confirmedStatus",
+      width: "72px",
+      textAlign: "center",
+      type: "status",
+      status: {
+        notConfirmed: {
+          text: "미승인",
+          color: "red",
+        },
+        fullyConfirmed: {
+          text: "승인됨",
+          color: "green",
+        },
+        semiConfirmed: {
+          text: "승인중",
+          color: "purple",
+          onClick: (e: any) => {
+            setCourseData(courseList[e.tableRowIndex - 1]);
+            setConfirmStatusPopupActive(true);
+          },
+        },
       },
     },
     {
@@ -248,6 +288,57 @@ const Courses = (props: Props) => {
       </div>
       {viewPopupActive && course && (
         <ViewPopup course={course} setPopupActive={setViewPopupActive} />
+      )}
+      {confirmStatusPopupActive && (
+        <Popup
+          setState={setConfirmStatusPopupActive}
+          title="승인 상태"
+          closeBtn
+        >
+          <Table
+            type="object-array"
+            data={courseData?.teachers || []}
+            header={[
+              {
+                text: "No",
+                type: "text",
+                key: "tableRowIndex",
+                width: "48px",
+                textAlign: "center",
+              },
+              {
+                text: "멘토 ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "멘토 이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
+              },
+
+              {
+                text: "상태",
+                key: "confirmed",
+                width: "120px",
+                textAlign: "center",
+                type: "status",
+                status: {
+                  false: {
+                    text: "미승인",
+                    color: "red",
+                  },
+                  true: {
+                    text: "승인됨",
+                    color: "green",
+                  },
+                },
+              },
+            ]}
+          />
+        </Popup>
       )}
     </>
   );
