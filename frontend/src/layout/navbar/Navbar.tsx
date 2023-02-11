@@ -30,8 +30,7 @@ const Notification = () => {
   /**
    * active state for notification contents
    */
-  const { currentUser, currentNotifications, setCurrentNotifications, socket } =
-    useAuth();
+  const { currentUser, socket, currentNotificationsRef } = useAuth();
   const { NotificationApi } = useApi();
   const navigate = useNavigate();
 
@@ -57,18 +56,6 @@ const Notification = () => {
     }
   }
 
-  // useInterval(() => {
-  //   NotificationApi.CUpdatedNotifications(currentUser.userId).then((res) => {
-  //     if (res) {
-  //       audio.play().catch((e: any) => {
-  //         // console.log(e);
-  //       });
-  //       setCurrentNotifications([...res]);
-  //       // console.log(res);
-  //     }
-  //   });
-  // }, 1000 * 60 * 10); //10분
-
   useEffect(() => {
     if (isNotificationLoading) {
       NotificationApi.RNotifications({
@@ -80,7 +67,7 @@ const Notification = () => {
           audio.play().catch((e: any) => {
             // console.log(e);
           });
-          setCurrentNotifications(res);
+          currentNotificationsRef.current = res;
           setIsNotifiationLoading(false);
         }
       });
@@ -117,7 +104,7 @@ const Notification = () => {
   }, [isNotificationContenLoading]);
 
   const notifications = () => {
-    return currentNotifications.map((notification: any) => {
+    return currentNotificationsRef.current.map((notification: any) => {
       return (
         <div className={style.item} style={{ marginBottom: "12px" }}>
           <div
@@ -137,14 +124,13 @@ const Notification = () => {
             onClick={(e: any) => {
               NotificationApi.UCheckNotification(notification._id)
                 .then(() => {
-                  currentNotifications.splice(
+                  currentNotificationsRef.current.splice(
                     _.findIndex(
-                      currentNotifications,
+                      currentNotificationsRef.current,
                       (x: any) => x._id === notification._id
                     ),
                     1
                   );
-                  setCurrentNotifications(currentNotifications);
                   setIsNotifiationContenLoading(true);
                 })
                 .catch((err) => {
@@ -168,13 +154,15 @@ const Notification = () => {
       <div className={style.notification} ref={notificationtRef}>
         <div
           className={`${style.icon} ${
-            currentNotifications.length > 0 && style.active
+            currentNotificationsRef.current.length > 0 && style.active
           }`}
           onClick={() => {
             setNotificationContentActive((prev) => !prev);
           }}
           data-count={
-            currentNotifications.length > 0 ? currentNotifications.length : ""
+            currentNotificationsRef.current.length > 0
+              ? currentNotificationsRef.current.length
+              : ""
           }
         >
           <Svg type="notification" width="20px" height="20px" />
