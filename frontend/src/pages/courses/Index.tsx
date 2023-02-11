@@ -77,8 +77,42 @@ const Course = (props: Props) => {
 
       course.confirmed = !_.find(course.teachers, { confirmed: false });
 
+      const confirmedCnt = _.filter(course.teachers, {
+        confirmed: true,
+      }).length;
+      course.confirmedStatus =
+        confirmedCnt === 0
+          ? "notConfirmed"
+          : confirmedCnt === course.teachers.length
+          ? "fullyConfirmed"
+          : "semiConfirmed";
+
       return course;
     });
+  };
+
+  const updateCourses = () => {
+    SyllabusApi.RCourses({
+      season: currentRegistration.season,
+      user: currentUser._id,
+    }).then((res: any) => {
+      setEnrolledCourseList(structuring(res.enrolled));
+      setCreatedCourseList(structuring(res.created));
+      setMentoringCourseList(structuring(res.mentoring));
+    });
+    if (currentSeason?.subjects?.label) {
+      setSubjectLabelHeaderList([
+        ...currentSeason?.subjects?.label?.map((label: string) => {
+          return {
+            text: label,
+            key: label,
+            type: "text",
+            textAlign: "center",
+            whiteSpace: "pre",
+          };
+        }),
+      ]);
+    }
   };
 
   useEffect(() => {
@@ -86,27 +120,7 @@ const Course = (props: Props) => {
       alert("등록된 학기가 없습니다.");
       navigate("/");
     } else {
-      SyllabusApi.RCourses({
-        season: currentRegistration.season,
-        user: currentUser._id,
-      }).then((res: any) => {
-        setEnrolledCourseList(structuring(res.enrolled));
-        setCreatedCourseList(structuring(res.created));
-        setMentoringCourseList(structuring(res.mentoring));
-      });
-      if (currentSeason?.subjects?.label) {
-        setSubjectLabelHeaderList([
-          ...currentSeason?.subjects?.label?.map((label: string) => {
-            return {
-              text: label,
-              key: label,
-              type: "text",
-              textAlign: "center",
-              whiteSpace: "pre",
-            };
-          }),
-        ]);
-      }
+      updateCourses();
     }
   }, [currentRegistration]);
 
@@ -130,6 +144,7 @@ const Course = (props: Props) => {
           <MentoringCourseList
             courseList={mentoringCourseList}
             subjectLabelHeaderList={subjectLabelHeaderList}
+            updateCourses={updateCourses}
           />
         ),
       };
