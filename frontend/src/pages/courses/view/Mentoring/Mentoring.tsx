@@ -300,22 +300,13 @@ const CoursePid = (props: Props) => {
             >
               강의계획서 조회
             </div>
-
             <div
               className={style.category}
               onClick={() => {
                 setConfirmStatusPopupActive(true);
               }}
             >
-              상태: {mentorConfirmed ? "승인됨" : "미승인"}
-            </div>
-            <div
-              className={style.category}
-              onClick={() => {
-                setConfirmStatusPopupActive(true);
-              }}
-            >
-              상태(new):{" "}
+              상태:{" "}
               {confirmedStatus === "fullyConfirmed"
                 ? "승인됨"
                 : confirmedStatus === "notConfirmed"
@@ -559,19 +550,6 @@ const CoursePid = (props: Props) => {
                   textAlign: "center",
                   whiteSpace: "pre",
                 },
-
-                {
-                  text: "상태",
-                  key: "confirmed",
-                  width: "80px",
-                  textAlign: "center",
-                  type: "status",
-                  status: {
-                    false: { text: "미승인", color: "red" },
-                    true: { text: "승인됨", color: "green" },
-                  },
-                },
-
                 {
                   text: "상태",
                   key: "confirmed",

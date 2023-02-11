@@ -180,17 +180,6 @@ const Courses = (props: Props) => {
     },
     {
       text: "상태",
-      key: "confirmed",
-      width: "72px",
-      textAlign: "center",
-      type: "status",
-      status: {
-        false: { text: "미승인", color: "red" },
-        true: { text: "승인됨", color: "green" },
-      },
-    },
-    {
-      text: "상태(new)",
       key: "confirmedStatus",
       width: "72px",
       textAlign: "center",
@@ -216,14 +205,20 @@ const Courses = (props: Props) => {
     },
     {
       text: "자세히",
-      key: "courseName",
+      key: "detail",
       type: "button",
       onClick: (e: any) => {
         setCourse(e._id);
         setViewPopupActive(true);
       },
-      width: "80px",
+      width: "72px",
       textAlign: "center",
+      btnStyle: {
+        border: true,
+        color: "black",
+        padding: "4px",
+        round: true,
+      },
     },
   ];
 
