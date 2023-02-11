@@ -194,7 +194,7 @@ module.exports.unconfirm = async (req, res) => {
 
 module.exports.update = async (req, res) => {
   try {
-    // 내가 만든 syllabus인가?
+    // 내가 만둘었거나 멘토링하는 syllabus인가?
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.params._id
     );
@@ -202,20 +202,25 @@ module.exports.update = async (req, res) => {
       return res.status(404).send({ message: "syllabus not found" });
     }
 
-    if (req.user.userId != syllabus.userId) {
-      return res
-        .status(403)
-        .send({ message: "you cannot update this syllabus" });
+    if (
+      req.user.userId != syllabus.userId &&
+      !_.find(syllabus.teachers, { _id: req.user._id })
+    ) {
+      return res.status(403).send({
+        message: "you cannot update this syllabus",
+        teachers: syllabus.teachers,
+        "req.user": req.user,
+      });
     }
 
-    // confirmed 상태에서는 수정할 수 없다.
-    for (let i = 0; i < syllabus.teachers.length; i++) {
-      if (syllabus.teachers[i].confirmed) {
-        return res.status(409).send({
-          message: "you cannot update this syllabus becuase it is confirmed",
-        });
-      }
-    }
+    // 모두 confirmed된 상태에서는 수정할 수 없다.
+    const fullyConfirmed =
+      _.filter(syllabus.teachers, { confirmed: true }).length ===
+      syllabus.teachers.length;
+    if (fullyConfirmed)
+      return res.status(409).send({
+        message: "you cannot update this syllabus becuase it is confirmed",
+      });
 
     // 전체로 수정하는 경우
     if (!req.params.field) {
