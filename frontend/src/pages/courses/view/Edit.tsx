@@ -29,7 +29,7 @@
  *
  */
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
@@ -47,6 +47,9 @@ type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const byMentor = searchParams.get("byMentor") === "true";
+
   const { RegistrationApi, SyllabusApi } = useApi();
   const navigate = useNavigate();
   const { currentUser, currentSeason } = useAuth();
@@ -64,6 +67,8 @@ const CoursePid = (props: Props) => {
 
   const [courseSubject, setCourseSubject] = useState<string>("");
   const [courseTitle, setCourseTitle] = useState<string>("");
+  const [courseUserId, setCourseUserId] = useState<string>("");
+  const [courseUserName, setCourseUserName] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
   const [coursePoint, setCoursePoint] = useState<string>("");
@@ -87,7 +92,8 @@ const CoursePid = (props: Props) => {
         const element = s[i];
         for (let ii = 0; ii < element.time.length; ii++) {
           Object.assign(result, {
-            [element.time[ii].label]: element.classTitle + "(" + element.classroom + ")",
+            [element.time[ii].label]:
+              element.classTitle + "(" + element.classroom + ")",
           });
         }
       }
@@ -125,12 +131,13 @@ const CoursePid = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading && currentSeason && currentUser) {
       SyllabusApi.RSyllabus(pid)
         .then((result) => {
           if (
             result.season !== currentSeason._id ||
-            result.user !== currentUser._id
+            (!byMentor && result.user !== currentUser._id) ||
+            (byMentor && !_.find(result.teachers, { _id: currentUser._id }))
           ) {
             navigate("/courses#개설%20수업", { replace: true });
           }
@@ -138,6 +145,8 @@ const CoursePid = (props: Props) => {
           setCourseData(result);
           setCourseSubject(_.join(result.subject, "/"));
           setCourseTitle(result.classTitle);
+          setCourseUserId(result.userId);
+          setCourseUserName(result.userName);
           setCourseMentorList(result.teachers || []);
           setCoursePoint(result.point || 0);
           setCourseTime(_.keyBy(result.time, "label"));
@@ -229,7 +238,7 @@ const CoursePid = (props: Props) => {
               label="작성자"
               required={true}
               disabled
-              defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
+              defaultValue={`${courseUserName}(${courseUserId})`}
             />
 
             <Input
@@ -332,7 +341,10 @@ const CoursePid = (props: Props) => {
               } else
                 update()
                   .then((res: any) => {
-                    navigate(`/courses/created/${pid}`, { replace: true });
+                    if (!byMentor)
+                      navigate(`/courses/created/${pid}`, { replace: true });
+                    if (byMentor)
+                      navigate(`/courses/mentoring/${pid}`, { replace: true });
                   })
                   .catch((err) => {
                     alert(err);
@@ -343,10 +355,13 @@ const CoursePid = (props: Props) => {
           </Button>
 
           <Button
-            style={{ marginTop: "24px" }}
+            style={{ marginTop: "12px" }}
             type="ghost"
             onClick={() => {
-              navigate(`/courses/created/${pid}`, { replace: true });
+              if (!byMentor)
+                navigate(`/courses/created/${pid}`, { replace: true });
+              if (byMentor)
+                navigate(`/courses/mentoring/${pid}`, { replace: true });
             }}
           >
             취소

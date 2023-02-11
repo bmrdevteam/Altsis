@@ -636,6 +636,7 @@ const CoursePid = (props: Props) => {
             course={pid}
             setPopupActive={setViewPopupActive}
             hideStudentList={true}
+            byMentor={true}
           />
         )}
       </div>
