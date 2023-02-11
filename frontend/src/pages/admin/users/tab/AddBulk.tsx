@@ -75,7 +75,7 @@ function Basic(props: Props) {
 4. ID와 이름은 추후 수정될 수 없습니다.`;
 
   async function addUserBulk() {
-    console.log("schoolSelectRef.current: ", schoolSelectRef.current);
+    // console.log("schoolSelectRef.current: ", schoolSelectRef.current);
     const schools = schoolSelectRef.current?.map((school) => {
       return {
         school: school._id,
@@ -96,7 +96,7 @@ function Basic(props: Props) {
   }
 
   useEffect(() => {
-    console.log("invalidUserCnt: ", invalidUserCnt);
+    // console.log("invalidUserCnt: ", invalidUserCnt);
   }, [invalidUserCnt]);
   const fileToUserList = (file: any) => {
     var reader = new FileReader();
@@ -315,10 +315,10 @@ function Basic(props: Props) {
                 } else {
                   checkUserList()
                     .then((res) => {
-                      console.log();
+                      // console.log();
                     })
                     .catch((err) => {
-                      console.log(err);
+                      // console.log(err);
                       alert(err.response.data.message);
                     });
                 }
@@ -472,7 +472,7 @@ function Basic(props: Props) {
               onClick={() => {
                 addUserBulk()
                   .then((res) => {
-                    console.log(res);
+                    // console.log(res);
                     alert("success");
                     props.addUserList(res);
                     props.setPopupActive(false);

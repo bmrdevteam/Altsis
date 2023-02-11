@@ -180,7 +180,7 @@ const DataConnPopup = (props: Props) => {
                                     subItem={
                                       archive.fields &&
                                       archive.fields?.map((v: any) => {
-                                        console.log();
+                                        // console.log();
 
                                         let returnArchive = [
                                           <TreeItem
@@ -495,7 +495,7 @@ const DataConnPopup = (props: Props) => {
                                 filtersRef.current.find(
                                   (v) => v.key === value.key
                                 ).by = e.target.value;
-                                console.log(filtersRef.current);
+                                // console.log(filtersRef.current);
                               }}
                             />
                             <select
@@ -504,7 +504,7 @@ const DataConnPopup = (props: Props) => {
                                 filtersRef.current.find(
                                   (v) => v.key === value.key
                                 ).operator = e.target.value;
-                                console.log(filtersRef.current);
+                                // console.log(filtersRef.current);
                               }}
                             >
                               <option value="===">==</option>
@@ -517,7 +517,7 @@ const DataConnPopup = (props: Props) => {
                                 filtersRef.current.find(
                                   (v) => v.key === value.key
                                 ).value = e.target.value;
-                                console.log(filtersRef.current);
+                                // console.log(filtersRef.current);
                               }}
                               defaultValue={value.value}
                             />

@@ -117,7 +117,7 @@ const Forms = (props: Props) => {
    * @returns {JSX.Element} form item element
    */
   const FormItem = ({ data }: { data: any }): JSX.Element => {
-    // console.log(R.RSchools());
+    // // console.log(R.RSchools());
 
     const navigate = useNavigate();
     const outsideclick = useOutsideClick();
@@ -483,7 +483,7 @@ const Forms = (props: Props) => {
               disableOnclick
               onClick={() => {
                 addForm().catch((err) => {
-                  console.log(err);
+                  // console.log(err);
                 });
                 setAddFormPopupActive(false);
               }}

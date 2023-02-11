@@ -106,7 +106,7 @@ function Basic(props: Props) {
         <Button
           type={"ghost"}
           onClick={() => {
-            console.log(registrationInfo.current);
+            // console.log(registrationInfo.current);
             RegistrationApi.CRegistrations({
               data: {
                 season: props.seasonData._id,
@@ -239,7 +239,7 @@ function Basic(props: Props) {
               appearence="flat"
               label="부담임 선생님"
               onChange={(e: any) => {
-                console.log(e);
+                // console.log(e);
                 const {
                   teacher: _teacher,
                   teacherId: _teacherId,

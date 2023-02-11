@@ -52,7 +52,11 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
         id=""
       >
         {currentUser.schools.map((s: any) => {
-          return <option key={s.school} value={s.school}>{s.schoolName}</option>;
+          return (
+            <option key={s.school} value={s.school}>
+              {s.schoolName}
+            </option>
+          );
         })}
       </select>
       {/* <div
@@ -79,9 +83,9 @@ const Search = ({ setSearchRef }: { setSearchRef?: ReactElement }) => {
         <span className={style.icon}>{<Svg type="search" />}</span>
 
         <input
-          onKeyDown={(e) => {
-            e.key === "Enter" && console.log("검색");
-          }}
+          // onKeyDown={(e) => {
+          //   e.key === "Enter" && console.log("검색");
+          // }}
           className={style.search_input}
           placeholder="검색"
         />

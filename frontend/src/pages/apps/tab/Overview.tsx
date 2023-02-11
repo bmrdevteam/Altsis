@@ -7,7 +7,7 @@ import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import useDatabase from "../../../hooks/useDatabase";
 
-type Props = {}
+type Props = {};
 
 const Overview = (props: Props) => {
   // const { currentUser, currentSchool } = useAuth();
@@ -20,10 +20,11 @@ const Overview = (props: Props) => {
   async function addApps() {
     await database.C({
       location: `apps/`,
-      data: { 
+      data: {
         title: InputName,
-        description: InputDescription, }
-      });
+        description: InputDescription,
+      },
+    });
   }
 
   async function getApps() {
@@ -35,12 +36,12 @@ const Overview = (props: Props) => {
 
   useEffect(() => {
     getApps()
-    .then((res) => {
-      setAppsList(res);
-    })
-    .catch(() => {
-      alert("failed to load data");
-    });
+      .then((res) => {
+        setAppsList(res);
+      })
+      .catch(() => {
+        alert("failed to load data");
+      });
   }, []);
 
   return (
@@ -56,18 +57,18 @@ const Overview = (props: Props) => {
               style={{ fontSize: "14px" }}
               onChange={(e: any) => {
                 setInputName(e.target.value);
-                console.log(e.target.value);
+                // console.log(e.target.value);
               }}
             />
           </div>
           <div style={{ marginTop: "12px" }}>
-            <Textarea 
-              label="설명" 
-              placeholder="설명" 
+            <Textarea
+              label="설명"
+              placeholder="설명"
               onChange={(e: any) => {
                 setInputDescription(e.target.value);
               }}
-              />
+            />
           </div>
           <div style={{ marginTop: "12px" }}>
             <Button
@@ -80,7 +81,9 @@ const Overview = (props: Props) => {
               onClick={(e: any) => {
                 addApps();
               }}
-          > 등록 </Button>
+            >
+              등록
+            </Button>
           </div>
         </div>
       </div>
@@ -88,35 +91,35 @@ const Overview = (props: Props) => {
         <div className={style.settings_container}>
           <div className={style.container_title}>앱 리스트</div>
           <div style={{ gap: "12px", marginTop: "24px" }}>
-          <Table
-            control
-            defaultPageBy={50}
-            type="object-array"
-            data={AppsList || []}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              {
-                text: "이름",
-                type: "text",
-                key: "title",
-                width: "48px",
-                textAlign: "center",
-              },
-              {
-                text: "설명",
-                type: "text",
-                key: "description",
-                width: "48px",
-                textAlign: "center",
-              },
-            ]}
-          />
+            <Table
+              control
+              defaultPageBy={50}
+              type="object-array"
+              data={AppsList || []}
+              header={[
+                {
+                  text: "No",
+                  type: "text",
+                  key: "tableRowIndex",
+                  width: "48px",
+                  textAlign: "center",
+                },
+                {
+                  text: "이름",
+                  type: "text",
+                  key: "title",
+                  width: "48px",
+                  textAlign: "center",
+                },
+                {
+                  text: "설명",
+                  type: "text",
+                  key: "description",
+                  width: "48px",
+                  textAlign: "center",
+                },
+              ]}
+            />
           </div>
         </div>
       </div>
@@ -124,4 +127,4 @@ const Overview = (props: Props) => {
   );
 };
 
-export default Overview
+export default Overview;

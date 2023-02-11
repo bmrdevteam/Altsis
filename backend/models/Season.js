@@ -67,14 +67,12 @@ seasonSchema.index(
 );
 
 seasonSchema.methods.checkPermission = function (permissionType, userId, role) {
-  console.log("checkPermission(", permissionType, userId, role, ")");
   let permission = null;
   if (permissionType == "syllabus") permission = this.permissionSyllabus;
   else if (permissionType == "enrollment")
     permission = this.permissionEnrollment;
   else if (permissionType == "evaluation")
     permission = this.permissionEvaluation;
-  console.log("permission is ", permission);
 
   for (let i = 0; i < permission?.length; i++) {
     if (permission[i][0] == "userId" && permission[i][1] == userId) {

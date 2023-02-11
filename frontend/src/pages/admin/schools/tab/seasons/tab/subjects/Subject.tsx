@@ -144,7 +144,7 @@ const Subjects = (props: Props) => {
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
-                    console.log(err.response.data.message);
+                    // console.log(err.response.data.message);
                     // alert(err.response.data.message);
                   });
               }
@@ -166,7 +166,7 @@ const Subjects = (props: Props) => {
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
-                    console.log(err.response.data.message);
+                    // console.log(err.response.data.message);
                     // alert(err.response.data.message);
                   });
               }
@@ -210,7 +210,7 @@ const Subjects = (props: Props) => {
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
-                    console.log(err.response.data.message);
+                    // console.log(err.response.data.message);
                     // alert(err.response.data.message);
                   });
               }
@@ -236,7 +236,7 @@ const Subjects = (props: Props) => {
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
-                    console.log(err.response.data.message);
+                    // console.log(err.response.data.message);
                     // alert(err.response.data.message);
                   });
               }
@@ -284,7 +284,7 @@ const Subjects = (props: Props) => {
                       setSubjects(res.subjects);
                     })
                     .catch((err) => {
-                      console.log(err.response.data.message);
+                      // console.log(err.response.data.message);
                       // alert(err.response.data.message);
                     });
                 },

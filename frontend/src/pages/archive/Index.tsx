@@ -112,7 +112,7 @@ const Archive = (props: Props) => {
   // }
   // useEffect(() => {
   //   getPrintForms().then((res) => {
-  //     console.log(res);
+  //     // console.log(res);
   //   });
   //   getFormData("").then((res) => {
   //     setFormData(res);

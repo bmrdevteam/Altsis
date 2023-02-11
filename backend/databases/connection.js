@@ -18,7 +18,6 @@ Academy.find({}, (err, academies) => {
       );
     }
   });
-  console.log(Object.keys(conn));
 }).select("+dbName");
 
 exports.addConnection = (academy) => {

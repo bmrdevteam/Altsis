@@ -94,7 +94,7 @@ const School = (props: Props) => {
       if (pid) {
         SchoolApi.RSchoolWithSeasons(pid)
           .then((res) => {
-            console.log("res is ", res);
+            // console.log("res is ", res);
             setSchoolData(res.school);
             setSeasonList(res.seasons || []);
           })
@@ -163,7 +163,7 @@ const School = (props: Props) => {
               //     setSchoolData={setSchoolData}
               //   />
               // ),
-              "기록": (
+              기록: (
                 <Archive
                   schoolData={schoolData}
                   setSchoolData={setSchoolData}

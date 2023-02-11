@@ -237,8 +237,6 @@ module.exports.update = async (req, res) => {
         syllabus[field] = req.body.new[field];
       });
 
-      console.log(syllabus);
-
       // classroom 중복 확인
       const unavailableTimeLabels = await getUnavailableTimeLabels(
         req.user.academyId,

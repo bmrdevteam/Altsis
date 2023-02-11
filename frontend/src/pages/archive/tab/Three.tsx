@@ -55,7 +55,7 @@ const One = (props: Props) => {
   }, [isLoading]);
 
   useEffect(() => {
-    console.log("isLoadingFile = ", isLoadingFile);
+    // console.log("isLoadingFile = ", isLoadingFile);
     if (isLoadingFile !== "") {
       setIsLoadingFile("");
     }
@@ -126,7 +126,7 @@ const One = (props: Props) => {
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     if (!e.target.files || e.target.files?.length === 0) return;
-    console.log("handleFileChange - e.target.files[0]", e.target.files[0]);
+    // console.log("handleFileChange - e.target.files[0]", e.target.files[0]);
     if (!e.target.files[0].type.match(correntFormFileImage)) {
       alert("지원되지 않는 파일 형식입니다.");
       return;
@@ -138,14 +138,14 @@ const One = (props: Props) => {
 
     const formData = new FormData();
     formData.append("file", e.target.files[0]);
-    console.log("file is ", e.target.files[0]);
+    // console.log("file is ", e.target.files[0]);
     return await database
       .C({
         location: "files/archive",
         data: formData,
       })
       .then((res) => {
-        console.log("handleFileCHange.res = ", res);
+        // console.log("handleFileCHange.res = ", res);
 
         return res;
         // updateUserProfile(res?.data.profile);
@@ -157,7 +157,7 @@ const One = (props: Props) => {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files?.length === 0) return;
-    console.log("handleFileChange - e.target.files[0]", e.target.files[0]);
+    // console.log("handleFileChange - e.target.files[0]", e.target.files[0]);
     if (!e.target.files[0].type.match(correntFormFile)) {
       alert("지원되지 않는 파일 형식입니다.");
       return;
@@ -169,14 +169,14 @@ const One = (props: Props) => {
 
     const formData = new FormData();
     formData.append("file", e.target.files[0]);
-    console.log("file is ", e.target.files[0]);
+    // console.log("file is ", e.target.files[0]);
     return await database
       .C({
         location: "files/archive",
         data: formData,
       })
       .then((res) => {
-        console.log("handleFileCHange.res = ", res);
+        // console.log("handleFileCHange.res = ", res);
 
         return res;
         // updateUserProfile(res?.data.profile);
@@ -194,7 +194,7 @@ const One = (props: Props) => {
       dataRef.current[label].preSignedUrl = preSignedUrl;
       dataRef.current[label].expiryDate = expiryDate;
     } catch (err) {
-      console.log(err);
+      // console.log(err);
     }
   };
 
@@ -210,7 +210,7 @@ const One = (props: Props) => {
       anchor.download = dataRef.current[label]?.originalName;
       anchor.click();
     } catch (err) {
-      console.log(err);
+      // console.log(err);
     }
   };
 
@@ -263,7 +263,7 @@ const One = (props: Props) => {
                       <img
                         src={dataRef.current[val.label].preSignedUrl}
                         onError={async (e) => {
-                          console.log("onError");
+                          // console.log("onError");
                           e.currentTarget.onerror = null;
                           const { preSignedUrl, expiryDate } = await database.R(
                             {
@@ -599,7 +599,7 @@ const One = (props: Props) => {
             <Table
               onChange={(value) => {
                 dataRef.current = value;
-                console.log(value);
+                // console.log(value);
               }}
               type="object-array"
               data={props.userArchiveData ?? []}

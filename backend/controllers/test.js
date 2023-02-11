@@ -158,9 +158,6 @@ module.exports.includeUid = async (req, res) => {
         .limit(100),
     ];
     const [enrollments, registrations, syllabuses] = await Promise.all(finds);
-    console.log("enrollments.length: ", enrollments.length);
-    console.log("registrations.length: ", registrations.length);
-    console.log("syllabuses.length: ", syllabuses.length);
 
     // const userNotFoundSet = new Set();
     // enrollments.forEach((doc) => {
@@ -210,9 +207,7 @@ module.exports.includeUid = async (req, res) => {
     ];
     const logs = ["enrollments", "registrations", "syllabuses"];
     for (idx = 0; idx < logs.length; idx++) {
-      console.log(`updating ${logs[idx]}...`);
       await Promise.all(updates[idx]);
-      console.log(`updating ${logs[idx]} is done.`);
     }
 
     return res.status(200).send();

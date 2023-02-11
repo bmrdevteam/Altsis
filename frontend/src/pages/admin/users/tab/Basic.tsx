@@ -88,7 +88,7 @@ function Basic(props: Props) {
   }
 
   useEffect(() => {
-    console.log("auth is ", auth);
+    // console.log("auth is ", auth);
   }, [auth]);
 
   useEffect(() => {
@@ -150,7 +150,7 @@ function Basic(props: Props) {
             <Button
               type={"ghost"}
               onClick={() => {
-                console.log(schools);
+                // console.log(schools);
                 schoolSelectRef.current = schools ? schools : [];
                 setIsEditSchoolPopupActive(true);
               }}
@@ -214,7 +214,7 @@ function Basic(props: Props) {
                     props.setPopupAcitve(false);
                   })
                   .catch((err) => {
-                    console.log(err);
+                    // console.log(err);
                     alert(err.response.data.message);
                   });
               }}
@@ -242,7 +242,7 @@ function Basic(props: Props) {
                 type="object-array"
                 data={
                   props.schoolList?.map((school: any) => {
-                    console.log(schoolSelectRef.current);
+                    // console.log(schoolSelectRef.current);
                     if (_.find(schoolSelectRef.current, { school: school._id }))
                       school.tableRowChecked = true;
                     else school.tableRowChecked = false;

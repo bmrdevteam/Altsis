@@ -106,7 +106,7 @@ const Users = (props: Props) => {
     if (isUserListLoading) {
       UserApi.RUsers({})
         .then((res) => {
-          console.log(res);
+          // console.log(res);
           setUserList(res);
           userSelectRef.current = [];
           setIsUserListLoading(false);
@@ -161,7 +161,7 @@ const Users = (props: Props) => {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
           onClick={async () => {
-            console.log("userSelectRef.current is ", userSelectRef.current);
+            // console.log("userSelectRef.current is ", userSelectRef.current);
             if (userSelectRef.current.length === 0) {
               alert("선택된 사용자가 없습니다.");
             } else {
@@ -191,7 +191,7 @@ const Users = (props: Props) => {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
           onClick={async () => {
-            console.log("userSelectRef.current is ", userSelectRef.current);
+            // console.log("userSelectRef.current is ", userSelectRef.current);
             if (userSelectRef.current.length === 0) {
               alert("선택된 사용자가 없습니다.");
             } else {

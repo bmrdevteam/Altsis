@@ -27,7 +27,7 @@ function Archive(props: Props) {
   ] = useState<boolean>(false);
 
   useEffect(() => {
-    console.log(props.schoolData);
+    // console.log(props.schoolData);
   }, []);
 
   return (
@@ -223,8 +223,8 @@ function Archive(props: Props) {
               });
               formData.current[editArchivefieldIndex].fields[
                 editArchivefieldSubIndex
-              ].options = _data
-              
+              ].options = _data;
+
               SchoolApi.USchoolFormArchive({
                 schoolId: props.schoolData._id,
                 data: formData.current,

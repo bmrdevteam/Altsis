@@ -591,7 +591,7 @@ const Table = (props: Props) => {
                                 ...prev,
                                 [`${val.key}`]: e.target.value,
                               }));
-                              console.log(addRowData[`${val.key}`]);
+                              // console.log(addRowData[`${val.key}`]);
                             }}
                           >
                             <option value="" key={"none"}></option>
@@ -896,7 +896,9 @@ const Table = (props: Props) => {
                                       val.key !== undefined &&
                                       val.status[`${row[val.key]}`].onClick
                                     ) {
-                                      val.status[`${row[val.key]}`].onClick?.(row)
+                                      val.status[`${row[val.key]}`].onClick?.(
+                                        row
+                                      );
                                     }
 
                                     // val.status?.[row[`${val.key}`]].onClick &&

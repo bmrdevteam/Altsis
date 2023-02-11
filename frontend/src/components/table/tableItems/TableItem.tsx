@@ -26,9 +26,9 @@ const TableItem = (props: ITableItem) => {
     props.checked !== undefined ? props.checked : false
   );
   const outsideClick = useOutsideClick();
-  useEffect(() => {
-    props.checked && console.log(props.checked);
-  }, [props.checked]);
+  // useEffect(() => {
+  //   props.checked && console.log(props.checked);
+  // }, [props.checked]);
 
   let output;
   if (props.type === "object-array") {

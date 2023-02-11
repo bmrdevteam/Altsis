@@ -246,7 +246,7 @@ function Basic(props: Props) {
                   schoolSelectRef.current = _.filter(value, {
                     tableRowChecked: true,
                   });
-                  console.log(schoolSelectRef.current);
+                  // console.log(schoolSelectRef.current);
                 }}
                 header={[
                   {

@@ -1,6 +1,6 @@
 /**
  * @file 404 Page
- * 
+ *
  * when the page is not avaible
  *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
@@ -55,7 +55,7 @@ const Http404 = (props: Props) => {
       <strong
         style={{ fontSize: "32px", marginBottom: "4px" }}
         onClick={() => {
-          console.log("click");
+          // console.log("click");
         }}
       >
         404

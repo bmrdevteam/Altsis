@@ -61,12 +61,12 @@ const Schools = () => {
   const [schoolName, setSchoolName] = useState<string>();
 
   useEffect(() => {
-    console.log("test");
+    // console.log("test");
     if (currentUser.auth === "admin") {
       setIsAuthenticated(true);
       setIsLoading(true);
     } else if (currentSchool) {
-      console.log("currentSchol is ", currentSchool);
+      // console.log("currentSchol is ", currentSchool);
       navigate(`/admin/schools`);
     } else {
       alert("가입된 학교가 없습니다.");

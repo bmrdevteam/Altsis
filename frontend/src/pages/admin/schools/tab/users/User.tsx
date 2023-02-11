@@ -126,7 +126,7 @@ const Users = (props: Props) => {
                 onClick: (e: any) => {
                   setUser(e);
                   setViewPopupActive(true);
-                  console.log(e);
+                  // console.log(e);
                 },
                 width: "72px",
                 textAlign: "center",

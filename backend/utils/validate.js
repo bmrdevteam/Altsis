@@ -13,7 +13,6 @@ const pattern = {
 };
 
 module.exports = (type, val) => {
-  // console.log(`validate(${type},${val}) is called`);
   if (!val) return false;
   if (pattern[type]) return new RegExp(pattern[type]).test(val);
   return false;

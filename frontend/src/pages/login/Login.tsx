@@ -113,7 +113,7 @@ const Login = () => {
   useEffect(() => {
     AcademyApi.RAcademies().then((res) => {
       setAcademies(res);
-      console.log(res);
+      // console.log(res);
 
       setLoading(false);
     });
@@ -183,7 +183,7 @@ const Login = () => {
       .catch((error) => {
         /** if the result is a success */
         const errorMsg = error.response.data.err;
-        // console.log(errorMsg);
+        // // console.log(errorMsg);
         setPasswordInputValid(false);
         setUsernameInputValid(false);
 

@@ -14,14 +14,10 @@ const initializeWebSocket = (_server) => {
   io.on("connect", (socket) => {
     const req = socket.request;
     const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-    console.log(`[${ip}] 새로운 유저가 접속했습니다.`);
     let academyId = "";
     let userId = "";
 
     socket.on("disconnect", async () => {
-      console.log(`[${ip}] 접속을 해제했습니다.`);
-      console.log(`debug: ${academyId}, ${userId}`);
-
       if (academyId && userId) {
         const prev = await client.v4.hGet(academyId, userId);
         if (prev) {

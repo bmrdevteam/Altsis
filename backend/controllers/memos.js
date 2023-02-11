@@ -5,8 +5,6 @@ const { Registration } = require("../models");
 
 module.exports.create = async (req, res) => {
   try {
-    console.log("req.body: ", req.body);
-
     const registration = await Registration(req.user.academyId).findById(
       req.body.registration
     );

@@ -415,7 +415,6 @@ module.exports.updateEvaluation = async (req, res) => {
     ) {
       enrollment.evaluation = { ...enrollment.evaluation, ...req.body.new };
       await enrollment.save();
-      console.log("enrollment is now ", enrollment);
       return res.status(200).send({ evaluation: enrollment.evaluation });
     }
 
@@ -438,7 +437,6 @@ module.exports.updateEvaluation2 = async (req, res) => {
     if (!enrollment)
       return res.status(404).send({ message: "enrollment not found" });
 
-    console.log("enrollment.teachers", enrollment.teachers);
     if (
       (req.query.by === "mentor" &&
         !_.find(enrollment.teachers, { _id: req.user._id })) ||
@@ -505,9 +503,7 @@ module.exports.updateEvaluation2 = async (req, res) => {
 
     /* save documents */
     for (let e of [enrollment, ...enrollmentsByTerm, ...enrollmentsByYear]) {
-      console.log("before::", e);
       await e.save();
-      console.log("after::", e);
     }
     // await Promise.all([
     //   [enrollment, ...enrollmentsByTerm, ...enrollmentsByYear].map(

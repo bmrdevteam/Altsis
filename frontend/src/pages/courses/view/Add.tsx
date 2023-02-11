@@ -89,7 +89,8 @@ const CourseAdd = (props: Props) => {
         const element = s[i];
         for (let ii = 0; ii < element.time.length; ii++) {
           Object.assign(result, {
-            [element.time[ii].label]: element.classTitle + "(" + element.classroom + ")",
+            [element.time[ii].label]:
+              element.classTitle + "(" + element.classroom + ")",
           });
         }
       }
@@ -128,13 +129,13 @@ const CourseAdd = (props: Props) => {
     document
       .querySelectorAll("div[data-inputRequired=true]")
       .forEach((node) => {
-        console.log(node.innerHTML);
+        // console.log(node.innerHTML);
 
         if (node.innerHTML === "" || node.innerHTML === undefined) {
           filled = false;
         }
       });
-    console.log(filled);
+    // console.log(filled);
     if (filled) {
       return await SyllabusApi.CSyllabus({
         data: {
