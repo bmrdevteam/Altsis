@@ -305,7 +305,7 @@ const CoursePid = (props: Props) => {
               onChange={(e: any) => {
                 setCourseLimit(e.target.value);
               }}
-              defaultValue={"0"}
+              defaultValue={`${courseLimit}`}
             />
           </div>
           <div style={{ display: "flex", marginTop: "24px" }}></div>
