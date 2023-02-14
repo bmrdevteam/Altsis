@@ -59,16 +59,18 @@ const DataConnPopup = (props: Props) => {
   useEffect(() => {
     getSchools().then((res) => {
       res.map((val: any) => {
-        database.R({ location: `schools/${val._id}` }).then((v) => {
-          setArchiveData((prev: any) => ({
-            ...prev,
-            [val._id]: v.formArchive,
-          }));
-          setSeasonData((prev: any) => ({
-            ...prev,
-            [val._id]: v.seasons,
-          }));
-        });
+        database
+          .R({ location: `schools/${val._id}?includes=seasons` })
+          .then((v) => {
+            setArchiveData((prev: any) => ({
+              ...prev,
+              [val._id]: v.formArchive,
+            }));
+            setSeasonData((prev: any) => ({
+              ...prev,
+              [val._id]: v.seasons,
+            }));
+          });
       });
       setSchools(res);
     });
