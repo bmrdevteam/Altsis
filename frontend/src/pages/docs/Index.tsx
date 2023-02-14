@@ -6,7 +6,6 @@ import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 import useApi from "hooks/useApi";
-import useDatabase from "hooks/useDatabase";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
@@ -14,8 +13,8 @@ import style from "style/pages/docs/docs.module.scss";
 type Props = {};
 
 function Docs({}: Props) {
-  const database = useDatabase();
-  const { RegistrationApi, ArchiveApi, FormApi, EnrollmentApi } = useApi();
+  const { RegistrationApi, ArchiveApi, FormApi, EnrollmentApi, DocumentApi } =
+    useApi();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
@@ -27,76 +26,65 @@ function Docs({}: Props) {
   const [selectedGrade, setSelectedGrade] = useState<string>();
   const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
 
+  const [evaluationData, setEvaluationData] = useState<any>();
+
   async function getDBData(rid: string, uid: string) {
     const archive = await ArchiveApi.RArchives({
       registration: rid,
     });
 
-    let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
 
-    const evaluations = await EnrollmentApi.REnrollmentWithEvaluations({
+    const enrollments = await EnrollmentApi.REnrollmentWithEvaluations({
       student: uid,
       school: currentSchool.school,
     });
 
-    for (let i = 0; i < evaluations.length; i++) {
-      const evaluation = evaluations[i];
-      const Id = `${evaluation.season}${evaluation.subject[0]}${evaluation.subject[1]}`;
-      const IdByYear = `${evaluation.year}${evaluation.subject[0]}${evaluation.subject[1]}`;
+    for (const enrollment of enrollments) {
+      const IdByYear = `${enrollment.year}${_.join(enrollment.subject)}`;
 
-      if (_.findIndex(processedEvaluation, ["id", Id]) === -1) {
-        processedEvaluation.push({
-          id: Id,
-          교과: evaluation?.subject[0],
-          과목: evaluation?.subject[1],
-          단위수: evaluation?.point,
-          "멘토 평가": evaluation.evaluation["멘토평가"],
-          "자기 평가": evaluation.evaluation["자기평가"],
-          점수: evaluation.evaluation["점수"],
-          평가: evaluation.evaluation["평가"],
-          년도: evaluation.year,
-          학기: evaluation.term,
-        });
-      } else {
-        processedEvaluation[
-          _.findIndex(processedEvaluation, ["id", Id])
-        ].단위수 += evaluation.point;
+      enrollment._subject = {};
+      for (
+        let idx = 0;
+        idx < evaluationData?.subjectlabelsBySeason[enrollment?.season]?.length;
+        idx++
+      ) {
+        enrollment._subject[
+          evaluationData?.subjectlabelsBySeason[enrollment?.season][idx]
+        ] = enrollment?.subject[idx];
       }
-      if (_.findIndex(processedEvaluationByYear, ["id", IdByYear]) === -1) {
+
+      enrollment._evaluation = {};
+      for (const evLabel in enrollment?.evaluation) {
+        enrollment._evaluation[`${enrollment.term}/${evLabel}`] =
+          enrollment?.evaluation[evLabel];
+      }
+
+      const idx = _.findIndex(processedEvaluationByYear, ["id", IdByYear]);
+      if (idx === -1) {
+        for (const evLabel in enrollment?.evaluation) {
+          enrollment._evaluation[`${"연도별"}/${evLabel}`] =
+            enrollment?.evaluation[evLabel];
+        }
+
         processedEvaluationByYear.push({
           id: IdByYear,
-          학년: evaluation.studentGrade,
-          년도: evaluation.year,
-          교과: evaluation?.subject[0],
-          과목: evaluation?.subject[1],
-          //만약 1년 단위로 합치고있다면-...-
-          "세부능력 및 특기사항": evaluation.evaluation["멘토평가"],
-          [`${evaluation.term}/단위수`]: evaluation?.point,
-          [`${evaluation.term}/멘토 평가`]: evaluation.evaluation["멘토평가"],
-          [`${evaluation.term}/점수`]: evaluation.evaluation["점수"],
-          [`${evaluation.term}/평가`]: evaluation.evaluation["평가"],
+          학년도: enrollment.year,
+          학년: enrollment.studentGrade,
+          ...enrollment._subject,
+          ...enrollment._evaluation,
+          [`${enrollment.term}/단위수`]: enrollment?.point || 0,
         });
       } else {
-        Object.assign(
-          processedEvaluationByYear[
-            _.findIndex(processedEvaluationByYear, ["id", IdByYear])
-          ],
-          {
-            [`${evaluation.term}/단위수`]:
-              evaluation?.point +
-              parseInt(
-                _.find(processedEvaluationByYear, ["id", IdByYear])[
-                  `${evaluation.term}/단위수`
-                ] || 0
-              ),
-            [`${evaluation.term}/멘토 평가`]: evaluation.evaluation["멘토평가"],
-            [`${evaluation.term}/점수`]: evaluation.evaluation["점수"],
-            [`${evaluation.term}/평가`]: evaluation.evaluation["평가"],
-          }
-        );
+        Object.assign(processedEvaluationByYear[idx], {
+          [`${enrollment.term}/단위수`]:
+            (processedEvaluationByYear[idx][`${enrollment.term}/단위수`] || 0) +
+            (enrollment?.point || 0),
+          ...enrollment?._evaluation,
+        });
       }
     }
+
     return {
       [currentSchool.schoolId]: {
         archive: archive.data,
@@ -105,37 +93,51 @@ function Docs({}: Props) {
     };
   }
 
-  async function getFormData(id: string) {
-    // const { forms: result } = await database.R({ location: `forms/${id}` });
-    const result = await database.R({
-      location: `forms/` + id,
-    });
-    return result;
-  }
+  const RData = async (school: string) => {
+    const [registrations, forms, documentData] = await Promise.all([
+      RegistrationApi.RRegistrations({
+        school: currentSchool?.school,
+        season: currentSeason?._id,
+        role: "student",
+      }),
+      FormApi.RForms({ type: "print" }),
+
+      DocumentApi.RDocumentData({ school: currentSchool?.school }),
+    ]);
+    const form = await FormApi.RForm(forms[0]._id);
+    return { registrations, forms, form, documentData };
+  };
+
   useEffect(() => {
-    RegistrationApi.RRegistrations({
-      schoolId: currentSchool?.schoolId,
-      season: currentSeason?._id,
-      role: "student",
-    }).then((res) => {
-      const g: any = _.uniqBy(res, "grade");
-      setGrades(
-        g.map((val: any) => {
-          return { text: val.grade, value: val.grade };
-        })
-      );
-      setSelectedGrade(g[0]?.grade);
-      setUsers(res);
-    });
-    FormApi.RForms({}).then((res) => {
-      const r = res.filter((val: any) => val.type === "print");
-      setPrintForms(r);
-      getFormData(r[0]._id).then((result) => {
-        setFormData(result);
+    RData(currentSchool?.school)
+      .then(
+        (res: {
+          registrations: [any];
+          forms: [any];
+          form: any;
+          documentData: any;
+        }) => {
+          // registrations
+          const g: any = _.uniqBy(res.registrations, "grade");
+          setGrades(
+            g.map((val: any) => {
+              return { text: val.grade, value: val.grade };
+            })
+          );
+          setSelectedGrade(g[0]?.grade);
+          setUsers(res.registrations);
+
+          // forms, form, documentData
+          setPrintForms(res.forms);
+          setFormData(res.form);
+          setEvaluationData(res.documentData.dataEvaluation);
+        }
+      )
+      .then(() => {
         setLoading(false);
       });
-    });
   }, []);
+
   return (
     <>
       <Navbar />
@@ -204,7 +206,12 @@ function Docs({}: Props) {
           </div>
         </div>
         {!loading ? (
-          <EditorParser auth="edit" data={formData} dbData={DBData} type="archive"/>
+          <EditorParser
+            auth="edit"
+            data={formData}
+            dbData={DBData}
+            type="archive"
+          />
         ) : (
           <Loading height={"calc(100vh - 55px)"} />
         )}
