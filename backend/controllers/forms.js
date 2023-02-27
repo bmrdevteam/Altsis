@@ -12,6 +12,26 @@ module.exports.create = async (req, res) => {
       });
 
     const _Form = Form(req.user.academyId);
+
+    if ("copyFrom" in req.body) {
+      const formToCopy = await _Form.findById(req.body.copyFrom);
+      if (!formToCopy)
+        return res.status(404).send({
+          message: `form(${req.body.copyFrom}) not found`,
+        });
+
+      /* create and save document */
+      const form = new _Form({
+        type: formToCopy.type,
+        title: `${formToCopy.title}의 사본`,
+        data: formToCopy.data,
+        userId: formToCopy.userId,
+        userName: formToCopy.userName,
+      });
+      await form.save();
+      return res.status(200).send(form);
+    }
+
     const form = new _Form({
       type: req.body.type,
       title: req.body.title,
@@ -19,7 +39,6 @@ module.exports.create = async (req, res) => {
       userId: req.user.userId,
       userName: req.user.userName,
     });
-
     await form.save();
     return res.status(200).send(form);
   } catch (err) {
