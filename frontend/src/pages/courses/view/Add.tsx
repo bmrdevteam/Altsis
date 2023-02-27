@@ -276,6 +276,7 @@ const CourseAdd = (props: Props) => {
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
             type="ghost"
             onClick={() => {
+              courseTimeRef.current = { ...courseTime };
               setTimeSelectPopupActive(true);
             }}
           >
@@ -398,12 +399,16 @@ const CourseAdd = (props: Props) => {
             ]}
             onChange={(e: any) => {
               courseClassroomRef.current = e;
-              SyllabusApi.RSyllabuses({
-                season: currentSeason?._id,
-                classroom: courseClassroomRef.current,
-              }).then(({ syllabuses }) => {
-                setSyllabusList(syllabuses);
-              });
+              if (e !== "") {
+                SyllabusApi.RSyllabuses({
+                  season: currentSeason?._id,
+                  classroom: courseClassroomRef.current,
+                }).then(({ syllabuses }) => {
+                  setSyllabusList(syllabuses);
+                });
+              } else {
+                setSyllabusList([]);
+              }
               courseTimeRef.current = [];
             }}
             defaultSelectedValue={courseClassroom}

@@ -86,13 +86,13 @@ const formSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-formSchema.index(
-  {
-    type: 1,
-    title: 1,
-  },
-  { unique: true }
-);
+// formSchema.index(
+//   {
+//     type: 1,
+//     title: 1,
+//   },
+//   { unique: true }
+// );
 
 module.exports = (dbName) => {
   return conn[dbName].model("Form", formSchema);

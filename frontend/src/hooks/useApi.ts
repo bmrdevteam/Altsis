@@ -647,7 +647,18 @@ export default function useApi() {
     title: string;
     data: any[];
   }) {
-    const result = await database.R({ location: "users/logout" });
+    const result = await database.C({ location: "forms", data });
+    return result;
+  }
+
+  /**
+   * Copy Form
+   * @type POST
+   * @auth admin
+   * @returns Created Form
+   */
+  async function CopyForm(data: { copyFrom: string }) {
+    const result = await database.C({ location: "forms", data });
     return result;
   }
 
@@ -1224,6 +1235,7 @@ export default function useApi() {
     },
     FormApi: {
       CForm,
+      CopyForm,
       RForms,
       RForm,
     },

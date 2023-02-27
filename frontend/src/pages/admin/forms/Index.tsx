@@ -60,6 +60,7 @@ const Forms = (props: Props) => {
   const location = useLocation();
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);
+  const { FormApi } = useApi();
 
   const [view, setView] = useState<"list" | "grid">("grid");
 
@@ -196,6 +197,18 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
+                        FormApi.CopyForm({
+                          copyFrom: data._id,
+                        }).then(() => {
+                          getForms();
+                        });
+                      }}
+                    >
+                      복사하기
+                    </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
                         database
                           .U({
                             location: `forms/${data._id}/archived`,
@@ -206,7 +219,7 @@ const Forms = (props: Props) => {
                           });
                       }}
                     >
-                      보관 처리
+                      보관하기
                     </div>
                   </div>
                 ) : (
