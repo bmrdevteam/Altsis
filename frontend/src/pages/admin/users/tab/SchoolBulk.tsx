@@ -123,6 +123,7 @@ function Basic(props: Props) {
             userName: user["이름"],
             password: user["비밀번호"],
             email: user["이메일"],
+            google: user["구글아이디"],
             tel: user["전화번호"],
             isValid: "검사 필요",
           };
@@ -171,6 +172,7 @@ function Basic(props: Props) {
         이름: "홍길동",
         비밀번호: "asdfqwer!@#$",
         이메일: "google@email.com",
+        구글아이디: "google@google.com",
         전화번호: "010-0000-1111",
       },
     ]);
@@ -210,6 +212,9 @@ function Basic(props: Props) {
       }
       if (user.email && !validate("email", user.email)) {
         user.isValid.push("이메일");
+      }
+      if (user.google && !validate("email", user.google)) {
+        user.isValid.push("구글아이디");
       }
 
       if (_.isEmpty(user.isValid)) {
