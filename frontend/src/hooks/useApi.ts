@@ -671,7 +671,7 @@ export default function useApi() {
   async function RForms(params?: {
     userId?: string;
     userName?: string;
-    type?: "syllabus" | "timetable" | "evaluation" | "archive";
+    type?: "syllabus" | "timetable" | "evaluation" | "archive" | "print";
     title?: string;
   }) {
     const { forms: result } = await database.R({
@@ -933,7 +933,7 @@ export default function useApi() {
       location: "enrollments/evaluations" + QUERY_BUILDER(params),
     });
     // return enrollments;
-    return _.orderBy(enrollments, ['createdAt'], ['asc']);
+    return _.orderBy(enrollments, ["createdAt"], ["asc"]);
   }
 
   /**
@@ -1158,6 +1158,11 @@ export default function useApi() {
       location: "notifications" + QUERY_BUILDER({ _ids: _notifications_ids }),
     });
   }
+  async function RDocumentData(params: { school: string }) {
+    return await database.R({
+      location: `documents/data` + QUERY_BUILDER(params),
+    });
+  }
 
   return {
     AcademyApi: {
@@ -1254,6 +1259,9 @@ export default function useApi() {
       RNotificationById,
       UCheckNotification,
       DNotifications,
+    },
+    DocumentApi: {
+      RDocumentData,
     },
   };
 }
