@@ -116,9 +116,12 @@ function Basic(props: Props) {
             userId: user["ID"],
             userName: user["이름"],
             password: user["비밀번호"],
-            email: user["이메일"],
-            snsId: {google: user["구글아이디"]},
-            tel: user["전화번호"],
+            email: user["이메일"] !== "" ? user["이메일"] : undefined,
+            tel: user["전화번호"] !== "" ? user["전화번호"] : undefined,
+            snsId: {
+              google:
+                user["구글아이디"] !== "" ? user["구글아이디"] : undefined,
+            },
             isValid: "검사 필요",
           };
         })
@@ -130,7 +133,7 @@ function Basic(props: Props) {
 
   async function getExUsers() {
     const { users } = await database.R({
-      location: `users?fields=userId`,
+      location: `users?fields=userId,snsId`,
     });
     return users;
   }
@@ -175,24 +178,19 @@ function Basic(props: Props) {
     xlsx.utils.book_append_sheet(wb, ws, "Sheet1");
     xlsx.writeFile(wb, `example.xlsx`);
   };
+
   async function checkUserList() {
     let cnt = 0;
 
     const exUsers = await getExUsers();
-    const pickedCurUserIds = _(userList)
-      .groupBy((x) => x.userId)
-      .pickBy((x) => x.length > 1)
-      .keys()
-      .value();
-    const duplicatdedUserIds = [
-      ...exUsers.map((user: any) => user.userId),
-      pickedCurUserIds,
-    ];
+    const newUsers: any[] = [];
 
-    const res: any[] = [];
     for (let user of userList) {
       user.isValid = [];
-      if (_.includes(duplicatdedUserIds, user.userId)) {
+      if (
+        _.find(exUsers, (u) => u.userId === user.userId) ||
+        _.find(newUsers, (u) => u.userId === user.userId)
+      ) {
         user.isValid.push("Id 중복");
       }
       if (!validate("userId", user.userId)) {
@@ -210,6 +208,13 @@ function Basic(props: Props) {
       if (user.snsId.google && !validate("email", user.snsId.google)) {
         user.isValid.push("구글아이디");
       }
+      if (
+        user.snsId.google &&
+        (_.find(exUsers, (u) => u.snsId?.google === user.snsId.google) ||
+          _.find(newUsers, (u) => u.snsId?.google === user.snsId.google))
+      ) {
+        user.isValid.push("구글아이디 중복");
+      }
 
       if (_.isEmpty(user.isValid)) {
         user.isValid = undefined;
@@ -218,11 +223,11 @@ function Basic(props: Props) {
         cnt += 1;
       }
 
-      res.push(user);
+      newUsers.push(user);
     }
 
     setInvalidUserCnt(cnt);
-    setUserList(res);
+    setUserList(newUsers);
     return;
   }
 

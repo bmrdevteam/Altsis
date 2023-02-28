@@ -74,9 +74,9 @@ function Basic(props: Props) {
       data: {
         schools,
         auth,
-        email,
-        tel,
-        snsId:{google},
+        tel: tel && tel !== "" ? tel : undefined,
+        email: email && email !== "" ? email : undefined,
+        snsId: { google: google && google !== "" ? google : undefined },
       },
     });
     return result;
@@ -103,7 +103,7 @@ function Basic(props: Props) {
           setAuth(res.auth);
           setEmail(res.email);
           setTel(res.tel);
-          setGoogle(res.snsId.google);
+          setGoogle(res.snsId?.google);
         })
         .then(() => setIsLoading(false))
         .catch((err: any) => alert(err.response.data.message));

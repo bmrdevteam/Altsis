@@ -83,6 +83,16 @@ module.exports.create = async (req, res) => {
         message: `userId '${req.body.userId}' is already in use`,
       });
 
+    if ("google" in req.body.snsId) {
+      const exUser = await _User.findOne({
+        "snsId.google": req.body.snsId.google,
+      });
+      if (exUser)
+        return res.status(409).send({
+          message: `snsId.google '${req.body.snsId.google}' is already in use`,
+        });
+    }
+
     /* create document */
     const user = new _User({
       ...req.body,
@@ -122,6 +132,20 @@ module.exports.createBulk = async (req, res) => {
       return res
         .status(409)
         .send({ message: `userId '${duplicatedUserIds}' are already in use` });
+    }
+
+    /* check snsId.google duplication */
+    const duplicatedGoogleIds = _([...exUsers, ...req.body.users])
+      .filter((x) => x.snsId?.google && x.snsId.google !== "")
+      .groupBy((x) => x.snsId.google)
+      .pickBy((x) => x.length > 1)
+      .keys()
+      .value();
+
+    if (!_.isEmpty(duplicatedGoogleIds)) {
+      return res.status(409).send({
+        message: `googleId '${duplicatedGoogleIds}' are already in use`,
+      });
     }
 
     /* create & save documents */
@@ -495,6 +519,18 @@ module.exports.update = async (req, res) => {
 
     user.email = req.body.email;
     user.tel = req.body.tel;
+    if ("google" in req.body.snsId) {
+      const exUser = await User(req.user.academyId).findOne({
+        "snsId.google": req.body.snsId.google,
+        _id: { $ne: user._id },
+      });
+      if (exUser)
+        return res.status(409).send({
+          message: `snsId.google '${req.body.snsId.google}' is already in use`,
+        });
+      else
+        user.snsId = { ...(user.snsId || {}), google: req.body.snsId.google };
+    }
 
     if (!User(req.user.academyId).isValid(user))
       return res.status(400).send({ message: "validation failed" });

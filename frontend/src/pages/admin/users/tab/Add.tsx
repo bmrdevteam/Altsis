@@ -88,9 +88,9 @@ function Basic(props: Props) {
         userId,
         userName,
         password,
-        tel,
-        email,
-        snsId:{google},
+        tel: tel && tel !== "" ? tel : undefined,
+        email: email && email !== "" ? email : undefined,
+        snsId: { google: google && google !== "" ? google : undefined },
       },
     });
     return result;
@@ -195,7 +195,7 @@ function Basic(props: Props) {
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
               appearence="flat"
-              label="google"
+              label="구글아이디"
               onChange={(e: any) => {
                 setGoogle(e.target.value);
               }}
