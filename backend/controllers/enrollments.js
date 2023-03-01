@@ -165,7 +165,7 @@ module.exports.enrollbulk = async (req, res) => {
       // 3. 이미 신청한 수업인가?
       const exEnrollments = await _Enrollment.find({
         student: student._id,
-        syllabus: syllabus._id,
+        season: season._id,
       });
 
       if (_.find(exEnrollments, { syllabus: syllabus._id })) {
