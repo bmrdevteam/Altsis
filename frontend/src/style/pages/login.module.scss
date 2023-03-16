@@ -16,8 +16,10 @@
         background: var(--background-color);
         box-shadow: var(--component-box-shadow);
         border-radius: 8px;
-        min-width: 300px;
+        max-width: 420px;
+        width: 100%;
         padding: 24px;
+        margin: 24px;
 
         display: flex;
         border-radius: 4px;
