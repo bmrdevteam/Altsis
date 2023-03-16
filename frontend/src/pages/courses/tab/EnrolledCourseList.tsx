@@ -45,7 +45,11 @@ type Props = {
 
 const Timetable = (props: Props) => {
   const navigate = useNavigate();
-
+  // 학점 합계 계산
+  const totalPoint = props.courseList.reduce(
+    (acc, cur) => acc + parseInt(cur.point, 10),
+    0
+  );
   const subjectHeaderList = [
     {
       text: "수업명",
@@ -70,7 +74,7 @@ const Timetable = (props: Props) => {
     },
 
     {
-      text: "학점",
+      text: `학점(${totalPoint})`,
       key: "point",
       type: "string",
       textAlign: "center",
