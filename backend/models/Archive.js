@@ -10,7 +10,7 @@ const archiveSchema = mongoose.Schema(
     school: { type: mongoose.Types.ObjectId, required: true },
     schoolId: String,
     schoolName: String,
-    data: Object,
+    data: { type: Object, default: {} },
   },
   { timestamps: true }
 );

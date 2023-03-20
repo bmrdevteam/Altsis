@@ -7,7 +7,9 @@ const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
 //             Archive
 //=================================
 
+router.get("/:_id", isLoggedIn, archives.findByLabel);
 router.get("/", isLoggedIn, archives.find);
+
 router.put("/:_id", isLoggedIn, archives.update);
 
 module.exports = router;
