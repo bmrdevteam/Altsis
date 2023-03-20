@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import style from "style/pages/archive.module.scss";
@@ -13,17 +13,30 @@ const Archive = (props: Props) => {
   const navigate = useNavigate();
   const { currentSchool, setCurrentSchool } = useAuth();
   const { SchoolApi } = useApi();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    SchoolApi.RSchool(currentSchool?._id).then((s) => {
-      setCurrentSchool((prev: any) => ({ ...prev, ...s }));
-      if (s.formArchive?.length !== 0) navigate(s.formArchive[0].label);
-    });
-  }, []);
+    if (isLoading) {
+      if (currentSchool?._id) {
+        SchoolApi.RSchool(currentSchool?._id)
+          .then((s) => {
+            if (s.formArchive?.length !== 0) {
+              setCurrentSchool((prev: any) => ({ ...prev, ...s }));
+              navigate(s.formArchive[0].label);
+            }
+          })
+          .then(() => {
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
+    }
+  }, [isLoading]);
 
   return (
     <>
-      {currentSchool?.formArchive?.length === 0 && (
+      {!isLoading && currentSchool?.formArchive?.length === 0 && (
         <>
           <Navbar />
           <div className={style.section}>
