@@ -968,8 +968,25 @@ export default function useApi() {
     user?: string | number;
     registration?: string | number;
   }) {
-    const result = await database.R({
+    const { archive: result } = await database.R({
       location: "archives" + QUERY_BUILDER(params),
+    });
+    return result;
+  }
+  /**
+   * Find Archive by id with label
+   * @type GET
+   * @auth admin
+   * @returns Archives
+   */
+  async function RArchiveByLabel(
+    _id: string,
+    params: {
+      label: string | number;
+    }
+  ) {
+    const { archive: result } = await database.R({
+      location: "archives/" + _id + QUERY_BUILDER(params),
     });
     return result;
   }
@@ -1241,6 +1258,7 @@ export default function useApi() {
     },
     ArchiveApi: {
       RArchives,
+      RArchiveByLabel,
       UArchive,
     },
     SyllabusApi: {
