@@ -7,17 +7,21 @@ import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
+import useApi from "hooks/useApi";
+
 type Props = {};
 
 const Archive = (props: Props) => {
   // const database = useDatabase();
   const navigate = useNavigate();
-  const { currentSchool } = useAuth();
+  const { currentSchool, setCurrentSchool } = useAuth();
+  const { SchoolApi } = useApi();
 
   useEffect(() => {
-    if (currentSchool?.formArchive.length !== 0) {
-      navigate(currentSchool.formArchive[0].label);
-    }
+    SchoolApi.RSchool(currentSchool?._id).then((s) => {
+      setCurrentSchool((prev: any) => ({ ...prev, ...s }));
+      if (s.formArchive?.length !== 0) navigate(s.formArchive[0].label);
+    });
   }, []);
 
   // const [loading, setLoading] = useState<boolean>(true);
@@ -128,7 +132,7 @@ const Archive = (props: Props) => {
 
   return (
     <>
-      {currentSchool?.formArchive.length === 0 && (
+      {currentSchool?.formArchive?.length === 0 && (
         <>
           <Navbar />
           <div className={style.section}>
