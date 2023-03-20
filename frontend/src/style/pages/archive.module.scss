@@ -1,58 +1,66 @@
 .section {
-    height: calc(100vh - 56px);
-    padding: 24px;
+  height: calc(100vh - 56px);
+  padding: 24px;
+  color: var(--accent-1);
+
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
     color: var(--accent-1);
+  }
 
-    .title {
-        font-weight: 600;
+  .description {
+    font-size: 13px;
+    font-family: "Pretendard";
+    font-weight: 500;
+    color: var(--accent-3);
+  }
+
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: 32px;
+    margin: 24px 0;
+
+    .label {
+      font-weight: 600;
+      font-size: 14px;
+      word-break: keep-all;
     }
+  }
 
-    .search {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        height: 32px;
-        margin: 24px 0;
+  .content {
+    margin-top: 24px;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    border-top: var(--border-default);
 
-        .label {
-            font-weight: 600;
-            font-size: 14px;
-            word-break: keep-all;
-        }
+    .field {
+      display: flex;
+      border-bottom: var(--border-default);
+      border-right: var(--border-default);
+
+      .label {
+        border-right: var(--border-default);
+        border-left: var(--border-default);
+        flex-basis: 100px;
+        padding: 6px 12px;
+        background-color: var(--component-color);
+      }
+
+      .input {
+        outline: none;
+        border: none;
+        padding: 6px 12px;
+        color: var(--accent-1);
+
+        flex: 1 1 0;
+        background: var(--background);
+      }
     }
-
-    .content {
-        margin-top: 24px;
-        font-weight: 600;
-        font-size: 14px;
-        display: flex;
-        flex-direction: column;
-        border-top: var(--border-default);
-
-        .field {
-            display: flex;
-            border-bottom: var(--border-default);
-            border-right: var(--border-default);
-
-            .label {
-                border-right: var(--border-default);
-                border-left: var(--border-default);
-                flex-basis: 100px;
-                padding: 6px 12px;
-                background-color: var(--component-color);
-            }
-
-            .input {
-
-                outline: none;
-                border: none;
-                padding: 6px 12px;
-                color: var(--accent-1);
-
-                flex: 1 1 0;
-                background: var(--background);
-            }
-        }
-
-    }
+  }
 }
