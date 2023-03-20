@@ -1,9 +1,82 @@
 const { Archive, User, School, Registration } = require("../models");
 const ObjectId = require("mongoose").Types.ObjectId;
 
+module.exports.findByLabel = async (req, res) => {
+  try {
+    const archive = await Archive(req.user.academyId).findById(req.params._id);
+    if (!archive) return res.status(404).send({});
+
+    if (req.query?.label) {
+      return res.status(200).send({
+        archive: {
+          data: { [req.query.label]: archive.data?.[req.query.label] },
+        },
+      });
+    }
+    return res.status(200).send({
+      archive,
+    });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+module.exports.findByRegistration = async (req, res) => {
+  try {
+    if (!("registration" in req.query)) return res.status(400).send({});
+
+    if (!ObjectId.isValid(req.query.registration))
+      return res.status(400).send({ message: "registration(oid) is invalid" });
+
+    const _registration = await Registration(req.user.academyId).findById(
+      req.query.registration
+    );
+    if (!_registration)
+      return res.status(404).send({ message: "registration not found" });
+
+    const user = _registration.user;
+    const school = _registration.school;
+
+    let archive = await Archive(req.user.academyId).findOne({
+      user,
+      school,
+    });
+    if (!archive) {
+      const _user = await User(req.user.academyId).findById(user);
+      if (!_user) return res.status(404).send({ message: "user not found" });
+
+      const _school = await School(req.user.academyId).findById(school);
+      if (!_school)
+        return res.status(404).send({ message: "school not found" });
+
+      archive = new (Archive(req.user.academyId))({
+        user,
+        userId: _user.userId,
+        userName: _user.userName,
+        school,
+        schoolId: _school.schoolId,
+        schoolName: _school.schoolName,
+      });
+      await archive.save();
+    }
+
+    return res.status(200).send({ archive: { _id: archive._id } });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.find = async (req, res) => {
   try {
-    let { user, school, registration } = req.query;
+    let { user, school, registration, _id } = req.query;
+
+    const _Archive = Archive(req.user.academyId);
+
+    if (_id) {
+      const archive = await _Archive.findById(_id);
+      if (!archive) return res.status(404).send({});
+      return res.status(200).send({ archive });
+    }
 
     if (registration) {
       if (!ObjectId.isValid(registration))
@@ -20,8 +93,6 @@ module.exports.find = async (req, res) => {
       user = _registration.user;
       school = _registration.school;
     }
-
-    const _Archive = Archive(req.user.academyId);
 
     let archive = await _Archive.findOne({
       user,
@@ -46,7 +117,7 @@ module.exports.find = async (req, res) => {
       await archive.save();
     }
 
-    return res.status(200).send(archive);
+    return res.status(200).send({ archive });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
@@ -61,7 +132,7 @@ module.exports.update = async (req, res) => {
 
     archive.data = Object.assign(archive.data || {}, req.body);
     await archive.save();
-    return res.status(200).send(archive);
+    return res.status(200).send({ archive });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
