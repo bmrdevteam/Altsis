@@ -4,10 +4,10 @@ import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
-import useDatabase from "hooks/useDatabase";
+
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
 import Group from "./tab/Group";
@@ -17,23 +17,29 @@ import Three from "./tab/Three";
 type Props = {};
 
 const ArchiveField = (props: Props) => {
-  const database = useDatabase();
-  const { pid } = useParams();
+  const { pid } = useParams(); // archive label ex) 인적 사항
   const { RegistrationApi, ArchiveApi } = useApi();
-
   const { currentSchool, currentSeason } = useAuth();
-  /* not users but registrations */
-  const [users, setUsers] = useState<any[]>([]);
+
+  const [registrations, setRegistrations] = useState<any[]>([]);
   const [grades, setGrades] = useState<{ text: string; value: string }[]>([]);
+
   const [selectedGrade, setSelectedGrade] = useState<string>("");
+
   const [rid, setRid] = useState<string>("");
-  const [archiveData, setArchiveData] = useState<any>();
-  const [archiveForm, setArchiveForm] = useState<any>();
-  const formData = useRef<any>();
+  const [aid, setAid] = useState<string>("");
+
+  const [isLoadingAutofill, setIsLoadingAutofill] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isLoadingAutofill) {
+      setIsLoadingAutofill(false);
+    }
+  }, [isLoadingAutofill]);
 
   useEffect(() => {
     RegistrationApi.RRegistrations({
-      schoolId: currentSchool?.schoolId,
+      school: currentSchool?._id,
       season: currentSeason?._id,
       role: "student",
     }).then((res) => {
@@ -44,24 +50,17 @@ const ArchiveField = (props: Props) => {
         })
       );
       setSelectedGrade(g[0]?.grade);
-      setUsers(res);
+      setRegistrations(res);
     });
-
-    database
-      .R({
-        location: `schools/${currentSchool.school}`,
-      })
-      .then((res) => {
-        setArchiveForm(res);
-      });
   }, [currentSeason]);
 
   useEffect(() => {
-    if (rid !== "") {
+    if (rid !== "" && pid !== "") {
       ArchiveApi.RArchives({
         registration: rid,
       }).then((res) => {
-        setArchiveData(res.data);
+        console.log(res);
+        setAid(res._id);
       });
     }
   }, [rid]);
@@ -81,43 +80,34 @@ const ArchiveField = (props: Props) => {
                     options={grades}
                     onChange={(val: any) => {
                       setSelectedGrade(val);
+                      setRid("");
+                      setAid("");
+                      setIsLoadingAutofill(true);
                     }}
                     style={{ borderRadius: "4px", maxWidth: "120px" }}
                   />
-                  <Autofill
-                    style={{ borderRadius: "4px" }}
-                    setState={setRid}
-                    onChange={(v) => {
-                      ArchiveApi.RArchives({
-                        registration: v,
-                      }).then((res) => {
-                        formData.current = res;
-                      });
-                    }}
-                    defaultValue={rid}
-                    options={[
-                      { text: "", value: "" },
-                      ...users
-                        ?.filter((val) => val.grade === selectedGrade)
-                        .map((val) => {
-                          return {
-                            value: val._id,
-                            text: `${val.userName} / ${val.userId}`,
-                          };
-                        }),
-                    ]}
-                    placeholder={"검색"}
-                  />
+                  {!isLoadingAutofill && (
+                    <Autofill
+                      style={{ borderRadius: "4px" }}
+                      setState={setRid}
+                      defaultValue={rid}
+                      options={[
+                        { text: "", value: "" },
+                        ...registrations
+                          ?.filter((val) => val.grade === selectedGrade)
+                          .map((val) => {
+                            return {
+                              value: val._id,
+                              text: `${val.userName} / ${val.userId}`,
+                            };
+                          }),
+                      ]}
+                      placeholder={"검색"}
+                    />
+                  )}
                 </div>
                 <Divider />
-                <Three
-                  formData={formData}
-                  users={users}
-                  archive={pid}
-                  setUserId={setRid}
-                  userId={rid}
-                  userArchiveData={archiveData?.[pid ?? ""]}
-                />
+                <Three pid={pid} aid={aid} />
               </>
             ),
             "그룹별 입력": <Group />,
