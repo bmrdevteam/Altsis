@@ -46,7 +46,7 @@ import useApi from "hooks/useApi";
 import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/Form";
-import Permission from "./tab/Permission";
+import Permission from "./tab/permission/Permission";
 import Subject from "./tab/subjects/Subject";
 import Users from "./tab/users/Users";
 
@@ -414,7 +414,6 @@ const Season = (props: Props) => {
               교과목: <Subject _id={selectedSeason._id} />,
               강의실: <Classroom _id={selectedSeason._id} />,
               양식: <Form _id={selectedSeason._id} />,
-
               권한: <Permission _id={selectedSeason._id} />,
             }}
             align={"flex-start"}
