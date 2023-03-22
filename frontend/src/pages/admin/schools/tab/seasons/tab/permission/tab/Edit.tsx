@@ -228,6 +228,7 @@ function Basic(props: Props) {
                   })
                     .then(() => {
                       setIsLoading(true);
+                      props.setIsLoading(true);
                       alert("success");
                     })
                     .catch((err) => {
@@ -307,6 +308,7 @@ function Basic(props: Props) {
                   })
                     .then((res: any) => {
                       setIsLoading(true);
+                      props.setIsLoading(true);
                       alert("success");
                     })
                     .catch((err) => {
