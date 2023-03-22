@@ -297,7 +297,6 @@ export function unzipPermission(
     }
   }
 
-  console.log({ teacher, student, exceptions });
   return { teacher, student, exceptions };
 }
 
