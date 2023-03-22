@@ -90,6 +90,20 @@ export const SidebarData = (
             };
           }),
         },
+        currentSchool?.formArchive && {
+          title: "archive2",
+          name: "기록2",
+          path: "/archive2",
+          icon: <Svg type="edit" />,
+          subLink: currentSchool.formArchive?.map((val: any) => {
+            return {
+              title: val.label,
+              name: val.label,
+              path: `/archive2/${val.label}`,
+              icon: <Svg type="file" />,
+            };
+          }),
+        },
         {
           title: "docs",
           name: "문서",
