@@ -121,7 +121,10 @@ function Basic(props: Props) {
           ? "수강신청"
           : "평가"
       } 권한 설정`}
-      setState={props.setPopupActive}
+      setState={(e: boolean) => {
+        props.setIsLoading(true);
+        props.setPopupActive(e);
+      }}
       closeBtn
       contentScroll
     >
@@ -143,7 +146,7 @@ function Basic(props: Props) {
                   }),
                 })
                   .then((res: any) => {
-                    props.setIsLoading(true);
+                    setIsLoading(true);
                     alert("success");
                   })
                   .catch((err) => {
@@ -165,7 +168,7 @@ function Basic(props: Props) {
                   }),
                 })
                   .then((res: any) => {
-                    props.setIsLoading(true);
+                    setIsLoading(true);
                     alert("success");
                   })
                   .catch((err) => {
@@ -228,7 +231,6 @@ function Basic(props: Props) {
                   })
                     .then(() => {
                       setIsLoading(true);
-                      props.setIsLoading(true);
                       alert("success");
                     })
                     .catch((err) => {
@@ -308,7 +310,6 @@ function Basic(props: Props) {
                   })
                     .then((res: any) => {
                       setIsLoading(true);
-                      props.setIsLoading(true);
                       alert("success");
                     })
                     .catch((err) => {
