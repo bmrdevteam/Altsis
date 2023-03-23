@@ -104,7 +104,7 @@ const Academy = (props: Props) => {
             },
           })
             .then((res) => {
-              alert("성공적으로 처리되었습니다. 😘💌");
+              alert("success");
               props.setIsLoading(true);
             })
             .catch((err) => {
@@ -128,7 +128,7 @@ const Academy = (props: Props) => {
                 academyId: props.academyData.academyId,
               })
                 .then((res) => {
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                   setIsActivated(false);
                 })
                 .catch((err) => {
@@ -141,7 +141,7 @@ const Academy = (props: Props) => {
                 academyId: props.academyData.academyId,
               })
                 .then((res) => {
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                   setIsActivated(true);
                 })
                 .catch((err) => {

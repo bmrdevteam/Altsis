@@ -171,7 +171,7 @@ const Form = (props: Props) => {
                   data: formEvaluation.current,
                 })
                   .then((res) => {
-                    // alert("성공적으로 처리되었습니다. 😘💌");
+                    // alert("success");
                     updateFormData(res);
                   })
                   .catch((err) => {
@@ -471,7 +471,7 @@ const Form = (props: Props) => {
                 data: formEvaluation.current,
               })
                 .then((res) => {
-                  // alert("성공적으로 처리되었습니다. 😘💌");
+                  // alert("success");
                 })
                 .catch((err) => {
                   alert(err.response.data.message);

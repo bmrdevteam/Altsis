@@ -209,7 +209,7 @@ function Basic(props: Props) {
               onClick={() => {
                 updateUser()
                   .then((res) => {
-                    alert("성공적으로 처리되었습니다. 😘💌");
+                    alert("success");
                     props.updateUserList(userId, res);
                     props.setPopupAcitve(false);
                   })

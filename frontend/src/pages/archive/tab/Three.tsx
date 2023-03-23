@@ -224,7 +224,7 @@ const One = (props: Props) => {
               _id: props.formData?.current._id,
               data: { [props.archive]: dataRef.current },
             }).then((res: any) => {
-              alert("성공적으로 처리되었습니다. 😘💌");
+              alert("success");
             });
           }
         }}
@@ -588,7 +588,7 @@ const One = (props: Props) => {
                   _id: props.formData?.current._id,
                   data: { [props.archive]: dataRef.current },
                 }).then((res: any) => {
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                 });
               }
             }}

@@ -162,7 +162,7 @@ function Basic(props: Props) {
               })
                 .then((res) => {
                   props.setSchoolData({ ...props.schoolData, subjects: res });
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                   props.setPopupActive(false);
                 })
                 .catch((err) => {

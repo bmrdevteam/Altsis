@@ -125,7 +125,7 @@ function Basic(props: Props) {
               },
             })
               .then(() => {
-                alert("성공적으로 처리되었습니다. 😘💌");
+                alert("success");
                 props.setIsLoading(true);
                 props.setPopupActive(false);
               })

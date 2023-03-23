@@ -203,7 +203,7 @@ navigate("add", { replace: true });
                 if (schoolId && schoolName) {
                   SchoolApi.CSchools({ data: { schoolId, schoolName } })
                     .then(() => {
-                      alert("성공적으로 처리되었습니다. 😘💌");
+                      alert("success");
                       setAddPopupActive(false);
                       setIsLoading(true);
                     })

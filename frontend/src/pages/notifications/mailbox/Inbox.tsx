@@ -99,7 +99,7 @@ const Received = (props: Props) => {
                   NotificationApi.DNotifications(selectRef.current || [])
                     .then((res: any) => {
                       setIsLoading(true);
-                      alert("성공적으로 처리되었습니다. 😘💌");
+                      alert("success");
                     })
                     .catch((err: any) => alert(err.response.data.message));
                 }
