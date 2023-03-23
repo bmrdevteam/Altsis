@@ -286,7 +286,7 @@ const Season = (props: Props) => {
                     },
                   })
                     .then((res) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       setIsLoading(true);
                       setSelectedSeasonToCopy(undefined);
                       setAddSeasonPopupActive(false);

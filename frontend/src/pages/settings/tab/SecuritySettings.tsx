@@ -118,7 +118,7 @@ const SecuritySettings = (props: Props) => {
                 } else {
                   updatePassword()
                     .then((res) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       setResetPasswordPopupActive(false);
                     })
                     .catch((err: any) => alert(err.response.data.message));

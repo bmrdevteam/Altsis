@@ -355,7 +355,7 @@ const Permission = (props: Props) => {
                   data: zipPermission(),
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert("성공적으로 처리되었습니다. 😘💌");
                     if (permissionType === "syllabus") {
                       setPermissionSyllabus(res);
                       props.schoolData.permissionSyllabus = res;

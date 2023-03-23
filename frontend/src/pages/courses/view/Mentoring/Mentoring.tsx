@@ -366,7 +366,7 @@ const CoursePid = (props: Props) => {
                           tableRowChecked: true,
                         }).map((e: any) => e._id)
                       ).then(() => {
-                        alert("success");
+                        alert("성공적으로 처리되었습니다. 😘💌");
                         setIsLoading(true);
                         setIsChecked(false);
                       });

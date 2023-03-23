@@ -342,7 +342,7 @@ const CourseEnroll = (props: Props) => {
                   },
                 })
                   .then(() => {
-                    alert("success");
+                    alert("성공적으로 처리되었습니다. 😘💌");
                     setIsLoading(true);
                   })
                   .catch((err) => {
@@ -380,7 +380,7 @@ const CourseEnroll = (props: Props) => {
               onClick: (e: any) => {
                 EnrollmentApi.DEnrollment(e.enrollment)
                   .then(() => {
-                    alert("success");
+                    alert("성공적으로 처리되었습니다. 😘💌");
                     setIsLoading(true);
                   })
                   .catch((err) => {

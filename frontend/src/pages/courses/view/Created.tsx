@@ -254,7 +254,7 @@ const CoursePid = (props: Props) => {
                 onClick={() => {
                   deleteCourse()
                     .then((res) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       navigate("/courses");
                     })
                     .catch((err) => {

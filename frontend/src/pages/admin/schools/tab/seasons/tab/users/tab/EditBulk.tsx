@@ -199,7 +199,7 @@ function Basic(props: Props) {
               },
             })
               .then(() => {
-                alert("success");
+                alert("성공적으로 처리되었습니다. 😘💌");
                 props.setIsLoading(true);
                 props.setPopupActive(false);
               })

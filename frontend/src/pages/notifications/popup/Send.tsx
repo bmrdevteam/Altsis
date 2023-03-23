@@ -427,7 +427,7 @@ const NotificationSend = (props: Props) => {
                     },
                   })
                     .then((res: any) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
 
                       props.setIsLoading(true);
                       props.setState(false);

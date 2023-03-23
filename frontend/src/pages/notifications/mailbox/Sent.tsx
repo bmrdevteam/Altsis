@@ -156,7 +156,7 @@ const Sent = (props: Props) => {
                     NotificationApi.DNotifications(selectRef.current || [])
                       .then((res: any) => {
                         setIsLoading(true);
-                        alert("success");
+                        alert("성공적으로 처리되었습니다. 😘💌");
                       })
                       .catch((err: any) => alert(err.response.data.message));
                   }

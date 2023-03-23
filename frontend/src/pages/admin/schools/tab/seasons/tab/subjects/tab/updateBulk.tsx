@@ -164,7 +164,7 @@ function Basic(props: Props) {
                 },
               })
                 .then((res: any) => {
-                  alert("success");
+                  alert("성공적으로 처리되었습니다. 😘💌");
                   props.setSubjects(res.subjects);
                   props.setPopupActive(false);
                 })

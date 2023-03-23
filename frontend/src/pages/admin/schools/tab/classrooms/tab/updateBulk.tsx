@@ -138,7 +138,7 @@ function Basic(props: Props) {
                     ...props.schoolData,
                     classrooms: res,
                   });
-                  alert("success");
+                  alert("성공적으로 처리되었습니다. 😘💌");
                 })
                 .catch((err) => {
                   alert(err.response.data.message);

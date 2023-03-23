@@ -290,7 +290,7 @@ const Permission = (props: Props) => {
                     }),
                   })
                     .then((res: any) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       updatePermissions(res);
                     })
                     .catch((err) => {
@@ -312,7 +312,7 @@ const Permission = (props: Props) => {
                     }),
                   })
                     .then((res: any) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       updatePermissions(res);
                     })
                     .catch((err) => {
@@ -365,7 +365,7 @@ const Permission = (props: Props) => {
                       }),
                     })
                       .then((res: any) => {
-                        alert("success");
+                        alert("성공적으로 처리되었습니다. 😘💌");
                         setSelectedUserId("");
                         updatePermissions(res);
                       })
@@ -442,7 +442,7 @@ const Permission = (props: Props) => {
                       data: zipPermission(permissionData),
                     })
                       .then((res: any) => {
-                        alert("success");
+                        alert("성공적으로 처리되었습니다. 😘💌");
                         updatePermissions(res);
                         setIsLoadingPermissionData(true);
                       })

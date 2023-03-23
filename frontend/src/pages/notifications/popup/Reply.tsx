@@ -123,7 +123,7 @@ const NotificationSend = (props: Props) => {
             } else {
               sendNotifications()
                 .then((res: any) => {
-                  alert("success");
+                  alert("성공적으로 처리되었습니다. 😘💌");
                   props.setState(false);
                 })
                 .catch((err) => alert(err.response.data.message));
