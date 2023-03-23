@@ -91,7 +91,7 @@ const Classroom = (props: Props) => {
                       ...props.schoolData,
                       classrooms: res,
                     });
-                    alert("성공적으로 처리되었습니다. 😘💌");
+                    alert("success");
                   })
                   .catch((err) => {
                     alert(err.response.data.message);
@@ -113,7 +113,7 @@ const Classroom = (props: Props) => {
                     ...props.schoolData,
                     classrooms: res,
                   });
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
@@ -162,7 +162,7 @@ const Classroom = (props: Props) => {
                       ...props.schoolData,
                       classrooms: res,
                     });
-                    alert("성공적으로 처리되었습니다. 😘💌");
+                    alert("success");
                   })
                   .catch((err) => {
                     alert(err.response.data.message);

@@ -204,7 +204,7 @@ function Basic(props: Props) {
             onClick={() => {
               addDocument()
                 .then((res) => {
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                   props.addUserList([res]);
                   props.setPopupAcitve(false);
                 })

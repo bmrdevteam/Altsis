@@ -247,7 +247,7 @@ const UserSettings = (props: Props) => {
                 } else {
                   updateEmail()
                     .then((res: any) => {
-                      alert("성공적으로 처리되었습니다. 😘💌");
+                      alert("success");
                       setNewEmail("");
                       setCurrentUser({ ...currentUser, email: res.data.email });
                       setEmailUpdatePopupActive(false);
@@ -289,7 +289,7 @@ const UserSettings = (props: Props) => {
                 } else {
                   updateTel()
                     .then((res: any) => {
-                      alert("성공적으로 처리되었습니다. 😘💌");
+                      alert("success");
                       setNewTel("");
                       setCurrentUser({ ...currentUser, tel: res.data.tel });
                       setTelUpdatePopupActive(false);

@@ -152,7 +152,7 @@ const CourseAdd = (props: Props) => {
         },
       })
         .then((res: any) => {
-          alert("성공적으로 처리되었습니다. 😘💌");
+          alert("success");
           navigate(`/courses/created/${res._id}`, {
             replace: true,
           });

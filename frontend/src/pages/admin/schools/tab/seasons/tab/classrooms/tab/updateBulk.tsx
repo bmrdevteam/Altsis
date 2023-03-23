@@ -135,7 +135,7 @@ function Basic(props: Props) {
                 data: classroomList,
               })
                 .then((res: any) => {
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                   props.setClassroomList(res.classrooms);
                   props.setPopupActive(false);
                 })

@@ -171,7 +171,7 @@ const Users = (props: Props) => {
               ).map((user) => user._id);
               UserApi.DUsers({ _ids })
                 .then(() => {
-                  alert("성공적으로 처리되었습니다. 😘💌");
+                  alert("success");
                   userSelectRef.current = [];
                   popUserList(_ids);
                 })

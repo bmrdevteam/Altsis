@@ -288,7 +288,7 @@ function Basic(props: Props) {
                 } else {
                   addSchoolBulk()
                     .then((res) => {
-                      alert("성공적으로 처리되었습니다. 😘💌");
+                      alert("success");
                       res.forEach((user: any) => {
                         props.updateUserList(user.userId, user);
                       });
