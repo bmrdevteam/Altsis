@@ -126,7 +126,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   function changeSchool(to: string) {
     SchoolApi.RSchool(to).then((s) => {
       setCurrentSchool({ ...s, school: s._id });
-
+      document.title = s.schoolName;
+      
       const re = _.sortBy(
         _registrations.filter(
           (r: any) => r.school === s._id && r.isActivated,
