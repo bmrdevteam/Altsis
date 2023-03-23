@@ -473,7 +473,7 @@ function Basic(props: Props) {
                 addUserBulk()
                   .then((res) => {
                     // console.log(res);
-                    alert("success");
+                    alert("성공적으로 처리되었습니다. 😘💌");
                     props.addUserList(res);
                     props.setPopupActive(false);
                   })

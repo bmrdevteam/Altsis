@@ -114,7 +114,7 @@ function Basic(props: Props) {
                   data: period,
                 })
                   .then((res) => {
-                    alert("success");
+                    alert("성공적으로 처리되었습니다. 😘💌");
                     setSeasonData(res);
                     props.setIsLoading(true);
                   })
@@ -150,7 +150,7 @@ function Basic(props: Props) {
                 ) {
                   SeasonApi.UActivateSeason(props._id)
                     .then((res) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       setSeasonData(res);
                       props.setIsLoading(true);
                     })
@@ -162,7 +162,7 @@ function Basic(props: Props) {
                 if (window.confirm("정말 비활성화하시겠습니까?") === true) {
                   SeasonApi.UInactivateSeason(props._id)
                     .then((res) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       setSeasonData(res);
                       props.setIsLoading(true);
                     })
@@ -174,7 +174,7 @@ function Basic(props: Props) {
                 if (window.confirm("정말 활성화하시겠습니까?") === true) {
                   SeasonApi.UActivateSeason(props._id)
                     .then((res) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       setSeasonData(res);
                       props.setIsLoading(true);
                     })
@@ -194,7 +194,7 @@ function Basic(props: Props) {
                 if (window.confirm("정말 삭제하시겠습니까?") === true) {
                   SeasonApi.DSeason(props._id)
                     .then((res) => {
-                      alert("success");
+                      alert("성공적으로 처리되었습니다. 😘💌");
                       props.setIsLoading(true);
                       props.setPopupActive(false);
                     })

@@ -136,7 +136,7 @@ function Basic(props: Props) {
             setIsLoading(true);
             updateRegistration()
               .then(() => {
-                alert("success");
+                alert("성공적으로 처리되었습니다. 😘💌");
               })
               .catch((err) => {
                 alert(err.response.data.message);
