@@ -57,7 +57,6 @@ function Basic(props: Props) {
   const [userName, setUserName] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [email, setEmail] = useState<any>(undefined);
-  const [google, setGoogle] = useState<any>(undefined);
   const [tel, setTel] = useState<any>(undefined);
 
   const [selectedSchoolList, setSelectedSchoolList] = useState<any[]>([]);
@@ -90,7 +89,6 @@ function Basic(props: Props) {
         password,
         tel,
         email,
-        snsId:{google},
       },
     });
     return result;
@@ -191,17 +189,6 @@ function Basic(props: Props) {
               }}
             />
           </div>
-
-          <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-            <Input
-              appearence="flat"
-              label="google"
-              onChange={(e: any) => {
-                setGoogle(e.target.value);
-              }}
-            />
-          </div>
-
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
               appearence="flat"

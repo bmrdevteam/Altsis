@@ -61,7 +61,6 @@ function Basic(props: Props) {
   const [schoolsText, setSchoolsText] = useState<string>("");
   const [auth, setAuth] = useState<string>("");
   const [email, setEmail] = useState<string>("");
-  const [google, setGoogle] = useState<string>("");
   const [tel, setTel] = useState<string>("");
 
   /* Popup Activation */
@@ -76,7 +75,6 @@ function Basic(props: Props) {
         auth,
         email,
         tel,
-        snsId:{google},
       },
     });
     return result;
@@ -103,7 +101,6 @@ function Basic(props: Props) {
           setAuth(res.auth);
           setEmail(res.email);
           setTel(res.tel);
-          setGoogle(res.snsId.google);
         })
         .then(() => setIsLoading(false))
         .catch((err: any) => alert(err.response.data.message));
@@ -195,14 +192,6 @@ function Basic(props: Props) {
               label="이메일"
               defaultValue={email}
               onChange={(e: any) => setEmail(e.target.value)}
-            />
-          </div>
-          <div style={{ marginTop: "24px" }}>
-            <Input
-              appearence="flat"
-              label="구글아이디"
-              defaultValue={google}
-              onChange={(e: any) => setGoogle(e.target.value)}
             />
           </div>
           <div style={{ marginTop: "24px" }}>
