@@ -63,6 +63,7 @@ const ParsedTableBlock = (props: Props) => {
         });
       }
     }
+    
   }
 
   const Cell = ({
