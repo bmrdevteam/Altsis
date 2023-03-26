@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import { useAuth } from "../../contexts/authContext";
-
+import style from "./sidebar.module.scss";
 import Nav, {
   NavLogo,
   NavLink,
@@ -44,52 +44,61 @@ const Sidebar = (props: Props) => {
         }}
       />
 
-      <NavLinks>
+      <div className={style.nav_links}>
         {/* <Search /> */}
-
-        {SidebarData(
-          currentUser?.auth,
-          currentRegistration?.role,
-          currentPermission
-        ).map((data: INavLink, index: number) => {
-          return (
-            data && (
-              <NavLink
-                key={index}
-                path={data.path}
-                icon={data.icon}
-                active={
-                  location.pathname !== "/" &&
-                  data.title.includes(location.pathname.split("/")[1])
-                }
-                subLink={
-                  data.subLink && (
-                    <SubLinks>
-                      {data.subLink.map((sbData, index) => {
-                        return (
-                          <SubLink
-                            key={index}
-                            icon={sbData.icon}
-                            path={sbData.path}
-                            active={
-                              location.pathname !== "/" &&
-                              decodeURI(location.pathname).includes(sbData.path)
-                            }
-                          >
-                            {sbData.name}
-                          </SubLink>
-                        );
-                      })}
-                    </SubLinks>
-                  )
-                }
-              >
-                {data.name}
-              </NavLink>
-            )
-          );
-        })}
-      </NavLinks>
+        <div
+          onClick={() => {
+            if (window.innerWidth < 800) {
+              setSidebarOpen(false);
+            }
+          }}
+        >
+          {SidebarData(
+            currentUser?.auth,
+            currentRegistration?.role,
+            currentPermission
+          ).map((data: INavLink, index: number) => {
+            return (
+              data && (
+                <NavLink
+                  key={index}
+                  path={data.path}
+                  icon={data.icon}
+                  active={
+                    location.pathname !== "/" &&
+                    data.title.includes(location.pathname.split("/")[1])
+                  }
+                  subLink={
+                    data.subLink && (
+                      <SubLinks>
+                        {data.subLink.map((sbData, index) => {
+                          return (
+                            <SubLink
+                              key={index}
+                              icon={sbData.icon}
+                              path={sbData.path}
+                              active={
+                                location.pathname !== "/" &&
+                                decodeURI(location.pathname).includes(
+                                  sbData.path
+                                )
+                              }
+                            >
+                              {sbData.name}
+                            </SubLink>
+                          );
+                        })}
+                      </SubLinks>
+                    )
+                  }
+                >
+                  {data.name}
+                </NavLink>
+              )
+            );
+          })}
+        </div>
+      </div>
       <NavProfile />
     </Nav>
   );
