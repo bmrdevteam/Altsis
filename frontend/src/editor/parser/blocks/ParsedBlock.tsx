@@ -21,6 +21,7 @@ const ParsedBlock = (props: Props) => {
             width: `${props.blockData.data.width ?? 100}%`,
             fontSize: props.blockData.data.fontSize,
             fontWeight: props.blockData.data.fontWeight,
+            textAlign:props.blockData.data.textAlign
           }}
         >
           {props.blockData.data.text}
