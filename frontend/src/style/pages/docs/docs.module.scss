@@ -8,16 +8,24 @@
         display: block !important;
         padding: none;
     }
-    @page{
+
+    @page {
         margin: 10mm 4mm 10mm 4mm;
     }
 }
 
+.section::-webkit-scrollbar {
+    display: none;
+}
 
 .section {
     height: calc(100vh - 56px);
     padding: 24px;
     color: var(--accent-1);
+    overflow-y: auto;
+
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 
     .title {
         font-weight: 600;
