@@ -154,7 +154,7 @@ function Basic(props: Props) {
                 } else {
                   addSchoolBulk()
                     .then((res) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       res.forEach((user: any) => {
                         props.updateUserList(user.userId, user);
                       });

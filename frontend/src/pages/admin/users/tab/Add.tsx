@@ -217,7 +217,7 @@ function Basic(props: Props) {
             onClick={() => {
               addDocument()
                 .then((res) => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   props.addUserList([res]);
                   props.setPopupAcitve(false);
                 })

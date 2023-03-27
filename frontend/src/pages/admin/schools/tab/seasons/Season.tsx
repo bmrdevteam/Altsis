@@ -286,7 +286,7 @@ const Season = (props: Props) => {
                     },
                   })
                     .then((res) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setIsLoading(true);
                       setSelectedSeasonToCopy(undefined);
                       setAddSeasonPopupActive(false);

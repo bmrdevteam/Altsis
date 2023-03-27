@@ -224,7 +224,7 @@ const One = (props: Props) => {
               _id: props.formData?.current._id,
               data: { [props.archive]: dataRef.current },
             }).then((res: any) => {
-              alert("success");
+              alert(SUCCESS_MESSAGE);
             });
           }
         }}
@@ -588,7 +588,7 @@ const One = (props: Props) => {
                   _id: props.formData?.current._id,
                   data: { [props.archive]: dataRef.current },
                 }).then((res: any) => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                 });
               }
             }}

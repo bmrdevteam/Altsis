@@ -104,7 +104,7 @@ const Academy = (props: Props) => {
             },
           })
             .then((res) => {
-              alert("success");
+              alert(SUCCESS_MESSAGE);
               props.setIsLoading(true);
             })
             .catch((err) => {
@@ -128,7 +128,7 @@ const Academy = (props: Props) => {
                 academyId: props.academyData.academyId,
               })
                 .then((res) => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   setIsActivated(false);
                 })
                 .catch((err) => {
@@ -141,7 +141,7 @@ const Academy = (props: Props) => {
                 academyId: props.academyData.academyId,
               })
                 .then((res) => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   setIsActivated(true);
                 })
                 .catch((err) => {

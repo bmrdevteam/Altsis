@@ -140,7 +140,7 @@ const Subjects = (props: Props) => {
                   },
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
@@ -162,7 +162,7 @@ const Subjects = (props: Props) => {
                   },
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
@@ -206,7 +206,7 @@ const Subjects = (props: Props) => {
                   },
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
@@ -232,7 +232,7 @@ const Subjects = (props: Props) => {
                   },
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setSubjects(res.subjects);
                   })
                   .catch((err) => {
@@ -280,7 +280,7 @@ const Subjects = (props: Props) => {
                     },
                   })
                     .then((res: any) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setSubjects(res.subjects);
                     })
                     .catch((err) => {

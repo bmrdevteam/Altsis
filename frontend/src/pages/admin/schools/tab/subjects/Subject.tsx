@@ -140,7 +140,7 @@ const Subjects = (props: Props) => {
                 })
                   .then((res) => {
                     props.setSchoolData({ ...props.schoolData, subjects: res });
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                   })
                   .catch((err) => {
                     alert(err.response.data.message);
@@ -160,7 +160,7 @@ const Subjects = (props: Props) => {
               })
                 .then((res) => {
                   props.setSchoolData({ ...props.schoolData, subjects: res });
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
@@ -202,7 +202,7 @@ const Subjects = (props: Props) => {
                 })
                   .then((res) => {
                     props.setSchoolData({ ...props.schoolData, subjects: res });
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                   })
                   .catch((err) => {
                     alert(err.response.data.message);
@@ -226,7 +226,7 @@ const Subjects = (props: Props) => {
               })
                 .then((res) => {
                   props.setSchoolData({ ...props.schoolData, subjects: res });
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                 })
                 .catch((err) => {
                   alert(err.response.data.message);
@@ -272,7 +272,7 @@ const Subjects = (props: Props) => {
                 })
                   .then((res) => {
                     props.setSchoolData({ ...props.schoolData, subjects: res });
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                   })
                   .catch((err) => {
                     alert(err.response.data.message);
