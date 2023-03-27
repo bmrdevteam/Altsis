@@ -36,7 +36,7 @@ jobs:
         with:
           registry: ghcr.io/bmrdevteam
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets[format('GHCR_TOKEN_{0}', github.actor)] }}
 
       # .env 파일 생성
       - name: Set .env File
@@ -109,7 +109,7 @@ jobs:
         with:
           registry: ghcr.io/bmrdevteam
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets[format('GHCR_TOKEN_{0}', github.actor)] }}
 
       # Pull images
       - name: Docker pull
