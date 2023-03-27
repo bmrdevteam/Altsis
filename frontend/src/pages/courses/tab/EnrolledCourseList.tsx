@@ -32,6 +32,7 @@ import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
+import Divider from "components/divider/Divider";
 
 // components
 import Table from "components/tableV2/Table";
@@ -43,13 +44,23 @@ type Props = {
   subjectLabelHeaderList: any[];
 };
 
-const Timetable = (props: Props) => {
-  const navigate = useNavigate();
+const categories = (props: Props) => {
   // 학점 합계 계산
   const totalPoint = props.courseList.reduce(
     (acc, cur) => acc + parseInt(cur.point, 10),
     0
   );
+  return (
+    <>
+      <div className={style.category}>
+        총 {totalPoint}학점
+      </div>
+    </>
+  );
+};
+
+const Timetable = (props: Props) => {
+  const navigate = useNavigate();
   const subjectHeaderList = [
     {
       text: "수업명",
@@ -74,7 +85,7 @@ const Timetable = (props: Props) => {
     },
 
     {
-      text: `학점(${totalPoint})`,
+      text: "학점",
       key: "point",
       type: "string",
       textAlign: "center",
@@ -120,6 +131,10 @@ const Timetable = (props: Props) => {
 
   return (
     <div className={style.section}>
+    <div className={style.categories_container}>
+      <div className={style.categories}>{categories(props)}</div>
+    </div>
+    <Divider />
       <Table
         type="object-array"
         data={props.courseList}
