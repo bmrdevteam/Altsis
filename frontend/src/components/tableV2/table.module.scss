@@ -58,13 +58,13 @@
         }
 
         .number {
-          text-align: center;
-          padding: 0;
+          text-align: right;
           font-weight: 500;
-          padding: 6px 0;
+          font-size: 13px;
+          padding: 6px 4px;
           border: none;
           outline: none;
-          width: 32px;
+          width: 28px;
           align-items: center;
           justify-content: center;
           display: flex;

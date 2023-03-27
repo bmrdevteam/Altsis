@@ -285,22 +285,32 @@ const Table = (props: Props) => {
                             number >
                               tableData.data.length / tableSettings.pageBy
                           ) {
-                            let end = Math.floor(
-                              tableData.data.length / tableSettings.pageBy
-                            );
-                            if (
-                              tableData.data.length % tableSettings.pageBy >
-                              0
-                            )
-                              end += 1;
-
                             setTableSettings((prev) => ({
                               ...prev,
-                              pageIndex: end,
+                              pageIndex: isNaN(
+                                parseInt(e.target.value.slice(-1))
+                              )
+                                ? 1
+                                : parseInt(e.target.value.slice(-1)),
                             }));
                           }
                         }}
                       />
+                      /
+                      <span
+                        style={{
+                          padding: "0 6px",
+                          display: "flex",
+                          fontSize: "13px",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {Math.ceil(
+                          tableData.data.length / tableSettings.pageBy
+                        )}
+                      </span>
                       <span
                         className={style.arrow}
                         onClick={() => {
