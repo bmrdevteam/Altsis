@@ -69,8 +69,6 @@ function Basic(props: Props) {
   const [subTeacherName, setSubTeacherName] = useState<string>(
     props.registrationData.subTeacherName
   );
-  const [isLastSelectorOpened, setIsLastSelectorOpened] =
-    useState<boolean>(false);
 
   const teachers = [
     {
@@ -137,12 +135,12 @@ function Basic(props: Props) {
       }
     >
       <div
-        className={style.popup}
-        style={
-          isLastSelectorOpened
-            ? { display: "flex", flexDirection: "column", minHeight: "460px" }
-            : { display: "flex", flexDirection: "column", height: "368px" }
-        }
+        id="scrollDiv"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          overflowY: "scroll",
+        }}
       >
         <div className={style.row}>
           <Select
@@ -183,9 +181,13 @@ function Basic(props: Props) {
         </div>
 
         <div className={style.row} style={{ marginTop: "24px" }}>
-          <Select
+          <Autofill
+            onEdit={(edit: boolean) => {
+              const scrollDiv = document.getElementById("scrollDiv");
+              scrollDiv?.scrollTo(0, scrollDiv.scrollHeight);
+            }}
             options={teachers}
-            defaultSelectedValue={JSON.stringify({
+            defaultValue={JSON.stringify({
               teacher,
               teacherId,
               teacherName,
@@ -206,12 +208,13 @@ function Basic(props: Props) {
         </div>
 
         <div className={style.row} style={{ marginTop: "24px" }}>
-          <Select
+          <Autofill
             onEdit={(edit: boolean) => {
-              setIsLastSelectorOpened(edit);
+              const scrollDiv = document.getElementById("scrollDiv");
+              scrollDiv?.scrollTo(0, scrollDiv.scrollHeight);
             }}
             options={teachers}
-            defaultSelectedValue={JSON.stringify({
+            defaultValue={JSON.stringify({
               teacher: subTeacher,
               teacherId: subTeacherId,
               teacherName: subTeacherName,
