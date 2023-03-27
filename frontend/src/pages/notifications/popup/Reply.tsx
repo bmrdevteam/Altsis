@@ -123,7 +123,7 @@ const NotificationSend = (props: Props) => {
             } else {
               sendNotifications()
                 .then((res: any) => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   props.setState(false);
                 })
                 .catch((err) => alert(err.response.data.message));

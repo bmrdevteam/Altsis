@@ -366,7 +366,7 @@ const CoursePid = (props: Props) => {
                           tableRowChecked: true,
                         }).map((e: any) => e._id)
                       ).then(() => {
-                        alert("success");
+                        alert(SUCCESS_MESSAGE);
                         setIsLoading(true);
                         setIsChecked(false);
                       });

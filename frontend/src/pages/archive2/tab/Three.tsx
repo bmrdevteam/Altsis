@@ -248,7 +248,7 @@ const One = (props: Props) => {
                 data: { [props.pid]: dataRef.current },
               }).then((res: any) => {
                 setIsLoadingArchive(true);
-                alert("success");
+                alert(SUCCESS_MESSAGE);
               });
             }
           }}
@@ -617,7 +617,7 @@ const One = (props: Props) => {
                     data: { [props.pid]: dataRef.current },
                   }).then((res) => {
                     setIsLoadingArchive(true);
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                   });
                 }
               }}

@@ -135,7 +135,7 @@ function Basic(props: Props) {
                 data: classroomList,
               })
                 .then((res: any) => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   props.setClassroomList(res.classrooms);
                   props.setPopupActive(false);
                 })

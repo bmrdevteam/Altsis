@@ -137,7 +137,7 @@ const Permission = (props: Props) => {
                   })
                     .then((res: any) => {
                       setIsLoading(true);
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                     })
                     .catch((err) => {
                       alert(err.response.data.message);
@@ -158,7 +158,7 @@ const Permission = (props: Props) => {
                   })
                     .then((res: any) => {
                       setIsLoading(true);
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                     })
                     .catch((err) => {
                       alert(err.response.data.message);
@@ -188,7 +188,7 @@ const Permission = (props: Props) => {
                   })
                     .then((res: any) => {
                       setIsLoading(true);
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                     })
                     .catch((err) => {
                       alert(err.response.data.message);
@@ -209,7 +209,7 @@ const Permission = (props: Props) => {
                   })
                     .then((res: any) => {
                       setIsLoading(true);
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                     })
                     .catch((err) => {
                       alert(err.response.data.message);

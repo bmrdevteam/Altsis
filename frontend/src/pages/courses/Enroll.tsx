@@ -342,7 +342,7 @@ const CourseEnroll = (props: Props) => {
                   },
                 })
                   .then(() => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setIsLoading(true);
                   })
                   .catch((err) => {
@@ -380,7 +380,7 @@ const CourseEnroll = (props: Props) => {
               onClick: (e: any) => {
                 EnrollmentApi.DEnrollment(e.enrollment)
                   .then(() => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setIsLoading(true);
                   })
                   .catch((err) => {

@@ -157,7 +157,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                   })
                     .then(() => updateCurrentRegistration())
                     .then(() => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setEditor(false);
                     })
                     .catch((err) => alert("error!"));
@@ -175,7 +175,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                           updateCurrentRegistration();
                         })
                         .then(() => {
-                          alert("success");
+                          alert(SUCCESS_MESSAGE);
                           setEditor(false);
                         })
                         .catch((err) => alert("error!"));
@@ -188,7 +188,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                           updateCurrentRegistration();
                         })
                         .then(() => {
-                          alert("success");
+                          alert(SUCCESS_MESSAGE);
                           setEditor(false);
                         })
                         .catch((err) => alert("error!"));
@@ -216,7 +216,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                       updateCurrentRegistration();
                     })
                     .then(() => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setEditor(false);
                     })
                     .catch((err) => alert("error!"));

@@ -220,7 +220,7 @@ function Basic(props: Props) {
               onClick={() => {
                 updateUser()
                   .then((res) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     props.updateUserList(userId, res);
                     props.setPopupAcitve(false);
                   })

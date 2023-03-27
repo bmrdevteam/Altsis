@@ -164,7 +164,7 @@ function Basic(props: Props) {
                 },
               })
                 .then((res: any) => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   props.setSubjects(res.subjects);
                   props.setPopupActive(false);
                 })

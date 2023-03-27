@@ -126,7 +126,7 @@ const Users = (props: Props) => {
             _ids: selectedRegistrations.current,
           })
             .then(() => {
-              alert("success");
+              alert(SUCCESS_MESSAGE);
               setIsLoading(true);
             })
             .catch((err: any) => alert(err.response.data.message));
@@ -210,7 +210,7 @@ const Users = (props: Props) => {
                 _ids: selectedRegistrations.current,
               })
                 .then(() => {
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   setIsLoading(true);
                 })
                 .catch((err: any) => alert(err.response.data.message));

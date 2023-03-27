@@ -152,7 +152,7 @@ const CourseAdd = (props: Props) => {
         },
       })
         .then((res: any) => {
-          alert("success");
+          alert(SUCCESS_MESSAGE);
           navigate(`/courses/created/${res._id}`, {
             replace: true,
           });

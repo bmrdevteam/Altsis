@@ -247,7 +247,7 @@ const UserSettings = (props: Props) => {
                 } else {
                   updateEmail()
                     .then((res: any) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setNewEmail("");
                       setCurrentUser({ ...currentUser, email: res.data.email });
                       setEmailUpdatePopupActive(false);
@@ -289,7 +289,7 @@ const UserSettings = (props: Props) => {
                 } else {
                   updateTel()
                     .then((res: any) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setNewTel("");
                       setCurrentUser({ ...currentUser, tel: res.data.tel });
                       setTelUpdatePopupActive(false);

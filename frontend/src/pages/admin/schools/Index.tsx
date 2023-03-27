@@ -203,7 +203,7 @@ navigate("add", { replace: true });
                 if (schoolId && schoolName) {
                   SchoolApi.CSchools({ data: { schoolId, schoolName } })
                     .then(() => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setAddPopupActive(false);
                       setIsLoading(true);
                     })

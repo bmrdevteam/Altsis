@@ -99,7 +99,7 @@ const Received = (props: Props) => {
                   NotificationApi.DNotifications(selectRef.current || [])
                     .then((res: any) => {
                       setIsLoading(true);
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                     })
                     .catch((err: any) => alert(err.response.data.message));
                 }

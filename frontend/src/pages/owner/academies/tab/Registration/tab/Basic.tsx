@@ -136,7 +136,7 @@ function Basic(props: Props) {
             setIsLoading(true);
             updateRegistration()
               .then(() => {
-                alert("success");
+                alert(SUCCESS_MESSAGE);
               })
               .catch((err) => {
                 alert(err.response.data.message);
