@@ -8,6 +8,9 @@ import { AuthProvider } from "./contexts/authContext";
 import { CookiesProvider } from "react-cookie";
 import { ThemeProvider } from "./contexts/themeContext";
 
+/* config */
+globalThis.SUCCESS_MESSAGE = "성공적으로 처리되었습니다";
+
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );

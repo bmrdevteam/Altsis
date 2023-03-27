@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -19,15 +15,13 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "src/", 
+    "baseUrl": "src/",
     "outDir": "bulid/",
     "paths": {
       "@conponents/*": ["conponents/*"],
-      "@img/*": ["assets/img/*"],
-    },
+      "@img/*": ["assets/img/*"]
+    }
   },
 
-  "include": [
-    "src"
-, "src/types", "src/global.d.ts"  ]
+  "include": ["src", "src/types", "src/global.d.ts", "src/global2.d.ts"]
 }
