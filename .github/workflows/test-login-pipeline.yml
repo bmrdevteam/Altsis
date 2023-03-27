@@ -14,28 +14,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 변수 출력
-      - name: Print actor
-        run: |
-          echo "${{secrets[format('TEST_VAL_{0}', github.actor)]}}"
-
       # GitHub 컨테이너 레지스트리에 로그인
 
-      # # 1. unknown user
-      # - name: Login to ghcr
-      #   uses: docker/login-action@v2.0.0
-      #   with:
-      #     registry: ghcr.io/bmrdevteam
-      #     username: "unknown"
-      #     password: ${{ secrets[format('TEST_VAL_{0}', github.actor)] }}
+      # 1. unknown user
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io/bmrdevteam
+          username: "unknown"
+          password: "wrong password"
 
-      # # 2. wrong password
-      # - name: Login to ghcr
-      #   uses: docker/login-action@v2.0.0
-      #   with:
-      #     registry: ghcr.io/bmrdevteam
-      #     username: ${{ github.actor }}
-      #     password: ${{ secrets[format('TEST_VAL_{0}', github.actor)] }}
+      # 2. wrong password
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io/bmrdevteam
+          username: ${{ github.actor }}
+          password: "wrong password"
+
+      # 3. correct password
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io/bmrdevteam
+          username: ${{ github.actor }}
+          password: ${{ secrets[format('TEST_VAL_{0}', github.actor)] }}
 
       # 슬랙 알림
       - name: Send Slack Notification
