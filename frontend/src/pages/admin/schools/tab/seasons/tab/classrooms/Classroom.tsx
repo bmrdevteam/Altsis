@@ -100,7 +100,7 @@ const Classroom = (props: Props) => {
                   data: [...classroomList, classroomRef.current],
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setClassroomList(res.classrooms);
                   })
                   .catch((err) => {
@@ -121,7 +121,7 @@ const Classroom = (props: Props) => {
                   data: [...classroomList, classroomRef.current],
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setClassroomList(res.classrooms);
                   })
                   .catch((err) => {
@@ -169,7 +169,7 @@ const Classroom = (props: Props) => {
                   data: classroomList,
                 })
                   .then((res: any) => {
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     setClassroomList(res.classrooms);
                   })
                   .catch((err) => {

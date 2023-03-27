@@ -162,7 +162,7 @@ function Basic(props: Props) {
               })
                 .then((res) => {
                   props.setSchoolData({ ...props.schoolData, subjects: res });
-                  alert("success");
+                  alert(SUCCESS_MESSAGE);
                   props.setPopupActive(false);
                 })
                 .catch((err) => {

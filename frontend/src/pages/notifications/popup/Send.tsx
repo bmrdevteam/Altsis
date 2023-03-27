@@ -427,7 +427,7 @@ const NotificationSend = (props: Props) => {
                     },
                   })
                     .then((res: any) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
 
                       props.setIsLoading(true);
                       props.setState(false);

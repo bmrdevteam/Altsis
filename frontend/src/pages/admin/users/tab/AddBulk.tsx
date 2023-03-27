@@ -489,7 +489,7 @@ function Basic(props: Props) {
                 addUserBulk()
                   .then((res) => {
                     // console.log(res);
-                    alert("success");
+                    alert(SUCCESS_MESSAGE);
                     props.addUserList(res);
                     props.setPopupActive(false);
                   })

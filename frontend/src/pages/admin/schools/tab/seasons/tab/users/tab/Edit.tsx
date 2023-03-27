@@ -125,7 +125,7 @@ function Basic(props: Props) {
               },
             })
               .then(() => {
-                alert("success");
+                alert(SUCCESS_MESSAGE);
                 props.setIsLoading(true);
                 props.setPopupActive(false);
               })

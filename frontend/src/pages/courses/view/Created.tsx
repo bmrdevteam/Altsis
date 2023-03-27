@@ -254,7 +254,7 @@ const CoursePid = (props: Props) => {
                 onClick={() => {
                   deleteCourse()
                     .then((res) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       navigate("/courses");
                     })
                     .catch((err) => {

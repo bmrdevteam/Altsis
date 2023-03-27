@@ -118,7 +118,7 @@ const SecuritySettings = (props: Props) => {
                 } else {
                   updatePassword()
                     .then((res) => {
-                      alert("success");
+                      alert(SUCCESS_MESSAGE);
                       setResetPasswordPopupActive(false);
                     })
                     .catch((err: any) => alert(err.response.data.message));
