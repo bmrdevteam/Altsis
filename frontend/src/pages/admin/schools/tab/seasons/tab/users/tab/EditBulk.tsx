@@ -93,7 +93,11 @@ function Basic(props: Props) {
       closeBtn
       contentScroll
     >
-      <div className={style.popup}>
+      <div
+        className={style.popup}
+        id="scrollDiv"
+        style={{ overflowY: "scroll" }}
+      >
         <div className={style.row}>
           <Select
             options={[
@@ -133,7 +137,11 @@ function Basic(props: Props) {
         </div>
 
         <div className={style.row} style={{ marginTop: "24px" }}>
-          <Select
+          <Autofill
+            onEdit={(edit: boolean) => {
+              const scrollDiv = document.getElementById("scrollDiv");
+              scrollDiv?.scrollTo(0, scrollDiv.scrollHeight);
+            }}
             options={teachers}
             appearence="flat"
             label="담임 선생님"
@@ -157,7 +165,11 @@ function Basic(props: Props) {
         </div>
 
         <div className={style.row} style={{ marginTop: "24px" }}>
-          <Select
+          <Autofill
+            onEdit={(edit: boolean) => {
+              const scrollDiv = document.getElementById("scrollDiv");
+              scrollDiv?.scrollTo(0, scrollDiv.scrollHeight);
+            }}
             options={teachers}
             appearence="flat"
             label="부담임 선생님"

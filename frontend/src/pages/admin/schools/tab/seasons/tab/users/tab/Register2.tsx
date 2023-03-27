@@ -101,7 +101,6 @@ function Basic(props: Props) {
       setState={props.setPopupActive}
       style={{ borderRadius: "4px", maxWidth: "800px" }}
       closeBtn
-      contentScroll
       footer={
         <Button
           type={"ghost"}
@@ -136,7 +135,10 @@ function Basic(props: Props) {
           height: "480px",
         }}
       >
-        <div className={style.popup}>
+        <div
+          className={style.popup}
+          style={{ overflowY: "scroll", height: "100%" }}
+        >
           <div className={style.row}>
             <Table
               type="object-array"
@@ -180,7 +182,11 @@ function Basic(props: Props) {
             />
           </div>
         </div>
-        <div className={style.popup} style={{ position: "sticky", top: "0px" }}>
+        <div
+          id="scrollDiv"
+          className={style.popup}
+          style={{ overflowY: "scroll", height: "100%" }}
+        >
           <div className={style.row}>
             <Select
               options={[
@@ -217,7 +223,11 @@ function Basic(props: Props) {
           </div>
 
           <div className={style.row} style={{ marginTop: "24px" }}>
-            <Select
+            <Autofill
+              onEdit={(edit: boolean) => {
+                const scrollDiv = document.getElementById("scrollDiv");
+                scrollDiv?.scrollTo(0, scrollDiv.scrollHeight);
+              }}
               options={teachers}
               appearence="flat"
               label="담임 선생님"
@@ -234,7 +244,11 @@ function Basic(props: Props) {
             />
           </div>
           <div className={style.row} style={{ marginTop: "24px" }}>
-            <Select
+            <Autofill
+              onEdit={(edit: boolean) => {
+                const scrollDiv = document.getElementById("scrollDiv");
+                scrollDiv?.scrollTo(0, scrollDiv.scrollHeight);
+              }}
               options={teachers}
               appearence="flat"
               label="부담임 선생님"

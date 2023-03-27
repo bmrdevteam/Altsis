@@ -1,61 +1,60 @@
 .popup_container {
-    padding: 24px;
-    min-width: 320px;
-    z-index: 2026;
-    background-color: var(--background-color);
-    max-height: 100%;
-    
+  padding: 24px;
+  min-width: 320px;
+  z-index: 2026;
+  background-color: var(--background-color);
+  max-height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  .popup {
     display: flex;
-    flex-direction: column;
+    align-items: flex-start;
 
-    .popup {
-
-        display: flex;
-        align-items: flex-start;
-
-        .title {
-            font-family: 'Pretendard';
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0;
-            flex: 1 1 0;
-            color: var(--accent-1);
-        }
-
-        .x {
-            cursor: pointer;
-            fill: var(--accent-1);
-
-        }
+    .title {
+      font-family: "Pretendard";
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+      flex: 1 1 0;
+      color: var(--accent-1);
     }
 
-    .content {
-        margin-top: 24px;
-        -ms-overflow-style: none;
-        /* IE and Edge */
-        scrollbar-width: none;
-        /* Firefox */
-        max-height: calc(100vh - 200px);
+    .x {
+      cursor: pointer;
+      fill: var(--accent-1);
     }
+  }
 
-    .content::-webkit-scrollbar {
-        display: none;
-    }
+  .content {
+    margin-top: 24px;
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+    max-height: calc(100vh - 200px);
+  }
 
+  .content::-webkit-scrollbar {
+    display: none;
+  }
 
-    .footer {
-        padding-top: 24px;
-    }
+  .footer {
+    padding-top: 24px;
+  }
+}
+::-webkit-scrollbar {
+  display: none;
 }
 
 .popup_background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 2025;
-    background-color: rgba($color: #000000, $alpha: 0.3);
-    backdrop-filter: blur(1px);
-
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2025;
+  background-color: rgba($color: #000000, $alpha: 0.3);
+  backdrop-filter: blur(1px);
 }

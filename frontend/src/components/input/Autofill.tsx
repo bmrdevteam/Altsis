@@ -16,6 +16,8 @@ type Props = {
   appearence?: "flat";
   resetOnClick?: boolean;
   onChange?: (value: string | number) => void;
+
+  onEdit?: any;
 };
 
 const Autofill = (props: Props) => {
@@ -49,6 +51,12 @@ const Autofill = (props: Props) => {
       document.removeEventListener("mousedown", handleMousedown);
     };
   }, []);
+
+  useEffect(() => {
+    if (props.onEdit) {
+      props.onEdit(edit);
+    }
+  }, [edit]);
 
   return (
     <div
