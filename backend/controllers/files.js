@@ -1,9 +1,20 @@
 const _ = require("lodash");
-const { Archive, School, User } = require("../models");
+const {
+  Enrollment,
+  Form,
+  School,
+  Registration,
+  Syllabus,
+  User,
+  Season,
+  Archive,
+  Notification,
+} = require("../models");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 const aws = require("aws-sdk");
 const { parseISO, addSeconds } = require("date-fns");
+const { format } = require("date-fns");
 
 const s3 = new aws.S3({
   accessKeyId: process.env["s3_accessKeyId2"].trim(),
@@ -161,7 +172,7 @@ module.exports.findBackup = async (req, res) => {
 
     const list = [];
 
-    /* req.query.title */
+    /*  특정 백업 목록 불러오기 */
     if ("title" in req.query) {
       const data = await s3
         .listObjectsV2({
@@ -182,26 +193,86 @@ module.exports.findBackup = async (req, res) => {
         }
       }
     } else {
-      const data = await s3
-        .listObjectsV2({
-          Bucket: bucket,
-          Prefix: `backup/${req.query.academyId}/`,
-        })
-        .promise();
+      /* 백업 리스트 불러오기 */
+      const data = [];
+      let token = undefined;
 
-      for (let content of data.Contents) {
-        const keys = content.Key.split("/");
-        if (keys.length === 4 && keys[3] === "") {
-          list.push({
-            title: keys[2],
-            key: content.Key,
-            lastModified: content.LastModified,
-          });
-        }
+      /* list all data */
+      do {
+        const _data = await s3
+          .listObjectsV2({
+            Bucket: bucket,
+            Prefix: `backup/${req.query.academyId}/`,
+            ContinuationToken: token,
+            Delimiter: "/",
+          })
+          .promise();
+        data.push(..._data.CommonPrefixes);
+        token = data.NextContinuationToken;
+      } while (token);
+
+      for (let content of data) {
+        list.push({
+          title: content.Prefix.split("/")[2],
+          key: content.Prefix,
+        });
       }
     }
 
     return res.status(200).send({ list });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/* upload backup */
+const Model = (title, academyId) => {
+  if (title === "schools") return School(academyId);
+  if (title === "users") return User(academyId);
+  if (title === "archives") return Archive(academyId);
+  if (title === "seasons") return Season(academyId);
+  if (title === "registrations") return Registration(academyId);
+  if (title === "syllabuses") return Syllabus(academyId);
+  if (title === "enrollments") return Enrollment(academyId);
+  if (title === "forms") return Form(academyId);
+  if (title === "notifications") return Notification(academyId);
+};
+
+module.exports.uploadBackup = async (req, res) => {
+  try {
+    if (!("academyId" in req.query)) {
+      return res.status(400).send({ message: "query(academyId) is required" });
+    }
+    if (!("models" in req.body)) {
+      return res.status(400).send({ message: "body(models) is required" });
+    }
+
+    const title = format(Date.now(), "yyyy-MM-dd_HH:mm:ss.SSS");
+
+    for (let model of req.body.models) {
+      const _model = Model(model.title, req.query.academyId);
+      if (!_model) return res.status(409).send({ message: "model not found" });
+
+      const documents = await _model.find({}).lean();
+      let docString = "";
+      for (let doc of documents) {
+        docString = docString + JSON.stringify(doc) + ", ";
+      }
+
+      // const objectStream = Readable.from([documents.toString()]);
+
+      const result = await s3
+        .upload({
+          Bucket: bucket,
+          Key: `backup/${req.query.academyId}/${title}/${model.title}.json`,
+          Body: "[" + docString + "]",
+          ContentType: "application/json",
+        })
+        .promise();
+      console.log("upload result: ", result);
+    }
+
+    return res.status(201).send({});
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
