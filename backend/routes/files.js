@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const files = require("../controllers/files");
-const { isAdManager, isOwner } = require("../middleware/auth");
+const { isAdManager, isOwner, isLoggedIn } = require("../middleware/auth");
 
 //=================================
 //             File
 //=================================
 
 router.post("/archive", isAdManager, files.uploadArchive);
-router.get("/signed", isAdManager, files.sign);
+router.get("/signed", isLoggedIn, files.sign);
 
 router.get("/backup", isOwner, files.findBackup);
 

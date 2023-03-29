@@ -25,11 +25,11 @@ const randomString = () => {
   return tmp;
 };
 
-const signUrl = (key, filename) => {
+const signUrl = (key, filename, seconds = signedUrlExpireSeconds) => {
   const preSignedUrl = s3.getSignedUrl("getObject", {
     Bucket: bucket,
     Key: key,
-    Expires: signedUrlExpireSeconds,
+    Expires: seconds,
     ResponseContentDisposition: `attachment; filename ="${encodeURI(
       filename
     )}"`,
@@ -122,19 +122,28 @@ module.exports.uploadArchive = async (req, res) => {
 /* sign file */
 
 module.exports.sign = async (req, res) => {
+  let seconds = 0;
+
   /* 권한 검사 */
   const keys = req.query.key.split("/");
   if (keys[0] === "archive") {
-    // is teacher?
+    // is admanager?
+    if (req.user.auth !== "admin" || req.user.auth !== "manager")
+      return res.status(403).send({ message: "Access Denied" });
+    seconds = signedUrlExpireSeconds;
   } else if (keys[0] === "backup") {
     // is owner?
     if (req.user.auth !== "owner")
       return res.status(403).send({ message: "Access Denied" });
+    seconds = 60;
+  } else {
+    return res.status(403).send({ message: "Access Denied" });
   }
 
   const { preSignedUrl, expiryDate } = signUrl(
     req.query.key,
-    req.query.fileName
+    req.query.fileName,
+    seconds
   );
 
   return res.status(200).send({
@@ -164,7 +173,12 @@ module.exports.findBackup = async (req, res) => {
       for (let content of data.Contents) {
         const keys = content.Key.split("/");
         if (keys.length === 4 && keys[3] !== "") {
-          list.push({ title: keys[3], size: content.Size });
+          list.push({
+            title: keys[3],
+            size: content.Size,
+            key: content.Key,
+            lastModified: content.LastModified,
+          });
         }
       }
     } else {
@@ -178,7 +192,11 @@ module.exports.findBackup = async (req, res) => {
       for (let content of data.Contents) {
         const keys = content.Key.split("/");
         if (keys.length === 4 && keys[3] === "") {
-          list.push({ title: keys[2] });
+          list.push({
+            title: keys[2],
+            key: content.Key,
+            lastModified: content.LastModified,
+          });
         }
       }
     }
