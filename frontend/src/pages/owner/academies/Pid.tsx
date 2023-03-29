@@ -40,6 +40,7 @@ import Tab from "components/tab/Tab";
 import BasicInfo from "./tab/BasicInfo/Index";
 import User from "./tab/User/Index";
 import School from "./tab/School/Index";
+import Backup from "./tab/Backup/Index";
 
 // import Setting from "./tab/Setting";
 import Skeleton from "components/skeleton/Skeleton";
@@ -132,6 +133,7 @@ const Academy = (props: Props) => {
                 ),
                 학교: <School />,
                 사용자: <User />,
+                백업: <Backup />,
               }}
             />
           </>
