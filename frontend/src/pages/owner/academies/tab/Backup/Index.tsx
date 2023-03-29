@@ -101,7 +101,7 @@ const Backup = (props: Props) => {
         <Table
           type="object-array"
           control
-          defaultPageBy={50}
+          defaultPageBy={10}
           data={documentList || []}
           header={[
             {
@@ -157,7 +157,7 @@ const Backup = (props: Props) => {
           <Table
             type="object-array"
             control
-            defaultPageBy={50}
+            defaultPageBy={10}
             data={doc.list || []}
             header={[
               {
