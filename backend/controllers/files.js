@@ -122,6 +122,16 @@ module.exports.uploadArchive = async (req, res) => {
 /* sign file */
 
 module.exports.sign = async (req, res) => {
+  /* 권한 검사 */
+  const keys = req.query.key.split("/");
+  if (keys[0] === "archive") {
+    // is teacher?
+  } else if (keys[0] === "backup") {
+    // is owner?
+    if (req.user.auth !== "owner")
+      return res.status(403).send({ message: "Access Denied" });
+  }
+
   const { preSignedUrl, expiryDate } = signUrl(
     req.query.key,
     req.query.fileName
@@ -131,6 +141,52 @@ module.exports.sign = async (req, res) => {
     preSignedUrl,
     expiryDate,
   });
+};
+
+/* find backup */
+module.exports.findBackup = async (req, res) => {
+  try {
+    if (!("academyId" in req.query)) {
+      return res.status(400).send({ message: "query(academyId) is required" });
+    }
+
+    const list = [];
+
+    /* req.query.title */
+    if ("title" in req.query) {
+      const data = await s3
+        .listObjectsV2({
+          Bucket: bucket,
+          Prefix: `backup/${req.query.academyId}/${req.query.title}/`,
+        })
+        .promise();
+
+      for (let content of data.Contents) {
+        const keys = content.Key.split("/");
+        if (keys.length === 4 && keys[3] !== "") {
+          list.push({ title: keys[3], size: content.Size });
+        }
+      }
+    } else {
+      const data = await s3
+        .listObjectsV2({
+          Bucket: bucket,
+          Prefix: `backup/${req.query.academyId}/`,
+        })
+        .promise();
+
+      for (let content of data.Contents) {
+        const keys = content.Key.split("/");
+        if (keys.length === 4 && keys[3] === "") {
+          list.push({ title: keys[2] });
+        }
+      }
+    }
+
+    return res.status(200).send({ list });
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
 };
 
 /* create */
