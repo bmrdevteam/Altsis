@@ -37,6 +37,7 @@ import style from "./loading.module.scss";
 const Loading = (props: {
   coverScreen?: boolean;
   height?: React.CSSProperties["height"];
+  text?: string;
 }) => {
   return (
     <div
@@ -46,7 +47,7 @@ const Loading = (props: {
       <div className={style.icon}>
         <Svg type={"loading"} width={"48px"} height={"48px"} />
       </div>
-      <div className={style.text}>로딩중</div>
+      <div className={style.text}>{props.text ?? "로딩중"}</div>
     </div>
   );
 };
