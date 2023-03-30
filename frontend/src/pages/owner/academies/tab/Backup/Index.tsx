@@ -30,7 +30,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 // hooks
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 import _ from "lodash";
 
 // components
@@ -42,7 +42,7 @@ import Loading from "components/loading/Loading";
 type Props = {};
 
 const Backup = (props: Props) => {
-  const database = useDatabase();
+  const { BackupApi, FileApi } = useApi();
   const { pid: academyId = "" } = useParams<"pid">();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -55,31 +55,9 @@ const Backup = (props: Props) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editPopupActive, setEditPopupActive] = useState(false);
 
-  async function getDocumentList() {
-    const { list } = await database.R({
-      location: `files/backup?academyId=${academyId}`,
-    });
-    return list;
-  }
-
-  async function getDocument(title: string) {
-    const { list } = await database.R({
-      location: `files/backup?academyId=${academyId}&title=${title}`,
-    });
-    return list;
-  }
-
-  async function createBackup(models: string[]) {
-    const res = await database.C({
-      location: `files/backup?academyId=${academyId}`,
-      data: { models },
-    });
-    return res;
-  }
-
   useEffect(() => {
     if (isLoading) {
-      getDocumentList()
+      BackupApi.RBackupList({ academyId })
         .then((res) => {
           setDocumentList(_.sortBy(res, "title").reverse());
         })
@@ -92,8 +70,9 @@ const Backup = (props: Props) => {
   }, [isLoading]);
 
   async function getPresinedUrl(key: string, title: string) {
-    const { preSignedUrl, expiryDate } = await database.R({
-      location: `files/signed?key=${key}&fileName=${title}`,
+    const { preSignedUrl, expiryDate } = await FileApi.SignFile({
+      key,
+      fileName: title,
     });
     return { preSignedUrl, expiryDate };
   }
@@ -156,8 +135,7 @@ const Backup = (props: Props) => {
               key: "detail",
               type: "button",
               onClick: (e: any) => {
-                console.log(e);
-                getDocument(e.title).then((res) => {
+                BackupApi.RBackup({ academyId, title: e.title }).then((res) => {
                   console.log(res);
                   setDoc({ ...e, list: res });
                   setEditPopupActive(true);
@@ -168,6 +146,27 @@ const Backup = (props: Props) => {
               btnStyle: {
                 border: true,
                 color: "var(--accent-1)",
+                padding: "4px",
+                round: true,
+              },
+            },
+            {
+              text: "삭제",
+              key: "remove",
+              type: "button",
+              onClick: (e: any) => {
+                if (window.confirm("정말 삭제하시겠습니까?") === true) {
+                  BackupApi.DBackup({ academyId, title: e.title }).then(() => {
+                    alert(SUCCESS_MESSAGE);
+                    setIsLoading(true);
+                  });
+                }
+              },
+              width: "80px",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "red",
                 padding: "4px",
                 round: true,
               },
@@ -194,7 +193,10 @@ const Backup = (props: Props) => {
               onClick={async () => {
                 try {
                   setIsAdding(true);
-                  await createBackup(modelSelectRef.current);
+                  await BackupApi.CBackup({
+                    academyId,
+                    models: modelSelectRef.current,
+                  });
                   setIsAdding(false);
                   setAddPopupActive(false);
                   alert(SUCCESS_MESSAGE);

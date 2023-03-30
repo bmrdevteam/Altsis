@@ -1181,6 +1181,45 @@ export default function useApi() {
     });
   }
 
+  /**
+   * File Api
+   * ##########################################################################
+   */
+  async function SignFile(props: { key: string; fileName: string }) {
+    return await database.R({
+      location: "files/signed" + QUERY_BUILDER(props),
+    });
+  }
+
+  /**
+   * Backup Api
+   * ##########################################################################
+   */
+  async function CBackup(props: { academyId: string; models: string[] }) {
+    return await database.C({
+      location: "files/backup" + QUERY_BUILDER({ academyId: props.academyId }),
+      data: { models: props.models },
+    });
+  }
+
+  async function RBackupList(props: { academyId: string }) {
+    const { list } = await database.R({
+      location: "files/backup" + QUERY_BUILDER(props),
+    });
+    return list;
+  }
+  async function RBackup(props: { academyId: string; title: string }) {
+    const { list } = await database.R({
+      location: "files/backup" + QUERY_BUILDER(props),
+    });
+    return list;
+  }
+  async function DBackup(props: { academyId: string; title: string }) {
+    return await database.D({
+      location: "files/backup" + QUERY_BUILDER(props),
+    });
+  }
+
   return {
     AcademyApi: {
       CAcademy,
@@ -1280,6 +1319,15 @@ export default function useApi() {
     },
     DocumentApi: {
       RDocumentData,
+    },
+    FileApi: {
+      SignFile,
+    },
+    BackupApi: {
+      CBackup,
+      RBackupList,
+      RBackup,
+      DBackup,
     },
   };
 }
