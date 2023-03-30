@@ -12,6 +12,7 @@ router.get("/signed", isLoggedIn, files.sign);
 
 router.get("/backup", isOwner, files.findBackup);
 router.post("/backup", isOwner, files.uploadBackup);
+router.delete("/backup", isOwner, files.removeBackup);
 
 // router.get("/:_id?", isAdManager, files.find);
 // router.put("/:_id/:field?", isAdManager, files.update);
