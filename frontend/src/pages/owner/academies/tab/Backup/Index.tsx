@@ -37,6 +37,7 @@ import _ from "lodash";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
@@ -51,6 +52,7 @@ const Backup = (props: Props) => {
 
   /* popup activation */
   const [addPopupActive, setAddPopupActive] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [editPopupActive, setEditPopupActive] = useState(false);
 
   async function getDocumentList() {
@@ -187,12 +189,15 @@ const Backup = (props: Props) => {
           contentScroll
           footer={
             <Button
+              disabled={isAdding}
               type={"ghost"}
               onClick={async () => {
                 try {
+                  setIsAdding(true);
                   await createBackup(modelSelectRef.current);
-                  alert(SUCCESS_MESSAGE);
+                  setIsAdding(false);
                   setAddPopupActive(false);
+                  alert(SUCCESS_MESSAGE);
                   setIsLoading(true);
                 } catch {
                   alert("error!");
@@ -203,49 +208,58 @@ const Backup = (props: Props) => {
             </Button>
           }
         >
-          <div style={{ marginTop: "24px" }}>
-            <Table
-              // control
-              type="object-array"
-              data={[
-                { title: "schools", description: "학교" },
-                { title: "users", description: "사용자" },
-                { title: "archives", description: "기록" },
-                { title: "seasons", description: "학기" },
-                { title: "registrations", description: "등록 정보" },
-                { title: "syllabuses", description: "강의계획서" },
-                { title: "enrollments", description: "수강 정보" },
-                { title: "forms", description: "양식" },
-                { title: "notifications", description: "알림" },
-              ]}
-              control
-              defaultPageBy={10}
-              onChange={(value: any[]) => {
-                modelSelectRef.current = _.filter(value, {
-                  tableRowChecked: true,
-                });
-              }}
-              header={[
-                {
-                  text: "선택",
-                  key: "",
-                  type: "checkbox",
-                },
-                {
-                  text: "모델명",
-                  key: "title",
-                  type: "text",
-                  textAlign: "center",
-                },
-                {
-                  text: "비고",
-                  key: "description",
-                  type: "text",
-                  textAlign: "center",
-                },
-              ]}
-            />
-          </div>
+          {!isAdding ? (
+            <div style={{ marginTop: "24px" }}>
+              <Table
+                // control
+                type="object-array"
+                data={[
+                  { title: "schools", description: "학교" },
+                  { title: "users", description: "사용자" },
+                  { title: "archives", description: "기록" },
+                  { title: "seasons", description: "학기" },
+                  { title: "registrations", description: "등록 정보" },
+                  { title: "syllabuses", description: "강의계획서" },
+                  { title: "enrollments", description: "수강 정보" },
+                  { title: "forms", description: "양식" },
+                  { title: "notifications", description: "알림" },
+                ]}
+                control
+                defaultPageBy={10}
+                onChange={(value: any[]) => {
+                  modelSelectRef.current = _.filter(value, {
+                    tableRowChecked: true,
+                  });
+                }}
+                header={[
+                  {
+                    text: "선택",
+                    key: "",
+                    type: "checkbox",
+                  },
+                  {
+                    text: "모델명",
+                    key: "title",
+                    type: "text",
+                    textAlign: "center",
+                  },
+                  {
+                    text: "비고",
+                    key: "description",
+                    type: "text",
+                    textAlign: "center",
+                  },
+                ]}
+              />
+            </div>
+          ) : (
+            <div style={{ marginTop: "24px" }}>
+              <Loading text="생성중" />
+              <div style={{ textAlign: "center", marginTop: "12px" }}>
+                데이터 크기에 따라 시간이 오래 소요될 수 있습니다.
+              </div>
+            </div>
+          )}
         </Popup>
       )}
       {editPopupActive && (
