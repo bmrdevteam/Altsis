@@ -27,7 +27,7 @@
  *
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 // hooks
 import useDatabase from "hooks/useDatabase";
@@ -36,18 +36,21 @@ import _ from "lodash";
 // components
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
+import Button from "components/button/Button";
 
 type Props = {};
 
 const Backup = (props: Props) => {
   const database = useDatabase();
   const { pid: academyId = "" } = useParams<"pid">();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* document list */
   const [documentList, setDocumentList] = useState<any>();
   const [doc, setDoc] = useState<any>();
 
   /* popup activation */
+  const [addPopupActive, setAddPopupActive] = useState(false);
   const [editPopupActive, setEditPopupActive] = useState(false);
 
   async function getDocumentList() {
@@ -64,16 +67,27 @@ const Backup = (props: Props) => {
     return list;
   }
 
+  async function createBackup(models: string[]) {
+    const res = await database.C({
+      location: `files/backup?academyId=${academyId}`,
+      data: { models },
+    });
+    return res;
+  }
+
   useEffect(() => {
-    getDocumentList()
-      .then((res) => {
-        setDocumentList(_.sortBy(res, "lastModified").reverse());
-      })
-      .catch(() => {
-        alert("failed to load data");
-      });
+    if (isLoading) {
+      getDocumentList()
+        .then((res) => {
+          setDocumentList(_.sortBy(res, "title").reverse());
+        })
+        .then(() => setIsLoading(false))
+        .catch(() => {
+          alert("failed to load data");
+        });
+    }
     return () => {};
-  }, []);
+  }, [isLoading]);
 
   async function getPresinedUrl(key: string, title: string) {
     const { preSignedUrl, expiryDate } = await database.R({
@@ -95,9 +109,26 @@ const Backup = (props: Props) => {
     }
   };
 
+  const modelSelectRef = useRef<any[]>([]);
+
   return (
     <>
       <div style={{ marginTop: "24px" }}>
+        <Button
+          type={"ghost"}
+          onClick={() => {
+            modelSelectRef.current = [];
+            setAddPopupActive(true);
+          }}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+        >
+          {"+ 백업 생성"}
+        </Button>
+        <div style={{ marginTop: "24px" }} />
         <Table
           type="object-array"
           control
@@ -142,6 +173,81 @@ const Backup = (props: Props) => {
           ]}
         />
       </div>
+      {addPopupActive && (
+        <Popup
+          setState={setAddPopupActive}
+          style={{
+            borderRadius: "8px",
+            maxWidth: "480px",
+            maxHeight: "600px",
+            width: "100%",
+          }}
+          closeBtn
+          title={"아카데미 데이터 백업"}
+          contentScroll
+          footer={
+            <Button
+              type={"ghost"}
+              onClick={async () => {
+                try {
+                  await createBackup(modelSelectRef.current);
+                  alert(SUCCESS_MESSAGE);
+                  setAddPopupActive(false);
+                  setIsLoading(true);
+                } catch {
+                  alert("error!");
+                }
+              }}
+            >
+              + 백업 생성
+            </Button>
+          }
+        >
+          <div style={{ marginTop: "24px" }}>
+            <Table
+              // control
+              type="object-array"
+              data={[
+                { title: "schools", description: "학교" },
+                { title: "users", description: "사용자" },
+                { title: "archives", description: "기록" },
+                { title: "seasons", description: "학기" },
+                { title: "registrations", description: "등록 정보" },
+                { title: "syllabuses", description: "강의계획서" },
+                { title: "enrollments", description: "수강 정보" },
+                { title: "forms", description: "양식" },
+                { title: "notifications", description: "알림" },
+              ]}
+              control
+              defaultPageBy={10}
+              onChange={(value: any[]) => {
+                modelSelectRef.current = _.filter(value, {
+                  tableRowChecked: true,
+                });
+              }}
+              header={[
+                {
+                  text: "선택",
+                  key: "",
+                  type: "checkbox",
+                },
+                {
+                  text: "모델명",
+                  key: "title",
+                  type: "text",
+                  textAlign: "center",
+                },
+                {
+                  text: "비고",
+                  key: "description",
+                  type: "text",
+                  textAlign: "center",
+                },
+              ]}
+            />
+          </div>
+        </Popup>
+      )}
       {editPopupActive && (
         <Popup
           closeBtn
