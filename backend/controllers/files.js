@@ -321,6 +321,38 @@ module.exports.uploadBackup = async (req, res) => {
   }
 };
 
+module.exports.removeBackup = async (req, res) => {
+  try {
+    if (!("academyId" in req.query)) {
+      return res.status(400).send({ message: "query(academyId) is required" });
+    }
+    if (!("title" in req.query)) {
+      return res.status(400).send({ message: "query(title) is required" });
+    }
+
+    const data = await s3
+      .listObjectsV2({
+        Bucket: bucket,
+        Prefix: `backup/${req.query.academyId}/${req.query.title}/`,
+      })
+      .promise();
+
+    const keys = data.Contents.map((content) => {
+      return { Key: content.Key };
+    });
+    await s3
+      .deleteObjects({
+        Bucket: bucket,
+        Delete: { Objects: keys },
+      })
+      .promise();
+
+    return res.status(200).send({});
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 /* create */
 module.exports.create = async (req, res) => {
   try {
