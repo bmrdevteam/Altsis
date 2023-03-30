@@ -239,40 +239,83 @@ const Model = (title, academyId) => {
 };
 
 module.exports.uploadBackup = async (req, res) => {
+  if (!("academyId" in req.query)) {
+    return res.status(400).send({ message: "query(academyId) is required" });
+  }
+  if (!("models" in req.body)) {
+    return res.status(400).send({ message: "body(models) is required" });
+  }
+
+  const logs = [];
   try {
-    if (!("academyId" in req.query)) {
-      return res.status(400).send({ message: "query(academyId) is required" });
-    }
-    if (!("models" in req.body)) {
-      return res.status(400).send({ message: "body(models) is required" });
-    }
-
     const title = format(Date.now(), "yyyy-MM-dd_HH:mm:ss.SSS");
+    logs.push(`┌ [Backup] ${req.query.academyId}/${title}`);
+    logs.push(`├ requested by ${req.user.userId}(${req.user.academyId})`);
 
+    const startTime = new Date().getTime();
     for (let model of req.body.models) {
-      const _model = Model(model.title, req.query.academyId);
-      if (!_model) return res.status(409).send({ message: "model not found" });
+      try {
+        logs.push(`│┌ backup ${model.title}...`);
+        const subStartTime = new Date().getTime();
 
-      const documents = await _model.find({}).lean();
-      let docString = "";
-      for (let doc of documents) {
-        docString = docString + JSON.stringify(doc) + ", ";
+        const cursor = Model(model.title, req.query.academyId)
+          .find()
+          .batchSize(1000)
+          .lean()
+          .cursor();
+
+        const docs = [];
+        let idx = 1;
+        let subIdx = 1;
+        for await (const doc of cursor) {
+          docs.push(JSON.stringify(doc, null, "\t"));
+          if (subIdx === 1000) {
+            logs.push(`│├ reading ${model.title}... ${idx}`);
+            subIdx = 0;
+          }
+          idx += 1;
+          subIdx += 1;
+        }
+        if (subIdx > 0) {
+          logs.push(`│├ reading ${model.title}... ${idx - 1}`);
+        }
+
+        logs.push(`│├ writing ${model.title}...`);
+        const data = "[" + _.join(docs, ",\n") + "]";
+        await s3
+          .upload({
+            Bucket: bucket,
+            Key: `backup/${req.query.academyId}/${title}/${model.title}.json`,
+            Body: data,
+            ContentType: "application/json",
+          })
+          .promise();
+
+        const subEndTime = new Date().getTime();
+        logs.push(
+          `│└ backup ${model.title} is done(${subEndTime - subStartTime}ms)`
+        );
+      } catch (err) {
+        logs.push(`│└ backup ${model.title} is failed: ${err.message}`);
       }
-
-      // const objectStream = Readable.from([documents.toString()]);
-
-      const result = await s3
-        .upload({
-          Bucket: bucket,
-          Key: `backup/${req.query.academyId}/${title}/${model.title}.json`,
-          Body: "[" + docString + "]",
-          ContentType: "application/json",
-        })
-        .promise();
-      console.log("upload result: ", result);
     }
+    const endTime = new Date().getTime();
+    logs.push(
+      `└ [Backup] ${req.user?.academyId}/${title} is done(${
+        endTime - startTime
+      }ms)`
+    );
 
-    return res.status(201).send({});
+    await s3
+      .upload({
+        Bucket: bucket,
+        Key: `backup/${req.query.academyId}/${title}/log.txt`,
+        Body: _.join(logs, `\n`),
+        ContentType: "application/json",
+      })
+      .promise();
+
+    return res.status(200).send({ logs });
   } catch (err) {
     return res.status(500).send({ message: err.message });
   }
