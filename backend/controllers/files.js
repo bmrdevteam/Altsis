@@ -353,6 +353,35 @@ module.exports.removeBackup = async (req, res) => {
   }
 };
 
+module.exports.restoreBackup = async (req, res) => {
+  try {
+    const { academyId, model, documents } = req.body;
+
+    if (!academyId) {
+      return res.status(400).send({ message: "body(academyId) is required" });
+    }
+    if (!model) {
+      return res.status(400).send({ message: "body(model) is required" });
+    }
+    if (!documents) {
+      return res.status(400).send({ message: "body(model) is required" });
+    }
+    if (!Array.isArray(documents)) {
+      return res
+        .status(400)
+        .send({ message: "body(model) must be JSON array" });
+    }
+
+    await Model(model, academyId).deleteMany({});
+    await Model(model, academyId).insertMany(documents);
+
+    return res.status(200).send({});
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 /* create */
 module.exports.create = async (req, res) => {
   try {
