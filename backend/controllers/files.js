@@ -261,7 +261,6 @@ module.exports.uploadBackup = async (req, res) => {
         const cursor = Model(model.title, req.query.academyId)
           .find()
           .batchSize(1000)
-          .lean()
           .cursor();
 
         const docs = [];
@@ -373,7 +372,16 @@ module.exports.restoreBackup = async (req, res) => {
     }
 
     await Model(model, academyId).deleteMany({});
-    await Model(model, academyId).insertMany(documents);
+    if (model === "archives" || model === "enrollments") {
+      await Promise.all(
+        documents.map((_doc) => {
+          const doc = new (Model(model, academyId))(_doc);
+          return doc.save();
+        })
+      );
+    } else {
+      await Model(model, academyId).insertMany(documents);
+    }
 
     return res.status(200).send({});
   } catch (err) {
