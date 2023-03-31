@@ -1219,6 +1219,16 @@ export default function useApi() {
       location: "files/backup" + QUERY_BUILDER(props),
     });
   }
+  async function RestoreBackup(props: {
+    academyId: string;
+    model: string;
+    documents: any[];
+  }) {
+    return await database.C({
+      location: "files/restore",
+      data: props,
+    });
+  }
 
   return {
     AcademyApi: {
@@ -1328,6 +1338,7 @@ export default function useApi() {
       RBackupList,
       RBackup,
       DBackup,
+      RestoreBackup,
     },
   };
 }

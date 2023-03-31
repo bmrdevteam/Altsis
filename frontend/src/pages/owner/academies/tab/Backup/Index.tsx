@@ -27,7 +27,7 @@
  *
  */
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 // hooks
 import useApi from "hooks/useApi";
@@ -38,6 +38,8 @@ import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
+import Select from "components/select/Select";
+import Textarea from "components/textarea/Textarea";
 
 type Props = {};
 
@@ -52,8 +54,56 @@ const Backup = (props: Props) => {
 
   /* popup activation */
   const [addPopupActive, setAddPopupActive] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [restorePopupActive, setRestorePopupActive] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [editPopupActive, setEditPopupActive] = useState(false);
+
+  const fileInput = React.useRef<any>();
+  const [selectedFile, setSelectedFile] = useState<any>();
+  const [dataToRestore, setDataToRestore] = useState<any[]>([]);
+  const handleProfileUploadButtonClick = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (fileInput.current) fileInput.current.click();
+  };
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files?.length === 0) return;
+    if (e.target.files[0].type !== "application/json") {
+      alert("JSON 파일을 업로드해주세요.");
+      return;
+    }
+    setSelectedFile(e.target.files[0]);
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      if (typeof e.target?.result === "string") {
+        const data = JSON.parse(e.target.result);
+        if (!Array.isArray(data)) {
+          alert(
+            `JSON 배열 형식으로 업로드해주세요.
+
+___________________
+example.json
+___________________
+[
+    {
+        _id: "asdfasdfds",
+        userId: "user01",
+    },
+    {
+        _id: "qwerqwer",
+        userId: "user02",
+    })
+]`
+          );
+          setSelectedFile(undefined);
+        } else {
+          setDataToRestore(data);
+        }
+      }
+    };
+    reader.readAsText(e.target.files[0]);
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -90,7 +140,7 @@ const Backup = (props: Props) => {
     }
   };
 
-  const modelSelectRef = useRef<any[]>([]);
+  const modelSelectRef = useRef<any[]>(["schools"]);
 
   return (
     <>
@@ -98,7 +148,7 @@ const Backup = (props: Props) => {
         <Button
           type={"ghost"}
           onClick={() => {
-            modelSelectRef.current = [];
+            modelSelectRef.current = ["schools"];
             setAddPopupActive(true);
           }}
           style={{
@@ -107,7 +157,29 @@ const Backup = (props: Props) => {
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
         >
-          {"+ 백업 생성"}
+          {"+ 백업"}
+        </Button>
+        <Button
+          type={"ghost"}
+          onClick={() => {
+            modelSelectRef.current = [];
+            setSelectedFile(null);
+            setDataToRestore([]);
+            const inputElem = document.createElement("input");
+            inputElem.type = "file";
+            inputElem.value = "";
+            fileInput.current = inputElem;
+
+            setRestorePopupActive(true);
+          }}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            marginTop: "12px",
+          }}
+        >
+          {"+ 복구"}
         </Button>
         <div style={{ marginTop: "24px" }} />
         <Table
@@ -188,29 +260,32 @@ const Backup = (props: Props) => {
           contentScroll
           footer={
             <Button
-              disabled={isAdding}
+              disabled={isCreatingBackup}
               type={"ghost"}
               onClick={async () => {
                 try {
-                  setIsAdding(true);
+                  setIsCreatingBackup(true);
                   await BackupApi.CBackup({
                     academyId,
                     models: modelSelectRef.current,
                   });
-                  setIsAdding(false);
+                  setIsCreatingBackup(false);
                   setAddPopupActive(false);
                   alert(SUCCESS_MESSAGE);
                   setIsLoading(true);
-                } catch {
-                  alert("error!");
+                } catch (err: any) {
+                  alert("에러가 발생했습니다.");
+                  console.log(err.message);
+                  setIsCreatingBackup(false);
+                  setAddPopupActive(false);
                 }
               }}
             >
-              + 백업 생성
+              + 백업
             </Button>
           }
         >
-          {!isAdding ? (
+          {!isCreatingBackup ? (
             <div style={{ marginTop: "24px" }}>
               <Table
                 // control
@@ -257,6 +332,128 @@ const Backup = (props: Props) => {
           ) : (
             <div style={{ marginTop: "24px" }}>
               <Loading text="생성중" />
+              <div style={{ textAlign: "center", marginTop: "12px" }}>
+                데이터 크기에 따라 시간이 오래 소요될 수 있습니다.
+              </div>
+            </div>
+          )}
+        </Popup>
+      )}
+      {restorePopupActive && (
+        <Popup
+          setState={setRestorePopupActive}
+          style={{
+            borderRadius: "8px",
+            maxWidth: "480px",
+            maxHeight: "600px",
+            width: "100%",
+          }}
+          closeBtn
+          title={"아카데미 데이터 복구"}
+          contentScroll
+          footer={
+            <Button
+              disabled={isRestoring}
+              type={"ghost"}
+              onClick={async () => {
+                if (!selectedFile) {
+                  alert("파일을 선택해주세요.");
+                } else {
+                  try {
+                    setIsRestoring(true);
+                    await BackupApi.RestoreBackup({
+                      academyId,
+                      model: modelSelectRef.current[0],
+                      documents: dataToRestore,
+                    });
+                    setIsRestoring(false);
+                    setRestorePopupActive(false);
+                    alert(SUCCESS_MESSAGE);
+                  } catch {
+                    alert("에러가 발생했습니다.");
+                    setIsRestoring(false);
+                    setRestorePopupActive(false);
+                  }
+                }
+              }}
+            >
+              + 복구
+            </Button>
+          }
+        >
+          {!isRestoring ? (
+            <div style={{ marginTop: "24px" }}>
+              <Select
+                appearence="flat"
+                label={"모델 선택"}
+                required
+                setValue={(e: string) => (modelSelectRef.current = [e])}
+                options={[
+                  { text: "schools(학교)", value: "schools" },
+                  { text: "users(사용자)", value: "users" },
+                  { text: "archives(기록)", value: "archives" },
+                  { text: "seasons(학기)", value: "seasons" },
+                  { text: "registrations(등록 정보)", value: "registrations" },
+                  { text: "syllabuses(강의계획서)", value: "syllabuses" },
+                  { text: "enrollments(수강 정보)", value: "enrollments" },
+                  { text: "forms(양식)", value: "forms" },
+                  { text: "notifications(알림)", value: "notifications" },
+                ]}
+                defaultSelectedIndex={0}
+              />
+              <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+                <React.Fragment>
+                  <Button
+                    type={"ghost"}
+                    style={{
+                      borderRadius: "4px",
+                      height: "32px",
+                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                      width: "120px",
+                    }}
+                    onClick={handleProfileUploadButtonClick}
+                  >
+                    {selectedFile ? "파일 변경" : "파일 선택"}
+                  </Button>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      color: "gray",
+                    }}
+                  >
+                    {selectedFile
+                      ? `${selectedFile.name} (${dataToRestore.length} documents)`
+                      : "선택된 파일이 없습니다."}
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={fileInput}
+                    style={{ display: "none" }}
+                    onChange={(e: any) => {
+                      handleFileChange(e);
+                      e.target.value = "";
+                    }}
+                  />
+                </React.Fragment>
+              </div>
+              <Textarea
+                disabled
+                defaultValue={
+                  selectedFile
+                    ? dataToRestore.length <= 10000
+                      ? JSON.stringify(dataToRestore, null, "\t")
+                      : JSON.stringify(dataToRestore[0], null, "\t") + "....."
+                    : ""
+                }
+                rows={15}
+                style={{ marginTop: "12px" }}
+              />
+            </div>
+          ) : (
+            <div style={{ marginTop: "24px" }}>
+              <Loading text="복구중" />
               <div style={{ textAlign: "center", marginTop: "12px" }}>
                 데이터 크기에 따라 시간이 오래 소요될 수 있습니다.
               </div>
