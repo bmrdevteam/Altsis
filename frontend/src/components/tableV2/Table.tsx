@@ -307,9 +307,11 @@ const Table = (props: Props) => {
                           fontWeight: 500,
                         }}
                       >
-                        {Math.ceil(
-                          tableData.data.length / tableSettings.pageBy
-                        )}
+                        {tableSettings.pageBy !== 0
+                          ? Math.ceil(
+                              tableData.data.length / tableSettings.pageBy
+                            )
+                          : 1}
                       </span>
                       <span
                         className={style.arrow}
