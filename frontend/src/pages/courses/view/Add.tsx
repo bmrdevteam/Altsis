@@ -56,6 +56,12 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
   const [isLoadingMentorRef, setIsLoadingMentorRef] = useState<boolean>(false);
 
+  const [subjectDataDict, setSubjectDataDict] = useState<any>({});
+  const [subjectFilter, setSubjectFilter] = useState<[string | undefined]>([
+    "/",
+  ]);
+  const [subjectSelectKey, setSubjectSelectKey] = useState<[number]>([0]);
+
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
   const teacherListRef = useRef<any[]>([]);
@@ -100,6 +106,42 @@ const CourseAdd = (props: Props) => {
   }
 
   async function setData() {
+    const tempDict: { [key: string]: Set<string> } = {
+      "/": new Set([JSON.stringify({ text: "", value: "" })]),
+    };
+    for (let data of currentSeason?.subjects?.data) {
+      if (data.length === 0) continue;
+      let value: string = data[0];
+      tempDict["/"].add(JSON.stringify({ text: data[0], value }));
+      if (!tempDict[value])
+        tempDict[value] = new Set([JSON.stringify({ text: "", value: "" })]);
+      for (let i = 1; i < data.length; i++) {
+        tempDict[value].add(
+          JSON.stringify({ text: data[i], value: value + "/" + data[i] })
+        );
+        if (i === data.length - 1) continue;
+        value = value + "/" + data[i];
+        if (!tempDict[value])
+          tempDict[value] = new Set([JSON.stringify({ text: "", value: "" })]);
+      }
+    }
+    for (let [key, value] of Object.entries(tempDict)) {
+      subjectDataDict[key] = _.sortBy(
+        Array.from(value).map((data) => JSON.parse(data)),
+        "text"
+      );
+    }
+    setSubjectDataDict({ ...subjectDataDict });
+
+    const filter: [string | undefined] = ["/"];
+    const subjectSelectKey: [number] = [0];
+    for (let i = 0; i < currentSeason?.subjects?.label.length; i++) {
+      filter.push(undefined);
+      subjectSelectKey.push(0);
+    }
+    setSubjectFilter(filter);
+    setSubjectSelectKey(subjectSelectKey);
+
     const res1 = await RegistrationApi.RRegistrations({
       season: currentSeason?._id,
       role: "teacher",
@@ -207,22 +249,74 @@ const CourseAdd = (props: Props) => {
     return () => {};
   }, [isLoadingMentorRef]);
 
-  return !isLoading && !isLoadingTimeClassroomRef && !isLoadingMentorRef ? (
+  const subjects2 = () => {
+    const selects = [];
+    for (let idx = 0; idx < currentSeason?.subjects.label.length; idx++) {
+      const label = currentSeason?.subjects.label[idx];
+      selects.push(
+        <Select
+          key={label + subjectSelectKey[idx]}
+          appearence="flat"
+          label={label}
+          required
+          setValue={(e: string) => {
+            if (subjectFilter[idx + 1] === e) return;
+            subjectFilter[idx + 1] = e;
+            subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
+            for (let i = idx + 2; i < subjectFilter.length; i++) {
+              subjectFilter[i] = undefined;
+              subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
+            }
+            setSubjectFilter([...subjectFilter]);
+            setSubjectSelectKey([...subjectSelectKey]);
+            setCourseSubject(subjectFilter[subjectFilter.length - 1] ?? "");
+          }}
+          options={
+            subjectFilter && subjectFilter[idx]
+              ? subjectDataDict[subjectFilter[idx]!]
+              : [{ text: "", value: "" }]
+          }
+        />
+      );
+    }
+    return selects;
+  };
+
+  return !isLoading ? (
     <>
       <div className={style.section}>
         <div className={style.design_form}>
           <div className={style.title}>강의계획서 생성</div>
-          <div style={{ display: "flex", gap: "24px" }}>
-            {currentSeason?.subjects && (
-              <Select
-                appearence="flat"
-                label={_.join(currentSeason?.subjects?.label, "/")}
-                required
-                setValue={setCourseSubject}
-                options={subjects()}
-                defaultSelectedValue={courseSubject}
-              />
-            )}
+          <div style={{ display: "flex", gap: "24px" }} key="temp">
+            {currentSeason?.subjects.label.map((label: string, idx: number) => {
+              return (
+                <Select
+                  key={label + subjectSelectKey[idx]}
+                  appearence="flat"
+                  label={label}
+                  required
+                  setValue={(e: string) => {
+                    if (subjectFilter[idx + 1] === e) return;
+                    subjectFilter[idx + 1] = e;
+                    subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
+                    for (let i = idx + 2; i < subjectFilter.length; i++) {
+                      subjectFilter[i] = undefined;
+                      subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
+                    }
+                    setSubjectFilter([...subjectFilter]);
+                    setSubjectSelectKey([...subjectSelectKey]);
+                    setCourseSubject(
+                      subjectFilter[subjectFilter.length - 1] ?? ""
+                    );
+                  }}
+                  options={
+                    subjectFilter && subjectFilter[idx]
+                      ? subjectDataDict[subjectFilter[idx]!]
+                      : [{ text: "", value: "" }]
+                  }
+                />
+              );
+            })}
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -235,42 +329,44 @@ const CourseAdd = (props: Props) => {
               defaultValue={courseTitle}
             />
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: "24px",
-              marginTop: "24px",
-              alignItems: "flex-end",
-            }}
-          >
-            <Input
-              appearence="flat"
-              label="작성자"
-              required={true}
-              disabled
-              defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
-            />
-            <Input
-              appearence="flat"
-              label="멘토"
-              required
-              defaultValue={_.join(
-                courseMentorList.map(
-                  (teacher: any) => `${teacher.userName}(${teacher.userId})`
-                ),
-                ", "
-              )}
-              disabled
-            />
-            <Button
-              type="ghost"
-              onClick={() => {
-                setMentorSelectPopupActive(true);
+          {!isLoadingMentorRef && (
+            <div
+              style={{
+                display: "flex",
+                gap: "24px",
+                marginTop: "24px",
+                alignItems: "flex-end",
               }}
             >
-              수정
-            </Button>
-          </div>
+              <Input
+                appearence="flat"
+                label="작성자"
+                required={true}
+                disabled
+                defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
+              />
+              <Input
+                appearence="flat"
+                label="멘토"
+                required
+                defaultValue={_.join(
+                  courseMentorList.map(
+                    (teacher: any) => `${teacher.userName}(${teacher.userId})`
+                  ),
+                  ", "
+                )}
+                disabled
+              />
+              <Button
+                type="ghost"
+                onClick={() => {
+                  setMentorSelectPopupActive(true);
+                }}
+              >
+                수정
+              </Button>
+            </div>
+          )}
 
           <Button
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
@@ -282,44 +378,49 @@ const CourseAdd = (props: Props) => {
           >
             강의실 및 시간 선택
           </Button>
-          <div style={{ display: "flex", marginTop: "20px", gap: "24px" }}>
-            <Input
-              appearence="flat"
-              label="강의실"
-              defaultValue={courseClassroom}
-              required={true}
-              disabled
-            />
-            <Input
-              appearence="flat"
-              label="시간"
-              defaultValue={_.join(Object.keys(courseTime), ", ")}
-              required={true}
-              disabled
-            />
+          {!isLoadingTimeClassroomRef && (
+            <div>
+              <div style={{ display: "flex", marginTop: "20px", gap: "24px" }}>
+                <Input
+                  appearence="flat"
+                  label="강의실"
+                  defaultValue={courseClassroom}
+                  required={true}
+                  disabled
+                />
+                <Input
+                  appearence="flat"
+                  label="시간"
+                  defaultValue={_.join(Object.keys(courseTime), ", ")}
+                  required={true}
+                  disabled
+                />
 
-            <Input
-              type="number"
-              appearence="flat"
-              label="학점"
-              required={true}
-              onChange={(e: any) => {
-                setCoursePoint(e.target.value);
-              }}
-              defaultValue={`${coursePoint}`}
-            />
+                <Input
+                  type="number"
+                  appearence="flat"
+                  label="학점"
+                  required={true}
+                  onChange={(e: any) => {
+                    setCoursePoint(e.target.value);
+                  }}
+                  defaultValue={`${coursePoint}`}
+                />
 
-            <Input
-              type="number"
-              appearence="flat"
-              label="수강정원"
-              required={true}
-              onChange={(e: any) => {
-                setCourseLimit(e.target.value);
-              }}
-              defaultValue={"0"}
-            />
-          </div>
+                <Input
+                  type="number"
+                  appearence="flat"
+                  label="수강정원"
+                  required={true}
+                  onChange={(e: any) => {
+                    setCourseLimit(e.target.value);
+                  }}
+                  defaultValue={"0"}
+                />
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           <EditorParser
             type={"syllabus"}
@@ -339,8 +440,9 @@ const CourseAdd = (props: Props) => {
                 const num = Number(str);
                 return Number.isInteger(num) && num >= 0;
               }
-
-              if (!courseTitle || courseTitle === "") {
+              if (!courseSubject || courseSubject === "") {
+                alert("교과목을 입력해주세요.");
+              } else if (!courseTitle || courseTitle === "") {
                 alert("제목을 입력해주세요.");
               } else if (courseMentorList.length === 0) {
                 alert("멘토를 선택해주세요.");
