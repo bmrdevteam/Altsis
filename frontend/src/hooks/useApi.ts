@@ -741,6 +741,18 @@ export default function useApi() {
     });
     return formArchive;
   }
+
+  /**
+   * Update links(in sidebar) in school
+   * @auth admin
+   */
+  async function USchoolLinks(props: { schoolId: string; data: any }) {
+    const { links } = await database.U({
+      location: `schools/${props.schoolId}/links`,
+      data: { links: props.data },
+    });
+    return links;
+  }
   /**
    * Enrollment Api
    * ##########################################################################
@@ -1208,6 +1220,7 @@ export default function useApi() {
       RSchool,
       RSchoolWithSeasons,
       USchoolFormArchive,
+      USchoolLinks,
     },
     RegistrationApi: {
       CRegistrations,

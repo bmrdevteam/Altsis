@@ -73,6 +73,19 @@ module.exports.updateFormArchive = async (req, res) => {
   }
 };
 
+module.exports.updateLinks = async (req, res) => {
+  try {
+    const school = await School(req.user.academyId).findById(req.params._id);
+    if (!school) return res.status(404).send({ message: "school not found" });
+    school["links"] = req.body.links;
+    await school.save();
+
+    return res.status(200).send({ links: school.links });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
 /* delete */
 
 exports.delete = async (req, res) => {
