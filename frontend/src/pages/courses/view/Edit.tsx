@@ -164,14 +164,15 @@ const CoursePid = (props: Props) => {
             season: result.season,
             role: "teacher",
           }).then((res) => {
+            const teachers = _.sortBy(res, ["userName", "userId"]);
             for (let teacher of result.teachers) {
-              const idx = _.findIndex(res, { user: teacher._id });
+              const idx = _.findIndex(teachers, { user: teacher._id });
 
               if (idx !== -1) {
-                res[idx].tableRowChecked = true;
+                teachers[idx].tableRowChecked = true;
               }
             }
-            teacherListRef.current = res;
+            teacherListRef.current = teachers;
           });
 
           const tempDict: { [key: string]: Set<string> } = {
@@ -558,52 +559,20 @@ const CoursePid = (props: Props) => {
                 type: "checkbox",
                 width: "48px",
               },
-
               {
-                text: "선생님 ID",
-                key: "userId",
+                text: "선생님 이름",
+                key: "userName",
                 type: "text",
                 textAlign: "center",
               },
               {
-                text: "선생님 이름",
-                key: "userName",
+                text: "선생님 ID",
+                key: "userId",
                 type: "text",
                 textAlign: "center",
               },
             ]}
           />
-          {/* <TableV2
-            data={teacherList}
-            type="object-array"
-            control
-            // onSelectChange={(value: any) => {
-            //   selectedRegistrations.current = value.map((val: any) => {
-            //     return val._id;
-            //   });
-            // }}
-            header={[
-              {
-                text: "checkbox",
-                key: "",
-                type: "checkbox",
-                width: "48px",
-              },
-
-              {
-                text: "선생님 ID",
-                key: "userId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "선생님 이름",
-                key: "userName",
-                type: "text",
-                textAlign: "center",
-              },
-            ]}
-          /> */}
         </Popup>
       )}
     </>
