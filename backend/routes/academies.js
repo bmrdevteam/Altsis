@@ -38,11 +38,6 @@ router.put("/:academyId/users/:_id", isOwner, users.update);
 
 /* create/update documents - schools */
 router.post("/:academyId/schools", isOwner, schools.create);
-router.put(
-  "/:academyId/schools/:_id/:field/:fieldType?",
-  isOwner,
-  schools.updateField
-);
 
 /* create/update documents - seasons */
 router.post("/:academyId/seasons", isOwner, seasons.create);
