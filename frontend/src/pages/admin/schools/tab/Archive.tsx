@@ -46,9 +46,14 @@ function Archive(props: Props) {
             SchoolApi.USchoolFormArchive({
               schoolId: props.schoolData._id,
               data: formData.current,
-            }).then((res) => {
-              props.setSchoolData({ ...props.schoolData, formArchive: res });
-            });
+            })
+              .then((res) => {
+                alert(SUCCESS_MESSAGE);
+                props.setSchoolData({ ...props.schoolData, formArchive: res });
+              })
+              .catch((err) => {
+                alert("에러가 발생했습니다.");
+              });
           }}
           header={[
             {
@@ -140,7 +145,17 @@ function Archive(props: Props) {
               SchoolApi.USchoolFormArchive({
                 schoolId: props.schoolData._id,
                 data: formData.current,
-              });
+              })
+                .then((res) => {
+                  alert(SUCCESS_MESSAGE);
+                  props.setSchoolData({
+                    ...props.schoolData,
+                    formArchive: res,
+                  });
+                })
+                .catch((err) => {
+                  alert("에러가 발생했습니다.");
+                });
             }}
             header={[
               {
@@ -228,7 +243,17 @@ function Archive(props: Props) {
               SchoolApi.USchoolFormArchive({
                 schoolId: props.schoolData._id,
                 data: formData.current,
-              });
+              })
+                .then((res) => {
+                  alert(SUCCESS_MESSAGE);
+                  props.setSchoolData({
+                    ...props.schoolData,
+                    formArchive: res,
+                  });
+                })
+                .catch((err) => {
+                  alert("에러가 발생했습니다.");
+                });
             }}
             header={[
               {

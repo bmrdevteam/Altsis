@@ -11,8 +11,7 @@ router.post("/", isAdManager, schools.create);
 
 router.get("/:_id?/:field?", isLoggedIn, schools.find);
 
-// update subjects, classrooms, formArchive
-router.put("/:_id/:field/:fieldType?", isAdManager, schools.updateField);
+router.put("/:_id/form/archive", isAdManager, schools.updateFormArchive);
 
 router.delete("/:_id", isAdManager, schools.delete);
 
