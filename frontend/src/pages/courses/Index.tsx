@@ -62,33 +62,36 @@ const Course = (props: Props) => {
   );
 
   const structuring = (courseList: any[]) => {
-    return courseList.map((course: any) => {
-      for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
-        course[currentSeason?.subjects?.label[idx]] = course.subject[idx];
-      }
-      course.timeText = _.join(
-        course.time.map((timeBlock: any) => timeBlock.label),
-        ", "
-      );
-      course.mentorText = _.join(
-        course.teachers.map((teacher: any) => teacher.userName),
-        ", "
-      );
+    return _.sortBy(
+      courseList.map((course: any) => {
+        for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
+          course[currentSeason?.subjects?.label[idx]] = course.subject[idx];
+        }
+        course.timeText = _.join(
+          course.time.map((timeBlock: any) => timeBlock.label),
+          ", "
+        );
+        course.mentorText = _.join(
+          course.teachers.map((teacher: any) => teacher.userName),
+          ", "
+        );
 
-      course.confirmed = !_.find(course.teachers, { confirmed: false });
+        course.confirmed = !_.find(course.teachers, { confirmed: false });
 
-      const confirmedCnt = _.filter(course.teachers, {
-        confirmed: true,
-      }).length;
-      course.confirmedStatus =
-        confirmedCnt === 0
-          ? "notConfirmed"
-          : confirmedCnt === course.teachers.length
-          ? "fullyConfirmed"
-          : "semiConfirmed";
+        const confirmedCnt = _.filter(course.teachers, {
+          confirmed: true,
+        }).length;
+        course.confirmedStatus =
+          confirmedCnt === 0
+            ? "notConfirmed"
+            : confirmedCnt === course.teachers.length
+            ? "fullyConfirmed"
+            : "semiConfirmed";
 
-      return course;
-    });
+        return course;
+      }),
+      ["subject", "title"]
+    );
   };
 
   const updateCourses = () => {

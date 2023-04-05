@@ -85,38 +85,41 @@ const Courses = (props: Props) => {
   }
 
   const structuring = (courseList: any[]) => {
-    return courseList.map((syllabus: any) => {
-      for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
-        syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
-      }
-      syllabus.timeText = _.join(
-        syllabus.time.map((timeBlock: any) => timeBlock.label),
-        ", "
-      );
-      syllabus.mentorText = _.join(
-        syllabus.teachers.map((teacher: any) => teacher.userName),
-        ", "
-      );
-      syllabus.confirmed = true;
-      for (let teacher of syllabus.teachers) {
-        if (!teacher.confirmed) {
-          syllabus.confirmed = false;
-          break;
+    return _.sortBy(
+      courseList.map((syllabus: any) => {
+        for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
+          syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
         }
-      }
+        syllabus.timeText = _.join(
+          syllabus.time.map((timeBlock: any) => timeBlock.label),
+          ", "
+        );
+        syllabus.mentorText = _.join(
+          syllabus.teachers.map((teacher: any) => teacher.userName),
+          ", "
+        );
+        syllabus.confirmed = true;
+        for (let teacher of syllabus.teachers) {
+          if (!teacher.confirmed) {
+            syllabus.confirmed = false;
+            break;
+          }
+        }
 
-      const confirmedCnt = _.filter(syllabus.teachers, {
-        confirmed: true,
-      }).length;
-      syllabus.confirmedStatus =
-        confirmedCnt === 0
-          ? "notConfirmed"
-          : confirmedCnt === syllabus.teachers.length
-          ? "fullyConfirmed"
-          : "semiConfirmed";
+        const confirmedCnt = _.filter(syllabus.teachers, {
+          confirmed: true,
+        }).length;
+        syllabus.confirmedStatus =
+          confirmedCnt === 0
+            ? "notConfirmed"
+            : confirmedCnt === syllabus.teachers.length
+            ? "fullyConfirmed"
+            : "semiConfirmed";
 
-      return syllabus;
-    });
+        return syllabus;
+      }),
+      ["subject", "title"]
+    );
   };
 
   const subjectHeaderList = [
