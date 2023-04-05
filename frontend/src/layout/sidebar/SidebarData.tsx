@@ -7,6 +7,7 @@ export interface INavLink {
   path?: string;
   icon: JSX.Element;
   subLink?: INavSubLink[];
+  type?: "default" | "link";
 }
 
 interface INavSubLink {
@@ -21,6 +22,18 @@ export const SidebarData = (
   currentPermission?: any
 ): any => {
   const { currentSchool } = useAuth();
+
+  const links = (currentSchool?.links ?? []).map(
+    (link: { title: string; url: string }) => {
+      return {
+        type: "link",
+        title: `link-${link.title}`,
+        name: link.title,
+        path: link.url,
+        icon: <Svg type="linkExternal" />,
+      };
+    }
+  );
 
   switch (auth) {
     case "owner":
@@ -125,6 +138,7 @@ export const SidebarData = (
             },
           ],
         },
+        ...links,
       ];
     case "admin":
       return [
@@ -219,6 +233,7 @@ export const SidebarData = (
             },
           ],
         },
+        ...links,
       ];
 
     default:
@@ -259,12 +274,7 @@ export const SidebarData = (
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
-        // {
-        //   title: "myaccount",
-        //   name: "내 정보",
-        //   path: "/myaccount",
-        //   icon: <Svg type="gear" />,
-        // },
+        ...links,
       ];
   }
 };

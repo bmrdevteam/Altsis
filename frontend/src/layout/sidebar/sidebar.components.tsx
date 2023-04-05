@@ -104,6 +104,7 @@ const NavLink = ({
   subLink,
 
   path,
+  type,
 }: {
   children?: string;
   icon?: JSX.Element;
@@ -111,11 +112,12 @@ const NavLink = ({
   subLink?: JSX.Element[] | JSX.Element;
 
   path?: string;
+  type?: "default" | "link";
 }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  return (
+  return type === "default" ? (
     <div className={`${style.nav_link_container} ${active && style.active}`}>
       <div
         className={style.nav_link}
@@ -127,6 +129,19 @@ const NavLink = ({
         <span className={style.name}>{children}</span>
       </div>
       {subLink}
+    </div>
+  ) : (
+    <div className={`${style.nav_link_container} ${active && style.active}`}>
+      <div
+        className={style.nav_link}
+        onClick={() => {
+          window.open(path, "_blank", "noopener, noreferrer");
+        }}
+        title={path}
+      >
+        <span className={style.icon}>{icon}</span>
+        <span className={style.name}>{children}</span>
+      </div>
     </div>
   );
 };

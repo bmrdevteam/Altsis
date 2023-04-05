@@ -33,19 +33,14 @@ import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
 
 // components
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Tab from "components/tab/Tab";
 
 // tab elements
-import BasicInfo from "./tab/BasicInfo";
-import Classroom from "./tab/classrooms/Classroom";
 import Season from "./tab/seasons/Season";
-import Subject from "./tab/subjects/Subject";
 import Skeleton from "../../../components/skeleton/Skeleton";
 import Archive from "./tab/Archive";
-import Form from "./tab/Form";
-import Permission from "./tab/Permission";
 import User from "./tab/users/User";
+import Links from "./tab/Links";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
@@ -141,28 +136,6 @@ const School = (props: Props) => {
                   setSeasonList={setSeasonList}
                 />
               ),
-
-              // 교과목: (
-              //   <Subject
-              //     schoolData={schoolData}
-              //     setSchoolData={setSchoolData}
-              //   />
-              // ),
-              // 강의실: (
-              //   <Classroom
-              //     schoolData={schoolData}
-              //     setSchoolData={setSchoolData}
-              //   />
-              // ),
-              // 양식: (
-              //   <Form schoolData={schoolData} setSchoolData={setSchoolData} />
-              // ),
-              // 권한: (
-              //   <Permission
-              //     schoolData={schoolData}
-              //     setSchoolData={setSchoolData}
-              //   />
-              // ),
               기록: (
                 <Archive
                   schoolData={schoolData}
@@ -170,6 +143,9 @@ const School = (props: Props) => {
                 />
               ),
               사용자: <User schoolData={schoolData} />,
+              "사이드바 링크": (
+                <Links schoolData={schoolData} setSchoolData={setSchoolData} />
+              ),
             }}
           />
         )}
