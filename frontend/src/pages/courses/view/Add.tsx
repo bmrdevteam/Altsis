@@ -146,6 +146,7 @@ const CourseAdd = (props: Props) => {
       season: currentSeason?._id,
       role: "teacher",
     });
+    const teachers = _.sortBy(res1, ["userName", "userId"]);
 
     if (currentRegistration?.role === "teacher") {
       setCourseMentorList([
@@ -156,13 +157,13 @@ const CourseAdd = (props: Props) => {
         },
       ]);
 
-      const idx = _.findIndex(res1, { userId: currentUser?.userId });
+      const idx = _.findIndex(teachers, { userId: currentUser?.userId });
       if (idx !== -1) {
-        res1[idx].tableRowChecked = true;
-        teacherListRef.current = res1;
+        teachers[idx].tableRowChecked = true;
+        teacherListRef.current = teachers;
       }
     } else {
-      teacherListRef.current = res1;
+      teacherListRef.current = teachers;
     }
   }
 
@@ -207,21 +208,6 @@ const CourseAdd = (props: Props) => {
     }
   }
 
-  const subjects = () => {
-    if (!currentSeason?.subjects) {
-      return [{ text: "", value: "" }];
-    }
-    const res = [];
-    for (let i = 0; i < currentSeason?.subjects.data.length; i++) {
-      const value = _.join(currentSeason?.subjects.data[i], "/");
-      res.push({
-        text: value,
-        value,
-      });
-    }
-    return res;
-  };
-
   useEffect(() => {
     if (currentSeason?._id) {
       setData()
@@ -248,39 +234,6 @@ const CourseAdd = (props: Props) => {
     }
     return () => {};
   }, [isLoadingMentorRef]);
-
-  const subjects2 = () => {
-    const selects = [];
-    for (let idx = 0; idx < currentSeason?.subjects.label.length; idx++) {
-      const label = currentSeason?.subjects.label[idx];
-      selects.push(
-        <Select
-          key={label + subjectSelectKey[idx]}
-          appearence="flat"
-          label={label}
-          required
-          setValue={(e: string) => {
-            if (subjectFilter[idx + 1] === e) return;
-            subjectFilter[idx + 1] = e;
-            subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-            for (let i = idx + 2; i < subjectFilter.length; i++) {
-              subjectFilter[i] = undefined;
-              subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-            }
-            setSubjectFilter([...subjectFilter]);
-            setSubjectSelectKey([...subjectSelectKey]);
-            setCourseSubject(subjectFilter[subjectFilter.length - 1] ?? "");
-          }}
-          options={
-            subjectFilter && subjectFilter[idx]
-              ? subjectDataDict[subjectFilter[idx]!]
-              : [{ text: "", value: "" }]
-          }
-        />
-      );
-    }
-    return selects;
-  };
 
   return !isLoading ? (
     <>
@@ -575,16 +528,15 @@ const CourseAdd = (props: Props) => {
                 type: "checkbox",
                 width: "48px",
               },
-
               {
-                text: "선생님 ID",
-                key: "userId",
+                text: "선생님 이름",
+                key: "userName",
                 type: "text",
                 textAlign: "center",
               },
               {
-                text: "선생님 이름",
-                key: "userName",
+                text: "선생님 ID",
+                key: "userId",
                 type: "text",
                 textAlign: "center",
               },
