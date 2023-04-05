@@ -91,6 +91,7 @@ const Sidebar = (props: Props) => {
                       </SubLinks>
                     )
                   }
+                  type={data.type ?? "default"}
                 >
                   {data.name}
                 </NavLink>
