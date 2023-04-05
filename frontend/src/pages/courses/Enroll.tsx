@@ -51,19 +51,13 @@ import Select from "components/select/Select";
 type Props = {};
 
 const CourseEnroll = (props: Props) => {
-  const database = useDatabase();
   const navigate = useNavigate();
   const { SyllabusApi, EnrollmentApi } = useApi();
-
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const { currentSeason, currentUser, currentRegistration, currentPermission } =
     useAuth();
 
-  const [searchField, setSearchField] = useState<string>("classTitle");
-
-  const [courseTitle, setCourseTitle] = useState<string>("");
-
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [courseList, setCourseList] = useState<any[]>([]);
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
   const [course, setCourse] = useState<string>();
@@ -78,8 +72,6 @@ const CourseEnroll = (props: Props) => {
   async function getCourseList() {
     const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
       season: currentRegistration.season,
-      matches: courseTitle,
-      field: searchField,
       confirmed: true,
     });
     if (syllabuses.length === 0) return [];
@@ -219,22 +211,6 @@ const CourseEnroll = (props: Props) => {
     },
   ];
 
-  const searchOptions = () => {
-    if (currentSeason?.subjects?.label) {
-      return [
-        { text: "수업명", value: "classTitle" },
-        ...currentSeason.subjects.label.map((lb: string, idx: number) => {
-          return { text: lb, value: `subject.${idx}` };
-        }),
-        { text: "시간", value: "time.label" },
-        { text: "강의실", value: "classroom" },
-        { text: "개설자", value: "userName" },
-        { text: "멘토", value: "teachers.userName" },
-      ];
-    }
-    return [{ text: "수업명", value: "classTitle" }];
-  };
-
   useEffect(() => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
@@ -267,11 +243,9 @@ const CourseEnroll = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      if (courseTitle !== "") {
-        getCourseList().then((res: any) => {
-          setCourseList(structuring(res));
-        });
-      }
+      getCourseList().then((res: any) => {
+        setCourseList(_.sortBy(structuring(res), ["subject", "title"]));
+      });
       getEnrolledCourseList().then((res: any) => {
         setEnrolledCourseList(structuring(res));
       });
@@ -284,51 +258,12 @@ const CourseEnroll = (props: Props) => {
       <Navbar />
       <div className={style.section}>
         <div className={style.title}>수강신청</div>
-        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-          <div style={{ width: "120px" }}>
-            <Select
-              appearence="flat"
-              label=""
-              required
-              setValue={setSearchField}
-              options={searchOptions()}
-              defaultSelectedValue={searchField}
-            />
-          </div>
-          <div style={{ flex: "auto" }}>
-            <Input
-              appearence="flat"
-              required={true}
-              placeholder="검색"
-              onKeyDown={(e: any) => {
-                if (courseTitle !== "" && e.key === "Enter") {
-                  getCourseList().then((res: any) => {
-                    setCourseList(structuring(res));
-                  });
-                }
-              }}
-              onChange={(e: any) => {
-                setCourseTitle(e.target.value);
-              }}
-            />
-          </div>
-
-          <Button
-            type="ghost"
-            onClick={() => {
-              getCourseList().then((res: any) => {
-                setCourseList(structuring(res));
-              });
-            }}
-          >
-            검색
-          </Button>
-        </div>
 
         <div style={{ marginTop: "24px" }} />
         <Table
           type="object-array"
           data={courseList}
+          control
           header={[
             {
               text: "신청",

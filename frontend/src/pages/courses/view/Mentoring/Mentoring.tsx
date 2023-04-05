@@ -255,7 +255,7 @@ const CoursePid = (props: Props) => {
             res.map((enrollment: any) => {
               return { ...enrollment, isModified: false };
             }),
-            ["grade", "studentName", "studentId"]
+            ["createdAt"]
           )
         );
         enrollmentListRef.current = [];

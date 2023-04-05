@@ -147,7 +147,7 @@ const CourseView = (props: Props) => {
 
       EnrollmentApi.REnrolllments({ syllabus: props.course }).then(
         (res: any) => {
-          setEnrollments(res);
+          setEnrollments(_.sortBy(res, ["createdAt"]));
         }
       );
     }
