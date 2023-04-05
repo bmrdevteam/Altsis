@@ -12,6 +12,14 @@ const subjectSchema = mongoose.Schema(
   { _id: false }
 );
 
+const LinkSchema = mongoose.Schema(
+  {
+    url: String,
+    title: String,
+  },
+  { _id: false }
+);
+
 const schoolSchema = mongoose.Schema(
   {
     schoolId: {
@@ -33,6 +41,7 @@ const schoolSchema = mongoose.Schema(
     formEvaluation: [],
     formArchive: [],
     activatedSeason: mongoose.Types.ObjectId,
+    links: { type: [LinkSchema] },
   },
   { timestamps: true }
 );
