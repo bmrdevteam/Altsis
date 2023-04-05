@@ -731,78 +731,15 @@ export default function useApi() {
   }
 
   /**
-   * Update Classrooms in school
-   * @auth admin
-   */
-  async function USchoolClassroom(props: {
-    academyId?: string;
-    schoolId: string;
-    data: any;
-  }) {
-    return await database.U({
-      location: `${
-        props.academyId ? `academies/${props.academyId}/` : ""
-      }schools/${props.schoolId}/classrooms`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
-   * Update Subjects in school
-   * @auth admin
-   */
-  async function USchoolSubject(props: {
-    academyId?: string;
-    schoolId: string;
-    data: any;
-  }) {
-    return await database.U({
-      location: `${
-        props.academyId ? `academies/${props.academyId}/` : ""
-      }schools/${props.schoolId}/subjects`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
-   * Update form in season
-   * @auth admin / manager
-   */
-  async function USchoolForm(props: {
-    _id: string;
-    type: "timetable" | "syllabus" | "evaluation";
-    data: any;
-  }) {
-    return await database.U({
-      location: `schools/${props._id}/form/${props.type}`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
-   * Update permission in season
-   * @auth admin / manager
-   */
-  async function USchoolPermission(props: {
-    _id: string;
-    type: string | "syllabus" | "enrollment" | "evaluatoin";
-    data: any;
-  }) {
-    return await database.U({
-      location: `schools/${props._id}/permission/${props.type}`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
    * Update formArchive in school
    * @auth admin
    */
   async function USchoolFormArchive(props: { schoolId: string; data: any }) {
-    return await database.U({
+    const { formArchive } = await database.U({
       location: `schools/${props.schoolId}/form/archive`,
-      data: { new: props.data },
+      data: { formArchive: props.data },
     });
+    return formArchive;
   }
   /**
    * Enrollment Api
@@ -1239,7 +1176,6 @@ export default function useApi() {
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyDocument,
-      USchoolSubject,
     },
     UserApi: {
       CLoginLocal,
@@ -1271,10 +1207,6 @@ export default function useApi() {
       RSchools,
       RSchool,
       RSchoolWithSeasons,
-      USchoolClassroom,
-      USchoolSubject,
-      USchoolForm,
-      USchoolPermission,
       USchoolFormArchive,
     },
     RegistrationApi: {
