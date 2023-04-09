@@ -118,7 +118,7 @@ const Courses = (props: Props) => {
 
         return syllabus;
       }),
-      ["subject", "title"]
+      ["subject", "classTitle"]
     );
   };
 
