@@ -50,7 +50,7 @@ const ArchiveField = (props: Props) => {
         })
       );
       setSelectedGrade(g[0]?.grade);
-      setRegistrations(res);
+      setRegistrations(_.sortBy(res, ["userName"]));
     });
   }, [currentSeason]);
 

@@ -125,7 +125,7 @@ function Docs({}: Props) {
             })
           );
           setSelectedGrade(g[0]?.grade);
-          setUsers(res.registrations);
+          setUsers(_.sortBy(res.registrations, ["userName"]));
 
           // forms, form, documentData
           setPrintForms(res.forms);
