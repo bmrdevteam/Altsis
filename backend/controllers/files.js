@@ -93,7 +93,7 @@ const tmpMulter = multer({
       "utf8"
     );
     req.tmp = {
-      key: `archive/${req.user.academyId}/${
+      key: `${req.user.academyId}/archive/${
         Date.now() + "_" + randomString()
       }.${file.originalname.split(".").pop()}`,
     };
@@ -137,12 +137,15 @@ module.exports.sign = async (req, res) => {
 
   /* 권한 검사 */
   const keys = req.query.key.split("/");
-  if (keys[0] === "archive") {
+  if (keys[1] === "archive") {
     // is admanager?
-    if (req.user.auth !== "admin" || req.user.auth !== "manager")
+    if (
+      keys[0] !== req.user.academyId ||
+      (req.user.auth !== "admin" && req.user.auth !== "manager")
+    )
       return res.status(403).send({ message: "Access Denied" });
     seconds = signedUrlExpireSeconds;
-  } else if (keys[0] === "backup") {
+  } else if (keys[1] === "backup") {
     // is owner?
     if (req.user.auth !== "owner")
       return res.status(403).send({ message: "Access Denied" });
@@ -177,7 +180,7 @@ module.exports.findBackup = async (req, res) => {
       const data = await s3
         .listObjectsV2({
           Bucket: bucket,
-          Prefix: `backup/${req.query.academyId}/${req.query.title}/`,
+          Prefix: `${req.query.academyId}/backup/${req.query.title}/`,
         })
         .promise();
 
@@ -202,7 +205,7 @@ module.exports.findBackup = async (req, res) => {
         const _data = await s3
           .listObjectsV2({
             Bucket: bucket,
-            Prefix: `backup/${req.query.academyId}/`,
+            Prefix: `${req.query.academyId}/backup/`,
             ContinuationToken: token,
             Delimiter: "/",
           })
@@ -249,7 +252,7 @@ module.exports.uploadBackup = async (req, res) => {
   const logs = [];
   try {
     const title = format(Date.now(), "yyyy-MM-dd_HH:mm:ss.SSS");
-    logs.push(`┌ [Backup] ${req.query.academyId}/${title}`);
+    logs.push(`┌ [Backup] ${req.query.academyId}/backup/${title}`);
     logs.push(`├ requested by ${req.user.userId}(${req.user.academyId})`);
 
     const startTime = new Date().getTime();
@@ -284,7 +287,7 @@ module.exports.uploadBackup = async (req, res) => {
         await s3
           .upload({
             Bucket: bucket,
-            Key: `backup/${req.query.academyId}/${title}/${model.title}.json`,
+            Key: `${req.query.academyId}/backup/${title}/${model.title}.json`,
             Body: data,
             ContentType: "application/json",
           })
@@ -300,7 +303,7 @@ module.exports.uploadBackup = async (req, res) => {
     }
     const endTime = new Date().getTime();
     logs.push(
-      `└ [Backup] ${req.user?.academyId}/${title} is done(${
+      `└ [Backup] ${req.query.academyId}/backup/${title} is done(${
         endTime - startTime
       }ms)`
     );
@@ -308,7 +311,7 @@ module.exports.uploadBackup = async (req, res) => {
     await s3
       .upload({
         Bucket: bucket,
-        Key: `backup/${req.query.academyId}/${title}/log.txt`,
+        Key: `${req.query.academyId}/backup/${title}/log.txt`,
         Body: _.join(logs, `\n`),
         ContentType: "application/json",
       })
@@ -332,7 +335,7 @@ module.exports.removeBackup = async (req, res) => {
     const data = await s3
       .listObjectsV2({
         Bucket: bucket,
-        Prefix: `backup/${req.query.academyId}/${req.query.title}/`,
+        Prefix: `${req.query.academyId}/backup/${req.query.title}/`,
       })
       .promise();
 
