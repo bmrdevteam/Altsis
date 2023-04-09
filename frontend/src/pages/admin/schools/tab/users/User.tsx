@@ -66,7 +66,7 @@ const Users = (props: Props) => {
     if (isUserListLoading) {
       UserApi.RUsers({ school: props.schoolData._id })
         .then((res) => {
-          setUserList(res);
+          setUserList(_.sortBy(res, ["userName"]));
           setIsUserListLoading(false);
           userSelectRef.current = [];
         })
@@ -97,16 +97,13 @@ const Users = (props: Props) => {
                 width: "48px",
                 textAlign: "center",
               },
-
-              { text: "ID", key: "userId", type: "text", textAlign: "center" },
-
               {
                 text: "이름",
                 key: "userName",
                 type: "text",
                 textAlign: "center",
               },
-
+              { text: "ID", key: "userId", type: "text", textAlign: "center" },
               {
                 text: "등급",
                 key: "auth",
