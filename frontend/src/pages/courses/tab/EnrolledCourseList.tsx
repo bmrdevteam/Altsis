@@ -52,9 +52,7 @@ const categories = (props: Props) => {
   );
   return (
     <>
-      <div className={style.category}>
-        총 {totalPoint}학점
-      </div>
+      <div className={style.category}>총 {totalPoint}학점</div>
     </>
   );
 };
@@ -131,10 +129,10 @@ const Timetable = (props: Props) => {
 
   return (
     <div className={style.section}>
-    <div className={style.categories_container}>
-      <div className={style.categories}>{categories(props)}</div>
-    </div>
-    <Divider />
+      <div className={style.categories_container}>
+        <div className={style.categories}>{categories(props)}</div>
+      </div>
+      <Divider />
       <Table
         type="object-array"
         data={props.courseList}

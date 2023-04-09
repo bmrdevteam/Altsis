@@ -90,7 +90,7 @@ const Course = (props: Props) => {
 
         return course;
       }),
-      ["subject", "title"]
+      ["subject", "classTitle"]
     );
   };
 

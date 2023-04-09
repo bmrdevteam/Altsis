@@ -244,7 +244,7 @@ const CourseEnroll = (props: Props) => {
   useEffect(() => {
     if (isLoading) {
       getCourseList().then((res: any) => {
-        setCourseList(_.sortBy(structuring(res), ["subject", "title"]));
+        setCourseList(_.sortBy(structuring(res), ["subject", "classTitle"]));
       });
       getEnrolledCourseList().then((res: any) => {
         setEnrolledCourseList(structuring(res));
