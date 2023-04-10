@@ -1,0 +1,148 @@
+/**
+ * @file Courses View Page
+ *
+ *
+ * @author jessie129j <jessie129j@gmail.com>
+ *
+ * -------------------------------------------------------
+ *
+ * IN PRODUCTION
+ *
+ * -------------------------------------------------------
+ *
+ * IN MAINTENANCE
+ *
+ * -------------------------------------------------------
+ *
+ * IN DEVELOPMENT
+ *
+ * -------------------------------------------------------
+ *
+ * DEPRECATED
+ *
+ * -------------------------------------------------------
+ *
+ * NOTES
+ *
+ * @version 1.0
+ *
+ */
+import { useEffect, useState } from "react";
+import useDatabase from "hooks/useDatabase";
+import { useAuth } from "contexts/authContext";
+import useApi from "hooks/useApi";
+
+import style from "style/pages/courses/course.module.scss";
+
+// components
+import Divider from "components/divider/Divider";
+import Popup from "components/popup/Popup";
+import Table from "components/tableV2/Table";
+
+import EditorParser from "editor/EditorParser";
+
+import _ from "lodash";
+import { useNavigate } from "react-router-dom";
+import Button from "components/button/Button";
+type Props = {
+  setPopupActive: any;
+  pasteFunc: any;
+};
+
+const CourseView = (props: Props) => {
+  const { currentUser } = useAuth();
+  const { SyllabusApi } = useApi();
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [syllabuses, setSyllabuses] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isLoading) {
+      SyllabusApi.RSyllabuses({ user: currentUser?._id })
+        .then((res) => {
+          setSyllabuses(
+            _.orderBy(
+              res.syllabuses,
+              ["year", "term", "subject", "classTitle"],
+              ["desc", "desc", "asc", "asc"]
+            )
+          );
+        })
+        .then(() => setIsLoading(false));
+    }
+
+    return () => {};
+  }, [isLoading]);
+
+  return (
+    <Popup
+      setState={props.setPopupActive}
+      title={"복사할 강의계획서 선택"}
+      closeBtn
+      contentScroll
+      style={{ borderRadius: "4px", width: "900px" }}
+    >
+      <div className={style.section}>
+        <Table
+          control
+          defaultPageBy={10}
+          data={syllabuses.map((syllabus: any) => {
+            return { ...syllabus, subject_2: _.join(syllabus.subject, "/ ") };
+          })}
+          type="object-array"
+          header={[
+            {
+              text: "No",
+              type: "text",
+              key: "tableRowIndex",
+              width: "48px",
+              textAlign: "center",
+            },
+            {
+              text: "학년도",
+              key: "year",
+              type: "text",
+              textAlign: "center",
+            },
+            {
+              text: "학기",
+              key: "term",
+              type: "text",
+              textAlign: "center",
+            },
+            {
+              text: "교과목",
+              key: "subject_2",
+              type: "text",
+            },
+            {
+              text: "수업명",
+              key: "classTitle",
+              type: "text",
+              textAlign: "center",
+            },
+            {
+              text: "선택",
+              key: "select",
+              type: "button",
+              onClick: (e: any) => {
+                props.pasteFunc(e._id);
+                props.setPopupActive(false);
+              },
+              width: "80px",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "black",
+                padding: "4px",
+                round: true,
+              },
+            },
+          ]}
+        />
+      </div>
+    </Popup>
+  );
+};
+
+export default CourseView;

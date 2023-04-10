@@ -44,6 +44,9 @@ import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
 import Loading from "components/loading/Loading";
+import Svg from "assets/svg/Svg";
+
+import PastePopup from "./PastePopup";
 
 type Props = {};
 
@@ -82,6 +85,38 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
   const [mentorSelectPopupActive, setMentorSelectPopupActive] =
     useState<boolean>(false);
+
+  const [pastePopupActive, setPastePopupActive] = useState<boolean>(false);
+
+  const pasteSyllabus = (syllabus: string) => {
+    SyllabusApi.RSyllabus(syllabus)
+      .then((res) => {
+        console.log(res);
+        setIsLoading(true);
+        if (
+          currentSeason?.subjects?.data
+            .map((subject: string[]) => _.join(subject, "_"))
+            .includes(_.join(res.subject, "_"))
+        ) {
+          setCourseSubject(_.join(res.subject, "/"));
+
+          const filter: [string | undefined] = ["/"];
+          let temp = res.subject[0];
+          filter.push(temp);
+          for (let i = 1; i < res.subject.length; i++) {
+            temp = temp + "/" + res.subject[i];
+            filter.push(temp);
+          }
+          setSubjectFilter([...filter]);
+        }
+
+        setCourseTitle(res.classTitle);
+        courseMoreInfo.current = res.info;
+      })
+      .then(() => {
+        setTimeout(() => setIsLoading(false), 300);
+      });
+  };
 
   useEffect(() => {
     setCoursePoint(`${Object.keys(courseTime).length}`);
@@ -240,6 +275,26 @@ const CourseAdd = (props: Props) => {
       <div className={style.section}>
         <div className={style.design_form}>
           <div className={style.title}>강의계획서 생성</div>
+          <div
+            style={{
+              flex: "auto",
+              marginRight: "12px",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "12px",
+            }}
+          >
+            <div
+              className={style.icon}
+              onClick={() => {
+                setPastePopupActive(true);
+              }}
+              title={"강의계획서 불러오기"}
+              style={{ display: "flex", gap: "4px", cursor: "pointer" }}
+            >
+              <Svg type="paste" width="20px" height="20px" />
+            </div>
+          </div>
           <div style={{ display: "flex", gap: "24px" }} key="temp">
             {currentSeason?.subjects.label.map((label: string, idx: number) => {
               return (
@@ -267,6 +322,7 @@ const CourseAdd = (props: Props) => {
                       ? subjectDataDict[subjectFilter[idx]!]
                       : [{ text: "", value: "" }]
                   }
+                  defaultSelectedValue={subjectFilter[idx + 1]}
                 />
               );
             })}
@@ -543,6 +599,12 @@ const CourseAdd = (props: Props) => {
             ]}
           />
         </Popup>
+      )}
+      {pastePopupActive && (
+        <PastePopup
+          setPopupActive={setPastePopupActive}
+          pasteFunc={pasteSyllabus}
+        />
       )}
     </>
   ) : (
