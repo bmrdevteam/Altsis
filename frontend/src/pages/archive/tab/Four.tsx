@@ -5,6 +5,7 @@ import _ from "lodash";
 import { useRef, useEffect, useState } from "react";
 import useApi from "hooks/useApi";
 import { useParams } from "react-router-dom";
+import Loading from "components/loading/Loading";
 
 type Props = {
   registrationList: any[];
@@ -197,18 +198,20 @@ const One = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Button
-        type="ghost"
-        style={{ marginTop: "24px", borderColor: "red" }}
-        onClick={() => {
-          update();
-        }}
-        disabled={archiveListFlattened.length === 0}
-      >
-        저장
-      </Button>
+      {archiveListFlattened.length !== 0 && (
+        <Button
+          type="ghost"
+          style={{ marginTop: "24px", borderColor: "red" }}
+          onClick={() => {
+            update();
+          }}
+        >
+          저장
+        </Button>
+      )}
       <div style={{ marginTop: "24px" }}>
         <Table
+          defaultPageBy={10}
           control
           onChange={(value) => {
             /* if value is updated */
@@ -242,7 +245,7 @@ const One = (props: Props) => {
       </div>
     </>
   ) : (
-    <div>loading...</div>
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
