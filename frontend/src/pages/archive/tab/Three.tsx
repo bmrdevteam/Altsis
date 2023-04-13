@@ -9,12 +9,8 @@ import { useRef, useEffect, useState } from "react";
 import useApi from "hooks/useApi";
 
 type Props = {
-  users: any[];
-  archive?: string;
-  formData?: React.MutableRefObject<any>;
-  setUserId: React.Dispatch<React.SetStateAction<string>>;
-  userId: string;
-  userArchiveData: any;
+  aid?: string;
+  pid?: string;
 };
 
 const One = (props: Props) => {
@@ -27,17 +23,43 @@ const One = (props: Props) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingFile, setIsLoadingFile] = useState<string>("");
 
+  const [isLoadingArchive, setIsLoadingArchive] = useState<boolean>(false);
+  const [archiveData, setArchiveData] = useState<any>();
+
   useEffect(() => {
-    setIsLoading(true);
-    return () => {};
-  }, [props.userArchiveData]);
+    setIsLoadingArchive(true);
+  }, [props.aid]);
+
+  useEffect(() => {
+    if (isLoadingArchive) {
+      if (formArchive().dataType === "object") {
+        setArchiveData({});
+        dataRef.current = {};
+      } else {
+        setArchiveData([]);
+        dataRef.current = [];
+      }
+
+      if (props.aid !== "") {
+        ArchiveApi.RArchiveByLabel(props.aid ?? "", { label: props.pid ?? "" })
+          .then((res) => {
+            const data = res.data?.[props.pid ?? ""];
+            if (data) {
+              setArchiveData(data);
+              dataRef.current = data;
+            }
+          })
+          .then(() => setIsLoadingArchive(false));
+      } else {
+        setIsLoadingArchive(false);
+      }
+    }
+  }, [isLoadingArchive]);
 
   useEffect(() => {
     if (isLoading) {
-      dataRef.current = props.userArchiveData || {};
-
-      if (archiveData().dataType === "object") {
-        archiveData().fields?.map((val: any, index: number) => {
+      if (formArchive().dataType === "object") {
+        formArchive().fields?.map((val: any, index: number) => {
           if (val.type === "file-image" || val.type === "file") {
             var inputElem = document.createElement("input");
             inputElem.type = "file";
@@ -63,17 +85,17 @@ const One = (props: Props) => {
   }, [isLoadingFile]);
 
   // const data = useRef;
-  function archiveData() {
+  function formArchive() {
     return (
       currentSchool.formArchive?.filter((val: any) => {
-        return val.label === props.archive;
+        return val.label === props.pid;
       })[0] ?? { fields: [] }
     );
   }
 
   function archiveHeader() {
     let arr: any = [];
-    archiveData().fields?.map((val: any) => {
+    formArchive().fields?.map((val: any) => {
       if (val.type === "select") {
         arr.push({
           text: val.label,
@@ -214,31 +236,151 @@ const One = (props: Props) => {
     }
   };
 
-  return !isLoading && archiveData().dataType === "object" ? (
-    <>
-      <Button
-        type="ghost"
-        onClick={() => {
-          if (props.archive) {
-            ArchiveApi.UArchive({
-              _id: props.formData?.current._id,
-              data: { [props.archive]: dataRef.current },
-            }).then((res: any) => {
-              alert(SUCCESS_MESSAGE);
-            });
-          }
-        }}
-      >
-        저장
-      </Button>
-      <div className={style.content} style={{ paddingBottom: "24px" }}>
-        {archiveData().fields?.map((val: any, index: number) => {
-          if (val.type === "file-image") {
-            if (
-              isLoadingFile !== val.label &&
-              dataRef.current &&
-              dataRef.current[val.label]
-            ) {
+  return !isLoading && !isLoadingArchive ? (
+    formArchive().dataType === "object" ? (
+      <>
+        <Button
+          type="ghost"
+          onClick={() => {
+            if (props.pid && props.aid) {
+              ArchiveApi.UArchive({
+                _id: props.aid,
+                data: { [props.pid]: dataRef.current },
+              }).then((res: any) => {
+                setIsLoadingArchive(true);
+                alert(SUCCESS_MESSAGE);
+              });
+            }
+          }}
+        >
+          저장
+        </Button>
+        <div className={style.content} style={{ paddingBottom: "24px" }}>
+          {formArchive().fields?.map((val: any, index: number) => {
+            if (val.type === "file-image") {
+              if (
+                isLoadingFile !== val.label &&
+                dataRef.current &&
+                dataRef.current[val.label]
+              ) {
+                return (
+                  <div className={style.field} key={index}>
+                    <div className={style.label}>{val.label}</div>
+                    <div
+                      style={{
+                        marginLeft: "24px",
+                        marginRight: "24px",
+                        display: "flex",
+                        flex: "auto",
+                      }}
+                    >
+                      <div
+                        style={{
+                          flex: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                          flexDirection: "column",
+                          maxWidth: "240px",
+                          margin: "12px",
+                        }}
+                      >
+                        <img
+                          src={dataRef.current[val.label].preSignedUrl}
+                          onError={async (e) => {
+                            // console.log("onError");
+                            e.currentTarget.onerror = null;
+                            const { preSignedUrl, expiryDate } =
+                              await database.R({
+                                location: `files/signed?key=${
+                                  dataRef.current[val.label].key
+                                }&fileName=${
+                                  dataRef.current[val.label].originalName
+                                }`,
+                              });
+                            dataRef.current[val.label].preSignedUrl =
+                              preSignedUrl;
+                            dataRef.current[val.label].expiryDate = expiryDate;
+                            setIsLoadingFile(val.label);
+                          }}
+                          alt="profile"
+                        />
+
+                        <span
+                          style={{
+                            color: "gray",
+                            textDecorationLine: "underline",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <a
+                            href={dataRef.current[val.label]?.preSignedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {dataRef.current[val.label]?.originalName ||
+                              "untitled"}
+                          </a>
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          flex: "auto",
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          gap: "12px",
+                          marginTop: "12px",
+                          marginBottom: "12px",
+                          alignItems: "center",
+                        }}
+                      >
+                        <React.Fragment>
+                          <Button
+                            type={"ghost"}
+                            style={{
+                              backgroundColor: "rgba(33,37,41,.64)",
+                              color: "white",
+                              border: "none",
+                            }}
+                            onClick={() => {
+                              fileInputList.current[val.label].current.click();
+                            }}
+                          >
+                            변경
+                          </Button>
+                          <input
+                            className={`fileInput-${val.label}`}
+                            type="file"
+                            ref={fileInputList.current[val.label]}
+                            style={{ display: "none" }}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>
+                            ) => {
+                              handleFileImageChange(e).then((res) => {
+                                dataRef.current[val.label] = res;
+                                setIsLoadingFile(val.label);
+                              });
+                            }}
+                          />
+                        </React.Fragment>
+                        <Button
+                          type={"ghost"}
+                          style={{
+                            backgroundColor: "rgba(33,37,41,.64)",
+                            color: "white",
+                            border: "none",
+                          }}
+                          onClick={() => {
+                            dataRef.current[val.label] = undefined;
+                            setIsLoadingFile(val.label);
+                          }}
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div className={style.field} key={index}>
                   <div className={style.label}>{val.label}</div>
@@ -254,60 +396,10 @@ const One = (props: Props) => {
                       style={{
                         flex: "auto",
                         display: "flex",
-                        alignItems: "center",
-                        flexDirection: "column",
-                        maxWidth: "240px",
-                        margin: "12px",
-                      }}
-                    >
-                      <img
-                        src={dataRef.current[val.label].preSignedUrl}
-                        onError={async (e) => {
-                          // console.log("onError");
-                          e.currentTarget.onerror = null;
-                          const { preSignedUrl, expiryDate } = await database.R(
-                            {
-                              location: `files/signed?key=${
-                                dataRef.current[val.label].key
-                              }&fileName=${
-                                dataRef.current[val.label].originalName
-                              }`,
-                            }
-                          );
-                          dataRef.current[val.label].preSignedUrl =
-                            preSignedUrl;
-                          dataRef.current[val.label].expiryDate = expiryDate;
-                          setIsLoadingFile(val.label);
-                        }}
-                        alt="profile"
-                      />
-
-                      <span
-                        style={{
-                          color: "gray",
-                          textDecorationLine: "underline",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <a
-                          href={dataRef.current[val.label]?.preSignedUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {dataRef.current[val.label]?.originalName ||
-                            "untitled"}
-                        </a>
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        flex: "auto",
-                        display: "flex",
                         justifyContent: "flex-end",
                         gap: "12px",
                         marginTop: "12px",
                         marginBottom: "12px",
-                        alignItems: "center",
                       }}
                     >
                       <React.Fragment>
@@ -322,7 +414,7 @@ const One = (props: Props) => {
                             fileInputList.current[val.label].current.click();
                           }}
                         >
-                          변경
+                          업로드
                         </Button>
                         <input
                           className={`fileInput-${val.label}`}
@@ -339,81 +431,106 @@ const One = (props: Props) => {
                           }}
                         />
                       </React.Fragment>
-                      <Button
-                        type={"ghost"}
-                        style={{
-                          backgroundColor: "rgba(33,37,41,.64)",
-                          color: "white",
-                          border: "none",
-                        }}
-                        onClick={() => {
-                          dataRef.current[val.label] = undefined;
-                          setIsLoadingFile(val.label);
-                        }}
-                      >
-                        삭제
-                      </Button>
                     </div>
                   </div>
                 </div>
               );
             }
-            return (
-              <div className={style.field} key={index}>
-                <div className={style.label}>{val.label}</div>
-                <div
-                  style={{
-                    marginLeft: "24px",
-                    marginRight: "24px",
-                    display: "flex",
-                    flex: "auto",
-                  }}
-                >
-                  <div
-                    style={{
-                      flex: "auto",
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: "12px",
-                      marginTop: "12px",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <React.Fragment>
-                      <Button
-                        type={"ghost"}
+
+            if (val.type === "file") {
+              if (isLoadingFile !== val.label && dataRef.current[val.label]) {
+                return (
+                  <div className={style.field} key={index}>
+                    <div className={style.label}>{val.label}</div>
+                    <div
+                      style={{
+                        marginLeft: "24px",
+                        marginRight: "24px",
+                        display: "flex",
+                        flex: "auto",
+                      }}
+                    >
+                      <div
                         style={{
-                          backgroundColor: "rgba(33,37,41,.64)",
-                          color: "white",
-                          border: "none",
-                        }}
-                        onClick={() => {
-                          fileInputList.current[val.label].current.click();
+                          flex: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                          flexDirection: "column",
+                          width: "240px",
+                          margin: "12px",
                         }}
                       >
-                        업로드
-                      </Button>
-                      <input
-                        className={`fileInput-${val.label}`}
-                        type="file"
-                        ref={fileInputList.current[val.label]}
-                        style={{ display: "none" }}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          handleFileImageChange(e).then((res) => {
-                            dataRef.current[val.label] = res;
-                            setIsLoadingFile(val.label);
-                          });
+                        <span
+                          style={{
+                            color: "gray",
+                            textDecorationLine: "underline",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => handleFileDownload(val.label)}
+                        >
+                          {dataRef.current[val.label]?.originalName ||
+                            "untitled"}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          flex: "auto",
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          gap: "12px",
+                          marginTop: "12px",
+                          marginBottom: "12px",
+                          alignItems: "center",
                         }}
-                      />
-                    </React.Fragment>
+                      >
+                        <React.Fragment>
+                          <Button
+                            type={"ghost"}
+                            style={{
+                              backgroundColor: "rgba(33,37,41,.64)",
+                              color: "white",
+                              border: "none",
+                            }}
+                            onClick={() => {
+                              fileInputList.current[val.label].current.click();
+                            }}
+                          >
+                            변경
+                          </Button>
+                          <input
+                            className={`fileInput-${val.label}`}
+                            type="file"
+                            ref={fileInputList.current[val.label]}
+                            style={{ display: "none" }}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>
+                            ) => {
+                              handleFileChange(e).then((res) => {
+                                dataRef.current[val.label] = res;
+                                setIsLoadingFile(val.label);
+                              });
+                            }}
+                          />
+                        </React.Fragment>
+                        <Button
+                          type={"ghost"}
+                          style={{
+                            backgroundColor: "rgba(33,37,41,.64)",
+                            color: "white",
+                            border: "none",
+                          }}
+                          onClick={() => {
+                            dataRef.current[val.label] = undefined;
+                            setIsLoadingFile(val.label);
+                          }}
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          }
-
-          if (val.type === "file") {
-            if (isLoadingFile !== val.label && dataRef.current[val.label]) {
+                );
+              }
               return (
                 <div className={style.field} key={index}>
                   <div className={style.label}>{val.label}</div>
@@ -429,32 +546,10 @@ const One = (props: Props) => {
                       style={{
                         flex: "auto",
                         display: "flex",
-                        alignItems: "center",
-                        flexDirection: "column",
-                        width: "240px",
-                        margin: "12px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: "gray",
-                          textDecorationLine: "underline",
-                          cursor: "pointer",
-                        }}
-                        onClick={() => handleFileDownload(val.label)}
-                      >
-                        {dataRef.current[val.label]?.originalName || "untitled"}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        flex: "auto",
-                        display: "flex",
                         justifyContent: "flex-end",
                         gap: "12px",
                         marginTop: "12px",
                         marginBottom: "12px",
-                        alignItems: "center",
                       }}
                     >
                       <React.Fragment>
@@ -469,7 +564,7 @@ const One = (props: Props) => {
                             fileInputList.current[val.label].current.click();
                           }}
                         >
-                          변경
+                          업로드
                         </Button>
                         <input
                           className={`fileInput-${val.label}`}
@@ -486,129 +581,66 @@ const One = (props: Props) => {
                           }}
                         />
                       </React.Fragment>
-                      <Button
-                        type={"ghost"}
-                        style={{
-                          backgroundColor: "rgba(33,37,41,.64)",
-                          color: "white",
-                          border: "none",
-                        }}
-                        onClick={() => {
-                          dataRef.current[val.label] = undefined;
-                          setIsLoadingFile(val.label);
-                        }}
-                      >
-                        삭제
-                      </Button>
                     </div>
                   </div>
                 </div>
               );
             }
+
             return (
               <div className={style.field} key={index}>
                 <div className={style.label}>{val.label}</div>
-                <div
-                  style={{
-                    marginLeft: "24px",
-                    marginRight: "24px",
-                    display: "flex",
-                    flex: "auto",
+                <textarea
+                  defaultValue={dataRef.current?.[val.label] || ""}
+                  className={style.input}
+                  rows={1}
+                  onChange={(e: any) => {
+                    dataRef.current[val.label] = e.target.value;
                   }}
-                >
-                  <div
-                    style={{
-                      flex: "auto",
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: "12px",
-                      marginTop: "12px",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <React.Fragment>
-                      <Button
-                        type={"ghost"}
-                        style={{
-                          backgroundColor: "rgba(33,37,41,.64)",
-                          color: "white",
-                          border: "none",
-                        }}
-                        onClick={() => {
-                          fileInputList.current[val.label].current.click();
-                        }}
-                      >
-                        업로드
-                      </Button>
-                      <input
-                        className={`fileInput-${val.label}`}
-                        type="file"
-                        ref={fileInputList.current[val.label]}
-                        style={{ display: "none" }}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          handleFileChange(e).then((res) => {
-                            dataRef.current[val.label] = res;
-                            setIsLoadingFile(val.label);
-                          });
-                        }}
-                      />
-                    </React.Fragment>
-                  </div>
-                </div>
+                />
               </div>
             );
-          }
-
-          return (
-            <div className={style.field} key={index}>
-              <div className={style.label}>{val.label}</div>
-              <textarea
-                defaultValue={dataRef.current[val.label]}
-                className={style.input}
-                rows={1}
-                onChange={(e: any) => {
-                  dataRef.current[val.label] = e.target.value;
+          })}
+        </div>
+      </>
+    ) : (
+      <>
+        {
+          <>
+            <Button
+              type="ghost"
+              style={{ borderColor: "red" }}
+              onClick={() => {
+                if (props.pid && props.aid) {
+                  ArchiveApi.UArchive({
+                    _id: props.aid,
+                    data: { [props.pid]: dataRef.current },
+                  }).then((res) => {
+                    setIsLoadingArchive(true);
+                    alert(SUCCESS_MESSAGE);
+                  });
+                }
+              }}
+            >
+              저장
+            </Button>
+            <div style={{ marginTop: "24px" }}>
+              <Table
+                onChange={(value) => {
+                  dataRef.current = value;
+                  // console.log(value);
                 }}
+                type="object-array"
+                data={archiveData ?? []}
+                header={archiveHeader()}
               />
             </div>
-          );
-        })}
-      </div>
-    </>
+          </>
+        }
+      </>
+    )
   ) : (
-    <>
-      {props.formData?.current && (
-        <>
-          <Button
-            type="ghost"
-            style={{ borderColor: "red" }}
-            onClick={() => {
-              if (props.archive) {
-                ArchiveApi.UArchive({
-                  _id: props.formData?.current._id,
-                  data: { [props.archive]: dataRef.current },
-                }).then((res: any) => {
-                  alert(SUCCESS_MESSAGE);
-                });
-              }
-            }}
-          >
-            저장
-          </Button>
-          <div style={{ marginTop: "24px" }}>
-            <Table
-              onChange={(value) => {
-                dataRef.current = value;
-                // console.log(value);
-              }}
-              type="object-array"
-              data={props.userArchiveData ?? []}
-              header={archiveHeader()}
-            />
-          </div>
-        </>
-      )}
-    </>
+    <></>
   );
 };
 
