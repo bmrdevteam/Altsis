@@ -163,6 +163,43 @@ module.exports.find = async (req, res) => {
   }
 };
 
+module.exports.updateBulk = async (req, res) => {
+  try {
+    /*
+
+     label: string;
+    archives: { _id: string; data: any }[];
+    */
+    if (!"label" in req.body || !"archives" in req.body) {
+      return res
+        .status(400)
+        .send({ message: "label and archives are required in body" });
+    }
+
+    const archives = [];
+    for (let _archive of req.body.archives) {
+      if (!"_id" in _archive || !"data" in _archive) {
+        return res
+          .status(400)
+          .send({ message: "_id and data are required in body" });
+      }
+      const archive = await Archive(req.user.academyId).findById(_archive._id);
+      if (!archive)
+        return res.status(404).send({ message: "archive not found" });
+
+      archive.data = Object.assign(archive.data || {}, {
+        [req.body.label]: _archive.data,
+      });
+      archives.push(archive);
+    }
+
+    await Promise.all(archives.map((archive) => archive.save()));
+    return res.status(200).send({});
+  } catch (err) {
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 module.exports.update = async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params._id)) return res.status(400).send();
