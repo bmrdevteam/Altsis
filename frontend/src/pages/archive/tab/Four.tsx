@@ -9,8 +9,6 @@ import Loading from "components/loading/Loading";
 
 type Props = {
   registrationList: any[];
-  aid?: string;
-  pid?: string;
 };
 
 const colors = ["#ff595e", "#2c6e49", "#1982c4", "#6a4c93"];
@@ -20,8 +18,6 @@ const One = (props: Props) => {
   const { pid } = useParams(); // archive label ex) 인적 사항
 
   const { currentSchool } = useAuth();
-
-  const dataRef = useRef<any>();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
@@ -39,7 +35,6 @@ const One = (props: Props) => {
 
   useEffect(() => {
     if (isLoading && pid) {
-      dataRef.current = [];
       if (props.registrationList.length > 0) {
         ArchiveApi.RArchivesByRegistrations({
           registrationIds: props.registrationList.map(
