@@ -157,62 +157,104 @@ function Archive(props: Props) {
                   alert("에러가 발생했습니다.");
                 });
             }}
-            header={[
-              {
-                text: "필드 이름",
-                key: "label",
-                type: "text",
-              },
-              {
-                text: "유형",
-                key: "type",
-                fontSize: "12px",
-                fontWeight: "600",
-                type: "status",
-                status: {
-                  input: {
-                    text: "텍스트",
-                    color: "#B33F00",
-                  },
-                  select: {
-                    text: "선택 +",
-                    color: "#8657ff",
-                    onClick: (row) => {
-                      setEditArchivefieldSubIndex(row.tableRowIndex - 1);
-                      setEditArchivefieldSelectPopupActive(true);
+            header={
+              formData.current[editArchivefieldIndex].dataType === "array"
+                ? [
+                    {
+                      text: "필드 이름",
+                      key: "label",
+                      type: "text",
                     },
-                  },
-                  "input-number": {
-                    text: "숫자",
-                    color: "#00B3AD",
-                  },
-                },
-                width: "80px",
-                textAlign: "center",
-              },
-              {
-                text: "합산",
-                key: "total",
-                textAlign: "center",
-                width: "80px",
-                type: "toggle",
-              },
-              {
-                text: "누계합산",
-                key: "runningTotal",
-                textAlign: "center",
-                width: "80px",
-                type: "toggle",
-              },
-              {
-                text: "수정",
-                fontSize: "12px",
-                fontWeight: "600",
-                type: "rowEdit",
-                width: "80px",
-                textAlign: "center",
-              },
-            ]}
+                    {
+                      text: "유형",
+                      key: "type",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      type: "status",
+                      status: {
+                        input: {
+                          text: "텍스트",
+                          color: "#B33F00",
+                        },
+                        select: {
+                          text: "선택 +",
+                          color: "#8657ff",
+                          onClick: (row) => {
+                            setEditArchivefieldSubIndex(row.tableRowIndex - 1);
+                            setEditArchivefieldSelectPopupActive(true);
+                          },
+                        },
+                        "input-number": {
+                          text: "숫자",
+                          color: "#00B3AD",
+                        },
+                      },
+                      width: "80px",
+                      textAlign: "center",
+                    },
+                    {
+                      text: "합산",
+                      key: "total",
+                      textAlign: "center",
+                      width: "80px",
+                      type: "toggle",
+                    },
+                    {
+                      text: "누계합산",
+                      key: "runningTotal",
+                      textAlign: "center",
+                      width: "80px",
+                      type: "toggle",
+                    },
+                    {
+                      text: "수정",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      type: "rowEdit",
+                      width: "80px",
+                      textAlign: "center",
+                    },
+                  ]
+                : [
+                    {
+                      text: "필드 이름",
+                      key: "label",
+                      type: "text",
+                    },
+                    {
+                      text: "유형",
+                      key: "type",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      type: "status",
+                      status: {
+                        input: {
+                          text: "텍스트",
+                          color: "#B33F00",
+                        },
+                        file: {
+                          text: "파일",
+                          color: "#8657ff",
+                        },
+                        "file-image": {
+                          text: "사진",
+                          color: "#00B3AD",
+                        },
+                      },
+                      width: "80px",
+                      textAlign: "center",
+                    },
+
+                    {
+                      text: "수정",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      type: "rowEdit",
+                      width: "80px",
+                      textAlign: "center",
+                    },
+                  ]
+            }
           />
         </Popup>
       )}
