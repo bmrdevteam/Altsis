@@ -943,6 +943,21 @@ export default function useApi() {
     return result;
   }
   /**
+   * Update Archives
+   * @type GET
+   * @auth admin
+   */
+  async function UArchives(params: {
+    label: string;
+    archives: { _id: string; data: any }[];
+  }) {
+    const res = await database.U({
+      location: "archives",
+      data: params,
+    });
+    return res;
+  }
+  /**
    * Find Archive by id with label
    * @type GET
    * @auth admin
@@ -1275,6 +1290,7 @@ export default function useApi() {
       RArchivesByRegistrations,
       RArchiveByLabel,
       UArchive,
+      UArchives,
     },
     SyllabusApi: {
       CSyllabus,
