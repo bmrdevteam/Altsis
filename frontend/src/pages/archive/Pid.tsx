@@ -11,8 +11,8 @@ import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 
-import Four from "./tab/Four";
-import Five from "./tab/ObjectView";
+import ArrayView from "./tab/ArrayView";
+import ObjectView from "./tab/ObjectView";
 
 type Props = {};
 
@@ -97,9 +97,9 @@ const ArchiveField = (props: Props) => {
         <div className={style.categories}>{selectedStudents()}</div>
 
         {formArchive().dataType === "object" ? (
-          <Five registrationList={selectedRegistrationList}></Five>
+          <ObjectView registrationList={selectedRegistrationList}></ObjectView>
         ) : (
-          <Four registrationList={selectedRegistrationList}></Four>
+          <ArrayView registrationList={selectedRegistrationList}></ArrayView>
         )}
       </div>
       {selectPopupAtcive && (
