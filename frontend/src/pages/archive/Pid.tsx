@@ -12,6 +12,7 @@ import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 
 import Four from "./tab/Four";
+import Five from "./tab/ObjectView";
 
 type Props = {};
 
@@ -96,11 +97,7 @@ const ArchiveField = (props: Props) => {
         <div className={style.categories}>{selectedStudents()}</div>
 
         {formArchive().dataType === "object" ? (
-          <Tab
-            items={{
-              임시: <div style={{ marginTop: "24px" }}></div>,
-            }}
-          ></Tab>
+          <Five registrationList={selectedRegistrationList}></Five>
         ) : (
           <Four registrationList={selectedRegistrationList}></Four>
         )}
