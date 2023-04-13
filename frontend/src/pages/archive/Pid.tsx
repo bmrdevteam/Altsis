@@ -113,9 +113,12 @@ const ArchiveField = (props: Props) => {
               type="ghost"
               onClick={() => {
                 setSelectedRegistrationList(
-                  _.filter(registrationListRef.current, {
-                    tableRowChecked: true,
-                  })
+                  _.sortBy(
+                    _.filter(registrationListRef.current, {
+                      tableRowChecked: true,
+                    }),
+                    ["userName"]
+                  )
                 );
                 setSelectPopupActive(false);
               }}
