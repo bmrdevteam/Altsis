@@ -144,7 +144,7 @@ module.exports.sign = async (req, res) => {
       (req.user.auth !== "admin" && req.user.auth !== "manager")
     )
       return res.status(403).send({ message: "Access Denied" });
-    seconds = signedUrlExpireSeconds;
+    seconds = 60;
   } else if (keys[1] === "backup") {
     // is owner?
     if (req.user.auth !== "owner")
