@@ -32,7 +32,7 @@ const ArchiveField = (props: Props) => {
   const [selectPopupAtcive, setSelectPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentSeason?._id && pid) {
+    if (currentSeason?._id) {
       RegistrationApi.RRegistrations({
         season: currentSeason._id,
         role: "student",
@@ -42,7 +42,7 @@ const ArchiveField = (props: Props) => {
         registrationListRef.current = registrations;
       });
     }
-  }, [currentSeason, pid]);
+  }, [currentSeason]);
 
   const selectedStudents = () => {
     if (registrationListRef.current.length === 0) {
@@ -70,7 +70,10 @@ const ArchiveField = (props: Props) => {
           onClick={() => {
             selectedRegistrationList.splice(idx, 1);
             setSelectedRegistrationList([...selectedRegistrationList]);
-            registrationListRef.current[idx].tableRowChecked = false;
+            const reg = _.find(registrationListRef.current, {
+              _id: registration._id,
+            });
+            if (reg) reg.tableRowChecked = false;
           }}
         >
           {registration.userName}
@@ -102,14 +105,7 @@ const ArchiveField = (props: Props) => {
             }}
           ></Tab>
         ) : (
-          <Tab
-            items={{
-              "조회 및 수정": (
-                <Four registrationList={selectedRegistrationList}></Four>
-              ),
-              입력: <div style={{ marginTop: "24px" }}></div>,
-            }}
-          ></Tab>
+          <Four registrationList={selectedRegistrationList}></Four>
         )}
       </div>
       {selectPopupAtcive && (

@@ -24,16 +24,22 @@ const One = (props: Props) => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
-  const archiveListRef = useRef<any>([]);
+  const [archiveListFlattened, setArchiveListFlattened] = useState<any[]>([]);
+  const archiveListFlattenedRef = useRef<any>([]);
   const [userNameStatus, setUserNameStatus] = useState<{
     [key: string]: { text: string; color: string };
   }>({});
 
   useEffect(() => {
-    if (props.registrationList.length > 0 && pid) {
-      dataRef.current = [];
+    if (pid) {
+      setIsLoading(true);
+    }
+  }, [props.registrationList, pid]);
 
-      if (props.registrationList.length > 0 && pid) {
+  useEffect(() => {
+    if (isLoading && pid) {
+      dataRef.current = [];
+      if (props.registrationList.length > 0) {
         ArchiveApi.RArchivesByRegistrations({
           registrationIds: props.registrationList.map(
             (registration: any) => registration._id
@@ -41,7 +47,7 @@ const One = (props: Props) => {
           label: pid,
         })
           .then((res) => {
-            const archiveList = [];
+            const archiveListFlattened = [];
             const userNameStatus: {
               [key: string]: { text: string; color: string };
             } = {};
@@ -59,19 +65,26 @@ const One = (props: Props) => {
                 archive.data[pid] = [];
               }
               for (let idx = 0; idx < archive.data[pid].length; idx++) {
-                archiveList.push({
+                archiveListFlattened.push({
                   ...archive.data[pid][idx],
                   _id: archive._id,
                 });
               }
             }
+            setArchiveList(res);
             setUserNameStatus(userNameStatus);
-            setArchiveList(archiveList);
-            archiveListRef.current = archiveList;
+            setArchiveListFlattened(archiveListFlattened);
+            archiveListFlattenedRef.current = archiveListFlattened;
           })
           .then(() => {
             setIsLoading(false);
           });
+      } else {
+        setArchiveList([]);
+        setUserNameStatus({});
+        setArchiveListFlattened([]);
+        archiveListFlattenedRef.current = [];
+        setIsLoading(false);
       }
 
       // if (props.aid !== "") {
@@ -88,7 +101,7 @@ const One = (props: Props) => {
       //   setIsLoadingArchive(false);
       // }
     }
-  }, [props.registrationList, pid]);
+  }, [isLoading]);
 
   // const data = useRef;
   function formArchive() {
@@ -98,6 +111,33 @@ const One = (props: Props) => {
       })[0] ?? { fields: [] }
     );
   }
+
+  const update = async () => {
+    if (archiveListFlattenedRef.current.length > 0 && pid) {
+      const archiveById: { [key: string]: any[] } = {};
+      for (let _archive of archiveListFlattenedRef.current) {
+        if (!archiveById[_archive._id]) archiveById[_archive._id] = [];
+        const archive: { [key: string]: string | number } = {};
+        formArchive().fields?.map((val: any) => {
+          archive[val.label] = _archive[val.label];
+        });
+        archiveById[_archive._id].push(archive);
+      }
+      const archives: { _id: string; data: any[] }[] = Object.keys(
+        archiveById
+      ).map((_id: string) => {
+        return {
+          _id,
+          data: archiveById[_id],
+        };
+      });
+
+      ArchiveApi.UArchives({ label: pid, archives }).then((res) => {
+        setIsLoading(true);
+        alert(SUCCESS_MESSAGE);
+      });
+    }
+  };
 
   function archiveHeader() {
     let arr: any = [
@@ -137,6 +177,21 @@ const One = (props: Props) => {
         });
       }
     });
+    arr.push({
+      text: "수정",
+      type: "rowEdit",
+      width: "72px",
+      textAlign: "center",
+      fontSize: "12px",
+      btnStyle: {
+        round: true,
+        border: true,
+        padding: "4px",
+        color: "red",
+        background: "#FFF1F1",
+      },
+      fontWeight: "600",
+    });
     return arr;
   }
 
@@ -146,27 +201,9 @@ const One = (props: Props) => {
         type="ghost"
         style={{ marginTop: "24px", borderColor: "red" }}
         onClick={() => {
-          const archives: { [key: string]: any[] } = {};
-          for (let _archive of archiveListRef.current) {
-            if (!archives[_archive._id]) archives[_archive._id] = [];
-            const archive: { [key: string]: string | number } = {};
-            formArchive().fields?.map((val: any) => {
-              archive[val.label] = _archive[val.label];
-            });
-            archives[_archive._id].push(archive);
-          }
-          console.log(archives);
-          // setIsLoading(true)
-          // if (props.pid && props.aid) {
-          //   ArchiveApi.UArchive({
-          //     _id: props.aid,
-          //     data: { [props.pid]: dataRef.current },
-          //   }).then((res) => {
-          //     setIsLoading(true);
-          //     alert(SUCCESS_MESSAGE);
-          //   });
-          // }
+          update();
         }}
+        disabled={archiveListFlattened.length === 0}
       >
         저장
       </Button>
@@ -174,10 +211,32 @@ const One = (props: Props) => {
         <Table
           control
           onChange={(value) => {
-            archiveListRef.current = value;
+            /* if value is updated */
+            if (value.length === archiveListFlattenedRef.current.length) {
+              archiveListFlattenedRef.current = value;
+              return;
+            }
+            /* if value is added or removed */
+            /* if value is added */
+            if (value.length > archiveListFlattenedRef.current.length) {
+              if (archiveList.length === 0) {
+                alert("학생을 먼저 선택해주세요");
+                setIsLoading(true);
+                return;
+              }
+              if (value[value.length - 1]._id === "") {
+                const base = value[value.length - 1];
+                value.splice(value.length - 1, 1);
+                for (let archive of archiveList) {
+                  value.push({ ...base, _id: archive._id });
+                }
+              }
+            }
+            archiveListFlattenedRef.current = value;
+            return update();
           }}
           type="object-array"
-          data={archiveList ?? []}
+          data={archiveListFlattened ?? []}
           header={archiveHeader()}
         />
       </div>
