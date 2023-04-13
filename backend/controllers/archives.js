@@ -1,5 +1,6 @@
-const { Archive, User, School, Registration } = require("../models");
+const { Archive, User, School, Registration, Season } = require("../models");
 const ObjectId = require("mongoose").Types.ObjectId;
+const _ = require("lodash");
 
 module.exports.findByLabel = async (req, res) => {
   try {
@@ -68,9 +69,48 @@ module.exports.findByRegistration = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    let { user, school, registration, _id } = req.query;
+    let { user, school, registration, _id, registrationIds, label } = req.query;
 
     const _Archive = Archive(req.user.academyId);
+
+    if (registrationIds && label) {
+      const registrationIdList = _.split(registrationIds, ",");
+      const registrations = await Promise.all(
+        registrationIdList.map((_id) =>
+          Registration(req.user.academyId).findById(_id).lean()
+        )
+      );
+
+      const archives = [];
+      for (let registration of registrations) {
+        const archive = await Archive(req.user.academyId).findOne({
+          school: registration.school,
+          user: registration.user,
+        });
+        if (!archive) {
+          archive = new _Archive({
+            user: registration.user,
+            userId: registration.userId,
+            userName: registration.userName,
+            school: registration.school,
+            schoolId: registration.schoolId,
+            schoolName: registration.schoolName,
+          });
+          // await archive.save();
+          archives.push({
+            ...registration,
+            ...archive.toObject(),
+            data: { [label]: archive.data?.[label] },
+          });
+        } else
+          archives.push({
+            ...registration,
+            ...archive.toObject(),
+            data: { [label]: archive.data?.[label] },
+          });
+      }
+      return res.status(200).send({ archives });
+    }
 
     if (_id) {
       const archive = await _Archive.findById(_id);

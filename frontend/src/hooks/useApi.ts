@@ -923,6 +923,26 @@ export default function useApi() {
     return result;
   }
   /**
+   * Read Archives by registrations
+   * @type GET
+   * @auth admin
+   * @returns Archives
+   */
+  async function RArchivesByRegistrations(params: {
+    registrationIds: string[];
+    label: string;
+  }) {
+    const { archives: result } = await database.R({
+      location:
+        "archives" +
+        QUERY_BUILDER({
+          registrationIds: QUERY_SUB_BUILDER(params.registrationIds),
+          label: params.label,
+        }),
+    });
+    return result;
+  }
+  /**
    * Find Archive by id with label
    * @type GET
    * @auth admin
@@ -1252,6 +1272,7 @@ export default function useApi() {
     },
     ArchiveApi: {
       RArchives,
+      RArchivesByRegistrations,
       RArchiveByLabel,
       UArchive,
     },
