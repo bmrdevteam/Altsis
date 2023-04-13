@@ -71,4 +71,23 @@
       }
     }
   }
+
+  .categories {
+    display: flex;
+    gap: 4px;
+
+    .category {
+      cursor: pointer;
+      border: var(--border-default);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: Pretendard;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .category:hover {
+      background-color: #ebebeb;
+    }
+  }
 }

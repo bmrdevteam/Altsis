@@ -4,126 +4,194 @@ import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
-import useDatabase from "hooks/useDatabase";
+
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
-import Group from "./tab/Group";
-import One from "./tab/One";
-import Three from "./tab/Three";
+import Table from "components/tableV2/Table";
+import Popup from "components/popup/Popup";
+import Button from "components/button/Button";
+
+import Four from "./tab/Four";
 
 type Props = {};
 
 const ArchiveField = (props: Props) => {
-  const database = useDatabase();
-  const { pid } = useParams();
-  const { RegistrationApi, ArchiveApi } = useApi();
+  const { pid } = useParams(); // archive label ex) 인적 사항
+  const { RegistrationApi } = useApi();
+  const { currentSeason, currentSchool } = useAuth();
 
-  const { currentSchool, currentSeason } = useAuth();
-  /* not users but registrations */
-  const [users, setUsers] = useState<any[]>([]);
-  const [grades, setGrades] = useState<{ text: string; value: string }[]>([]);
-  const [selectedGrade, setSelectedGrade] = useState<string>("");
-  const [rid, setRid] = useState<string>("");
-  const [archiveData, setArchiveData] = useState<any>();
-  const [archiveForm, setArchiveForm] = useState<any>();
-  const formData = useRef<any>();
+  const [, setRegistrationList] = useState<any[]>([]);
+  const [selectedRegistrationList, setSelectedRegistrationList] = useState<
+    any[]
+  >([]);
+  const registrationListRef = useRef<any>([]);
+
+  const [selectPopupAtcive, setSelectPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    RegistrationApi.RRegistrations({
-      schoolId: currentSchool?.schoolId,
-      season: currentSeason?._id,
-      role: "student",
-    }).then((res) => {
-      const g: any = _.uniqBy(res, "grade");
-      setGrades(
-        g.map((val: any) => {
-          return { text: val.grade, value: val.grade };
-        })
-      );
-      setSelectedGrade(g[0]?.grade);
-      setUsers(res);
-    });
-
-    database
-      .R({
-        location: `schools/${currentSchool.school}`,
-      })
-      .then((res) => {
-        setArchiveForm(res);
-      });
-  }, [currentSeason]);
-
-  useEffect(() => {
-    if (rid !== "") {
-      ArchiveApi.RArchives({
-        registration: rid,
+    if (currentSeason?._id && pid) {
+      RegistrationApi.RRegistrations({
+        season: currentSeason._id,
+        role: "student",
       }).then((res) => {
-        setArchiveData(res.data);
+        const registrations = _.sortBy(res, ["grade", "userName"]);
+        setRegistrationList(registrations);
+        registrationListRef.current = registrations;
       });
     }
-  }, [rid]);
+  }, [currentSeason, pid]);
+
+  const selectedStudents = () => {
+    if (registrationListRef.current.length === 0) {
+      return (
+        <div
+          className={style.category}
+          onClick={() => {
+            setSelectPopupActive(true);
+          }}
+        >
+          조회할 학생을 선택해주세요
+        </div>
+      );
+    }
+    return [
+      <div
+        className={style.category}
+        onClick={() => setSelectPopupActive(true)}
+      >
+        선택된 학생 수: {selectedRegistrationList.length}
+      </div>,
+      ...selectedRegistrationList.map((registration: any, idx: number) => (
+        <div
+          className={style.category}
+          onClick={() => {
+            selectedRegistrationList.splice(idx, 1);
+            setSelectedRegistrationList([...selectedRegistrationList]);
+            registrationListRef.current[idx].tableRowChecked = false;
+          }}
+        >
+          {registration.userName}
+        </div>
+      )),
+    ];
+  };
+
+  function formArchive() {
+    return (
+      currentSchool.formArchive?.filter((val: any) => {
+        return val.label === pid;
+      })[0] ?? { fields: [] }
+    );
+  }
 
   return (
     <>
       <Navbar />
       <div className={style.section}>
         <div className={style.title}>{pid}</div>
-        <Tab
-          items={{
-            "학생별 입력": (
-              <>
-                <div className={style.search}>
-                  <div className={style.label}>학생선택</div>
-                  <Select
-                    options={grades}
-                    onChange={(val: any) => {
-                      setSelectedGrade(val);
-                    }}
-                    style={{ borderRadius: "4px", maxWidth: "120px" }}
-                  />
-                  <Autofill
-                    style={{ borderRadius: "4px" }}
-                    setState={setRid}
-                    onChange={(v) => {
-                      ArchiveApi.RArchives({
-                        registration: v,
-                      }).then((res) => {
-                        formData.current = res;
-                      });
-                    }}
-                    defaultValue={rid}
-                    options={[
-                      { text: "", value: "" },
-                      ...users
-                        ?.filter((val) => val.grade === selectedGrade)
-                        .map((val) => {
-                          return {
-                            value: val._id,
-                            text: `${val.userName} / ${val.userId}`,
-                          };
-                        }),
-                    ]}
-                    placeholder={"검색"}
-                  />
-                </div>
-                <Divider />
-                <Three
-                  formData={formData}
-                  users={users}
-                  archive={pid}
-                  setUserId={setRid}
-                  userId={rid}
-                  userArchiveData={archiveData?.[pid ?? ""]}
-                />
-              </>
-            ),
-            "그룹별 입력": <Group />,
-          }}
-        ></Tab>
+
+        <div className={style.categories}>{selectedStudents()}</div>
+
+        {formArchive().dataType === "object" ? (
+          <Tab
+            items={{
+              임시: <div style={{ marginTop: "24px" }}></div>,
+            }}
+          ></Tab>
+        ) : (
+          <Tab
+            items={{
+              "조회 및 수정": (
+                <Four registrationList={selectedRegistrationList}></Four>
+              ),
+              입력: <div style={{ marginTop: "24px" }}></div>,
+            }}
+          ></Tab>
+        )}
       </div>
+      {selectPopupAtcive && (
+        <Popup
+          setState={setSelectPopupActive}
+          title="학생 선택"
+          closeBtn
+          contentScroll
+          footer={
+            <Button
+              type="ghost"
+              onClick={() => {
+                setSelectedRegistrationList(
+                  _.filter(registrationListRef.current, {
+                    tableRowChecked: true,
+                  })
+                );
+                setSelectPopupActive(false);
+              }}
+            >
+              선택
+            </Button>
+          }
+        >
+          <Table
+            data={registrationListRef.current}
+            type="object-array"
+            control
+            onChange={(value: any[]) => {
+              registrationListRef.current = value;
+            }}
+            header={[
+              {
+                text: "checkbox",
+                key: "",
+                type: "checkbox",
+                width: "48px",
+              },
+              {
+                text: "학년",
+                key: "grade",
+                type: "text",
+                textAlign: "center",
+                whiteSpace: "pre",
+              },
+              {
+                text: "이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
+                whiteSpace: "pre",
+              },
+              {
+                text: "ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+                whiteSpace: "pre",
+              },
+
+              {
+                text: "그룹",
+                key: "group",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "담임 선생님",
+                key: "teacherName",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "부담임 선생님",
+                key: "subTeacherName",
+                type: "text",
+                textAlign: "center",
+              },
+            ]}
+          />
+        </Popup>
+      )}
     </>
   );
 };
