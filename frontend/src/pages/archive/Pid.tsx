@@ -1,6 +1,3 @@
-import Divider from "components/divider/Divider";
-import Autofill from "components/input/Autofill";
-import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
@@ -45,7 +42,7 @@ const ArchiveField = (props: Props) => {
   }, [currentSeason]);
 
   const selectedStudents = () => {
-    if (registrationListRef.current.length === 0) {
+    if (selectedRegistrationList.length === 0) {
       return (
         <div
           className={style.category}
