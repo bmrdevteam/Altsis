@@ -69,10 +69,19 @@ module.exports.findByRegistration = async (req, res) => {
 
 module.exports.find = async (req, res) => {
   try {
-    let { user, school, registration, _id, registrationIds, label } = req.query;
+    let {
+      user,
+      school,
+      registration,
+      _id,
+      registrationIds,
+      label,
+      registrationId,
+    } = req.query;
 
     const _Archive = Archive(req.user.academyId);
 
+    /* teacher request for students' archive */
     if (registrationIds && label) {
       const registrationIdList = _.split(registrationIds, ",");
       const registrations = await Promise.all(
@@ -80,6 +89,28 @@ module.exports.find = async (req, res) => {
           Registration(req.user.academyId).findById(_id).lean()
         )
       );
+      const seasonIds = Array.from(
+        new Set(
+          registrations.map((registration) => registration.season.toString())
+        )
+      );
+      if (seasonIds.length !== 1) {
+        return res
+          .status(409)
+          .send({ message: "seasons of registrations not same" });
+      }
+      const teacherRegistration = await Registration(
+        req.user.academyId
+      ).findOne({
+        season: seasonIds[0],
+        user: req.user._id,
+        role: "teacher",
+      });
+      if (!teacherRegistration) {
+        return res
+          .status(404)
+          .send({ message: "teacher registration not found" });
+      }
 
       const archives = [];
       for (let registration of registrations) {
@@ -110,6 +141,53 @@ module.exports.find = async (req, res) => {
           });
       }
       return res.status(200).send({ archives });
+    }
+    /* teacher or student request for archive */
+    if (registrationId && label) {
+      const registration = await Registration.findById(
+        req.body.registrationId
+      ).lean();
+      if (!registration) {
+        return res.status(404).send({ message: "registration not found" });
+      }
+      // if teacher ...
+      if (!registration.user.equals(req.user._id)) {
+        const teacherRegistration = await Registration.findOne({
+          season: registration.season,
+          user: req.user._id,
+          role: "teacher",
+        }).lean();
+        if (!teacherRegistration)
+          return res
+            .status(404)
+            .send({ message: "teacher registration not found" });
+      }
+
+      const archive = await Archive(req.user.academyId).findOne({
+        school: registration.school,
+        user: registration.user,
+      });
+      if (!archive) {
+        archive = new _Archive({
+          user: registration.user,
+          userId: registration.userId,
+          userName: registration.userName,
+          school: registration.school,
+          schoolId: registration.schoolId,
+          schoolName: registration.schoolName,
+        });
+
+        return res.status(200).send({
+          ...registration,
+          ...archive.toObject(),
+          data: { [label]: archive.data?.[label] },
+        });
+      }
+      return res.status(200).send({
+        ...registration,
+        ...archive.toObject(),
+        data: { [label]: archive.data?.[label] },
+      });
     }
 
     if (_id) {

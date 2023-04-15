@@ -943,6 +943,21 @@ export default function useApi() {
     return result;
   }
   /**
+   * Read Archive by registration
+   * @type GET
+   * @auth admin
+   * @returns Archives
+   */
+  async function RArchiveByRegistration(params: {
+    registrationId: string;
+    label: string;
+  }) {
+    const { archives: result } = await database.R({
+      location: "archives" + QUERY_BUILDER(params),
+    });
+    return result;
+  }
+  /**
    * Update Archives
    * @type GET
    * @auth admin
@@ -1295,6 +1310,7 @@ export default function useApi() {
     ArchiveApi: {
       RArchives,
       RArchivesByRegistrations,
+      RArchiveByRegistration,
       RArchiveByLabel,
       UArchive,
       UArchives,
