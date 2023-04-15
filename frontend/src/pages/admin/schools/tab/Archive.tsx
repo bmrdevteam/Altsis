@@ -62,6 +62,13 @@ function Archive(props: Props) {
               type: "text",
             },
             {
+              text: "학생 조회",
+              key: "authOptionStudentView",
+              textAlign: "center",
+              width: "80px",
+              type: "toggle",
+            },
+            {
               text: "데이터 형식",
               key: "dataType",
               fontSize: "12px",
@@ -80,20 +87,21 @@ function Archive(props: Props) {
                 },
               },
             },
+
             // {
             //   text: "권한",
-            //   key: "auth",
+            //   key: "authOption",
             //   fontSize: "12px",
             //   fontWeight: "600",
             //   type: "status",
             //   textAlign: "center",
             //   width: "120px",
             //   status: {
-            //     teacher: {
+            //     'editByTeacher': {
             //       text: "모든 선생님",
             //       color: "#grey",
             //     },
-            //     array: {
+            //     'editByTeacherAndStudentCanView': {
             //       text: "담임 선생님",
             //       color: "#3a44b5",
             //     },
