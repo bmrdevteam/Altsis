@@ -57,6 +57,8 @@ import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
 import Archive2 from "pages/archive2/Index";
 import ArchiveField2 from "pages/archive2/Pid";
+import ArchiveViewer from "pages/archiveViewer/Index";
+import ArchiveViwerField from "pages/archiveViewer/Pid";
 import Docs from "pages/docs/Index";
 import ChooseAcademy from "pages/login/ChooseAcademy";
 
@@ -339,6 +341,22 @@ function RouterPage() {
               element={
                 <RequireAuth>
                   <ArchiveField />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="myArchive"
+              element={
+                <RequireAuth>
+                  <ArchiveViewer />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="myArchive/:pid"
+              element={
+                <RequireAuth>
+                  <ArchiveViwerField />
                 </RequireAuth>
               }
             ></Route>
