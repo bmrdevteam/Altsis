@@ -109,7 +109,7 @@ export const SidebarData = (
           title: "myArchive",
           name: "내 정보",
           path: "/myArchive",
-          icon: <Svg type="edit" />,
+          icon: <Svg type="profile" />,
           subLink: myFormArchive.map((val: any) => {
             return {
               title: val.label,
