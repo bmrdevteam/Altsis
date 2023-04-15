@@ -5,7 +5,7 @@ import useApi from "hooks/useApi";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
@@ -19,7 +19,8 @@ type Props = {};
 const ArchiveField = (props: Props) => {
   const { pid } = useParams(); // archive label ex) 인적 사항
   const { RegistrationApi } = useApi();
-  const { currentSeason, currentSchool } = useAuth();
+  const { currentSchool, currentRegistration } = useAuth();
+  const navigate = useNavigate();
 
   const [, setRegistrationList] = useState<any[]>([]);
   const [selectedRegistrationList, setSelectedRegistrationList] = useState<
@@ -30,9 +31,12 @@ const ArchiveField = (props: Props) => {
   const [selectPopupAtcive, setSelectPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentSeason?._id) {
+    if (currentRegistration?.role !== "teacher") {
+      alert("접근 권한이 없습니다.");
+      navigate("/");
+    } else if (currentRegistration?.season) {
       RegistrationApi.RRegistrations({
-        season: currentSeason._id,
+        season: currentRegistration.season,
         role: "student",
       }).then((res) => {
         const registrations = _.sortBy(res, ["grade", "userName"]);
@@ -40,7 +44,7 @@ const ArchiveField = (props: Props) => {
         registrationListRef.current = registrations;
       });
     }
-  }, [currentSeason]);
+  }, [currentRegistration]);
 
   const selectedStudents = () => {
     if (selectedRegistrationList.length === 0) {
