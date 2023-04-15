@@ -144,19 +144,21 @@ module.exports.find = async (req, res) => {
     }
     /* teacher or student request for archive */
     if (registrationId && label) {
-      const registration = await Registration.findById(
-        req.body.registrationId
-      ).lean();
+      const registration = await Registration(req.user.academyId)
+        .findById(registrationId)
+        .lean();
       if (!registration) {
         return res.status(404).send({ message: "registration not found" });
       }
       // if teacher ...
       if (!registration.user.equals(req.user._id)) {
-        const teacherRegistration = await Registration.findOne({
-          season: registration.season,
-          user: req.user._id,
-          role: "teacher",
-        }).lean();
+        const teacherRegistration = await Registration(req.user.academyId)
+          .findOne({
+            season: registration.season,
+            user: req.user._id,
+            role: "teacher",
+          })
+          .lean();
         if (!teacherRegistration)
           return res
             .status(404)

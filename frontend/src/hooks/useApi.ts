@@ -952,10 +952,10 @@ export default function useApi() {
     registrationId: string;
     label: string;
   }) {
-    const { archives: result } = await database.R({
+    const res = await database.R({
       location: "archives" + QUERY_BUILDER(params),
     });
-    return result;
+    return res;
   }
   /**
    * Update Archives
