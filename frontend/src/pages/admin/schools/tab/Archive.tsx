@@ -10,6 +10,36 @@ import { unflattenObject } from "functions/functions";
 
 type Props = {};
 
+const authTeacherToTextMap = new Map<string, string>();
+authTeacherToTextMap.set("undefined", "미설정");
+authTeacherToTextMap.set(
+  "viewAndEditStudents",
+  "모든 학생 조회 + 모든 학생 수정"
+);
+authTeacherToTextMap.set(
+  "viewStudentsAndEditMyStudents",
+  "모든 학생 조회 + 담당 학생 수정"
+);
+authTeacherToTextMap.set(
+  "viewAndEditMyStudents",
+  "담당 학생 조회 + 담당 학생 수정"
+);
+
+const textToAuthTeacherMap = new Map<string, string>();
+for (let item of Array.from(authTeacherToTextMap)) {
+  textToAuthTeacherMap.set(item[1], item[0]);
+}
+
+const authStudentToTextMap = new Map<string, string>();
+authStudentToTextMap.set("undefined", "미설정");
+authStudentToTextMap.set("view", "조회");
+authStudentToTextMap.set("viewAndEdit", "조회 + 수정");
+
+const textToAuthStudentMap = new Map<string, string>();
+for (let item of Array.from(authStudentToTextMap)) {
+  textToAuthStudentMap.set(item[1], item[0]);
+}
+
 function Archive(props: Props) {
   const { SchoolApi } = useApi();
   const { currentSchool } = useAuth();
@@ -56,9 +86,25 @@ function Archive(props: Props) {
         <Table
           type="object-array"
           control
-          data={formData.current ?? []}
+          data={
+            formData.current.map((form: any) => {
+              form.authTeacherText = authTeacherToTextMap.get(
+                form.authTeacher ?? "undefined"
+              );
+              form.authStudentText = authStudentToTextMap.get(
+                form.authStudent ?? "undefined"
+              );
+              return form;
+            }) ?? []
+          }
           onChange={(e) => {
             formData.current = e.map((v) => {
+              v.authTeacher = textToAuthTeacherMap.get(
+                v.authTeacherText ?? "미설정"
+              );
+              v.authStudent = textToAuthStudentMap.get(
+                v.authStudentText ?? "미설정"
+              );
               return unflattenObject(v);
             });
             SchoolApi.USchoolFormArchive({
@@ -81,11 +127,24 @@ function Archive(props: Props) {
               type: "text",
             },
             {
-              text: "학생 조회",
-              key: "authOptionStudentView",
+              text: "선생님 권한",
+              key: "authTeacherText",
+              fontSize: "12px",
+              fontWeight: "600",
               textAlign: "center",
-              width: "80px",
-              type: "toggle",
+              width: "200px",
+              type: "select",
+              option: Array.from(authTeacherToTextMap.values()),
+            },
+            {
+              text: "학생 권한",
+              key: "authStudentText",
+              fontSize: "12px",
+              fontWeight: "600",
+              textAlign: "center",
+              width: "200px",
+              type: "select",
+              option: Array.from(authStudentToTextMap.values()),
             },
             {
               text: "데이터 형식",
@@ -107,25 +166,6 @@ function Archive(props: Props) {
               },
             },
 
-            // {
-            //   text: "권한",
-            //   key: "authOption",
-            //   fontSize: "12px",
-            //   fontWeight: "600",
-            //   type: "status",
-            //   textAlign: "center",
-            //   width: "120px",
-            //   status: {
-            //     'editByTeacher': {
-            //       text: "모든 선생님",
-            //       color: "#grey",
-            //     },
-            //     'editByTeacherAndStudentCanView': {
-            //       text: "담임 선생님",
-            //       color: "#3a44b5",
-            //     },
-            //   },
-            // },
             {
               text: "자세히",
               type: "button",

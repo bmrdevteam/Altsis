@@ -20,6 +20,28 @@ const LinkSchema = mongoose.Schema(
   { _id: false }
 );
 
+const formArchiveSchema = mongoose.Schema(
+  {
+    label: String,
+    dataType: String, // "array" | "object"
+    fields: [Object],
+    authTeacher: { type: String, default: "undefined" },
+    /*
+     * "undefined"
+     * "viewAndEditStudents"
+     * "viewStudentsAndEditMyStudents"
+     * "viewAndEditMyStudents"
+     */
+    authStudent: { type: String, default: "undefined" },
+    /*
+     * "undefined"
+     * "view"
+     * "viewAndEdit"
+     */
+  },
+  { _id: false }
+);
+
 const schoolSchema = mongoose.Schema(
   {
     schoolId: {
@@ -39,7 +61,7 @@ const schoolSchema = mongoose.Schema(
     formTimetable: Object,
     formSyllabus: Object,
     formEvaluation: [],
-    formArchive: [],
+    formArchive: { type: [formArchiveSchema] },
     activatedSeason: mongoose.Types.ObjectId,
     links: { type: [LinkSchema] },
   },
