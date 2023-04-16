@@ -1,20 +1,22 @@
-import Button from "components/button/Button";
+import { useEffect, useRef, useState } from "react";
+
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
+import Loading from "components/loading/Loading";
+
 import { useAuth } from "contexts/authContext";
-import { unflattenObject } from "functions/functions";
 import useApi from "hooks/useApi";
-import _ from "lodash";
-import React, { useEffect, useRef, useState } from "react";
-type Props = {
-  schoolData: any;
-  setSchoolData: any;
-};
+import { unflattenObject } from "functions/functions";
+
+type Props = {};
 
 function Archive(props: Props) {
   const { SchoolApi } = useApi();
   const { currentSchool } = useAuth();
-  const formData = useRef<any>(props.schoolData.formArchive || []);
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const formData = useRef<any>([]);
+
   const [editArchivePopupActive, setEditArchivePopupActive] =
     useState<boolean>(false);
   const [editArchivefieldIndex, setEditArchivefieldIndex] = useState<number>(0);
@@ -27,14 +29,30 @@ function Archive(props: Props) {
   ] = useState<boolean>(false);
 
   useEffect(() => {
-    // console.log(props.schoolData);
-  }, []);
+    if (currentSchool?._id) {
+      setIsLoading(true);
+    }
+  }, [currentSchool]);
 
-  return (
+  useEffect(() => {
+    if (isLoading && currentSchool?._id) {
+      SchoolApi.RSchool(currentSchool._id)
+        .then((res) => {
+          formData.current = res.formArchive;
+        })
+        .then(() => {
+          setIsLoading(false);
+        })
+        .catch((err: any) => {
+          alert("Failed to load data");
+        });
+    }
+  }, [isLoading]);
+
+  return !isLoading ? (
     <>
       <div style={{ marginTop: "24px" }}>
         <div style={{ marginTop: "24px" }}></div>
-
         <Table
           type="object-array"
           control
@@ -44,15 +62,16 @@ function Archive(props: Props) {
               return unflattenObject(v);
             });
             SchoolApi.USchoolFormArchive({
-              schoolId: props.schoolData._id,
+              schoolId: currentSchool._id,
               data: formData.current,
             })
               .then((res) => {
                 alert(SUCCESS_MESSAGE);
-                props.setSchoolData({ ...props.schoolData, formArchive: res });
+                formData.current = res;
               })
               .catch((err) => {
                 alert("에러가 발생했습니다.");
+                setIsLoading(true);
               });
           }}
           header={[
@@ -151,18 +170,16 @@ function Archive(props: Props) {
               let fields = e.map((o) => unflattenObject(o));
               formData.current[editArchivefieldIndex].fields = fields;
               SchoolApi.USchoolFormArchive({
-                schoolId: props.schoolData._id,
+                schoolId: currentSchool._id,
                 data: formData.current,
               })
                 .then((res) => {
                   alert(SUCCESS_MESSAGE);
-                  props.setSchoolData({
-                    ...props.schoolData,
-                    formArchive: res,
-                  });
+                  formData.current = res;
                 })
                 .catch((err) => {
                   alert("에러가 발생했습니다.");
+                  setIsLoading(true);
                 });
             }}
             header={
@@ -291,18 +308,16 @@ function Archive(props: Props) {
               ].options = _data;
 
               SchoolApi.USchoolFormArchive({
-                schoolId: props.schoolData._id,
+                schoolId: currentSchool._id,
                 data: formData.current,
               })
                 .then((res) => {
                   alert(SUCCESS_MESSAGE);
-                  props.setSchoolData({
-                    ...props.schoolData,
-                    formArchive: res,
-                  });
+                  formData.current = res;
                 })
                 .catch((err) => {
                   alert("에러가 발생했습니다.");
+                  setIsLoading(true);
                 });
             }}
             header={[
@@ -324,6 +339,8 @@ function Archive(props: Props) {
         </Popup>
       )}
     </>
+  ) : (
+    <Loading height={"calc(100vh - 55px)"} />
   );
 }
 
