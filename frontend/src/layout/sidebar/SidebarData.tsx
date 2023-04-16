@@ -79,17 +79,16 @@ export const SidebarData = (
     );
     if (currentRegistration.role === "teacher") {
       if (currentSchool?.formArchive) {
-        data.push({
-          title: "archive",
-          name: "기록",
-          path: "/archive",
-          icon: <Svg type="edit" />,
-          subLink: currentSchool.formArchive
-            ?.filter(
-              (form: any) =>
-                form.authTeacher && form.authTeacher !== "undefined"
-            )
-            .map((val: any) => {
+        const formArchive = currentSchool.formArchive?.filter(
+          (form: any) => form.authTeacher && form.authTeacher !== "undefined"
+        );
+        if (formArchive?.length > 0) {
+          data.push({
+            title: "archive",
+            name: "기록",
+            path: "/archive",
+            icon: <Svg type="edit" />,
+            subLink: formArchive.map((val: any) => {
               return {
                 title: val.label,
                 name: val.label,
@@ -97,7 +96,8 @@ export const SidebarData = (
                 icon: <Svg type="file" />,
               };
             }),
-        });
+          });
+        }
       }
       data.push({
         title: "docs",
@@ -107,7 +107,7 @@ export const SidebarData = (
       });
     } else if (currentRegistration.role === "student") {
       const myFormArchive = currentSchool.formArchive?.filter(
-        (val: any, i: number) => val.authOptionStudentView
+        (form: any) => form.authStudent && form.authStudent !== "undefined"
       );
       if (myFormArchive?.length > 0) {
         data.push({
