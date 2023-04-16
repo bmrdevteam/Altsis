@@ -1191,6 +1191,17 @@ export default function useApi() {
       location: "files/signed" + QUERY_BUILDER(props),
     });
   }
+  async function SignFileArchive(props: {
+    key: string;
+    fileName: string;
+    archive: string;
+    label: string;
+    fieldLabel: string;
+  }) {
+    return await database.R({
+      location: "files/signed" + QUERY_BUILDER(props),
+    });
+  }
 
   async function UploadFileArchive(props: { data: FormData }) {
     return await database.C({
@@ -1339,6 +1350,7 @@ export default function useApi() {
     },
     FileApi: {
       SignFile,
+      SignFileArchive,
       UploadFileArchive,
     },
     BackupApi: {
