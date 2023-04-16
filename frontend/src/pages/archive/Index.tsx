@@ -5,62 +5,49 @@ import style from "style/pages/archive.module.scss";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
-import useApi from "hooks/useApi";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
 const Archive = (props: Props) => {
   const navigate = useNavigate();
-  const { currentSchool, setCurrentSchool } = useAuth();
-  const { SchoolApi } = useApi();
+  const { currentSchool } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (isLoading) {
-      if (currentSchool?._id) {
-        SchoolApi.RSchool(currentSchool?._id)
-          .then((s) => {
-            if (s.formArchive?.length !== 0) {
-              setCurrentSchool((prev: any) => ({ ...prev, ...s }));
-              navigate(s.formArchive[0].label);
-            }
-          })
-          .then(() => {
-            setIsLoading(false);
-          });
+      if (currentSchool?._id && currentSchool.formArchive) {
+        const formArchive = currentSchool.formArchive.filter(
+          (form: any) => form.authTeacher && form.authTeacher !== "undefined"
+        );
+        if (formArchive.length !== 0) {
+          navigate(formArchive[0].label);
+        } else {
+          setIsLoading(false);
+        }
       } else {
         setIsLoading(false);
       }
     }
   }, [isLoading]);
 
-  return (
+  return !isLoading ? (
     <>
-      {!isLoading && currentSchool?.formArchive?.length === 0 && (
-        <>
-          <Navbar />
-          <div className={style.section}>
-            <div style={{ display: "flex", gap: "24px" }}>
-              <div style={{ flex: "1 1 0" }}>
-                <div className={style.title}>기록</div>
-                <div className={style.description}>
-                  {`등록된 양식이 없습니다.`}
-                  <br />
-                  <a
-                    href={"/admin/schools/" + currentSchool._id + "#기록"}
-                    title={"/admin/schools/" + currentSchool._id + "#기록"}
-                    style={{ textDecoration: "underline" }}
-                  >
-                    {"관리자 > 학교 > 기록"}
-                  </a>
-                  {`에서 양식을 등록해주세요.`}
-                </div>
-              </div>
+      <Navbar />
+      <div className={style.section}>
+        <div style={{ display: "flex", gap: "24px" }}>
+          <div style={{ flex: "1 1 0" }}>
+            <div className={style.title}>기록</div>
+            <div className={style.description}>
+              조회 가능한 기록이 없습니다. <br />
+              학교 관리자에게 문의해주세요.
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </>
+  ) : (
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
