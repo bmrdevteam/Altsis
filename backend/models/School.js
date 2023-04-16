@@ -35,7 +35,6 @@ const formArchiveSchema = mongoose.Schema(
     /*
      * "undefined"
      * "view"
-     * "viewAndEdit"
      */
   },
   { _id: false }

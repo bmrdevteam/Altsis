@@ -208,11 +208,15 @@ const One = (props: Props) => {
                 src={archiveListRef.current[aIdx]?.[label]?.preSignedUrl}
                 onError={async (e) => {
                   e.currentTarget.onerror = null;
-                  const { preSignedUrl, expiryDate } = await FileApi.SignFile({
-                    key: archiveListRef.current[aIdx]?.[label]?.key,
-                    fileName:
-                      archiveListRef.current[aIdx]?.[label]?.originalName,
-                  });
+                  const { preSignedUrl, expiryDate } =
+                    await FileApi.SignFileArchive({
+                      key: archiveListRef.current[aIdx]?.[label]?.key,
+                      fileName:
+                        archiveListRef.current[aIdx]?.[label]?.originalName,
+                      archive: archiveListRef.current[aIdx]?._id,
+                      label: pid ?? "",
+                      fieldLabel: label,
+                    });
 
                   archiveListRef.current[aIdx][label].preSignedUrl =
                     preSignedUrl;
@@ -232,13 +236,14 @@ const One = (props: Props) => {
                 }}
                 onClick={async () => {
                   try {
-                    const { preSignedUrl, expiryDate } = await FileApi.SignFile(
-                      {
-                        key: archiveListRef.current[aIdx]?.[label]?.key,
-                        fileName:
-                          archiveListRef.current[aIdx]?.[label]?.originalName,
-                      }
-                    );
+                    const { preSignedUrl } = await FileApi.SignFileArchive({
+                      key: archiveListRef.current[aIdx]?.[label]?.key,
+                      fileName:
+                        archiveListRef.current[aIdx]?.[label]?.originalName,
+                      archive: archiveListRef.current[aIdx]?._id,
+                      label: pid ?? "",
+                      fieldLabel: label,
+                    });
 
                     const anchor = document.createElement("a");
                     anchor.href = preSignedUrl;
@@ -406,13 +411,15 @@ const One = (props: Props) => {
                 }}
                 onClick={async () => {
                   try {
-                    const { preSignedUrl, expiryDate } = await FileApi.SignFile(
-                      {
+                    const { preSignedUrl, expiryDate } =
+                      await await FileApi.SignFileArchive({
                         key: archiveListRef.current[aIdx]?.[label]?.key,
                         fileName:
                           archiveListRef.current[aIdx]?.[label]?.originalName,
-                      }
-                    );
+                        archive: archiveListRef.current[aIdx]?._id,
+                        label: pid ?? "",
+                        fieldLabel: label,
+                      });
 
                     const anchor = document.createElement("a");
                     anchor.href = preSignedUrl;

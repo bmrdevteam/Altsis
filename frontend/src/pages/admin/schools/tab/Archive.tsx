@@ -23,7 +23,6 @@ for (let item of Array.from(authTeacherToTextMap)) {
 const authStudentToTextMap = new Map<string, string>();
 authStudentToTextMap.set("undefined", "미설정");
 authStudentToTextMap.set("view", "조회");
-authStudentToTextMap.set("viewAndEdit", "조회 + 수정");
 
 const textToAuthStudentMap = new Map<string, string>();
 for (let item of Array.from(authStudentToTextMap)) {
