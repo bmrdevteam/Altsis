@@ -138,12 +138,100 @@ module.exports.sign = async (req, res) => {
   /* 권한 검사 */
   const keys = req.query.key.split("/");
   if (keys[1] === "archive") {
-    // is admanager?
     if (
-      keys[0] !== req.user.academyId ||
-      (req.user.auth !== "admin" && req.user.auth !== "manager")
-    )
-      return res.status(403).send({ message: "Access Denied" });
+      !"archive" in req.query ||
+      !"label" in req.query ||
+      !"fieldLabel" in req.query
+    ) {
+      return res.status(400).send({
+        message: "archive, label, fieldLabel is required",
+      });
+    }
+
+    /* find archive */
+    const archive = await Archive(req.user.academyId).findById(
+      req.query.archive
+    );
+    if (!archive) return res.status(404).send({ message: "archive not found" });
+    if (
+      !req.query.label in archive.data ||
+      !req.query.fieldLabel in archive.data[req.query.label] ||
+      !"key" in archive.data[req.query.label][req.query.fieldLabel]
+    ) {
+      return res.status(404).send({ message: "archive not found" });
+    }
+    if (
+      archive.data[req.query.label][req.query.fieldLabel].key !== req.query.key
+    ) {
+      return res.status(404).send({ message: "archive not found" });
+    }
+
+    /* find school & check permission */
+    const school = await School(req.user.academyId)
+      .findById(archive.school)
+      .lean();
+    if (!school) return res.status(404).send({ message: "school not found" });
+    const form = _.find(
+      school.formArchive,
+      (form) => form.label === req.query.label
+    );
+    if (!form)
+      return res.status(404).send({
+        message: "form not found",
+      });
+    const field = _.find(
+      form.fields,
+      (field) => field.label === req.query.fieldLabel
+    );
+    if (!field)
+      return res.status(404).send({
+        message: "form not found",
+      });
+
+    const authStudent = form.authStudent ?? "undefined";
+    const authTeacher = form.authTeacher ?? "undefined";
+
+    if (archive.user.equals(req.user._id)) {
+      if (authStudent !== "view") {
+        return res.status(403).send({ message: "Access Denied" });
+      }
+    } else {
+      if (authTeacher === "viewAndEditStudents") {
+        const registrationTeacher = await Registration(req.user.academyId)
+          .findOne({
+            school: archive.school,
+            user: req.user._id,
+            role: "teacher",
+          })
+          .lean();
+        if (!registrationTeacher) {
+          return res.status(403).send({ message: "Access Denied" });
+        }
+      } else if (authTeacher === "viewAndEditMyStudents") {
+        const registrationStudent = await Registration(req.user.academyId)
+          .findOne({
+            $or: [
+              {
+                school: archive.school,
+                user: archive.user,
+                teacher: req.user._id,
+              },
+              {
+                school: archive.school,
+                user: archive.user,
+                subTeacher: req.user._id,
+              },
+            ],
+          })
+          .lean();
+        if (!registrationStudent) {
+          return res.status(403).send({ message: "Access Denied" });
+        }
+      } else {
+        return res.status(403).send({ message: "Access Denied" });
+      }
+    }
+
     seconds = 60;
   } else if (keys[1] === "backup") {
     // is owner?
