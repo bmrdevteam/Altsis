@@ -29,7 +29,6 @@ const formArchiveSchema = mongoose.Schema(
     /*
      * "undefined"
      * "viewAndEditStudents"
-     * "viewStudentsAndEditMyStudents"
      * "viewAndEditMyStudents"
      */
     authStudent: { type: String, default: "undefined" },

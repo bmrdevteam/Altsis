@@ -12,18 +12,8 @@ type Props = {};
 
 const authTeacherToTextMap = new Map<string, string>();
 authTeacherToTextMap.set("undefined", "미설정");
-authTeacherToTextMap.set(
-  "viewAndEditStudents",
-  "모든 학생 조회 + 모든 학생 수정"
-);
-authTeacherToTextMap.set(
-  "viewStudentsAndEditMyStudents",
-  "모든 학생 조회 + 담당 학생 수정"
-);
-authTeacherToTextMap.set(
-  "viewAndEditMyStudents",
-  "담당 학생 조회 + 담당 학생 수정"
-);
+authTeacherToTextMap.set("viewAndEditStudents", "모든 학생 조회 및 수정");
+authTeacherToTextMap.set("viewAndEditMyStudents", "담당 학생 조회 및 수정");
 
 const textToAuthTeacherMap = new Map<string, string>();
 for (let item of Array.from(authTeacherToTextMap)) {
