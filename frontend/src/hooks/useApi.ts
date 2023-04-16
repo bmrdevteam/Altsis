@@ -506,6 +506,8 @@ export default function useApi() {
     userId?: string;
     userName?: string;
     role?: "student" | "teacher";
+    teacher?: string;
+    subTeacher?: string;
   }) {
     const { registrations: result } = await database.R({
       location: `registrations${QUERY_BUILDER(params)}`,

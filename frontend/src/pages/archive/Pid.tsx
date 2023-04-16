@@ -13,14 +13,17 @@ import Button from "components/button/Button";
 
 import ArrayView from "./tab/ArrayView";
 import ObjectView from "./tab/ObjectView";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
 const ArchiveField = (props: Props) => {
   const { pid } = useParams(); // archive label ex) 인적 사항
   const { RegistrationApi } = useApi();
-  const { currentSchool, currentRegistration } = useAuth();
+  const { currentUser, currentSchool, currentRegistration } = useAuth();
   const navigate = useNavigate();
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [, setRegistrationList] = useState<any[]>([]);
   const [selectedRegistrationList, setSelectedRegistrationList] = useState<
@@ -31,20 +34,79 @@ const ArchiveField = (props: Props) => {
   const [selectPopupAtcive, setSelectPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentRegistration?.role !== "teacher") {
-      alert("접근 권한이 없습니다.");
-      navigate("/");
-    } else if (currentRegistration?.season) {
-      RegistrationApi.RRegistrations({
-        season: currentRegistration.season,
-        role: "student",
-      }).then((res) => {
-        const registrations = _.sortBy(res, ["grade", "userName"]);
-        setRegistrationList(registrations);
-        registrationListRef.current = registrations;
-      });
+    if (currentRegistration && pid) {
+      setIsLoading(true);
     }
-  }, [currentRegistration]);
+  }, [currentRegistration, pid]);
+
+  useEffect(() => {
+    if (isLoading) {
+      if (
+        !currentRegistration ||
+        currentRegistration?.role !== "teacher" ||
+        !formArchive().authTeacher ||
+        formArchive().authTeacher === "undefined"
+      ) {
+        alert("접근 권한이 없습니다.");
+        navigate("/");
+      }
+      if (formArchive().authTeacher === "viewAndEditStudents") {
+        RegistrationApi.RRegistrations({
+          season: currentRegistration.season,
+          role: "student",
+        })
+          .then((res) => {
+            console.log(selectedRegistrationList);
+            const registrations = _.sortBy(res, ["grade", "userName"]).map(
+              (registration) => {
+                registration.tableRowChecked =
+                  _.findIndex(selectedRegistrationList, {
+                    _id: registration._id,
+                  }) !== -1;
+                return registration;
+              }
+            );
+            setRegistrationList(registrations);
+            registrationListRef.current = registrations;
+          })
+          .then(() => setIsLoading(false));
+      } else if (formArchive().authTeacher === "viewAndEditMyStudents") {
+        RegistrationApi.RRegistrations({
+          season: currentRegistration.season,
+          role: "student",
+          teacher: currentUser._id,
+        }).then((res1) => {
+          RegistrationApi.RRegistrations({
+            season: currentRegistration.season,
+            role: "student",
+            subTeacher: currentUser._id,
+          })
+            .then((res2) => {
+              const registrations = _.sortBy(
+                [...res1, ...res2],
+                ["grade", "userName"]
+              ).map((registration) => {
+                registration.tableRowChecked =
+                  _.findIndex(selectedRegistrationList, {
+                    _id: registration._id,
+                  }) !== -1;
+                return registration;
+              });
+              setRegistrationList(registrations);
+              registrationListRef.current = registrations;
+              setSelectedRegistrationList(
+                selectedRegistrationList.filter(
+                  (registration: any) =>
+                    registration.teacher === currentUser._id ||
+                    registration.subTeacher === currentUser._id
+                )
+              );
+            })
+            .then(() => setIsLoading(false));
+        });
+      }
+    }
+  }, [isLoading]);
 
   const selectedStudents = () => {
     if (selectedRegistrationList.length === 0) {
@@ -88,11 +150,11 @@ const ArchiveField = (props: Props) => {
     return (
       currentSchool.formArchive?.filter((val: any) => {
         return val.label === pid;
-      })[0] ?? { fields: [] }
+      })[0] ?? { authTeacher: "undefined", fields: [] }
     );
   }
 
-  return (
+  return !isLoading ? (
     <>
       <Navbar />
       <div className={style.section}>
@@ -190,6 +252,8 @@ const ArchiveField = (props: Props) => {
         </Popup>
       )}
     </>
+  ) : (
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
