@@ -11,7 +11,6 @@ type Props = {};
 const One = (props: Props) => {
   const { ArchiveApi } = useApi();
   const { pid } = useParams(); // archive label ex) 인적 사항
-  const navigate = useNavigate();
 
   const { currentSchool, currentRegistration } = useAuth();
 
@@ -19,32 +18,17 @@ const One = (props: Props) => {
   const [archiveData, setArchiveData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (currentRegistration && pid) {
-      setIsLoading(true);
-    }
-  }, [currentRegistration, pid]);
-
-  useEffect(() => {
-    if (isLoading && currentSchool?.formArchive && currentRegistration && pid) {
-      const myFormArchive = _.find(currentSchool?.formArchive, {
+    if (isLoading && currentRegistration && pid) {
+      ArchiveApi.RArchiveByRegistration({
+        registrationId: currentRegistration?._id,
         label: pid,
-        authOptionStudentView: true,
-      });
-      if (!myFormArchive) {
-        alert("조회 가능한 정보가 없습니다.");
-        navigate("/myArchive");
-      } else {
-        ArchiveApi.RArchiveByRegistration({
-          registrationId: currentRegistration?._id,
-          label: pid,
+      })
+        .then((res) => {
+          setArchiveData(res.data[pid]);
         })
-          .then((res) => {
-            setArchiveData(res.data[pid]);
-          })
-          .then(() => {
-            setIsLoading(false);
-          });
-      }
+        .then(() => {
+          setIsLoading(false);
+        });
     }
   }, [isLoading]);
 

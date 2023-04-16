@@ -18,37 +18,24 @@ const One = (props: Props) => {
   const { currentSchool, currentRegistration } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [archiveId, setArchiveId] = useState<string>("");
   const [archiveData, setArchiveData] = useState<any>({});
 
   const [refresh, setRefresh] = useState<boolean>(false);
 
   useEffect(() => {
-    if (pid) {
-      setIsLoading(true);
-    }
-  }, [pid]);
-
-  useEffect(() => {
-    if (isLoading && currentSchool?.formArchive && currentRegistration && pid) {
-      const myFormArchive = _.find(currentSchool?.formArchive, {
+    if (isLoading && currentRegistration && pid) {
+      ArchiveApi.RArchiveByRegistration({
+        registrationId: currentRegistration?._id,
         label: pid,
-        authOptionStudentView: true,
-      });
-      if (!myFormArchive) {
-        alert("조회 가능한 정보가 없습니다.");
-        navigate("/myArchive");
-      } else {
-        ArchiveApi.RArchiveByRegistration({
-          registrationId: currentRegistration?._id,
-          label: pid,
+      })
+        .then((res) => {
+          setArchiveId(res._id);
+          setArchiveData(res.data[pid]);
         })
-          .then((res) => {
-            setArchiveData(res.data[pid]);
-          })
-          .then(() => {
-            setIsLoading(false);
-          });
-      }
+        .then(() => {
+          setIsLoading(false);
+        });
     }
   }, [isLoading]);
 
@@ -97,7 +84,6 @@ const One = (props: Props) => {
                 display: "flex",
                 alignItems: "center",
                 flexDirection: "column",
-                maxWidth: "240px",
                 margin: "12px",
               }}
             >
@@ -109,12 +95,13 @@ const One = (props: Props) => {
                 }}
                 onClick={async () => {
                   try {
-                    const { preSignedUrl, expiryDate } = await FileApi.SignFile(
-                      {
-                        key: archiveData?.[label]?.key,
-                        fileName: archiveData?.[label]?.originalName,
-                      }
-                    );
+                    const { preSignedUrl } = await FileApi.SignFileArchive({
+                      key: archiveData?.[label]?.key,
+                      fileName: archiveData?.[label]?.originalName,
+                      archive: archiveId,
+                      label: pid ?? "",
+                      fieldLabel: label,
+                    });
 
                     const anchor = document.createElement("a");
                     anchor.href = preSignedUrl;
@@ -129,17 +116,6 @@ const One = (props: Props) => {
                 {archiveData?.[label]?.originalName || "untitled"}
               </span>
             </div>
-            <div
-              style={{
-                flex: "auto",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "12px",
-                marginTop: "12px",
-                marginBottom: "12px",
-                alignItems: "center",
-              }}
-            ></div>
           </div>
         </div>
       );
@@ -199,13 +175,19 @@ const One = (props: Props) => {
                 src={archiveData?.[label]?.preSignedUrl}
                 onError={async (e) => {
                   e.currentTarget.onerror = null;
-                  const { preSignedUrl, expiryDate } = await FileApi.SignFile({
-                    key: archiveData?.[label]?.key,
-                    fileName: archiveData?.[label]?.originalName,
-                  });
+                  const { preSignedUrl, expiryDate } =
+                    await FileApi.SignFileArchive({
+                      key: archiveData?.[label]?.key,
+                      fileName: archiveData?.[label]?.originalName,
+                      archive: archiveId,
+                      label: pid ?? "",
+                      fieldLabel: label,
+                    });
 
                   archiveData[label].preSignedUrl = preSignedUrl;
                   archiveData[label].expiryDate = expiryDate;
+
+                  setRefresh(true);
                 }}
                 alt="profile"
               />
@@ -218,12 +200,14 @@ const One = (props: Props) => {
                 }}
                 onClick={async () => {
                   try {
-                    const { preSignedUrl, expiryDate } = await FileApi.SignFile(
-                      {
-                        key: archiveData[label]?.key,
-                        fileName: archiveData[label]?.originalName,
-                      }
-                    );
+                    const { preSignedUrl, expiryDate } =
+                      await FileApi.SignFileArchive({
+                        key: archiveData?.[label]?.key,
+                        fileName: archiveData?.[label]?.originalName,
+                        archive: archiveId,
+                        label: pid ?? "",
+                        fieldLabel: label,
+                      });
 
                     const anchor = document.createElement("a");
                     anchor.href = preSignedUrl;
@@ -238,17 +222,6 @@ const One = (props: Props) => {
                 {archiveData[label]?.originalName || "untitled"}
               </span>
             </div>
-            <div
-              style={{
-                flex: "auto",
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "12px",
-                marginTop: "12px",
-                marginBottom: "12px",
-                alignItems: "center",
-              }}
-            ></div>
           </div>
         </div>
       );
