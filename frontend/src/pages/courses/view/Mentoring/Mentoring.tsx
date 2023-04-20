@@ -191,14 +191,12 @@ const CoursePid = (props: Props) => {
                       text,
                       key,
                       type: "input-number",
-                      whiteSpace: "pre",
                     });
                   } else if (val.type === "select") {
                     _formEvaluationHeader.push({
                       text,
                       key,
                       type: "select",
-                      whiteSpace: "pre",
                       option: val.options,
                     });
                   } else {
@@ -206,7 +204,6 @@ const CoursePid = (props: Props) => {
                       text,
                       key,
                       type: "input",
-                      whiteSpace: "pre",
                     });
                   }
                 } else if (val.auth.view.student) {
@@ -214,7 +211,7 @@ const CoursePid = (props: Props) => {
                     text,
                     key,
                     type: "text",
-                    whiteSpace: "pre",
+                    whiteSpace: "pre-wrap",
                   });
                 }
               });
@@ -224,7 +221,7 @@ const CoursePid = (props: Props) => {
                   text: val.label,
                   key: "evaluation." + val.label,
                   type: "text",
-                  whiteSpace: "pre",
+                  whiteSpace: "pre-wrap",
                 });
               });
             }
