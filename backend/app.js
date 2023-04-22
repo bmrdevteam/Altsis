@@ -57,9 +57,24 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session()); //반드시 app.use(session(...)) 아래에 있어야 함
 
-const combined =
-  ':remote-addr - :remote-user ":method :url HTTP/:http-version" :body ":status :response-time ms" ":referrer" ":user-agent"';
-morgan.token("body", (req, res) => JSON.stringify(req.body));
+// const combined =
+//   ':remote-addr - :remote-user ":method :url HTTP/:http-version" :body ":status :response-time ms" ":referrer" ":user-agent"';
+
+const combined = (tokens, req, res) => {
+  return [
+    `HTTP/${tokens["http-version"](req, res)}`, // HTTP/1.1,
+    tokens["remote-addr"](req, res), // ip
+    req.user?._id ?? "undefined",
+    tokens["method"](req, res), // POST, GET, ...
+    tokens["url"](req, res), // '/api/users/current'
+    JSON.stringify(req.body), // req.body
+    tokens["status"](req, res), // 200, 404, ...
+    tokens["response-time"](req, res), // ms
+    '"' + tokens["referrer"](req, res) + '"',
+    '"' + tokens["user-agent"](req, res) + '"',
+  ].join(",");
+};
+
 app.use(
   morgan(combined, {
     skip: (req, res) => req.url === "/index.html",
