@@ -12,7 +12,7 @@ const { initializeWebSocket } = require("./utils/webSocket");
 
 /* logger */
 const morgan = require("morgan");
-const { stream } = require("./log/logger");
+const { logger } = require("./log/logger");
 
 const app = express();
 
@@ -78,9 +78,11 @@ const combined = (tokens, req, res) => {
 app.use(
   morgan(combined, {
     skip: (req, res) => req.url === "/index.html",
-    stream,
+    stream: logger.stream,
   })
 );
+
+// app.use(morgan(morganFormat, { stream: logger.stream })); // morgan
 
 routers.forEach((router) => {
   app.use("/api/" + router, require("./routes/" + router));
