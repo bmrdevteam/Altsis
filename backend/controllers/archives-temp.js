@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const { Archive, School, User } = require("../models");
 const multer = require("multer");
@@ -109,6 +110,7 @@ module.exports.create = async (req, res) => {
     await archive.save();
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -140,6 +142,7 @@ module.exports.find = async (req, res) => {
     archive.files = undefined;
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -151,6 +154,7 @@ module.exports.findById = async (req, res) => {
     archive.clean(); //DEVELOPMENT MODE
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -166,6 +170,7 @@ module.exports.updateDataField = async (req, res) => {
     archive.files = undefined;
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -178,6 +183,7 @@ module.exports.updateFileField = async (req, res) => {
         return res.status(409).send({ message: err.message });
       if (err.code == "ARCHIVE_NOT_FOUND")
         return res.status(404).send({ message: err.message });
+      logger.error(err.message);
       return res.status(500).send({ message: err.message });
     }
 
@@ -226,6 +232,7 @@ module.exports.removeField = async (req, res) => {
     archive.files = undefined;
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -264,7 +271,8 @@ module.exports.test = async (req, res) => {
   //       return res.status(409).send({ message: err.message });
   //     if (err.code == "ARCHIVE_NOT_FOUND")
   //       return res.status(404).send({ message: err.message });
-  //     return res.status(500).send({ message: err.message });
+  //     logger.error(err.message);
+  return res.status(500).send({ message: err.message });
   //   }
 
   //   const { archive, key } = req.mm;

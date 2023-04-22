@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const { Season, Registration, Syllabus, Enrollment } = require("../models");
 const _ = require("lodash");
 
@@ -75,6 +76,7 @@ module.exports.create = async (req, res) => {
     await syllabus.save();
     return res.status(200).send(syllabus);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

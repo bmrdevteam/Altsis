@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const {
   Season,
@@ -122,6 +123,7 @@ module.exports.create = async (req, res) => {
     await season.save();
     return res.status(200).send(season);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -155,6 +157,7 @@ module.exports.find = async (req, res) => {
 
     return res.status(200).send({ seasons });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

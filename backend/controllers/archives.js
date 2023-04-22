@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const { Archive, User, School, Registration, Season } = require("../models");
 const ObjectId = require("mongoose").Types.ObjectId;
 const _ = require("lodash");
@@ -18,6 +19,7 @@ module.exports.findByLabel = async (req, res) => {
       archive,
     });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -63,6 +65,7 @@ module.exports.findByRegistration = async (req, res) => {
 
     return res.status(200).send({ archive: { _id: archive._id } });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -239,6 +242,7 @@ module.exports.find = async (req, res) => {
 
     return res.status(200).send({ archive });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -276,6 +280,7 @@ module.exports.updateBulk = async (req, res) => {
     await Promise.all(archives.map((archive) => archive.save()));
     return res.status(200).send({});
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -291,6 +296,7 @@ module.exports.update = async (req, res) => {
     await archive.save();
     return res.status(200).send({ archive });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const { addConnection, deleteConnection } = require("../databases/connection");
 const {
   User,
@@ -48,6 +49,7 @@ module.exports.create = async (req, res) => {
       adminPassword: password,
     });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -94,6 +96,7 @@ module.exports.find = async (req, res) => {
     ]);
     return res.status(200).send({ academies });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -109,6 +112,7 @@ module.exports.activate = async (req, res) => {
     await academy.save();
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -124,6 +128,7 @@ module.exports.inactivate = async (req, res) => {
     await academy.save();
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -146,6 +151,7 @@ module.exports.update = async (req, res) => {
     await academy.save();
     return res.status(200).send(academy);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -178,6 +184,7 @@ module.exports.findDocuments = async (req, res) => {
 
     return res.status(200).send({ documents });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -198,6 +205,7 @@ module.exports.deleteDocument = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -215,6 +223,7 @@ module.exports.remove = async (req, res) => {
     await deleteConnection(academy.academyId);
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

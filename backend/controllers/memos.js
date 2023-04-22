@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 
 const { Registration } = require("../models");
@@ -22,6 +23,7 @@ module.exports.create = async (req, res) => {
     await registration.save();
     return res.status(200).send({ memos: registration.memos });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -56,6 +58,7 @@ module.exports.update = async (req, res) => {
     await registration.save();
     return res.status(200).send({ memos: registration.memos });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -78,6 +81,7 @@ module.exports.remove = async (req, res) => {
     await registration.save();
     return res.status(200).send({ memos: registration.memos });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
