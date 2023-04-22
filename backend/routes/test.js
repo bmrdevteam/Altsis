@@ -1,8 +1,18 @@
+const { logger } = require("../log/logger");
 const express = require("express");
 const router = express.Router();
 const { isLoggedIn } = require("../middleware/auth");
 
 const test = require("../controllers/test");
+
+router.get("/", async (req, res) => {
+  try {
+    return res.status(200).send({ message: "hello world! /v2" });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+});
 
 router.post("/testdata", isLoggedIn, test.createTestData);
 router.get("/testdata/:_id?", isLoggedIn, test.getTestData);
