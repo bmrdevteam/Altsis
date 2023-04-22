@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const { Notification } = require("../models");
 const client = require("../caches/redis");
@@ -62,6 +63,7 @@ module.exports.send = async (req, res) => {
 
     return res.status(200).send({ notifications: newNotifications });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -89,6 +91,7 @@ module.exports.find = async (req, res) => {
       .status(200)
       .send({ notifications: _.sortBy(notifications, "createdAt").reverse() });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -101,6 +104,7 @@ module.exports.check = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -113,6 +117,7 @@ module.exports.uncheck = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -135,6 +140,7 @@ module.exports.remove = async (req, res) => {
     await Promise.all(removes);
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

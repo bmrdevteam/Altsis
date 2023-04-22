@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const multer = require("multer");
 const multerS3 = require("multer-s3");
 const aws = require("aws-sdk");
@@ -45,6 +46,7 @@ exports.upload = async (req, res) => {
     if (err) {
       if (err.code == "LIMIT_FILE_SIZE" || err.code == "INVALID_FILE_TYPE")
         return res.status(409).send({ message: err.message });
+      logger.error(err.message);
       return res.status(500).send({ message: err.message });
     }
 

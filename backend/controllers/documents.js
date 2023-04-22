@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const { School, Season } = require("../models");
 const _ = require("lodash");
 
@@ -68,6 +69,7 @@ module.exports.findData = async (req, res) => {
     const documentData = await findDataOfSchool(req.user.academyId, school);
     return res.status(200).send(documentData);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

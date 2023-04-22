@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const { User, Registration, Season } = require("../models");
 
@@ -45,6 +46,7 @@ module.exports.registerBulk = async (req, res) => {
     );
     return res.status(200).send({ registerations: newRegistrations });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -83,6 +85,7 @@ module.exports.registerCopy = async (req, res) => {
     );
     return res.status(200).send({ registerations: newRegistrations });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -100,6 +103,7 @@ module.exports.find = async (req, res) => {
     );
     return res.status(200).send({ registrations });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -136,6 +140,7 @@ module.exports.update = async (req, res) => {
 
     return res.status(200).send(registrations);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

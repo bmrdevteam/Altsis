@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const passport = require("passport");
 const _ = require("lodash");
 const {
@@ -105,6 +106,7 @@ module.exports.create = async (req, res) => {
     user.password = req.user.auth === "admin" ? user.password : undefined;
     return res.status(200).send(user);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -164,6 +166,7 @@ module.exports.createBulk = async (req, res) => {
 
     return res.status(200).send({ users });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -212,6 +215,7 @@ module.exports.current = async (req, res) => {
       notifications: _.sortBy(notifications, "createdAt").reverse(),
     });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -223,6 +227,7 @@ module.exports.findProfile = async (req, res) => {
       .select("profile");
     return res.status(200).send(user);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -267,6 +272,7 @@ module.exports.find = async (req, res) => {
 
     return res.status(200).send({ users });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -292,6 +298,7 @@ module.exports.updateAuth = async (req, res) => {
     await user.save();
     return res.status(200).send(user);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -316,6 +323,7 @@ module.exports.updateSchools = async (req, res) => {
     await user.save();
     return res.status(200).send(user);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -352,6 +360,7 @@ module.exports.updateSchoolsBulk = async (req, res) => {
 
     return res.status(200).send({ users });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -383,6 +392,7 @@ module.exports.connectGoogle = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -423,6 +433,7 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
       }
     })(req, res);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -451,7 +462,8 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
 //       }
 //     })(req, res);
 //   } catch (err) {
-//     return res.status(500).send({ message: err.message });
+//     logger.error(err.message);
+// return res.status(500).send({ message: err.message });
 //   }
 // };
 
@@ -466,6 +478,7 @@ module.exports.updatePassword = async (req, res) => {
     await user.save();
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -480,6 +493,7 @@ module.exports.updateEmail = async (req, res) => {
     await user.save();
     return res.status(200).send({ email: user.email });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -494,6 +508,7 @@ module.exports.updateTel = async (req, res) => {
     await user.save();
     return res.status(200).send({ tel: user.tel });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -538,6 +553,7 @@ module.exports.update = async (req, res) => {
     await user.save();
     return res.status(200).send(user);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -553,6 +569,7 @@ module.exports.delete = async (req, res) => {
     });
     return res.status(200).send(result);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
