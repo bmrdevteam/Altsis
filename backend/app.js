@@ -10,6 +10,10 @@ const passportConfig = require("./passport");
 const routers = require("./routes/index");
 const { initializeWebSocket } = require("./utils/webSocket");
 
+/* logger */
+const morgan = require("morgan");
+const { stream } = require("./log/logger");
+
 const app = express();
 
 passportConfig();
@@ -52,6 +56,16 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session()); //반드시 app.use(session(...)) 아래에 있어야 함
+
+const combined =
+  ':remote-addr - :remote-user ":method :url HTTP/:http-version" :body ":status :response-time ms" ":referrer" ":user-agent"';
+morgan.token("body", (req, res) => JSON.stringify(req.body));
+app.use(
+  morgan(combined, {
+    skip: (req, res) => req.url === "/index.html",
+    stream,
+  })
+);
 
 routers.forEach((router) => {
   app.use("/api/" + router, require("./routes/" + router));
