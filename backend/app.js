@@ -64,6 +64,7 @@ const combined = (tokens, req, res) => {
   return [
     `HTTP/${tokens["http-version"](req, res)}`, // HTTP/1.1,
     tokens["remote-addr"](req, res), // ip
+    req.user?.academyId ?? "undefined",
     req.user?._id ?? "undefined",
     tokens["method"](req, res), // POST, GET, ...
     tokens["url"](req, res), // '/api/users/current'
