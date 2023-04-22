@@ -84,9 +84,9 @@ jobs:
       - name: Send Slack Notification
         uses: 8398a7/action-slack@v3
         with:
+          author_name: backend-CI
           status: ${{ job.status }}
-          author_name: Github Action Chatbot - backend-CI
-          fields: repo,commit,message,author,action,took
+          fields: workflow,job,author,message,took
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
         if: always() # Pick up events even if the job fails or is canceled.
@@ -94,7 +94,10 @@ jobs:
   backend-CD:
     name: backend-CD
     needs: backend-CI
-    runs-on: [self-hosted, label-go] # AWS ./configure에서 사용할 label명
+    strategy:
+      matrix:
+        labels: [L0]
+    runs-on: ${{ matrix.labels }}
     env:
       SERVER_PORT: ${{secrets.SERVER_PORT_DEV}}
 
@@ -132,9 +135,10 @@ jobs:
       - name: Send Slack Notification
         uses: 8398a7/action-slack@v3
         with:
+          author_name: backend-CD
           status: ${{ job.status }}
-          author_name: Github Action Chatbot - backend-CD
-          fields: repo,commit,message,author,action,took
+          fields: workflow,job,author,message,took
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+          MATRIX_CONTEXT: ${{ toJson(matrix) }} # required
         if: always() # Pick up events even if the job fails or is canceled.
