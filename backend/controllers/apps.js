@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const { Apps, School, User } = require("../models");
 
@@ -16,8 +17,7 @@ module.exports.create = async (req, res) => {
       title: req.body.title,
     });
 
-    if (exApps)
-      return res.status(409).send({ message: `apps already exists` });
+    if (exApps) return res.status(409).send({ message: `apps already exists` });
 
     /* create and save document */
     const apps = new _Apps({
@@ -27,6 +27,7 @@ module.exports.create = async (req, res) => {
     await apps.save();
     return res.status(200).send(apps);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -38,6 +39,7 @@ module.exports.find = async (req, res) => {
     // apps.clean(); //DEVELOPMENT MODE
     return res.status(200).send(apps);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -49,6 +51,7 @@ module.exports.findById = async (req, res) => {
     // apps.clean(); //DEVELOPMENT MODE
     return res.status(200).send(apps);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -63,6 +66,7 @@ module.exports.updateDataField = async (req, res) => {
     await apps.save();
     return res.status(200).send(apps);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

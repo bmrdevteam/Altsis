@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const {
   Enrollment,
   Syllabus,
@@ -118,6 +119,7 @@ module.exports.enroll = async (req, res) => {
     await enrollment.save();
     return res.status(200).send(enrollment);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -232,6 +234,7 @@ module.exports.enrollbulk = async (req, res) => {
     // );
     return res.status(200).send({ enrollments });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -336,6 +339,7 @@ module.exports.find = async (req, res) => {
     }
     return res.status(400).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -360,16 +364,16 @@ module.exports.findEvaluations = async (req, res) => {
 
       return res.status(200).send({
         syllabus: syllabus.getSubdocument(),
-        enrollments: enrollments.map((eval) => {
+        enrollments: enrollments.map((e) => {
           return {
-            _id: eval._id,
-            student: eval.student,
-            studentId: eval.studentId,
-            studentName: eval.studentName,
-            studentGrade: eval.studentGrade,
-            evaluation: eval.evaluation,
-            createdAt: eval.createdAt,
-            updatedAt: eval.updatedAt,
+            _id: e._id,
+            student: e.student,
+            studentId: e.studentId,
+            studentName: e.studentName,
+            studentGrade: e.studentGrade,
+            evaluation: e.evaluation,
+            createdAt: e.createdAt,
+            updatedAt: e.updatedAt,
           };
         }),
       });
@@ -380,6 +384,7 @@ module.exports.findEvaluations = async (req, res) => {
       .select("-info");
     return res.status(200).send({ enrollments });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -420,6 +425,7 @@ module.exports.updateEvaluation = async (req, res) => {
 
     return res.status(401).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -513,6 +519,7 @@ module.exports.updateEvaluation2 = async (req, res) => {
 
     return res.status(200).send(enrollment);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -534,6 +541,7 @@ module.exports.updateMemo = async (req, res) => {
     await enrollment.save();
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -626,6 +634,7 @@ module.exports.remove = async (req, res) => {
     }
     return res.status(400).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

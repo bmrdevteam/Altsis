@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const { School, Season } = require("../models");
 
@@ -22,6 +23,7 @@ module.exports.create = async (req, res) => {
     await school.save();
     return res.status(200).send(school);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -56,6 +58,7 @@ module.exports.find = async (req, res) => {
       .select(["schoolId", "schoolName"]);
     return res.status(200).send({ schools });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

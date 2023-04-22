@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const { Form } = require("../models");
 
 module.exports.create = async (req, res) => {
@@ -42,6 +43,7 @@ module.exports.create = async (req, res) => {
     await form.save();
     return res.status(200).send(form);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -57,6 +59,7 @@ module.exports.find = async (req, res) => {
       .select("-data");
     return res.status(200).send({ forms });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -86,6 +89,7 @@ module.exports.update = async (req, res) => {
     await form.save();
     return res.status(200).send(form);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -97,6 +101,7 @@ module.exports.remove = async (req, res) => {
     await form.remove();
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

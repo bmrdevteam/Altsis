@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const client = require("../caches/redis");
 
@@ -19,6 +20,7 @@ module.exports.createTestData = async (req, res) => {
     await td.save();
     return res.status(200).send(td);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -33,6 +35,7 @@ module.exports.getTestData = async (req, res) => {
     const tds = await TestData(req.user.academyId).find(req.query);
     return res.status(200).send({ tds });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -46,6 +49,7 @@ module.exports.updateTestData = async (req, res) => {
     await td.save();
     return res.status(200).send(td);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -58,6 +62,7 @@ module.exports.removeTestData = async (req, res) => {
     await td.remove();
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -71,6 +76,7 @@ module.exports.db = async (req, res) => {
       message: "hello world! this is test/db",
     });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -212,6 +218,7 @@ module.exports.includeUid = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -259,6 +266,7 @@ module.exports.includeUidinArchive = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -309,6 +317,7 @@ module.exports.includeSchoolIdAndSchoolNameinArchive = async (req, res) => {
 
     return res.status(200).send({ cnt });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };

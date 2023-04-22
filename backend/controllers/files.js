@@ -1,3 +1,4 @@
+const { logger } = require("../log/logger");
 const _ = require("lodash");
 const {
   Enrollment,
@@ -111,6 +112,7 @@ module.exports.uploadArchive = async (req, res) => {
         return res.status(409).send({ message: err.message });
       if (err.code == "ARCHIVE_NOT_FOUND")
         return res.status(404).send({ message: err.message });
+      logger.error(err.message);
       return res.status(500).send({ message: err.message });
     }
 
@@ -312,6 +314,7 @@ module.exports.findBackup = async (req, res) => {
 
     return res.status(200).send({ list });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -407,6 +410,7 @@ module.exports.uploadBackup = async (req, res) => {
 
     return res.status(200).send({ logs });
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -439,6 +443,7 @@ module.exports.removeBackup = async (req, res) => {
 
     return res.status(200).send({});
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -477,6 +482,7 @@ module.exports.restoreBackup = async (req, res) => {
     return res.status(200).send({});
   } catch (err) {
     console.log(err);
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -515,6 +521,7 @@ module.exports.create = async (req, res) => {
     await archive.save();
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -546,6 +553,7 @@ module.exports.find = async (req, res) => {
     archive.files = undefined;
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -557,6 +565,7 @@ module.exports.findById = async (req, res) => {
     archive.clean(); //DEVELOPMENT MODE
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -572,6 +581,7 @@ module.exports.updateDataField = async (req, res) => {
     archive.files = undefined;
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -608,6 +618,7 @@ module.exports.removeField = async (req, res) => {
     archive.files = undefined;
     return res.status(200).send(archive);
   } catch (err) {
+    logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
@@ -646,7 +657,8 @@ module.exports.test = async (req, res) => {
   //       return res.status(409).send({ message: err.message });
   //     if (err.code == "ARCHIVE_NOT_FOUND")
   //       return res.status(404).send({ message: err.message });
-  //     return res.status(500).send({ message: err.message });
+  //     logger.error(err.message);
+  return res.status(500).send({ message: err.message });
   //   }
 
   //   const { archive, key } = req.mm;
