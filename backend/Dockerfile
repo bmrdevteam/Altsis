@@ -1,5 +1,8 @@
 FROM node:16-alpine
 
+## Timezone 설정
+RUN apk add tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
+
 # 이미지 내에서 명령어를 실행할 디렉토리 설정
 RUN mkdir -p /app
 WORKDIR /app
