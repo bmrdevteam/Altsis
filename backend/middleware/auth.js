@@ -4,7 +4,6 @@ const client = require("../caches/redis");
 
 exports.isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
-    logger.info(`${req.user._id}`);
     next();
   } else {
     res.status(403).send({ message: "You are not logged in." });
