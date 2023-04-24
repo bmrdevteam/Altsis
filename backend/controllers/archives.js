@@ -117,7 +117,7 @@ module.exports.find = async (req, res) => {
 
       const archives = [];
       for (let registration of registrations) {
-        const archive = await Archive(req.user.academyId).findOne({
+        let archive = await Archive(req.user.academyId).findOne({
           school: registration.school,
           user: registration.user,
         });
