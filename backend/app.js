@@ -68,7 +68,7 @@ const combined = (tokens, req, res) => {
     req.user?._id ?? "undefined",
     tokens["method"](req, res), // POST, GET, ...
     tokens["url"](req, res), // '/api/users/current'
-    JSON.stringify(req.body), // req.body
+    '"' + JSON.stringify(req.body) + '"', // req.body
     tokens["status"](req, res), // 200, 404, ...
     tokens["response-time"](req, res), // ms
     '"' + tokens["referrer"](req, res) + '"',
