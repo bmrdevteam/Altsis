@@ -942,14 +942,12 @@ const Table = (props: Props) => {
                               onFocus={(e) => {
                                 e.currentTarget.style.height =
                                   e.currentTarget.scrollHeight + "px";
-                                e.currentTarget.style.width =
-                                  e.currentTarget.scrollWidth + "px";
+                                e.currentTarget.style.width = "300px";
                               }}
                               onKeyDown={(e) => {
                                 e.currentTarget.style.height =
                                   e.currentTarget.scrollHeight + "px";
-                                e.currentTarget.style.width =
-                                  e.currentTarget.scrollWidth + "px";
+                                e.currentTarget.style.width = "300px";
                               }}
                               style={{
                                 whiteSpace: val.whiteSpace,
