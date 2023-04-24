@@ -136,7 +136,7 @@ const School = (props: Props) => {
                   setSeasonList={setSeasonList}
                 />
               ),
-              기록: <Archive />,
+              기록: <Archive school={schoolData._id} />,
               사용자: <User schoolData={schoolData} />,
               "사이드바 링크": (
                 <Links schoolData={schoolData} setSchoolData={setSchoolData} />
