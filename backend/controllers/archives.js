@@ -130,7 +130,7 @@ module.exports.find = async (req, res) => {
             schoolId: registration.schoolId,
             schoolName: registration.schoolName,
           });
-          // await archive.save();
+          await archive.save();
           archives.push({
             ...registration,
             ...archive.toObject(),
@@ -168,7 +168,7 @@ module.exports.find = async (req, res) => {
             .send({ message: "teacher registration not found" });
       }
 
-      const archive = await Archive(req.user.academyId).findOne({
+      let archive = await Archive(req.user.academyId).findOne({
         school: registration.school,
         user: registration.user,
       });
@@ -181,6 +181,7 @@ module.exports.find = async (req, res) => {
           schoolId: registration.schoolId,
           schoolName: registration.schoolName,
         });
+        await archive.save();
 
         return res.status(200).send({
           ...registration,

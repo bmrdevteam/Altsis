@@ -8,7 +8,7 @@ import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 import { unflattenObject } from "functions/functions";
 
-type Props = {};
+type Props = { school: string };
 
 const authTeacherToTextMap = new Map<string, string>();
 authTeacherToTextMap.set("undefined", "미설정");
@@ -31,7 +31,6 @@ for (let item of Array.from(authStudentToTextMap)) {
 
 function Archive(props: Props) {
   const { SchoolApi } = useApi();
-  const { currentSchool } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const formData = useRef<any>([]);
@@ -48,14 +47,8 @@ function Archive(props: Props) {
   ] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentSchool?._id) {
-      setIsLoading(true);
-    }
-  }, [currentSchool]);
-
-  useEffect(() => {
-    if (isLoading && currentSchool?._id) {
-      SchoolApi.RSchool(currentSchool._id)
+    if (isLoading && props.school) {
+      SchoolApi.RSchool(props.school)
         .then((res) => {
           formData.current = res.formArchive;
         })
@@ -97,7 +90,7 @@ function Archive(props: Props) {
               return unflattenObject(v);
             });
             SchoolApi.USchoolFormArchive({
-              schoolId: currentSchool._id,
+              schoolId: props.school,
               data: formData.current,
             })
               .then((res) => {
@@ -199,7 +192,7 @@ function Archive(props: Props) {
               let fields = e.map((o) => unflattenObject(o));
               formData.current[editArchivefieldIndex].fields = fields;
               SchoolApi.USchoolFormArchive({
-                schoolId: currentSchool._id,
+                schoolId: props.school,
                 data: formData.current,
               })
                 .then((res) => {
@@ -337,7 +330,7 @@ function Archive(props: Props) {
               ].options = _data;
 
               SchoolApi.USchoolFormArchive({
-                schoolId: currentSchool._id,
+                schoolId: props.school,
                 data: formData.current,
               })
                 .then((res) => {
