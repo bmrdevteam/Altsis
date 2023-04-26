@@ -199,7 +199,8 @@ const TimeTable = (props: {
         const element = s[i];
         for (let ii = 0; ii < element.time.length; ii++) {
           Object.assign(result, {
-            [element.time[ii].label]: element.classTitle + "(" + element.classroom + ")",
+            [element.time[ii].label]:
+              element.classTitle + "(" + element.classroom + ")",
           });
         }
       }
@@ -208,17 +209,19 @@ const TimeTable = (props: {
     return result;
   }
 
-  if (props.selected !== 'timeTable') {
-		return (null);
-	}
+  if (props.selected !== "timeTable") {
+    return null;
+  }
 
-	return <EditorParser
-  type="timetable"
-  auth="view"
-  defaultTimetable={syllabusToTime(props.enrolledCourseList)}
-  data={currentSeason?.formTimetable}
-/>;
-}
+  return (
+    <EditorParser
+      type="timetable"
+      auth="view"
+      defaultTimetable={syllabusToTime(props.enrolledCourseList)}
+      data={currentSeason?.formTimetable}
+    />
+  );
+};
 
 const Enrollments = (props: {
   selected: string;
@@ -350,7 +353,7 @@ const MyDesgins = (props: {
         }),
       ]);
     }
-  }, [props.user]);
+  }, []);
 
   if (props.selected !== "myDesgins") {
     return null;
@@ -456,7 +459,7 @@ const MyCourses = (props: {
         }),
       ]);
     }
-  });
+  }, []);
 
   if (props.selected !== "myCourses") {
     return null;
