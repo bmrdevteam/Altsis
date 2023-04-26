@@ -140,7 +140,7 @@ const CoursesTab = (props: Props) => {
 
   // Get enrolled course
   useEffect(() => {
-    if (enrollments) {
+    if (enrollments && enrollments.length > 0) {
       getEnrolledCourseList().then((res: any) => {
         setEnrolledCourseList(structuring(res));
       });
