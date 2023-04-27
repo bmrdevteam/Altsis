@@ -6,16 +6,21 @@ const S3StreamLogger = require("s3-streamlogger-daily").S3StreamLogger;
 const strftime = require("strftime");
 
 const strftimeKOR = strftime.timezone("+0900");
+const mongoose = require("mongoose");
 
 /* prodLogger */
 const stream = (level = "") => {
+  const instanceId = new mongoose.Types.ObjectId();
   const time_data = strftimeKOR("%F %T", new Date());
 
   return new S3StreamLogger({
     bucket: "altsis-logs",
+    folder: "raw",
     access_key_id: process.env.s3_accessKeyId2,
     secret_access_key: process.env.s3_secretAccessKey2,
-    name_format: `${time_data}${level !== "" ? "." + level : ""}.log`,
+    name_format: `${time_data} ${instanceId.toString()}${
+      level !== "" ? "." + level : ""
+    }.log`,
     rotate_every: "day",
     max_file_size: 2000000000, // 2gb
   });
