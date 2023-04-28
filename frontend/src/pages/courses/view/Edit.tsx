@@ -142,8 +142,8 @@ const CoursePid = (props: Props) => {
         .then((result) => {
           if (
             result.season !== currentSeason._id ||
-            (!byMentor && result.user !== currentUser._id) ||
-            (byMentor && !_.find(result.teachers, { _id: currentUser._id }))
+            ((!byMentor && result.user !== currentUser._id) &&
+            (byMentor && !_.find(result.teachers, { _id: currentUser._id })))
           ) {
             navigate("/courses#개설%20수업", { replace: true });
           }

@@ -39,6 +39,7 @@ import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import EditorParser from "editor/EditorParser";
 import Divider from "components/divider/Divider";
+import Button from "components/button/Button";
 
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
@@ -324,6 +325,52 @@ const CoursePid = (props: Props) => {
                 defaultValues={syllabus.info}
                 data={currentSeason?.formSyllabus}
               />
+              <div style={{ height: "24px" }}></div>
+              <Divider />
+      
+              {confirmedStatus === "notConfirmed" && (
+                <>
+                  <Button
+                    type={"ghost"}
+                    style={{
+                      borderRadius: "4px",
+                      height: "32px",
+                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                      marginTop: "12px",
+                    }}
+                    onClick={() => {
+                      navigate(`/courses/edit/${pid}`, { replace: true });
+                    }}
+                  >
+                    수정
+                  </Button>
+                  <Button
+                    type={"ghost"}
+                    style={{
+                      borderRadius: "4px",
+                      height: "32px",
+                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                      marginTop: "12px",
+                    }}
+                    onClick={() => {
+                      if (window.confirm("정말 삭제하시겠습니까?") === true) {
+                        SyllabusApi.DSyllabus(syllabus._id)
+                          .then(() => {
+                            alert(SUCCESS_MESSAGE);
+                            navigate("/courses#개설%20수업");
+                          })
+                          .catch((err) => {
+                            alert(err.response.body.message);
+                          });
+                      } else {
+                        return false;
+                      }
+                    }}
+                  >
+                    삭제
+                  </Button>
+                </>
+              )}
             </div>
             <div style={{ marginTop: "24px" }} className={"enrollments"}>
               <div style={{ display: "flex" }}>
