@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
+import Cookies from "universal-cookie";
+import { useCookies } from "react-cookie";
 
 const Nav = ({
   children,
@@ -35,6 +37,7 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
   const navigate = useNavigate();
 
   const { currentUser, currentSchool, changeSchool } = useAuth();
+  const [cookies, setCookie, removeCookie] = useCookies(["currentSchool","currentSeason"]);
 
   return (
     <div className={style.nav_logo}>
@@ -50,12 +53,24 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
         }}
         id=""
       >
+        {/* display currentSchool name */}
         {currentUser.schools.map((s: any) => {
-          return (
-            <option key={s.school} value={s.school}>
-              {s.schoolName}
-            </option>
-          );
+          if(s.school == cookies.currentSchool){
+            return (
+              <option key={s.school} value={s.school}>
+                {s.schoolName}
+              </option>
+            );            
+          }
+        })}
+        {currentUser.schools.map((s: any) => {
+          if(s.school !== cookies.currentSchool){
+            return (
+              <option key={s.school} value={s.school}>
+                {s.schoolName}
+              </option>
+            );            
+          }
         })}
       </select>
       {/* <div
