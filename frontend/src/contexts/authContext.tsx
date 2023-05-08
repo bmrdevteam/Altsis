@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import useDatabase from "../hooks/useDatabase";
 import _ from "lodash";
+import { useCookies } from "react-cookie";
 import { checkPermissionBySeason } from "functions/functions";
 import { io } from "socket.io-client";
 
@@ -38,6 +39,10 @@ export function useAuth(): {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { UserApi, SeasonApi, SchoolApi, RegistrationApi } = useApi();
+  const [cookies, setCookie, removeCookie] = useCookies([
+    "currentSchool",
+    "currentRegistration",
+  ]);
   const [current, setCurrent] = useState<{
     user: any;
     school: any;
@@ -57,6 +62,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const currentNotificationsRef = useRef<any[]>([]);
   const [socket, setSocket] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
+  /** Date for setting the cookie expire date  */
+  const date = new Date();
+  let cookieData = "";
 
   async function getLoggedInUser() {
     await UserApi.RMySelf().then((res) => {
@@ -64,34 +72,66 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
        * sets the current user
        */
       setCurrentUser(res);
-      setCurrentSchool(res.schools[0]);
-      SchoolApi.RSchool(res.schools[0].school).then((s) => {
-        setCurrentSchool((prev: any) => ({ ...prev, ...s }));
-      });
+
+      /* set school idx using cookie */
+      let schoolIdx = 0;
+      if (cookies.currentSchool) {
+        const idx = _.findIndex(res.schools, { school: cookies.currentSchool });
+        if (idx !== -1) schoolIdx = idx;
+        else removeCookie("currentSchool");
+      }
+
+      if (res.schools.length > schoolIdx) {
+        SchoolApi.RSchool(res.schools[schoolIdx].school).then((s) => {
+          setCurrentSchool({ ...s, school: s._id });
+        });
+        setCookie("currentSchool", res.schools[schoolIdx].school);
+      }
+
       currentNotificationsRef.current = res.notifications;
 
       /** if there is a registration, set the season */
       if (res.registrations) _setRegistration(res.registrations);
       if (
         res.registrations.filter(
-          (r: any) => r.school === res.schools[0].school && r.isActivated
+          (r: any) =>
+            r.school === res.schools[schoolIdx].school && r.isActivated
         ).length > 0
       ) {
         const re = _.sortBy(
           res.registrations.filter(
-            (r: any) => r.school === res.schools[0].school && r.isActivated
+            (r: any) =>
+              r.school === res.schools[schoolIdx].school && r.isActivated
           ),
           "period.end"
         ).reverse();
 
         setRegistration(re);
-        setCurrentRegistration(re[0]);
-        SeasonApi.RSeasonWithRegistrations(re[0].season).then((seasonData) => {
-          setCurrentSeason(seasonData);
-          setCurrentPermission(
-            checkPermissionBySeason(seasonData, res.userId, re[0].role)
+
+        let registrationIdx = 0;
+        if (cookies.currentRegistration) {
+          const idx = _.findIndex(re, { _id: cookies.currentRegistration });
+          if (idx !== -1) registrationIdx = idx;
+          else removeCookie("currentRegistration");
+        }
+
+        if (re.length > registrationIdx) {
+          setCurrentRegistration(re[registrationIdx]);
+          SeasonApi.RSeasonWithRegistrations(re[registrationIdx].season).then(
+            (seasonData) => {
+              setCurrentSeason(seasonData);
+              setCurrentPermission(
+                checkPermissionBySeason(
+                  seasonData,
+                  res.userId,
+                  re[registrationIdx].role
+                )
+              );
+            }
           );
-        });
+
+          setCookie("currentRegistration", re[registrationIdx]._id);
+        }
       }
 
       setSocket(
@@ -126,8 +166,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   function changeSchool(to: string) {
     SchoolApi.RSchool(to).then((s) => {
       setCurrentSchool({ ...s, school: s._id });
+      setCookie("currentSchool", s._id);
+      removeCookie("currentRegistration");
       document.title = s.schoolName;
-      
+
       const re = _.sortBy(
         _registrations.filter(
           (r: any) => r.school === s._id && r.isActivated,
@@ -137,6 +179,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setRegistration(re);
 
       if (re.length > 0) {
+        setCookie("currentRegistration", re[0]._id);
         setCurrentRegistration(re[0]);
         SeasonApi.RSeasonWithRegistrations(re[0].season).then((seasonData) => {
           setCurrentSeason(seasonData);
@@ -154,6 +197,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   async function changeCurrentSeason(registration: any) {
     setCurrentRegistration(registration);
+    setCookie("currentRegistration", registration._id);
     const result = await SeasonApi.RSeasonWithRegistrations(
       registration?.season
     )
