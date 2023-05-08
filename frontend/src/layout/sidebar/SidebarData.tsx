@@ -108,7 +108,7 @@ export const SidebarData = (
         });
       }
     } else if (currentRegistration.role === "student") {
-      const myFormArchive = currentSchool.formArchive?.filter(
+      const myFormArchive = currentSchool?.formArchive?.filter(
         (form: any) => form.authStudent && form.authStudent !== "undefined"
       );
       if (myFormArchive?.length > 0) {
