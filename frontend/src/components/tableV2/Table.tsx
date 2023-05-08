@@ -120,7 +120,7 @@ const Table = (props: Props) => {
           if (isNumber(param)) {
             return (
               tableData.searchParam === "" ||
-              param === parseInt(tableData.searchParam)
+              param === parseFloat(tableData.searchParam)
             );
           }
 
@@ -266,9 +266,9 @@ const Table = (props: Props) => {
                         value={tableSettings.pageIndex}
                         className={style.number}
                         onChange={(e) => {
-                          const number = isNaN(parseInt(e.target.value))
+                          const number = isNaN(parseFloat(e.target.value))
                             ? 1
-                            : parseInt(e.target.value);
+                            : parseFloat(e.target.value);
                           if (
                             number > 0 &&
                             tableSettings.pageBy !== 0 &&
@@ -288,10 +288,10 @@ const Table = (props: Props) => {
                             setTableSettings((prev) => ({
                               ...prev,
                               pageIndex: isNaN(
-                                parseInt(e.target.value.slice(-1))
+                                parseFloat(e.target.value.slice(-1))
                               )
                                 ? 1
-                                : parseInt(e.target.value.slice(-1)),
+                                : parseFloat(e.target.value.slice(-1)),
                             }));
                           }
                         }}
@@ -334,7 +334,7 @@ const Table = (props: Props) => {
                           setTableSettings((prev) => ({
                             ...prev,
                             pageIndex: 1,
-                            pageBy: parseInt(e.target.value),
+                            pageBy: parseFloat(e.target.value),
                           }));
                         }}
                       >
@@ -990,14 +990,14 @@ const Table = (props: Props) => {
                             key={index}
                           >
                             <input
-                              value={parseInt(row[`${val.key}`]) || 0}
+                              value={parseFloat(row[`${val.key}`]) || 0}
                               type="number"
                               onChange={(e) => {
                                 const arr = [...tableData.data];
                                 const ii = tableData.data.findIndex(
                                   (r) => r.tableRowIndex === row.tableRowIndex
                                 );
-                                arr[ii][`${val.key}`] = parseInt(
+                                arr[ii][`${val.key}`] = parseFloat(
                                   e.target.value
                                 );
                                 arr[ii].isModified = true;
