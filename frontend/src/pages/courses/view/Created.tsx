@@ -114,11 +114,16 @@ const CoursePid = (props: Props) => {
         .then((result) => {
           setSyllabus(result);
 
-          if (
-            result.season !== currentSeason._id ||
-            result.user !== currentUser._id
-          ) {
+          if (result.season !== currentSeason._id) {
             navigate("/courses#개설%20수업", { replace: true });
+          }
+
+          if (result.user !== currentUser._id) {
+            if (_.find(result.teachers, { _id: currentUser._id })) {
+              navigate("/courses/mentoring/" + result._id, { replace: true });
+            } else {
+              navigate("/courses#개설%20수업", { replace: true });
+            }
           }
 
           // is this syllabus fully confirmed?
