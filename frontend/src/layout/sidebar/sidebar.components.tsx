@@ -49,12 +49,11 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
           changeSchool(e.target.value);
         }}
         id=""
+        value={currentSchool?.school}
       >
         {currentUser.schools.map((s: any) => {
-          const selected = s.school === currentSchool?._id ? true : false;
-
           return (
-            <option key={s.school} value={s.school} selected={selected}>
+            <option key={s.school} value={s.school}>
               {s.schoolName}
             </option>
           );
