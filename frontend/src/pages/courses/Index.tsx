@@ -42,9 +42,9 @@ import _ from "lodash";
 import Tab from "components/tab/Tab";
 
 import TimeTable from "./tab/TimeTableTab";
-import EnrolledCourseList from "./tab/EnrolledCourseList";
-import CreatedCourseList from "./tab/CreatedCourseList";
-import MentoringCourseList from "./tab/MentoringCourseList";
+import EnrolledCourseList from "./tab/Enrolled/List";
+import CreatedCourseList from "./tab/Created/List";
+import MentoringCourseList from "./tab/Mentoring/List";
 
 type Props = {};
 

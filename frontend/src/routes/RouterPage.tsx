@@ -26,10 +26,10 @@ import Course from "pages/courses/Index";
 import CourseDesign from "../pages/courses/Design";
 import CourseEnroll from "../pages/courses/Enroll";
 import CourseList from "pages/courses/List";
-import CourseCreatedPid from "pages/courses/view/Created";
-import CourseMentoringPid from "pages/courses/view/Mentoring/Mentoring";
-import CourseEnrollmentPid from "pages/courses/view/Enrolled";
-import CourseEditPid from "pages/courses/view/Edit";
+import CourseCreatedPid from "pages/courses/tab/Created/Index";
+import CourseMentoringPid from "pages/courses/tab/Mentoring/Index";
+import CourseEnrollmentPid from "pages/courses/tab/Enrolled/Index";
+import CourseEditPid from "pages/courses/view/Edit/Index";
 
 // apps pages
 import AppsIndex from "pages/apps/Index";
