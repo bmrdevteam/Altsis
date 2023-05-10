@@ -27,22 +27,17 @@
  * @version 1.0
  *
  */
-import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 import Divider from "components/divider/Divider";
 
-// components
-import Table from "components/tableV2/Table";
-
-import _ from "lodash";
+import CourseTable from "pages/courses/table/CourseTable";
 
 type Props = {
   courseList: any[];
-  subjectLabelHeaderList: any[];
 };
 
 const categories = (props: Props) => {
@@ -58,75 +53,9 @@ const categories = (props: Props) => {
   );
 };
 
-const Timetable = (props: Props) => {
+const List = (props: Props) => {
+  const { currentSeason } = useAuth();
   const navigate = useNavigate();
-  const subjectHeaderList = [
-    {
-      text: "수업명",
-      key: "classTitle",
-      type: "text",
-      textAlign: "center",
-      wordBreak: "keep-all",
-      width: "320px",
-    },
-
-    {
-      text: "시간",
-      key: "timeText",
-      type: "string",
-      textAlign: "center",
-    },
-    {
-      text: "강의실",
-      key: "classroom",
-      type: "string",
-      textAlign: "center",
-    },
-
-    {
-      text: "학점",
-      key: "point",
-      type: "string",
-      textAlign: "center",
-    },
-    {
-      text: "수강/정원",
-      key: "count_limit",
-      type: "string",
-      textAlign: "center",
-      whiteSpace: "pre",
-    },
-    {
-      text: "개설자",
-      key: "userName",
-      type: "string",
-      textAlign: "center",
-    },
-    {
-      text: "멘토",
-      key: "mentorText",
-      type: "string",
-      textAlign: "center",
-    },
-    {
-      text: "자세히",
-      key: "detail",
-      type: "button",
-      onClick: (e: any) => {
-        navigate(`/courses/enrolled/${e._id}`, {
-          replace: true,
-        });
-      },
-      width: "72px",
-      textAlign: "center",
-      btnStyle: {
-        border: true,
-        color: "black",
-        padding: "4px",
-        round: true,
-      },
-    },
-  ];
 
   return (
     <div className={style.section}>
@@ -134,10 +63,10 @@ const Timetable = (props: Props) => {
         <div className={style.categories}>{categories(props)}</div>
       </div>
       <Divider />
-      <Table
-        type="object-array"
+      <CourseTable
         data={props.courseList}
-        header={[
+        subjectLabels={currentSeason?.subjects?.label ?? []}
+        preHeaderList={[
           {
             text: "No",
             type: "text",
@@ -146,12 +75,15 @@ const Timetable = (props: Props) => {
             textAlign: "center",
             whiteSpace: "pre",
           },
-          ...props.subjectLabelHeaderList,
-          ...subjectHeaderList,
         ]}
+        onClickDetail={(e: any) => {
+          navigate(`/courses/enrolled/${e._id}`, {
+            replace: true,
+          });
+        }}
       />
     </div>
   );
 };
 
-export default Timetable;
+export default List;
