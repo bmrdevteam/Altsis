@@ -177,8 +177,7 @@ module.exports.unconfirm = async (req, res) => {
         });
         if (!_.isEmpty(enrollments)) {
           return res.status(409).send({
-            message:
-              "you cannot unconfirm this syllabus because there are students who have enrolled to it",
+            message: "수강신청한 학생이 있으면 승인을 취소할 수 없습니다.",
           });
         }
         syllabus.teachers[i].confirmed = false;
