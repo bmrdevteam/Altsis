@@ -21,7 +21,7 @@ type TTableItems =
   | "input"
   | "input-number"
   | "select";
-type TTableHeader = {
+export type TTableHeader = {
   text: string;
   type: TTableItems;
   key?: string;
