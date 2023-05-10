@@ -1,7 +1,6 @@
 /**
- * @file Courses Pid Page
- *
- * more info on selected courses
+ * @file Mentoring Course View
+ * @page 멘토링 수업 상세페이지
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -327,7 +326,7 @@ const CoursePid = (props: Props) => {
               />
               <div style={{ height: "24px" }}></div>
               <Divider />
-      
+
               {confirmedStatus === "notConfirmed" && (
                 <>
                   <Button

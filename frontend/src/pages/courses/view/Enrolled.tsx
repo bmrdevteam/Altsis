@@ -1,5 +1,6 @@
 /**
- * @file Courses Enrollment Page
+ * @file Enrolled Course View
+ * @page 수강 수업 상세페이지
  *
  * more info on selected courses
  *

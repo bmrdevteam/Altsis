@@ -1,5 +1,6 @@
 /**
- * @file Enrollment Index Page
+ * @file Course Enroll Page
+ * @page 수강 신청 페이지
  *
  * @author jessie129j <jessie129j@gmail.com>
  *

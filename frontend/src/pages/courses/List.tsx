@@ -1,5 +1,6 @@
 /**
  * @file Courses List Page
+ * @page 수업 목록 페이지
  *
  * @author jessie129j <jessie129j@gmail.com>
  *

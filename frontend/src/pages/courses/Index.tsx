@@ -1,5 +1,7 @@
 /**
- * @file Course Index Page
+ * @file Courses Index Page
+ * @page 수업 페이지
+ * @description 시간표, 수강 현황, 개설 수업, 담당 수업
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
