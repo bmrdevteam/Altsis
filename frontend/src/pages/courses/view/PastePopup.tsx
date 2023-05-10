@@ -1,5 +1,6 @@
 /**
- * @file Courses View Page
+ * @file Course Paste Popup
+ * @page 수업 개설 뷰 - 강의계획서 복사 팝업
  *
  *
  * @author jessie129j <jessie129j@gmail.com>

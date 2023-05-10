@@ -1,5 +1,6 @@
 /**
- * @file Courses View Page
+ * @file Course View Popup
+ * @page 수업 상세페이지 팝업
  *
  * more info on selected courses
  *

@@ -1,5 +1,6 @@
 /**
- * @file Course Index Page
+ * @file Enrolled Course List Page
+ * @page 수업 - 수강 현황(탭)
  *
  * @author jessie129j <jessie129j@gmail.com>
  *

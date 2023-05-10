@@ -1,7 +1,6 @@
 /**
- * @file Courses Pid Page
- *
- * more info on selected courses
+ * @file Course Edit View
+ * @page 개설/멘토링 수업 수정 뷰
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -142,8 +141,10 @@ const CoursePid = (props: Props) => {
         .then((result) => {
           if (
             result.season !== currentSeason._id ||
-            ((!byMentor && result.user !== currentUser._id) &&
-            (byMentor && !_.find(result.teachers, { _id: currentUser._id })))
+            (!byMentor &&
+              result.user !== currentUser._id &&
+              byMentor &&
+              !_.find(result.teachers, { _id: currentUser._id }))
           ) {
             navigate("/courses#개설%20수업", { replace: true });
           }

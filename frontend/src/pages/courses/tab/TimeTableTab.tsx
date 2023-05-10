@@ -1,5 +1,6 @@
 /**
- * @file Course Index Page
+ * @file Timetable Page
+ * @page 수업 - 시간표(탭)
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -57,7 +58,8 @@ const Timetable = (props: Props) => {
         const element = s[i];
         for (let ii = 0; ii < element.time.length; ii++) {
           Object.assign(result, {
-            [element.time[ii].label]: element.classTitle + "(" + element.classroom + ")",
+            [element.time[ii].label]:
+              element.classTitle + "(" + element.classroom + ")",
           });
         }
       }
@@ -71,7 +73,7 @@ const Timetable = (props: Props) => {
       {currentSeason?.formTimetable && (
         <>
           <EditorParser
-          type={"timetable"}
+            type={"timetable"}
             auth="view"
             defaultTimetable={syllabusToTime(props.courseList)}
             data={currentSeason?.formTimetable}
