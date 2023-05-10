@@ -1,5 +1,6 @@
 /**
- * @file Courses Pid Page
+ * @file Created Course View
+ * @page 개설 수업 상세페이지
  *
  * more info on selected courses
  *

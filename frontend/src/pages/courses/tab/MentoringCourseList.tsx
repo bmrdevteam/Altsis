@@ -1,5 +1,6 @@
 /**
- * @file Mentoring Page
+ * @file Mentoring Course List Page
+ * @page 수업 - 담당 수업(탭)
  *
  * @author jessie129j <jessie129j@gmail.com>
  *

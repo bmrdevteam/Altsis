@@ -1,5 +1,6 @@
 /**
- * @file Courses View Page
+ * @file Enroll Bulk Popup
+ * @page 멘토링 수업 상세페이지 - 일괄 수강신청 팝업
  *
  * more info on selected courses
  *

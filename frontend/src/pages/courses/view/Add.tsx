@@ -1,5 +1,6 @@
 /**
- * @file Courses Add Page
+ * @file Course Design View
+ * @page 수업 개설 뷰
  *
  * @author jessie129j <jessie129j@gmail.com>
  *

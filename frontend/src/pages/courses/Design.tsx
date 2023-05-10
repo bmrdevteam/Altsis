@@ -1,5 +1,6 @@
 /**
- * @file Courses Design Page
+ * @file Course Design Page
+ * @page 수업 개설 페이지
  *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
