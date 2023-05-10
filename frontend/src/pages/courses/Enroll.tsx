@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
 import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
@@ -39,16 +38,12 @@ import style from "style/pages/enrollment.module.scss";
 import Navbar from "layout/navbar/Navbar";
 
 // components
-import Table from "components/tableV2/Table";
-import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
-import Input from "components/input/Input";
-
-import ViewPopup from "./view/ViewPopup";
 
 import _ from "lodash";
-import Select from "components/select/Select";
 
+import CourseTable from "./table/CourseTable";
+import Loading from "components/loading/Loading";
 type Props = {};
 
 const CourseEnroll = (props: Props) => {
@@ -58,21 +53,16 @@ const CourseEnroll = (props: Props) => {
   const { currentSeason, currentUser, currentRegistration, currentPermission } =
     useAuth();
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingCourseList, setIsLoadingCourseList] = useState<boolean>(true);
   const [courseList, setCourseList] = useState<any[]>([]);
+
+  const [isLoadingEnrolledCourseList, setIsLoadingEnrolledCourseList] =
+    useState<boolean>(true);
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
-  const [course, setCourse] = useState<string>();
-
-  /* subject label header list */
-  const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
-    []
-  );
-
-  const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
 
   async function getCourseList() {
     const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
-      season: currentRegistration.season,
+      season: currentRegistration?.season,
       confirmed: true,
     });
     if (syllabuses.length === 0) return [];
@@ -117,121 +107,13 @@ const CourseEnroll = (props: Props) => {
     return syllabuses;
   }
 
-  const structuring = (courseList: any[]) => {
-    return courseList.map((syllabus: any) => {
-      for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
-        syllabus[currentSeason?.subjects?.label[idx]] = syllabus.subject[idx];
-      }
-      syllabus.timeText = _.join(
-        syllabus.time.map((timeBlock: any) => timeBlock.label),
-        ", "
-      );
-      syllabus.mentorText = _.join(
-        syllabus.teachers.map((teacher: any) => teacher.userName),
-        ", "
-      );
-      return syllabus;
-    });
-  };
-
-  const subjectHeaderList = [
-    {
-      text: "수업명",
-      key: "classTitle",
-      type: "text",
-      textAlign: "center",
-      wordBreak: "keep-all",
-      width: "320px",
-    },
-
-    {
-      text: "시간",
-      key: "timeText",
-      type: "string",
-      textAlign: "center",
-      wordBreak: "keep-all",
-      width: "120px",
-    },
-    {
-      text: "강의실",
-      key: "classroom",
-      type: "string",
-      textAlign: "center",
-      whiteSpace: "pre",
-      width: "80px",
-    },
-
-    {
-      text: "학점",
-      key: "point",
-      type: "string",
-      textAlign: "center",
-      whiteSpace: "pre",
-      width: "60px",
-    },
-    {
-      text: "수강/정원",
-      key: "count_limit",
-      type: "string",
-      textAlign: "center",
-      whiteSpace: "pre",
-      width: "80px",
-    },
-    {
-      text: "개설자",
-      key: "userName",
-      type: "string",
-      textAlign: "center",
-      wordBreak: "keep-all",
-      width: "80px",
-    },
-    {
-      text: "멘토",
-      key: "mentorText",
-      type: "string",
-      textAlign: "center",
-      wordBreak: "keep-all",
-      width: "80px",
-    },
-    {
-      text: "자세히",
-      key: "detail",
-      type: "button",
-      onClick: (e: any) => {
-        setCourse(e._id);
-        setViewPopupActive(true);
-      },
-      width: "72px",
-      textAlign: "center",
-      btnStyle: {
-        border: true,
-        color: "black",
-        padding: "4px",
-        round: true,
-      },
-    },
-  ];
-
   useEffect(() => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
       navigate("/");
     } else {
-      if (currentSeason?.subjects?.label) {
-        setSubjectLabelHeaderList([
-          ...currentSeason?.subjects?.label.map((label: string) => {
-            return {
-              text: label,
-              key: label,
-              type: "text",
-              textAlign: "center",
-              wordBreak: "keep-all",
-              width: "80px",
-            };
-          }),
-        ]);
-      }
-      setIsLoading(true);
+      setIsLoadingCourseList(true);
+      setIsLoadingEnrolledCourseList(true);
     }
   }, [currentRegistration]);
 
@@ -243,103 +125,108 @@ const CourseEnroll = (props: Props) => {
   }, [currentPermission]);
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoadingCourseList) {
       getCourseList().then((res: any) => {
-        setCourseList(_.sortBy(structuring(res), ["subject", "classTitle"]));
+        setCourseList(res);
+        setIsLoadingCourseList(false);
       });
-      getEnrolledCourseList().then((res: any) => {
-        setEnrolledCourseList(structuring(res));
-      });
-      setIsLoading(false);
     }
-  }, [isLoading]);
+  }, [isLoadingCourseList]);
+
+  useEffect(() => {
+    if (isLoadingEnrolledCourseList) {
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(res);
+        setIsLoadingEnrolledCourseList(false);
+      });
+    }
+  }, [isLoadingEnrolledCourseList]);
 
   return (
     <>
       <Navbar />
       <div className={style.section}>
         <div className={style.title}>수강신청</div>
-
-        <div style={{ marginTop: "24px" }} />
-        <Table
-          type="object-array"
-          data={courseList}
-          control
-          header={[
-            {
-              text: "신청",
-              key: "enroll",
-              type: "button",
-              onClick: (e: any) => {
-                EnrollmentApi.CEnrollment({
-                  data: {
-                    syllabus: e._id,
-                    registration: currentRegistration?._id,
-                  },
-                })
-                  .then(() => {
-                    alert(SUCCESS_MESSAGE);
-                    setIsLoading(true);
+        {!isLoadingCourseList ? (
+          <CourseTable
+            data={courseList}
+            subjectLabels={currentSeason?.subjects?.label ?? []}
+            preHeaderList={[
+              {
+                text: "신청",
+                key: "enroll",
+                type: "button",
+                onClick: (e: any) => {
+                  EnrollmentApi.CEnrollment({
+                    data: {
+                      syllabus: e._id,
+                      registration: currentRegistration?._id,
+                    },
                   })
-                  .catch((err) => {
-                    alert(err.response.data.message);
-                  });
+                    .then(() => {
+                      alert(SUCCESS_MESSAGE);
+                      setIsLoadingCourseList(true);
+                      setIsLoadingEnrolledCourseList(true);
+                    })
+                    .catch((err) => {
+                      alert(err.response.data.message);
+                    });
+                },
+                width: "72px",
+                textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "green",
+                  padding: "4px",
+                  round: true,
+                },
               },
-              width: "72px",
-              textAlign: "center",
-              btnStyle: {
-                border: true,
-                color: "green",
-                padding: "4px",
-                round: true,
-              },
-            },
-            ...subjectLabelHeaderList,
-            ...subjectHeaderList,
-          ]}
-        />
-
-        <div style={{ height: "24px" }}></div>
-        <Divider />
-        <div style={{ height: "24px" }}></div>
-
-        <div className={style.title}>수강 현황</div>
-
-        <Table
-          type="object-array"
-          data={enrolledCourseList}
-          header={[
-            {
-              text: "취소",
-              key: "cancel",
-              type: "button",
-              onClick: (e: any) => {
-                EnrollmentApi.DEnrollment(e.enrollment)
-                  .then(() => {
-                    alert(SUCCESS_MESSAGE);
-                    setIsLoading(true);
-                  })
-                  .catch((err) => {
-                    alert(err.response.data.message);
-                  });
-              },
-              width: "72px",
-              textAlign: "center",
-              btnStyle: {
-                border: true,
-                color: "red",
-                padding: "4px",
-                round: true,
-              },
-            },
-            ...subjectLabelHeaderList,
-            ...subjectHeaderList,
-          ]}
-        />
+            ]}
+          />
+        ) : (
+          <Loading height={"calc(100vh - 55px)"} />
+        )}
       </div>
-      {viewPopupActive && course && (
-        <ViewPopup course={course} setPopupActive={setViewPopupActive} />
-      )}
+      <div style={{ marginTop: "24px", marginBottom: "24px" }}>
+        <Divider />
+      </div>
+      <div className={style.section}>
+        <div className={style.title}>수강 현황</div>
+        {!isLoadingEnrolledCourseList ? (
+          <CourseTable
+            data={enrolledCourseList}
+            subjectLabels={currentSeason?.subjects?.label ?? []}
+            preHeaderList={[
+              {
+                text: "취소",
+                key: "cancel",
+                type: "button",
+                onClick: (e: any) => {
+                  EnrollmentApi.DEnrollment(e.enrollment)
+                    .then(() => {
+                      alert(SUCCESS_MESSAGE);
+                      setIsLoadingCourseList(true);
+                      setIsLoadingEnrolledCourseList(true);
+                    })
+                    .catch((err) => {
+                      alert(err.response.data.message);
+                    });
+                },
+                width: "72px",
+                textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "red",
+                  padding: "4px",
+                  round: true,
+                },
+              },
+            ]}
+          />
+        ) : (
+          <Loading height={"calc(100vh - 55px)"} />
+        )}
+      </div>
     </>
   );
 };

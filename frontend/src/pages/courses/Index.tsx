@@ -58,66 +58,15 @@ const Course = (props: Props) => {
   const [createdCourseList, setCreatedCourseList] = useState<any[]>([]);
   const [mentoringCourseList, setMentoringCourseList] = useState<any[]>([]);
 
-  /* subject label header list */
-  const [subjectLabelHeaderList, setSubjectLabelHeaderList] = useState<any[]>(
-    []
-  );
-
-  const structuring = (courseList: any[]) => {
-    return _.sortBy(
-      courseList.map((course: any) => {
-        for (let idx = 0; idx < currentSeason?.subjects?.label.length; idx++) {
-          course[currentSeason?.subjects?.label[idx]] = course.subject[idx];
-        }
-        course.timeText = _.join(
-          course.time.map((timeBlock: any) => timeBlock.label),
-          ", "
-        );
-        course.mentorText = _.join(
-          course.teachers.map((teacher: any) => teacher.userName),
-          ", "
-        );
-
-        course.confirmed = !_.find(course.teachers, { confirmed: false });
-
-        const confirmedCnt = _.filter(course.teachers, {
-          confirmed: true,
-        }).length;
-        course.confirmedStatus =
-          confirmedCnt === 0
-            ? "notConfirmed"
-            : confirmedCnt === course.teachers.length
-            ? "fullyConfirmed"
-            : "semiConfirmed";
-
-        return course;
-      }),
-      ["subject", "classTitle"]
-    );
-  };
-
   const updateCourses = () => {
     SyllabusApi.RCourses({
       season: currentRegistration.season,
       user: currentUser._id,
     }).then((res: any) => {
-      setEnrolledCourseList(structuring(res.enrolled));
-      setCreatedCourseList(structuring(res.created));
-      setMentoringCourseList(structuring(res.mentoring));
+      setEnrolledCourseList(res.enrolled);
+      setCreatedCourseList(res.created);
+      setMentoringCourseList(res.mentoring);
     });
-    if (currentSeason?.subjects?.label) {
-      setSubjectLabelHeaderList([
-        ...currentSeason?.subjects?.label?.map((label: string) => {
-          return {
-            text: label,
-            key: label,
-            type: "text",
-            textAlign: "center",
-            whiteSpace: "pre",
-          };
-        }),
-      ]);
-    }
   };
 
   useEffect(() => {
@@ -133,40 +82,19 @@ const Course = (props: Props) => {
     if (currentRegistration.role === "teacher")
       return {
         시간표: <TimeTable courseList={enrolledCourseList} />,
-        "수강 현황": (
-          <EnrolledCourseList
-            courseList={enrolledCourseList}
-            subjectLabelHeaderList={subjectLabelHeaderList}
-          />
-        ),
-        "개설 수업": (
-          <CreatedCourseList
-            courseList={createdCourseList}
-            subjectLabelHeaderList={subjectLabelHeaderList}
-          />
-        ),
+        "수강 현황": <EnrolledCourseList courseList={enrolledCourseList} />,
+        "개설 수업": <CreatedCourseList courseList={createdCourseList} />,
         "담당 수업": (
           <MentoringCourseList
             courseList={mentoringCourseList}
-            subjectLabelHeaderList={subjectLabelHeaderList}
             updateCourses={updateCourses}
           />
         ),
       };
     return {
       시간표: <TimeTable courseList={enrolledCourseList} />,
-      "수강 현황": (
-        <EnrolledCourseList
-          courseList={enrolledCourseList}
-          subjectLabelHeaderList={subjectLabelHeaderList}
-        />
-      ),
-      "개설 수업": (
-        <CreatedCourseList
-          courseList={createdCourseList}
-          subjectLabelHeaderList={subjectLabelHeaderList}
-        />
-      ),
+      "수강 현황": <EnrolledCourseList courseList={enrolledCourseList} />,
+      "개설 수업": <CreatedCourseList courseList={createdCourseList} />,
     };
   };
   return (
