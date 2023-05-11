@@ -1085,6 +1085,24 @@ export default function useApi() {
       data: props.data,
     });
   }
+
+  /**
+   * Update Syllabus subject
+   * @type PUT
+   * @auth member
+   */
+  async function USyllabusSubject(props: {
+    _id: string;
+    data: {
+      subject: string[];
+    };
+  }) {
+    return await database.U({
+      location: `syllabuses/${props._id}/subject`,
+      data: props.data,
+    });
+  }
+
   /**
    * Confirm Syllabus
    * @type PUT
@@ -1333,6 +1351,7 @@ export default function useApi() {
       RSyllabus,
       RSyllabuses,
       USyllabus,
+      USyllabusSubject,
       DSyllabus,
       RCourses,
       ConfirmSyllabus,

@@ -14,6 +14,7 @@ router.put("/:_id/confirmed", isLoggedIn, syllabuses.confirm);
 router.delete("/:_id/confirmed", isLoggedIn, syllabuses.unconfirm);
 
 router.put("/:_id", isLoggedIn, syllabuses.updateV2);
+router.put("/:_id/subject", isLoggedIn, syllabuses.updateSubject);
 
 router.delete("/:_id", isLoggedIn, syllabuses.remove);
 

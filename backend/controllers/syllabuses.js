@@ -341,10 +341,10 @@ module.exports.updateV2 = async (req, res) => {
         });
       }
       if (isUpdated["subject"]) {
-        return res.status(409).send({
-          message:
-            "수강생이 있는 상태에서 교과목을 변경할 수 없습니다. 별도 교과목 수정 API를 사용해주세요.",
-        });
+        // return res.status(409).send({
+        //   message:
+        //     "수강생이 있는 상태에서 교과목을 변경할 수 없습니다. 별도 교과목 수정 API를 사용해주세요.",
+        // });
       }
       // 수정
       fields2.forEach((field) => {
@@ -367,6 +367,160 @@ module.exports.updateV2 = async (req, res) => {
     return res.status(403).send({
       message: "you cannot update this syllabus",
     });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+module.exports.updateSubject = async (req, res) => {
+  try {
+    if (!("subject" in req.body)) {
+      return res.status(400).send({ message: `field is missing: ${field}` });
+    }
+
+    const user = req.user;
+
+    const syllabus = await Syllabus(user.academyId).findById(req.params._id);
+    if (!syllabus) {
+      return res.status(404).send({ message: "syllabus not found" });
+    }
+
+    // 수정사항이 있는지 확인
+    const isUpdated = !_.isEqual(syllabus.subject, req.body.subject);
+    if (!isUpdated) return res.status(200).send({});
+
+    // 권한 확인
+    const { season } = await checkPermission(user, syllabus.season);
+
+    // user가 syllabus 멘토인 경우에만 수정 가능
+    if (!_.find(syllabus.teachers, { _id: user._id })) {
+      return res.status(403).send({
+        message: "you cannot update this syllabus",
+      });
+    }
+
+    const enrollments = await Enrollment(user.academyId)
+      .find({
+        syllabus: syllabus._id,
+      })
+      .select("+evaluation");
+
+    const newSubject = req.body.subject;
+    syllabus["subject"] = newSubject;
+
+    const updates = [];
+    const changes = [];
+
+    // evaluation 동기화
+    for (let enrollment of enrollments) {
+      enrollment.subject = newSubject;
+
+      const exEnrollmentsByYear = await Enrollment(user.academyId)
+        .find({
+          _id: { $ne: enrollment._id },
+          school: enrollment.school,
+          year: enrollment.year,
+          student: enrollment.student,
+          subject: enrollment.subject,
+        })
+        .select("+evaluation");
+
+      const exEnrollmentsByTerm = _.filter(
+        exEnrollmentsByYear,
+        (_enrollment) => _enrollment.term === enrollment.term
+      );
+
+      let isUpdatedByTerm = false;
+      let isUpdatedByYear = false;
+
+      for (let obj of season.formEvaluation) {
+        // term으로 묶이는 평가 항목
+        if (obj.combineBy === "term" && exEnrollmentsByTerm.length > 0) {
+          // 변경되는 교과목의 기존 평가 사항이 있는 경우
+          if (
+            exEnrollmentsByTerm[0].evaluation &&
+            exEnrollmentsByTerm[0].evaluation[obj.label] &&
+            exEnrollmentsByTerm[0].evaluation[obj.label] !== ""
+          ) {
+            changes.push({
+              student: enrollment.student,
+              studentId: enrollment.studentId,
+              studentName: enrollment.studentName,
+              label: obj.label,
+              before: enrollment.evaluation[obj.label] ?? "",
+              after: exEnrollmentsByTerm[0].evaluation[obj.label],
+            });
+            Object.assign(enrollment.evaluation || {}, {
+              [obj.label]: exEnrollmentsByTerm[0].evaluation[obj.label],
+            });
+          }
+          // 변경 전 평가 사항이 있는 경우
+          else if (
+            enrollment.evaluation[obj.label] &&
+            enrollment.evaluation[obj.label] !== ""
+          ) {
+            for (let e of exEnrollmentsByTerm) {
+              Object.assign(e.evaluation || {}, {
+                [obj.label]: enrollment.evaluation[obj.label],
+              });
+            }
+            isUpdatedByTerm = true;
+          }
+        }
+
+        // year로 묶이는 평가 항목
+        else if (obj.combineBy === "year" && exEnrollmentsByYear.length > 0) {
+          // 변경되는 교과목의 기존 평가 사항이 있는 경우
+          if (
+            exEnrollmentsByYear[0].evaluation &&
+            exEnrollmentsByYear[0].evaluation[obj.label] &&
+            exEnrollmentsByYear[0].evaluation[obj.label] !== ""
+          ) {
+            changes.push({
+              student: enrollment.student,
+              studentId: enrollment.studentId,
+              studentName: enrollment.studentName,
+              label: obj.label,
+              before: enrollment.evaluation[obj.label] ?? "",
+              after: exEnrollmentsByYear[0].evaluation[obj.label],
+            });
+            Object.assign(enrollment.evaluation || {}, {
+              [obj.label]: exEnrollmentsByYear[0].evaluation[obj.label],
+            });
+          }
+          // 변경 전 평가 사항이 있는 경우
+          else if (
+            enrollment.evaluation[obj.label] &&
+            enrollment.evaluation[obj.label] !== ""
+          ) {
+            for (let e of exEnrollmentsByTerm)
+              Object.assign(e.evaluation || {}, {
+                [obj.label]: enrollment.evaluation[obj.label],
+              });
+            for (let e of exEnrollmentsByYear) {
+              Object.assign(e.evaluation || {}, {
+                [obj.label]: enrollment.evaluation[obj.label],
+              });
+            }
+            isUpdatedByYear = true;
+          }
+        }
+      }
+
+      updates.push(enrollment);
+      if (isUpdatedByTerm || isUpdatedByYear) {
+        updates.push(...exEnrollmentsByTerm);
+      }
+      if (isUpdatedByYear) {
+        updates.push(...exEnrollmentsByYear);
+      }
+    }
+
+    // save documents
+    await syllabus.save();
+    await Promise.all(updates.map((e) => e.save()));
+
+    return res.status(200).send({ changes });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
