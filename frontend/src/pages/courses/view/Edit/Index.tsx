@@ -344,6 +344,15 @@ const CoursePid = (props: Props) => {
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
             type="ghost"
             onClick={() => {
+              if (courseClassroomRef.current !== "") {
+                SyllabusApi.RSyllabuses({
+                  season: currentSeason?._id,
+                  classroom: courseClassroomRef.current,
+                }).then(({ syllabuses }) => {
+                  setSyllabusList(syllabuses);
+                });
+              }
+
               courseTimeRef.current = { ...courseTime };
               setTimeSelectPopupActive(true);
             }}
