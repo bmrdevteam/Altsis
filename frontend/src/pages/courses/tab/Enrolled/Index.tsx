@@ -58,8 +58,10 @@ const CourseEnrollment = (props: Props) => {
   const navigate = useNavigate();
   const { EnrollmentApi } = useApi();
 
-  const database = useDatabase();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingEvaluation, setIsLoadingEvaluation] =
+    useState<boolean>(false);
+
   const [enrollmentData, setEnrollmentData] = useState<any>();
 
   const [courseData, setCourseData] = useState<any>();
@@ -73,20 +75,6 @@ const CourseEnrollment = (props: Props) => {
     useState<boolean>(false);
 
   const [enrollments, setEnrollments] = useState<any[]>();
-
-  async function getSeason(_id: string) {
-    const res = await database.R({
-      location: `seasons/${_id}`,
-    });
-    return res;
-  }
-
-  async function getCourseData(_id: string) {
-    const res = await database.R({
-      location: `syllabuses/${_id}`,
-    });
-    return res;
-  }
 
   const categories = () => {
     return (
@@ -139,119 +127,119 @@ const CourseEnrollment = (props: Props) => {
   };
 
   useEffect(() => {
+    if (
+      currentUser?._id &&
+      currentRegistration?._id &&
+      currentSeason?.formEvaluation
+    ) {
+      setIsLoading(true);
+    }
+    return () => {};
+  }, [currentUser, currentRegistration, currentSeason]);
+
+  useEffect(() => {
     if (isLoading) {
       EnrollmentApi.REnrolllment(pid)
-        .then((result) => {
-          if (
-            result.season !== currentSeason._id ||
-            result.studentId !== currentUser.userId
-          ) {
+        .then((enrollment) => {
+          if (enrollment.season !== currentSeason._id) {
             navigate("/courses#수강신청%20현황", { replace: true });
           }
 
-          if (_.find(result.teachers, { userId: currentUser.userId })) {
-            navigate(`../mentoring/${result.syllabus}`, {
+          if (_.find(enrollment.teachers, { user: currentUser._id })) {
+            navigate(`../mentoring/${enrollment.syllabus}`, {
               replace: true,
             });
           }
-          if (result.studentId !== currentUser.userId) {
+
+          if (enrollment.student !== currentUser._id) {
             navigate("/courses", { replace: true });
-
-            // navigate("/courses");
           }
-          getCourseData(result.syllabus).then((res) => setCourseData(res));
-          setEnrollmentData(result);
-          getSeason(result.season).then((res: any) => {
-            let _formEvaluationHeader: any[] = [];
-            if (
-              checkPermission(
-                res.permissionEvaluation,
-                currentUser.userId,
-                currentRegistration.role
-              )
-            ) {
-              setPermissionEvaluation(true);
-              res.formEvaluation.forEach((val: any) => {
-                const text = val.label;
-                const key = "evaluation." + text;
 
-                if (val.auth.edit.student) {
-                  fieldEvaluationList.push({
-                    text,
-                    key,
-                  });
-                  _formEvaluationHeader.push({
-                    text,
-                    key,
-                    type: "input",
-                  });
-                } else if (val.auth.view.student) {
-                  _formEvaluationHeader.push({
-                    text,
-                    key,
-                    type: "text",
-                    whiteSpace: "pre-wrap",
-                  });
-                }
-              });
-              //   .map((val: any) => {
-              //     if (val.auth.edit.student) {
-              //       fieldEvaluationList.push({
-              //         text: val.label,
-              //         key: "evaluation." + val.label,
-              //       });
-              //       return {
-              //         text: val.label,
-              //         key: "evaluation." + val.label,
-              //         type: "input",
-              //       };
-              //     }
-              //     if (val.auth.view.student) {
-              //       return {
-              //         text: val.label,
-              //         key: "evaluation." + val.label,
-              //         type: "text",
-              //         whiteSpace: "pre-wrap",
-              //       };
-              //     }
-              //     return undefined;
-              //   })
-              //   .filter((element: any, i: number) => element !== undefined);
-            } else {
-              res.formEvaluation.forEach((val: any) => {
-                if (val.auth.edit.student || val.auth.view.student)
-                  _formEvaluationHeader.push({
-                    text: val.label,
-                    key: "evaluation." + val.label,
-                    type: "text",
-                    whiteSpace: "pre-wrap",
-                  });
-              });
-            }
-            setFieldEvaluationList([...fieldEvaluationList]);
-            setFormEvaluationHeader(_formEvaluationHeader);
-            setIsLoading(false);
-          });
+          setCourseData(enrollment);
+          setEnrollmentData(enrollment);
+
+          let _formEvaluationHeader: any[] = [];
+          if (
+            checkPermission(
+              currentSeason.permissionEvaluation,
+              currentUser.userId,
+              currentRegistration.role
+            )
+          ) {
+            setPermissionEvaluation(true);
+            currentSeason.formEvaluation.forEach((val: any) => {
+              const text = val.label;
+              const key = "evaluation." + text;
+
+              if (val.auth.edit.student) {
+                fieldEvaluationList.push({
+                  text,
+                  key,
+                });
+                _formEvaluationHeader.push({
+                  text,
+                  key,
+                  type: val.type ?? "input",
+                });
+              } else if (val.auth.view.student) {
+                _formEvaluationHeader.push({
+                  text,
+                  key,
+                  type: "text",
+                  whiteSpace: "pre-wrap",
+                });
+              }
+            });
+          } else {
+            currentSeason.formEvaluation.forEach((val: any) => {
+              if (val.auth.edit.student || val.auth.view.student)
+                _formEvaluationHeader.push({
+                  text: val.label,
+                  key: "evaluation." + val.label,
+                  type: "text",
+                  whiteSpace: "pre-wrap",
+                });
+            });
+          }
+          setFieldEvaluationList([...fieldEvaluationList]);
+          setFormEvaluationHeader(_formEvaluationHeader);
+          setIsLoading(false);
+
           // is this syllabus fully confirmed?
-          for (let teacher of result.teachers) {
+          for (let teacher of enrollment.teachers) {
             if (!teacher.confirmed) {
               setConfirmed(false);
               break;
             }
           }
-          EnrollmentApi.REnrolllments({ syllabus: result.syllabus }).then(
+          EnrollmentApi.REnrolllments({ syllabus: enrollment.syllabus }).then(
             (res: any) => {
               setEnrollments(res);
             }
           );
         })
         .catch((err) => {
-          alert(err.response.data.message);
+          alert(err.response?.data?.message ?? "에러가 발생했습니다.");
           navigate("/courses");
         });
     }
     return () => {};
-  }, []);
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (isLoadingEvaluation) {
+      EnrollmentApi.REnrolllment(pid)
+        .then((enrollment) => {
+          setEnrollmentData(enrollment);
+          setIsLoadingEvaluation(false);
+        })
+        .catch((err) => {
+          alert(err.response?.data?.message ?? "에러가 발생했습니다.");
+          navigate("/courses");
+        });
+    }
+    return () => {};
+  }, [isLoadingEvaluation]);
 
   return !isLoading ? (
     <>
@@ -289,7 +277,7 @@ const CourseEnrollment = (props: Props) => {
         <>
           <Divider />
 
-          {formEvaluationHeader.length !== 0 && (
+          {formEvaluationHeader.length !== 0 && !isLoadingEvaluation ? (
             <div style={{ marginTop: "24px" }}>
               <div
                 className={style.title}
@@ -321,10 +309,7 @@ const CourseEnrollment = (props: Props) => {
                         })
                           .then((res: any) => {
                             alert("수정되었습니다.");
-                            setEnrollmentData({
-                              ...enrollmentData,
-                              evaluation: res,
-                            });
+                            setIsLoadingEvaluation(true);
                           })
                           .catch((err: any) =>
                             alert(err.response.data.message)
@@ -353,6 +338,8 @@ const CourseEnrollment = (props: Props) => {
                 />
               )}
             </div>
+          ) : (
+            <Loading height={"calc(100vh - 55px)"} />
           )}
           <div style={{ height: "24px" }}></div>
           <div className={style.title}>수강생 목록</div>
