@@ -252,11 +252,7 @@ module.exports.updateV2 = async (req, res) => {
     }
 
     // 권한 확인
-    try {
-      await checkPermission(user, syllabus);
-    } catch (err) {
-      throw err;
-    }
+    await checkPermission(user, syllabus);
 
     // 별도 확인이 필요한 수정 사항
     const isUpdated = {
@@ -276,7 +272,7 @@ module.exports.updateV2 = async (req, res) => {
       !_.find(syllabus.teachers, { _id: user._id })
     ) {
       // 승인된 상태에서는 수정할 수 없다.
-      if (isFullyConfirmed()) {
+      if (isFullyConfirmed(syllabus)) {
         return res.status(409).send({
           message: "you cannot update this syllabus becuase it is confirmed",
         });
@@ -296,7 +292,7 @@ module.exports.updateV2 = async (req, res) => {
       });
 
       // 시간 중복 확인
-      if (isUpdated[time] || isUpdated[classroom]) {
+      if (isUpdated["time"] || isUpdated["classroom"]) {
         const unavailableTimeLabels = await getUnavailableTimeLabels(
           user.academyId,
           syllabus
@@ -354,14 +350,6 @@ module.exports.updateV2 = async (req, res) => {
         return res.status(409).send({
           message:
             "수강생이 있는 상태에서 시간 또는 강의실을 변경할 수 없습니다.",
-          isUpdated,
-          time1: syllabus.time.length === req.body.time.length,
-          time2: syllabus.time.every((timeBlock, idx) => {
-            if (!_.isEqual(timeBlock, req.body.time[idx])) {
-              console.log(timeBlock, req.body.time[idx]);
-            }
-            return _.isEqual(timeBlock, req.body.time[idx]);
-          }),
         });
       }
       if (isUpdated["subject"]) {
@@ -392,10 +380,11 @@ module.exports.updateV2 = async (req, res) => {
       message: "you cannot update this syllabus",
     });
   } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
 
+/* deprecated */
 module.exports.update = async (req, res) => {
   try {
     // 내가 만둘었거나 멘토링하는 syllabus인가?
@@ -474,13 +463,53 @@ module.exports.update = async (req, res) => {
 
 module.exports.remove = async (req, res) => {
   try {
+    const user = req.user;
+
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.params._id
     );
     if (!syllabus) return res.status(404).send();
-    await syllabus.delete();
-    return res.status(200).send();
+
+    // 권한 확인
+    await checkPermission(user, syllabus);
+
+    // user가 syllabus 작성자이고 멘토가 아닌 경우
+    if (
+      user._id.equals(syllabus.user) &&
+      !_.find(syllabus.teachers, { _id: user._id })
+    ) {
+      // enrollment가 있는 경우 삭제할 수 없다.
+      if (
+        await Enrollment(user.academyId).findOne({ syllabus: syllabus._id })
+      ) {
+        return res.status(409).send({
+          message: "수강생이 있는 강의계획서를 삭제할 수 없습니다.",
+        });
+      }
+
+      await syllabus.delete();
+      return res.status(200).send({});
+    }
+
+    // user가 syllabus 멘토인 경우
+    if (_.find(syllabus.teachers, { _id: user._id })) {
+      const enrollments = await Enrollment(user.academyId).find({
+        syllabus: syllabus._id,
+      });
+
+      await Promise.all(
+        enrollments.map((e) => {
+          return e.delete();
+        })
+      );
+      await syllabus.delete();
+      return res.status(200).send({});
+    }
+
+    return res.status(403).send({
+      message: "you cannot delete this syllabus",
+    });
   } catch (err) {
-    return res.status(500).send();
+    return res.status(err.status || 500).send({ message: err.message });
   }
 };
