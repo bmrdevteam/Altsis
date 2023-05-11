@@ -57,7 +57,7 @@ const CoursePid = (props: Props) => {
   const { SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
   const navigate = useNavigate();
 
-  const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(true);
+  const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
   const [syllabus, setSyllabus] = useState<any>();
 
   const [confirmedStatus, setConfirmedStatus] =
@@ -132,6 +132,13 @@ const CoursePid = (props: Props) => {
       </>
     );
   };
+
+  useEffect(() => {
+    if (currentUser?._id && currentSeason?.formEvaluation) {
+      setIsLoadingSyllabus(true);
+    }
+    return () => {};
+  }, [currentUser, currentSeason]);
 
   useEffect(() => {
     if (isLoadingSyllabus) {
@@ -267,7 +274,7 @@ const CoursePid = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        {!isLoadingSyllabus ? (
+        {!isLoadingSyllabus && syllabus?._id ? (
           <div className={"syllabus-enrollments-wrapper"}>
             <div className={"syllabus"}>
               <div
@@ -345,6 +352,26 @@ const CoursePid = (props: Props) => {
                   }}
                 >
                   수정
+                </Button>
+                <Button
+                  type={"ghost"}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                    marginTop: "12px",
+                  }}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `교과목을 변경하면 평가 정보가 변경될 수 있습니다. 평가 정보를 파일로 저장한 후 진행하는 것을 권장합니다.`
+                      ) === true
+                    ) {
+                      alert("!");
+                    }
+                  }}
+                >
+                  수정(교과목)
                 </Button>
                 <Button
                   type={"ghost"}
