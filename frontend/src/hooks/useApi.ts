@@ -1082,7 +1082,7 @@ export default function useApi() {
   }) {
     return await database.U({
       location: `syllabuses/${props._id}`,
-      data: { new: props.data },
+      data: props.data,
     });
   }
   /**
