@@ -326,50 +326,58 @@ const CoursePid = (props: Props) => {
               />
               <div style={{ height: "24px" }}></div>
               <Divider />
-
-              {confirmedStatus === "notConfirmed" && (
-                <>
-                  <Button
-                    type={"ghost"}
-                    style={{
-                      borderRadius: "4px",
-                      height: "32px",
-                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                      marginTop: "12px",
-                    }}
-                    onClick={() => {
-                      navigate(`/courses/edit/${pid}`, { replace: true });
-                    }}
-                  >
-                    수정
-                  </Button>
-                  <Button
-                    type={"ghost"}
-                    style={{
-                      borderRadius: "4px",
-                      height: "32px",
-                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                      marginTop: "12px",
-                    }}
-                    onClick={() => {
-                      if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                        SyllabusApi.DSyllabus(syllabus._id)
-                          .then(() => {
-                            alert(SUCCESS_MESSAGE);
-                            navigate("/courses#개설%20수업");
-                          })
-                          .catch((err) => {
-                            alert(err.response.body.message);
-                          });
-                      } else {
-                        return false;
-                      }
-                    }}
-                  >
-                    삭제
-                  </Button>
-                </>
-              )}
+              <>
+                <Button
+                  type={"ghost"}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                    marginTop: "12px",
+                  }}
+                  onClick={() => {
+                    navigate(`/courses/edit/${pid}`, { replace: true });
+                  }}
+                >
+                  수정
+                </Button>
+                <Button
+                  type={"ghost"}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                    marginTop: "12px",
+                  }}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `정말 삭제하시겠습니까?${
+                          enrollmentList.length > 0
+                            ? " 평가도 함께 삭제됩니다."
+                            : ""
+                        }`
+                      ) === true
+                    ) {
+                      SyllabusApi.DSyllabus(syllabus._id)
+                        .then(() => {
+                          alert(SUCCESS_MESSAGE);
+                          navigate("/courses#개설%20수업");
+                        })
+                        .catch((err) => {
+                          alert(
+                            err?.response?.data?.message ??
+                              "에러가 발생했습니다."
+                          );
+                        });
+                    } else {
+                      return false;
+                    }
+                  }}
+                >
+                  삭제
+                </Button>
+              </>
             </div>
             <div style={{ marginTop: "24px" }} className={"enrollments"}>
               <div style={{ display: "flex" }}>
