@@ -41,13 +41,15 @@ import EditorParser from "editor/EditorParser";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 import Loading from "components/loading/Loading";
+import Callout from "components/callout/Callout";
 
 type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const byMentor = searchParams.get("byMentor") === "true";
+  const strictMode = searchParams.get("strictMode") === "true";
 
   const { RegistrationApi, SyllabusApi } = useApi();
   const navigate = useNavigate();
@@ -123,32 +125,16 @@ const CoursePid = (props: Props) => {
     });
   }
 
-  const subjects = () => {
-    const res = [];
-    for (let i = 0; i < currentSeason?.subjects.data.length; i++) {
-      const value = _.join(currentSeason?.subjects.data[i], "/");
-      res.push({
-        text: value,
-        value,
-      });
-    }
-    return res;
-  };
-
   useEffect(() => {
     if (isLoading && currentSeason && currentUser) {
       SyllabusApi.RSyllabus(pid)
         .then((result) => {
           if (
-            result.season !== currentSeason._id ||
-            (!byMentor &&
-              result.user !== currentUser._id &&
-              byMentor &&
-              !_.find(result.teachers, { _id: currentUser._id }))
+            result.user !== currentUser._id &&
+            !_.find(result.teachers, { _id: currentUser._id })
           ) {
             navigate("/courses#개설%20수업", { replace: true });
           }
-
           setCourseData(result);
           setCourseSubject(_.join(result.subject, "/"));
           setCourseTitle(result.classTitle);
@@ -258,37 +244,77 @@ const CoursePid = (props: Props) => {
       <div className={style.section}>
         <div className={style.design_form}>
           <div className={style.title}>강의계획서 수정</div>
+          {strictMode && (
+            <Callout
+              style={{ marginBottom: "24px" }}
+              type={"warning"}
+              title={"수강생이 있는 강의계획서는 수정에 제한이 있습니다."}
+              child={
+                <ol>
+                  <li>
+                    <b>교과목</b> 변경 기능을 준비중입니다.
+                  </li>
+                  <li>
+                    <b>강의실 및 시간</b>을 변경할 수 없습니다.
+                  </li>
+                  <li>
+                    <b>수강 정원</b>을 수강생 수보다 작게 변경할 수 없습니다.
+                  </li>
+                </ol>
+              }
+              showIcon
+            />
+          )}
           <div style={{ display: "flex", gap: "24px" }} key="temp">
-            {currentSeason?.subjects.label.map((label: string, idx: number) => {
-              return (
-                <Select
-                  key={label + subjectSelectKey[idx]}
-                  appearence="flat"
-                  label={label}
-                  required
-                  setValue={(e: string) => {
-                    if (subjectFilter[idx + 1] === e) return;
-                    subjectFilter[idx + 1] = e;
-                    subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-                    for (let i = idx + 2; i < subjectFilter.length; i++) {
-                      subjectFilter[i] = undefined;
-                      subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-                    }
-                    setSubjectFilter([...subjectFilter]);
-                    setSubjectSelectKey([...subjectSelectKey]);
-                    setCourseSubject(
-                      subjectFilter[subjectFilter.length - 1] ?? ""
+            {!strictMode
+              ? currentSeason?.subjects.label.map(
+                  (label: string, idx: number) => {
+                    return (
+                      <Select
+                        key={label + subjectSelectKey[idx]}
+                        appearence="flat"
+                        label={label}
+                        required
+                        setValue={(e: string) => {
+                          if (subjectFilter[idx + 1] === e) return;
+                          subjectFilter[idx + 1] = e;
+                          subjectSelectKey[idx + 1] =
+                            subjectSelectKey[idx + 1] + 1;
+                          for (let i = idx + 2; i < subjectFilter.length; i++) {
+                            subjectFilter[i] = undefined;
+                            subjectSelectKey[idx + 1] =
+                              subjectSelectKey[idx + 1] + 1;
+                          }
+                          setSubjectFilter([...subjectFilter]);
+                          setSubjectSelectKey([...subjectSelectKey]);
+                          setCourseSubject(
+                            subjectFilter[subjectFilter.length - 1] ?? ""
+                          );
+                        }}
+                        options={
+                          subjectFilter && subjectFilter[idx]
+                            ? subjectDataDict[subjectFilter[idx]!]
+                            : [{ text: "", value: "" }]
+                        }
+                        defaultSelectedValue={subjectFilter[idx + 1]}
+                      />
                     );
-                  }}
-                  options={
-                    subjectFilter && subjectFilter[idx]
-                      ? subjectDataDict[subjectFilter[idx]!]
-                      : [{ text: "", value: "" }]
                   }
-                  defaultSelectedValue={subjectFilter[idx + 1]}
-                />
-              );
-            })}
+                )
+              : currentSeason?.subjects.label.map(
+                  (label: string, idx: number) => {
+                    return (
+                      <Input
+                        key={label}
+                        appearence="flat"
+                        label={label}
+                        required
+                        defaultValue={subjectFilter[idx + 1]}
+                        disabled
+                      />
+                    );
+                  }
+                )}
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -343,6 +369,7 @@ const CoursePid = (props: Props) => {
           <Button
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
             type="ghost"
+            disabled={strictMode}
             onClick={() => {
               if (courseClassroomRef.current !== "") {
                 SyllabusApi.RSyllabuses({
