@@ -1,0 +1,76 @@
+.callout {
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+
+  border-radius: 8px;
+  box-sizing: "border-box";
+  margin: 0px;
+  padding: 8px 12px;
+  color: black;
+  font-size: 1.2rem;
+
+  display: flex;
+  align-items: "center";
+
+  .icon {
+    margin-right: 8px;
+    svg {
+      fill: #52c41a;
+    }
+  }
+
+  .text {
+    .title {
+      font-weight: bold;
+    }
+    .description {
+      margin-top: 8px;
+      font-size: 1rem;
+    }
+  }
+
+  //un selectable
+  -webkit-touch-callout: none;
+  /* iOS Safari */
+  -webkit-user-select: none;
+  /* Safari */
+  -khtml-user-select: none;
+  /* Konqueror HTML */
+  -moz-user-select: none;
+  /* Old versions of Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge */
+  user-select: none;
+  /* Non-prefixed version, currently
+     supported by Chrome, Edge, Opera and Firefox */
+}
+
+.info {
+  background-color: #e6f4ff;
+  border-color: #91caff;
+  .icon {
+    svg {
+      fill: #1677ff;
+    }
+  }
+}
+
+.warning {
+  background-color: #fffbe6;
+  border-color: #ffe58f;
+  .icon {
+    svg {
+      fill: #faad14;
+    }
+  }
+}
+
+.error {
+  background-color: #fff2f0;
+  border-color: #ffccc7;
+  .icon {
+    svg {
+      fill: #ff4d4f;
+    }
+  }
+}
