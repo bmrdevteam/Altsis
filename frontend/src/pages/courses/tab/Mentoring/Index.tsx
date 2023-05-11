@@ -364,26 +364,6 @@ const CoursePid = (props: Props) => {
                   onClick={() => {
                     if (
                       window.confirm(
-                        `교과목을 변경하면 평가 정보가 변경될 수 있습니다. 평가 정보를 파일로 저장한 후 진행하는 것을 권장합니다.`
-                      ) === true
-                    ) {
-                      alert("!");
-                    }
-                  }}
-                >
-                  수정(교과목)
-                </Button>
-                <Button
-                  type={"ghost"}
-                  style={{
-                    borderRadius: "4px",
-                    height: "32px",
-                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                    marginTop: "12px",
-                  }}
-                  onClick={() => {
-                    if (
-                      window.confirm(
                         `정말 삭제하시겠습니까?${
                           enrollmentList.length > 0
                             ? " 평가도 함께 삭제됩니다."

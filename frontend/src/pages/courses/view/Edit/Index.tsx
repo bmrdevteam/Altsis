@@ -43,6 +43,8 @@ import Table from "components/tableV2/Table";
 import Loading from "components/loading/Loading";
 import Callout from "components/callout/Callout";
 
+import UpdatedEvaluationPopup from "./UpdatedEvaluationPopup";
+
 type Props = {};
 
 const CoursePid = (props: Props) => {
@@ -92,6 +94,9 @@ const CoursePid = (props: Props) => {
   const [mentorSelectPopupActive, setMentorSelectPopupActive] =
     useState<boolean>(false);
 
+  const [changes, setChanges] = useState<any[]>([]);
+  const [changesPoupActive, setChangesPopupActive] = useState<boolean>(false);
+
   function syllabusToTime(s: any) {
     let result = {};
     if (s) {
@@ -110,7 +115,7 @@ const CoursePid = (props: Props) => {
   }
 
   async function update() {
-    return await SyllabusApi.USyllabus({
+    const res1 = await SyllabusApi.USyllabus({
       _id: courseData._id,
       data: {
         classTitle: courseTitle,
@@ -123,6 +128,16 @@ const CoursePid = (props: Props) => {
         limit: Number(courseLimit),
       },
     });
+    const res2 = strictMode
+      ? await SyllabusApi.USyllabusSubject({
+          _id: courseData._id,
+          data: {
+            subject: courseSubject.split("/"),
+          },
+        })
+      : undefined;
+
+    return { res1, res2 };
   }
 
   useEffect(() => {
@@ -248,11 +263,11 @@ const CoursePid = (props: Props) => {
             <Callout
               style={{ marginBottom: "24px" }}
               type={"warning"}
-              title={"수강생이 있는 강의계획서는 수정에 제한이 있습니다."}
+              title={"수강생이 있는 강의계획서의 수정하는 경우"}
               child={
                 <ol>
                   <li>
-                    <b>교과목</b> 변경 기능을 준비중입니다.
+                    <b>교과목</b>을 변경하면 평가 정보가 변경될 수 있습니다.
                   </li>
                   <li>
                     <b>강의실 및 시간</b>을 변경할 수 없습니다.
@@ -266,55 +281,36 @@ const CoursePid = (props: Props) => {
             />
           )}
           <div style={{ display: "flex", gap: "24px" }} key="temp">
-            {!strictMode
-              ? currentSeason?.subjects.label.map(
-                  (label: string, idx: number) => {
-                    return (
-                      <Select
-                        key={label + subjectSelectKey[idx]}
-                        appearence="flat"
-                        label={label}
-                        required
-                        setValue={(e: string) => {
-                          if (subjectFilter[idx + 1] === e) return;
-                          subjectFilter[idx + 1] = e;
-                          subjectSelectKey[idx + 1] =
-                            subjectSelectKey[idx + 1] + 1;
-                          for (let i = idx + 2; i < subjectFilter.length; i++) {
-                            subjectFilter[i] = undefined;
-                            subjectSelectKey[idx + 1] =
-                              subjectSelectKey[idx + 1] + 1;
-                          }
-                          setSubjectFilter([...subjectFilter]);
-                          setSubjectSelectKey([...subjectSelectKey]);
-                          setCourseSubject(
-                            subjectFilter[subjectFilter.length - 1] ?? ""
-                          );
-                        }}
-                        options={
-                          subjectFilter && subjectFilter[idx]
-                            ? subjectDataDict[subjectFilter[idx]!]
-                            : [{ text: "", value: "" }]
-                        }
-                        defaultSelectedValue={subjectFilter[idx + 1]}
-                      />
+            {currentSeason?.subjects.label.map((label: string, idx: number) => {
+              return (
+                <Select
+                  key={label + subjectSelectKey[idx]}
+                  appearence="flat"
+                  label={label}
+                  required
+                  setValue={(e: string) => {
+                    if (subjectFilter[idx + 1] === e) return;
+                    subjectFilter[idx + 1] = e;
+                    subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
+                    for (let i = idx + 2; i < subjectFilter.length; i++) {
+                      subjectFilter[i] = undefined;
+                      subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
+                    }
+                    setSubjectFilter([...subjectFilter]);
+                    setSubjectSelectKey([...subjectSelectKey]);
+                    setCourseSubject(
+                      subjectFilter[subjectFilter.length - 1] ?? ""
                     );
+                  }}
+                  options={
+                    subjectFilter && subjectFilter[idx]
+                      ? subjectDataDict[subjectFilter[idx]!]
+                      : [{ text: "", value: "" }]
                   }
-                )
-              : currentSeason?.subjects.label.map(
-                  (label: string, idx: number) => {
-                    return (
-                      <Input
-                        key={label}
-                        appearence="flat"
-                        label={label}
-                        required
-                        defaultValue={subjectFilter[idx + 1]}
-                        disabled
-                      />
-                    );
-                  }
-                )}
+                  defaultSelectedValue={subjectFilter[idx + 1]}
+                />
+              );
+            })}
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -458,11 +454,19 @@ const CoursePid = (props: Props) => {
                 alert("수강정원을 0 또는 양수로 입력해주세요.");
               } else
                 update()
-                  .then((res: any) => {
+                  .then(({ res1, res2 }) => {
                     if (!byMentor)
                       navigate(`/courses/created/${pid}`, { replace: true });
-                    if (byMentor)
-                      navigate(`/courses/mentoring/${pid}`, { replace: true });
+                    if (byMentor) {
+                      if (res2?.changes && res2.changes.length > 0) {
+                        setChanges(res2.changes);
+                        setChangesPopupActive(true);
+                      } else {
+                        navigate(`/courses/mentoring/${pid}`, {
+                          replace: true,
+                        });
+                      }
+                    }
                   })
                   .catch((err) => {
                     alert(
@@ -613,6 +617,13 @@ const CoursePid = (props: Props) => {
             ]}
           />
         </Popup>
+      )}
+      {changesPoupActive && pid && (
+        <UpdatedEvaluationPopup
+          pid={pid}
+          changes={changes}
+          setPopupActive={setChangesPopupActive}
+        />
       )}
     </>
   ) : (
