@@ -13,7 +13,7 @@ router.get("/:_id?", isLoggedIn, syllabuses.find);
 router.put("/:_id/confirmed", isLoggedIn, syllabuses.confirm);
 router.delete("/:_id/confirmed", isLoggedIn, syllabuses.unconfirm);
 
-router.put("/:_id/:field?", isLoggedIn, syllabuses.update);
+router.put("/:_id", isLoggedIn, syllabuses.updateV2);
 
 router.delete("/:_id", isLoggedIn, syllabuses.remove);
 

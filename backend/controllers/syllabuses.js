@@ -2,6 +2,36 @@ const { logger } = require("../log/logger");
 const { Season, Registration, Syllabus, Enrollment } = require("../models");
 const _ = require("lodash");
 
+const checkPermission = async (user, syllabus) => {
+  const season = await Season(user.academyId).findById(syllabus.season);
+  if (!season) {
+    const err = new Error("season not found");
+    err.status = 404;
+    throw err;
+  }
+
+  const registration = await Registration(user.academyId)
+    .findOne({ user: user._id, season: season._id })
+    .lean();
+  if (!registration) {
+    const err = new Error("registration not found");
+    err.status = 404;
+    throw err;
+  }
+
+  if (!season.checkPermission("syllabus", user.userId, registration.role)) {
+    const err = new Error("you have no permission");
+    err.status = 403;
+    throw err;
+  }
+
+  return true;
+};
+
+const isFullyConfirmed = (syllabus) =>
+  _.filter(syllabus.teachers, { confirmed: true }).length ===
+  syllabus.teachers.length;
+
 const getUnavailableTimeLabels = async (academyId, syllabus) => {
   const { schoolId, season, classroom, time } = syllabus;
   if (!classroom) return [];
@@ -188,6 +218,179 @@ module.exports.unconfirm = async (req, res) => {
     return res
       .status(403)
       .send({ message: "you cannot unconfirm this syllabus" });
+  } catch (err) {
+    if (err) return res.status(500).send({ err: err.message });
+  }
+};
+
+const fields = [
+  "classTitle",
+  "time",
+  "point",
+  "classroom",
+  "subject",
+  "teachers",
+  "info",
+  "limit",
+];
+
+const fields2 = ["classTitle", "point", "teachers", "info", "limit"];
+
+module.exports.updateV2 = async (req, res) => {
+  try {
+    for (let field of fields) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: `field is missing: ${field}` });
+      }
+    }
+
+    const user = req.user;
+
+    const syllabus = await Syllabus(user.academyId).findById(req.params._id);
+    if (!syllabus) {
+      return res.status(404).send({ message: "syllabus not found" });
+    }
+
+    // 권한 확인
+    try {
+      await checkPermission(user, syllabus);
+    } catch (err) {
+      throw err;
+    }
+
+    // 별도 확인이 필요한 수정 사항
+    const isUpdated = {
+      time: !(
+        syllabus.time.length === req.body.time.length &&
+        syllabus.time.every(
+          (timeBlock, idx) => timeBlock.label === req.body.time[idx].label
+        )
+      ),
+      classroom: syllabus.classroom !== req.body.classroom,
+      subject: !_.isEqual(syllabus.subject, req.body.subject),
+    };
+
+    // user가 syllabus 작성자이고 멘토가 아닌 경우
+    if (
+      user._id.equals(syllabus.user) &&
+      !_.find(syllabus.teachers, { _id: user._id })
+    ) {
+      // 승인된 상태에서는 수정할 수 없다.
+      if (isFullyConfirmed()) {
+        return res.status(409).send({
+          message: "you cannot update this syllabus becuase it is confirmed",
+        });
+      }
+      // enrollment가 있는 경우 수정할 수 없다.
+      if (
+        await Enrollment(user.academyId).findOne({ syllabus: syllabus._id })
+      ) {
+        return res.status(409).send({
+          message: "you cannot update this syllabus becuase it is enrolled",
+        });
+      }
+
+      // 수정
+      fields.forEach((field) => {
+        syllabus[field] = req.body[field];
+      });
+
+      // 시간 중복 확인
+      if (isUpdated[time] || isUpdated[classroom]) {
+        const unavailableTimeLabels = await getUnavailableTimeLabels(
+          user.academyId,
+          syllabus
+        );
+
+        if (!_.isEmpty(unavailableTimeLabels)) {
+          return res.status(409).send({
+            message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
+          });
+        }
+      }
+
+      await syllabus.save();
+      return res.status(200).send({});
+    }
+
+    // user가 syllabus 멘토인 경우
+    if (_.find(syllabus.teachers, { _id: user._id })) {
+      const enrollments = await Enrollment(user.academyId).find({
+        syllabus: syllabus._id,
+      });
+
+      // enrollment가 없는 경우
+      if (enrollments.length === 0) {
+        // 수정
+        fields.forEach((field) => {
+          syllabus[field] = req.body[field];
+        });
+
+        // 시간 중복 확인
+        if (isUpdated["time"] || isUpdated["classroom"]) {
+          const unavailableTimeLabels = await getUnavailableTimeLabels(
+            user.academyId,
+            syllabus
+          );
+
+          if (!_.isEmpty(unavailableTimeLabels)) {
+            return res.status(409).send({
+              message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
+            });
+          }
+        }
+
+        await syllabus.save();
+        return res.status(200).send({});
+      }
+
+      // enrollment가 있는 경우
+      if (req.body.limit !== 0 && req.body.limit < enrollments.length) {
+        return res
+          .status(409)
+          .send({ message: "수강생 수가 수강정원을 초과합니다." });
+      }
+      if (isUpdated["time"] || isUpdated["classroom"]) {
+        return res.status(409).send({
+          message:
+            "수강생이 있는 상태에서 시간 또는 강의실을 변경할 수 없습니다.",
+          isUpdated,
+          time1: syllabus.time.length === req.body.time.length,
+          time2: syllabus.time.every((timeBlock, idx) => {
+            if (!_.isEqual(timeBlock, req.body.time[idx])) {
+              console.log(timeBlock, req.body.time[idx]);
+            }
+            return _.isEqual(timeBlock, req.body.time[idx]);
+          }),
+        });
+      }
+      if (isUpdated["subject"]) {
+        return res.status(409).send({
+          message:
+            "수강생이 있는 상태에서 교과목을 변경할 수 없습니다. 별도 교과목 수정 API를 사용해주세요.",
+        });
+      }
+      // 수정
+      fields2.forEach((field) => {
+        syllabus[field] = req.body[field];
+      });
+
+      await Promise.all(
+        enrollments.map((e) => {
+          fields2.forEach((field) => {
+            e[field] = syllabus[field];
+          });
+          return e.save();
+        })
+      );
+
+      await syllabus.save();
+      return res.status(200).send({});
+    }
+
+    return res.status(403).send({
+      message: "you cannot update this syllabus",
+    });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
