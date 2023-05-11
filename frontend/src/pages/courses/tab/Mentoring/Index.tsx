@@ -336,7 +336,12 @@ const CoursePid = (props: Props) => {
                     marginTop: "12px",
                   }}
                   onClick={() => {
-                    navigate(`/courses/edit/${pid}`, { replace: true });
+                    navigate(
+                      `/courses/edit/${pid}?byMentor=true${
+                        enrollmentList.length > 0 ? "&strictMode=true" : ""
+                      }`,
+                      { replace: true }
+                    );
                   }}
                 >
                   수정

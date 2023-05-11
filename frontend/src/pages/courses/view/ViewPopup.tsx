@@ -50,7 +50,6 @@ type Props = {
   setPopupActive: any;
   course: string;
   hideStudentList?: boolean;
-  byMentor?: boolean;
 };
 
 const CourseView = (props: Props) => {
@@ -191,29 +190,6 @@ const CourseView = (props: Props) => {
           <ClassInfo />
           <div style={{ height: "24px" }}></div>
           <Divider />
-
-          {props?.byMentor && (
-            <>
-              <Button
-                type={"ghost"}
-                style={{
-                  borderRadius: "4px",
-                  height: "32px",
-                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                  marginTop: "12px",
-                }}
-                onClick={() => {
-                  navigate(`/courses/edit/${props.course}?byMentor=true`, {
-                    replace: true,
-                  });
-                }}
-                disabled={confirmed}
-              >
-                수정
-              </Button>
-            </>
-          )}
-
           {!props?.hideStudentList && (
             <>
               <Divider />
