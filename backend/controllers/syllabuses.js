@@ -2,8 +2,8 @@ const { logger } = require("../log/logger");
 const { Season, Registration, Syllabus, Enrollment } = require("../models");
 const _ = require("lodash");
 
-const checkPermission = async (user, syllabus) => {
-  const season = await Season(user.academyId).findById(syllabus.season);
+const checkPermission = async (user, seasonId) => {
+  const season = await Season(user.academyId).findById(seasonId);
   if (!season) {
     const err = new Error("season not found");
     err.status = 404;
@@ -11,7 +11,7 @@ const checkPermission = async (user, syllabus) => {
   }
 
   const registration = await Registration(user.academyId)
-    .findOne({ user: user._id, season: season._id })
+    .findOne({ user: user._id, season: seasonId })
     .lean();
   if (!registration) {
     const err = new Error("registration not found");
@@ -25,7 +25,7 @@ const checkPermission = async (user, syllabus) => {
     throw err;
   }
 
-  return true;
+  return { season, registration };
 };
 
 const isFullyConfirmed = (syllabus) =>
@@ -57,25 +57,13 @@ const getUnavailableTimeLabels = async (academyId, syllabus) => {
 
 module.exports.create = async (req, res) => {
   try {
-    // 유저의 학기 등록 정보 확인
-    const registration = await Registration(req.user.academyId).findById(
-      req.body.registration
-    );
-    if (!registration)
-      return res.status(404).send({ message: "registration not found" });
+    if (!("season" in req.body)) {
+      return res.status(400).send({ message: "field season is missing" });
+    }
 
-    // 유저 권한 확인
-    const season = await Season(req.user.academyId).findById(req.body.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
+    const user = req.user;
 
-    if (
-      !season.checkPermission(
-        "syllabus",
-        registration.userId,
-        registration.role
-      )
-    )
-      return res.status(409).send({ message: "you have no permission" });
+    const { season } = await checkPermission(user, req.body.season);
 
     const syllabus = new (Syllabus(req.user.academyId))({
       ...season.getSubdocument(),
@@ -104,7 +92,7 @@ module.exports.create = async (req, res) => {
       });
 
     await syllabus.save();
-    return res.status(200).send(syllabus);
+    return res.status(200).send({ syllabus });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
@@ -252,7 +240,7 @@ module.exports.updateV2 = async (req, res) => {
     }
 
     // 권한 확인
-    await checkPermission(user, syllabus);
+    await checkPermission(user, syllabus.season);
 
     // 별도 확인이 필요한 수정 사항
     const isUpdated = {
@@ -471,7 +459,7 @@ module.exports.remove = async (req, res) => {
     if (!syllabus) return res.status(404).send();
 
     // 권한 확인
-    await checkPermission(user, syllabus);
+    await checkPermission(user, syllabus.season);
 
     // user가 syllabus 작성자이고 멘토가 아닌 경우
     if (

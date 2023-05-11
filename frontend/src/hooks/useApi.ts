@@ -1016,7 +1016,6 @@ export default function useApi() {
   async function CSyllabus(props: {
     data: {
       season: string;
-      registration: string;
       classTitle: string;
       point: number;
       subject: string[];
@@ -1027,10 +1026,11 @@ export default function useApi() {
       limit: number;
     };
   }) {
-    return await database.C({
+    const { syllabus } = await database.C({
       location: `syllabuses`,
       data: props.data,
     });
+    return syllabus;
   }
   /**
    * Get Syllabuses and enrollments
