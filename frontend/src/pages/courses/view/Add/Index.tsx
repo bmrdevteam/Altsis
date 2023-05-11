@@ -219,7 +219,6 @@ const CourseAdd = (props: Props) => {
       return await SyllabusApi.CSyllabus({
         data: {
           season: currentSeason._id,
-          registration: currentRegistration._id,
           classTitle: courseTitle,
           point: Number(coursePoint),
           subject: courseSubject.split("/"),
@@ -230,9 +229,9 @@ const CourseAdd = (props: Props) => {
           limit: Number(courseLimit),
         },
       })
-        .then((res: any) => {
+        .then((syllabus: any) => {
           alert(SUCCESS_MESSAGE);
-          navigate(`/courses/created/${res._id}`, {
+          navigate(`/courses/created/${syllabus?._id}`, {
             replace: true,
           });
         })
