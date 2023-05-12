@@ -94,8 +94,7 @@ const RowFunction = ({ day }: { day: string }) => {
 };
 const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
   const { editor, setEditor, currentEvent } = useStore();
-  const { currentSeason, currentRegistration, updateCurrentRegistration } =
-    useAuth();
+  const { currentSeason, currentRegistration, reloadRegistration } = useAuth();
   const { EnrollmentApi, RegistrationApi } = useApi();
 
   const today = new Date();
@@ -155,7 +154,9 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                     _id: currentEvent._id,
                     memo,
                   })
-                    .then(() => updateCurrentRegistration())
+                    .then(async () => {
+                      reloadRegistration();
+                    })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
                       setEditor(false);
@@ -172,7 +173,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                         memo: { title, day, start, end, classroom, memo },
                       })
                         .then((res) => {
-                          updateCurrentRegistration();
+                          reloadRegistration();
                         })
                         .then(() => {
                           alert(SUCCESS_MESSAGE);
@@ -185,7 +186,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                         memo: { title, day, start, end, classroom, memo },
                       })
                         .then((res) => {
-                          updateCurrentRegistration();
+                          reloadRegistration();
                         })
                         .then(() => {
                           alert(SUCCESS_MESSAGE);
@@ -213,7 +214,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                     rid: currentRegistration?._id,
                   })
                     .then((res) => {
-                      updateCurrentRegistration();
+                      reloadRegistration();
                     })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
@@ -327,7 +328,7 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
             label="강의실"
             options={[
               { text: "없음", value: "" },
-              ...currentSeason.classrooms?.map((classroom: string) => {
+              ...currentSeason?.classrooms.map((classroom: string) => {
                 return { text: classroom, value: classroom };
               }),
             ]}

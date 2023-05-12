@@ -196,10 +196,8 @@ const NavProfile = () => {
               src={currentUser?.profile || defaultProfilePic}
               onError={(e) => {
                 e.currentTarget.onerror = null;
-                e.currentTarget.src = currentUser?.profile.replace(
-                  "/thumb/",
-                  "/original/"
-                );
+                e.currentTarget.src =
+                  currentUser?.profile?.replace("/thumb/", "/original/") ?? "";
               }}
               alt="profile"
               onClick={() => {

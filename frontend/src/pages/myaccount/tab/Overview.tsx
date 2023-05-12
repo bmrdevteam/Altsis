@@ -19,7 +19,7 @@ const Overview = () => {
       setAlertPopupActive(true);
     } else {
       EnrollmentApi.REnrolllments({
-        season: currentSeason.season,
+        season: currentSeason._id,
         student: currentUser._id,
       }).then((res) => {
         setEnrollments(res);
@@ -29,7 +29,7 @@ const Overview = () => {
   // 테스트
   async function getCourseList() {
     const { syllabuses: res } = await database.R({
-      location: `syllabuses?season=${currentSeason.season}&userId=${currentUser.userId}`,
+      location: `syllabuses?season=${currentSeason._id}&userId=${currentUser.userId}`,
     });
     return res;
   }
@@ -118,7 +118,7 @@ const Overview = () => {
               justifyContent: "center",
             }}
           >
-            {currentUser.email}
+            {currentUser?.email}
           </div>
           <Button
             type={"ghost"}
