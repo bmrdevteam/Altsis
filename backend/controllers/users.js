@@ -178,15 +178,6 @@ module.exports.current = async (req, res) => {
   try {
     const user = req.user;
 
-    // // school의 activatedSeason
-    // const schools = await Promise.all(
-    //   user.schools.map((school) =>
-    //     School(user.academyId)
-    //       .findOne({ schoolId: school.schoolId })
-    //       .select(["schoolId", "schoolName", "activatedSeason"])
-    //   )
-    // );
-
     // registrations
     const registrations = await Registration(user.academyId)
       .find({ userId: user.userId })
@@ -201,18 +192,21 @@ module.exports.current = async (req, res) => {
         "role",
         "period",
         "memos",
-      ]);
+      ])
+      .lean();
 
     // notifications
-    const notifications = await Notification(user.academyId).find({
-      user: user._id,
-      checked: false,
-    });
+    const notifications = await Notification(user.academyId)
+      .find({
+        user: user._id,
+        checked: false,
+      })
+      .lean();
 
     return res.status(200).send({
-      ...user.toObject(),
+      user: user.toObject(),
       registrations,
-      notifications: _.sortBy(notifications, "createdAt").reverse(),
+      notifications,
     });
   } catch (err) {
     logger.error(err.message);

@@ -207,7 +207,10 @@ export default function useApi() {
    * @returns LoggedIn User
    */
   async function RMySelf() {
-    return await database.R({ location: "users/current" });
+    const { user, registrations, notifications } = await database.R({
+      location: "users/current",
+    });
+    return { user, registrations, notifications };
   }
 
   /**
