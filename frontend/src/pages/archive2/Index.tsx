@@ -5,29 +5,18 @@ import style from "style/pages/archive.module.scss";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
-import useApi from "hooks/useApi";
 
 type Props = {};
 
 const Archive = (props: Props) => {
   const navigate = useNavigate();
-  const { currentSchool, setCurrentSchool } = useAuth();
-  const { SchoolApi } = useApi();
+  const { currentSchool } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (isLoading) {
-      if (currentSchool?._id) {
-        SchoolApi.RSchool(currentSchool?._id)
-          .then((s) => {
-            if (s.formArchive?.length !== 0) {
-              setCurrentSchool((prev: any) => ({ ...prev, ...s }));
-              navigate(s.formArchive[0].label);
-            }
-          })
-          .then(() => {
-            setIsLoading(false);
-          });
+      if (currentSchool?._id && currentSchool?.formArchive?.length !== 0) {
+        navigate(currentSchool.formArchive[0].label);
       } else {
         setIsLoading(false);
       }

@@ -42,8 +42,8 @@ const ParsedTableBlock = (props: Props) => {
       props.blockData.data?.dataRepeat?.by.split("//")[
         props.blockData.data?.dataRepeat?.by.split("//").length - 1
       ];
-    for (const e of currentSchool.formArchive.find((o: any) => o.label === z)
-      .fields) {
+    for (const e of currentSchool?.formArchive.find((o: any) => o.label === z)
+      ?.fields ?? []) {
       if (e.runningTotal) {
         let track = 0;
         repeat.map((ob: any) => {
@@ -63,7 +63,6 @@ const ParsedTableBlock = (props: Props) => {
         });
       }
     }
-    
   }
 
   const Cell = ({

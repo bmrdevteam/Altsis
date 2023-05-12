@@ -213,9 +213,9 @@ type Props = { title?: string };
  */
 const Navbar = (props: Props) => {
   const {
-    registrations,
+    currentUser,
     currentRegistration,
-    changeCurrentSeason,
+    changeRegistration,
     currentSchool,
     currentSeason,
   } = useAuth();
@@ -318,12 +318,21 @@ const Navbar = (props: Props) => {
       <div className={style.menu_item} style={{ paddingLeft: "24px" }}>
         <Select
           appearence="flat"
-          options={registrations?.map((value: any, index: number) => {
-            return { text: `${value.year} ${value.term}`, value: value };
-          })}
-          defaultSelectedValue={currentRegistration}
+          options={
+            currentUser?.registrations
+              ?.filter(
+                (registration) => registration.school === currentSchool._id
+              )
+              .map((value: any, index: number) => {
+                return {
+                  text: `${value.year} ${value.term}`,
+                  value: value._id,
+                };
+              }) ?? []
+          }
+          defaultSelectedValue={currentRegistration?._id}
           onChange={(value: any) => {
-            changeCurrentSeason(value);
+            changeRegistration(value);
           }}
         />
       </div>
