@@ -57,7 +57,9 @@ const SocialLoginSettings = (props: Props) => {
         </div>
         <div className={style.info}>
           <label className={style.label}>{"google"}</label>
-          <span className={style.description}>{currentUser.snsId?.google}</span>
+          <span className={style.description}>
+            {currentUser?.snsId?.google}
+          </span>
         </div>
         <div
           className={style.controls}
