@@ -313,8 +313,8 @@ module.exports.updateField = async (req, res) => {
     // registration 일괄 수정
     if (field === "period") {
       await Registration(req.user.academyId).updateMany(
-        { season: _season._id },
-        { period: _season.period }
+        { season: season._id },
+        { period: season.period }
       );
     }
 
