@@ -414,6 +414,11 @@ module.exports.updateSubject = async (req, res) => {
     // evaluation 동기화
     for (let enrollment of enrollments) {
       enrollment.subject = newSubject;
+      const change = {
+        labels: [],
+        before: [],
+        after: [],
+      };
 
       const exEnrollmentsByYear = await Enrollment(user.academyId)
         .find({
@@ -442,14 +447,10 @@ module.exports.updateSubject = async (req, res) => {
             exEnrollmentsByTerm[0].evaluation[obj.label] &&
             exEnrollmentsByTerm[0].evaluation[obj.label] !== ""
           ) {
-            changes.push({
-              student: enrollment.student,
-              studentId: enrollment.studentId,
-              studentName: enrollment.studentName,
-              label: obj.label,
-              before: enrollment.evaluation[obj.label] ?? "",
-              after: exEnrollmentsByTerm[0].evaluation[obj.label],
-            });
+            change.labels.push(obj.label);
+            change.before.push(enrollment.evaluation[obj.label] ?? "");
+            change.after.push(exEnrollmentsByTerm[0].evaluation[obj.label]);
+
             Object.assign(enrollment.evaluation || {}, {
               [obj.label]: exEnrollmentsByTerm[0].evaluation[obj.label],
             });
@@ -476,14 +477,10 @@ module.exports.updateSubject = async (req, res) => {
             exEnrollmentsByYear[0].evaluation[obj.label] &&
             exEnrollmentsByYear[0].evaluation[obj.label] !== ""
           ) {
-            changes.push({
-              student: enrollment.student,
-              studentId: enrollment.studentId,
-              studentName: enrollment.studentName,
-              label: obj.label,
-              before: enrollment.evaluation[obj.label] ?? "",
-              after: exEnrollmentsByYear[0].evaluation[obj.label],
-            });
+            change.labels.push(obj.label);
+            change.before.push(enrollment.evaluation[obj.label] ?? "");
+            change.after.push(exEnrollmentsByYear[0].evaluation[obj.label]);
+
             Object.assign(enrollment.evaluation || {}, {
               [obj.label]: exEnrollmentsByYear[0].evaluation[obj.label],
             });
@@ -505,6 +502,15 @@ module.exports.updateSubject = async (req, res) => {
             isUpdatedByYear = true;
           }
         }
+      }
+
+      if (change.labels.length > 0) {
+        changes.push({
+          student: enrollment.student,
+          studentId: enrollment.studentId,
+          studentName: enrollment.studentName,
+          ...change,
+        });
       }
 
       updates.push(enrollment);
