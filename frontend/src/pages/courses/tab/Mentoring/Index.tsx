@@ -374,7 +374,7 @@ const CoursePid = (props: Props) => {
                       SyllabusApi.DSyllabus(syllabus._id)
                         .then(() => {
                           alert(SUCCESS_MESSAGE);
-                          navigate("/courses#개설%20수업");
+                          navigate("/courses#담당%20수업");
                         })
                         .catch((err) => {
                           alert(
