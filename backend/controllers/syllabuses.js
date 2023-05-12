@@ -514,10 +514,9 @@ module.exports.updateSubject = async (req, res) => {
       }
 
       updates.push(enrollment);
-      if (isUpdatedByTerm || isUpdatedByYear) {
+      if (isUpdatedByTerm && !isUpdatedByYear) {
         updates.push(...exEnrollmentsByTerm);
-      }
-      if (isUpdatedByYear) {
+      } else if (isUpdatedByYear) {
         updates.push(...exEnrollmentsByYear);
       }
     }
