@@ -1,7 +1,7 @@
-const { logger } = require("../log/logger");
-const multer = require("multer");
-const multerS3 = require("multer-s3");
-const aws = require("aws-sdk");
+import { logger } from "../log/logger.js";
+import multer from "multer";
+import multerS3 from "multer-s3";
+import aws from "aws-sdk";
 
 const s3 = new aws.S3({
   accessKeyId: process.env["s3_accessKeyId"].trim(),
@@ -39,7 +39,7 @@ const myMulter = multer({
   },
 });
 
-exports.upload = async (req, res) => {
+export const upload = async (req, res) => {
   const user = req.user;
 
   myMulter.single("img")(req, {}, async (err) => {
@@ -72,12 +72,12 @@ exports.upload = async (req, res) => {
   });
 };
 
-exports.read = (req, res) => {
+export const read = (req, res) => {
   const url = req.user.profile || process.env["defaultProfile"];
   return res.status(200).send({ url });
 };
 
-exports.delete = (req, res) => {
+export const remove = (req, res) => {
   const user = req.user;
   if (!user.profile) {
     return res.status(404).send({ message: "no profile!" });

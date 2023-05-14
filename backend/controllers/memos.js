@@ -1,10 +1,10 @@
-const { logger } = require("../log/logger");
-const _ = require("lodash");
+import { logger } from "../log/logger.js";
+import _ from "lodash";
 
-const { Registration } = require("../models");
+import { Registration } from "../models/index.js";
 //_____________________________________________________________________________
 
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     const registration = await Registration(req.user.academyId).findById(
       req.body.registration
@@ -28,7 +28,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     const registration = await Registration(req.user.academyId).findById(
       req.body.registration
@@ -63,7 +63,7 @@ module.exports.update = async (req, res) => {
   }
 };
 
-module.exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     const registration = await Registration(req.user.academyId).findById(
       req.query.registration

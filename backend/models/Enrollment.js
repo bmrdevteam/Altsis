@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
-const encrypt = require("mongoose-encryption");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
+import encrypt from "mongoose-encryption";
 
 const enrollmentSchema = mongoose.Schema(
   {
@@ -87,6 +87,6 @@ enrollmentSchema.plugin(encrypt, {
   encryptedFields: ["evaluation"],
 });
 
-module.exports = (dbName) => {
+export const Enrollment = (dbName) => {
   return conn[dbName].model("Enrollment", enrollmentSchema);
 };

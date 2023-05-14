@@ -1,6 +1,6 @@
-const { logger } = require("../log/logger");
-const _ = require("lodash");
-const {
+import { logger } from "../log/logger.js";
+import _ from "lodash";
+import {
   Enrollment,
   Form,
   School,
@@ -10,12 +10,12 @@ const {
   Season,
   Archive,
   Notification,
-} = require("../models");
-const multer = require("multer");
-const multerS3 = require("multer-s3");
-const aws = require("aws-sdk");
-const { parseISO, addSeconds } = require("date-fns");
-const { format } = require("date-fns");
+} from "../models/index.js";
+import multer from "multer";
+import multerS3 from "multer-s3";
+import aws from "aws-sdk";
+import { parseISO, addSeconds } from "date-fns";
+import { format } from "date-fns";
 
 const s3 = new aws.S3({
   accessKeyId: process.env["s3_accessKeyId2"].trim(),
@@ -105,7 +105,7 @@ const tmpMulter = multer({
 
 /* upload file */
 
-module.exports.uploadArchive = async (req, res) => {
+export const uploadArchive = async (req, res) => {
   tmpMulter.single("file")(req, {}, async (err) => {
     if (err) {
       if (err.code == "LIMIT_FILE_SIZE" || err.code == "INVALID_FILE_TYPE")
@@ -134,7 +134,7 @@ module.exports.uploadArchive = async (req, res) => {
 
 /* sign file */
 
-module.exports.sign = async (req, res) => {
+export const sign = async (req, res) => {
   let seconds = 0;
 
   /* 권한 검사 */
@@ -257,7 +257,7 @@ module.exports.sign = async (req, res) => {
 };
 
 /* find backup */
-module.exports.findBackup = async (req, res) => {
+export const findBackup = async (req, res) => {
   try {
     if (!("academyId" in req.query)) {
       return res.status(400).send({ message: "query(academyId) is required" });
@@ -332,7 +332,7 @@ const Model = (title, academyId) => {
   if (title === "notifications") return Notification(academyId);
 };
 
-module.exports.uploadBackup = async (req, res) => {
+export const uploadBackup = async (req, res) => {
   if (!("academyId" in req.query)) {
     return res.status(400).send({ message: "query(academyId) is required" });
   }
@@ -415,7 +415,7 @@ module.exports.uploadBackup = async (req, res) => {
   }
 };
 
-module.exports.removeBackup = async (req, res) => {
+export const removeBackup = async (req, res) => {
   try {
     if (!("academyId" in req.query)) {
       return res.status(400).send({ message: "query(academyId) is required" });
@@ -448,7 +448,7 @@ module.exports.removeBackup = async (req, res) => {
   }
 };
 
-module.exports.restoreBackup = async (req, res) => {
+export const restoreBackup = async (req, res) => {
   try {
     const { academyId, model, documents } = req.body;
 
@@ -488,7 +488,7 @@ module.exports.restoreBackup = async (req, res) => {
 };
 
 /* create */
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     const user = await User(req.user.academyId).findOne({
       userId: req.body.userId,
@@ -526,7 +526,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     const { userId, school } = req.query;
     if (!userId || !school) {
@@ -558,7 +558,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.findById = async (req, res) => {
+export const findById = async (req, res) => {
   try {
     const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
@@ -570,7 +570,7 @@ module.exports.findById = async (req, res) => {
   }
 };
 
-module.exports.updateDataField = async (req, res) => {
+export const updateDataField = async (req, res) => {
   try {
     const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
@@ -588,7 +588,7 @@ module.exports.updateDataField = async (req, res) => {
 
 /* delete */
 
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     s3.deleteObject(
       {
@@ -607,7 +607,7 @@ exports.remove = async (req, res) => {
   }
 };
 
-module.exports.removeField = async (req, res) => {
+export const removeField = async (req, res) => {
   try {
     const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
@@ -625,7 +625,7 @@ module.exports.removeField = async (req, res) => {
 
 /* test */
 
-module.exports.test = async (req, res) => {
+export const test = async (req, res) => {
   /* upload file */
   const { userIds, school } = req.body;
   let idx = 1;

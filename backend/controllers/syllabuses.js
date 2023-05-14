@@ -1,6 +1,6 @@
-const { logger } = require("../log/logger");
-const { Season, Registration, Syllabus, Enrollment } = require("../models");
-const _ = require("lodash");
+import { logger } from "../log/logger.js";
+import { Season, Registration, Syllabus, Enrollment } from "../models/index.js";
+import _ from "lodash";
 
 const checkPermission = async (user, seasonId) => {
   const season = await Season(user.academyId).findById(seasonId);
@@ -55,7 +55,7 @@ const getUnavailableTimeLabels = async (academyId, syllabus) => {
   return unavailableTimeLabels;
 };
 
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     if (!("season" in req.body)) {
       return res.status(400).send({ message: "field season is missing" });
@@ -99,7 +99,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const syllabus = await Syllabus(req.user.academyId).findById(
@@ -160,7 +160,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.confirm = async (req, res) => {
+export const confirm = async (req, res) => {
   try {
     // authentication
     const syllabus = await Syllabus(req.user.academyId).findById(
@@ -181,7 +181,7 @@ module.exports.confirm = async (req, res) => {
   }
 };
 
-module.exports.unconfirm = async (req, res) => {
+export const unconfirm = async (req, res) => {
   try {
     // authentication
     const syllabus = await Syllabus(req.user.academyId).findById(
@@ -224,7 +224,7 @@ const fields = [
 
 const fields2 = ["classTitle", "point", "teachers", "info", "limit"];
 
-module.exports.updateV2 = async (req, res) => {
+export const updateV2 = async (req, res) => {
   try {
     for (let field of fields) {
       if (!(field in req.body)) {
@@ -372,7 +372,7 @@ module.exports.updateV2 = async (req, res) => {
   }
 };
 
-module.exports.updateSubject = async (req, res) => {
+export const updateSubject = async (req, res) => {
   try {
     if (!("subject" in req.body)) {
       return res.status(400).send({ message: `field is missing: ${field}` });
@@ -532,7 +532,7 @@ module.exports.updateSubject = async (req, res) => {
 };
 
 /* deprecated */
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     // 내가 만둘었거나 멘토링하는 syllabus인가?
     const syllabus = await Syllabus(req.user.academyId).findById(
@@ -608,7 +608,7 @@ module.exports.update = async (req, res) => {
   }
 };
 
-module.exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     const user = req.user;
 

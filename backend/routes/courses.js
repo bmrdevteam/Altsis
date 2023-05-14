@@ -1,11 +1,11 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const courses = require("../controllers/courses");
-const { isLoggedIn } = require("../middleware/auth");
+import { isLoggedIn } from "../middleware/auth.js";
+import * as courses from "../controllers/courses.js";
 
 //=================================
 //             Syllabus & Enrollments
 //=================================
 
 router.get("/", isLoggedIn, courses.find);
-module.exports = router;
+export { router };

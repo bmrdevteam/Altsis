@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const seasons = require("../controllers/seasons");
-const { isAdManager, isLoggedIn } = require("../middleware/auth");
+import * as seasons from "../controllers/seasons.js";
+import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 
 //=================================
 //             Season
@@ -16,6 +16,6 @@ router.put("/:_id/inactivate", isAdManager, seasons.inactivate);
 
 router.put("/:_id/:field/:fieldType?", isAdManager, seasons.updateField);
 
-router.delete("/:_id", isAdManager, seasons.delete);
+router.delete("/:_id", isAdManager, seasons.remove);
 
-module.exports = router;
+export { router };

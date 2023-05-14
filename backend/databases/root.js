@@ -1,5 +1,7 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-module.exports = mongoose.createConnection(
+const root = mongoose.createConnection(
   `${process.env["DB_URL"].trim()}/root?retryWrites=true&w=majority`
 );
+
+export { root };

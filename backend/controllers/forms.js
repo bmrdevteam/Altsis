@@ -1,7 +1,7 @@
-const { logger } = require("../log/logger");
-const { Form } = require("../models");
+import { logger } from "../log/logger.js";
+import { Form } from "../models/index.js";
 
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     const exForm = await Form(req.user.academyId).findOne({
       title: req.body.title,
@@ -48,7 +48,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const form = await Form(req.user.academyId).findById(req.params._id);
@@ -64,7 +64,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     const form = await Form(req.user.academyId).findById(req.params._id);
     if (!form) return res.status(404).send({ message: "form not found" });
@@ -94,7 +94,7 @@ module.exports.update = async (req, res) => {
   }
 };
 
-module.exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     const form = await Form(req.user.academyId).findById(req.params._id);
     if (!form) return res.status(404).send();

@@ -1,12 +1,11 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const { isOwner } = require("../middleware/auth");
-
-const academies = require("../controllers/academies");
-const users = require("../controllers/users");
-const schools = require("../controllers/schools");
-const seasons = require("../controllers/seasons");
-const registrations = require("../controllers/registrations");
+import { isOwner } from "../middleware/auth.js";
+import * as academies from "../controllers/academies.js";
+import * as users from "../controllers/users.js";
+import * as schools from "../controllers/schools.js";
+import * as seasons from "../controllers/seasons.js";
+import * as registrations from "../controllers/registrations.js";
 
 //=================================
 //             Academy
@@ -53,4 +52,4 @@ router.put(
 // router.post("/:academyId/registrations", isOwner, registrations.register);
 router.put("/:academyId/registrations/:_id", isOwner, registrations.update);
 
-module.exports = router;
+export { router };

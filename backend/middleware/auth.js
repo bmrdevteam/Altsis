@@ -1,8 +1,8 @@
-const { logger } = require("../log/logger");
-const { conn } = require("../databases/connection");
-const client = require("../caches/redis");
+import { logger } from "../log/logger.js";
+import { conn } from "../databases/connection.js";
+import { client } from "../caches/redis.js";
 
-exports.isLoggedIn = (req, res, next) => {
+export const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
     next();
   } else {
@@ -10,7 +10,7 @@ exports.isLoggedIn = (req, res, next) => {
   }
 };
 
-exports.isNotLoggedIn = (req, res, next) => {
+export const isNotLoggedIn = (req, res, next) => {
   if (!req.isAuthenticated()) {
     next();
   } else {
@@ -18,7 +18,7 @@ exports.isNotLoggedIn = (req, res, next) => {
   }
 };
 
-exports.forceNotLoggedIn = (req, res, next) => {
+export const forceNotLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
     req.logout((err) => {
       if (err) return res.status(500).send({ err: err.message });
@@ -29,7 +29,7 @@ exports.forceNotLoggedIn = (req, res, next) => {
   }
 };
 
-exports.isOwner = (req, res, next) => {
+export const isOwner = (req, res, next) => {
   if (req.isAuthenticated()) {
     if (req.user.auth == "owner") {
       if (req.params.academyId) {
@@ -48,7 +48,7 @@ exports.isOwner = (req, res, next) => {
   }
 };
 
-exports.isAdmin = (req, res, next) => {
+export const isAdmin = (req, res, next) => {
   if (req.isAuthenticated()) {
     if (req.user.auth == "admin") {
       next();
@@ -60,7 +60,7 @@ exports.isAdmin = (req, res, next) => {
   }
 };
 // isAdmin + isManager
-exports.isAdManager = (req, res, next) => {
+export const isAdManager = (req, res, next) => {
   if (req.isAuthenticated()) {
     if (req.user.auth == "admin" || req.user.auth == "manager") {
       next();
@@ -72,7 +72,7 @@ exports.isAdManager = (req, res, next) => {
   }
 };
 
-exports.isOwnerOrAdmin = (req, res, next) => {
+export const isOwnerOrAdmin = (req, res, next) => {
   if (req.isAuthenticated()) {
     if (req.user.auth == "owner" || req.user.auth == "admin") {
       next();
@@ -84,18 +84,7 @@ exports.isOwnerOrAdmin = (req, res, next) => {
   }
 };
 
-authRank = {
-  owner: 1,
-  admin: 2,
-  manager: 3,
-  member: 4,
-};
-
-exports.isLower = (auth1, auth2) => {
-  return authRank[auth1] > authRank[auth2];
-};
-
-exports.isReceivedNotifications = (req, res, next) => {
+export const isReceivedNotifications = (req, res, next) => {
   if (!req.query.updated) next();
   else {
     client.get(

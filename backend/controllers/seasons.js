@@ -1,12 +1,12 @@
-const { logger } = require("../log/logger");
-const _ = require("lodash");
-const {
+import { logger } from "../log/logger.js";
+import _ from "lodash";
+import {
   Season,
   School,
   Syllabus,
   Enrollment,
   Registration,
-} = require("../models");
+} from "../models/index.js";
 
 // check schoolId&year&term duplication
 const checkDuplication = async (academyId, schoolId, year, term) => {
@@ -53,7 +53,7 @@ const checkEvaluation = async (academyId, season) => {
 
 /* create */
 
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     const _Season = Season(req.user.academyId);
 
@@ -128,7 +128,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const season = await Season(req.user.academyId).findById(req.params._id);
@@ -163,7 +163,7 @@ module.exports.find = async (req, res) => {
 };
 
 /* update */
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send({ message: "season not found" });
@@ -224,7 +224,7 @@ module.exports.update = async (req, res) => {
   }
 };
 
-module.exports.activate = async (req, res) => {
+export const activate = async (req, res) => {
   try {
     /* activate season */
     const season = await Season(req.user.academyId).findByIdAndUpdate(
@@ -246,7 +246,7 @@ module.exports.activate = async (req, res) => {
   }
 };
 
-module.exports.inactivate = async (req, res) => {
+export const inactivate = async (req, res) => {
   try {
     /* activate season */
     const season = await Season(req.user.academyId).findByIdAndUpdate(
@@ -268,7 +268,7 @@ module.exports.inactivate = async (req, res) => {
   }
 };
 
-module.exports.updateField = async (req, res) => {
+export const updateField = async (req, res) => {
   try {
     const _season = await Season(req.user.academyId).findById(req.params._id);
     if (!_season) return res.status(404).send({ message: "season not found" });
@@ -326,7 +326,7 @@ module.exports.updateField = async (req, res) => {
 
 /* delete */
 
-exports.delete = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send();

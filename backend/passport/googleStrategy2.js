@@ -1,10 +1,9 @@
-const passport = require("passport");
-const CustomStrategy = require("passport-custom").Strategy;
-const User = require("../models/User");
-const Academy = require("../models/Academy");
-const { getPayload } = require("../utils/payload");
+import passport from "passport";
+import { Strategy as CustomStrategy } from "passport-custom";
+import { Academy, User } from "../models/index.js";
+import { getPayload } from "../utils/payload.js";
 
-module.exports = () => {
+const google2 = () => {
   passport.use(
     "google2",
     new CustomStrategy(async function (req, done) {
@@ -43,3 +42,5 @@ module.exports = () => {
     })
   );
 };
+
+export { google2 };

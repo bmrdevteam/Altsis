@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
-const TimeBlock = require("./TimeBlock");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
+import { timeBlockSchema as TimeBlock } from "./TimeBlock.js";
 
 const syllabusSchema = mongoose.Schema(
   {
@@ -117,6 +117,6 @@ syllabusSchema.methods.getSubdocument = function () {
   };
 };
 
-module.exports = (dbName) => {
+export const Syllabus = (dbName) => {
   return conn[dbName].model("Syllabus", syllabusSchema);
 };

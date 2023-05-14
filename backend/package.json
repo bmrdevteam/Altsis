@@ -52,5 +52,6 @@
   "packageManager": "yarn@3.2.3",
   "devDependencies": {
     "artillery": "^2.0.0-32"
-  }
+  },
+  "type": "module"
 }

@@ -1,5 +1,5 @@
 // syllabus.time을 classroom별로 정리
-exports.classroomsTable = async (syllabuses) => {
+export const classroomsTable = async (syllabuses) => {
   const table = {};
   await Promise.all(
     syllabuses.map((syllabus) => {
@@ -15,7 +15,7 @@ exports.classroomsTable = async (syllabuses) => {
   return table;
 };
 
-exports.checkClassroomAvailable = async (syllabuses, syllabus) => {
+export const checkClassroomAvailable = async (syllabuses, syllabus) => {
   await Promise.all(
     syllabuses.map((s2) => {
       const overlappedBlock = syllabus.isTimeOverlapped(s2);
@@ -30,7 +30,7 @@ exports.checkClassroomAvailable = async (syllabuses, syllabus) => {
   );
 };
 
-exports.checkTimeAvailable = async (enrollments, time) => {
+export const checkTimeAvailable = async (enrollments, time) => {
   await Promise.all(
     enrollments.map((enrollment) => {
       const overlappedBlock = enrollment.isTimeOverlapped(time);
@@ -46,13 +46,13 @@ exports.checkTimeAvailable = async (enrollments, time) => {
 };
 
 // school
-exports.findSeasonIdx = (school, year, term) => {
+export const findSeasonIdx = (school, year, term) => {
   return school["seasons"].findIndex(
     (obj) => obj.year === year && obj.term === term
   );
 };
 
-exports.checkPermission = (school, seasonIdx, type, schoolUser) => {
+export const checkPermission = (school, seasonIdx, type, schoolUser) => {
   const permission = school["seasons"][seasonIdx]["permissions"][type];
 
   if (permission[schoolUser.role]) {
@@ -69,7 +69,7 @@ exports.checkPermission = (school, seasonIdx, type, schoolUser) => {
 };
 
 //schoolUser
-exports.findRegistrationIdx = (schoolUser, year, term) => {
+export const findRegistrationIdx = (schoolUser, year, term) => {
   let yearIdx = schoolUser["registrations"].findIndex(
     (obj) => obj.year === year
   );

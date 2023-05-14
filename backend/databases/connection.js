@@ -1,6 +1,7 @@
-const mongoose = require("mongoose");
-const root = require("./root");
-const Academy = require("../models/Academy");
+import mongoose from "mongoose";
+import { root } from "./root.js";
+
+import { Academy } from "../models/index.js";
 
 const getURL = (dbName) => {
   return `${process.env[
@@ -8,7 +9,7 @@ const getURL = (dbName) => {
   ].trim()}/${dbName}?retryWrites=true&w=majority`;
 };
 
-const conn = { root: root };
+const conn = { root };
 
 Academy.find({}, (err, academies) => {
   academies.forEach((academy) => {
@@ -20,17 +21,17 @@ Academy.find({}, (err, academies) => {
   });
 }).select("+dbName");
 
-exports.addConnection = (academy) => {
+const addConnection = (academy) => {
   conn[academy.academyId] = mongoose.createConnection(getURL(academy.dbName));
   console.log(
     `coonection to [${academy.academyId}(${academy.dbName})]is added`
   );
 };
 
-exports.deleteConnection = async (academyId) => {
+const deleteConnection = async (academyId) => {
   await conn[academyId].db.dropDatabase();
   delete conn[academyId];
   console.log(`coonection to [${academyId}]is deleted`);
 };
 
-exports.conn = conn;
+export { conn, addConnection, deleteConnection };

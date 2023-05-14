@@ -1,11 +1,13 @@
-const { logger } = require("../log/logger");
-const _ = require("lodash");
-const { Notification } = require("../models");
-const client = require("../caches/redis");
-const { getIo } = require("../utils/webSocket");
-const ObjectId = require("mongoose").Types.ObjectId;
+import { logger } from "../log/logger.js";
+import _ from "lodash";
+import { Notification } from "../models/index.js";
+import { client } from "../caches/redis.js";
+import { getIo } from "../utils/webSocket.js";
 
-module.exports.send = async (req, res) => {
+import mongoose from "mongoose";
+const ObjectId = mongoose.Types.ObjectId;
+
+export const send = async (req, res) => {
   try {
     // received notifications
     const notifications = req.body.toUserList.map((user) => ({
@@ -68,7 +70,7 @@ module.exports.send = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const notification = await Notification(req.user.academyId).findById(
@@ -96,7 +98,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.check = async (req, res) => {
+export const check = async (req, res) => {
   try {
     await Notification(req.user.academyId).findByIdAndUpdate(req.params._id, {
       checked: true,
@@ -109,7 +111,7 @@ module.exports.check = async (req, res) => {
   }
 };
 
-module.exports.uncheck = async (req, res) => {
+export const uncheck = async (req, res) => {
   try {
     await Notification(req.user.academyId).findByIdAndUpdate(req.params._id, {
       checked: false,
@@ -122,7 +124,7 @@ module.exports.uncheck = async (req, res) => {
   }
 };
 
-module.exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     if (!req.query._ids) return res.status(400).send();
     const _idList = _.split(req.query._ids, ",");

@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
-const encrypt = require("mongoose-encryption");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
+import encrypt from "mongoose-encryption";
 
 const archiveSchema = mongoose.Schema(
   {
@@ -44,6 +44,6 @@ archiveSchema.methods.clean = async function () {
   }
 };
 
-module.exports = (dbName) => {
+export const Archive = (dbName) => {
   return conn[dbName].model("Archive", archiveSchema);
 };

@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
 
 const memoSchema = mongoose.Schema({
   title: String,
@@ -60,6 +60,6 @@ registrationSchema.index(
   { unique: true }
 );
 
-module.exports = (dbName) => {
+export const Registration = (dbName) => {
   return conn[dbName].model("Registration", registrationSchema);
 };

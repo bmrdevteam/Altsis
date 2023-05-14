@@ -1,4 +1,6 @@
-const redisClient = require("redis").createClient({
+import { createClient } from "redis";
+
+const redisClient = createClient({
   url: process.env["REDIS_URL"],
   logErrors: true,
   legacyMode: true,
@@ -16,4 +18,4 @@ redisClient.on("connect", () => {
   console.log("✅ redis is connected");
 });
 
-module.exports = redisClient;
+export { redisClient as client };

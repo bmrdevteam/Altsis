@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const syllabuses = require("../controllers/syllabuses");
-const { isLoggedIn } = require("../middleware/auth");
+import * as syllabuses from "../controllers/syllabuses.js";
+import { isLoggedIn } from "../middleware/auth.js";
 
 //=================================
 //             Syllabus
@@ -18,4 +18,4 @@ router.put("/:_id/subject", isLoggedIn, syllabuses.updateSubject);
 
 router.delete("/:_id", isLoggedIn, syllabuses.remove);
 
-module.exports = router;
+export { router };

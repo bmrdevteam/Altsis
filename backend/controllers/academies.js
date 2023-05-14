@@ -1,18 +1,18 @@
-const { logger } = require("../log/logger");
-const { addConnection, deleteConnection } = require("../databases/connection");
-const {
+import { logger } from "../log/logger.js";
+import { addConnection, deleteConnection } from "../databases/connection.js";
+import {
   User,
   Academy,
   School,
   Season,
   Form,
   Registration,
-} = require("../models");
+} from "../models/index.js";
 
-const _ = require("lodash");
-const validate = require("../utils/validate");
+import _ from "lodash";
+import { validate } from "../utils/validate.js";
 
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     /* validate */
     if (!Academy.isValid(req.body))
@@ -54,7 +54,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     /* if one academy info is requested */
     if (req.params.academyId) {
@@ -101,7 +101,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.activate = async (req, res) => {
+export const activate = async (req, res) => {
   try {
     /* find document */
     const academy = await Academy.findOne({ academyId: req.params.academyId });
@@ -117,7 +117,7 @@ module.exports.activate = async (req, res) => {
   }
 };
 
-module.exports.inactivate = async (req, res) => {
+export const inactivate = async (req, res) => {
   try {
     /* find document */
     const academy = await Academy.findOne({ academyId: req.params.academyId });
@@ -133,7 +133,7 @@ module.exports.inactivate = async (req, res) => {
   }
 };
 
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     if (req.body.email && !validate("email", req.body.email))
       return res.status(400).send({ message: "validation failed" });
@@ -164,7 +164,7 @@ const typeToModel = (docType, academyId) => {
   if (docType === "forms") return Form(academyId);
 };
 
-module.exports.findDocuments = async (req, res) => {
+export const findDocuments = async (req, res) => {
   try {
     if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
       return res.status(400).send();
@@ -189,7 +189,7 @@ module.exports.findDocuments = async (req, res) => {
   }
 };
 
-module.exports.deleteDocument = async (req, res) => {
+export const deleteDocument = async (req, res) => {
   try {
     if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
       return res.status(400).send();
@@ -210,7 +210,7 @@ module.exports.deleteDocument = async (req, res) => {
   }
 };
 
-module.exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     /* find document */
     const academy = await Academy.findById(req.params._id);

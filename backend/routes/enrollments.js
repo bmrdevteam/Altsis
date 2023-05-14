@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const enrollments = require("../controllers/enrollments");
-const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
+import * as enrollments from "../controllers/enrollments.js";
+import { isLoggedIn } from "../middleware/auth.js";
 
 //=================================
 //             Enrollment
@@ -28,4 +28,4 @@ router.get("/:_id?", isLoggedIn, enrollments.find);
 
 router.delete("/:_id?", isLoggedIn, enrollments.remove);
 
-module.exports = router;
+export { router };

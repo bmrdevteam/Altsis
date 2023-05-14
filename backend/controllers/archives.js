@@ -1,9 +1,16 @@
-const { logger } = require("../log/logger");
-const { Archive, User, School, Registration, Season } = require("../models");
-const ObjectId = require("mongoose").Types.ObjectId;
-const _ = require("lodash");
+import { logger } from "../log/logger.js";
+import {
+  Archive,
+  User,
+  School,
+  Registration,
+  Season,
+} from "../models/index.js";
+import mongoose from "mongoose";
+const ObjectId = mongoose.Types.ObjectId;
+import _ from "lodash";
 
-module.exports.findByLabel = async (req, res) => {
+export const findByLabel = async (req, res) => {
   try {
     const archive = await Archive(req.user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({});
@@ -24,7 +31,7 @@ module.exports.findByLabel = async (req, res) => {
   }
 };
 
-module.exports.findByRegistration = async (req, res) => {
+export const findByRegistration = async (req, res) => {
   try {
     if (!("registration" in req.query)) return res.status(400).send({});
 
@@ -70,7 +77,7 @@ module.exports.findByRegistration = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     let {
       user,
@@ -248,7 +255,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.updateBulk = async (req, res) => {
+export const updateBulk = async (req, res) => {
   try {
     /*
 
@@ -286,7 +293,7 @@ module.exports.updateBulk = async (req, res) => {
   }
 };
 
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params._id)) return res.status(400).send();
 

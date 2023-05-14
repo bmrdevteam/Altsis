@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const files = require("../controllers/files");
-const { isAdManager, isOwner, isLoggedIn } = require("../middleware/auth");
+import * as files from "../controllers/files.js";
+import { isAdManager, isOwner, isLoggedIn } from "../middleware/auth.js";
 
 //=================================
 //             File
@@ -20,4 +20,4 @@ router.post("/restore", isOwner, files.restoreBackup);
 // router.put("/:_id/:field?", isAdManager, files.update);
 router.delete("/", isAdManager, files.remove);
 
-module.exports = router;
+export { router };

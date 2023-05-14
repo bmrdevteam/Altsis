@@ -1,12 +1,12 @@
-const { logger } = require("../log/logger");
-const {
+import { logger } from "../log/logger.js";
+import {
   Enrollment,
   Syllabus,
   Registration,
   Season,
   User,
-} = require("../models");
-const _ = require("lodash");
+} from "../models/index.js";
+import _ from "lodash";
 
 const isTimeOverlapped = (enrollments, syllabus) => {
   const unavailableTime = _.flatten(

@@ -1,9 +1,11 @@
-const SocketIO = require("socket.io");
-const _ = require("lodash");
-const client = require("../caches/redis");
+import { Server } from "socket.io";
+import _ from "lodash";
+import { client } from "../caches/redis.js";
+
+let io = undefined;
 
 const initializeWebSocket = (_server) => {
-  io = SocketIO(_server, {
+  io = new Server(_server, {
     path: "/socket.io",
     cors: {
       origin: process.env["URL"].trim(),
@@ -67,7 +69,4 @@ const initializeWebSocket = (_server) => {
 
 const getIo = () => io;
 
-module.exports = {
-  initializeWebSocket,
-  getIo,
-};
+export { initializeWebSocket, getIo };
