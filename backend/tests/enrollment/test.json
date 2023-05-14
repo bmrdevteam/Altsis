@@ -1,0 +1,81 @@
+{
+  "config": {
+    "target": "http://localhost:5050/api",
+    "phases": [
+      {
+        "duration": 1,
+        "arrivalRate": 100
+      }
+    ],
+    "defaults": {
+      "headers": {
+        "User-Agent": "Artillery"
+      }
+    },
+    "payload": [
+      {
+        "path": "./data1.csv",
+        "fields": [
+          "academyId",
+          "_id",
+          "userId",
+          "userName",
+          "password",
+          "rid",
+          "sid"
+        ],
+        "order": "sequence"
+      },
+      {
+        "path": "./data2.csv",
+        "fields": ["syllabusId"]
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "Read user",
+      "flow": [
+        {
+          "post": {
+            "url": "/users/login/local",
+            "json": {
+              "academyId": "{{academyId}}",
+              "userId": "{{userId}}",
+              "password": "{{password}}"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/users/current",
+            "match": { "json": "$.user.userId", "value": "{{userId}}" }
+          }
+        },
+        {
+          "get": {
+            "url": "/syllabuses",
+            "qs": {
+              "season": "{{sid}}",
+              "confirmed": "true"
+            }
+          }
+        },
+        {
+          "post": {
+            "url": "/enrollments",
+            "json": {
+              "registration": "{{rid}}",
+              "syllabus": "{{syllabusId}}"
+            }
+          }
+        },
+        {
+          "get": {
+            "url": "/users/logout"
+          }
+        }
+      ]
+    }
+  ]
+}
