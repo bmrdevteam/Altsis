@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const documents = require("../controllers/documents");
-const { isLoggedIn } = require("../middleware/auth");
+import { isLoggedIn } from "../middleware/auth.js";
+import * as documents from "../controllers/documents.js";
 
 //=================================
 //             Document
@@ -9,4 +9,4 @@ const { isLoggedIn } = require("../middleware/auth");
 
 router.get("/data", isLoggedIn, documents.findData);
 
-module.exports = router;
+export { router };

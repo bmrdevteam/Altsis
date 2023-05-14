@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const registrations = require("../controllers/registrations");
-const { isAdManager, isLoggedIn } = require("../middleware/auth");
+import * as registrations from "../controllers/registrations.js";
+import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 
 //=================================
 //             Registration
@@ -16,4 +16,4 @@ router.put("/:_ids", isAdManager, registrations.update);
 
 router.delete("/", isAdManager, registrations.remove);
 
-module.exports = router;
+export { router };

@@ -1,9 +1,9 @@
-const { logger } = require("../log/logger");
-const _ = require("lodash");
-const { School, Season } = require("../models");
+import { logger } from "../log/logger.js";
+import _ from "lodash";
+import { School, Season } from "../models/index.js";
 
 /* create */
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     const _School = School(req.user.academyId);
 
@@ -28,7 +28,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const school = await School(req.user.academyId).findById(req.params._id);
@@ -63,7 +63,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.updateFormArchive = async (req, res) => {
+export const updateFormArchive = async (req, res) => {
   try {
     const school = await School(req.user.academyId).findById(req.params._id);
     if (!school) return res.status(404).send({ message: "school not found" });
@@ -76,7 +76,7 @@ module.exports.updateFormArchive = async (req, res) => {
   }
 };
 
-module.exports.updateLinks = async (req, res) => {
+export const updateLinks = async (req, res) => {
   try {
     const school = await School(req.user.academyId).findById(req.params._id);
     if (!school) return res.status(404).send({ message: "school not found" });
@@ -91,7 +91,7 @@ module.exports.updateLinks = async (req, res) => {
 
 /* delete */
 
-exports.delete = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     const school = await School(req.user.academyId).findById(req.params._id);
     if (!school) return res.status(404).send();

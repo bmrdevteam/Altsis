@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const schools = require("../controllers/schools");
-const { isAdManager, isLoggedIn } = require("../middleware/auth");
+import * as schools from "../controllers/schools.js";
+import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 
 //=================================
 //             School
@@ -14,6 +14,6 @@ router.get("/:_id?/:field?", isLoggedIn, schools.find);
 router.put("/:_id/form/archive", isAdManager, schools.updateFormArchive);
 router.put("/:_id/links", isAdManager, schools.updateLinks);
 
-router.delete("/:_id", isAdManager, schools.delete);
+router.delete("/:_id", isAdManager, schools.remove);
 
-module.exports = router;
+export { router };

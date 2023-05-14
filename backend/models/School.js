@@ -1,8 +1,8 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
 // const validate = require("mongoose-validator");
-const _ = require("lodash");
-const validate = require("../utils/validate");
+import _ from "lodash";
+import { validate } from "../utils/validate.js";
 
 const subjectSchema = mongoose.Schema(
   {
@@ -73,6 +73,6 @@ schoolSchema.statics.isValid = function (school) {
   return true;
 };
 
-module.exports = (dbName) => {
+export const School = (dbName) => {
   return conn[dbName].model("School", schoolSchema);
 };

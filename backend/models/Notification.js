@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
 
 const userSchema = mongoose.Schema(
   {
@@ -56,6 +56,6 @@ notificationSchema.index({
   createdAt: -1,
 });
 
-module.exports = (dbName) => {
+export const Notification = (dbName) => {
   return conn[dbName].model("Notification", notificationSchema);
 };

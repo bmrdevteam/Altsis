@@ -1,13 +1,13 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const users = require("../controllers/users");
-const {
+import * as users from "../controllers/users.js";
+import {
   isLoggedIn,
   isAdManager,
   forceNotLoggedIn,
   isAdmin,
-} = require("../middleware/auth");
-const profile = require("../controllers/profiles");
+} from "../middleware/auth.js";
+import * as profile from "../controllers/profiles.js";
 
 //=================================
 //             User
@@ -31,7 +31,7 @@ router.get("/:_id?", isLoggedIn, users.find);
 
 router.post("/profile", isLoggedIn, profile.upload);
 // router.get("/profile", isLoggedIn, profile.read);
-router.delete("/profile", isLoggedIn, profile.delete);
+router.delete("/profile", isLoggedIn, profile.remove);
 
 router.put("/google", isLoggedIn, users.connectGoogle);
 router.delete("/google", isLoggedIn, users.disconnectGoogle);
@@ -48,6 +48,6 @@ router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
 router.put("/:_id", isLoggedIn, users.update);
 
 // ___________ delete _____________
-router.delete("/", isAdmin, users.delete);
+router.delete("/", isAdmin, users.remove);
 
-module.exports = router;
+export { router };

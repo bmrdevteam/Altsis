@@ -1,22 +1,21 @@
-const { logger } = require("../log/logger");
-const passport = require("passport");
-const _ = require("lodash");
-const {
+import { logger } from "../log/logger.js";
+import passport from "passport";
+import _ from "lodash";
+import {
   User,
   Academy,
   Registration,
   School,
   Notification,
-} = require("../models");
-const client = require("../caches/redis");
-const { getPayload } = require("../utils/payload");
-const { getIo } = require("../utils/webSocket");
-
-const validate = require("../utils/validate");
+} from "../models/index.js";
+import { client } from "../caches/redis.js";
+import { getPayload } from "../utils/payload.js";
+import { getIo } from "../utils/webSocket.js";
+import { validate } from "../utils/validate.js";
 
 // ____________ common ____________
 
-module.exports.loginLocal = async (req, res) => {
+export const loginLocal = async (req, res) => {
   passport.authenticate("local2", (authError, user, academyId) => {
     try {
       if (authError) throw authError;
@@ -34,7 +33,7 @@ module.exports.loginLocal = async (req, res) => {
   })(req, res);
 };
 
-module.exports.loginGoogle = async (req, res) => {
+export const loginGoogle = async (req, res) => {
   passport.authenticate("google2", (authErr, user, academyId) => {
     try {
       if (authErr) throw authErr;
@@ -53,7 +52,7 @@ module.exports.loginGoogle = async (req, res) => {
   })(req, res);
 };
 
-module.exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
   const sid = await client.hGet(req.user.academyId, req.user.userId);
   getIo().in(sid).disconnectSockets();
   await client.hDel(req.user.academyId, req.user.userId);
@@ -69,7 +68,7 @@ module.exports.logout = async (req, res) => {
 
 // ____________ create ____________
 
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     const _User = User(req.user.academyId);
 
@@ -111,7 +110,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.createBulk = async (req, res) => {
+export const createBulk = async (req, res) => {
   try {
     const _User = User(req.user.academyId);
     const users = [];
@@ -174,7 +173,7 @@ module.exports.createBulk = async (req, res) => {
 // ____________ find ____________
 
 /* 자기 자신을 읽음 */
-module.exports.current = async (req, res) => {
+export const current = async (req, res) => {
   try {
     const user = req.user;
 
@@ -214,7 +213,7 @@ module.exports.current = async (req, res) => {
   }
 };
 
-module.exports.findProfile = async (req, res) => {
+export const findProfile = async (req, res) => {
   try {
     const user = await User(req.user.academyId)
       .findById(req.params._id)
@@ -226,7 +225,7 @@ module.exports.findProfile = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     // 소속 아카데미의 user 정보 조회 가능
     if (req.params._id) {
@@ -273,7 +272,7 @@ module.exports.find = async (req, res) => {
 
 // ____________ update ____________
 
-module.exports.updateAuth = async (req, res) => {
+export const updateAuth = async (req, res) => {
   try {
     const user = await User(req.user.academyId).findById(req.params._id);
 
@@ -297,7 +296,7 @@ module.exports.updateAuth = async (req, res) => {
   }
 };
 
-module.exports.updateSchools = async (req, res) => {
+export const updateSchools = async (req, res) => {
   try {
     const user = await User(req.user.academyId).findById(req.params._id);
 
@@ -322,7 +321,7 @@ module.exports.updateSchools = async (req, res) => {
   }
 };
 
-module.exports.updateSchoolsBulk = async (req, res) => {
+export const updateSchoolsBulk = async (req, res) => {
   try {
     const users = await User(req.user.academyId).find({
       _id: { $in: req.body.userIds },
@@ -361,7 +360,7 @@ module.exports.updateSchoolsBulk = async (req, res) => {
 
 // ____________ update(myself) ____________
 
-module.exports.connectGoogle = async (req, res) => {
+export const connectGoogle = async (req, res) => {
   try {
     const { credential } = req.body;
 
@@ -391,7 +390,7 @@ module.exports.connectGoogle = async (req, res) => {
   }
 };
 
-module.exports.disconnectGoogle = async (req, res) => {
+export const disconnectGoogle = async (req, res) => {
   delete req.user.snsId.google;
   req.user.markModified("snsId");
   await req.user.save();
@@ -399,7 +398,7 @@ module.exports.disconnectGoogle = async (req, res) => {
   return res.status(200).send();
 };
 
-module.exports.updatePasswordByAdmin = async (req, res) => {
+export const updatePasswordByAdmin = async (req, res) => {
   try {
     if (req.user._id != req.params._id) {
       // !== 하면 안 됨
@@ -433,7 +432,7 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
 };
 
 // 기존 비밀번호가 필요한 버전
-// module.exports.updatePassword = async (req, res) => {
+// export const updatePassword = async (req, res) => {
 //   try {
 //     /* validate */
 //     if (!validate("password", req.body.new))
@@ -461,7 +460,7 @@ module.exports.updatePasswordByAdmin = async (req, res) => {
 //   }
 // };
 
-module.exports.updatePassword = async (req, res) => {
+export const updatePassword = async (req, res) => {
   try {
     /* validate */
     if (!validate("password", req.body.new))
@@ -477,7 +476,7 @@ module.exports.updatePassword = async (req, res) => {
   }
 };
 
-module.exports.updateEmail = async (req, res) => {
+export const updateEmail = async (req, res) => {
   try {
     if (!validate("email", req.body.email))
       return res.status(400).send({ message: "validation failed" });
@@ -492,7 +491,7 @@ module.exports.updateEmail = async (req, res) => {
   }
 };
 
-module.exports.updateTel = async (req, res) => {
+export const updateTel = async (req, res) => {
   try {
     if (!validate("tel", req.body.tel))
       return res.status(400).send({ message: "validation failed" });
@@ -507,7 +506,7 @@ module.exports.updateTel = async (req, res) => {
   }
 };
 
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     let user = undefined;
 
@@ -554,7 +553,7 @@ module.exports.update = async (req, res) => {
 
 // ____________ delete ____________
 
-module.exports.delete = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     if (!req.query._ids) return res.status(400).send();
     const _idList = _.split(req.query._ids, ",");

@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
-const _ = require("lodash");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
+import _ from "lodash";
 
 const subjectSchema = mongoose.Schema(
   {
@@ -97,6 +97,6 @@ seasonSchema.methods.getSubdocument = function () {
   };
 };
 
-module.exports = (dbName) => {
+export const Season = (dbName) => {
   return conn[dbName].model("Season", seasonSchema);
 };

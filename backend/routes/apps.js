@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const apps = require("../controllers/apps");
-const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
+import { isLoggedIn } from "../middleware/auth.js";
 
+import * as apps from "../controllers/apps";
 //=================================
 //             Apps
 //=================================
@@ -16,4 +16,4 @@ router.get("/:_id", isLoggedIn, apps.findById);
 
 router.delete("/:_id", isLoggedIn, apps.remove);
 
-module.exports = router;
+export { router };

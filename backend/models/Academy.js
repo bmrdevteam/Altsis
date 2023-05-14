@@ -1,7 +1,7 @@
-const mongoose = require("mongoose");
-const conn = require("../databases/root");
+import mongoose from "mongoose";
+import { root as conn } from "../databases/root.js";
 
-const validate = require("../utils/validate");
+import { validate } from "../utils/validate.js";
 
 const academySchema = mongoose.Schema(
   {
@@ -58,4 +58,4 @@ academySchema.pre("save", function (next) {
   next();
 });
 
-module.exports = conn.model("Academy", academySchema);
+export const Academy = conn.model("Academy", academySchema);

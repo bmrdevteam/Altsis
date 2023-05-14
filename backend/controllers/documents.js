@@ -1,6 +1,6 @@
-const { logger } = require("../log/logger");
-const { School, Season } = require("../models");
-const _ = require("lodash");
+import { logger } from "../log/logger.js";
+import { School, Season } from "../models/index.js";
+import _ from "lodash";
 
 const findDataOfSchool = async (academyId, school) => {
   // get dataEvaluation
@@ -56,7 +56,7 @@ const findDataOfSchool = async (academyId, school) => {
   };
 };
 
-module.exports.findData = async (req, res) => {
+export const findData = async (req, res) => {
   try {
     if (!("school" in req.query))
       return res

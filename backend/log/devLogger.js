@@ -1,7 +1,6 @@
-const winston = require("winston");
-const { format } = winston;
+import winston, { format } from "winston";
 const { combine, timestamp, printf, label } = format;
-const WinstonDaily = require("winston-daily-rotate-file");
+import WinstonDaily from "winston-daily-rotate-file";
 
 const devLogger = winston.createLogger({
   level: "http",
@@ -51,4 +50,4 @@ devLogger.stream = {
   },
 };
 
-module.exports.devLogger = devLogger;
+export { devLogger };

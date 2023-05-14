@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const timeBlockSchema = mongoose.Schema(
   {
@@ -19,4 +19,4 @@ const timeBlockSchema = mongoose.Schema(
   { _id: false }
 );
 
-module.exports = timeBlockSchema;
+export { timeBlockSchema };
