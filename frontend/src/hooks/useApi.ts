@@ -1044,8 +1044,6 @@ export default function useApi() {
   async function RSyllabuses(props: {
     season?: string;
     classroom?: string;
-    matches?: string;
-    field?: string;
     confirmed?: boolean;
     user?: string;
     teacher?: string;
