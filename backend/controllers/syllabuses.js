@@ -109,52 +109,53 @@ export const find = async (req, res) => {
     }
 
     const queries = req.query;
-    if (queries.teacher) {
-      queries["teachers._id"] = queries.teacher;
-      delete queries.teacherId;
-    }
-    if (queries.teacherId) {
-      queries["teachers.userId"] = queries.teacherId;
-      delete queries.teacherId;
-    }
-    if (queries.confirmed) {
-      queries["teachers.confirmed"] = { $ne: false };
-      delete queries.confirmed;
-    }
-    if (queries.matches) {
-      queries[queries.field] = { $regex: queries.matches };
-      delete queries.matches;
-      delete queries.field;
-    }
-    if (queries.season && queries.student) {
-      const studentEnrollements = await Enrollment(req.user.academyId)
-        .find({
-          season: queries.season,
-          student: queries.student,
-        })
-        .select("syllabus");
 
-      queries["_id"] = { $in: studentEnrollements.map((e) => e.syllabus) };
-      delete queries.studentId;
-    }
+    if (queries.season) {
+      const query = { season: queries.season };
 
-    let syllabuses = [];
-    let enrollments = [];
+      if (queries.classroom) {
+        query["classroom"] = queries.classroom;
+        const syllabuses = await Syllabus(req.user.academyId)
+          .find(query)
+          .select(["classTitle", "time"]);
+        return res.status(200).send({ syllabuses });
+      }
+      if (queries.confirmed) {
+        query["teachers.confirmed"] = { $ne: false };
+      }
+      if (queries.teacher) {
+        query["teachers._id"] = queries.teacher;
+      }
+      if (queries.user) {
+        query["user"] = queries.user;
+      }
+      if (queries.student) {
+        const enrollments = await Enrollment(req.user.academyId)
+          .find({
+            season: queries.season,
+            student: queries.student,
+          })
+          .select("syllabus");
 
-    if (queries.classrom) {
-      syllabuses = await Syllabus(req.user.academyId)
-        .find(queries)
-        .select(["classTitle", "time"]);
-    } else {
-      syllabuses = await Syllabus(req.user.academyId)
-        .find(queries)
+        const syllabuses = await Syllabus(req.user.academyId)
+          .find({ $in: enrollments.map((e) => e.syllabus) })
+          .select("-info");
+        return res.status(200).send({ syllabuses, enrollments });
+      }
+
+      const syllabuses = await Syllabus(req.user.academyId)
+        .find(query)
         .select("-info");
-      enrollments = await Enrollment(req.user.academyId)
-        .find({ syllabus: { $in: syllabuses.map((s) => s._id) } })
-        .select("syllabus");
+      return res.status(200).send({ syllabuses });
     }
 
-    return res.status(200).send({ syllabuses, enrollments });
+    if (queries.user) {
+      const syllabuses = await Syllabus(req.user.academyId)
+        .find({ user: queries.user })
+        .select("-info");
+      return res.status(200).send({ syllabuses });
+    }
+    return res.status(400).send({ message: "invalid request" });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }

@@ -289,21 +289,10 @@ const MyDesgins = (props: {
   );
 
   async function getCreatedCourseList() {
-    const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
+    const { syllabuses } = await SyllabusApi.RSyllabuses({
       season: currentRegistration.season,
       user: props.user._id,
     });
-
-    if (syllabuses.length === 0) return [];
-
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
-    }
-
     return syllabuses;
   }
 
@@ -397,20 +386,10 @@ const MyCourses = (props: {
   );
 
   async function getCreatedCourseList() {
-    const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
+    const { syllabuses } = await SyllabusApi.RSyllabuses({
       season: currentRegistration.season,
       teacher: props.user._id,
     });
-    if (syllabuses.length === 0) return [];
-
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
-    }
-
     return syllabuses;
   }
 
