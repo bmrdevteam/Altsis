@@ -443,6 +443,26 @@ export default function useApi() {
   }
 
   /**
+   * Update permission in season
+   * @auth admin / manager
+   * @returns Season
+   */
+  async function USeasonPermissionV2(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluation";
+    data: {
+      teacher?: boolean;
+      student?: boolean;
+      exceptions?: any[];
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/permission/${props.type}`,
+      data: props.data,
+    });
+  }
+
+  /**
    * Delete Season
    * @type DELETE
    * @auth admin manager
@@ -1301,6 +1321,7 @@ export default function useApi() {
       USeasonClassroom,
       USeasonForm,
       USeasonPermission,
+      USeasonPermissionV2,
       DSeason,
     },
     SchoolApi: {

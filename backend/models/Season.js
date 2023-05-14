@@ -10,6 +10,32 @@ const subjectSchema = mongoose.Schema(
   { _id: false }
 );
 
+const permissionExceptionSchema = mongoose.Schema(
+  {
+    role: String,
+    user: String,
+    userId: String,
+    userName: String,
+    isAllowed: Boolean,
+  },
+  { _id: false }
+);
+
+const permissionSchema = mongoose.Schema(
+  {
+    teacher: Boolean,
+    student: Boolean,
+    exceptions: [permissionExceptionSchema],
+  },
+  { _id: false }
+);
+
+const permissionDefault = {
+  teacher: false,
+  student: false,
+  exceptions: [],
+};
+
 const seasonSchema = mongoose.Schema(
   {
     school: {
@@ -41,6 +67,18 @@ const seasonSchema = mongoose.Schema(
     permissionSyllabus: [[]],
     permissionEnrollment: [[]],
     permissionEvaluation: [[]],
+    permissionSyllabusV2: {
+      type: permissionSchema,
+      default: permissionDefault,
+    },
+    permissionEnrollmentV2: {
+      type: permissionSchema,
+      default: permissionDefault,
+    },
+    permissionEvaluationV2: {
+      type: permissionSchema,
+      default: permissionDefault,
+    },
     formTimetable: Object,
     formSyllabus: Object,
     formEvaluation: [],

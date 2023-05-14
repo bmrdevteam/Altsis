@@ -51,6 +51,20 @@ export type TRegistration = {
   memos: any[];
 };
 
+export type Exception = {
+  role?: string;
+  user: string;
+  userId: string;
+  userName: string;
+  isAllowed: boolean;
+};
+
+export type Permission = {
+  teacher: boolean;
+  student: boolean;
+  exceptions: Exception[];
+};
+
 export type TSeason = {
   _id: string;
   classrooms: string[];
@@ -63,6 +77,7 @@ export type TSeason = {
   permissionSyllabus: [[]];
   permissionEnrollment: [[]];
   permissionEvaluation: [[]];
+  permissionSyllabusV2: Permission[];
   formTimetable: any;
   formSyllabus: any;
   formEvaluation: any[];

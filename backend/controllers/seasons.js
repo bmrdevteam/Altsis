@@ -268,6 +268,48 @@ export const inactivate = async (req, res) => {
   }
 };
 
+export const updatePermission = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    let permission = "";
+    if (req.params.type === "syllabus") {
+      permission = "permissionSyllabusV2";
+    } else if (req.params.type === "enrollment") {
+      permission = "permissionEnrollmentV2";
+    } else if (req.params.type === "evaluation") {
+      permission = "permissionEvaluationV2";
+    } else {
+      return res.status(400).send({ message: "invalid request" });
+    }
+
+    if ("teacher" in req.body) {
+      season[permission].teacher = req.body.teacher;
+    } else if ("student" in req.body) {
+      season[permission].student = req.body.student;
+    } else if ("exceptions" in req.body) {
+      season[permission].exceptions = req.body.exceptions;
+    } else {
+      return res.status(400).send({ message: "invalid request" });
+    }
+
+    season.markModified(permission);
+    await season.save();
+
+    // if (field === "period") {
+    //   await Registration(req.user.academyId).updateMany(
+    //     { season: season._id },
+    //     { period: season.period }
+    //   );
+    // }
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
 export const updateField = async (req, res) => {
   try {
     const _season = await Season(req.user.academyId).findById(req.params._id);
