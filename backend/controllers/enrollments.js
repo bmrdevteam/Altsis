@@ -8,6 +8,12 @@ import {
 } from "../models/index.js";
 import _ from "lodash";
 
+/* promise queue library */
+import PQueue from "p-queue";
+
+// create a new queue, and pass how many you want to scrape at once
+const queue = new PQueue({ concurrency: 1 });
+
 const isTimeOverlapped = (enrollments, syllabus) => {
   const unavailableTime = _.flatten(
     enrollments.map((enrollment) => enrollment.time)
@@ -20,61 +26,79 @@ const isTimeOverlapped = (enrollments, syllabus) => {
   return unavailableTimeLabels.length != 0;
 };
 
-module.exports.enroll = async (req, res) => {
-  try {
-    if (!("syllabus" in req.body) || !("registration" in req.body)) {
-      return res.status(400).send({ message: "invalud request" });
-    }
+async function queueEnroll(req) {
+  return queue.add(() => exec(req));
+}
 
+const exec = async (req) => {
+  try {
     const _Enrollment = Enrollment(req.user.academyId);
 
     // 1. syllabus 조회
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.body.syllabus
     );
-    if (!syllabus)
-      return res.status(404).send({ message: "수업 정보를 찾을 수 없습니다." });
+    if (!syllabus) {
+      const err = new Error("수업 정보를 찾을 수 없습니다.");
+      err.status = 404;
+      throw err;
+    }
 
     // 2. 이미 신청한 수업인지 확인
     const exEnrollments = await _Enrollment.find({
       student: req.user._id,
       season: syllabus.season,
     });
-    if (_.find(exEnrollments, { syllabus: syllabus._id }))
-      return res.status(409).send({ message: "이미 신청한 수업입니다." });
+    if (_.find(exEnrollments, { syllabus: syllabus._id })) {
+      const err = new Error("이미 신청한 수업입니다.");
+      err.status = 409;
+      throw err;
+    }
 
     // 3. 수강정원 확인
     if (syllabus.limit !== 0) {
       const cnt = await _Enrollment.countDocuments({
         syllabus: syllabus._id,
       });
-      if (cnt >= syllabus.limit)
-        return res.status(409).send({ message: "수강정원이 다 찼습니다." });
+      if (cnt >= syllabus.limit) {
+        const err = new Error("수강정원이 다 찼습니다.");
+        err.status = 409;
+        throw err;
+      }
     }
 
     // 4. 수강신청 가능한 시간인가?
-    if (isTimeOverlapped(exEnrollments, syllabus))
-      return res.status(409).send({
-        message: `시간표가 중복되었습니다.`,
-      });
+    if (isTimeOverlapped(exEnrollments, syllabus)) {
+      const err = new Error("시간표가 중복되었습니다.");
+      err.status = 409;
+      throw err;
+    }
 
     /* 5~7단계는 수강신청을 하는 시점에서 이미 검증되었을 가능성이 높음 */
 
     // 5. 승인된 수업인지 확인
     for (let i = 0; i < syllabus.teachers.length; i++)
-      if (!syllabus.teachers[i].confirmed)
-        return res.status(409).send({ message: "승인되지 않은 수업입니다." });
+      if (!syllabus.teachers[i].confirmed) {
+        const err = new Error("승인되지 않은 수업입니다.");
+        err.status = 409;
+        throw err;
+      }
 
     // 6. find registration
     const registration = await Registration(req.user.academyId)
       .findById(req.body.registration)
       .lean();
-    if (!registration)
-      return res.status(404).send({ message: "등록 정보를 찾을 수 없습니다." });
-    if (!req.user._id.equals(registration.user))
-      return res
-        .status(401)
-        .send({ message: "유저 정보와 등록 정보가 일치하지 않습니다." });
+    if (!registration) {
+      const err = new Error("등록 정보를 찾을 수 없습니다.");
+      err.status = 404;
+      throw err;
+    }
+
+    if (!req.user._id.equals(registration.user)) {
+      const err = new Error("유저 정보와 등록 정보가 일치하지 않습니다.");
+      err.status = 401;
+      throw err;
+    }
 
     // 7. check permission
     const season = await Season(req.user.academyId).findById(syllabus.season);
@@ -85,8 +109,11 @@ module.exports.enroll = async (req, res) => {
         registration.userId,
         registration.role
       )
-    )
-      return res.status(401).send({ message: "수강신청 권한이 없습니다." });
+    ) {
+      const err = new Error("수강신청 권한이 없습니다.");
+      err.status = 401;
+      throw err;
+    }
 
     // 수강신청 완료 (도큐먼트 저장)
     const enrollment = new _Enrollment({
@@ -126,14 +153,26 @@ module.exports.enroll = async (req, res) => {
     }
 
     await enrollment.save();
-    return res.status(200).send(enrollment);
   } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    throw err;
   }
 };
 
-module.exports.enrollbulk = async (req, res) => {
+export const enroll = async (req, res) => {
+  try {
+    if (!("syllabus" in req.body) || !("registration" in req.body)) {
+      return res.status(400).send({ message: "invalud request" });
+    }
+
+    await queueEnroll(req, res);
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status ?? 500).send({ message: err.message });
+  }
+};
+
+export const enrollbulk = async (req, res) => {
   try {
     const _Enrollment = Enrollment(req.user.academyId);
 
@@ -248,7 +287,7 @@ module.exports.enrollbulk = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     // find by enrollment _id (only student can view)
     if (req.params._id) {
@@ -353,7 +392,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.findEvaluations = async (req, res) => {
+export const findEvaluations = async (req, res) => {
   try {
     // evaluation 가져오는 권한 설정 필요
     // if (req.user.userId != studentId) return res.status(401).send();
@@ -398,7 +437,7 @@ module.exports.findEvaluations = async (req, res) => {
   }
 };
 
-module.exports.updateEvaluation = async (req, res) => {
+export const updateEvaluation = async (req, res) => {
   try {
     const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
@@ -439,7 +478,7 @@ module.exports.updateEvaluation = async (req, res) => {
   }
 };
 
-module.exports.updateEvaluation2 = async (req, res) => {
+export const updateEvaluation2 = async (req, res) => {
   try {
     if (req.query.by !== "mentor" && req.query.by !== "student")
       return res
@@ -533,7 +572,7 @@ module.exports.updateEvaluation2 = async (req, res) => {
   }
 };
 
-module.exports.updateMemo = async (req, res) => {
+export const updateMemo = async (req, res) => {
   try {
     const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
@@ -555,7 +594,7 @@ module.exports.updateMemo = async (req, res) => {
   }
 };
 
-module.exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     if (req.params._id) {
       const enrollment = await Enrollment(req.user.academyId).findById(
