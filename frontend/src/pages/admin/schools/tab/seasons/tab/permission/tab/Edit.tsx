@@ -40,8 +40,8 @@ import Popup from "components/popup/Popup";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Select from "components/select/Select";
 
-import { unzipPermission, zipPermission } from "functions/functions";
 import Autofill from "components/input/Autofill";
+import { Exception, Permission } from "contexts/authType";
 
 type Props = {
   setPopupActive: any;
@@ -50,30 +50,29 @@ type Props = {
   setIsLoading: any;
 };
 
-type Permission = {
-  teacher: boolean;
-  student: boolean;
-  exceptions: any[];
-};
-const defaultPermission: Permission = {
-  teacher: false,
-  student: false,
-  exceptions: [],
-};
-
 function Basic(props: Props) {
   const { SeasonApi } = useApi();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [registrationList, setRegistrationList] = useState<any[]>([]);
-  const [permissionParsed, setPermissionParsed] =
-    useState<Permission>(defaultPermission);
 
-  const exceptionRef = useRef<{ userId: string; isAllowed: boolean }>({
+  const [teacher, setTeacher] = useState<boolean>(false);
+  const [student, setStudent] = useState<boolean>(false);
+  const [exceptions, setExceptions] = useState<Exception[]>([]);
+
+  const exceptionRef = useRef<Exception>({
+    user: "",
     userId: "",
+    userName: "",
     isAllowed: true,
   });
+
+  const updatePermission = (permission: Permission) => {
+    setTeacher(permission.teacher);
+    setStudent(permission.student);
+    setExceptions(permission.exceptions);
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -81,31 +80,21 @@ function Basic(props: Props) {
         .then((res) => {
           setRegistrationList(res.registrations ?? []);
 
-          if (props.type === "syllabus")
-            setPermissionParsed(
-              unzipPermission(
-                res?.permissionSyllabus ?? [],
-                res.registrations ?? []
-              )
-            );
-          else if (props.type === "enrollment")
-            setPermissionParsed(
-              unzipPermission(
-                res?.permissionEnrollment ?? [],
-                res.registrations ?? []
-              )
-            );
-          else if (props.type === "evaluation")
-            setPermissionParsed(
-              unzipPermission(
-                res?.permissionEvaluation ?? [],
-                res.registrations ?? []
-              )
-            );
-          else props.setPopupActive(false);
+          if (props.type === "syllabus") {
+            updatePermission(res?.permissionSyllabusV2);
+          } else if (props.type === "enrollment") {
+            updatePermission(res?.permissionEnrollmentV2);
+          } else if (props.type === "evaluation") {
+            updatePermission(res?.permissionEvaluationV2);
+          } else props.setPopupActive(false);
         })
         .then(() => {
-          exceptionRef.current = { userId: "", isAllowed: true };
+          exceptionRef.current = {
+            user: "",
+            userId: "",
+            userName: "",
+            isAllowed: true,
+          };
           setIsLoading(false);
         });
     }
@@ -135,21 +124,19 @@ function Basic(props: Props) {
             <span>선생님</span>
             <ToggleSwitch
               key={"toggleTeacher"}
-              defaultChecked={permissionParsed?.teacher}
+              defaultChecked={teacher}
               onChange={(b) => {
-                SeasonApi.USeasonPermission({
+                SeasonApi.USeasonPermissionV2({
                   _id: props._id,
                   type: props.type,
-                  data: zipPermission({
-                    ...permissionParsed,
-                    teacher: b,
-                  }),
+                  data: { teacher: b },
                 })
                   .then((res: any) => {
-                    setIsLoading(true);
+                    setTeacher(b);
                     alert(SUCCESS_MESSAGE);
                   })
                   .catch((err) => {
+                    setIsLoading(true);
                     alert(err.response.data.message);
                   });
               }}
@@ -157,21 +144,19 @@ function Basic(props: Props) {
             <span>학생</span>
             <ToggleSwitch
               key={"toggleStudent"}
-              defaultChecked={permissionParsed?.student}
+              defaultChecked={student}
               onChange={(b) => {
-                SeasonApi.USeasonPermission({
+                SeasonApi.USeasonPermissionV2({
                   _id: props._id,
                   type: props.type,
-                  data: zipPermission({
-                    ...permissionParsed,
-                    student: b,
-                  }),
+                  data: { student: b },
                 })
                   .then((res: any) => {
-                    setIsLoading(true);
+                    setStudent(b);
                     alert(SUCCESS_MESSAGE);
                   })
                   .catch((err) => {
+                    setIsLoading(true);
                     alert(err.response.data.message);
                   });
               }}
@@ -184,7 +169,7 @@ function Basic(props: Props) {
 
           <div className={style.row}>
             <Autofill
-              placeholder="userName(userId)"
+              placeholder="이름(ID)"
               style={{ minHeight: "30px" }}
               options={[
                 {
@@ -194,12 +179,19 @@ function Basic(props: Props) {
                 ...registrationList.map((r: any) => {
                   return {
                     text: `${r["userName"]}(${r["userId"]})`,
-                    value: r["userId"],
+                    value: JSON.stringify(r),
                   };
                 }),
               ]}
               onChange={(e: any) => {
-                exceptionRef.current.userId = e;
+                const { role, user, userId, userName } = JSON.parse(e);
+                exceptionRef.current = {
+                  role,
+                  user,
+                  userId,
+                  userName,
+                  isAllowed: exceptionRef.current.isAllowed,
+                };
               }}
             />
             <Select
@@ -218,16 +210,12 @@ function Basic(props: Props) {
               type={"ghost"}
               onClick={() => {
                 if (exceptionRef.current.userId !== "") {
-                  SeasonApi.USeasonPermission({
+                  SeasonApi.USeasonPermissionV2({
                     _id: props._id,
                     type: props.type,
-                    data: zipPermission({
-                      ...permissionParsed,
-                      exceptions: [
-                        ...permissionParsed?.exceptions,
-                        exceptionRef.current,
-                      ],
-                    }),
+                    data: {
+                      exceptions: [...exceptions, exceptionRef.current],
+                    },
                   })
                     .then(() => {
                       setIsLoading(true);
@@ -254,7 +242,7 @@ function Basic(props: Props) {
 
           <Table
             type="object-array"
-            data={permissionParsed.exceptions || []}
+            data={exceptions || []}
             header={[
               {
                 text: "No",
@@ -302,11 +290,13 @@ function Basic(props: Props) {
                 key: "delete",
                 type: "button",
                 onClick: (e: any) => {
-                  permissionParsed.exceptions.splice(e.tableRowIndex - 1, 1);
-                  SeasonApi.USeasonPermission({
+                  exceptions.splice(e.tableRowIndex - 1, 1);
+                  SeasonApi.USeasonPermissionV2({
                     _id: props._id,
                     type: props.type,
-                    data: zipPermission(permissionParsed),
+                    data: {
+                      exceptions,
+                    },
                   })
                     .then((res: any) => {
                       setIsLoading(true);

@@ -46,7 +46,8 @@ import useApi from "hooks/useApi";
 import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/Form";
-import Permission from "./tab/permission/Permission";
+// import Permission from "./tab/permission/Permission";
+import Permission from "./tab/permission/PermissionV2";
 import Subject from "./tab/subjects/Subject";
 import Users from "./tab/users/Users";
 
