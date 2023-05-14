@@ -31,13 +31,6 @@ export const find = async (req, res) => {
       "teachers._id": user,
     });
 
-    for (let syl of [...created, ...mentoring]) {
-      const cnt = await Enrollment(req.user.academyId).countDocuments({
-        syllabus: syl._id,
-      });
-      syl.count_limit = `${cnt}/${syl.limit}`;
-    }
-
     return res.status(200).send({ courses: { enrolled, created, mentoring } });
   } catch (err) {
     logger.error(err.message);
