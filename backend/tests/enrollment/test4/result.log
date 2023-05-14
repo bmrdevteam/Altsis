@@ -1,0 +1,1067 @@
+2023-05-14 16:28:42,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,62.842,"undefined","Artillery"
+
+2023-05-14 16:28:42,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,3.888,"undefined","Artillery"
+
+2023-05-14 16:28:42,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,8.217,"undefined","Artillery"
+
+2023-05-14 16:28:42,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,61.361,"undefined","Artillery"
+
+2023-05-14 16:28:42,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b08a0133b46526a796c"}",200,22.683,"undefined","Artillery"
+
+2023-05-14 16:28:42,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.369,"undefined","Artillery"
+
+2023-05-14 16:28:42,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,5.009,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,8.358,"undefined","Artillery"
+
+2023-05-14 16:28:43,error,시간표가 중복되었습니다.
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a6da0133b46526a78c7"}",409,5.665,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.698,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,61.624,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,63.695,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,7.205,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,4.393,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,6.747,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,7.980,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,70.688,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,70.759,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a0da0133b46526a788a"}",200,46.353,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,10.268,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,9.791,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.991,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,72.863,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b6ca0133b46526a79b3"}",200,79.591,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,8.533,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,10.462,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,86.062,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,7.842,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,11.362,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,77.165,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,10.183,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,81.930,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,13.465,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a49a0133b46526a78ad"}",200,51.237,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,21.200,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,16.030,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,101.012,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,92.030,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,18.939,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,20.185,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,99.362,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,31.464,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,104.966,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,16.526,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8bbca0133b46526a79ea"}",200,138.276,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,27.349,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,18.317,"undefined","Artillery"
+
+2023-05-14 16:28:43,error,이미 신청한 수업입니다.
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b08a0133b46526a796c"}",409,102.343,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,123.671,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,112.016,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,14.484,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,33.208,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,15.008,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,117.283,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,103.150,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,32.857,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,20.210,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,17.797,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,115.130,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,122.150,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,32.955,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,21.816,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,127.145,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,38.118,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8aa1a0133b46526a78f6"}",200,198.539,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,129.993,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,39.888,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,24.203,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,45.107,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,138.807,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,124.278,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,114.212,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,116.021,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,24.220,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,43.713,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,130.599,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,40.801,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,32.184,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,52.758,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,28.687,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,55.647,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,196.066,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,135.254,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,51.644,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,141.253,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,140.461,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,142.438,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,36.494,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,60.894,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,60.551,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,59.953,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,58.451,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,49.614,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,50.010,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,191.551,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,174.780,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,173.406,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,44.313,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,85.775,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,238.194,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,180.698,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b20a0133b46526a797e"}",200,422.625,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,43.634,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,73.909,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,73.610,"undefined","Artillery"
+
+2023-05-14 16:28:43,error,시간표가 중복되었습니다.
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,217.936,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,216.836,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,199.764,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,176.099,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,34.813,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,36.474,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a6da0133b46526a78c7"}",409,433.809,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,73.584,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,73.616,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,206.915,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,271.631,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,188.548,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,50.350,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,74.939,"undefined","Artillery"
+
+2023-05-14 16:28:43,error,시간표가 중복되었습니다.
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,45.059,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b20a0133b46526a797e"}",409,467.763,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,256.461,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,214.478,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,216.057,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,184.829,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,55.141,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,78.436,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,78.165,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,78.019,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,214.249,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,217.500,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,332.444,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,72.364,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,51.692,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,51.641,"undefined","Artillery"
+
+2023-05-14 16:28:43,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,53.704,"undefined","Artillery"
+
+2023-05-14 16:28:44,error,시간표가 중복되었습니다.
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,75.689,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,59.497,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,62.569,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8a0da0133b46526a788a"}",409,548.818,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,279.210,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,244.315,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,250.275,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,247.090,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,66.587,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,113.886,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,110.711,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,110.290,"undefined","Artillery"
+
+2023-05-14 16:28:44,error,이미 신청한 수업입니다.
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,292.348,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,263.318,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,350.740,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,230.240,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,59.381,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,100.184,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,100.113,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,99.716,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b08a0133b46526a796c"}",409,578.367,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,34.625,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,37.021,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,39.850,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,292.875,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,290.898,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,289.544,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,267.529,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,391.904,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,390.463,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,68.718,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,59.618,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,291.631,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,34.834,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,74.907,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,73.419,"undefined","Artillery"
+
+2023-05-14 16:28:44,error,이미 신청한 수업입니다.
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,57.832,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b20a0133b46526a797e"}",409,560.644,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,81.857,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,97.792,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,73.248,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,73.641,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,294.578,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,292.564,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,291.086,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,297.604,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,42.055,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,62.809,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,65.612,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,309.545,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,306.077,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,303.435,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,268.337,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,81.949,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,55.762,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,59.163,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,61.709,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,99.112,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,99.261,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,88.075,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,96.082,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,106.875,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,92.503,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,91.969,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,91.387,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,341.709,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,296.029,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,294.740,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,299.564,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,298.843,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,485.037,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,36.843,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,39.879,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,42.993,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,46.135,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,74.871,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,58.994,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,68.758,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,69.594,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,108.312,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,108.662,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,107.749,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,103.542,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,84.016,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,53.305,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,111.157,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,348.771,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,351.102,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,315.635,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,314.464,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,287.975,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,285.510,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,276.813,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,278.543,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,241.790,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,185.475,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a6da0133b46526a78c7"}",200,843.381,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,42.102,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,42.386,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,43.636,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,45.731,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,104.785,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,104.580,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,105.163,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,86.130,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,222.437,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,47.974,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,50.193,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,81.579,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,81.256,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,79.832,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,49.921,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,53.429,"undefined","Artillery"
+
+2023-05-14 16:28:44,error,시간표가 중복되었습니다.
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"646043a8f95435011dcf05e1"}",409,891.175,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,267.507,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,268.806,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,220.689,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,219.546,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,501.750,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,24.638,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,44.935,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,45.932,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,47.848,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,49.905,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,102.646,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,113.752,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,76.519,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,75.191,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,74.006,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,73.467,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,62.870,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,195.718,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,193.261,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,54.439,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,25.134,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,25.308,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,61.558,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,60.533,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,39.727,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,40.491,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,91.745,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,83.586,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,82.555,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,209.481,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,49.638,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,51.768,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,53.947,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,79.465,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,72.375,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,72.051,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,71.770,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,189.507,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,44.772,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,69.531,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,61.058,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,35.635,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,37.238,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,38.652,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,33.458,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,35.206,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,59.498,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,40.962,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,63.957,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,63.481,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,63.219,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,62.708,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,62.418,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,35.735,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,37.131,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,38.806,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,40.761,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,42.782,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a0da0133b46526a788a"}",200,1069.970,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,36.726,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,38.071,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,41.408,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,44.472,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,86.084,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,85.771,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,282.841,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,76.518,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,27.052,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,28.134,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,27.234,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,53.810,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,18.129,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,20.015,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,21.983,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,25.088,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,26.867,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,28.872,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,20.845,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,22.049,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,24.072,"undefined","Artillery"
+
+2023-05-14 16:28:44,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,11.508,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,13.364,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,19.889,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b53a0133b46526a79a1"}",200,1205.759,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,9.931,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,6.441,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8bbca0133b46526a79ea"}",200,1212.859,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a0da0133b46526a788a"}",409,1217.540,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.488,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.500,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b20a0133b46526a797e"}",200,1202.806,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.116,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8bbca0133b46526a79ea"}",200,1193.110,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"646043a8f95435011dcf05e1"}",409,1124.330,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b20a0133b46526a797e"}",409,1126.946,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.512,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.682,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.184,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a6da0133b46526a78c7"}",200,1109.864,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8a49a0133b46526a78ad"}",409,1068.170,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b53a0133b46526a79a1"}",409,999.060,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.023,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b6ca0133b46526a79b3"}",409,1006.594,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.069,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.016,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.355,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a49a0133b46526a78ad"}",200,989.416,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b53a0133b46526a79a1"}",409,994.789,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b6ca0133b46526a79b3"}",409,964.207,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.714,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.764,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.275,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8aa1a0133b46526a78f6"}",200,907.917,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8bbca0133b46526a79ea"}",409,912.221,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a49a0133b46526a78ad"}",409,918.970,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.955,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.286,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.342,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",200,904.258,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.368,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b08a0133b46526a796c"}",200,909.386,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.382,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a0da0133b46526a788a"}",200,838.884,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.268,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8bbca0133b46526a79ea"}",200,857.155,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a49a0133b46526a78ad"}",409,862.208,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b08a0133b46526a796c"}",409,818.458,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.446,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b08a0133b46526a796c"}",409,823.269,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.707,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,832.837,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.397,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.683,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b08a0133b46526a796c"}",409,776.944,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8bbca0133b46526a79ea"}",409,781.583,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.428,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8aa1a0133b46526a78f6"}",409,787.729,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.921,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b08a0133b46526a796c"}",409,794.033,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.614,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b20a0133b46526a797e"}",409,766.858,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.211,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.893,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.633,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a6da0133b46526a78c7"}",200,776.777,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a0da0133b46526a788a"}",409,780.706,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.953,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.321,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8aa1a0133b46526a78f6"}",200,797.875,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8aa1a0133b46526a78f6"}",409,802.174,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.183,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.374,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8b08a0133b46526a796c"}",200,754.637,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b53a0133b46526a79a1"}",409,759.453,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a6da0133b46526a78c7"}",409,764.408,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.935,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8aa1a0133b46526a78f6"}",409,767.264,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.070,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b20a0133b46526a797e"}",409,760.323,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.195,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b08a0133b46526a796c"}",409,766.741,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.486,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.996,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.840,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8b6ca0133b46526a79b3"}",200,767.177,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.473,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a6da0133b46526a78c7"}",200,783.328,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a6da0133b46526a78c7"}",409,727.448,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8aa1a0133b46526a78f6"}",409,731.509,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.520,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a49a0133b46526a78ad"}",409,736.945,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.638,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"646043a8f95435011dcf05e1"}",409,742.839,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.515,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a6da0133b46526a78c7"}",409,750.208,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.494,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.343,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.683,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a49a0133b46526a78ad"}",200,728.239,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b6ca0133b46526a79b3"}",409,733.552,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.273,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"646043a8f95435011dcf05e1"}",409,738.746,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.801,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.123,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8b53a0133b46526a79a1"}",200,755.058,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b20a0133b46526a797e"}",409,746.237,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,1.026,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8a0da0133b46526a788a"}",409,744.481,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b53a0133b46526a79a1"}",409,749.705,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.373,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8a0da0133b46526a788a"}",409,705.302,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.948,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.375,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.170,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b6ca0133b46526a79b3"}",200,724.004,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8bbca0133b46526a79ea"}",409,729.233,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,1.089,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8aa1a0133b46526a78f6"}",409,735.560,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b6ca0133b46526a79b3"}",409,741.320,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.819,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a0da0133b46526a788a"}",409,703.259,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.771,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8b53a0133b46526a79a1"}",409,696.940,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.338,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"646043a8f95435011dcf05e1"}",409,704.686,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.757,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a6da0133b46526a78c7"}",409,711.143,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.692,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.484,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.188,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"646043a8f95435011dcf05e1"}",200,730.908,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.057,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8bbca0133b46526a79ea"}",200,748.969,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,753.966,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b53a0133b46526a79a1"}",409,760.042,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.212,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.880,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.651,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a0da0133b46526a788a"}",200,782.169,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8aa1a0133b46526a78f6"}",409,785.976,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b6ca0133b46526a79b3"}",409,757.775,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.058,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a49a0133b46526a78ad"}",409,764.202,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.518,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b08a0133b46526a796c"}",409,770.629,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.004,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a49a0133b46526a78ad"}",409,773.794,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.939,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"646043a8f95435011dcf05e1"}",409,781.122,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.762,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b53a0133b46526a79a1"}",409,789.418,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.985,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8a49a0133b46526a78ad"}",409,795.961,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.805,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8bbca0133b46526a79ea"}",409,806.145,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,7.042,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a0da0133b46526a788a"}",409,812.812,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.535,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.726,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,2.406,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8bbca0133b46526a79ea"}",200,822.528,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a6da0133b46526a78c7"}",409,826.955,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,시간표가 중복되었습니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b6ca0133b46526a79b3"}",409,824.714,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.279,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a6da0133b46526a78c7"}",409,827.410,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,4.688,"undefined","Artillery"
+
+2023-05-14 16:28:45,error,이미 신청한 수업입니다.
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8bbca0133b46526a79ea"}",409,821.911,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.250,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,1.821,"undefined","Artillery"
+
+2023-05-14 16:28:45,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,0.830,"undefined","Artillery"

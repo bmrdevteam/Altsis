@@ -41,6 +41,10 @@ const syllabusSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    count: {
+      type: Number,
+      default: 0,
+    },
     count_limit: String,
 
     info: Object,

@@ -61,20 +61,10 @@ const CourseEnroll = (props: Props) => {
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
 
   async function getCourseList() {
-    const { syllabuses, enrollments } = await SyllabusApi.RSyllabuses({
+    const { syllabuses } = await SyllabusApi.RSyllabuses({
       season: currentRegistration?.season,
       confirmed: true,
     });
-    if (syllabuses.length === 0) return [];
-
-    const count = _.countBy(
-      enrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
-    for (let syllabus of syllabuses) {
-      syllabus.count_limit = `${count[syllabus._id] || 0}/${syllabus.limit}`;
-    }
-
     return syllabuses;
   }
 

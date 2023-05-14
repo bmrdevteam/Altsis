@@ -56,15 +56,10 @@ const exec = async (req) => {
     }
 
     // 3. 수강정원 확인
-    if (syllabus.limit !== 0) {
-      const cnt = await _Enrollment.countDocuments({
-        syllabus: syllabus._id,
-      });
-      if (cnt >= syllabus.limit) {
-        const err = new Error("수강정원이 다 찼습니다.");
-        err.status = 409;
-        throw err;
-      }
+    if (syllabus.limit !== 0 && syllabus.count >= syllabus.limit) {
+      const err = new Error("수강정원이 다 찼습니다.");
+      err.status = 409;
+      throw err;
     }
 
     // 4. 수강신청 가능한 시간인가?
@@ -153,6 +148,9 @@ const exec = async (req) => {
     }
 
     await enrollment.save();
+    await Syllabus(req.user.academyId).findByIdAndUpdate(enrollment.syllabus, {
+      $inc: { count: 1 },
+    });
   } catch (err) {
     throw err;
   }
@@ -196,12 +194,11 @@ export const enrollbulk = async (req, res) => {
       return res.status(403).send({ message: "수업 초대 권한이 없습니다." });
 
     // 2. 수강정원 확인
-    if (syllabus.limit != 0) {
-      const enrollmentsCnt = await _Enrollment.countDocuments({
-        syllabus: syllabus._id,
-      });
-      if (enrollmentsCnt + req.body.students.length > syllabus.limit)
-        return res.status(409).send({ message: "수강정원을 초과합니다." });
+    if (
+      syllabus.limit != 0 &&
+      syllabus.count + req.body.students.length > syllabus.limit
+    ) {
+      return res.status(409).send({ message: "수강정원을 초과합니다." });
     }
 
     // find season & check permission
@@ -210,6 +207,8 @@ export const enrollbulk = async (req, res) => {
 
     const enrollments = [];
     const syllabusSubdocument = syllabus.getSubdocument();
+
+    let cntEnrollmentsSuccess = 0;
 
     for (let student of req.body.students) {
       // 3. 이미 신청한 수업인가?
@@ -268,6 +267,7 @@ export const enrollbulk = async (req, res) => {
             }
           }
           await enrollment.save();
+          cntEnrollmentsSuccess += 1;
           enrollments.push({ success: { status: true }, ...student });
         } catch (error) {
           enrollments.push({
@@ -280,6 +280,9 @@ export const enrollbulk = async (req, res) => {
     // const newEnrollments = await Enrollment(req.user.academyId).insertMany(
     //   enrollments
     // );
+    await Syllabus(req.user.academyId).findByIdAndUpdate(req.body.syllabus, {
+      $inc: { count: cntEnrollmentsSuccess },
+    });
     return res.status(200).send({ enrollments });
   } catch (err) {
     logger.error(err.message);
@@ -634,6 +637,13 @@ export const remove = async (req, res) => {
         return res.status(401).send({ message: "you have no permission" });
 
       await enrollment.remove();
+      await Syllabus(req.user.academyId).findByIdAndUpdate(
+        enrollment.syllabus,
+        {
+          $inc: { count: -1 },
+        }
+      );
+
       return res.status(200).send();
     }
 
@@ -674,10 +684,15 @@ export const remove = async (req, res) => {
           .status(403)
           .send({ message: "수업 초대 취소 권한이 없습니다." });
 
-      await Enrollment(req.user.academyId).deleteMany({
+      const { deletedCount } = await Enrollment(req.user.academyId).deleteMany({
         _id: { $in: _idList },
       });
-
+      await Syllabus(req.user.academyId).findByIdAndUpdate(
+        enrollments[0].syllabus,
+        {
+          $inc: { count: -1 * deletedCount },
+        }
+      );
       return res.status(200).send({});
     }
     return res.status(400).send();

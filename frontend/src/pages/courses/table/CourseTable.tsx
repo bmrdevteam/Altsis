@@ -62,6 +62,10 @@ const CourseTable = (props: Props) => {
             ? "fullyConfirmed"
             : "semiConfirmed";
 
+        if (!syllabus.count_limit) {
+          syllabus.count_limit = `${syllabus?.count || 0}/${syllabus.limit}`;
+        }
+
         return syllabus;
       }),
       ["subject", "classTitle"]
