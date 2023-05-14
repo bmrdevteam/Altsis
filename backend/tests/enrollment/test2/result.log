@@ -1,0 +1,999 @@
+2023-05-14 12:27:54,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,91.707,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,75.094,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,28.418,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,16.831,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,37.941,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,99.758,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,107.101,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,32.923,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a49a0133b46526a78ad"}",409,34.708,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8aa1a0133b46526a78f6"}",409,34.589,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,121.958,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,120.293,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,54.046,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,53.620,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,19.043,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,10.557,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,99.402,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,101.943,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,33.045,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,41.307,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,56.138,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,52.733,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,149.834,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,120.051,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,123.406,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,104.344,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,35.679,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,35.717,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,41.200,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,46.445,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,45.817,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,68.761,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,181.955,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,184.433,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a6da0133b46526a78c7"}",409,138.261,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,67.730,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,70.747,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,115.647,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,65.217,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,224.985,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,185.343,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,165.377,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,207.070,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b6ca0133b46526a79b3"}",409,79.833,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,180.068,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,161.580,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a0da0133b46526a788a"}",409,172.541,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,54.736,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,36.346,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,68.369,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,207.425,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,205.546,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,189.498,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,25.695,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b6ca0133b46526a79b3"}",409,96.074,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,75.625,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,80.098,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,212.423,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,188.610,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,186.939,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,30.894,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a0da0133b46526a788a"}",409,87.491,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,59.678,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,59.274,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a6da0133b46526a78c7"}",409,123.223,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,66.779,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,67.844,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,80.121,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,70.908,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,211.222,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,210.181,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,232.394,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,230.814,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,205.981,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,84.719,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,94.136,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,242.690,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,241.710,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,38.469,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8a6da0133b46526a78c7"}",409,131.044,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,244.238,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,214.142,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b53a0133b46526a79a1"}",409,133.659,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,231.529,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,61.150,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,140.555,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,157.214,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,157.048,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,123.381,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,125.304,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,260.114,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,313.910,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,312.609,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,79.280,"undefined","Artillery"
+
+2023-05-14 12:27:55,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,120.929,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,300.948,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,298.369,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,157.772,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,177.776,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,179.689,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,54.177,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,155.234,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,157.145,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,154.570,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,167.345,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,451.506,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,374.876,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,373.716,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,372.719,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,372.291,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,454.852,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,145.485,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,137.784,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,149.850,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,138.739,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,103.551,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,349.782,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,351.675,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,348.498,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b53a0133b46526a79a1"}",409,177.739,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b6ca0133b46526a79b3"}",409,207.666,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,135.002,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,135.217,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,121.559,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,137.126,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,359.068,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,360.834,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,412.614,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,420.070,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,415.422,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,411.658,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,356.959,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,492.367,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,123.856,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,127.193,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,130.802,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,536.402,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user01","password":"movieuser01!"}",200,401.062,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b53a0133b46526a79a1"}",409,167.467,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,396.646,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,404.015,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,402.524,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,399.392,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,147.279,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,156.298,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,168.020,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,163.810,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,135.907,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b08a0133b46526a796c"}",409,226.805,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,65.947,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,65.579,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,154.094,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,121.388,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,438.021,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,436.761,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,442.323,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,440.640,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,382.023,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,386.279,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user02","password":"movieuser02!"}",200,385.225,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,165.245,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,171.435,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,320.502,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,430.467,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,375.398,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,373.807,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,382.580,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b20a0133b46526a797e"}",409,258.719,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,172.091,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,170.034,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b08a0133b46526a796c"}",409,260.682,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,172.406,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a49a0133b46526a78ad"}",409,266.688,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,176.570,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,178.908,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,180.592,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,181.772,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,185.969,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,185.306,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,421.161,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,418.719,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,642.205,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,415.485,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,592.617,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,47.533,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,168.668,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,166.942,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b20a0133b46526a797e"}",409,259.168,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,171.177,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,171.516,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,181.868,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,156.107,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,114.732,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,115.518,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,116.104,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,116.791,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,174.460,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b6ca0133b46526a79b3"}",409,178.784,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,464.117,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,462.818,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,415.703,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,411.538,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,47.507,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,154.999,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,155.294,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,160.714,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"646043a8f95435011dcf05e1"}",409,165.967,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b6ca0133b46526a79b3"}",409,168.734,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,157.219,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,457.195,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,456.102,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,460.088,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user04","password":"movieuser04!"}",200,661.754,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,411.925,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,47.835,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,47.587,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,44.703,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,158.366,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,162.142,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,161.971,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,166.615,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,449.016,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,403.793,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,410.990,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user03","password":"movieuser03!"}",200,405.821,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,148.756,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,150.752,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,152.768,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,165.880,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,168.716,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,170.913,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,36.994,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,148.142,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,145.688,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"646043a8f95435011dcf05e1"}",409,239.357,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,151.955,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,161.559,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,161.682,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/users/current,"{}",200,162.821,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/users/current,"{}",200,163.249,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,438.433,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,367.152,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,371.157,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user07","password":"movieuser07!"}",200,675.204,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,336.128,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user06","password":"movieuser06!"}",200,335.213,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,285.767,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,56.823,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,142.798,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,144.748,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a49a0133b46526a78ad"}",409,200.955,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b6ca0133b46526a79b3"}",409,202.319,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"646043a8f95435011dcf05e1"}",409,248.405,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,166.516,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,166.558,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,57.155,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,56.017,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,190.238,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8aa1a0133b46526a78f6"}",409,155.783,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8aa1a0133b46526a78f6"}",409,210.462,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,211.159,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,178.468,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b20a0133b46526a797e"}",409,219.368,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,196.833,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,152.434,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,202.799,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b6ca0133b46526a79b3"}",409,159.430,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,213.693,"undefined","Artillery"
+
+2023-05-14 12:27:56,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,171.583,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,347.439,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"646043a8f95435011dcf05e1"}",409,240.561,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,154.904,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,190.946,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,192.778,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,166.811,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,209.333,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,210.731,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,180.160,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,184.643,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,190.887,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,319.561,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b6ca0133b46526a79b3"}",409,203.833,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,undefined,POST,/api/users/login/local,"{"academyId":"garisan","userId":"user05","password":"movieuser05!"}",200,370.870,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,73.941,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,176.658,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,178.388,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,178.188,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,191.707,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,196.130,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,209.130,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8bbca0133b46526a79ea"}",409,356.082,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,191.321,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,190.897,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b53a0133b46526a79a1"}",409,299.433,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,350.953,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,210.886,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a49a0133b46526a78ad"}",409,353.503,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,53.810,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,52.882,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,50.649,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,50.302,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,194.131,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8a49a0133b46526a78ad"}",409,289.457,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,200.588,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,202.800,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,200.889,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,211.724,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,211.563,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/users/current,"{}",200,211.444,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,212.870,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a49a0133b46526a78ad"}",409,221.372,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a6da0133b46526a78c7"}",409,221.234,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,55.799,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,55.004,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,53.394,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,179.651,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,181.082,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,185.988,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,198.585,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,198.926,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,48.641,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,47.825,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,163.319,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,164.356,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,121.446,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,174.675,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8bbca0133b46526a79ea"}",409,309.223,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/users/current,"{}",200,169.184,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,168.482,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,171.564,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,354.749,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,136.839,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,144.301,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,60.178,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/users/current,"{}",200,161.254,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,162.164,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,172.388,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/users/current,"{}",200,167.209,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,176.257,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,175.476,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8bbca0133b46526a79ea"}",409,369.329,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8aa1a0133b46526a78f6"}",409,188.117,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,145.668,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,147.497,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,150.203,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,65.600,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,64.029,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,62.210,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,220.243,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,215.067,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,123.096,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a6da0133b46526a78c7"}",409,193.092,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,149.845,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,151.463,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,78.033,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,70.614,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,70.010,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,132.541,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,135.868,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b6ca0133b46526a79b3"}",409,186.103,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8bbca0133b46526a79ea"}",409,192.361,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,165.711,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,168.151,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/users/current,"{}",200,168.090,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,169.667,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b08a0133b46526a796c"}",409,268.113,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a6da0133b46526a78c7"}",409,267.095,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,172.436,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b20a0133b46526a797e"}",409,199.074,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,165.098,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a0da0133b46526a788a"}",409,268.041,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,168.029,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8b08a0133b46526a796c"}",409,273.413,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8b08a0133b46526a796c"}",409,272.896,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,53.816,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8aa1a0133b46526a78f6"}",409,192.489,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8a6da0133b46526a78c7"}",409,349.508,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,158.082,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,159.420,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,161.094,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b20a0133b46526a797e"}",409,269.650,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,45.880,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,45.573,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"646043a8f95435011dcf05e1"}",409,204.686,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"645f8a0da0133b46526a788a"}",409,201.248,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8aa1a0133b46526a78f6"}",409,201.917,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,70.004,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,69.125,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,68.876,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,108.415,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,110.546,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,111.391,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b08a0133b46526a796c"}",409,176.498,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8aa1a0133b46526a78f6"}",409,180.664,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,141.838,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,143.795,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,426.804,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,71.434,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,69.826,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,61.862,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,60.480,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,293.252,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8b6ca0133b46526a79b3"}",409,190.288,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"646043a8f95435011dcf05e1"}",409,190.950,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b20a0133b46526a797e"}",409,252.994,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a6da0133b46526a78c7"}",409,252.790,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8bbca0133b46526a79ea"}",409,251.792,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,156.257,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,158.585,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,161.470,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,327.407,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,54.496,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,54.126,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,52.127,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,51.882,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a49a0133b46526a78ad"}",409,196.625,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a6da0133b46526a78c7"}",409,195.931,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7630,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b3","syllabus":"646043a8f95435011dcf05e1"}",409,252.184,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a6da0133b46526a78c7"}",409,258.269,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7631,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b4","syllabus":"645f8a6da0133b46526a78c7"}",409,252.921,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,167.148,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,38.563,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,38.416,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,38.412,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8aa1a0133b46526a78f6"}",409,194.739,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8a49a0133b46526a78ad"}",409,255.268,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"646043a8f95435011dcf05e1"}",409,245.077,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,244.186,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,138.445,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,43.127,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,42.736,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,42.351,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8b6ca0133b46526a79b3"}",409,171.801,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b53a0133b46526a79a1"}",409,174.975,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a6da0133b46526a78c7"}",409,169.248,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,GET,/api/syllabuses?season=645f8331a0133b46526a7705&confirmed=true,"{}",200,284.236,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a0da0133b46526a788a"}",409,243.125,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,28.475,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,28.202,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,28.067,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a49a0133b46526a78ad"}",409,214.641,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b08a0133b46526a796c"}",409,212.956,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,32.752,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,31.597,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,31.310,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,31.274,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,30.464,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8b20a0133b46526a797e"}",409,118.600,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b08a0133b46526a796c"}",409,115.137,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8a6da0133b46526a78c7"}",409,116.879,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8bbca0133b46526a79ea"}",409,175.870,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8b08a0133b46526a796c"}",409,175.630,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,20.083,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,19.934,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,19.834,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,19.808,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,19.778,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8a6da0133b46526a78c7"}",409,101.808,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,25.105,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,24.824,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,24.892,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,24.872,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8bbca0133b46526a79ea"}",409,83.029,"undefined","Artillery"
+
+2023-05-14 12:27:57,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b53a0133b46526a79a1"}",409,84.380,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,29.113,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,29.056,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,29.025,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8a6da0133b46526a78c7"}",409,81.197,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7636,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b9","syllabus":"645f8a49a0133b46526a78ad"}",409,117.776,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"646043a8f95435011dcf05e1"}",409,117.651,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"646043a8f95435011dcf05e1"}",409,115.126,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,43.255,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,18.650,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,17.627,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8a6da0133b46526a78c7"}",409,73.297,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7632,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b6","syllabus":"645f8b53a0133b46526a79a1"}",409,104.458,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8b20a0133b46526a797e"}",409,103.880,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7635,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b7","syllabus":"645f8a0da0133b46526a788a"}",409,103.903,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7633,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b5","syllabus":"645f8bbca0133b46526a79ea"}",409,104.047,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,13.266,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,12.550,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,12.111,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,12.014,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8aa1a0133b46526a78f6"}",409,73.002,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,20.904,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,garisan,645f830fa0133b46526a7634,POST,/api/enrollments,"{"registration":"645f88f7a0133b46526a77b8","syllabus":"645f8aa1a0133b46526a78f6"}",409,60.703,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,20.361,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,10.710,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,14.704,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.814,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.458,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.250,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.557,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,6.301,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.990,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.760,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,5.610,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,7.016,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,3.638,"undefined","Artillery"
+
+2023-05-14 12:27:58,http,HTTP/1.1,::ffff:127.0.0.1,undefined,undefined,GET,/api/users/logout,"{}",200,1.654,"undefined","Artillery"
