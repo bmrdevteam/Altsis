@@ -22,28 +22,61 @@ const isTimeOverlapped = (enrollments, syllabus) => {
 
 module.exports.enroll = async (req, res) => {
   try {
+    if (!("syllabus" in req.body) || !("registration" in req.body)) {
+      return res.status(400).send({ message: "invalud request" });
+    }
+
     const _Enrollment = Enrollment(req.user.academyId);
 
-    // find syllabus
+    // 1. syllabus 조회
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.body.syllabus
     );
     if (!syllabus)
       return res.status(404).send({ message: "수업 정보를 찾을 수 없습니다." });
 
-    // find registration
-    const registration = await Registration(req.user.academyId).findById(
-      req.body.registration
-    );
+    // 2. 이미 신청한 수업인지 확인
+    const exEnrollments = await _Enrollment.find({
+      student: req.user._id,
+      season: syllabus.season,
+    });
+    if (_.find(exEnrollments, { syllabus: syllabus._id }))
+      return res.status(409).send({ message: "이미 신청한 수업입니다." });
+
+    // 3. 수강정원 확인
+    if (syllabus.limit !== 0) {
+      const cnt = await _Enrollment.countDocuments({
+        syllabus: syllabus._id,
+      });
+      if (cnt >= syllabus.limit)
+        return res.status(409).send({ message: "수강정원이 다 찼습니다." });
+    }
+
+    // 4. 수강신청 가능한 시간인가?
+    if (isTimeOverlapped(exEnrollments, syllabus))
+      return res.status(409).send({
+        message: `시간표가 중복되었습니다.`,
+      });
+
+    /* 5~7단계는 수강신청을 하는 시점에서 이미 검증되었을 가능성이 높음 */
+
+    // 5. 승인된 수업인지 확인
+    for (let i = 0; i < syllabus.teachers.length; i++)
+      if (!syllabus.teachers[i].confirmed)
+        return res.status(409).send({ message: "승인되지 않은 수업입니다." });
+
+    // 6. find registration
+    const registration = await Registration(req.user.academyId)
+      .findById(req.body.registration)
+      .lean();
     if (!registration)
       return res.status(404).send({ message: "등록 정보를 찾을 수 없습니다." });
-
     if (!req.user._id.equals(registration.user))
       return res
         .status(401)
         .send({ message: "유저 정보와 등록 정보가 일치하지 않습니다." });
 
-    // find season & check permission
+    // 7. check permission
     const season = await Season(req.user.academyId).findById(syllabus.season);
     if (!season) return res.status(404).send({ message: "season not found" });
     if (
@@ -54,34 +87,6 @@ module.exports.enroll = async (req, res) => {
       )
     )
       return res.status(401).send({ message: "수강신청 권한이 없습니다." });
-
-    // 1. 승인된 수업인지 확인
-    for (let i = 0; i < syllabus.teachers.length; i++)
-      if (!syllabus.teachers[i].confirmed)
-        return res.status(404).send({ message: "승인되지 않은 수업입니다." });
-
-    // 2. 이미 신청한 수업인지 확인
-    const exEnrollments = await _Enrollment.find({
-      student: registration.user,
-      season: registration.season,
-    });
-    if (_.find(exEnrollments, { syllabus: syllabus._id }))
-      return res.status(409).send({ message: "이미 신청한 수업입니다." });
-
-    // 3. 수강정원 확인
-    if (syllabus.limit != 0) {
-      const enrollmentsCnt = await _Enrollment.countDocuments({
-        syllabus: syllabus._id,
-      });
-      if (enrollmentsCnt >= syllabus.limit)
-        return res.status(409).send({ message: "수강정원이 다 찼습니다." });
-    }
-
-    // 4. 수강신청 가능한 시간인가?
-    if (isTimeOverlapped(exEnrollments, syllabus))
-      return res.status(409).send({
-        message: `시간표가 중복되었습니다.`,
-      });
 
     // 수강신청 완료 (도큐먼트 저장)
     const enrollment = new _Enrollment({
@@ -94,28 +99,32 @@ module.exports.enroll = async (req, res) => {
 
     // evaluation 동기화
     enrollment.evaluation = {};
-    for (let obj of season.formEvaluation) {
-      if (obj.combineBy === "term") {
-        const e2 = await _Enrollment.findOne({
-          season: enrollment.season,
-          student: enrollment.student,
-          subject: enrollment.subject,
-        });
-        if (e2) {
-          enrollment.evaluation[obj.label] = e2.evaluation[obj.label] || "";
+    if (exEnrollments.length === 0) {
+      const eYear = await _Enrollment.findOne({
+        school: enrollment.school,
+        year: enrollment.year,
+        student: enrollment.student,
+        subject: enrollment.subject,
+      });
+      if (eYear) {
+        for (let obj of season.formEvaluation) {
+          if (obj.combineBy === "year") {
+            enrollment.evaluation[obj.label] =
+              eYear.evaluation[obj.label] || "";
+          }
         }
-      } else if (obj.combineBy === "year") {
-        const e2 = await _Enrollment.findOne({
-          school: enrollment.school,
-          year: enrollment.year,
-          student: enrollment.student,
-          subject: enrollment.subject,
-        });
-        if (e2) {
-          enrollment.evaluation[obj.label] = e2.evaluation[obj.label] || "";
+      }
+    } else {
+      const eTerm = _.find(exEnrollments, (e) =>
+        _.isEqual(enrollment.subject, e.subject)
+      );
+      if (eTerm) {
+        for (let obj of season.formEvaluation) {
+          enrollment.evaluation[obj.label] = eTerm.evaluation[obj.label] || "";
         }
       }
     }
+
     await enrollment.save();
     return res.status(200).send(enrollment);
   } catch (err) {
