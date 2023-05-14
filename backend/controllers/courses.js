@@ -1,8 +1,8 @@
-const { logger } = require("../log/logger");
-const { Enrollment, Syllabus } = require("../models");
-const _ = require("lodash");
+import { logger } from "../log/logger.js";
+import { Enrollment, Syllabus } from "../models/index.js";
+import _ from "lodash";
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     const { season, user } = req.query;
     if (!season || !user) return res.status(400).send();

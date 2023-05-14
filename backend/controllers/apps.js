@@ -1,9 +1,9 @@
-const { logger } = require("../log/logger");
-const _ = require("lodash");
-const { Apps, School, User } = require("../models");
+import { logger } from "../log/logger.js";
+import _ from "lodash";
+import { Apps, School, User } from "../models/index.js";
 
 /* create */
-module.exports.create = async (req, res) => {
+export const create = async (req, res) => {
   try {
     const user = await User(req.user.academyId).findOne({
       userId: req.user.userId,
@@ -32,7 +32,7 @@ module.exports.create = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     const apps = await Apps(req.user.academyId).find({});
     if (!apps) return res.status(404).send({ message: "apps not found" });
@@ -44,7 +44,7 @@ module.exports.find = async (req, res) => {
   }
 };
 
-module.exports.findById = async (req, res) => {
+export const findById = async (req, res) => {
   try {
     const apps = await Apps(req.user.academyId).findById(req.params._id);
     if (!apps) return res.status(404).send({ message: "apps not found" });
@@ -56,7 +56,7 @@ module.exports.findById = async (req, res) => {
   }
 };
 
-module.exports.updateDataField = async (req, res) => {
+export const updateDataField = async (req, res) => {
   try {
     const apps = await Apps(req.user.academyId).findById(req.params._id);
     if (!apps) return res.status(404).send({ message: "apps not found" });
@@ -73,7 +73,7 @@ module.exports.updateDataField = async (req, res) => {
 
 /* delete */
 
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     const apps = await Apps(req.user.academyId).findById(req.params._id);
     if (!apps) return res.status(404).send({ message: "apps not found" });

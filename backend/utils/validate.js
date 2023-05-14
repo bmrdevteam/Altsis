@@ -12,8 +12,10 @@ const pattern = {
   schoolName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$",
 };
 
-module.exports = (type, val) => {
+const validate = (type, val) => {
   if (!val) return false;
   if (pattern[type]) return new RegExp(pattern[type]).test(val);
   return false;
 };
+
+export { validate };

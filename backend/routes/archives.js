@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const archives = require("../controllers/archives");
-const { isAdmin, isLoggedIn, isAdManager } = require("../middleware/auth");
+import { isLoggedIn } from "../middleware/auth.js";
+import * as archives from "../controllers/archives.js";
 
 //=================================
 //             Archive
@@ -14,4 +14,4 @@ router.put("/", isLoggedIn, archives.updateBulk);
 
 router.put("/:_id", isLoggedIn, archives.update);
 
-module.exports = router;
+export { router };

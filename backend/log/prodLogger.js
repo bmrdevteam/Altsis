@@ -1,12 +1,12 @@
-const winston = require("winston");
-const { format } = winston;
+import winston, { format } from "winston";
 const { combine, timestamp, printf, label } = format;
-const WinstonDaily = require("winston-daily-rotate-file");
-const S3StreamLogger = require("s3-streamlogger-daily").S3StreamLogger;
-const strftime = require("strftime");
+import WinstonDaily from "winston-daily-rotate-file";
+import * as _S3StreamLogger from "s3-streamlogger-daily";
+const S3StreamLogger = _S3StreamLogger.S3StreamLogger;
+import strftime from "strftime";
+import mongoose from "mongoose";
 
 const strftimeKOR = strftime.timezone("+0900");
-const mongoose = require("mongoose");
 
 /* prodLogger */
 const stream = (level = "") => {
@@ -59,4 +59,4 @@ prodLogger.stream = {
   },
 };
 
-module.exports.prodLogger = prodLogger;
+export { prodLogger };

@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { conn } = require("../databases/connection");
+import mongoose from "mongoose";
+import { conn } from "../databases/connection.js";
 
 // temp-1.1: form의 data가 object type인 경우
 var dataSchema = mongoose.Schema(
@@ -94,6 +94,6 @@ const formSchema = mongoose.Schema(
 //   { unique: true }
 // );
 
-module.exports = (dbName) => {
+export const Form = (dbName) => {
   return conn[dbName].model("Form", formSchema);
 };

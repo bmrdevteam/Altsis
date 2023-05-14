@@ -1,18 +1,23 @@
-require("dotenv").config();
+import "./env.js";
 
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const session = require("express-session");
-const passport = require("passport");
+import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import session from "express-session";
 
-const passportConfig = require("./passport");
-const routers = require("./routes/index");
-const { initializeWebSocket } = require("./utils/webSocket");
+import passport from "passport";
+import { config as passportConfig } from "./passport/index.js";
+
+import { routers } from "./routes/index.js";
+import { initializeWebSocket } from "./utils/webSocket.js";
 
 /* logger */
-const morgan = require("morgan");
-const { logger } = require("./log/logger");
+import morgan from "morgan";
+import { logger } from "./log/logger.js";
+
+import connectRedis from "connect-redis";
+const RedisStore = connectRedis(session);
+import { client } from "./caches/redis.js";
 
 const app = express();
 
@@ -28,9 +33,6 @@ app.use(
   })
   // cors() //테스트를 위해 모든 도메인에서 오는 요청 허용(임시)
 );
-
-const RedisStore = require("connect-redis")(session);
-const client = require("./caches/redis");
 
 app.use(
   session({
@@ -86,10 +88,10 @@ app.use(
 // app.use(morgan(morganFormat, { stream: logger.stream })); // morgan
 
 routers.forEach((router) => {
-  app.use("/api/" + router, require("./routes/" + router));
+  app.use("/api/" + router.label, router.routes);
 });
 
-module.exports = app;
+export { app };
 
 app.set("port", process.env["SERVER_PORT"].trim() || 3000);
 

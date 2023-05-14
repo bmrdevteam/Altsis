@@ -1,6 +1,6 @@
-const { prodLogger } = require("./prodLogger");
-const { devLogger } = require("./devLogger");
+import { prodLogger } from "./prodLogger.js";
+import { devLogger } from "./devLogger.js";
 
-module.exports = {
-  logger: process.env.NODE_ENV === "production" ? prodLogger : devLogger,
-};
+const logger = process.env.NODE_ENV === "production" ? prodLogger : devLogger;
+
+export { logger };

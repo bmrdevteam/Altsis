@@ -1,8 +1,8 @@
-const { logger } = require("../log/logger");
-const _ = require("lodash");
-const { User, Registration, Season } = require("../models");
+import { logger } from "../log/logger.js";
+import _ from "lodash";
+import { User, Registration, Season } from "../models/index.js";
 
-module.exports.registerBulk = async (req, res) => {
+export const registerBulk = async (req, res) => {
   try {
     const season = await Season(req.user.academyId).findById(req.body.season);
     if (!season) {
@@ -51,7 +51,7 @@ module.exports.registerBulk = async (req, res) => {
   }
 };
 
-module.exports.registerCopy = async (req, res) => {
+export const registerCopy = async (req, res) => {
   try {
     const exRegistrations = await Registration(req.user.academyId).find({
       season: req.body.fromSeason,
@@ -90,7 +90,7 @@ module.exports.registerCopy = async (req, res) => {
   }
 };
 
-module.exports.find = async (req, res) => {
+export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const registration = await Registration(req.user.academyId).findById(
@@ -114,7 +114,7 @@ module.exports.find = async (req, res) => {
  * @param {*} res
  * @returns
  */
-module.exports.update = async (req, res) => {
+export const update = async (req, res) => {
   try {
     const ids = _.split(req.params._ids, ",");
 
@@ -146,7 +146,7 @@ module.exports.update = async (req, res) => {
 };
 
 /* delete */
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   try {
     const ids = _.split(req.query._id, ",");
     const result = await Registration(req.user.academyId).deleteMany({

@@ -1,9 +1,9 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+import mongoose from "mongoose";
+import bcrypt from "bcrypt";
 
-const { conn } = require("../databases/connection");
+import { conn } from "../databases/connection.js";
 
-const validate = require("../utils/validate");
+import { validate } from "../utils/validate.js";
 
 const userSchema = mongoose.Schema(
   {
@@ -101,6 +101,6 @@ userSchema.statics.generatePassword = function () {
   return password;
 };
 
-module.exports = (dbName) => {
+export const User = (dbName) => {
   return conn[dbName].model("User", userSchema);
 };
