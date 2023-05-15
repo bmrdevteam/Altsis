@@ -3,7 +3,7 @@
     "target": "http://localhost:5050/api",
     "phases": [
       {
-        "duration": 1,
+        "duration": 10,
         "arrivalRate": 100
       }
     ],
@@ -12,9 +12,17 @@
         "User-Agent": "Artillery"
       }
     },
+    "plugins": {
+      "metrics-by-endpoint": {
+        "useOnlyRequestNames": true
+      }
+    },
+    "http": {
+      "timeout": 60
+    },
     "payload": [
       {
-        "path": "./data1.csv",
+        "path": "../data/data1.csv",
         "fields": [
           "academyId",
           "_id",
@@ -27,43 +35,42 @@
         "order": "sequence"
       },
       {
-        "path": "./data2.csv",
+        "path": "../data/data2.csv",
         "fields": ["syllabusId"]
+      }
+    ]
+  },
+  "before": {
+    "flow": [
+      {
+        "get": {
+          "name": "clean enrollments",
+          "url": "/test/clean",
+          "expect": { "statusCode": 200 }
+        }
       }
     ]
   },
   "scenarios": [
     {
-      "name": "Read user",
+      "name": "Enroll Test Scenario v2",
       "flow": [
         {
           "post": {
+            "name": "login",
             "url": "/users/login/local",
             "json": {
               "academyId": "{{academyId}}",
               "userId": "{{userId}}",
               "password": "{{password}}"
-            }
-          }
-        },
-        {
-          "get": {
-            "url": "/users/current",
-            "match": { "json": "$.user.userId", "value": "{{userId}}" }
-          }
-        },
-        {
-          "get": {
-            "url": "/syllabuses",
-            "qs": {
-              "season": "{{sid}}",
-              "confirmed": "true"
-            }
+            },
+            "expect": { "statusCode": 200 }
           }
         },
         {
           "post": {
-            "url": "/enrollments",
+            "name": "enroll",
+            "url": "/enrollments/v2",
             "json": {
               "registration": "{{rid}}",
               "syllabus": "{{syllabusId}}"
@@ -72,6 +79,7 @@
         },
         {
           "get": {
+            "name": "logout",
             "url": "/users/logout"
           }
         }

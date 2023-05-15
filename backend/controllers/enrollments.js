@@ -1,11 +1,15 @@
+/**
+ * @title Version 4
+ * @subTitle Add field 'permissionEvaluationV2', 'formEvaluation' in registration
+ *
+ * @description
+ * Use registration.permissionEvaluationV2 to validate permission
+ * Use registration.formEvaluation to sync evaluation
+ * Optimize evaluation sync algorithm
+ *
+ */
 import { logger } from "../log/logger.js";
-import {
-  Enrollment,
-  Syllabus,
-  Registration,
-  Season,
-  User,
-} from "../models/index.js";
+import { Enrollment, Syllabus, Registration } from "../models/index.js";
 import _ from "lodash";
 
 /* promise queue library */
@@ -69,40 +73,40 @@ const exec = async (req) => {
       throw err;
     }
 
-    /* 5~7단계는 수강신청을 하는 시점에서 이미 검증되었을 가능성이 높음 */
+    /* 5~8단계는 요청이 들어온 시점에서 이미 검증되었을 가능성이 높음 */
 
     // 5. 승인된 수업인지 확인
-    for (let i = 0; i < syllabus.teachers.length; i++)
+    for (let i = 0; i < syllabus.teachers.length; i++) {
       if (!syllabus.teachers[i].confirmed) {
         const err = new Error("승인되지 않은 수업입니다.");
         err.status = 409;
         throw err;
       }
+    }
 
-    // 6. find registration
-    const registration = await Registration(req.user.academyId)
-      .findById(req.body.registration)
-      .lean();
+    // 6. registration 조회
+    const registration = await Registration(req.user.academyId).findById(
+      req.body.registration
+    );
     if (!registration) {
       const err = new Error("등록 정보를 찾을 수 없습니다.");
       err.status = 404;
       throw err;
     }
-
     if (!req.user._id.equals(registration.user)) {
       const err = new Error("유저 정보와 등록 정보가 일치하지 않습니다.");
       err.status = 401;
       throw err;
     }
 
-    // 7. check permission
+    // 7. 권한 검사
     if (!registration?.permissionEnrollmentV2) {
       const err = new Error("수강신청 권한이 없습니다.");
       err.status = 401;
       throw err;
     }
 
-    // 수강신청 완료 (도큐먼트 저장)
+    // 8. 수강신청 완료 (enrollment 생성)
     const enrollment = new _Enrollment({
       ...syllabus.getSubdocument(),
       student: registration.user,
@@ -111,7 +115,7 @@ const exec = async (req) => {
       studentGrade: registration.grade,
     });
 
-    // evaluation 동기화
+    // 9. evaluation 동기화
     enrollment.evaluation = {};
     if (exEnrollments.length === 0) {
       const eYear = await _Enrollment.findOne({
@@ -138,7 +142,6 @@ const exec = async (req) => {
         }
       }
     }
-
     await enrollment.save();
     await Syllabus(req.user.academyId).findByIdAndUpdate(enrollment.syllabus, {
       $inc: { count: 1 },
@@ -157,10 +160,11 @@ export const enroll = async (req, res) => {
     await queueEnroll(req, res);
     return res.status(200).send({});
   } catch (err) {
-    if (!err.status || err.status === 500) {
-      logger.error(err.message);
+    if (err?.status !== 500) {
+      return res.status(err.status).send({ message: err.message });
     }
-    return res.status(err.status ?? 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
   }
 };
 
