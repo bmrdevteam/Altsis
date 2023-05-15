@@ -2,32 +2,6 @@ import { logger } from "../log/logger.js";
 import { Season, Registration, Syllabus, Enrollment } from "../models/index.js";
 import _ from "lodash";
 
-const checkPermission = async (user, seasonId) => {
-  const season = await Season(user.academyId).findById(seasonId);
-  if (!season) {
-    const err = new Error("season not found");
-    err.status = 404;
-    throw err;
-  }
-
-  const registration = await Registration(user.academyId)
-    .findOne({ user: user._id, season: seasonId })
-    .lean();
-  if (!registration) {
-    const err = new Error("registration not found");
-    err.status = 404;
-    throw err;
-  }
-
-  if (!season.checkPermission("syllabus", user.userId, registration.role)) {
-    const err = new Error("you have no permission");
-    err.status = 403;
-    throw err;
-  }
-
-  return { season, registration };
-};
-
 const isFullyConfirmed = (syllabus) =>
   _.filter(syllabus.teachers, { confirmed: true }).length ===
   syllabus.teachers.length;
@@ -63,13 +37,19 @@ export const create = async (req, res) => {
 
     const user = req.user;
 
-    const { season } = await checkPermission(user, req.body.season);
+    const registration = await Registration(user.academyId).findOne({
+      user: user._id,
+      season: req.body.season,
+    });
+    if (!registration) {
+      return res.status(404).send({ message: "registration not found" });
+    }
+    if (!registration?.permissionSyllabusV2) {
+      return res.status(403).send({ message: "you have no permission" });
+    }
 
     const syllabus = new (Syllabus(req.user.academyId))({
-      ...season.getSubdocument(),
-      user: req.user._id,
-      userId: req.user.userId,
-      userName: req.user.userName,
+      ...registration.getSubdocument(),
       classTitle: req.body.classTitle,
       time: req.body.time,
       classroom: req.body.classroom,
@@ -241,7 +221,16 @@ export const updateV2 = async (req, res) => {
     }
 
     // 권한 확인
-    await checkPermission(user, syllabus.season);
+    const registration = await Registration(user.academyId).findOne({
+      user: user._id,
+      season: syllabus.season,
+    });
+    if (!registration) {
+      return res.status(404).send({ message: "registration not found" });
+    }
+    if (!registration?.permissionSyllabusV2) {
+      return res.status(403).send({ message: "you have no permission" });
+    }
 
     // 별도 확인이 필요한 수정 사항
     const isUpdated = {
@@ -391,13 +380,27 @@ export const updateSubject = async (req, res) => {
     if (!isUpdated) return res.status(200).send({});
 
     // 권한 확인
-    const { season } = await checkPermission(user, syllabus.season);
+    const registration = await Registration(user.academyId).findOne({
+      user: user._id,
+      season: syllabus.season,
+    });
+    if (!registration) {
+      return res.status(404).send({ message: "registration not found" });
+    }
+    if (!registration?.permissionSyllabusV2) {
+      return res.status(403).send({ message: "you have no permission" });
+    }
 
     // user가 syllabus 멘토인 경우에만 수정 가능
     if (!_.find(syllabus.teachers, { _id: user._id })) {
       return res.status(403).send({
         message: "you cannot update this syllabus",
       });
+    }
+
+    const season = await Season(user.academyId).findById(syllabus.season);
+    if (!season) {
+      return res.status(404).send({ message: "season not found" });
     }
 
     const enrollments = await Enrollment(user.academyId)
@@ -619,7 +622,16 @@ export const remove = async (req, res) => {
     if (!syllabus) return res.status(404).send();
 
     // 권한 확인
-    await checkPermission(user, syllabus.season);
+    const registration = await Registration(user.academyId).findOne({
+      user: user._id,
+      season: syllabus.season,
+    });
+    if (!registration) {
+      return res.status(404).send({ message: "registration not found" });
+    }
+    if (!registration?.permissionSyllabusV2) {
+      return res.status(403).send({ message: "you have no permission" });
+    }
 
     // user가 syllabus 작성자이고 멘토가 아닌 경우
     if (
