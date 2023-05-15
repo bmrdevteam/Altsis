@@ -58,6 +58,9 @@ const registrationSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  formEvaluation: {
+    type: [],
+  },
 });
 
 registrationSchema.index({

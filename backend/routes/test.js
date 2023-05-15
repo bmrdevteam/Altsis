@@ -7,6 +7,35 @@ import { Season } from "../models/Season.js";
 import { Registration } from "../models/Registration.js";
 
 /* update registrations by seasons */
+router.get("/formEvaluation", async (req, res) => {
+  try {
+    const academies = await Academy.find({ academyId: { $ne: "root" } });
+    for (let academy of academies) {
+      const academyId = academy.academyId;
+
+      const seasons = await Season(academyId).find({});
+      for (let season of seasons) {
+        season.formEvaluation = [...(season?.formEvaluation ?? [])];
+        await season.save();
+
+        await Registration(academyId).updateMany(
+          {
+            season: season._id,
+          },
+          {
+            formEvaluation: season.formEvaluation,
+          }
+        );
+      }
+    }
+    return res.status(200).send({ academies, message: "hello world! /v2" });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+});
+
+/* update registrations by seasons */
 router.get("/registrations", async (req, res) => {
   try {
     const academies = await Academy.find({ academyId: { $ne: "root" } });

@@ -227,20 +227,30 @@ export const update = async (req, res) => {
 export const activate = async (req, res) => {
   try {
     /* activate season */
-    const season = await Season(req.user.academyId).findByIdAndUpdate(
-      req.params._id,
-      { isActivated: true, isActivatedFirst: true },
-      { new: true }
-    );
+    const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send({ message: "season not found" });
 
-    /* activate registrations */
-    await Registration(req.user.academyId).updateMany(
-      { season: season._id },
-      { isActivated: true }
-    );
-
-    return res.status(200).send(season);
+    if (!season.isActivated) {
+      season.isActivated = true;
+      if (!season.isActivatedFirst) {
+        season.isActivatedFirst = true;
+        await season.save();
+        /* activate registrations */
+        await Registration(req.user.academyId).updateMany(
+          { season: season._id },
+          { isActivated: true, formEvaluation: season.formEvaluation }
+        );
+      } else {
+        await season.save();
+        /* activate registrations */
+        await Registration(req.user.academyId).updateMany(
+          { season: season._id },
+          { isActivated: true }
+        );
+      }
+      return res.status(200).send(season);
+    }
+    return res.status(409).send({ message: "season is already activated" });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
