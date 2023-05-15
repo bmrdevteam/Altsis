@@ -49,6 +49,9 @@ export type TRegistration = {
   isActivated: boolean;
   role: "teacher" | "student";
   memos: any[];
+  permissionSyllabusV2: boolean;
+  permissionEnrollmentV2: boolean;
+  permissionEvaluationV2: boolean;
 };
 
 export type Exception = {
@@ -75,10 +78,12 @@ export type TSeason = {
   };
   year: string;
   term: string;
-  permissionSyllabus: [[]];
-  permissionEnrollment: [[]];
-  permissionEvaluation: [[]];
+  // permissionSyllabus: [[]]; //deprecated
+  // permissionEnrollment: [[]]; //deprecated
+  // permissionEvaluation: [[]]; //deprecated
   permissionSyllabusV2: Permission[];
+  permissionEnrollmentV2: Permission[];
+  permissionEvaluationV2: Permission[];
   formTimetable: any;
   formSyllabus: any;
   formEvaluation: any[];
