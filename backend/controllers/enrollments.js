@@ -112,12 +112,6 @@ const exec = async (req) => {
     });
 
     // evaluation 동기화
-    const season = await Season(req.user.academyId).findById(
-      registration.season
-    );
-    if (!season) {
-      return rse.status(404).send({ message: "season not found" });
-    }
     enrollment.evaluation = {};
     if (exEnrollments.length === 0) {
       const eYear = await _Enrollment.findOne({
@@ -127,7 +121,7 @@ const exec = async (req) => {
         subject: enrollment.subject,
       });
       if (eYear) {
-        for (let obj of season.formEvaluation) {
+        for (let obj of registration.formEvaluation) {
           if (obj.combineBy === "year") {
             enrollment.evaluation[obj.label] =
               eYear.evaluation[obj.label] || "";
@@ -139,7 +133,7 @@ const exec = async (req) => {
         _.isEqual(enrollment.subject, e.subject)
       );
       if (eTerm) {
-        for (let obj of season.formEvaluation) {
+        for (let obj of registration.formEvaluation) {
           enrollment.evaluation[obj.label] = eTerm.evaluation[obj.label] || "";
         }
       }
@@ -210,10 +204,6 @@ export const enrollbulk = async (req, res) => {
       return res.status(403).send({ message: "수강신청 권한이 없습니다." });
     }
 
-    // find season
-    const season = await Season(req.user.academyId).findById(syllabus.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     const enrollments = [];
     const syllabusSubdocument = syllabus.getSubdocument();
 
@@ -223,7 +213,7 @@ export const enrollbulk = async (req, res) => {
       // 3. 이미 신청한 수업인가?
       const exEnrollments = await _Enrollment.find({
         student: student._id,
-        season: season._id,
+        season: registration.season,
       });
 
       if (_.find(exEnrollments, { syllabus: syllabus._id })) {
@@ -251,7 +241,7 @@ export const enrollbulk = async (req, res) => {
 
           // evaluation 동기화
           enrollment.evaluation = {};
-          for (let obj of season.formEvaluation) {
+          for (let obj of registration.formEvaluation) {
             if (obj.combineBy === "term") {
               const e2 = await _Enrollment.findOne({
                 season: enrollment.season,
@@ -472,9 +462,6 @@ export const updateEvaluation2 = async (req, res) => {
       });
 
     // 유저 권한 확인
-    const season = await Season(req.user.academyId).findById(enrollment.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
       user: req.user._id,
@@ -506,7 +493,7 @@ export const updateEvaluation2 = async (req, res) => {
       .select("+evaluation");
 
     for (let label in req.body.new) {
-      const obj = _.find(season.formEvaluation, { label });
+      const obj = _.find(registration.formEvaluation, { label });
       if (obj.auth.edit[req.query.by === "mentor" ? "teacher" : "student"]) {
         enrollment.evaluation = {
           ...enrollment.evaluation,

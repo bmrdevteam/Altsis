@@ -398,11 +398,6 @@ export const updateSubject = async (req, res) => {
       });
     }
 
-    const season = await Season(user.academyId).findById(syllabus.season);
-    if (!season) {
-      return res.status(404).send({ message: "season not found" });
-    }
-
     const enrollments = await Enrollment(user.academyId)
       .find({
         syllabus: syllabus._id,
@@ -442,7 +437,7 @@ export const updateSubject = async (req, res) => {
       let isUpdatedByTerm = false;
       let isUpdatedByYear = false;
 
-      for (let obj of season.formEvaluation) {
+      for (let obj of registration.formEvaluation) {
         // term으로 묶이는 평가 항목
         if (obj.combineBy === "term" && exEnrollmentsByTerm.length > 0) {
           // 변경되는 교과목의 기존 평가 사항이 있는 경우
