@@ -62,6 +62,8 @@ function Basic(props: Props) {
   const [exceptions, setExceptions] = useState<Exception[]>([]);
 
   const exceptionRef = useRef<Exception>({
+    registration: "",
+    role: "",
     user: "",
     userId: "",
     userName: "",
@@ -90,6 +92,8 @@ function Basic(props: Props) {
         })
         .then(() => {
           exceptionRef.current = {
+            registration: "",
+            role: "",
             user: "",
             userId: "",
             userName: "",
@@ -184,8 +188,15 @@ function Basic(props: Props) {
                 }),
               ]}
               onChange={(e: any) => {
-                const { role, user, userId, userName } = JSON.parse(e);
+                const {
+                  _id: registration,
+                  role,
+                  user,
+                  userId,
+                  userName,
+                } = JSON.parse(e);
                 exceptionRef.current = {
+                  registration,
                   role,
                   user,
                   userId,
@@ -210,11 +221,11 @@ function Basic(props: Props) {
               type={"ghost"}
               onClick={() => {
                 if (exceptionRef.current.userId !== "") {
-                  SeasonApi.USeasonPermissionV2({
+                  SeasonApi.USeasonPermissionV2AddException({
                     _id: props._id,
                     type: props.type,
                     data: {
-                      exceptions: [...exceptions, exceptionRef.current],
+                      ...exceptionRef.current,
                     },
                   })
                     .then(() => {
@@ -291,12 +302,10 @@ function Basic(props: Props) {
                 type: "button",
                 onClick: (e: any) => {
                   exceptions.splice(e.tableRowIndex - 1, 1);
-                  SeasonApi.USeasonPermissionV2({
+                  SeasonApi.USeasonPermissionV2RemoveException({
                     _id: props._id,
                     type: props.type,
-                    data: {
-                      exceptions,
-                    },
+                    registration: e.registration,
                   })
                     .then((res: any) => {
                       setIsLoading(true);

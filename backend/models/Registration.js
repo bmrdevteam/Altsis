@@ -46,6 +46,18 @@ const registrationSchema = mongoose.Schema({
     default: false,
   },
   memos: [memoSchema],
+  permissionSyllabusV2: {
+    type: Boolean,
+    default: false,
+  },
+  permissionEnrollmentV2: {
+    type: Boolean,
+    default: false,
+  },
+  permissionEvaluationV2: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 registrationSchema.index({

@@ -12,6 +12,7 @@ const subjectSchema = mongoose.Schema(
 
 const permissionExceptionSchema = mongoose.Schema(
   {
+    registration: String,
     role: String,
     user: String,
     userId: String,
