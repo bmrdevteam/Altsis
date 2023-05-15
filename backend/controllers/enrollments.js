@@ -18,6 +18,19 @@ import PQueue from "p-queue";
 // create a new queue, and pass how many you want to exec at once
 const queue = new PQueue({ concurrency: 1 });
 
+let taskRequested = 0;
+let taskCompleted = 0;
+let taskActivated = 0;
+
+queue.on("active", () => {
+  console.log(`Task #${++taskActivated} is activated`);
+});
+
+// regardless of whether the task completed normally or with an error.
+queue.on("next", () => {
+  console.log(`Task #${++taskCompleted} is completed`);
+});
+
 const isTimeOverlapped = (enrollments, syllabus) => {
   const unavailableTime = _.flatten(
     enrollments.map((enrollment) => enrollment.time)
@@ -156,13 +169,18 @@ export const enroll = async (req, res) => {
     if (!("syllabus" in req.body) || !("registration" in req.body)) {
       return res.status(400).send({ message: "invalud request" });
     }
+    const idx = ++taskRequested;
+    console.log(
+      `Task ${idx} is requested; Your waiting order is ${idx - taskCompleted}`
+    );
 
-    await queueEnroll(req, res);
-    return res.status(200).send({});
-  } catch (err) {
-    if (err?.status !== 500) {
+    try {
+      await queueEnroll(req, res);
+    } catch (err) {
       return res.status(err.status).send({ message: err.message });
     }
+    return res.status(200).send({});
+  } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
