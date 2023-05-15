@@ -214,53 +214,6 @@ export function unflattenObject(obj: FlattenableObject): NestedObject {
   return result;
 }
 
-export function checkPermission(permission: any, userId: string, role: string) {
-  for (let i = 0; i < permission?.length; i++) {
-    if (permission[i][0] === "userId" && permission[i][1] === userId) {
-      return permission[i][2];
-    }
-    if (permission[i][0] === "role" && permission[i][1] === role)
-      return permission[i][2];
-  }
-  return false;
-}
-
-export function checkPermissionBySeason(
-  season: any,
-  userId: string,
-  role: string
-) {
-  return season
-    ? {
-        permissionSyllabus: checkPermission(
-          season.permissionSyllabus,
-          userId,
-          role
-        ),
-        permissionEnrollment: checkPermission(
-          season.permissionEnrollment,
-          userId,
-          role
-        ),
-        permissionEvaluation: checkPermission(
-          season.permissionEvaluation,
-          userId,
-          role
-        ),
-        permissionNotification: checkPermission(
-          season.permissionNotification,
-          userId,
-          role
-        ),
-      }
-    : {
-        permissionSyllabus: false,
-        permissionEnrollment: false,
-        permissionEvaluation: false,
-        permissionNotification: false,
-      };
-}
-
 export async function copyClipBoard(text: string) {
   try {
     await navigator.clipboard.writeText(text);
