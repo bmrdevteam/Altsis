@@ -124,7 +124,7 @@ jobs:
       - name: Docker run
         run: |
           docker rm -f bsis-dev_backend_1 &>/dev/null && echo 'Removed old container'
-          docker run --name bsis-dev_backend_1  --restart on-failure -p ${{env.SERVER_PORT}}:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-dev_backend:latest
+          docker run --name bsis-dev_backend_1  --restart on-failure -p 80:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-dev_backend:latest
 
       # 이전 이미지 삭제
       - name: Prune images
