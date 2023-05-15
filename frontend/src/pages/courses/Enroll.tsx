@@ -50,8 +50,7 @@ const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
   const { SyllabusApi, EnrollmentApi } = useApi();
 
-  const { currentSeason, currentUser, currentRegistration, currentPermission } =
-    useAuth();
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
 
   const [isLoadingCourseList, setIsLoadingCourseList] = useState<boolean>(true);
   const [courseList, setCourseList] = useState<any[]>([]);
@@ -101,18 +100,14 @@ const CourseEnroll = (props: Props) => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
       navigate("/");
+    } else if (!currentRegistration?.permissionEnrollmentV2) {
+      alert("수강신청 권한이 없습니다.");
+      navigate("/courses");
     } else {
       setIsLoadingCourseList(true);
       setIsLoadingEnrolledCourseList(true);
     }
   }, [currentRegistration]);
-
-  useEffect(() => {
-    if (currentPermission && !currentPermission.permissionEnrollment) {
-      alert("수강신청 권한이 없습니다.");
-      navigate("/courses");
-    }
-  }, [currentPermission]);
 
   useEffect(() => {
     if (isLoadingCourseList) {

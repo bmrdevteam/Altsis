@@ -45,7 +45,6 @@ import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 
-import { checkPermission } from "functions/functions";
 import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
 
@@ -53,7 +52,7 @@ type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentSeason, currentUser } = useAuth();
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
   const navigate = useNavigate();
 
@@ -78,8 +77,6 @@ const CoursePid = (props: Props) => {
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
   const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
-  const [permissionEvaluation, setPermissionEvaluation] =
-    useState<boolean>(false);
 
   const categories = () => {
     return (
@@ -134,11 +131,15 @@ const CoursePid = (props: Props) => {
   };
 
   useEffect(() => {
-    if (currentUser?._id && currentSeason?.formEvaluation) {
+    if (
+      currentUser?._id &&
+      currentSeason?.formEvaluation &&
+      currentRegistration
+    ) {
       setIsLoadingSyllabus(true);
     }
     return () => {};
-  }, [currentUser, currentSeason]);
+  }, [currentUser, currentSeason, currentRegistration]);
 
   useEffect(() => {
     if (isLoadingSyllabus) {
@@ -176,14 +177,7 @@ const CoursePid = (props: Props) => {
           SeasonApi.RSeason(result.season).then((res: any) => {
             let _formEvaluationHeader: any[] = [];
 
-            if (
-              checkPermission(
-                res.permissionEvaluation,
-                currentUser.userId,
-                "teacher"
-              )
-            ) {
-              setPermissionEvaluation(true);
+            if (currentRegistration?.permissionEvaluationV2) {
               res.formEvaluation.forEach((val: any) => {
                 const text = val.label;
                 const key = "evaluation." + text;
@@ -299,25 +293,6 @@ const CoursePid = (props: Props) => {
                     {`담당 수업 목록 / ${pid}`}
                   </span>
                 </div>
-
-                {syllabus.user === currentUser._id && (
-                  <div
-                    className={style.icon}
-                    onClick={(e: any) => {
-                      navigate(`/courses/created/${syllabus._id}`, {
-                        replace: true,
-                      });
-                    }}
-                    style={{
-                      display: "flex",
-                      gap: "4px",
-                      alignItems: "center",
-                    }}
-                    title="강의계획서 상세 페이지로 이동"
-                  >
-                    <Svg type="linkExternal" width="16px" height="16px" />
-                  </div>
-                )}
               </div>
 
               <div className={style.title}>{syllabus.classTitle}</div>
@@ -333,63 +308,65 @@ const CoursePid = (props: Props) => {
               />
               <div style={{ height: "24px" }}></div>
               <Divider />
-              <>
-                <Button
-                  type={"ghost"}
-                  style={{
-                    borderRadius: "4px",
-                    height: "32px",
-                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                    marginTop: "12px",
-                  }}
-                  onClick={() => {
-                    navigate(
-                      `/courses/edit/${pid}?byMentor=true${
-                        enrollmentList.length > 0 ? "&strictMode=true" : ""
-                      }`,
-                      { replace: true }
-                    );
-                  }}
-                >
-                  수정
-                </Button>
-                <Button
-                  type={"ghost"}
-                  style={{
-                    borderRadius: "4px",
-                    height: "32px",
-                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                    marginTop: "12px",
-                  }}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `정말 삭제하시겠습니까?${
-                          enrollmentList.length > 0
-                            ? " 평가도 함께 삭제됩니다."
-                            : ""
-                        }`
-                      ) === true
-                    ) {
-                      SyllabusApi.DSyllabus(syllabus._id)
-                        .then(() => {
-                          alert(SUCCESS_MESSAGE);
-                          navigate("/courses#담당%20수업");
-                        })
-                        .catch((err) => {
-                          alert(
-                            err?.response?.data?.message ??
-                              "에러가 발생했습니다."
-                          );
-                        });
-                    } else {
-                      return false;
-                    }
-                  }}
-                >
-                  삭제
-                </Button>
-              </>
+              {currentRegistration?.permissionSyllabusV2 && (
+                <>
+                  <Button
+                    type={"ghost"}
+                    style={{
+                      borderRadius: "4px",
+                      height: "32px",
+                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                      marginTop: "12px",
+                    }}
+                    onClick={() => {
+                      navigate(
+                        `/courses/edit/${pid}?byMentor=true${
+                          enrollmentList.length > 0 ? "&strictMode=true" : ""
+                        }`,
+                        { replace: true }
+                      );
+                    }}
+                  >
+                    수정
+                  </Button>
+                  <Button
+                    type={"ghost"}
+                    style={{
+                      borderRadius: "4px",
+                      height: "32px",
+                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                      marginTop: "12px",
+                    }}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `정말 삭제하시겠습니까?${
+                            enrollmentList.length > 0
+                              ? " 평가도 함께 삭제됩니다."
+                              : ""
+                          }`
+                        ) === true
+                      ) {
+                        SyllabusApi.DSyllabus(syllabus._id)
+                          .then(() => {
+                            alert(SUCCESS_MESSAGE);
+                            navigate("/courses#담당%20수업");
+                          })
+                          .catch((err) => {
+                            alert(
+                              err?.response?.data?.message ??
+                                "에러가 발생했습니다."
+                            );
+                          });
+                      } else {
+                        return false;
+                      }
+                    }}
+                  >
+                    삭제
+                  </Button>
+                </>
+              )}
             </div>
             <div style={{ marginTop: "24px" }} className={"enrollments"}>
               <div style={{ display: "flex" }}>
@@ -472,7 +449,7 @@ const CoursePid = (props: Props) => {
                   )}
                 </div>
               </div>
-              {permissionEvaluation ? (
+              {currentRegistration?.permissionEvaluationV2 ? (
                 <Table
                   type="object-array"
                   data={!isEnrollmentsLoading ? enrollmentList : []}
