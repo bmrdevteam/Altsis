@@ -453,12 +453,51 @@ export default function useApi() {
     data: {
       teacher?: boolean;
       student?: boolean;
-      exceptions?: any[];
     };
   }) {
     return await database.U({
       location: `seasons/${props._id}/permission/${props.type}`,
       data: props.data,
+    });
+  }
+
+  /**
+   * Update permission in season
+   * @auth admin / manager
+   * @returns Season
+   */
+  async function USeasonPermissionV2AddException(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluation";
+    data: {
+      registration: string;
+      role: string;
+      user: string;
+      userName: string;
+      userId: string;
+      isAllowed: boolean;
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/permission/${props.type}/exceptions`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * Update permission in season
+   * @auth admin / manager
+   * @returns Season
+   */
+  async function USeasonPermissionV2RemoveException(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluation";
+    registration: string;
+  }) {
+    return await database.D({
+      location:
+        `seasons/${props._id}/permission/${props.type}/exceptions` +
+        QUERY_BUILDER({ registration: props.registration }),
     });
   }
 
@@ -1322,6 +1361,8 @@ export default function useApi() {
       USeasonForm,
       USeasonPermission,
       USeasonPermissionV2,
+      USeasonPermissionV2AddException,
+      USeasonPermissionV2RemoveException,
       DSeason,
     },
     SchoolApi: {

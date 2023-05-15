@@ -268,41 +268,128 @@ export const inactivate = async (req, res) => {
   }
 };
 
+const getPermissionField = (type) => {
+  if (type === "syllabus") {
+    return "permissionSyllabusV2";
+  }
+  if (type === "enrollment") {
+    return "permissionEnrollmentV2";
+  }
+  if (type === "evaluation") {
+    return "permissionEvaluationV2";
+  }
+  return undefined;
+};
+
 export const updatePermission = async (req, res) => {
   try {
     const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) return res.status(404).send({ message: "season not found" });
 
-    let permission = "";
-    if (req.params.type === "syllabus") {
-      permission = "permissionSyllabusV2";
-    } else if (req.params.type === "enrollment") {
-      permission = "permissionEnrollmentV2";
-    } else if (req.params.type === "evaluation") {
-      permission = "permissionEvaluationV2";
-    } else {
+    const permission = getPermissionField(req.params.type);
+    if (!permission) {
       return res.status(400).send({ message: "invalid request" });
     }
 
     if ("teacher" in req.body) {
       season[permission].teacher = req.body.teacher;
+      season.markModified(permission);
+      await season.save();
+      await Registration(req.user.academyId).updateMany(
+        {
+          season: season._id,
+          role: "teacher",
+          _id: {
+            $nin: season[permission].exceptions.map((ex) => ex.registration),
+          },
+        },
+        { [permission]: req.body.teacher }
+      );
     } else if ("student" in req.body) {
       season[permission].student = req.body.student;
-    } else if ("exceptions" in req.body) {
-      season[permission].exceptions = req.body.exceptions;
+      season.markModified(permission);
+      await season.save();
+      await Registration(req.user.academyId).updateMany(
+        {
+          season: season._id,
+          role: "student",
+          _id: {
+            $nin: season[permission].exceptions.map((ex) => ex.registration),
+          },
+        },
+        { [permission]: req.body.student }
+      );
     } else {
       return res.status(400).send({ message: "invalid request" });
     }
 
-    season.markModified(permission);
-    await season.save();
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
 
-    // if (field === "period") {
-    //   await Registration(req.user.academyId).updateMany(
-    //     { season: season._id },
-    //     { period: season.period }
-    //   );
-    // }
+export const addPermissionException = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    const permission = getPermissionField(req.params.type);
+    if (!permission) {
+      return res.status(400).send({ message: "invalid request" });
+    }
+
+    if ("registration" in req.body && "isAllowed" in req.body) {
+      season[permission].exceptions.push(req.body);
+      season.markModified(permission);
+      await season.save();
+      await Registration(req.user.academyId).findByIdAndUpdate(
+        req.body.registration,
+        { [permission]: req.body.isAllowed }
+      );
+    } else {
+      return res.status(400).send({ message: "invalid request" });
+    }
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+export const removePermissionException = async (req, res) => {
+  try {
+    console.log(req.user);
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) return res.status(404).send({ message: "season not found" });
+
+    const permission = getPermissionField(req.params.type);
+    if (!permission) {
+      return res.status(400).send({ message: "invalid request" });
+    }
+
+    if ("registration" in req.query) {
+      const idx = _.findIndex(
+        season[permission].exceptions,
+        (ex) => ex.registration === req.query.registration
+      );
+      if (idx === -1) {
+        return res.status(404).send({});
+      }
+      const registration = await Registration(req.user.academyId).findById(
+        req.query.registration
+      );
+      if (!registration) return res.status(404).send({});
+
+      registration[permission] = season[permission][registration.role];
+      await registration.save();
+
+      season[permission].exceptions.splice(idx, 1);
+      season.markModified(permission);
+      await season.save();
+    } else {
+      return res.status(400).send({ message: "invalid request" });
+    }
 
     return res.status(200).send({ season });
   } catch (err) {

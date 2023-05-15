@@ -52,7 +52,8 @@ export type TRegistration = {
 };
 
 export type Exception = {
-  role?: string;
+  registration: string;
+  role: string;
   user: string;
   userId: string;
   userName: string;
