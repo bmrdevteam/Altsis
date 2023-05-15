@@ -11,7 +11,7 @@ import _ from "lodash";
 /* promise queue library */
 import PQueue from "p-queue";
 
-// create a new queue, and pass how many you want to scrape at once
+// create a new queue, and pass how many you want to exec at once
 const queue = new PQueue({ concurrency: 1 });
 
 const isTimeOverlapped = (enrollments, syllabus) => {
