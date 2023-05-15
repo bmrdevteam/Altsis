@@ -97,7 +97,7 @@ export const find = async (req, res) => {
         query["classroom"] = queries.classroom;
         const syllabuses = await Syllabus(req.user.academyId)
           .find(query)
-          .select(["classTitle", "time"]);
+          .select(["classTitle", "time", "classroom"]);
         return res.status(200).send({ syllabuses });
       }
       if (queries.confirmed) {

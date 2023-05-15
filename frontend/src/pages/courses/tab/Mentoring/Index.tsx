@@ -264,6 +264,85 @@ const CoursePid = (props: Props) => {
     return () => {};
   }, [isEnrollmentsLoading]);
 
+  const studentsHeader = () => {
+    const header = [];
+    if (currentRegistration?.permissionEnrollmentV2) {
+      header.push({
+        text: "checkbox",
+        key: "checkbox",
+        type: "checkbox",
+        width: "48px",
+      });
+    }
+    header.push(
+      ...[
+        {
+          text: "학년",
+          key: "studentGrade",
+          type: "text",
+          textAlign: "center",
+          whiteSpace: "pre",
+        },
+
+        {
+          text: "이름",
+          key: "studentName",
+          type: "text",
+          textAlign: "center",
+          whiteSpace: "pre",
+        },
+        {
+          text: "ID",
+          key: "studentId",
+          type: "text",
+          textAlign: "center",
+          whiteSpace: "pre",
+        },
+      ]
+    );
+    header.push(...formEvaluationHeader);
+    if (currentRegistration?.permissionEvaluationV2) {
+      header.push({
+        text: "저장",
+        key: "isModified",
+        width: "72px",
+        textAlign: "center",
+        type: "status",
+        status: {
+          false: { text: "저장", color: "gray" },
+          true: {
+            text: "저장",
+            color: "red",
+            onClick: (e: any) => {
+              const evaluation: any = {};
+              for (let obj of fieldEvaluationList) {
+                evaluation[obj.text] = e[obj.key];
+              }
+              EnrollmentApi.UEvaluation({
+                enrollment: e._id,
+                by: "mentor",
+                data: evaluation,
+              })
+                .then((res: any) => {
+                  alert(SUCCESS_MESSAGE);
+                  if (enrollmentListRef.current.length !== 0) {
+                    enrollmentListRef.current[e.tableRowIndex - 1].isModified =
+                      false;
+                    setEnrollmentList([...enrollmentListRef.current]);
+                  }
+                })
+                .catch((err: any) => {
+                  alert(err?.response?.data?.message ?? "저장에 실패했습니다.");
+                });
+            },
+          },
+        },
+      });
+    }
+
+    return header;
+  };
+
   return (
     <>
       <Navbar />
@@ -449,133 +528,22 @@ const CoursePid = (props: Props) => {
                   )}
                 </div>
               </div>
-              {currentRegistration?.permissionEvaluationV2 ? (
-                <Table
-                  type="object-array"
-                  data={!isEnrollmentsLoading ? enrollmentList : []}
-                  onChange={(e: any) => {
-                    setTimeout(() => {
-                      enrollmentListRef.current = e;
-                      setIsChecked(
-                        _.find(e, {
-                          tableRowChecked: true,
-                        })
-                      );
-                    }, 50);
-                  }}
-                  header={[
-                    {
-                      text: "checkbox",
-                      key: "checkbox",
-                      type: "checkbox",
-                      width: "48px",
-                    },
-
-                    {
-                      text: "학년",
-                      key: "studentGrade",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-
-                    {
-                      text: "이름",
-                      key: "studentName",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    {
-                      text: "ID",
-                      key: "studentId",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    ...formEvaluationHeader,
-                    {
-                      text: "저장",
-                      key: "isModified",
-                      width: "72px",
-                      textAlign: "center",
-                      type: "status",
-                      status: {
-                        false: { text: "저장", color: "gray" },
-                        true: {
-                          text: "저장",
-                          color: "red",
-                          onClick: (e) => {
-                            const evaluation: any = {};
-                            for (let obj of fieldEvaluationList) {
-                              evaluation[obj.text] = e[obj.key];
-                            }
-                            EnrollmentApi.UEvaluation({
-                              enrollment: e._id,
-                              by: "mentor",
-                              data: evaluation,
-                            })
-                              .then((res: any) => {
-                                alert(SUCCESS_MESSAGE);
-                                if (enrollmentListRef.current.length !== 0) {
-                                  enrollmentListRef.current[
-                                    e.tableRowIndex - 1
-                                  ].isModified = false;
-                                  setEnrollmentList([
-                                    ...enrollmentListRef.current,
-                                  ]);
-                                }
-                              })
-                              .catch((err: any) =>
-                                alert("failed to update evaluation")
-                              );
-                          },
-                        },
-                      },
-                    },
-                  ]}
-                />
-              ) : (
-                <Table
-                  type="object-array"
-                  data={!isEnrollmentsLoading ? enrollmentList : []}
-                  header={[
-                    {
-                      text: "No",
-                      type: "text",
-                      key: "tableRowIndex",
-                      width: "48px",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-
-                    {
-                      text: "학년",
-                      key: "studentGrade",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                      width: "120px",
-                    },
-
-                    {
-                      text: "이름",
-                      key: "studentName",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    {
-                      text: "ID",
-                      key: "studentId",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    ...formEvaluationHeader,
-                  ]}
-                />
-              )}
+              <Table
+                type="object-array"
+                data={!isEnrollmentsLoading ? enrollmentList : []}
+                onChange={(e: any) => {
+                  console.log(e);
+                  setTimeout(() => {
+                    enrollmentListRef.current = e;
+                    setIsChecked(
+                      _.find(e, {
+                        tableRowChecked: true,
+                      })
+                    );
+                  }, 50);
+                }}
+                header={studentsHeader()}
+              />
             </div>
           </div>
         ) : (

@@ -455,6 +455,7 @@ const CoursePid = (props: Props) => {
               } else
                 update()
                   .then(({ res1, res2 }) => {
+                    alert(SUCCESS_MESSAGE);
                     if (!byMentor)
                       navigate(`/courses/created/${pid}`, { replace: true });
                     if (byMentor) {
