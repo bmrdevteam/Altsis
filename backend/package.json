@@ -7,6 +7,7 @@
     "start": "NODE_ENV=development node app.js",
     "dev": "cross-env NODE_ENV=development nodemon app.js",
     "prod": "cross-env NODE_ENV=production node app.js",
+    "local": "cross-env NODE_ENV=local nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -41,11 +42,13 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
+    "path": "^0.12.7",
     "redis": "^4.3.0",
     "s3-streamlogger-daily": "^0.6.0",
     "session-file-store": "^1.5.0",
     "socket.io": "^4.5.4",
     "strftime": "^0.10.1",
+    "url": "^0.11.0",
     "validator": "^13.7.0",
     "winston": "^3.8.2",
     "winston-daily-rotate-file": "^4.7.1"
