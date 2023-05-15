@@ -96,15 +96,7 @@ const exec = async (req) => {
     }
 
     // 7. check permission
-    const season = await Season(req.user.academyId).findById(syllabus.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-    if (
-      !season.checkPermission(
-        "enrollment",
-        registration.userId,
-        registration.role
-      )
-    ) {
+    if (!registration?.permissionEnrollmentV2) {
       const err = new Error("수강신청 권한이 없습니다.");
       err.status = 401;
       throw err;
@@ -120,6 +112,12 @@ const exec = async (req) => {
     });
 
     // evaluation 동기화
+    const season = await Season(req.user.academyId).findById(
+      registration.season
+    );
+    if (!season) {
+      return rse.status(404).send({ message: "season not found" });
+    }
     enrollment.evaluation = {};
     if (exEnrollments.length === 0) {
       const eYear = await _Enrollment.findOne({
@@ -165,7 +163,9 @@ export const enroll = async (req, res) => {
     await queueEnroll(req, res);
     return res.status(200).send({});
   } catch (err) {
-    logger.error(err.message);
+    if (!err.status || err.status === 500) {
+      logger.error(err.message);
+    }
     return res.status(err.status ?? 500).send({ message: err.message });
   }
 };
@@ -201,7 +201,16 @@ export const enrollbulk = async (req, res) => {
       return res.status(409).send({ message: "수강정원을 초과합니다." });
     }
 
-    // find season & check permission
+    // check permission
+    const registration = await Registration(req.user.academyId).findOne({
+      season: syllabus.season,
+      user: req.user._id,
+    });
+    if (!registration?.permissionEnrollmentV2) {
+      return res.status(403).send({ message: "수강신청 권한이 없습니다." });
+    }
+
+    // find season
     const season = await Season(req.user.academyId).findById(syllabus.season);
     if (!season) return res.status(404).send({ message: "season not found" });
 
@@ -440,47 +449,6 @@ export const findEvaluations = async (req, res) => {
   }
 };
 
-export const updateEvaluation = async (req, res) => {
-  try {
-    const enrollment = await Enrollment(req.user.academyId).findById(
-      req.params._id
-    );
-    if (!enrollment)
-      return res.status(404).send({ message: "enrollment not found" });
-
-    // 유저 권한 확인
-    const season = await Season(req.user.academyId).findById(enrollment.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
-    const registration = await Registration(req.user.academyId).findOne({
-      season: enrollment.season,
-      user: req.user._id,
-    });
-    if (!registration)
-      return res.status(404).send({ message: "registration not found" });
-
-    if (
-      !season.checkPermission("evaluation", req.user.userId, registration.role)
-    )
-      return res.status(409).send({ message: "you have no permission" });
-
-    //authentication 다시 설정해야 함
-    if (
-      enrollment.student.equals(req.user._id) ||
-      _.find(enrollment.teachers, { _id: req.user._id })
-    ) {
-      enrollment.evaluation = { ...enrollment.evaluation, ...req.body.new };
-      await enrollment.save();
-      return res.status(200).send({ evaluation: enrollment.evaluation });
-    }
-
-    return res.status(401).send();
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 export const updateEvaluation2 = async (req, res) => {
   try {
     if (req.query.by !== "mentor" && req.query.by !== "student")
@@ -514,9 +482,7 @@ export const updateEvaluation2 = async (req, res) => {
     if (!registration)
       return res.status(404).send({ message: "registration not found" });
 
-    if (
-      !season.checkPermission("evaluation", req.user.userId, registration.role)
-    )
+    if (!registration?.permissionEvaluationV2)
       return res.status(409).send({ message: "you have no permission" });
 
     const enrollmentsByTerm = await Enrollment(req.user.academyId)
@@ -621,19 +587,7 @@ export const remove = async (req, res) => {
           .status(404)
           .send({ message: "등록 정보를 찾을 수 없습니다." });
       }
-
-      const season = await Season(req.user.academyId).findById(
-        enrollment.season
-      );
-      if (!season) return res.status(404).send({ message: "season not found" });
-
-      if (
-        !season.checkPermission(
-          "enrollment",
-          registration.userId,
-          registration.role
-        )
-      )
+      if (!registration?.permissionEnrollmentV2)
         return res.status(401).send({ message: "you have no permission" });
 
       await enrollment.remove();
