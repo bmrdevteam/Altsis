@@ -5,6 +5,20 @@ import * as test from "../controllers/test.js";
 import { Academy } from "../models/Academy.js";
 import { Season } from "../models/Season.js";
 import { Registration } from "../models/Registration.js";
+import { Enrollment } from "../models/Enrollment.js";
+import { Syllabus } from "../models/Syllabus.js";
+
+router.get("/clean", async (req, res) => {
+  try {
+    await Enrollment("garisan").deleteMany({});
+    await Syllabus("garisan").updateMany({}, { count: 0 });
+
+    return res.status(200).send({ message: "hello world! /v2" });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+});
 
 /* update registrations by seasons */
 router.get("/formEvaluation", async (req, res) => {
