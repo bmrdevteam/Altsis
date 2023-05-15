@@ -171,7 +171,7 @@ const Form = (props: Props) => {
                   data: formEvaluation.current,
                 })
                   .then((res) => {
-                    // alert(SUCCESS_MESSAGE);
+                    alert(SUCCESS_MESSAGE);
                     updateFormData(res);
                   })
                   .catch((err) => {

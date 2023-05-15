@@ -36,6 +36,26 @@ export type TSchool = {
   }[];
 };
 
+export type TFormEvaluation = {
+  label: string;
+  type: string; // input,
+  combineBy: "term" | "year";
+  authOption:
+    | "editByStudent"
+    | "editByTeacher"
+    | "editByTeacherAndStudentCanView";
+  auth: {
+    edit: {
+      student: boolean;
+      teacher: boolean;
+    };
+    view: {
+      student: boolean;
+      teacher: boolean;
+    };
+  };
+}[];
+
 export type TRegistration = {
   _id: string;
   school: string;
@@ -52,6 +72,7 @@ export type TRegistration = {
   permissionSyllabusV2: boolean;
   permissionEnrollmentV2: boolean;
   permissionEvaluationV2: boolean;
+  formEvaluation: TFormEvaluation;
 };
 
 export type Exception = {
@@ -86,7 +107,7 @@ export type TSeason = {
   permissionEvaluationV2: Permission[];
   formTimetable: any;
   formSyllabus: any;
-  formEvaluation: any[];
+  formEvaluation: TFormEvaluation[];
   isActivated: boolean;
   //____________________//
   registrations: TRegistration[];
