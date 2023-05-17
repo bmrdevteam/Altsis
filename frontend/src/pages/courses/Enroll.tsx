@@ -45,6 +45,7 @@ import _ from "lodash";
 import CourseTable from "./table/CourseTable";
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
+import Progress from "components/progress/Progress";
 import { Socket, io } from "socket.io-client";
 
 type Props = {};
@@ -311,6 +312,10 @@ const CourseEnroll = (props: Props) => {
         <Popup setState={() => {}}>
           <div>
             <p>수강신청 대기 중입니다.</p>
+            <Progress
+              value={waitingRatio ?? 0}
+              style={{ margin: "12px 0px" }}
+            />
             <p>
               앞에 {waitingOrder ?? 0}명, 뒤에 {waitingBehind ?? 0}명의 대기자가
               있습니다. <br />
