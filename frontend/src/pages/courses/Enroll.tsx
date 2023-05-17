@@ -149,7 +149,7 @@ const CourseEnroll = (props: Props) => {
     });
 
     socket.on("connect", () => {
-      console.log("socket is connected: ", socket.id);
+      //console.log("socket is connected: ", socket.id);
       setSocket(socket);
     });
 
@@ -164,11 +164,10 @@ const CourseEnroll = (props: Props) => {
           (data.waitingBehind + 1) /
           (data.waitingBehind + data.waitingOrder + 1);
 
-        console.log(data);
-        console.log({ waitingRatio });
+        // console.log(data);
+        // console.log({ waitingRatio });
 
         if (data.waitingOrder > 10 && waitingRatio < 1) {
-          console.log("waitingRatio is less than 0");
           setWaitingOrder(data.waitingOrder);
           setWaitingBehind(data.waitingBehind);
           setWaitingRatio(waitingRatio);
@@ -176,7 +175,6 @@ const CourseEnroll = (props: Props) => {
             setTaskIdx(data.taskIdx);
           }
           if (!isActiveWaitingPopup) {
-            console.log("activating waitingpopup");
             activateWaitingPopup(true);
           }
           setIsLoadingWaitingOrder(true);
@@ -198,7 +196,7 @@ const CourseEnroll = (props: Props) => {
   useEffect(() => {
     if (isLoadingWaitingOrder && socket && taskIdx) {
       setTimeout(() => {
-        console.log("requestWaitingOrder");
+        // console.log("requestWaitingOrder");
         socket.emit("requestWaitingOrder", {
           taskIdx,
         });
