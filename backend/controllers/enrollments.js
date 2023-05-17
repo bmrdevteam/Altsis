@@ -1,11 +1,9 @@
 /**
- * @title Version 4
- * @subTitle Add field 'permissionEvaluationV2', 'formEvaluation' in registration
+ * @title Version 5
+ * @subTitle waiting order
  *
  * @description
- * Use registration.permissionEvaluationV2 to validate permission
- * Use registration.formEvaluation to sync evaluation
- * Optimize evaluation sync algorithm
+ * Use socket to notify waiting order
  *
  */
 import { logger } from "../log/logger.js";
@@ -24,12 +22,14 @@ let taskCompleted = 0;
 let taskActivated = 0;
 
 queue.on("active", () => {
-  console.log(`Task #${++taskActivated} is activated`);
+  taskActivated += 1;
+  // console.log(`Task #${taskActivated} is activated`);
 });
 
 // regardless of whether the task completed normally or with an error.
 queue.on("next", () => {
-  console.log(`Task #${++taskCompleted} is completed`);
+  taskCompleted += 1;
+  // console.log(`Task #${taskCompleted} is completed`);
 });
 
 const isTimeOverlapped = (enrollments, syllabus) => {
@@ -179,11 +179,11 @@ export const enroll = async (req, res) => {
       return res.status(400).send({ message: "invalud request" });
     }
     const taskIdx = ++taskRequested;
-    console.log(
-      `Task ${taskIdx} is requested; Your waiting order is ${
-        taskIdx - taskCompleted
-      }`
-    );
+    // console.log(
+    //   `Task ${taskIdx} is requested; Your waiting order is ${
+    //     taskIdx - taskCompleted
+    //   }`
+    // );
 
     // send waiting order to user with socket
     if ("socketId" in req.body && taskIdx - taskCompleted > 10) {
