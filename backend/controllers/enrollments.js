@@ -11,6 +11,7 @@
 import { logger } from "../log/logger.js";
 import { Enrollment, Syllabus, Registration } from "../models/index.js";
 import _ from "lodash";
+import { getIoEnrollment } from "../utils/webSocket.js";
 
 /* promise queue library */
 import PQueue from "p-queue";
@@ -164,15 +165,36 @@ const exec = async (req) => {
   }
 };
 
+export const getTaskCompleted = () => {
+  return taskCompleted;
+};
+
+export const getTaskRequested = () => {
+  return taskRequested;
+};
+
 export const enroll = async (req, res) => {
   try {
     if (!("syllabus" in req.body) || !("registration" in req.body)) {
       return res.status(400).send({ message: "invalud request" });
     }
-    const idx = ++taskRequested;
+    const taskIdx = ++taskRequested;
     console.log(
-      `Task ${idx} is requested; Your waiting order is ${idx - taskCompleted}`
+      `Task ${taskIdx} is requested; Your waiting order is ${
+        taskIdx - taskCompleted
+      }`
     );
+
+    // send waiting order to user with socket
+    if ("socketId" in req.body && taskIdx - taskCompleted > 10) {
+      getIoEnrollment()
+        .to(req.body.socketId)
+        .emit("responseWaitingOrder", {
+          waitingOrder: taskIdx - taskCompleted,
+          waitingBehind: 0,
+          taskIdx,
+        });
+    }
 
     try {
       await queueEnroll(req, res);

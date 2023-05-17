@@ -828,7 +828,7 @@ export default function useApi() {
    * @auth member
    */
   async function CEnrollment(props: {
-    data: { syllabus: string; registration: string };
+    data: { syllabus: string; registration: string; socketId?: string };
   }) {
     return await database.C({
       location: "enrollments",
