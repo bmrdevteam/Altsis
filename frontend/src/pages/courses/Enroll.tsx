@@ -44,14 +44,17 @@ import _ from "lodash";
 
 import CourseTable from "./table/CourseTable";
 import Loading from "components/loading/Loading";
+import Popup from "components/popup/Popup";
+import Progress from "components/progress/Progress";
+import { Socket, io } from "socket.io-client";
+
 type Props = {};
 
 const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
   const { SyllabusApi, EnrollmentApi } = useApi();
 
-  const { currentSeason, currentUser, currentRegistration, currentPermission } =
-    useAuth();
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
 
   const [isLoadingCourseList, setIsLoadingCourseList] = useState<boolean>(true);
   const [courseList, setCourseList] = useState<any[]>([]);
@@ -59,6 +62,17 @@ const CourseEnroll = (props: Props) => {
   const [isLoadingEnrolledCourseList, setIsLoadingEnrolledCourseList] =
     useState<boolean>(true);
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
+
+  const [socket, setSocket] = useState<Socket>();
+  const [taskIdx, setTaskIdx] = useState<number | undefined>();
+  const [waitingOrder, setWaitingOrder] = useState<number | undefined>();
+  const [waitingBehind, setWaitingBehind] = useState<number | undefined>();
+  const [waitingRatio, setWaitingRatio] = useState<number | undefined>();
+
+  const [isLoadingWaitingOrder, setIsLoadingWaitingOrder] =
+    useState<boolean>(false);
+  const [isActiveSendingPopup, activateSendingPopup] = useState<boolean>(false);
+  const [isActiveWaitingPopup, activateWaitingPopup] = useState<boolean>(false);
 
   async function getCourseList() {
     const { syllabuses } = await SyllabusApi.RSyllabuses({
@@ -101,18 +115,14 @@ const CourseEnroll = (props: Props) => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
       navigate("/");
+    } else if (!currentRegistration?.permissionEnrollmentV2) {
+      alert("수강신청 권한이 없습니다.");
+      navigate("/courses");
     } else {
       setIsLoadingCourseList(true);
       setIsLoadingEnrolledCourseList(true);
     }
   }, [currentRegistration]);
-
-  useEffect(() => {
-    if (currentPermission && !currentPermission.permissionEnrollment) {
-      alert("수강신청 권한이 없습니다.");
-      navigate("/courses");
-    }
-  }, [currentPermission]);
 
   useEffect(() => {
     if (isLoadingCourseList) {
@@ -132,6 +142,70 @@ const CourseEnroll = (props: Props) => {
     }
   }, [isLoadingEnrolledCourseList]);
 
+  useEffect(() => {
+    const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
+      path: "/io/enrollment",
+      withCredentials: true,
+    });
+
+    socket.on("connect", () => {
+      //console.log("socket is connected: ", socket.id);
+      setSocket(socket);
+    });
+
+    socket.on(
+      "responseWaitingOrder",
+      (data: {
+        waitingOrder: number;
+        waitingBehind: number;
+        taskIdx?: number;
+      }) => {
+        const waitingRatio =
+          (data.waitingBehind + 1) /
+          (data.waitingBehind + data.waitingOrder + 1);
+
+        // console.log(data);
+        // console.log({ waitingRatio });
+
+        if (data.waitingOrder > 10 && waitingRatio < 1) {
+          setWaitingOrder(data.waitingOrder);
+          setWaitingBehind(data.waitingBehind);
+          setWaitingRatio(waitingRatio);
+          if (data.taskIdx) {
+            setTaskIdx(data.taskIdx);
+          }
+          if (!isActiveWaitingPopup) {
+            activateWaitingPopup(true);
+          }
+          setIsLoadingWaitingOrder(true);
+        } else {
+          activateWaitingPopup(false);
+          setTaskIdx(undefined);
+          setWaitingOrder(undefined);
+          setWaitingBehind(undefined);
+          setWaitingRatio(undefined);
+        }
+      }
+    );
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isLoadingWaitingOrder && socket && taskIdx) {
+      setTimeout(() => {
+        // console.log("requestWaitingOrder");
+        socket.emit("requestWaitingOrder", {
+          taskIdx,
+        });
+      }, 2000);
+      setIsLoadingWaitingOrder(false);
+    }
+    return () => {};
+  }, [isLoadingWaitingOrder, socket, taskIdx]);
+
   return (
     <>
       <Navbar />
@@ -147,10 +221,12 @@ const CourseEnroll = (props: Props) => {
                 key: "enroll",
                 type: "button",
                 onClick: (e: any) => {
+                  activateSendingPopup(true);
                   EnrollmentApi.CEnrollment({
                     data: {
                       syllabus: e._id,
                       registration: currentRegistration?._id,
+                      socketId: socket?.id,
                     },
                   })
                     .then(() => {
@@ -160,6 +236,9 @@ const CourseEnroll = (props: Props) => {
                     })
                     .catch((err) => {
                       alert(err.response.data.message);
+                    })
+                    .finally(() => {
+                      activateSendingPopup(false);
                     });
                 },
                 width: "72px",
@@ -217,6 +296,32 @@ const CourseEnroll = (props: Props) => {
           <Loading height={"calc(100vh - 55px)"} />
         )}
       </div>
+      {isActiveSendingPopup && !isActiveWaitingPopup && (
+        <Popup setState={() => {}}>
+          <div>
+            <Loading text="요청중" />
+            <div style={{ textAlign: "center", marginTop: "12px" }}>
+              요청을 보내는 중입니다
+            </div>
+          </div>
+        </Popup>
+      )}
+      {isActiveWaitingPopup && (
+        <Popup setState={() => {}}>
+          <div>
+            <p>수강신청 대기 중입니다.</p>
+            <Progress
+              value={waitingRatio ?? 0}
+              style={{ margin: "12px 0px" }}
+            />
+            <p>
+              앞에 {waitingOrder ?? 0}명, 뒤에 {waitingBehind ?? 0}명의 대기자가
+              있습니다. <br />
+              재접속하시면 대기시간이 더 길어집니다.
+            </p>
+          </div>
+        </Popup>
+      )}
     </>
   );
 };

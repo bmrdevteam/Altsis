@@ -51,7 +51,7 @@ type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentSeason, currentUser } = useAuth();
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { SyllabusApi, EnrollmentApi } = useApi();
   const navigate = useNavigate();
 
@@ -118,13 +118,11 @@ const CoursePid = (props: Props) => {
           if (result.season !== currentSeason._id) {
             navigate("/courses#개설%20수업", { replace: true });
           }
-
+          if (_.find(result.teachers, { _id: currentUser._id })) {
+            navigate("/courses/mentoring/" + result._id, { replace: true });
+          }
           if (result.user !== currentUser._id) {
-            if (_.find(result.teachers, { _id: currentUser._id })) {
-              navigate("/courses/mentoring/" + result._id, { replace: true });
-            } else {
-              navigate("/courses#개설%20수업", { replace: true });
-            }
+            navigate("/courses#개설%20수업", { replace: true });
           }
 
           // is this syllabus fully confirmed?
@@ -179,20 +177,6 @@ const CoursePid = (props: Props) => {
               {`개설한 수업 목록 / ${pid}`}
             </span>
           </div>
-          {_.find(syllabus.teachers, { _id: currentUser._id }) && (
-            <div
-              className={style.icon}
-              onClick={(e: any) => {
-                navigate(`/courses/mentoring/${syllabus._id}`, {
-                  replace: true,
-                });
-              }}
-              style={{ display: "flex", gap: "4px", alignItems: "center" }}
-              title="멘토링 페이지로 이동"
-            >
-              <Svg type="linkExternal" width="16px" height="16px" />
-            </div>
-          )}
         </div>
 
         <div className={style.title}>{syllabus.classTitle}</div>
@@ -209,50 +193,52 @@ const CoursePid = (props: Props) => {
         <div style={{ height: "24px" }}></div>
         <Divider />
 
-        <>
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              marginTop: "12px",
-            }}
-            onClick={() => {
-              navigate(`/courses/edit/${pid}`, { replace: true });
-            }}
-            disabled={confirmedStatus !== "notConfirmed"}
-          >
-            수정
-          </Button>
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              marginTop: "12px",
-            }}
-            onClick={() => {
-              if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                SyllabusApi.DSyllabus(syllabus._id)
-                  .then(() => {
-                    alert(SUCCESS_MESSAGE);
-                    navigate("/courses#개설%20수업");
-                  })
-                  .catch((err) => {
-                    alert(
-                      err?.response?.data?.message ?? "에러가 발생했습니다."
-                    );
-                  });
-              } else {
-                return false;
-              }
-            }}
-          >
-            삭제
-          </Button>
-        </>
+        {currentRegistration?.permissionSyllabusV2 && (
+          <>
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                marginTop: "12px",
+              }}
+              onClick={() => {
+                navigate(`/courses/edit/${pid}`, { replace: true });
+              }}
+              disabled={confirmedStatus !== "notConfirmed"}
+            >
+              수정
+            </Button>
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                marginTop: "12px",
+              }}
+              onClick={() => {
+                if (window.confirm("정말 삭제하시겠습니까?") === true) {
+                  SyllabusApi.DSyllabus(syllabus._id)
+                    .then(() => {
+                      alert(SUCCESS_MESSAGE);
+                      navigate("/courses#개설%20수업");
+                    })
+                    .catch((err) => {
+                      alert(
+                        err?.response?.data?.message ?? "에러가 발생했습니다."
+                      );
+                    });
+                } else {
+                  return false;
+                }
+              }}
+            >
+              삭제
+            </Button>
+          </>
+        )}
 
         <div style={{ height: "24px" }}></div>
       </div>

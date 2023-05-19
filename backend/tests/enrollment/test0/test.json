@@ -1,0 +1,89 @@
+{
+  "config": {
+    "target": "http://localhost:5050/api",
+    "phases": [
+      {
+        "duration": 10,
+        "arrivalRate": 100
+      }
+    ],
+    "defaults": {
+      "headers": {
+        "User-Agent": "Artillery"
+      }
+    },
+    "plugins": {
+      "metrics-by-endpoint": {
+        "useOnlyRequestNames": true
+      }
+    },
+    "http": {
+      "timeout": 60
+    },
+    "payload": [
+      {
+        "path": "../data/data1.csv",
+        "fields": [
+          "academyId",
+          "_id",
+          "userId",
+          "userName",
+          "password",
+          "rid",
+          "sid"
+        ],
+        "order": "sequence"
+      },
+      {
+        "path": "../data/data2.csv",
+        "fields": ["syllabusId"]
+      }
+    ]
+  },
+  "before": {
+    "flow": [
+      {
+        "get": {
+          "name": "clean enrollments",
+          "url": "/test/clean",
+          "expect": { "statusCode": 200 }
+        }
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "Enroll Test Scenario v0",
+      "flow": [
+        {
+          "post": {
+            "name": "login",
+            "url": "/users/login/local",
+            "json": {
+              "academyId": "{{academyId}}",
+              "userId": "{{userId}}",
+              "password": "{{password}}"
+            },
+            "expect": { "statusCode": 200 }
+          }
+        },
+        {
+          "post": {
+            "name": "enroll",
+            "url": "/enrollments/v0",
+            "json": {
+              "registration": "{{rid}}",
+              "syllabus": "{{syllabusId}}"
+            }
+          }
+        },
+        {
+          "get": {
+            "name": "logout",
+            "url": "/users/logout"
+          }
+        }
+      ]
+    }
+  ]
+}
