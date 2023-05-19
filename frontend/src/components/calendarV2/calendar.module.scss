@@ -1,0 +1,107 @@
+.calender_container {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  max-width: 60vw;
+
+  .calender {
+    // padding: 12px;
+    font-weight: 400;
+    fill: var(--accent-1);
+    color: var(--accent-1);
+
+    display: flex;
+    flex-direction: column;
+
+    .top {
+      z-index: 20;
+      position: sticky;
+      top: 0;
+      height: 100%;
+      background-color: #f9f9f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+
+      border: var(--border-default);
+      border-radius: 8px 8px 0px 0px;
+
+      .header {
+        .title {
+          font-weight: 600;
+        }
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+
+        .btn {
+          display: flex;
+          align-items: center;
+          border: var(--border-default);
+          border-radius: 4px;
+
+          .subBtn {
+            padding: 0px 6px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: purple;
+          }
+
+          .subBtn:hover {
+            background-color: var(--component-hover-color);
+          }
+        }
+
+        span,
+        div,
+        svg {
+          color: purple;
+          fill: purple;
+          font-size: 0.8rem;
+          font-weight: 500;
+        }
+
+        svg {
+          cursor: pointer;
+          width: 16px;
+          height: 16px;
+        }
+
+        .selector {
+          border-radius: 4px;
+        }
+        .selector:hover {
+          background-color: var(--component-hover-color);
+        }
+      }
+    }
+
+    .viewer_container {
+      color: var(--accent-1);
+
+      max-height: 70vh;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+      overflow-y: auto;
+
+      border: var(--border-default);
+      border-top: none;
+      border-radius: 0px 0px 8px 8px;
+    }
+  }
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
