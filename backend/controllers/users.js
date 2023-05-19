@@ -191,6 +191,9 @@ export const current = async (req, res) => {
         "role",
         "period",
         "memos",
+        "permissionSyllabusV2",
+        "permissionEnrollmentV2",
+        "permissionEvaluationV2",
       ])
       .lean();
 

@@ -443,6 +443,65 @@ export default function useApi() {
   }
 
   /**
+   * Update permission in season
+   * @auth admin / manager
+   * @returns Season
+   */
+  async function USeasonPermissionV2(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluation";
+    data: {
+      teacher?: boolean;
+      student?: boolean;
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/permission/${props.type}`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * Update permission in season
+   * @auth admin / manager
+   * @returns Season
+   */
+  async function USeasonPermissionV2AddException(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluation";
+    data: {
+      registration: string;
+      role: string;
+      user: string;
+      userName: string;
+      userId: string;
+      isAllowed: boolean;
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props._id}/permission/${props.type}/exceptions`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * Update permission in season
+   * @auth admin / manager
+   * @returns Season
+   */
+  async function USeasonPermissionV2RemoveException(props: {
+    _id: string;
+    type: string | "syllabus" | "enrollment" | "evaluation";
+    registration: string;
+  }) {
+    return await database.D({
+      location:
+        `seasons/${props._id}/permission/${props.type}/exceptions` +
+        QUERY_BUILDER({ registration: props.registration }),
+    });
+  }
+
+  /**
    * Delete Season
    * @type DELETE
    * @auth admin manager
@@ -769,7 +828,7 @@ export default function useApi() {
    * @auth member
    */
   async function CEnrollment(props: {
-    data: { syllabus: string; registration: string };
+    data: { syllabus: string; registration: string; socketId?: string };
   }) {
     return await database.C({
       location: "enrollments",
@@ -1301,6 +1360,9 @@ export default function useApi() {
       USeasonClassroom,
       USeasonForm,
       USeasonPermission,
+      USeasonPermissionV2,
+      USeasonPermissionV2AddException,
+      USeasonPermissionV2RemoveException,
       DSeason,
     },
     SchoolApi: {
