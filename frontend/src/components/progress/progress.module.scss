@@ -1,0 +1,74 @@
+.progress {
+  width: 100%;
+  height: 20px;
+  display: flex;
+
+  .outer {
+    height: 100%;
+    width: 100%;
+
+    .inner {
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.06);
+      border-radius: 100px;
+
+      .bar {
+        width: 0%;
+        height: 100%;
+        background-color: #1677ff;
+        border-radius: 100px;
+        transition: all 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86);
+      }
+    }
+  }
+
+  .icon {
+    width: 10%;
+    height: 100%;
+  }
+
+  //un selectable
+  -webkit-touch-callout: none;
+  /* iOS Safari */
+  -webkit-user-select: none;
+  /* Safari */
+  -khtml-user-select: none;
+  /* Konqueror HTML */
+  -moz-user-select: none;
+  /* Old versions of Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge */
+  user-select: none;
+  /* Non-prefixed version, currently
+     supported by Chrome, Edge, Opera and Firefox */
+}
+
+.success {
+  .outer {
+    .inner {
+      .bar {
+        background-color: #52c41a;
+      }
+    }
+  }
+  .icon {
+    svg {
+      fill: #52c41a;
+    }
+  }
+}
+
+.error {
+  .outer {
+    .inner {
+      .bar {
+        background-color: #ff4d4f;
+      }
+    }
+  }
+  .icon {
+    svg {
+      fill: #ff4d4f;
+    }
+  }
+}

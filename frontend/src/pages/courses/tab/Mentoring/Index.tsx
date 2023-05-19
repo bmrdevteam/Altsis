@@ -45,7 +45,6 @@ import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 
-import { checkPermission } from "functions/functions";
 import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
 
@@ -53,7 +52,7 @@ type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentSeason, currentUser } = useAuth();
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
   const navigate = useNavigate();
 
@@ -78,8 +77,6 @@ const CoursePid = (props: Props) => {
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
   const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
-  const [permissionEvaluation, setPermissionEvaluation] =
-    useState<boolean>(false);
 
   const categories = () => {
     return (
@@ -134,11 +131,15 @@ const CoursePid = (props: Props) => {
   };
 
   useEffect(() => {
-    if (currentUser?._id && currentSeason?.formEvaluation) {
+    if (
+      currentUser?._id &&
+      currentSeason?.formEvaluation &&
+      currentRegistration
+    ) {
       setIsLoadingSyllabus(true);
     }
     return () => {};
-  }, [currentUser, currentSeason]);
+  }, [currentUser, currentSeason, currentRegistration]);
 
   useEffect(() => {
     if (isLoadingSyllabus) {
@@ -176,14 +177,7 @@ const CoursePid = (props: Props) => {
           SeasonApi.RSeason(result.season).then((res: any) => {
             let _formEvaluationHeader: any[] = [];
 
-            if (
-              checkPermission(
-                res.permissionEvaluation,
-                currentUser.userId,
-                "teacher"
-              )
-            ) {
-              setPermissionEvaluation(true);
+            if (currentRegistration?.permissionEvaluationV2) {
               res.formEvaluation.forEach((val: any) => {
                 const text = val.label;
                 const key = "evaluation." + text;
@@ -270,6 +264,85 @@ const CoursePid = (props: Props) => {
     return () => {};
   }, [isEnrollmentsLoading]);
 
+  const studentsHeader = () => {
+    const header = [];
+    if (currentRegistration?.permissionEnrollmentV2) {
+      header.push({
+        text: "checkbox",
+        key: "checkbox",
+        type: "checkbox",
+        width: "48px",
+      });
+    }
+    header.push(
+      ...[
+        {
+          text: "학년",
+          key: "studentGrade",
+          type: "text",
+          textAlign: "center",
+          whiteSpace: "pre",
+        },
+
+        {
+          text: "이름",
+          key: "studentName",
+          type: "text",
+          textAlign: "center",
+          whiteSpace: "pre",
+        },
+        {
+          text: "ID",
+          key: "studentId",
+          type: "text",
+          textAlign: "center",
+          whiteSpace: "pre",
+        },
+      ]
+    );
+    header.push(...formEvaluationHeader);
+    if (currentRegistration?.permissionEvaluationV2) {
+      header.push({
+        text: "저장",
+        key: "isModified",
+        width: "72px",
+        textAlign: "center",
+        type: "status",
+        status: {
+          false: { text: "저장", color: "gray" },
+          true: {
+            text: "저장",
+            color: "red",
+            onClick: (e: any) => {
+              const evaluation: any = {};
+              for (let obj of fieldEvaluationList) {
+                evaluation[obj.text] = e[obj.key];
+              }
+              EnrollmentApi.UEvaluation({
+                enrollment: e._id,
+                by: "mentor",
+                data: evaluation,
+              })
+                .then((res: any) => {
+                  alert(SUCCESS_MESSAGE);
+                  if (enrollmentListRef.current.length !== 0) {
+                    enrollmentListRef.current[e.tableRowIndex - 1].isModified =
+                      false;
+                    setEnrollmentList([...enrollmentListRef.current]);
+                  }
+                })
+                .catch((err: any) => {
+                  alert(err?.response?.data?.message ?? "저장에 실패했습니다.");
+                });
+            },
+          },
+        },
+      });
+    }
+
+    return header;
+  };
+
   return (
     <>
       <Navbar />
@@ -299,25 +372,6 @@ const CoursePid = (props: Props) => {
                     {`담당 수업 목록 / ${pid}`}
                   </span>
                 </div>
-
-                {syllabus.user === currentUser._id && (
-                  <div
-                    className={style.icon}
-                    onClick={(e: any) => {
-                      navigate(`/courses/created/${syllabus._id}`, {
-                        replace: true,
-                      });
-                    }}
-                    style={{
-                      display: "flex",
-                      gap: "4px",
-                      alignItems: "center",
-                    }}
-                    title="강의계획서 상세 페이지로 이동"
-                  >
-                    <Svg type="linkExternal" width="16px" height="16px" />
-                  </div>
-                )}
               </div>
 
               <div className={style.title}>{syllabus.classTitle}</div>
@@ -333,63 +387,65 @@ const CoursePid = (props: Props) => {
               />
               <div style={{ height: "24px" }}></div>
               <Divider />
-              <>
-                <Button
-                  type={"ghost"}
-                  style={{
-                    borderRadius: "4px",
-                    height: "32px",
-                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                    marginTop: "12px",
-                  }}
-                  onClick={() => {
-                    navigate(
-                      `/courses/edit/${pid}?byMentor=true${
-                        enrollmentList.length > 0 ? "&strictMode=true" : ""
-                      }`,
-                      { replace: true }
-                    );
-                  }}
-                >
-                  수정
-                </Button>
-                <Button
-                  type={"ghost"}
-                  style={{
-                    borderRadius: "4px",
-                    height: "32px",
-                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                    marginTop: "12px",
-                  }}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `정말 삭제하시겠습니까?${
-                          enrollmentList.length > 0
-                            ? " 평가도 함께 삭제됩니다."
-                            : ""
-                        }`
-                      ) === true
-                    ) {
-                      SyllabusApi.DSyllabus(syllabus._id)
-                        .then(() => {
-                          alert(SUCCESS_MESSAGE);
-                          navigate("/courses#담당%20수업");
-                        })
-                        .catch((err) => {
-                          alert(
-                            err?.response?.data?.message ??
-                              "에러가 발생했습니다."
-                          );
-                        });
-                    } else {
-                      return false;
-                    }
-                  }}
-                >
-                  삭제
-                </Button>
-              </>
+              {currentRegistration?.permissionSyllabusV2 && (
+                <>
+                  <Button
+                    type={"ghost"}
+                    style={{
+                      borderRadius: "4px",
+                      height: "32px",
+                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                      marginTop: "12px",
+                    }}
+                    onClick={() => {
+                      navigate(
+                        `/courses/edit/${pid}?byMentor=true${
+                          enrollmentList.length > 0 ? "&strictMode=true" : ""
+                        }`,
+                        { replace: true }
+                      );
+                    }}
+                  >
+                    수정
+                  </Button>
+                  <Button
+                    type={"ghost"}
+                    style={{
+                      borderRadius: "4px",
+                      height: "32px",
+                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                      marginTop: "12px",
+                    }}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `정말 삭제하시겠습니까?${
+                            enrollmentList.length > 0
+                              ? " 평가도 함께 삭제됩니다."
+                              : ""
+                          }`
+                        ) === true
+                      ) {
+                        SyllabusApi.DSyllabus(syllabus._id)
+                          .then(() => {
+                            alert(SUCCESS_MESSAGE);
+                            navigate("/courses#담당%20수업");
+                          })
+                          .catch((err) => {
+                            alert(
+                              err?.response?.data?.message ??
+                                "에러가 발생했습니다."
+                            );
+                          });
+                      } else {
+                        return false;
+                      }
+                    }}
+                  >
+                    삭제
+                  </Button>
+                </>
+              )}
             </div>
             <div style={{ marginTop: "24px" }} className={"enrollments"}>
               <div style={{ display: "flex" }}>
@@ -472,133 +528,22 @@ const CoursePid = (props: Props) => {
                   )}
                 </div>
               </div>
-              {permissionEvaluation ? (
-                <Table
-                  type="object-array"
-                  data={!isEnrollmentsLoading ? enrollmentList : []}
-                  onChange={(e: any) => {
-                    setTimeout(() => {
-                      enrollmentListRef.current = e;
-                      setIsChecked(
-                        _.find(e, {
-                          tableRowChecked: true,
-                        })
-                      );
-                    }, 50);
-                  }}
-                  header={[
-                    {
-                      text: "checkbox",
-                      key: "checkbox",
-                      type: "checkbox",
-                      width: "48px",
-                    },
-
-                    {
-                      text: "학년",
-                      key: "studentGrade",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-
-                    {
-                      text: "이름",
-                      key: "studentName",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    {
-                      text: "ID",
-                      key: "studentId",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    ...formEvaluationHeader,
-                    {
-                      text: "저장",
-                      key: "isModified",
-                      width: "72px",
-                      textAlign: "center",
-                      type: "status",
-                      status: {
-                        false: { text: "저장", color: "gray" },
-                        true: {
-                          text: "저장",
-                          color: "red",
-                          onClick: (e) => {
-                            const evaluation: any = {};
-                            for (let obj of fieldEvaluationList) {
-                              evaluation[obj.text] = e[obj.key];
-                            }
-                            EnrollmentApi.UEvaluation({
-                              enrollment: e._id,
-                              by: "mentor",
-                              data: evaluation,
-                            })
-                              .then((res: any) => {
-                                alert(SUCCESS_MESSAGE);
-                                if (enrollmentListRef.current.length !== 0) {
-                                  enrollmentListRef.current[
-                                    e.tableRowIndex - 1
-                                  ].isModified = false;
-                                  setEnrollmentList([
-                                    ...enrollmentListRef.current,
-                                  ]);
-                                }
-                              })
-                              .catch((err: any) =>
-                                alert("failed to update evaluation")
-                              );
-                          },
-                        },
-                      },
-                    },
-                  ]}
-                />
-              ) : (
-                <Table
-                  type="object-array"
-                  data={!isEnrollmentsLoading ? enrollmentList : []}
-                  header={[
-                    {
-                      text: "No",
-                      type: "text",
-                      key: "tableRowIndex",
-                      width: "48px",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-
-                    {
-                      text: "학년",
-                      key: "studentGrade",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                      width: "120px",
-                    },
-
-                    {
-                      text: "이름",
-                      key: "studentName",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    {
-                      text: "ID",
-                      key: "studentId",
-                      type: "text",
-                      textAlign: "center",
-                      whiteSpace: "pre",
-                    },
-                    ...formEvaluationHeader,
-                  ]}
-                />
-              )}
+              <Table
+                type="object-array"
+                data={!isEnrollmentsLoading ? enrollmentList : []}
+                onChange={(e: any) => {
+                  console.log(e);
+                  setTimeout(() => {
+                    enrollmentListRef.current = e;
+                    setIsChecked(
+                      _.find(e, {
+                        tableRowChecked: true,
+                      })
+                    );
+                  }, 50);
+                }}
+                header={studentsHeader()}
+              />
             </div>
           </div>
         ) : (

@@ -1,18 +1,36 @@
+/**
+ * @title Version 5
+ * @subTitle waiting order
+ *
+ * @description
+ * Use socket to notify waiting order
+ *
+ */
 import { logger } from "../log/logger.js";
-import {
-  Enrollment,
-  Syllabus,
-  Registration,
-  Season,
-  User,
-} from "../models/index.js";
+import { Enrollment, Syllabus, Registration } from "../models/index.js";
 import _ from "lodash";
+import { getIoEnrollment } from "../utils/webSocket.js";
 
 /* promise queue library */
 import PQueue from "p-queue";
 
-// create a new queue, and pass how many you want to scrape at once
+// create a new queue, and pass how many you want to exec at once
 const queue = new PQueue({ concurrency: 1 });
+
+let taskRequested = 0;
+let taskCompleted = 0;
+let taskActivated = 0;
+
+queue.on("active", () => {
+  taskActivated += 1;
+  // console.log(`Task #${taskActivated} is activated`);
+});
+
+// regardless of whether the task completed normally or with an error.
+queue.on("next", () => {
+  taskCompleted += 1;
+  // console.log(`Task #${taskCompleted} is completed`);
+});
 
 const isTimeOverlapped = (enrollments, syllabus) => {
   const unavailableTime = _.flatten(
@@ -69,48 +87,40 @@ const exec = async (req) => {
       throw err;
     }
 
-    /* 5~7단계는 수강신청을 하는 시점에서 이미 검증되었을 가능성이 높음 */
+    /* 5~8단계는 요청이 들어온 시점에서 이미 검증되었을 가능성이 높음 */
 
     // 5. 승인된 수업인지 확인
-    for (let i = 0; i < syllabus.teachers.length; i++)
+    for (let i = 0; i < syllabus.teachers.length; i++) {
       if (!syllabus.teachers[i].confirmed) {
         const err = new Error("승인되지 않은 수업입니다.");
         err.status = 409;
         throw err;
       }
+    }
 
-    // 6. find registration
-    const registration = await Registration(req.user.academyId)
-      .findById(req.body.registration)
-      .lean();
+    // 6. registration 조회
+    const registration = await Registration(req.user.academyId).findById(
+      req.body.registration
+    );
     if (!registration) {
       const err = new Error("등록 정보를 찾을 수 없습니다.");
       err.status = 404;
       throw err;
     }
-
     if (!req.user._id.equals(registration.user)) {
       const err = new Error("유저 정보와 등록 정보가 일치하지 않습니다.");
       err.status = 401;
       throw err;
     }
 
-    // 7. check permission
-    const season = await Season(req.user.academyId).findById(syllabus.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-    if (
-      !season.checkPermission(
-        "enrollment",
-        registration.userId,
-        registration.role
-      )
-    ) {
+    // 7. 권한 검사
+    if (!registration?.permissionEnrollmentV2) {
       const err = new Error("수강신청 권한이 없습니다.");
       err.status = 401;
       throw err;
     }
 
-    // 수강신청 완료 (도큐먼트 저장)
+    // 8. 수강신청 완료 (enrollment 생성)
     const enrollment = new _Enrollment({
       ...syllabus.getSubdocument(),
       student: registration.user,
@@ -119,7 +129,7 @@ const exec = async (req) => {
       studentGrade: registration.grade,
     });
 
-    // evaluation 동기화
+    // 9. evaluation 동기화
     enrollment.evaluation = {};
     if (exEnrollments.length === 0) {
       const eYear = await _Enrollment.findOne({
@@ -129,7 +139,7 @@ const exec = async (req) => {
         subject: enrollment.subject,
       });
       if (eYear) {
-        for (let obj of season.formEvaluation) {
+        for (let obj of registration.formEvaluation) {
           if (obj.combineBy === "year") {
             enrollment.evaluation[obj.label] =
               eYear.evaluation[obj.label] || "";
@@ -141,12 +151,11 @@ const exec = async (req) => {
         _.isEqual(enrollment.subject, e.subject)
       );
       if (eTerm) {
-        for (let obj of season.formEvaluation) {
+        for (let obj of registration.formEvaluation) {
           enrollment.evaluation[obj.label] = eTerm.evaluation[obj.label] || "";
         }
       }
     }
-
     await enrollment.save();
     await Syllabus(req.user.academyId).findByIdAndUpdate(enrollment.syllabus, {
       $inc: { count: 1 },
@@ -156,17 +165,46 @@ const exec = async (req) => {
   }
 };
 
+export const getTaskCompleted = () => {
+  return taskCompleted;
+};
+
+export const getTaskRequested = () => {
+  return taskRequested;
+};
+
 export const enroll = async (req, res) => {
   try {
     if (!("syllabus" in req.body) || !("registration" in req.body)) {
       return res.status(400).send({ message: "invalud request" });
     }
+    const taskIdx = ++taskRequested;
+    // console.log(
+    //   `Task ${taskIdx} is requested; Your waiting order is ${
+    //     taskIdx - taskCompleted
+    //   }`
+    // );
 
-    await queueEnroll(req, res);
+    // send waiting order to user with socket
+    if ("socketId" in req.body && taskIdx - taskCompleted > 10) {
+      getIoEnrollment()
+        .to(req.body.socketId)
+        .emit("responseWaitingOrder", {
+          waitingOrder: taskIdx - taskCompleted,
+          waitingBehind: 0,
+          taskIdx,
+        });
+    }
+
+    try {
+      await queueEnroll(req, res);
+    } catch (err) {
+      return res.status(err.status).send({ message: err.message });
+    }
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
-    return res.status(err.status ?? 500).send({ message: err.message });
+    return res.status(500).send({ message: err.message });
   }
 };
 
@@ -201,9 +239,14 @@ export const enrollbulk = async (req, res) => {
       return res.status(409).send({ message: "수강정원을 초과합니다." });
     }
 
-    // find season & check permission
-    const season = await Season(req.user.academyId).findById(syllabus.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
+    // check permission
+    const registration = await Registration(req.user.academyId).findOne({
+      season: syllabus.season,
+      user: req.user._id,
+    });
+    if (!registration?.permissionEnrollmentV2) {
+      return res.status(403).send({ message: "수강신청 권한이 없습니다." });
+    }
 
     const enrollments = [];
     const syllabusSubdocument = syllabus.getSubdocument();
@@ -214,7 +257,7 @@ export const enrollbulk = async (req, res) => {
       // 3. 이미 신청한 수업인가?
       const exEnrollments = await _Enrollment.find({
         student: student._id,
-        season: season._id,
+        season: registration.season,
       });
 
       if (_.find(exEnrollments, { syllabus: syllabus._id })) {
@@ -242,7 +285,7 @@ export const enrollbulk = async (req, res) => {
 
           // evaluation 동기화
           enrollment.evaluation = {};
-          for (let obj of season.formEvaluation) {
+          for (let obj of registration.formEvaluation) {
             if (obj.combineBy === "term") {
               const e2 = await _Enrollment.findOne({
                 season: enrollment.season,
@@ -440,47 +483,6 @@ export const findEvaluations = async (req, res) => {
   }
 };
 
-export const updateEvaluation = async (req, res) => {
-  try {
-    const enrollment = await Enrollment(req.user.academyId).findById(
-      req.params._id
-    );
-    if (!enrollment)
-      return res.status(404).send({ message: "enrollment not found" });
-
-    // 유저 권한 확인
-    const season = await Season(req.user.academyId).findById(enrollment.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
-    const registration = await Registration(req.user.academyId).findOne({
-      season: enrollment.season,
-      user: req.user._id,
-    });
-    if (!registration)
-      return res.status(404).send({ message: "registration not found" });
-
-    if (
-      !season.checkPermission("evaluation", req.user.userId, registration.role)
-    )
-      return res.status(409).send({ message: "you have no permission" });
-
-    //authentication 다시 설정해야 함
-    if (
-      enrollment.student.equals(req.user._id) ||
-      _.find(enrollment.teachers, { _id: req.user._id })
-    ) {
-      enrollment.evaluation = { ...enrollment.evaluation, ...req.body.new };
-      await enrollment.save();
-      return res.status(200).send({ evaluation: enrollment.evaluation });
-    }
-
-    return res.status(401).send();
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 export const updateEvaluation2 = async (req, res) => {
   try {
     if (req.query.by !== "mentor" && req.query.by !== "student")
@@ -504,9 +506,6 @@ export const updateEvaluation2 = async (req, res) => {
       });
 
     // 유저 권한 확인
-    const season = await Season(req.user.academyId).findById(enrollment.season);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
       user: req.user._id,
@@ -514,9 +513,7 @@ export const updateEvaluation2 = async (req, res) => {
     if (!registration)
       return res.status(404).send({ message: "registration not found" });
 
-    if (
-      !season.checkPermission("evaluation", req.user.userId, registration.role)
-    )
+    if (!registration?.permissionEvaluationV2)
       return res.status(409).send({ message: "you have no permission" });
 
     const enrollmentsByTerm = await Enrollment(req.user.academyId)
@@ -540,7 +537,7 @@ export const updateEvaluation2 = async (req, res) => {
       .select("+evaluation");
 
     for (let label in req.body.new) {
-      const obj = _.find(season.formEvaluation, { label });
+      const obj = _.find(registration.formEvaluation, { label });
       if (obj.auth.edit[req.query.by === "mentor" ? "teacher" : "student"]) {
         enrollment.evaluation = {
           ...enrollment.evaluation,
@@ -621,19 +618,7 @@ export const remove = async (req, res) => {
           .status(404)
           .send({ message: "등록 정보를 찾을 수 없습니다." });
       }
-
-      const season = await Season(req.user.academyId).findById(
-        enrollment.season
-      );
-      if (!season) return res.status(404).send({ message: "season not found" });
-
-      if (
-        !season.checkPermission(
-          "enrollment",
-          registration.userId,
-          registration.role
-        )
-      )
+      if (!registration?.permissionEnrollmentV2)
         return res.status(401).send({ message: "you have no permission" });
 
       await enrollment.remove();

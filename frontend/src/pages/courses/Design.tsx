@@ -42,22 +42,18 @@ type Props = {};
 
 // create new syllabus
 const CourseDesign = (props: Props) => {
-  const { currentRegistration, currentPermission } = useAuth();
+  const { currentRegistration } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
       navigate("/");
-    }
-  }, [currentRegistration]);
-
-  useEffect(() => {
-    if (currentPermission && !currentPermission?.permissionSyllabus) {
+    } else if (!currentRegistration?.permissionSyllabusV2) {
       alert("수업 개설 권한이 없습니다.");
       navigate("/courses");
     }
-  }, [currentPermission]);
+  }, [currentRegistration]);
 
   return (
     <>

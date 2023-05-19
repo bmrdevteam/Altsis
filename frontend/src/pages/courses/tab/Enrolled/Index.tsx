@@ -46,7 +46,6 @@ import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
 
-import { checkPermission } from "functions/functions";
 import Navbar from "layout/navbar/Navbar";
 import Loading from "components/loading/Loading";
 
@@ -71,8 +70,6 @@ const CourseEnrollment = (props: Props) => {
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
   const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
-  const [permissionEvaluation, setPermissionEvaluation] =
-    useState<boolean>(false);
 
   const [enrollments, setEnrollments] = useState<any[]>();
 
@@ -159,14 +156,7 @@ const CourseEnrollment = (props: Props) => {
           setEnrollmentData(enrollment);
 
           let _formEvaluationHeader: any[] = [];
-          if (
-            checkPermission(
-              currentSeason.permissionEvaluation,
-              currentUser.userId,
-              currentRegistration.role
-            )
-          ) {
-            setPermissionEvaluation(true);
+          if (currentRegistration?.permissionEvaluationV2) {
             currentSeason.formEvaluation.forEach((val: any) => {
               const text = val.label;
               const key = "evaluation." + text;
@@ -288,7 +278,7 @@ const CourseEnrollment = (props: Props) => {
                 평가
               </div>
 
-              {permissionEvaluation ? (
+              {currentRegistration?.permissionEvaluationV2 ? (
                 <Table
                   type="object-array"
                   data={[enrollmentData]}

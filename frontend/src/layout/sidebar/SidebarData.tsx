@@ -16,11 +16,7 @@ interface INavSubLink {
   path: string;
   icon: JSX.Element;
 }
-export const SidebarData = (
-  auth: string,
-  role?: string,
-  currentPermission?: any
-): any => {
+export const SidebarData = (auth: string, role?: string): any => {
   const { currentRegistration, currentSchool } = useAuth();
 
   if (auth === "owner") {
@@ -51,7 +47,7 @@ export const SidebarData = (
           path: "/courses",
           icon: <Svg type="bookOpen" />,
           subLink: [
-            currentPermission?.permissionSyllabus
+            currentRegistration?.permissionSyllabusV2
               ? {
                   title: "design",
                   name: "수업 개설",
@@ -59,7 +55,7 @@ export const SidebarData = (
                   icon: <Svg type="file" />,
                 }
               : undefined,
-            currentPermission?.permissionEnrollment
+            currentRegistration?.permissionEnrollmentV2
               ? {
                   title: "enroll",
                   name: "수강 신청",

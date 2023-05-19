@@ -10,7 +10,6 @@ import React, {
 
 import _ from "lodash";
 import { useCookies } from "react-cookie";
-import { checkPermissionBySeason } from "functions/functions";
 import { io } from "socket.io-client";
 
 import { TUser, TSchool, TRegistration, TSeason } from "./authType";
@@ -28,7 +27,6 @@ export function useAuth(): {
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;
   currentSeason: TSeason;
-  currentPermission: any;
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
   currentNotificationsRef: any;
@@ -58,7 +56,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useState<TRegistration>();
   const [currentSeason, setCurrentSeason] = useState<TSeason>();
 
-  const [currentPermission, setCurrentPermission] = useState<any>();
   const currentNotificationsRef = useRef<any[]>([]);
   const [socket, setSocket] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
@@ -80,6 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       ...user,
       registrations: userRegistrations,
     });
+    document.title = user.academyName;
     currentNotificationsRef.current = _.sortBy(
       notifications,
       "createdAt"
@@ -99,6 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const school = await SchoolApi.RSchool(user.schools[schoolIdx].school);
       setCurrentSchool({ ...school, school: school._id });
       setCookie("currentSchool", school._id);
+      document.title = school.schoolName;
     }
 
     /* set currentRegistration using cookie */
@@ -120,13 +119,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       SeasonApi.RSeasonWithRegistrations(re[registrationIdx].season).then(
         (seasonData) => {
           setCurrentSeason(seasonData);
-          setCurrentPermission(
-            checkPermissionBySeason(
-              seasonData,
-              user.userId,
-              re[registrationIdx].role
-            )
-          );
         }
       );
     }
@@ -175,17 +167,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setCurrentRegistration(re[0]);
       const seasonData = await SeasonApi.RSeasonWithRegistrations(re[0].season);
       setCurrentSeason(seasonData);
-      setCurrentPermission(
-        checkPermissionBySeason(
-          seasonData,
-          currentUser?.userId ?? "",
-          re[0].role
-        )
-      );
     } else {
       setCurrentRegistration(undefined);
       setCurrentSeason(undefined);
-      setCurrentPermission(checkPermissionBySeason(undefined, "", ""));
     }
   }
 
@@ -203,13 +187,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       registration.season
     );
     setCurrentSeason(season);
-    setCurrentPermission(
-      checkPermissionBySeason(
-        season,
-        currentUser?.userId ?? "",
-        registration.role
-      )
-    );
   }
 
   const updateUserProfile = (profile: string) => {
@@ -243,7 +220,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     changeRegistration,
     reloadRegistration,
     currentSeason,
-    currentPermission,
     updateUserProfile,
     deleteUserProfile,
     currentNotificationsRef,
