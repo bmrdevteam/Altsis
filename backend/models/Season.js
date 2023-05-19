@@ -10,6 +10,60 @@ const subjectSchema = mongoose.Schema(
   { _id: false }
 );
 
+const permissionExceptionSchema = mongoose.Schema(
+  {
+    registration: String,
+    role: String,
+    user: String,
+    userId: String,
+    userName: String,
+    isAllowed: Boolean,
+  },
+  { _id: false }
+);
+
+const permissionSchema = mongoose.Schema(
+  {
+    teacher: Boolean,
+    student: Boolean,
+    exceptions: [permissionExceptionSchema],
+  },
+  { _id: false }
+);
+
+const permissionDefault = {
+  teacher: false,
+  student: false,
+  exceptions: [],
+};
+
+const formEvlauationAuthItemSchema = mongoose.Schema(
+  {
+    student: Boolean,
+    teacher: Boolean,
+  },
+  { _id: false }
+);
+
+const formEvlauationAuthSchema = mongoose.Schema(
+  {
+    edit: formEvlauationAuthItemSchema,
+    view: formEvlauationAuthItemSchema,
+  },
+  { _id: false }
+);
+
+const formEvaluationSchema = mongoose.Schema(
+  {
+    label: String,
+    type: String, // input,
+    combineBy: String, // term, year
+    authOption: String, //editByStudent, editByTeacher, editByTeacherAndStudentCanView
+    auth: formEvlauationAuthSchema,
+  },
+  { _id: false }
+);
+
 const seasonSchema = mongoose.Schema(
   {
     school: {
@@ -38,12 +92,26 @@ const seasonSchema = mongoose.Schema(
       start: String,
       end: String,
     },
-    permissionSyllabus: [[]],
-    permissionEnrollment: [[]],
-    permissionEvaluation: [[]],
+    permissionSyllabus: [[]], //deprecated
+    permissionEnrollment: [[]], //deprecated
+    permissionEvaluation: [[]], //deprecated
+    permissionSyllabusV2: {
+      type: permissionSchema,
+      default: permissionDefault,
+    },
+    permissionEnrollmentV2: {
+      type: permissionSchema,
+      default: permissionDefault,
+    },
+    permissionEvaluationV2: {
+      type: permissionSchema,
+      default: permissionDefault,
+    },
     formTimetable: Object,
     formSyllabus: Object,
-    formEvaluation: [],
+    formEvaluation: {
+      type: [formEvaluationSchema],
+    },
     temp: Object,
     isActivated: {
       type: Boolean,

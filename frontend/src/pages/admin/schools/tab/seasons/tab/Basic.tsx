@@ -126,39 +126,64 @@ function Basic(props: Props) {
               수정
             </Button>
           </div>
-
-          <Button
-            type={"ghost"}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              marginTop: "24px",
-            }}
-            onClick={() => {
-              if (!isActivatedFirst) {
-                if (
-                  undefinedForms.length === 0
-                    ? window.confirm(
-                        "정말 활성화하시겠습니까? 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다."
-                      )
-                    : window.confirm(
-                        `정말 활성화하시겠습니까? 양식(${_.join(
-                          undefinedForms,
-                          ", "
-                        )})이 설정되지 않은 상태입니다. 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다.`
-                      )
-                ) {
-                  SeasonApi.UActivateSeason(props._id)
-                    .then((res) => {
-                      alert(SUCCESS_MESSAGE);
-                      setSeasonData(res);
-                      props.setIsLoading(true);
-                    })
-                    .catch((err) => {
-                      alert(err.response.data.message);
-                    });
+          {!isActivated ? (
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                marginTop: "24px",
+              }}
+              onClick={() => {
+                if (!isActivatedFirst) {
+                  if (
+                    undefinedForms.length === 0
+                      ? window.confirm(
+                          "정말 활성화하시겠습니까? 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다."
+                        )
+                      : window.confirm(
+                          `정말 활성화하시겠습니까? 양식(${_.join(
+                            undefinedForms,
+                            ", "
+                          )})이 설정되지 않은 상태입니다. 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다.`
+                        )
+                  ) {
+                    SeasonApi.UActivateSeason(props._id)
+                      .then((res) => {
+                        alert(SUCCESS_MESSAGE);
+                        setSeasonData(res);
+                        props.setIsLoading(true);
+                      })
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
+                  }
+                } else {
+                  if (window.confirm("정말 활성화하시겠습니까?") === true) {
+                    SeasonApi.UActivateSeason(props._id)
+                      .then((res) => {
+                        alert(SUCCESS_MESSAGE);
+                        setSeasonData(res);
+                        props.setIsLoading(true);
+                      })
+                      .catch((err) => {
+                        alert(err.response.data.message);
+                      });
+                  }
                 }
-              } else if (isActivated) {
+              }}
+            >
+              {"활성화"}
+            </Button>
+          ) : (
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                marginTop: "24px",
+              }}
+              onClick={() => {
                 if (window.confirm("정말 비활성화하시겠습니까?") === true) {
                   SeasonApi.UInactivateSeason(props._id)
                     .then((res) => {
@@ -170,23 +195,11 @@ function Basic(props: Props) {
                       alert(err.response.data.message);
                     });
                 }
-              } else {
-                if (window.confirm("정말 활성화하시겠습니까?") === true) {
-                  SeasonApi.UActivateSeason(props._id)
-                    .then((res) => {
-                      alert(SUCCESS_MESSAGE);
-                      setSeasonData(res);
-                      props.setIsLoading(true);
-                    })
-                    .catch((err) => {
-                      alert(err.response.data.message);
-                    });
-                }
-              }
-            }}
-          >
-            {isActivated ? "비활성화" : "활성화"}
-          </Button>
+              }}
+            >
+              {"비활성화"}
+            </Button>
+          )}
           {!isActivated && (
             <Button
               type={"ghost"}

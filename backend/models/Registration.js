@@ -46,6 +46,21 @@ const registrationSchema = mongoose.Schema({
     default: false,
   },
   memos: [memoSchema],
+  permissionSyllabusV2: {
+    type: Boolean,
+    default: false,
+  },
+  permissionEnrollmentV2: {
+    type: Boolean,
+    default: false,
+  },
+  permissionEvaluationV2: {
+    type: Boolean,
+    default: false,
+  },
+  formEvaluation: {
+    type: [],
+  },
 });
 
 registrationSchema.index({
@@ -59,6 +74,22 @@ registrationSchema.index(
   },
   { unique: true }
 );
+
+registrationSchema.methods.getSubdocument = function () {
+  return {
+    season: this.season,
+    school: this.school,
+    schoolId: this.schoolId,
+    schoolName: this.schoolName,
+    year: this.year,
+    term: this.term,
+    isActivated: this.isActivated,
+    period: this.period,
+    user: this.user,
+    userId: this.userId,
+    userName: this.userName,
+  };
+};
 
 export const Registration = (dbName) => {
   return conn[dbName].model("Registration", registrationSchema);
