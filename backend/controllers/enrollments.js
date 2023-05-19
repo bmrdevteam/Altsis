@@ -157,9 +157,8 @@ const exec = async (req) => {
       }
     }
     await enrollment.save();
-    await Syllabus(req.user.academyId).findByIdAndUpdate(enrollment.syllabus, {
-      $inc: { count: 1 },
-    });
+    syllabus.count = syllabus.count + 1;
+    await syllabus.save();
   } catch (err) {
     throw err;
   }
