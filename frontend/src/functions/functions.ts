@@ -63,6 +63,77 @@ export function dateFormat(date: Date) {
 }
 
 /**
+ * Get a date n days before a given date
+ *
+ * @param {date, days}
+ * @return {Date}
+ */
+export function getDateBefore(_date: Date, days: number) {
+  const date = new Date(_date);
+  date.setDate(date.getDate() - days);
+  return date;
+}
+
+/**
+ * Get a date n days after a given date
+ *
+ * @param {date, days}
+ * @return {Date}
+ */
+export function getDateAfter(_date: Date, days: number) {
+  const date = new Date(_date);
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+/**
+ * Get the first date of given month
+ *
+ * @param {year, month}
+ * @return {Date}
+ */
+export function getFirstDateOfMonth(year: number, month: number) {
+  return new Date(year, month - 1, 1);
+}
+
+/**
+ * Get the last date of given month
+ *
+ * @param {year, month}
+ * @return {Date}
+ */
+export function getLastDateOfMonth(year: number, month: number) {
+  return new Date(year, month, 0);
+}
+
+/**
+ * Get start time of given date
+ *
+ * @param {date}
+ * @return {Date}
+ */
+export function getStartTimeOfDate(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * Get last time of given date
+ *
+ * @param {date}
+ * @return {Date}
+ */
+export function getLastTimeOfDate(date: Date) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate() + 1,
+    0,
+    0,
+    -1
+  );
+}
+
+/**
  * Downloads an object as a CSV file.
  *
  * @param {any} data - The object to download as a CSV.

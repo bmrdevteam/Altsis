@@ -459,6 +459,7 @@ function RouterPage() {
               <Route path="" element={<Dev />}></Route>
               <Route path="test" element={<Test />}></Route>
               <Route path="e" element={<E />}></Route>
+              <Route path="schedule" element={<Schedule />}></Route>
               <Route path="workspace" element={<Workspace />}></Route>
               {/*  404 error */}
               <Route path="*" element={<Http404 />}></Route>
