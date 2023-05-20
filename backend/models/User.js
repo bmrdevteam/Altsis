@@ -47,6 +47,18 @@ const userSchema = mongoose.Schema(
     profile: String,
     academyId: String,
     academyName: String,
+    workspace: {
+      type: mongoose.Schema(
+        {
+          id: String,
+          email: String,
+          accessToken: String,
+          expires: Date,
+          refreshToken: String,
+        },
+        { _id: false }
+      ),
+    },
   },
   { timestamps: true }
 );

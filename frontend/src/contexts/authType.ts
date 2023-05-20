@@ -112,3 +112,11 @@ export type TSeason = {
   //____________________//
   registrations: TRegistration[];
 };
+
+export type TWorkspace = {
+  id: string;
+  email: string;
+  accessToken: string;
+  expires: Date;
+  refreshToken: string;
+};

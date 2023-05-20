@@ -12,7 +12,7 @@ import _ from "lodash";
 import { useCookies } from "react-cookie";
 import { io } from "socket.io-client";
 
-import { TUser, TSchool, TRegistration, TSeason } from "./authType";
+import { TUser, TSchool, TRegistration, TSeason, TWorkspace } from "./authType";
 
 const AuthContext = createContext<any>(null);
 
@@ -31,12 +31,18 @@ export function useAuth(): {
   deleteUserProfile: React.Dispatch<any>;
   currentNotificationsRef: any;
   socket: any;
+  currentWorkspace: TWorkspace;
+  reloadWorkspace: () => Promise<void>;
+  setCurrentWorkspace: React.Dispatch<
+    React.SetStateAction<TWorkspace | undefined>
+  >;
 } {
   return useContext(AuthContext);
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { UserApi, SeasonApi, SchoolApi, RegistrationApi } = useApi();
+  const { UserApi, SeasonApi, SchoolApi, RegistrationApi, WorkspaceApi } =
+    useApi();
   const [cookies, setCookie, removeCookie] = useCookies([
     "currentSchool",
     "currentRegistration",
@@ -59,6 +65,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const currentNotificationsRef = useRef<any[]>([]);
   const [socket, setSocket] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
+
+  const [currentWorkspace, setCurrentWorkspace] = useState<
+    TWorkspace | undefined
+  >();
+
   /** Date for setting the cookie expire date  */
   const date = new Date();
   let cookieData = "";
@@ -129,6 +140,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         withCredentials: true,
       })
     );
+
+    setCurrentWorkspace(user.workspace);
   }
 
   useEffect(() => {
@@ -209,6 +222,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const reloadWorkspace = async () => {
+    if (currentUser?._id) {
+      const { workspace } = await WorkspaceApi.RMyWorkspace();
+      setCurrentWorkspace(workspace);
+    }
+  };
+
   const value = {
     loading,
     setLoading,
@@ -224,6 +244,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     deleteUserProfile,
     currentNotificationsRef,
     socket,
+    currentWorkspace,
+    reloadWorkspace,
+    setCurrentWorkspace,
   };
   return (
     <AuthContext.Provider value={value}>
