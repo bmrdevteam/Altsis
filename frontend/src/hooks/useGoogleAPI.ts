@@ -78,6 +78,7 @@ export default function useGoogleAPI() {
   const [accessToken, setAccessToken] = useState<string>("");
   const [expires, setExpires] = useState<Date>(new Date());
   const [refreshToken, setRefreshToken] = useState<string>("");
+  const [isLoadingToken, setIsLoadingToken] = useState<boolean>(true);
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -88,6 +89,13 @@ export default function useGoogleAPI() {
 
     return () => {};
   }, [currentWorkspace]);
+
+  useEffect(() => {
+    if (accessToken !== "" && refreshToken !== "") {
+      setIsLoadingToken(false);
+    }
+    return () => {};
+  }, [accessToken, refreshToken]);
 
   /**
    * API FUNCTIONS
@@ -108,7 +116,7 @@ export default function useGoogleAPI() {
   }
 
   async function getAccessToken() {
-    if (new Date() >= expires) {
+    if (new Date() >= expires && !isLoadingToken) {
       console.log("REFRESH TOKEN!");
       const { access_token } = await database.POST({
         location: `oauth2/v4/token`,
@@ -157,10 +165,33 @@ export default function useGoogleAPI() {
     return res.items;
   }
 
+  /**
+   * List Events
+   */
+
+  async function REvents(props: {
+    calendarId: string;
+    queries: { timeMin: string; timeMax: string };
+  }) {
+    const res = await database.GET({
+      location:
+        `calendar/v3/calendars/${props.calendarId}/events` +
+        QUERY_BUILDER({
+          key: CALENDAR_API_KEY,
+          access_token: await getAccessToken(),
+          ...props.queries,
+          singleEvents: true,
+        }),
+    });
+    return res;
+  }
+
   return {
+    isLoadingToken,
     getTokens,
     CalendarAPI: {
       RCalendars,
+      REvents,
     },
   };
 }
