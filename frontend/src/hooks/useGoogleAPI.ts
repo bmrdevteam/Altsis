@@ -68,7 +68,7 @@ const useGoogleDatabase = () => {
  * NOTES
  *
  */
-const API_KEY = "AIzaSyAlkBceG_RMRBn_iF4vjyyq77q6jh3tHb4";
+const CALENDAR_API_KEY = process.env.REACT_APP_GOOGLE_CALENDAR_API_KEY;
 
 export default function useGoogleAPI() {
   const database = useGoogleDatabase();
@@ -148,7 +148,10 @@ export default function useGoogleAPI() {
     const res = await database.GET({
       location:
         `calendar/v3/users/me/calendarList` +
-        QUERY_BUILDER({ key: API_KEY, access_token: await getAccessToken() }),
+        QUERY_BUILDER({
+          key: CALENDAR_API_KEY,
+          access_token: await getAccessToken(),
+        }),
     });
     console.log(res);
     return res.items;
