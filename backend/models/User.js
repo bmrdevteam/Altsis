@@ -55,6 +55,12 @@ const userSchema = mongoose.Schema(
           accessToken: String,
           expires: Date,
           refreshToken: String,
+          calendars: mongoose.Schema(
+            {
+              items: [Object],
+            },
+            { _id: false }
+          ),
         },
         { _id: false }
       ),

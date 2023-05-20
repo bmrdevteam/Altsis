@@ -119,4 +119,5 @@ export type TWorkspace = {
   accessToken: string;
   expires: Date;
   refreshToken: string;
+  calendars?: { items: any[] };
 };
