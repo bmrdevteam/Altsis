@@ -178,5 +178,20 @@ export const SidebarData = (auth: string, role?: string): any => {
     );
   }
 
+  data.push({
+    title: "dev",
+    name: "실험실",
+    path: "/dev",
+    icon: <Svg type="flask" />,
+    subLink: [
+      {
+        title: "워크스페이스",
+        name: "워크스페이스",
+        path: "/dev/workspace",
+        icon: <Svg type="google" />,
+      },
+    ],
+  });
+
   return data;
 };
