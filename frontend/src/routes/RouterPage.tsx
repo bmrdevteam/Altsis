@@ -61,6 +61,9 @@ import ArchiveViewer from "pages/archiveViewer/Index";
 import ArchiveViwerField from "pages/archiveViewer/Pid";
 import Docs from "pages/docs/Index";
 import ChooseAcademy from "pages/login/ChooseAcademy";
+import Dev from "pages/dev/Index";
+import Schedule from "pages/dev/Schedule";
+import Workspace from "pages/dev/Workspace/Index";
 
 function RouterPage() {
   const { currentUser } = useAuth();
@@ -453,8 +456,10 @@ function RouterPage() {
 
             {/* dev routes */}
             <Route path="dev">
+              <Route path="" element={<Dev />}></Route>
               <Route path="test" element={<Test />}></Route>
               <Route path="e" element={<E />}></Route>
+              <Route path="workspace" element={<Workspace />}></Route>
               {/*  404 error */}
               <Route path="*" element={<Http404 />}></Route>
             </Route>
