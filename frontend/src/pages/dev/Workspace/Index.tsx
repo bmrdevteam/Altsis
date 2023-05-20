@@ -3,6 +3,7 @@ import style from "style/pages/admin/schools.module.scss";
 
 import Tab from "components/tab/Tab";
 import Basic from "./tab/Basic";
+import Calendar from "./tab/Calendar";
 
 export default function Example() {
   return (
@@ -10,9 +11,9 @@ export default function Example() {
       <Navbar />
       <div className={style.section}>
         <Tab
-          dontUsePaths
           items={{
             "기본 정보": <Basic />,
+            캘린더: <Calendar />,
           }}
           align={"flex-start"}
         />

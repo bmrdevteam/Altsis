@@ -18,6 +18,9 @@ router.get("/", isLoggedIn, workspaces.find);
 
 router.put("/", isLoggedIn, workspaces.updateAccessToken);
 
+router.put("/calendars", isLoggedIn, workspaces.updateCalendars);
+router.delete("/calendars", isLoggedIn, workspaces.removeCalendars);
+
 router.delete("/", isLoggedIn, workspaces.remove);
 
 export { router };

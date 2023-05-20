@@ -1362,6 +1362,33 @@ export default function useApi() {
   }
 
   /**
+   * Update user workspace calendar
+   * @type GET
+   * @auth member
+   * @returns LoggedIn User
+   */
+  async function UMyWorkspaceCalendars(props: { data: { items: any[] } }) {
+    const { workspace } = await database.U({
+      location: "workspaces/calendars",
+      data: props.data,
+    });
+    return { workspace };
+  }
+
+  /**
+   * Disconnect user workspace calendar
+   * @type GET
+   * @auth member
+   * @returns LoggedIn User
+   */
+  async function DMyWorkspaceCalendars() {
+    const { workspace } = await database.D({
+      location: "workspaces/calendars",
+    });
+    return { workspace };
+  }
+
+  /**
    * Remove user workspace
    * @type GET
    * @auth member
@@ -1492,6 +1519,8 @@ export default function useApi() {
     WorkspaceApi: {
       RMyWorkspace,
       UMyWorkspaceAccessToken,
+      UMyWorkspaceCalendars,
+      DMyWorkspaceCalendars,
       DMyWorkspace,
     },
   };

@@ -55,6 +55,45 @@ export const updateAccessToken = async (req, res) => {
   }
 };
 
+export const updateCalendars = async (req, res) => {
+  try {
+    if (!("items" in req.body)) {
+      return res.status(400).send({});
+    }
+
+    const user = req.user;
+    if (!user.workspace) {
+      return res.status(404).send({});
+    }
+
+    user.workspace.calendars = {
+      items: req.body.items,
+    };
+    await user.save();
+
+    return res.status(200).send({ workspace: user.workspace });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+export const removeCalendars = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user.workspace) {
+      return res.status(404).send({});
+    }
+
+    user.workspace.calendars = undefined;
+    await user.save();
+
+    return res.status(200).send({ workspace: user.workspace });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 /* delete */
 
 export const remove = async (req, res) => {
