@@ -217,7 +217,7 @@ export default function useDatabase() {
     };
     try {
       /** @constant config for the axios asynchronously call axios */
-      const result = await axios(config);
+      const { data: result } = await axios(config);
 
       // return the response
       return result;

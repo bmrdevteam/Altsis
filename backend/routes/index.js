@@ -13,6 +13,7 @@ import { router as files } from "./files.js";
 import { router as courses } from "./courses.js";
 import { router as memos } from "./memos.js";
 import { router as documents } from "./documents.js";
+import { router as workspaces } from "./workspaces.js";
 
 import { router as test } from "./test.js";
 
@@ -33,4 +34,5 @@ export const routers = [
   { label: "memos", routes: memos },
   { label: "documents", routes: documents },
   { label: "test", routes: test },
+  { label: "workspaces", routes: workspaces },
 ];
