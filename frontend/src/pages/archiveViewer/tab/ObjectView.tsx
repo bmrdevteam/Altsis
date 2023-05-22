@@ -59,6 +59,7 @@ const One = (props: Props) => {
           defaultValue={archiveData?.[label] || ""}
           className={style.input}
           rows={1}
+          disabled
         />
       </div>
     );
