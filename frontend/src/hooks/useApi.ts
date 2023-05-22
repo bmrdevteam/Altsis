@@ -319,10 +319,21 @@ export default function useApi() {
     return result;
   }
   async function RSeasonWithRegistrations(id: string) {
-    const result = await database.R({
+    const season = await database.R({
       location: `seasons/${id}?withRegistrations=true`,
     });
-    return result;
+    season.registrations = _.orderBy(
+      season.registrations,
+      [
+        (reg) => (reg.role && reg.role !== "" ? reg.role : "_"),
+        (reg) => (reg.grade && reg.grade !== "" ? reg.grade : "_"),
+        "userName",
+        "userId",
+      ],
+      ["asc", "asc", "asc", "asc"]
+    );
+
+    return season;
   }
   /**
    * Get Seasons

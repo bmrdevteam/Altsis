@@ -137,7 +137,20 @@ export const find = async (req, res) => {
           .find({
             season: season._id,
           })
-          .select(["userId", "userName", "user", "role"]);
+          .select([
+            "user",
+            "userId",
+            "userName",
+            "role",
+            "grade",
+            "teacher",
+            "teacherId",
+            "teacherName",
+            "subTeacher",
+            "subTeacherId",
+            "subTeacherName",
+            "group",
+          ]);
         return res.status(200).send({ ...season.toObject(), registrations });
       }
       return res.status(200).send(season);
