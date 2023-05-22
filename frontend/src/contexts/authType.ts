@@ -90,6 +90,22 @@ export type Permission = {
   exceptions: Exception[];
 };
 
+export type TSeasonRegistration = {
+  _id: string;
+  user: string;
+  userId: string;
+  userName: string;
+  role?: "teacher" | "student";
+  grade?: string;
+  teacher?: string;
+  teacherId?: string;
+  teacherName?: string;
+  subTeacher?: string;
+  subTeacherId?: string;
+  subTeacherName?: string;
+  group?: string;
+};
+
 export type TSeason = {
   _id: string;
   classrooms: string[];
@@ -110,5 +126,5 @@ export type TSeason = {
   formEvaluation: TFormEvaluation[];
   isActivated: boolean;
   //____________________//
-  registrations: TRegistration[];
+  registrations: TSeasonRegistration[];
 };
