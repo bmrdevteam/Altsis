@@ -152,52 +152,83 @@ export const find = async (req, res) => {
       }
       return res.status(200).send({ archives });
     }
+
     /* teacher or student request for archive */
     if (registrationId && label) {
-      const registration = await Registration(req.user.academyId)
-        .findById(registrationId)
-        .lean();
-      if (!registration) {
+      const studentRegistration = await Registration(
+        req.user.academyId
+      ).findById(registrationId);
+      if (!studentRegistration) {
         return res.status(404).send({ message: "registration not found" });
       }
-      // if teacher ...
-      if (!registration.user.equals(req.user._id)) {
-        const teacherRegistration = await Registration(req.user.academyId)
-          .findOne({
-            season: registration.season,
-            user: req.user._id,
-            role: "teacher",
-          })
-          .lean();
-        if (!teacherRegistration)
-          return res
-            .status(404)
-            .send({ message: "teacher registration not found" });
+
+      const school = await School(req.user.academyId)
+        .findById(studentRegistration.school)
+        .lean()
+        .select("formArchive");
+      if (!school) return res.status(404).send({ message: "school not found" });
+
+      const formArchiveItem = _.find(
+        school.formArchive,
+        (fa) => fa.label === req.query.label
+      );
+      if (!formArchiveItem)
+        return res.status(404).send({ message: "formArchiveItem not found" });
+
+      /* if it is student */
+      if (studentRegistration.user.equals(req.user._id)) {
+        if (formArchiveItem?.authStudent !== "view") {
+          return res.status(403).send({});
+        }
+      } else if (formArchiveItem.authTeacher === "viewAndEditStudents") {
+
+      /* if it is teacher */
+        const teacherRegistration = await Registration(
+          req.user.academyId
+        ).findOne({
+          season: studentRegistration.season,
+          user: req.user._id,
+          role: "teacher",
+        });
+        if (!teacherRegistration) return res.status(403).send({});
+      } else if (formArchiveItem?.authTeacher === "viewAndEditMyStudents") {
+        if (
+          !studentRegistration.teacher?.equals(req.user._id) &&
+          !studentRegistration.subTeacher?.equals(req.user._id)
+        ) {
+          return res.status(403).send({});
+        }
+      } else {
+        return res.status(403).send({});
       }
 
       let archive = await Archive(req.user.academyId).findOne({
-        school: registration.school,
-        user: registration.user,
+        school: studentRegistration.school,
+        user: studentRegistration.user,
       });
       if (!archive) {
         archive = new _Archive({
-          user: registration.user,
-          userId: registration.userId,
-          userName: registration.userName,
-          school: registration.school,
-          schoolId: registration.schoolId,
-          schoolName: registration.schoolName,
+          user: studentRegistration.user,
+          userId: studentRegistration.userId,
+          userName: studentRegistration.userName,
+          school: studentRegistration.school,
+          schoolId: studentRegistration.schoolId,
+          schoolName: studentRegistration.schoolName,
         });
         await archive.save();
 
         return res.status(200).send({
-          ...registration,
+          role: studentRegistration.role,
+          grade: studentRegistration.grade,
+          group: studentRegistration.group,
           ...archive.toObject(),
           data: { [label]: archive.data?.[label] },
         });
       }
       return res.status(200).send({
-        ...registration,
+        role: studentRegistration.role,
+        grade: studentRegistration.grade,
+        group: studentRegistration.group,
         ...archive.toObject(),
         data: { [label]: archive.data?.[label] },
       });
@@ -296,11 +327,62 @@ export const updateBulk = async (req, res) => {
 export const update = async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params._id)) return res.status(400).send();
+    if (
+      !("label" in req.body) ||
+      !("data" in req.body) ||
+      !("registration" in req.body)
+    ) {
+      return res.status(400).send();
+    }
+    const user = req.user;
 
-    const archive = await Archive(req.user.academyId).findById(req.params._id);
+    const archive = await Archive(user.academyId).findById(req.params._id);
     if (!archive) return res.status(404).send({ message: "archive not found" });
 
-    archive.data = Object.assign(archive.data || {}, req.body);
+    const school = await School(user.academyId)
+      .findById(archive.school)
+      .lean()
+      .select("formArchive");
+    if (!school) return res.status(404).send({});
+
+    const formArchiveItem = _.find(
+      school.formArchive,
+      (fa) => fa.label === req.body.label
+    );
+    if (!formArchiveItem) return res.status(404).send({});
+
+    if (formArchiveItem?.authTeacher === "viewAndEditStudents") {
+      const studentRegistration = await Registration(user.academyId).findById(
+        req.body.registration
+      );
+
+      if (!studentRegistration) return res.status(404).send({});
+
+      const teacherRegistration = await Registration(user.academyId).findOne({
+        season: studentRegistration.season,
+        user: user._id,
+        role: "teacher",
+      });
+      if (!teacherRegistration) return res.status(403).send({});
+    } else if (formArchiveItem?.authTeacher === "viewAndEditMyStudents") {
+      const studentRegistration = await Registration(user.academyId).findById(
+        req.body.registration
+      );
+
+      if (!studentRegistration) return res.status(404).send({});
+
+      if (
+        !studentRegistration.teacher?.equals(user._id) &&
+        !studentRegistration.subTeacher?.equals(user._id)
+      ) {
+        return res.status(403).send({});
+      }
+    } else {
+      return res.status(400).send({});
+    }
+
+    archive.data = { ...archive.data, [req.body.label]: req.body.data };
+
     await archive.save();
     return res.status(200).send({ archive });
   } catch (err) {

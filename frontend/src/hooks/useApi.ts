@@ -1070,12 +1070,21 @@ export default function useApi() {
    * @auth admin
    * @returns Archive
    */
-  async function UArchive(params: { _id: string; data: object }) {
-    const result = await database.U({
+  async function UArchive(params: {
+    _id: string;
+    label: string;
+    data: object;
+    registration: string;
+  }) {
+    const { archive } = await database.U({
       location: `archives/${params._id}`,
-      data: params.data,
+      data: {
+        label: params.label,
+        data: params.data,
+        registration: params.registration,
+      },
     });
-    return result;
+    return archive;
   }
 
   /**

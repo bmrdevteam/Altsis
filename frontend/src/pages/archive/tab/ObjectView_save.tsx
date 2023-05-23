@@ -12,11 +12,11 @@ type Props = {
   registrationList: any[];
 };
 
-const ObjectView = (props: Props) => {
+const One = (props: Props) => {
   const { ArchiveApi, FileApi } = useApi();
   const { pid } = useParams(); // archive label ex) 인적 사항
 
-  const { currentSchool, currentSeason } = useAuth();
+  const { currentSchool } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
@@ -34,41 +34,37 @@ const ObjectView = (props: Props) => {
     }
   }, [props.registrationList, pid]);
 
-  const findArchiveList = async () => {
-    if (!pid || pid === "") return [];
-    const archiveList = [];
-    for (let idx = 0; idx < props.registrationList.length; idx++) {
-      const reg = props.registrationList[idx];
-      try {
-        const archive = await ArchiveApi.RArchiveByRegistration({
-          registrationId: reg._id,
-          label: pid,
-        });
-        archiveList.push({
-          ...(archive.data[pid] ? archive.data[pid] : {}),
-          registration: reg._id,
-          grade: archive.grade,
-          userName: archive.userName,
-          userId: archive.userId,
-          _id: archive._id,
-        });
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    return archiveList;
-  };
-
   useEffect(() => {
     if (isLoading && pid) {
-      findArchiveList()
-        .then((archiveList) => {
-          setArchiveList(archiveList);
-          archiveListRef.current = archiveList;
+      if (props.registrationList.length > 0) {
+        ArchiveApi.RArchivesByRegistrations({
+          registrationIds: props.registrationList.map(
+            (registration: any) => registration._id
+          ),
+          label: pid,
         })
-        .then(() => {
-          setIsLoading(false);
-        });
+          .then((res) => {
+            const archiveList = [];
+            for (let i = 0; i < res.length; i++) {
+              const archive = res[i];
+              archiveList.push({
+                ...(archive.data[pid] ? archive.data[pid] : {}),
+                _id: archive._id,
+                userName: archive.userName,
+              });
+            }
+
+            setArchiveList(archiveList);
+            archiveListRef.current = archiveList;
+          })
+          .then(() => {
+            setIsLoading(false);
+          });
+      } else {
+        setArchiveList([]);
+        archiveListRef.current = [];
+        setIsLoading(false);
+      }
     }
   }, [isLoading]);
 
@@ -84,30 +80,31 @@ const ObjectView = (props: Props) => {
     );
   }
 
-  const updateArchives = async (activateAlert: boolean = true) => {
-    if (!pid) return;
-    if (!currentSeason) return;
-
-    for (let i = 0; i < archiveListRef.current.length; i++) {
-      try {
-        const data: { [key: string]: string | number } = {};
-
-        for (let field of formArchive().fields ?? []) {
-          data[field.label] = archiveListRef.current[i][field.label];
-        }
-
-        const { archive } = await ArchiveApi.UArchive({
-          _id: archiveListRef.current[i]._id,
-          label: pid,
-          data,
-          registration: archiveListRef.current[i].registration,
+  const update = async (activateAlert: boolean = true) => {
+    if (archiveListRef.current.length > 0 && pid) {
+      const archiveById: { [key: string]: any } = {};
+      for (let _archive of archiveListRef.current) {
+        if (!archiveById[_archive._id]) archiveById[_archive._id] = {};
+        const archive: { [key: string]: string | number } = {};
+        formArchive().fields?.map((val: any) => {
+          archive[val.label] = _archive[val.label];
         });
-        console.log(archive);
-      } catch (err) {}
-    }
-
-    if (activateAlert) {
-      alert(SUCCESS_MESSAGE);
+        archiveById[_archive._id] = archive;
+      }
+      const archives: { _id: string; data: any[] }[] = Object.keys(
+        archiveById
+      ).map((_id: string) => {
+        return {
+          _id,
+          data: archiveById[_id],
+        };
+      });
+      ArchiveApi.UArchives({ label: pid, archives }).then((res) => {
+        setIsLoading(true);
+        if (activateAlert) {
+          alert(SUCCESS_MESSAGE);
+        }
+      });
     }
   };
 
@@ -226,7 +223,7 @@ const ObjectView = (props: Props) => {
 
                   archiveListRef.current[aIdx][label].expiryDate = expiryDate;
 
-                  updateArchives(false);
+                  update(false);
                 }}
                 alt="profile"
               />
@@ -296,7 +293,7 @@ const ObjectView = (props: Props) => {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     handleFileImageChange(e).then((res) => {
                       archiveListRef.current[aIdx][label] = res;
-                      updateArchives();
+                      update();
                     });
                   }}
                 />
@@ -310,7 +307,7 @@ const ObjectView = (props: Props) => {
                 }}
                 onClick={() => {
                   archiveListRef.current[aIdx][label] = undefined;
-                  updateArchives();
+                  update();
                 }}
               >
                 삭제
@@ -364,7 +361,7 @@ const ObjectView = (props: Props) => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   handleFileImageChange(e).then((res) => {
                     archiveListRef.current[aIdx][label] = res;
-                    updateArchives();
+                    update();
                   });
                 }}
               />
@@ -472,7 +469,7 @@ const ObjectView = (props: Props) => {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     handleFileChange(e).then((res) => {
                       archiveListRef.current[aIdx][label] = res;
-                      updateArchives();
+                      update();
                     });
                   }}
                 />
@@ -486,7 +483,7 @@ const ObjectView = (props: Props) => {
                 }}
                 onClick={() => {
                   archiveListRef.current[aIdx][label] = undefined;
-                  updateArchives();
+                  update();
                 }}
               >
                 삭제
@@ -540,7 +537,7 @@ const ObjectView = (props: Props) => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   handleFileChange(e).then((res) => {
                     archiveListRef.current[aIdx][label] = res;
-                    updateArchives();
+                    update();
                   });
                 }}
               />
@@ -558,7 +555,7 @@ const ObjectView = (props: Props) => {
           type="ghost"
           style={{ marginTop: "24px", borderColor: "red" }}
           onClick={() => {
-            updateArchives();
+            update();
           }}
         >
           저장
@@ -598,4 +595,4 @@ const ObjectView = (props: Props) => {
   );
 };
 
-export default ObjectView;
+export default One;
