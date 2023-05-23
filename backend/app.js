@@ -6,7 +6,7 @@ import cors from "cors";
 import session from "express-session";
 
 import passport from "passport";
-import { config as passportConfig } from "./passport/index.js";
+import { config as passportConfig } from "./_passport/index.js";
 
 import { routers } from "./routes/index.js";
 import { initializeWebSocket } from "./utils/webSocket.js";
