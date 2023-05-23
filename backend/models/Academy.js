@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { root as conn } from "../databases/root.js";
+import { root as conn } from "../_database/mongodb/root.js";
 
 import { validate } from "../utils/validate.js";
 
