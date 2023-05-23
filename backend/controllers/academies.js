@@ -1,5 +1,5 @@
 import { logger } from "../log/logger.js";
-import { addConnection, deleteConnection } from "../databases/connection.js";
+import { addConnection, deleteConnection } from "../_database/mongodb/index.js";
 import {
   User,
   Academy,

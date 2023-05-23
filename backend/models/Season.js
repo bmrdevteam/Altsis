@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { conn } from "../databases/connection.js";
+import { conn } from "../_database/mongodb/index.js";
 import _ from "lodash";
 
 const subjectSchema = mongoose.Schema(

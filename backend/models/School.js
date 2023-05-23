@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { conn } from "../databases/connection.js";
+import { conn } from "../_database/mongodb/index.js";
 // const validate = require("mongoose-validator");
 import _ from "lodash";
 import { validate } from "../utils/validate.js";

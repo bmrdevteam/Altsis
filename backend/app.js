@@ -17,7 +17,7 @@ import { logger } from "./log/logger.js";
 
 import connectRedis from "connect-redis";
 const RedisStore = connectRedis(session);
-import { client } from "./caches/redis.js";
+import { client } from "./_database/redis/index.js";
 
 const app = express();
 
