@@ -2,12 +2,12 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
-    "start": "NODE_ENV=development node app.js",
-    "dev": "cross-env NODE_ENV=development nodemon app.js",
-    "prod": "cross-env NODE_ENV=production node app.js",
-    "local": "cross-env NODE_ENV=local nodemon app.js --ignore **/tests/*",
+    "start": "NODE_ENV=development node index.js",
+    "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "prod": "cross-env NODE_ENV=production node index.js",
+    "local": "cross-env NODE_ENV=local nodemon index.js --ignore **/tests/*",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
