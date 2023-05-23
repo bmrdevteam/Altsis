@@ -3,8 +3,11 @@ import { createClient } from "redis";
 let isConnected = false;
 let client = undefined;
 
-if (process.env.NODE_ENV.trim() !== "local") {
-  createClient({
+if (
+  process.env.NODE_ENV.trim() !== "local" &&
+  process.env.NODE_ENV.trim() !== "test"
+) {
+  client = createClient({
     url: process.env["REDIS_URL"],
     logErrors: true,
     legacyMode: true,

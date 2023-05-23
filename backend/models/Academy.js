@@ -58,4 +58,4 @@ academySchema.pre("save", function (next) {
   next();
 });
 
-export const Academy = conn.model("Academy", academySchema);
+export const Academy = conn?.model("Academy", academySchema);

@@ -1,0 +1,8 @@
+{
+  "rootDir": ".",
+  "testMatch": ["**/tests/**"],
+  "testEnvironment": "node",
+  "resetMocks": true,
+  "clearMocks": true,
+  "setupFiles": ["./env.js"]
+}
