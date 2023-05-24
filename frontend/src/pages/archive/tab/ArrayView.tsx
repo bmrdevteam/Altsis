@@ -255,16 +255,27 @@ const One = (props: Props) => {
 
   return !isLoading ? (
     <>
-      {archiveListFlattened.length !== 0 && (
-        <Button
-          type="ghost"
-          style={{ marginTop: "24px", borderColor: "red" }}
-          onClick={() => {
-            setIsUpdating(true);
-          }}
-        >
-          저장
-        </Button>
+      {archiveList.length !== 0 && (
+        <>
+          <Button
+            type="ghost"
+            style={{ marginTop: "24px", borderColor: "red" }}
+            onClick={() => {
+              setIsUpdating(true);
+            }}
+          >
+            저장
+          </Button>{" "}
+          <Button
+            type="ghost"
+            style={{ marginTop: "24px", borderColor: "red" }}
+            onClick={() => {
+              setIsExcelPopupActive(true);
+            }}
+          >
+            엑셀 파일로 수정
+          </Button>
+        </>
       )}
       <div style={{ marginTop: "24px" }}>
         <Table
@@ -299,14 +310,7 @@ const One = (props: Props) => {
           type="object-array"
           data={archiveListFlattened ?? []}
           header={archiveHeader()}
-          menus={[
-            {
-              onClick: () => {
-                setIsExcelPopupActive(true);
-              },
-              label: "엑셀 파일로 수정",
-            },
-          ]}
+          menus={[]}
         />
       </div>
       {isUpdatePopupActive && (
@@ -343,6 +347,7 @@ const One = (props: Props) => {
       )}
       {isExcelPopupActive && (
         <ExcelPopup
+          type="array"
           setPopupActive={setIsExcelPopupActive}
           fields={formArchive().fields}
           pid={pid ?? "data"}
