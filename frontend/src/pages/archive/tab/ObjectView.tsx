@@ -7,6 +7,9 @@ import useApi from "hooks/useApi";
 import { useParams } from "react-router-dom";
 
 import Loading from "components/loading/Loading";
+import Popup from "components/popup/Popup";
+import Progress from "components/progress/Progress";
+import Callout from "components/callout/Callout";
 
 type Props = {
   registrationList: any[];
@@ -21,6 +24,12 @@ const ObjectView = (props: Props) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
   const archiveListRef = useRef<any>([]);
+
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [isUpdatePopupActive, setIsUpdatePopupActive] =
+    useState<boolean>(false);
+  const [updatingRatio, setUpdatingRatio] = useState<number>(0);
+  const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
 
   const fileInput: {
     [key: string]: any;
@@ -47,9 +56,10 @@ const ObjectView = (props: Props) => {
         archiveList.push({
           ...(archive.data[pid] ? archive.data[pid] : {}),
           registration: reg._id,
+          user: reg.user,
+          userId: reg.userId,
+          userName: reg.userName,
           grade: reg.grade,
-          userName: archive.userName,
-          userId: archive.userId,
           _id: archive._id,
         });
       } catch (err) {
@@ -73,6 +83,20 @@ const ObjectView = (props: Props) => {
   }, [isLoading]);
 
   useEffect(() => {
+    if (isUpdating && pid) {
+      setIsUpdatePopupActive(true);
+      updateArchives()
+        .then((archiveList) => {
+          setArchiveList(archiveList);
+          archiveListRef.current = archiveList;
+        })
+        .then(() => {
+          setIsUpdating(false);
+        });
+    }
+  }, [isUpdating]);
+
+  useEffect(() => {
     if (refresh) setRefresh(false);
   }, [refresh]);
 
@@ -85,8 +109,10 @@ const ObjectView = (props: Props) => {
   }
 
   const updateArchives = async (activateAlert: boolean = true) => {
-    if (!pid) return;
-    if (!currentSeason) return;
+    const archiveList = [];
+    setUpdatingRatio(0);
+
+    const updatingLogs: string[] = [];
 
     for (let i = 0; i < archiveListRef.current.length; i++) {
       try {
@@ -98,17 +124,27 @@ const ObjectView = (props: Props) => {
 
         const { archive } = await ArchiveApi.UArchive({
           _id: archiveListRef.current[i]._id,
-          label: pid,
+          label: pid ?? "",
           data,
           registration: archiveListRef.current[i].registration,
         });
-        console.log(archive);
-      } catch (err) {}
+        archiveList.push({
+          ...archiveListRef.current[i],
+          ...archive,
+        });
+      } catch (err) {
+        archiveList.push({ ...archiveListRef.current[i] });
+        updatingLogs.push(
+          `${archiveListRef.current[i].userName} (${archiveListRef.current[i].grade}/${archiveListRef.current[i].userId})`
+        );
+      } finally {
+        console.log((i + 1) / archiveListRef.current.length);
+        setUpdatingRatio((i + 1) / archiveListRef.current.length);
+      }
     }
 
-    if (activateAlert) {
-      alert(SUCCESS_MESSAGE);
-    }
+    setUpdatingLogs([...updatingLogs]);
+    return archiveList;
   };
 
   const fieldInput = (aIdx: number, label: string, index: number) => {
@@ -558,7 +594,7 @@ const ObjectView = (props: Props) => {
           type="ghost"
           style={{ marginTop: "24px", borderColor: "red" }}
           onClick={() => {
-            updateArchives();
+            setIsUpdating(true);
           }}
         >
           저장
@@ -569,9 +605,9 @@ const ObjectView = (props: Props) => {
           return (
             <div style={{ marginTop: "24px" }}>
               <div style={{ marginBottom: "12px" }}>
-                <h3>
-                  {aIdx + 1}. {archive.userName}
-                </h3>
+                <h3>{`${aIdx + 1}. ${archive.userName} (${archive.grade}/${
+                  archive.userId
+                })`}</h3>
               </div>
               {formArchive().fields?.map((val: any, index: number) => {
                 if (
@@ -592,6 +628,38 @@ const ObjectView = (props: Props) => {
           );
         })}
       </div>
+      {isUpdatePopupActive && (
+        <Popup
+          setState={setIsUpdatePopupActive}
+          style={{ borderRadius: "8px" }}
+          contentScroll
+          closeBtn
+        >
+          <div>
+            <p>
+              {isUpdating
+                ? "저장 중입니다."
+                : `저장이 완료되었습니다 (성공: ${
+                    archiveList.length - updatingLogs.length
+                  }, 실패: ${updatingLogs.length})`}
+            </p>
+            <Progress
+              value={updatingRatio ?? 0}
+              style={{ margin: "12px 0px" }}
+              showIconSuccess={!isUpdating && updatingLogs.length === 0}
+              showIconError={!isUpdating && updatingLogs.length > 0}
+            />
+            {updatingLogs.length > 0 && (
+              <Callout
+                type="error"
+                style={{ whiteSpace: "pre" }}
+                title={"저장되지 않은 항목이 있습니다."}
+                description={updatingLogs.join("\n")}
+              />
+            )}
+          </div>
+        </Popup>
+      )}
     </>
   ) : (
     <Loading height={"calc(100vh - 55px)"} />
