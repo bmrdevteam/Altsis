@@ -66,6 +66,7 @@ type Props = {
   control?: boolean;
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
   onChange?: (value: any[]) => void;
+  menus?: { onClick: () => void; label: string }[];
 };
 
 const Table = (props: Props) => {
@@ -351,67 +352,79 @@ const Table = (props: Props) => {
                       onClick={moreOutSideClick.handleOnClick}
                     >
                       <Svg type={"horizontalDots"} width="20px" height="20px" />
-                      {moreOutSideClick.active && (
-                        <div className={style.menu_container}>
-                          <div
-                            className={style.menu_item}
-                            onClick={() => {
-                              const headers = props.header
-                                .map((o) => {
-                                  return o.key;
-                                })
-                                .filter((o) => {
-                                  if (o) {
-                                    return true;
-                                  }
-                                  return false;
-                                });
+                      {moreOutSideClick.active &&
+                        (!props.menus ? (
+                          <div className={style.menu_container}>
+                            <div
+                              className={style.menu_item}
+                              onClick={() => {
+                                const headers = props.header
+                                  .map((o) => {
+                                    return o.key;
+                                  })
+                                  .filter((o) => {
+                                    if (o) {
+                                      return true;
+                                    }
+                                    return false;
+                                  });
 
-                              objectDownloadAsCSV(
-                                filteredData().map((o: any) => {
-                                  return unflattenObject(
-                                    Object.fromEntries(
-                                      Object.entries(o).filter(([key]) =>
-                                        headers.includes(key)
+                                objectDownloadAsCSV(
+                                  filteredData().map((o: any) => {
+                                    return unflattenObject(
+                                      Object.fromEntries(
+                                        Object.entries(o).filter(([key]) =>
+                                          headers.includes(key)
+                                        )
                                       )
-                                    )
-                                  );
-                                })
-                              );
-                            }}
-                          >
-                            CSV 으로 다운로드
-                          </div>
-                          <div
-                            className={style.menu_item}
-                            onClick={() => {
-                              const headers = props.header
-                                .map((o) => {
-                                  return o.key;
-                                })
-                                .filter((o) => {
-                                  if (o) {
-                                    return true;
-                                  }
-                                  return false;
-                                });
-                              objectDownloadAsJson(
-                                filteredData().map((o: any) => {
-                                  return unflattenObject(
-                                    Object.fromEntries(
-                                      Object.entries(o).filter(([key]) =>
-                                        headers.includes(key)
+                                    );
+                                  })
+                                );
+                              }}
+                            >
+                              CSV로 다운로드
+                            </div>
+                            <div
+                              className={style.menu_item}
+                              onClick={() => {
+                                const headers = props.header
+                                  .map((o) => {
+                                    return o.key;
+                                  })
+                                  .filter((o) => {
+                                    if (o) {
+                                      return true;
+                                    }
+                                    return false;
+                                  });
+                                objectDownloadAsJson(
+                                  filteredData().map((o: any) => {
+                                    return unflattenObject(
+                                      Object.fromEntries(
+                                        Object.entries(o).filter(([key]) =>
+                                          headers.includes(key)
+                                        )
                                       )
-                                    )
-                                  );
-                                })
-                              );
-                            }}
-                          >
-                            JSON 으로 다운로드
+                                    );
+                                  })
+                                );
+                              }}
+                            >
+                              JSON으로 다운로드
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <div className={style.menu_container}>
+                            {props.menus.map((menu) => (
+                              <div
+                                className={style.menu_item}
+                                onClick={menu.onClick}
+                              >
+                                {menu.label}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
                     </div>
                   </div>
                 </td>
