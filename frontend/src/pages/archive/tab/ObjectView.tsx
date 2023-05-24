@@ -7,12 +7,15 @@ import useApi from "hooks/useApi";
 import { useParams } from "react-router-dom";
 
 import Loading from "components/loading/Loading";
+import Popup from "components/popup/Popup";
+import Progress from "components/progress/Progress";
+import Callout from "components/callout/Callout";
 
 type Props = {
   registrationList: any[];
 };
 
-const One = (props: Props) => {
+const ObjectView = (props: Props) => {
   const { ArchiveApi, FileApi } = useApi();
   const { pid } = useParams(); // archive label ex) 인적 사항
 
@@ -21,6 +24,12 @@ const One = (props: Props) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
   const archiveListRef = useRef<any>([]);
+
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [isUpdatePopupActive, setIsUpdatePopupActive] =
+    useState<boolean>(false);
+  const [updatingRatio, setUpdatingRatio] = useState<number>(0);
+  const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
 
   const fileInput: {
     [key: string]: any;
@@ -34,39 +43,58 @@ const One = (props: Props) => {
     }
   }, [props.registrationList, pid]);
 
-  useEffect(() => {
-    if (isLoading && pid) {
-      if (props.registrationList.length > 0) {
-        ArchiveApi.RArchivesByRegistrations({
-          registrationIds: props.registrationList.map(
-            (registration: any) => registration._id
-          ),
+  const findArchiveList = async () => {
+    if (!pid || pid === "") return [];
+    const archiveList = [];
+    for (let idx = 0; idx < props.registrationList.length; idx++) {
+      const reg = props.registrationList[idx];
+      try {
+        const archive = await ArchiveApi.RArchiveByRegistration({
+          registrationId: reg._id,
           label: pid,
-        })
-          .then((res) => {
-            const archiveList = [];
-            for (let i = 0; i < res.length; i++) {
-              const archive = res[i];
-              archiveList.push({
-                ...(archive.data[pid] ? archive.data[pid] : {}),
-                _id: archive._id,
-                userName: archive.userName,
-              });
-            }
-
-            setArchiveList(archiveList);
-            archiveListRef.current = archiveList;
-          })
-          .then(() => {
-            setIsLoading(false);
-          });
-      } else {
-        setArchiveList([]);
-        archiveListRef.current = [];
-        setIsLoading(false);
+        });
+        archiveList.push({
+          ...(archive.data[pid] ? archive.data[pid] : {}),
+          registration: reg._id,
+          user: reg.user,
+          userId: reg.userId,
+          userName: reg.userName,
+          grade: reg.grade,
+          _id: archive._id,
+        });
+      } catch (err) {
+        console.error(err);
       }
     }
+    return archiveList;
+  };
+
+  useEffect(() => {
+    if (isLoading && pid) {
+      findArchiveList()
+        .then((archiveList) => {
+          setArchiveList(archiveList);
+          archiveListRef.current = archiveList;
+        })
+        .then(() => {
+          setIsLoading(false);
+        });
+    }
   }, [isLoading]);
+
+  useEffect(() => {
+    if (isUpdating && pid) {
+      setIsUpdatePopupActive(true);
+      updateArchives()
+        .then((archiveList) => {
+          setArchiveList(archiveList);
+          archiveListRef.current = archiveList;
+        })
+        .then(() => {
+          setIsUpdating(false);
+        });
+    }
+  }, [isUpdating]);
 
   useEffect(() => {
     if (refresh) setRefresh(false);
@@ -80,32 +108,42 @@ const One = (props: Props) => {
     );
   }
 
-  const update = async (activateAlert: boolean = true) => {
-    if (archiveListRef.current.length > 0 && pid) {
-      const archiveById: { [key: string]: any } = {};
-      for (let _archive of archiveListRef.current) {
-        if (!archiveById[_archive._id]) archiveById[_archive._id] = {};
-        const archive: { [key: string]: string | number } = {};
-        formArchive().fields?.map((val: any) => {
-          archive[val.label] = _archive[val.label];
-        });
-        archiveById[_archive._id] = archive;
-      }
-      const archives: { _id: string; data: any[] }[] = Object.keys(
-        archiveById
-      ).map((_id: string) => {
-        return {
-          _id,
-          data: archiveById[_id],
-        };
-      });
-      ArchiveApi.UArchives({ label: pid, archives }).then((res) => {
-        setIsLoading(true);
-        if (activateAlert) {
-          alert(SUCCESS_MESSAGE);
+  const updateArchives = async () => {
+    const archiveList = [];
+    setUpdatingRatio(0);
+
+    const updatingLogs: string[] = [];
+
+    for (let i = 0; i < archiveListRef.current.length; i++) {
+      try {
+        const data: { [key: string]: string | number } = {};
+
+        for (let field of formArchive().fields ?? []) {
+          data[field.label] = archiveListRef.current[i][field.label];
         }
-      });
+
+        const { archive } = await ArchiveApi.UArchiveByRegistration({
+          _id: archiveListRef.current[i]._id,
+          label: pid ?? "",
+          data,
+          registration: archiveListRef.current[i].registration,
+        });
+        archiveList.push({
+          ...archiveListRef.current[i],
+          ...archive,
+        });
+      } catch (err) {
+        archiveList.push({ ...archiveListRef.current[i] });
+        updatingLogs.push(
+          `${archiveListRef.current[i].userName} (${archiveListRef.current[i].grade}/${archiveListRef.current[i].userId})`
+        );
+      } finally {
+        setUpdatingRatio((i + 1) / archiveListRef.current.length);
+      }
     }
+
+    setUpdatingLogs([...updatingLogs]);
+    return archiveList;
   };
 
   const fieldInput = (aIdx: number, label: string, index: number) => {
@@ -223,7 +261,7 @@ const One = (props: Props) => {
 
                   archiveListRef.current[aIdx][label].expiryDate = expiryDate;
 
-                  update(false);
+                  updateArchives();
                 }}
                 alt="profile"
               />
@@ -293,7 +331,7 @@ const One = (props: Props) => {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     handleFileImageChange(e).then((res) => {
                       archiveListRef.current[aIdx][label] = res;
-                      update();
+                      updateArchives();
                     });
                   }}
                 />
@@ -307,7 +345,7 @@ const One = (props: Props) => {
                 }}
                 onClick={() => {
                   archiveListRef.current[aIdx][label] = undefined;
-                  update();
+                  updateArchives();
                 }}
               >
                 삭제
@@ -361,7 +399,7 @@ const One = (props: Props) => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   handleFileImageChange(e).then((res) => {
                     archiveListRef.current[aIdx][label] = res;
-                    update();
+                    updateArchives();
                   });
                 }}
               />
@@ -469,7 +507,7 @@ const One = (props: Props) => {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     handleFileChange(e).then((res) => {
                       archiveListRef.current[aIdx][label] = res;
-                      update();
+                      updateArchives();
                     });
                   }}
                 />
@@ -483,7 +521,7 @@ const One = (props: Props) => {
                 }}
                 onClick={() => {
                   archiveListRef.current[aIdx][label] = undefined;
-                  update();
+                  updateArchives();
                 }}
               >
                 삭제
@@ -537,7 +575,7 @@ const One = (props: Props) => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   handleFileChange(e).then((res) => {
                     archiveListRef.current[aIdx][label] = res;
-                    update();
+                    updateArchives();
                   });
                 }}
               />
@@ -555,7 +593,7 @@ const One = (props: Props) => {
           type="ghost"
           style={{ marginTop: "24px", borderColor: "red" }}
           onClick={() => {
-            update();
+            setIsUpdating(true);
           }}
         >
           저장
@@ -566,9 +604,9 @@ const One = (props: Props) => {
           return (
             <div style={{ marginTop: "24px" }}>
               <div style={{ marginBottom: "12px" }}>
-                <h3>
-                  {aIdx + 1}. {archive.userName}
-                </h3>
+                <h3>{`${aIdx + 1}. ${archive.userName} (${archive.grade}/${
+                  archive.userId
+                })`}</h3>
               </div>
               {formArchive().fields?.map((val: any, index: number) => {
                 if (
@@ -589,10 +627,42 @@ const One = (props: Props) => {
           );
         })}
       </div>
+      {isUpdatePopupActive && (
+        <Popup
+          setState={setIsUpdatePopupActive}
+          style={{ borderRadius: "8px" }}
+          contentScroll
+          closeBtn
+        >
+          <div>
+            <p>
+              {isUpdating
+                ? "저장 중입니다."
+                : `저장이 완료되었습니다 (성공: ${
+                    archiveList.length - updatingLogs.length
+                  }, 실패: ${updatingLogs.length})`}
+            </p>
+            <Progress
+              value={updatingRatio ?? 0}
+              style={{ margin: "12px 0px" }}
+              showIconSuccess={!isUpdating && updatingLogs.length === 0}
+              showIconError={!isUpdating && updatingLogs.length > 0}
+            />
+            {updatingLogs.length > 0 && (
+              <Callout
+                type="error"
+                style={{ whiteSpace: "pre" }}
+                title={"저장되지 않은 항목이 있습니다."}
+                description={updatingLogs.join("\n")}
+              />
+            )}
+          </div>
+        </Popup>
+      )}
     </>
   ) : (
     <Loading height={"calc(100vh - 55px)"} />
   );
 };
 
-export default One;
+export default ObjectView;

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { conn } from "../databases/connection.js";
+import { conn } from "../_database/mongodb/index.js";
 
 // temp-1.1: form의 data가 object type인 경우
 var dataSchema = mongoose.Schema(

@@ -1,7 +1,7 @@
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import { Notification } from "../models/index.js";
-import { client } from "../caches/redis.js";
+import { client } from "../_database/redis/index.js";
 import { getIo } from "../utils/webSocket.js";
 
 import mongoose from "mongoose";

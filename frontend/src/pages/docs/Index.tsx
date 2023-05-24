@@ -29,8 +29,8 @@ function Docs({}: Props) {
   const [evaluationData, setEvaluationData] = useState<any>();
 
   async function getDBData(rid: string, uid: string) {
-    const archive = await ArchiveApi.RArchives({
-      registration: rid,
+    const archive = await ArchiveApi.RArchiveByRegistration({
+      registrationId: rid,
     });
 
     let processedEvaluationByYear: any = [];
@@ -94,17 +94,17 @@ function Docs({}: Props) {
   }
 
   const RData = async (school: string) => {
-    const [registrations, forms, documentData] = await Promise.all([
-      RegistrationApi.RRegistrations({
-        school: currentSchool?.school,
-        season: currentSeason?._id,
-        role: "student",
-      }),
+    const registrations = currentSeason?.registrations.filter(
+      (reg) => reg.role === "student"
+    );
+    const [forms, documentData] = await Promise.all([
       FormApi.RForms({ type: "print" }),
 
       DocumentApi.RDocumentData({ school: currentSchool?.school }),
     ]);
-    const form = await FormApi.RForm(forms[0]._id);
+
+    const form =
+      forms.length > 0 ? await FormApi.RForm(forms[0]._id) : undefined;
     return { registrations, forms, form, documentData };
   };
 
@@ -112,9 +112,9 @@ function Docs({}: Props) {
     RData(currentSchool?.school)
       .then(
         (res: {
-          registrations: [any];
-          forms: [any];
-          form: any;
+          registrations: any[];
+          forms: any[];
+          form?: any;
           documentData: any;
         }) => {
           // registrations
@@ -142,12 +142,6 @@ function Docs({}: Props) {
     <>
       <Navbar />
       <div className={style.section}>
-        {/* <div
-            className="btn"
-            onClick={() => {
-              setChoosePopupActive(true);
-            }}
-          ></div> */}
         <div className={style.search}>
           <div className={style.label}>학생선택</div>
           <Select
@@ -157,19 +151,7 @@ function Docs({}: Props) {
             }}
             style={{ borderRadius: "4px", maxWidth: "120px" }}
           />
-          <Select
-            style={{ borderRadius: "4px" }}
-            options={[
-              ...printForms.map((val: any) => {
-                return { text: val.title, value: val._id };
-              }),
-            ]}
-            onChange={(val: string) => {
-              FormApi.RForm(val).then((res) => {
-                setFormData(res);
-              });
-            }}
-          />
+
           <Autofill
             style={{ borderRadius: "4px" }}
             options={[
@@ -195,6 +177,19 @@ function Docs({}: Props) {
               });
             }}
             placeholder={"검색"}
+          />
+          <Select
+            style={{ borderRadius: "4px" }}
+            options={[
+              ...printForms.map((val: any) => {
+                return { text: val.title, value: val._id };
+              }),
+            ]}
+            onChange={(val: string) => {
+              FormApi.RForm(val).then((res) => {
+                setFormData(res);
+              });
+            }}
           />
           <div
             className="btn"
