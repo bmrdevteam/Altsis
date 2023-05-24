@@ -9,11 +9,12 @@ import { objectDownloadAsXlxs } from "functions/functions";
 import * as xlsx from "xlsx";
 
 const ExcelPopup = (props: {
+  type: "array" | "object";
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
   fields: any[];
   pid: string;
   archiveList: any[];
-  userNameStatus: any;
+  userNameStatus?: any;
   setIsUpdating: React.Dispatch<React.SetStateAction<boolean>>;
   archiveListRef: React.MutableRefObject<any>;
 }) => {
@@ -42,22 +43,29 @@ const ExcelPopup = (props: {
       );
       const data: any[] = [];
       for (let i = 1; i < rowObjList.length; i++) {
-        if (
-          "#_id" in rowObjList[i] &&
-          "#학년" in rowObjList[i] &&
-          "#이름" in rowObjList[i] &&
-          "#ID" in rowObjList[i]
-        ) {
-          const item: { [key: string]: string } = {
-            _id: rowObjList[i]["#_id"],
-            grade: rowObjList[i]["#학년"],
-            userName: rowObjList[i]["#이름"],
-            userId: rowObjList[i]["#ID"],
-          };
-          for (let field of props.fields) {
-            item[field.label] = rowObjList[i][field.label];
+        if ("#_id" in rowObjList[i]) {
+          const archive = _.find(
+            props.archiveList,
+            (a) => a._id === rowObjList[i]["#_id"]
+          );
+          if (archive) {
+            const item: { [key: string]: string } = {
+              _id: archive._id,
+              grade: archive.grade,
+              userName: archive.userName,
+              userId: archive.userId,
+              registration: archive.registration,
+            };
+            for (let field of props.fields) {
+              console.log(field);
+              if (field.type === "file" || field.type === "file-image") {
+                item[field.label] = archive[field.label];
+              } else {
+                item[field.label] = rowObjList[i][field.label];
+              }
+            }
+            data.push(item);
           }
-          data.push(item);
         }
       }
       setData(data);
@@ -106,7 +114,11 @@ const ExcelPopup = (props: {
             "#학년",
             "#이름",
             "#ID",
-            ...props.fields.map((field) => field.label),
+            ...props.fields
+              .filter(
+                (field) => field.type !== "file" && field.type !== "file-image"
+              )
+              .map((field) => field.label),
           ],
           data: [
             description,
@@ -139,18 +151,29 @@ const ExcelPopup = (props: {
 
   const header = () => {
     const arr: any[] = [
-      {
-        text: "이름",
-        whiteSpace: "pre",
-        key: "_id",
-        type: "status",
-        width: "124px",
-        textAlign: "center",
-        status: props.userNameStatus,
-        fontWeight: "600",
-      },
+      props.type === "array"
+        ? {
+            text: "#이름",
+            whiteSpace: "pre",
+            key: "_id",
+            type: "status",
+            width: "124px",
+            textAlign: "center",
+            status: props.userNameStatus,
+            fontWeight: "600",
+          }
+        : {
+            text: "#이름",
+            whiteSpace: "pre",
+            key: "userName",
+            width: "124px",
+            textAlign: "center",
+            fontWeight: "600",
+          },
     ];
-    for (let field of props.fields) {
+    for (let field of props.fields.filter(
+      (field) => field.type !== "file" && field.type !== "file-image"
+    )) {
       arr.push({
         text: field.label,
         whiteSpace: "pre",
@@ -160,6 +183,46 @@ const ExcelPopup = (props: {
     return arr;
   };
 
+  const description = () => {
+    if (props.type === "array") {
+      return (
+        <ol>
+          <li>
+            <b>양식</b>을 다운받습니다.
+          </li>
+          <li>첫 번째 행은 양식 필드입니다.</li>
+          <li>두 번째 행은 양식 필드의 형식을 설명합니다.</li>
+          <li>수정 사항은 세 번째 행부터 적용됩니다.</li>
+          <li>행을 삭제하여 기록을 삭제할 수 있습니다.</li>
+          <li>
+            행을 추가하여 기록을 추가할 수 있습니다.
+            <ul>
+              <li>
+                학생 식별키(#_id, #학년, #이름, #ID)를 함께 복사하여 기록을
+                추가해주세요.
+              </li>
+              <li>
+                첫 번째 시트에 학생의 식별키가 없는 경우 두 번째 시트에서
+                찾아주세요.
+              </li>
+            </ul>
+          </li>
+        </ol>
+      );
+    }
+    return (
+      <ol>
+        <li>
+          <b>양식</b>을 다운받습니다.
+        </li>
+        <li>첫 번째 행은 양식 필드입니다.</li>
+        <li>두 번째 행은 양식 필드의 형식을 설명합니다.</li>
+        <li>수정 사항은 세 번째 행부터 적용됩니다.</li>
+        <li>학생 식별키(#_id, #학년, #이름, #ID)는 수정할 수 없습니다.</li>
+        <li>파일 또는 사진 필드는 엑셀 파일로 수정할 수 없습니다.</li>
+      </ol>
+    );
+  };
   return (
     <>
       <Popup
@@ -195,30 +258,7 @@ const ExcelPopup = (props: {
             style={{ marginBottom: "24px" }}
             type={"info"}
             title={"도움말"}
-            child={
-              <ol>
-                <li>
-                  <b>양식</b>을 다운받습니다.
-                </li>
-                <li>첫 번째 행은 양식 필드입니다.</li>
-                <li>두 번째 행은 양식 필드의 형식을 설명합니다.</li>
-                <li>수정 사항은 세 번째 행부터 적용됩니다.</li>
-                <li>행을 삭제하여 기록을 삭제할 수 있습니다.</li>
-                <li>
-                  행을 추가하여 기록을 추가할 수 있습니다.
-                  <ul>
-                    <li>
-                      학생 식별키(#_id, #학년, #이름, #ID)를 함께 복사하여
-                      기록을 추가해주세요.
-                    </li>
-                    <li>
-                      첫 번째 시트에 학생의 식별키가 없는 경우 두 번째 시트에서
-                      찾아주세요.
-                    </li>
-                  </ul>
-                </li>
-              </ol>
-            }
+            child={description()}
             showIcon
           />
 
