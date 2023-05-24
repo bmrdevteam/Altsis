@@ -126,7 +126,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditStudents'", () => {
       };
     });
   };
-  it("studentRegistration이 없는 경우 404 반환", async () => {
+  it("studentRegistration이 없는 경우 403 반환", async () => {
     setup();
     Registration.mockImplementation(() => {
       return {
@@ -134,11 +134,11 @@ describe("formArchiveItem.authTeacher==='viewAndEditStudents'", () => {
       };
     });
     await archives.update(req, res);
-    expect(res._getStatusCode()).toBe(404);
-    expect(res._getData().message).toBe("REGISTRATION(STUDENT)_NOT_FOUND");
+    expect(res._getStatusCode()).toBe(403);
+    expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
 
-  it("teacherRegistration이 없는 경우 404 반환", async () => {
+  it("teacherRegistration이 없는 경우 403 반환", async () => {
     setup();
     Registration.mockImplementation(() => {
       return {
@@ -148,8 +148,8 @@ describe("formArchiveItem.authTeacher==='viewAndEditStudents'", () => {
     });
 
     await archives.update(req, res);
-    expect(res._getStatusCode()).toBe(404);
-    expect(res._getData().message).toBe("REGISTRATION(TEACHER)_NOT_FOUND");
+    expect(res._getStatusCode()).toBe(403);
+    expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
 
   it("archive 반환", async () => {
@@ -209,8 +209,8 @@ describe("formArchiveItem.authTeacher==='viewAndEditMyStudents'", () => {
     });
 
     await archives.update(req, res);
-    expect(res._getStatusCode()).toBe(404);
-    expect(res._getData().message).toBe("REGISTRATION(STUDENT)_NOT_FOUND");
+    expect(res._getStatusCode()).toBe(403);
+    expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
 
   it("요청자가 studentRegistration의 담임도 아니고 부담임도 아닌 경우 403 반환", async () => {
