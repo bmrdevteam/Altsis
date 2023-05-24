@@ -11,17 +11,19 @@ const getURL = (dbName) => {
 const conn = { root };
 let isConnected = false;
 
-Academy.find({}, (err, academies) => {
-  academies.forEach((academy) => {
-    if (academy.academyId != "root") {
-      conn[academy.academyId] = mongoose.createConnection(
-        getURL(academy.dbName)
-      );
-    }
-  });
-  console.log("✅ MongoDB is connected");
-  isConnected = true;
-}).select("+dbName");
+if (process.env.NODE_ENV.trim() !== "test") {
+  Academy.find({}, (err, academies) => {
+    academies.forEach((academy) => {
+      if (academy.academyId != "root") {
+        conn[academy.academyId] = mongoose.createConnection(
+          getURL(academy.dbName)
+        );
+      }
+    });
+    console.log("✅ MongoDB is connected");
+    isConnected = true;
+  }).select("+dbName");
+}
 
 const addConnection = (academy) => {
   conn[academy.academyId] = mongoose.createConnection(getURL(academy.dbName));
