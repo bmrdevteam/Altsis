@@ -47,7 +47,7 @@ const ObjectView = (props: Props) => {
         archiveList.push({
           ...(archive.data[pid] ? archive.data[pid] : {}),
           registration: reg._id,
-          grade: archive.grade,
+          grade: reg.grade,
           userName: archive.userName,
           userId: archive.userId,
           _id: archive._id,
