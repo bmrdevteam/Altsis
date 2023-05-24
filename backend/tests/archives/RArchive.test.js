@@ -80,7 +80,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
         findById: jest.fn().mockResolvedValueOnce(undefined),
       };
     });
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("REGISTRATION(STUDENT)_NOT_FOUND");
   });
@@ -97,7 +97,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("SCHOOL_NOT_FOUND");
   });
@@ -117,7 +117,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("FORMARCHIVE_ITEM_NOT_FOUND");
   });
@@ -137,7 +137,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByStudent, res);
+    await archives.findByRegistration(reqByStudent, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -158,7 +158,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -178,7 +178,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -198,7 +198,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -222,7 +222,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(200);
     expect(res._getData().archive.data).toEqual(expectedValue);
   });
@@ -245,7 +245,7 @@ describe("GET /archives?registrationId=***&label=***", () => {
       };
     });
 
-    await archives.find(reqByTeacher, res);
+    await archives.findByRegistration(reqByTeacher, res);
     expect(res._getStatusCode()).toBe(200);
     expect(res._getData().archive.data).toEqual(expectedValue);
   });

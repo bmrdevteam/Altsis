@@ -122,7 +122,7 @@ const ObjectView = (props: Props) => {
           data[field.label] = archiveListRef.current[i][field.label];
         }
 
-        const { archive } = await ArchiveApi.UArchive({
+        const { archive } = await ArchiveApi.UArchiveByRegistration({
           _id: archiveListRef.current[i]._id,
           label: pid ?? "",
           data,

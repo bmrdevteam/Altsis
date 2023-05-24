@@ -161,7 +161,7 @@ const One = (props: Props) => {
 
     for (let i = 0; i < _archiveList.length; i++) {
       try {
-        const { archive } = await ArchiveApi.UArchive({
+        const { archive } = await ArchiveApi.UArchiveByRegistration({
           _id: _archiveList[i]._id,
           label: pid ?? "",
           data: _archiveList[i].data,
