@@ -1,14 +1,12 @@
 import { logger } from "../log/logger.js";
-import {
-  Archive,
-  User,
-  School,
-  Registration,
-  Season,
-} from "../models/index.js";
+import { Archive } from "../models/Archive.js";
+import { User } from "../models/User.js";
+import { School } from "../models/School.js";
+import { Registration } from "../models/Registration.js";
 import mongoose from "mongoose";
 const ObjectId = mongoose.Types.ObjectId;
 import _ from "lodash";
+import { PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
 
 export const findByLabel = async (req, res) => {
   try {
@@ -91,6 +89,7 @@ export const find = async (req, res) => {
 
     const _Archive = Archive(req.user.academyId);
 
+    //deprecated
     /* teacher request for students' archive */
     if (registrationIds && label) {
       const registrationIdList = _.split(registrationIds, ",");
@@ -159,30 +158,37 @@ export const find = async (req, res) => {
         req.user.academyId
       ).findById(registrationId);
       if (!studentRegistration) {
-        return res.status(404).send({ message: "registration not found" });
+        return res
+          .status(404)
+          .send({ message: __NOT_FOUND("registration(student)") });
       }
 
-      const school = await School(req.user.academyId)
-        .findById(studentRegistration.school)
-        .lean()
-        .select("formArchive");
-      if (!school) return res.status(404).send({ message: "school not found" });
+      const school = await School(req.user.academyId).findById(
+        studentRegistration.school
+      );
+      if (!school) {
+        return res.status(404).send({ message: __NOT_FOUND("school") });
+      }
 
       const formArchiveItem = _.find(
         school.formArchive,
         (fa) => fa.label === req.query.label
       );
-      if (!formArchiveItem)
-        return res.status(404).send({ message: "formArchiveItem not found" });
+      if (!formArchiveItem) {
+        return res
+          .status(404)
+          .send({ message: __NOT_FOUND("formArchive_item") });
+      }
 
       /* if it is student */
       if (studentRegistration.user.equals(req.user._id)) {
         if (formArchiveItem?.authStudent !== "view") {
-          return res.status(403).send({});
+          return res
+            .status(403)
+            .send({ message: PERMISSION_DENIED, description: "view" });
         }
       } else if (formArchiveItem.authTeacher === "viewAndEditStudents") {
-
-      /* if it is teacher */
+        /* if it is teacher */
         const teacherRegistration = await Registration(
           req.user.academyId
         ).findOne({
@@ -190,16 +196,25 @@ export const find = async (req, res) => {
           user: req.user._id,
           role: "teacher",
         });
-        if (!teacherRegistration) return res.status(403).send({});
+        if (!teacherRegistration)
+          return res.status(403).send({
+            message: PERMISSION_DENIED,
+            description: "viewAndEditStudents",
+          });
       } else if (formArchiveItem?.authTeacher === "viewAndEditMyStudents") {
         if (
           !studentRegistration.teacher?.equals(req.user._id) &&
           !studentRegistration.subTeacher?.equals(req.user._id)
         ) {
-          return res.status(403).send({});
+          return res.status(403).send({
+            message: PERMISSION_DENIED,
+            description: "viewAndEditMyStudents",
+          });
         }
       } else {
-        return res.status(403).send({});
+        return res
+          .status(403)
+          .send({ message: PERMISSION_DENIED, description: "undefined" });
       }
 
       let archive = await Archive(req.user.academyId).findOne({
@@ -207,7 +222,7 @@ export const find = async (req, res) => {
         user: studentRegistration.user,
       });
       if (!archive) {
-        archive = new _Archive({
+        archive = await _Archive.create({
           user: studentRegistration.user,
           userId: studentRegistration.userId,
           userName: studentRegistration.userName,
@@ -215,22 +230,13 @@ export const find = async (req, res) => {
           schoolId: studentRegistration.schoolId,
           schoolName: studentRegistration.schoolName,
         });
-        await archive.save();
-
-        return res.status(200).send({
-          role: studentRegistration.role,
-          grade: studentRegistration.grade,
-          group: studentRegistration.group,
-          ...archive.toObject(),
-          data: { [label]: archive.data?.[label] },
-        });
       }
       return res.status(200).send({
-        role: studentRegistration.role,
-        grade: studentRegistration.grade,
-        group: studentRegistration.group,
-        ...archive.toObject(),
-        data: { [label]: archive.data?.[label] },
+        archive: {
+          _id: archive._id,
+          user: archive.user,
+          data: { [label]: archive.data?.[label] },
+        },
       });
     }
 
@@ -327,64 +333,83 @@ export const updateBulk = async (req, res) => {
 export const update = async (req, res) => {
   try {
     if (!ObjectId.isValid(req.params._id)) return res.status(400).send();
-    if (
-      !("label" in req.body) ||
-      !("data" in req.body) ||
-      !("registration" in req.body)
-    ) {
-      return res.status(400).send();
+    for (let field of ["label", "data", "registration"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send();
+      }
     }
+
     const user = req.user;
 
-    const archive = await Archive(user.academyId).findById(req.params._id);
-    if (!archive) return res.status(404).send({ message: "archive not found" });
+    const archive = await Archive(req.user.academyId).findById(req.params._id);
+    if (!archive) {
+      return res.status(404).send({ message: __NOT_FOUND("archive") });
+    }
 
-    const school = await School(user.academyId)
-      .findById(archive.school)
-      .lean()
-      .select("formArchive");
-    if (!school) return res.status(404).send({});
+    const school = await School(user.academyId).findById(archive.school);
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
 
     const formArchiveItem = _.find(
       school.formArchive,
       (fa) => fa.label === req.body.label
     );
-    if (!formArchiveItem) return res.status(404).send({});
+    if (!formArchiveItem) {
+      return res.status(404).send({ message: __NOT_FOUND("formArchive_Item") });
+    }
 
-    if (formArchiveItem?.authTeacher === "viewAndEditStudents") {
+    if (formArchiveItem.authTeacher === "viewAndEditStudents") {
       const studentRegistration = await Registration(user.academyId).findById(
         req.body.registration
       );
 
-      if (!studentRegistration) return res.status(404).send({});
+      if (!studentRegistration) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
 
       const teacherRegistration = await Registration(user.academyId).findOne({
         season: studentRegistration.season,
         user: user._id,
         role: "teacher",
       });
-      if (!teacherRegistration) return res.status(403).send({});
-    } else if (formArchiveItem?.authTeacher === "viewAndEditMyStudents") {
+      if (!teacherRegistration) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    } else if (formArchiveItem.authTeacher === "viewAndEditMyStudents") {
       const studentRegistration = await Registration(user.academyId).findById(
         req.body.registration
       );
 
-      if (!studentRegistration) return res.status(404).send({});
+      if (!studentRegistration) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
 
       if (
         !studentRegistration.teacher?.equals(user._id) &&
         !studentRegistration.subTeacher?.equals(user._id)
       ) {
-        return res.status(403).send({});
+        return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else {
       return res.status(400).send({});
     }
 
-    archive.data = { ...archive.data, [req.body.label]: req.body.data };
+    archive.data = {
+      ...archive.data,
+      [req.body.label]: req.body.data,
+    };
 
     await archive.save();
-    return res.status(200).send({ archive });
+    return res.status(200).send({
+      archive: {
+        _id: archive._id,
+        user: archive.user,
+        data: {
+          [req.body.label]: archive.data[req.body.label],
+        },
+      },
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

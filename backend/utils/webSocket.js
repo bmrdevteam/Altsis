@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import _ from "lodash";
-import { client } from "../caches/redis.js";
+import { client } from "../_database/redis/index.js";
 import {
   getTaskCompleted,
   getTaskRequested,

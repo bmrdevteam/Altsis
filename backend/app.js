@@ -1,4 +1,5 @@
 import "./env.js";
+import { redisClient, ready } from "./_database/index.js";
 
 import express from "express";
 import cookieParser from "cookie-parser";
@@ -6,10 +7,9 @@ import cors from "cors";
 import session from "express-session";
 
 import passport from "passport";
-import { config as passportConfig } from "./passport/index.js";
+import { config as passportConfig } from "./_passport/index.js";
 
 import { routers } from "./routes/index.js";
-import { initializeWebSocket } from "./utils/webSocket.js";
 
 /* logger */
 import morgan from "morgan";
@@ -17,7 +17,6 @@ import { logger } from "./log/logger.js";
 
 import connectRedis from "connect-redis";
 const RedisStore = connectRedis(session);
-import { client } from "./caches/redis.js";
 
 const app = express();
 
@@ -45,7 +44,7 @@ app.use(
     },
     rolling: true,
     store: new RedisStore({
-      client,
+      client: redisClient,
       ttl: 24 * 60 * 60, //1 day
       // no need to set reapInterval
     }),
@@ -91,12 +90,6 @@ routers.forEach((router) => {
   app.use("/api/" + router.label, router.routes);
 });
 
-export { app };
-
 app.set("port", process.env["SERVER_PORT"].trim() || 3000);
 
-const server = app.listen(app.get("port"), function () {
-  console.log("Express server listening on port " + server.address().port);
-});
-
-initializeWebSocket(server);
+export { app, ready };

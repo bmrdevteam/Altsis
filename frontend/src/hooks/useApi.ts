@@ -1027,10 +1027,10 @@ export default function useApi() {
     registrationId: string;
     label: string;
   }) {
-    const res = await database.R({
+    const { archive } = await database.R({
       location: "archives" + QUERY_BUILDER(params),
     });
-    return res;
+    return archive;
   }
   /**
    * Update Archives
