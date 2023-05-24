@@ -101,29 +101,31 @@ const ArchiveField = (props: Props) => {
         </div>
       );
     }
-    return [
-      <div
-        className={style.category}
-        onClick={() => setSelectPopupActive(true)}
-      >
-        선택된 학생 수: {selectedRegistrationList.length}
-      </div>,
-      ...selectedRegistrationList.map((registration: any, idx: number) => (
+    return (
+      <>
         <div
           className={style.category}
-          onClick={() => {
-            selectedRegistrationList.splice(idx, 1);
-            setSelectedRegistrationList([...selectedRegistrationList]);
-            const reg = _.find(registrationListRef.current, {
-              _id: registration._id,
-            });
-            if (reg) reg.tableRowChecked = false;
-          }}
+          onClick={() => setSelectPopupActive(true)}
         >
-          {registration.userName}
+          선택된 학생 수: {selectedRegistrationList.length}
         </div>
-      )),
-    ];
+        {selectedRegistrationList.map((registration: any, idx: number) => (
+          <div
+            className={style.category}
+            onClick={() => {
+              selectedRegistrationList.splice(idx, 1);
+              setSelectedRegistrationList([...selectedRegistrationList]);
+              const reg = _.find(registrationListRef.current, {
+                _id: registration._id,
+              });
+              if (reg) reg.tableRowChecked = false;
+            }}
+          >
+            {registration.userName}
+          </div>
+        ))}
+      </>
+    );
   };
 
   function formArchive() {
@@ -140,7 +142,9 @@ const ArchiveField = (props: Props) => {
       <div className={style.section}>
         <div className={style.title}>{pid}</div>
 
-        <div className={style.categories}>{selectedStudents()}</div>
+        <div className={style.categories_container}>
+          <div className={style.categories}>{selectedStudents()}</div>
+        </div>
 
         {formArchive().dataType === "object" ? (
           <ObjectView registrationList={selectedRegistrationList}></ObjectView>
