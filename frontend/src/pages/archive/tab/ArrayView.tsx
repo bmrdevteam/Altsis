@@ -12,6 +12,8 @@ import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
 import _ from "lodash";
 
+import ExcelPopup from "./ExcelPopup";
+
 type Props = {
   registrationList: any[];
 };
@@ -37,6 +39,8 @@ const One = (props: Props) => {
     useState<boolean>(false);
   const [updatingRatio, setUpdatingRatio] = useState<number>(0);
   const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
+
+  const [isExcelPopupActive, setIsExcelPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
     if (pid) {
@@ -125,38 +129,32 @@ const One = (props: Props) => {
   }
 
   const updateArchives = async () => {
-    const _archiveList: any[] = [];
+    const _archiveList: any[] = archiveList.map((a) => {
+      return {
+        _id: a._id,
+        user: a.user,
+        userId: a.userId,
+        userName: a.userName,
+        grade: a.grade,
+        registration: a.registration,
+        data: [],
+      };
+    });
     setUpdatingRatio(0);
     const updatingLogs: string[] = [];
 
     for (let archiveFlattened of archiveListFlattenedRef.current) {
-      let _aIdx = _.findIndex(
+      const _aIdx = _.findIndex(
         _archiveList,
         (a) => a._id === archiveFlattened._id
       );
-
-      if (_aIdx === -1) {
-        const aIdx = _.findIndex(
-          archiveList,
-          (a) => a._id === archiveFlattened._id
-        );
-        _archiveList.push({
-          _id: archiveList[aIdx]._id,
-          user: archiveList[aIdx].user,
-          userId: archiveList[aIdx].userId,
-          userName: archiveList[aIdx].userName,
-          grade: archiveList[aIdx].grade,
-          registration: archiveList[aIdx].registration,
-          data: [],
-        });
-        _aIdx = _archiveList.length - 1;
+      if (_aIdx !== -1) {
+        const dataItem: { [key: string]: string } = {};
+        for (let field of formArchive().fields ?? []) {
+          dataItem[field.label] = archiveFlattened[field.label];
+        }
+        _archiveList[_aIdx].data.push(dataItem);
       }
-
-      const dataItem: { [key: string]: string } = {};
-      for (let field of formArchive().fields ?? []) {
-        dataItem[field.label] = archiveFlattened[field.label];
-      }
-      _archiveList[_aIdx].data.push(dataItem);
     }
 
     for (let i = 0; i < _archiveList.length; i++) {
@@ -301,6 +299,14 @@ const One = (props: Props) => {
           type="object-array"
           data={archiveListFlattened ?? []}
           header={archiveHeader()}
+          menus={[
+            {
+              onClick: () => {
+                setIsExcelPopupActive(true);
+              },
+              label: "엑셀 파일로 수정",
+            },
+          ]}
         />
       </div>
       {isUpdatePopupActive && (
@@ -334,6 +340,17 @@ const One = (props: Props) => {
             )}
           </div>
         </Popup>
+      )}
+      {isExcelPopupActive && (
+        <ExcelPopup
+          setPopupActive={setIsExcelPopupActive}
+          fields={formArchive().fields}
+          pid={pid ?? "data"}
+          archiveListRef={archiveListFlattenedRef}
+          archiveList={archiveList}
+          userNameStatus={userNameStatus}
+          setIsUpdating={setIsUpdating}
+        />
       )}
     </>
   ) : (
