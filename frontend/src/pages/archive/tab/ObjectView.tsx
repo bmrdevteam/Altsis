@@ -19,7 +19,7 @@ const ObjectView = (props: Props) => {
   const { ArchiveApi, FileApi } = useApi();
   const { pid } = useParams(); // archive label ex) 인적 사항
 
-  const { currentSchool, currentSeason } = useAuth();
+  const { currentSchool } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
@@ -108,7 +108,7 @@ const ObjectView = (props: Props) => {
     );
   }
 
-  const updateArchives = async (activateAlert: boolean = true) => {
+  const updateArchives = async () => {
     const archiveList = [];
     setUpdatingRatio(0);
 
@@ -138,7 +138,6 @@ const ObjectView = (props: Props) => {
           `${archiveListRef.current[i].userName} (${archiveListRef.current[i].grade}/${archiveListRef.current[i].userId})`
         );
       } finally {
-        console.log((i + 1) / archiveListRef.current.length);
         setUpdatingRatio((i + 1) / archiveListRef.current.length);
       }
     }
@@ -262,7 +261,7 @@ const ObjectView = (props: Props) => {
 
                   archiveListRef.current[aIdx][label].expiryDate = expiryDate;
 
-                  updateArchives(false);
+                  updateArchives();
                 }}
                 alt="profile"
               />

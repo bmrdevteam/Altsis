@@ -1,11 +1,16 @@
 import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
-import _ from "lodash";
+import style from "style/pages/archive.module.scss";
 import { useRef, useEffect, useState } from "react";
 import useApi from "hooks/useApi";
 import { useParams } from "react-router-dom";
+
 import Loading from "components/loading/Loading";
+import Popup from "components/popup/Popup";
+import Progress from "components/progress/Progress";
+import Callout from "components/callout/Callout";
+import _ from "lodash";
 
 type Props = {
   registrationList: any[];
@@ -27,75 +32,86 @@ const One = (props: Props) => {
     [key: string]: { text: string; color: string };
   }>({});
 
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  const [isUpdatePopupActive, setIsUpdatePopupActive] =
+    useState<boolean>(false);
+  const [updatingRatio, setUpdatingRatio] = useState<number>(0);
+  const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
+
   useEffect(() => {
     if (pid) {
       setIsLoading(true);
     }
   }, [props.registrationList, pid]);
 
-  useEffect(() => {
-    if (isLoading && pid) {
-      if (props.registrationList.length > 0) {
-        ArchiveApi.RArchivesByRegistrations({
-          registrationIds: props.registrationList.map(
-            (registration: any) => registration._id
-          ),
+  const findArchiveList = async () => {
+    if (!pid || pid === "") return [];
+    const archiveList = [];
+    for (let idx = 0; idx < props.registrationList.length; idx++) {
+      const reg = props.registrationList[idx];
+      try {
+        const archive = await ArchiveApi.RArchiveByRegistration({
+          registrationId: reg._id,
           label: pid,
-        })
-          .then((res) => {
-            const archiveListFlattened = [];
-            const userNameStatus: {
-              [key: string]: { text: string; color: string };
-            } = {};
+        });
+        archiveList.push({
+          data: archive.data[pid] ?? [],
+          registration: reg._id,
+          user: reg.user,
+          userId: reg.userId,
+          userName: reg.userName,
+          grade: reg.grade,
+          _id: archive._id,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    return archiveList;
+  };
 
-            for (let i = 0; i < res.length; i++) {
-              const archive = res[i];
+  const updateArchiveListFlattened = (archiveList: any[]) => {
+    const archiveListFlattened = [];
+    const userNameStatus: {
+      [key: string]: { text: string; color: string };
+    } = {};
 
-              if (!userNameStatus[archive._id]) {
-                userNameStatus[archive._id] = {
-                  text: archive.userName,
-                  color: colors[i % 4],
-                };
-              }
-              if (!archive.data[pid]) {
-                archive.data[pid] = [];
-              }
-              for (let idx = 0; idx < archive.data[pid].length; idx++) {
-                archiveListFlattened.push({
-                  ...archive.data[pid][idx],
-                  _id: archive._id,
-                });
-              }
-            }
-            setArchiveList(res);
-            setUserNameStatus(userNameStatus);
-            setArchiveListFlattened(archiveListFlattened);
-            archiveListFlattenedRef.current = archiveListFlattened;
-          })
-          .then(() => {
-            setIsLoading(false);
-          });
-      } else {
-        setArchiveList([]);
-        setUserNameStatus({});
-        setArchiveListFlattened([]);
-        archiveListFlattenedRef.current = [];
-        setIsLoading(false);
+    for (let i = 0; i < archiveList.length; i++) {
+      const archive = archiveList[i];
+      if (!userNameStatus[archive._id]) {
+        userNameStatus[archive._id] = {
+          text: archive.userName,
+          color: colors[i % 4],
+        };
       }
 
-      // if (props.aid !== "") {
-      //   ArchiveApi.RArchiveByLabel(props.aid ?? "", { label: props.pid ?? "" })
-      //     .then((res) => {
-      //       const data = res.data?.[props.pid ?? ""];
-      //       if (data) {
-      //         setArchiveData(data);
-      //         dataRef.current = data;
-      //       }
-      //     })
-      //     .then(() => setIsLoadingArchive(false));
-      // } else {
-      //   setIsLoadingArchive(false);
-      // }
+      for (let idx = 0; idx < archive.data.length; idx++) {
+        archiveListFlattened.push({
+          ...archive.data[idx],
+          _id: archive._id,
+          user: archive.user,
+          userId: archive.userId,
+          userName: archive.userName,
+          grade: archive.grade,
+          registration: archive.registration,
+        });
+      }
+    }
+    setUserNameStatus(userNameStatus);
+    setArchiveListFlattened(archiveListFlattened);
+    archiveListFlattenedRef.current = archiveListFlattened;
+  };
+
+  useEffect(() => {
+    if (isLoading && pid) {
+      findArchiveList()
+        .then((archiveList) => {
+          setArchiveList(archiveList);
+          updateArchiveListFlattened(archiveList);
+        })
+        .then(() => {
+          setIsLoading(false);
+        });
     }
   }, [isLoading]);
 
@@ -108,32 +124,80 @@ const One = (props: Props) => {
     );
   }
 
-  const update = async () => {
-    if (archiveListFlattenedRef.current.length > 0 && pid) {
-      const archiveById: { [key: string]: any[] } = {};
-      for (let _archive of archiveListFlattenedRef.current) {
-        if (!archiveById[_archive._id]) archiveById[_archive._id] = [];
-        const archive: { [key: string]: string | number } = {};
-        formArchive().fields?.map((val: any) => {
-          archive[val.label] = _archive[val.label];
-        });
-        archiveById[_archive._id].push(archive);
-      }
-      const archives: { _id: string; data: any[] }[] = Object.keys(
-        archiveById
-      ).map((_id: string) => {
-        return {
-          _id,
-          data: archiveById[_id],
-        };
-      });
+  const updateArchives = async () => {
+    const _archiveList: any[] = [];
+    setUpdatingRatio(0);
+    const updatingLogs: string[] = [];
 
-      ArchiveApi.UArchives({ label: pid, archives }).then((res) => {
-        setIsLoading(true);
-        alert(SUCCESS_MESSAGE);
-      });
+    for (let archiveFlattened of archiveListFlattenedRef.current) {
+      let _aIdx = _.findIndex(
+        _archiveList,
+        (a) => a._id === archiveFlattened._id
+      );
+
+      if (_aIdx === -1) {
+        const aIdx = _.findIndex(
+          archiveList,
+          (a) => a._id === archiveFlattened._id
+        );
+        _archiveList.push({
+          _id: archiveList[aIdx]._id,
+          user: archiveList[aIdx].user,
+          userId: archiveList[aIdx].userId,
+          userName: archiveList[aIdx].userName,
+          grade: archiveList[aIdx].grade,
+          registration: archiveList[aIdx].registration,
+          data: [],
+        });
+        _aIdx = _archiveList.length - 1;
+      }
+
+      const dataItem: { [key: string]: string } = {};
+      for (let field of formArchive().fields ?? []) {
+        dataItem[field.label] = archiveFlattened[field.label];
+      }
+      _archiveList[_aIdx].data.push(dataItem);
     }
+
+    for (let i = 0; i < _archiveList.length; i++) {
+      try {
+        const { archive } = await ArchiveApi.UArchive({
+          _id: _archiveList[i]._id,
+          label: pid ?? "",
+          data: _archiveList[i].data,
+          registration: _archiveList[i].registration,
+        });
+        archiveList.push({
+          ..._archiveList[i],
+          ...archive,
+        });
+      } catch (err) {
+        archiveList.push({ ..._archiveList[i] });
+        updatingLogs.push(
+          `${archiveList[i].userName} (${archiveList[i].grade}/${archiveList[i].userId})`
+        );
+      } finally {
+        setUpdatingRatio((i + 1) / _archiveList.length);
+      }
+    }
+
+    setUpdatingLogs([...updatingLogs]);
+    return _archiveList;
   };
+
+  useEffect(() => {
+    if (isUpdating && pid) {
+      setIsUpdatePopupActive(true);
+      updateArchives()
+        .then((archiveList) => {
+          setArchiveList(archiveList);
+          updateArchiveListFlattened(archiveList);
+        })
+        .then(() => {
+          setIsUpdating(false);
+        });
+    }
+  }, [isUpdating]);
 
   function archiveHeader() {
     let arr: any = [
@@ -198,7 +262,7 @@ const One = (props: Props) => {
           type="ghost"
           style={{ marginTop: "24px", borderColor: "red" }}
           onClick={() => {
-            update();
+            setIsUpdating(true);
           }}
         >
           저장
@@ -231,13 +295,46 @@ const One = (props: Props) => {
               }
             }
             archiveListFlattenedRef.current = value;
-            return update();
+
+            setIsUpdating(true);
           }}
           type="object-array"
           data={archiveListFlattened ?? []}
           header={archiveHeader()}
         />
       </div>
+      {isUpdatePopupActive && (
+        <Popup
+          setState={setIsUpdatePopupActive}
+          style={{ borderRadius: "8px" }}
+          contentScroll
+          closeBtn
+        >
+          <div>
+            <p>
+              {isUpdating
+                ? "저장 중입니다."
+                : `저장이 완료되었습니다 (성공: ${
+                    archiveList.length - updatingLogs.length
+                  }, 실패: ${updatingLogs.length})`}
+            </p>
+            <Progress
+              value={updatingRatio ?? 0}
+              style={{ margin: "12px 0px" }}
+              showIconSuccess={!isUpdating && updatingLogs.length === 0}
+              showIconError={!isUpdating && updatingLogs.length > 0}
+            />
+            {updatingLogs.length > 0 && (
+              <Callout
+                type="error"
+                style={{ whiteSpace: "pre" }}
+                title={"저장되지 않은 항목이 있습니다."}
+                description={updatingLogs.join("\n")}
+              />
+            )}
+          </div>
+        </Popup>
+      )}
     </>
   ) : (
     <Loading height={"calc(100vh - 55px)"} />
