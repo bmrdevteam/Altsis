@@ -14,7 +14,7 @@ export default function Example() {
   const [calendar, setCalendar] = useState<GoogleCalendarData>();
 
   const today = new Date();
-  const mm = today.getMonth();
+  const mm = today.getMonth() + 1;
   const yy = today.getFullYear();
 
   const timeMin = getFirstDateOfMonth(yy, mm).toISOString();

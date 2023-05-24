@@ -17,6 +17,7 @@ import {
 
 import Select from "components/select/Select";
 import { GoogleCalendarData } from "components/calendarV2/calendarData";
+import { CalendarData } from "components/calendarV2/calendarData";
 
 type Props = {
   year: number;
@@ -99,6 +100,31 @@ const MonthlyView = (props: Props) => {
     return () => {};
   }, []);
 
+  let calendarData: CalendarData | undefined = undefined;
+  const eventMap: { [key: string]: any[] } = {};
+
+  if (props.googleCalendar) {
+    calendarData = new CalendarData({
+      year: props.year,
+      month: props.month,
+      googleCalendar: props.googleCalendar,
+    });
+    console.log(calendarData?.items);
+    if (calendarData?.items) {
+      for (let item of calendarData.items) {
+        const mm = item.startTime.getMonth() + 1;
+        const dd = item.startTime.getDate();
+
+        if (eventMap[mm + "/" + dd]) {
+          eventMap[mm + "/" + dd].push(item);
+        } else {
+          eventMap[mm + "/" + dd] = [item];
+        }
+      }
+    }
+    console.log(eventMap);
+  }
+
   return (
     <div className={style.viewer} ref={scrollRef}>
       <div className={style.days}>
@@ -130,6 +156,13 @@ const MonthlyView = (props: Props) => {
               }}
             >
               <div className={`${style.date}`}>{date.getDate()}</div>
+              <div>
+                {eventMap[date.getMonth() + 1 + "/" + date.getDate()]?.map(
+                  (item) => {
+                    return <div>{item.summary}</div>;
+                  }
+                )}
+              </div>
             </div>
           ) : (
             <div
