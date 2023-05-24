@@ -23,10 +23,12 @@ function Docs(props: Props) {
   const [DBData, setDBData] = useState<any>();
 
   async function getDBData() {
-    const archive = await ArchiveApi.RArchives({
-      school: currentSchool.school,
-      user: props.user._id,
-    });
+    // const archive = await ArchiveApi.RArchives({ // deprecated API
+    //   school: currentSchool.school,
+    //   user: props.user._id,
+    // });
+
+    const archive = { data: {} };
 
     let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
@@ -151,7 +153,12 @@ function Docs(props: Props) {
           </div>
         </div>
         {!loading ? (
-          <EditorParser auth="view" data={formData} dbData={DBData} type="archive" />
+          <EditorParser
+            auth="view"
+            data={formData}
+            dbData={DBData}
+            type="archive"
+          />
         ) : (
           <Loading height={"calc(100vh - 55px)"} />
         )}
