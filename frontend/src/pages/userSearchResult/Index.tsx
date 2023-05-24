@@ -108,15 +108,15 @@ const UserSearchResult = (props: Props) => {
       allowedTab.수업 = coursesTab;
     }
 
-    allowedRoles = ["admin", "teacher"];
-    if (allowedRoles.includes(currentRegistration.role)) {
-      allowedTab.기록 = archiveTab;
-    }
+    // allowedRoles = ["admin", "teacher"];
+    // if (allowedRoles.includes(currentRegistration.role)) {
+    //   allowedTab.기록 = archiveTab;
+    // }
 
-    allowedRoles = ["admin", "teacher"];
-    if (allowedRoles.includes(currentRegistration.role)) {
-      allowedTab.문서 = docsTab;
-    }
+    // allowedRoles = ["admin", "teacher"];
+    // if (allowedRoles.includes(currentRegistration.role)) {
+    //   allowedTab.문서 = docsTab;
+    // }
 
     // allowedRoles = ["admin", "teacher", "parents", "student"];
     // if (allowedRoles.includes(currentRegistration.role)) {

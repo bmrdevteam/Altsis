@@ -7,11 +7,7 @@ import * as archives from "../controllers/archives.js";
 //             Archive
 //=================================
 
-router.get("/:_id", isLoggedIn, archives.findByLabel);
-router.get("/", isLoggedIn, archives.find);
-
-router.put("/", isLoggedIn, archives.updateBulk);
-
-router.put("/:_id", isLoggedIn, archives.update);
+router.get("/", isLoggedIn, archives.findByRegistration);
+router.put("/:_id", isLoggedIn, archives.updateByRegistration);
 
 export { router };

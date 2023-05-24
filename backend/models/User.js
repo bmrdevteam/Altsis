@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
-import { conn } from "../databases/connection.js";
+import { conn } from "../_database/mongodb/index.js";
 
 import { validate } from "../utils/validate.js";
 

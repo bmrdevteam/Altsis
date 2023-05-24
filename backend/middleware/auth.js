@@ -1,6 +1,6 @@
 import { logger } from "../log/logger.js";
-import { conn } from "../databases/connection.js";
-import { client } from "../caches/redis.js";
+import { conn } from "../_database/mongodb/index.js";
+import { client } from "../_database/redis/index.js";
 
 export const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
