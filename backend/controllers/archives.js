@@ -234,6 +234,7 @@ export const find = async (req, res) => {
       return res.status(200).send({
         archive: {
           _id: archive._id,
+          user: archive.user,
           data: { [label]: archive.data?.[label] },
         },
       });
@@ -364,9 +365,7 @@ export const update = async (req, res) => {
       );
 
       if (!studentRegistration) {
-        return res
-          .status(404)
-          .send({ message: __NOT_FOUND("registration(student)") });
+        return res.status(403).send({ message: PERMISSION_DENIED });
       }
 
       const teacherRegistration = await Registration(user.academyId).findOne({
@@ -375,9 +374,7 @@ export const update = async (req, res) => {
         role: "teacher",
       });
       if (!teacherRegistration) {
-        return res
-          .status(404)
-          .send({ message: __NOT_FOUND("registration(teacher)") });
+        return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else if (formArchiveItem.authTeacher === "viewAndEditMyStudents") {
       const studentRegistration = await Registration(user.academyId).findById(
@@ -385,9 +382,7 @@ export const update = async (req, res) => {
       );
 
       if (!studentRegistration) {
-        return res
-          .status(404)
-          .send({ message: __NOT_FOUND("registration(student)") });
+        return res.status(403).send({ message: PERMISSION_DENIED });
       }
 
       if (
