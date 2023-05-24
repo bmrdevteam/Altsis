@@ -232,14 +232,12 @@ const Navbar = (props: Props) => {
     if (!currentSchool || !currentSeason || !currentSeason.registrations)
       return;
 
-    const users = _.sortBy(currentSeason.registrations, ["userName"]).map(
-      (user: any) => {
-        return {
-          text: `${user.userName} / ${user.userId}`,
-          value: user.user,
-        };
-      }
-    );
+    const users = currentSeason.registrations.map((user: any) => {
+      return {
+        text: `${user.userName} / ${user.userId}`,
+        value: user.user,
+      };
+    });
     setUsers(users);
   }, [currentSchool, currentSeason]);
 

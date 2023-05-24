@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { conn } from "../databases/connection.js";
+import { conn } from "../_database/mongodb/connection.js";
 
 const appsSchema = mongoose.Schema(
   {

@@ -8,7 +8,7 @@ import {
   School,
   Notification,
 } from "../models/index.js";
-import { client } from "../caches/redis.js";
+import { client } from "../_database/redis/index.js";
 import { getPayload } from "../utils/payload.js";
 import { getIo } from "../utils/webSocket.js";
 import { validate } from "../utils/validate.js";

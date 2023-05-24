@@ -14,16 +14,17 @@ import Button from "components/button/Button";
 import ArrayView from "./tab/ArrayView";
 import ObjectView from "./tab/ObjectView";
 import Loading from "components/loading/Loading";
+import { TSeasonRegistration } from "contexts/authType";
 
 type Props = {};
 
 const ArchiveField = (props: Props) => {
   const { pid } = useParams(); // archive label ex) 인적 사항
-  const { RegistrationApi } = useApi();
-  const { currentUser, currentSchool, currentRegistration } = useAuth();
+  const { currentUser, currentSchool, currentRegistration, currentSeason } =
+    useAuth();
   const navigate = useNavigate();
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [, setRegistrationList] = useState<any[]>([]);
   const [selectedRegistrationList, setSelectedRegistrationList] = useState<
@@ -34,15 +35,14 @@ const ArchiveField = (props: Props) => {
   const [selectPopupAtcive, setSelectPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentRegistration && pid) {
+    if (currentRegistration && currentSeason && pid) {
       setIsLoading(true);
     }
-  }, [currentRegistration, pid]);
+  }, [currentRegistration, currentSeason, pid]);
 
   useEffect(() => {
     if (isLoading) {
       if (
-        !currentRegistration ||
         currentRegistration?.role !== "teacher" ||
         !formArchive().authTeacher ||
         formArchive().authTeacher === "undefined"
@@ -50,61 +50,41 @@ const ArchiveField = (props: Props) => {
         alert("접근 권한이 없습니다.");
         navigate("/");
       }
+
+      let registrations: (TSeasonRegistration & {
+        tableRowChecked?: boolean;
+      })[] = [];
+
       if (formArchive().authTeacher === "viewAndEditStudents") {
-        RegistrationApi.RRegistrations({
-          season: currentRegistration.season,
-          role: "student",
-        })
-          .then((res) => {
-            console.log(selectedRegistrationList);
-            const registrations = _.sortBy(res, ["grade", "userName"]).map(
-              (registration) => {
-                registration.tableRowChecked =
-                  _.findIndex(selectedRegistrationList, {
-                    _id: registration._id,
-                  }) !== -1;
-                return registration;
-              }
-            );
-            setRegistrationList(registrations);
-            registrationListRef.current = registrations;
-          })
-          .then(() => setIsLoading(false));
+        /* 1. 모든 선생님이 수정할 수 있는 양식인 경우 */
+        registrations = currentSeason.registrations.filter(
+          (reg) => reg.role === "student"
+        );
       } else if (formArchive().authTeacher === "viewAndEditMyStudents") {
-        RegistrationApi.RRegistrations({
-          season: currentRegistration.season,
-          role: "student",
-          teacher: currentUser._id,
-        }).then((res1) => {
-          RegistrationApi.RRegistrations({
-            season: currentRegistration.season,
-            role: "student",
-            subTeacher: currentUser._id,
-          })
-            .then((res2) => {
-              const registrations = _.sortBy(
-                [...res1, ...res2],
-                ["grade", "userName"]
-              ).map((registration) => {
-                registration.tableRowChecked =
-                  _.findIndex(selectedRegistrationList, {
-                    _id: registration._id,
-                  }) !== -1;
-                return registration;
-              });
-              setRegistrationList(registrations);
-              registrationListRef.current = registrations;
-              setSelectedRegistrationList(
-                selectedRegistrationList.filter(
-                  (registration: any) =>
-                    registration.teacher === currentUser._id ||
-                    registration.subTeacher === currentUser._id
-                )
-              );
-            })
-            .then(() => setIsLoading(false));
-        });
+        /* 2. 선생님이 담당 학생만 수정할 수 있는 양식인 경우 */
+        registrations = currentSeason.registrations.filter(
+          (reg) =>
+            reg.role === "student" &&
+            (reg?.teacher === currentUser._id ||
+              reg?.subTeacher === currentUser._id)
+        );
+      } else {
+        alert("잘못된 양식입니다.");
+        return navigate("/");
       }
+
+      registrations = registrations.map(
+        (reg: TSeasonRegistration & { tableRowChecked?: boolean }) => {
+          reg.tableRowChecked =
+            _.findIndex(selectedRegistrationList, {
+              _id: reg._id,
+            }) !== -1;
+          return reg;
+        }
+      );
+      setRegistrationList(registrations);
+      registrationListRef.current = registrations;
+      setIsLoading(false);
     }
   }, [isLoading]);
 
@@ -121,29 +101,31 @@ const ArchiveField = (props: Props) => {
         </div>
       );
     }
-    return [
-      <div
-        className={style.category}
-        onClick={() => setSelectPopupActive(true)}
-      >
-        선택된 학생 수: {selectedRegistrationList.length}
-      </div>,
-      ...selectedRegistrationList.map((registration: any, idx: number) => (
+    return (
+      <>
         <div
           className={style.category}
-          onClick={() => {
-            selectedRegistrationList.splice(idx, 1);
-            setSelectedRegistrationList([...selectedRegistrationList]);
-            const reg = _.find(registrationListRef.current, {
-              _id: registration._id,
-            });
-            if (reg) reg.tableRowChecked = false;
-          }}
+          onClick={() => setSelectPopupActive(true)}
         >
-          {registration.userName}
+          선택된 학생 수: {selectedRegistrationList.length}
         </div>
-      )),
-    ];
+        {selectedRegistrationList.map((registration: any, idx: number) => (
+          <div
+            className={style.category}
+            onClick={() => {
+              selectedRegistrationList.splice(idx, 1);
+              setSelectedRegistrationList([...selectedRegistrationList]);
+              const reg = _.find(registrationListRef.current, {
+                _id: registration._id,
+              });
+              if (reg) reg.tableRowChecked = false;
+            }}
+          >
+            {registration.userName}
+          </div>
+        ))}
+      </>
+    );
   };
 
   function formArchive() {
@@ -160,7 +142,9 @@ const ArchiveField = (props: Props) => {
       <div className={style.section}>
         <div className={style.title}>{pid}</div>
 
-        <div className={style.categories}>{selectedStudents()}</div>
+        <div className={style.categories_container}>
+          <div className={style.categories}>{selectedStudents()}</div>
+        </div>
 
         {formArchive().dataType === "object" ? (
           <ObjectView registrationList={selectedRegistrationList}></ObjectView>
@@ -179,12 +163,9 @@ const ArchiveField = (props: Props) => {
               type="ghost"
               onClick={() => {
                 setSelectedRegistrationList(
-                  _.sortBy(
-                    _.filter(registrationListRef.current, {
-                      tableRowChecked: true,
-                    }),
-                    ["userName"]
-                  )
+                  _.filter(registrationListRef.current, {
+                    tableRowChecked: true,
+                  })
                 );
                 setSelectPopupActive(false);
               }}
