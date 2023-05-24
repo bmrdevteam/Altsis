@@ -981,42 +981,7 @@ export default function useApi() {
    * Archive Api
    * ##########################################################################
    */
-  /**
-   * Read Archive
-   * @type GET
-   * @auth admin
-   * @returns Archives
-   */
-  async function RArchives(params: {
-    school?: string;
-    user?: string | number;
-    registration?: string | number;
-  }) {
-    const { archive: result } = await database.R({
-      location: "archives" + QUERY_BUILDER(params),
-    });
-    return result;
-  }
-  /**
-   * Read Archives by registrations
-   * @type GET
-   * @auth admin
-   * @returns Archives
-   */
-  async function RArchivesByRegistrations(params: {
-    registrationIds: string[];
-    label: string;
-  }) {
-    const { archives: result } = await database.R({
-      location:
-        "archives" +
-        QUERY_BUILDER({
-          registrationIds: QUERY_SUB_BUILDER(params.registrationIds),
-          label: params.label,
-        }),
-    });
-    return result;
-  }
+
   /**
    * Read Archive by registration
    * @type GET
@@ -1025,52 +990,21 @@ export default function useApi() {
    */
   async function RArchiveByRegistration(params: {
     registrationId: string;
-    label: string;
+    label?: string;
   }) {
     const { archive } = await database.R({
       location: "archives" + QUERY_BUILDER(params),
     });
     return archive;
   }
+
   /**
-   * Update Archives
-   * @type GET
-   * @auth admin
-   */
-  async function UArchives(params: {
-    label: string;
-    archives: { _id: string; data: any }[];
-  }) {
-    const res = await database.U({
-      location: "archives",
-      data: params,
-    });
-    return res;
-  }
-  /**
-   * Find Archive by id with label
-   * @type GET
-   * @auth admin
-   * @returns Archives
-   */
-  async function RArchiveByLabel(
-    _id: string,
-    params: {
-      label: string | number;
-    }
-  ) {
-    const { archive: result } = await database.R({
-      location: "archives/" + _id + QUERY_BUILDER(params),
-    });
-    return result;
-  }
-  /**
-   * Update Archive
+   * Update Archive by registration
    * @type PUT
    * @auth admin
    * @returns Archive
    */
-  async function UArchive(params: {
+  async function UArchiveByRegistration(params: {
     _id: string;
     label: string;
     data: object;
@@ -1422,12 +1356,8 @@ export default function useApi() {
       RForm,
     },
     ArchiveApi: {
-      RArchives,
-      RArchivesByRegistrations,
       RArchiveByRegistration,
-      RArchiveByLabel,
-      UArchive,
-      UArchives,
+      UArchiveByRegistration,
     },
     SyllabusApi: {
       CSyllabus,

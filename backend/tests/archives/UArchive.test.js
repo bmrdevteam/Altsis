@@ -45,7 +45,7 @@ describe("PUT /archives/:_id (아카이브 조회 기능)", () => {
         findById: jest.fn().mockResolvedValue(undefined),
       };
     });
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("ARCHIVE_NOT_FOUND");
   });
@@ -65,7 +65,7 @@ describe("PUT /archives/:_id (아카이브 조회 기능)", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("SCHOOL_NOT_FOUND");
   });
@@ -88,7 +88,7 @@ describe("PUT /archives/:_id (아카이브 조회 기능)", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("FORMARCHIVE_ITEM_NOT_FOUND");
   });
@@ -133,7 +133,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditStudents'", () => {
         findById: jest.fn().mockResolvedValueOnce(undefined),
       };
     });
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -147,7 +147,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditStudents'", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -161,7 +161,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditStudents'", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     const { archive } = res._getData();
     expect(res._getStatusCode()).toBe(200);
     expect(archive.data).toEqual(expectedValue);
@@ -208,7 +208,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditMyStudents'", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -221,7 +221,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditMyStudents'", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(403);
     expect(res._getData().message).toBe("PERMISSION_DENIED");
   });
@@ -236,7 +236,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditMyStudents'", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     const { archive } = res._getData();
 
     expect(res._getStatusCode()).toBe(200);
@@ -253,7 +253,7 @@ describe("formArchiveItem.authTeacher==='viewAndEditMyStudents'", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     const { archive } = res._getData();
 
     expect(res._getStatusCode()).toBe(200);
@@ -284,7 +284,7 @@ describe("formArchiveItem.authTeacher is invalid", () => {
       };
     });
 
-    await archives.update(req, res);
+    await archives.updateByRegistration(req, res);
     expect(res._getStatusCode()).toBe(400);
   });
 });
