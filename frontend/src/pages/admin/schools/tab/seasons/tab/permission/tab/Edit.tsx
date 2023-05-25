@@ -41,7 +41,7 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Select from "components/select/Select";
 
 import Autofill from "components/input/Autofill";
-import { Exception, Permission } from "contexts/authType";
+import { Exception, Permission } from "types/auth";
 
 type Props = {
   setPopupActive: any;
