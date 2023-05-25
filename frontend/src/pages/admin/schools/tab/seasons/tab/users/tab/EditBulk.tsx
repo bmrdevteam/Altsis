@@ -86,7 +86,6 @@ function Basic(props: Props) {
       title={`일괄 수정`}
       setState={props.setPopupActive}
       style={{
-        borderRadius: "4px",
         maxWidth: "300px",
         width: "100%",
       }}

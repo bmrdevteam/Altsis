@@ -81,7 +81,7 @@ const CourseView = (props: Props) => {
       title={"복사할 강의계획서 선택"}
       closeBtn
       contentScroll
-      style={{ borderRadius: "4px", width: "900px" }}
+      style={{ width: "900px" }}
     >
       <div className={style.section}>
         <Table

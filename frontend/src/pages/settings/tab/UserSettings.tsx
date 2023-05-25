@@ -232,7 +232,6 @@ const UserSettings = (props: Props) => {
       </div>
       {emailUpdatePopupActive && (
         <Popup
-          borderRadius={"8px"}
           title="이메일 변경"
           setState={setEmailUpdatePopupActive}
           closeBtn

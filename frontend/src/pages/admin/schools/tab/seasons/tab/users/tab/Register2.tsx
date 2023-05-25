@@ -99,7 +99,7 @@ function Basic(props: Props) {
     <Popup
       title="사용자 등록"
       setState={props.setPopupActive}
-      style={{ borderRadius: "4px", maxWidth: "800px" }}
+      style={{ maxWidth: "800px" }}
       closeBtn
       footer={
         <Button

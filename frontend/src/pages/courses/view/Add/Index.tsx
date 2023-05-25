@@ -485,7 +485,7 @@ const CourseAdd = (props: Props) => {
           setState={setTimeSelectPopupActive}
           title="강의실 및 시간 선택"
           closeBtn
-          style={{ borderRadius: "4px", width: "900px" }}
+          style={{ width: "900px" }}
           footer={
             <Button
               type="ghost"
@@ -546,7 +546,7 @@ const CourseAdd = (props: Props) => {
           setState={setMentorSelectPopupActive}
           title="멘토 선택"
           closeBtn
-          style={{ borderRadius: "4px", width: "900px" }}
+          style={{ width: "900px" }}
           footer={
             <Button
               type="ghost"

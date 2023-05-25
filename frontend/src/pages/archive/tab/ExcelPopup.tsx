@@ -227,7 +227,7 @@ const ExcelPopup = (props: {
     <>
       <Popup
         setState={props.setPopupActive}
-        style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        style={{ maxWidth: "1000px", width: "100%" }}
         closeBtn
         title="엑셀 파일로 수정"
         contentScroll
@@ -322,7 +322,7 @@ const ExcelPopup = (props: {
           title="생성"
           closeBtn
           setState={setIsAddPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          style={{ maxWidth: "1000px", width: "100%" }}
         >
           <div className={style.popup}>
             <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
