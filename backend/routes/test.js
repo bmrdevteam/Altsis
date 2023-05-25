@@ -7,6 +7,26 @@ import { Season } from "../models/Season.js";
 import { Registration } from "../models/Registration.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { Syllabus } from "../models/Syllabus.js";
+import { Notification } from "../models/Notification.js";
+import { UTC1 } from "../utils/date.js";
+
+router.get("/notifications", async (req, res) => {
+  try {
+    const academies = await Academy.find({ academyId: { $ne: "root" } });
+    for (let academy of academies) {
+      const academyId = academy.academyId;
+      const notifications = await Notification(academyId).find({});
+      for (let n of notifications) {
+        n.date = UTC1(new Date(n.createdAt));
+      }
+      await Promise.all(notifications.map((not) => not.save()));
+    }
+    return res.status(200).send({ academies, message: "hello world! /v2" });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+});
 
 /* update registrations by seasons */
 router.get("/formEvaluation", async (req, res) => {
