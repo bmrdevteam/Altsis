@@ -2,7 +2,7 @@ import { logger } from "../log/logger.js";
 import _ from "lodash";
 import { Notification } from "../models/index.js";
 import { client } from "../_database/redis/index.js";
-import { getIo } from "../utils/webSocket.js";
+import { getIoNotification } from "../utils/webSocket.js";
 
 import mongoose from "mongoose";
 const ObjectId = mongoose.Types.ObjectId;
@@ -41,26 +41,15 @@ export const send = async (req, res) => {
     );
 
     for (let notification of _.filter(newNotifications, { type: "received" })) {
-      const socketData = await client.v4.hGet(
-        req.user.academyId,
-        notification.userId
-      ); // if receiver is logged in
-      if (socketData) {
-        JSON.parse(socketData).sid.forEach((sid) => {
-          getIo()
-            .to(sid)
-            .emit(
-              "checkNotifications",
-              "you should check your new notifications"
-            );
+      const data = await client.v4.hGet(
+        "io/notification/user-sidList",
+        `${req.user.academyId}/${notification.userId}`
+      );
+      if (data) {
+        JSON.parse(data).sid?.forEach((sid) => {
+          getIoNotification().to(sid).emit("listen", "update notifications");
         });
       }
-
-      // if (sid) {
-      //   getIo()
-      //     .sockets.socket(sid)
-      //     .send("you should check your new notifications");
-      // }
     }
 
     return res.status(200).send({ notifications: newNotifications });
@@ -78,7 +67,7 @@ export const find = async (req, res) => {
       );
 
       if (!notification.user._id.equals(req.user._id))
-        return res.status(401).send();
+        return res.status(403).send();
       return res.status(200).send(notification);
     }
     if (!req.query.user) return res.status(400).send();

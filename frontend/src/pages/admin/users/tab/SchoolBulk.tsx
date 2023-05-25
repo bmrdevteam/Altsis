@@ -99,7 +99,7 @@ function Basic(props: Props) {
         title="학교 일괄 설정"
         closeBtn
         setState={props.setPopupActive}
-        style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        style={{ maxWidth: "1000px", width: "100%" }}
         contentScroll
       >
         <div className={style.popup}>

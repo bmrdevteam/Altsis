@@ -28,7 +28,22 @@ client.on("error", function (err) {
   console.error(err);
 });
 
-client.on("ready", () => {
+client.on("ready", async () => {
+  // clean up "io/notification/*" data
+  const [keys1, keys2] = await Promise.all([
+    client.v4.hGetAll("io/notification/sid-user"),
+    client.v4.hGetAll("io/notification/user-sidList"),
+  ]);
+
+  await Promise.all([
+    Object.keys(keys1).forEach((key) =>
+      client.hDel("io/notification/sid-user", key)
+    ),
+    Object.keys(keys2).forEach((key) =>
+      client.hDel("io/notification/user-sidList", key)
+    ),
+  ]);
+
   console.log("✅ Redis is connected");
   isConnected = true;
 });

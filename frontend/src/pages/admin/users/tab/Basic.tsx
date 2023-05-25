@@ -130,7 +130,6 @@ function Basic(props: Props) {
         closeBtn
         setState={props.setPopupAcitve}
         title={`${userName}(${userId})`}
-        style={{ borderRadius: "4px" }}
         contentScroll
       >
         <div className={style.popup}>
@@ -245,7 +244,6 @@ function Basic(props: Props) {
           closeBtn
           setState={setIsEditSchoolPopupActive}
           title={`소속 학교 추가 및 삭제`}
-          style={{ borderRadius: "4px" }}
         >
           <div className={style.popup}>
             <div className={style.row}>

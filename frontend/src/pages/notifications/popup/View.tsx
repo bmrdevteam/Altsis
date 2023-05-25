@@ -27,7 +27,7 @@
  *
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // components
 import Button from "components/button/Button";
@@ -40,41 +40,55 @@ import Textarea from "components/textarea/Textarea";
 import Reply from "./Reply";
 
 import style from "./mail.module.scss";
+import { TNotification } from "types/notification";
+import useApi from "hooks/useApi";
 
-type Props = { setState: any; data: any; type?: string };
+type Props = { setState: any; type?: string; nid?: string };
 
-const NotificationSend = (props: Props) => {
+const NotificationView = (props: Props) => {
   const [replyPopupActive, setReplyPopupActive] = useState<boolean>(false);
+  const { NotificationApi } = useApi();
+
+  const [notification, setNotification] = useState<TNotification | undefined>();
+
+  useEffect(() => {
+    NotificationApi.RNotificationById(props.nid ?? "").then((notifcation) => {
+      setNotification(notifcation);
+    });
+
+    return () => {};
+  }, []);
 
   return (
     <>
       <Popup
         setState={props.setState}
         closeBtn
-        title={`${props.data.category ? `[${props.data.category}] ` : ""}${
-          props.data.title
-        }`}
+        title={`${
+          notification?.category ? `[${notification?.category}] ` : ""
+        }${notification?.title}`}
       >
         <div>
           <div>
-            {props.type === "received" ? (
-              <Input
-                label="발신자"
-                defaultValue={`${props.data.fromUserName}(${props.data.fromUserId})`}
-                disabled
-              />
-            ) : (
-              <Input
-                label="수신자"
-                defaultValue={_.join(
-                  props.data.toUserList.map(
-                    (toUser: any) => `${toUser.userName}(${toUser.userId})`
-                  ),
-                  ", "
-                )}
-                disabled
-              />
-            )}
+            {notification &&
+              (notification.type === "received" ? (
+                <Input
+                  label="발신자"
+                  defaultValue={`${notification.fromUserName}(${notification.fromUserId})`}
+                  disabled
+                />
+              ) : (
+                <Input
+                  label="수신자"
+                  defaultValue={_.join(
+                    notification.toUserList?.map(
+                      (toUser: any) => `${toUser.userName}(${toUser.userId})`
+                    ),
+                    ", "
+                  )}
+                  disabled
+                />
+              ))}
           </div>
 
           <div
@@ -84,11 +98,7 @@ const NotificationSend = (props: Props) => {
               marginTop: "24px",
             }}
           >
-            <Textarea
-              label="본문"
-              defaultValue={props.data.description}
-              disabled
-            />
+            <Textarea defaultValue={notification?.description} disabled />
           </div>
 
           {props.type === "received" && (
@@ -104,17 +114,18 @@ const NotificationSend = (props: Props) => {
           )}
         </div>
       </Popup>
-      {replyPopupActive && (
+
+      {replyPopupActive && notification && (
         <Reply
           setState={setReplyPopupActive}
-          title={props.data.title}
-          toUser={props.data.fromUser}
-          toUserId={props.data.fromUserId}
-          toUserName={props.data.fromUserName}
+          title={notification.title}
+          toUser={notification.fromUser ?? ""}
+          toUserId={notification.fromUserId ?? ""}
+          toUserName={notification.fromUserName ?? ""}
         />
       )}
     </>
   );
 };
 
-export default NotificationSend;
+export default NotificationView;

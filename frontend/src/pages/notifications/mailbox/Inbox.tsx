@@ -40,6 +40,7 @@ import _ from "lodash";
 
 // import Mailbox from "../components/mailbox";
 import View from "../popup/View";
+import { TNotificationReceived } from "types/notification";
 
 type Props = {};
 
@@ -48,7 +49,7 @@ const Received = (props: Props) => {
   const { NotificationApi } = useApi();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
-  const [notification, setNotification] = useState<any>();
+  const [notification, setNotification] = useState<TNotificationReceived>();
   const selectRef = useRef<string[]>();
 
   const [notificatnionPopupActive, setNotificatnionPopupActive] =
@@ -156,37 +157,37 @@ const Received = (props: Props) => {
               key: "title",
               type: "text",
             },
-
             {
               text: "날짜",
-              key: "createdAt",
-              type: "text",
+              key: "date",
+              type: "date",
               textAlign: "right",
-              width: "240px",
+              width: "180px",
             },
-
             {
               text: "자세히",
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                NotificationApi.RNotificationById(e._id)
-                  .then((res) => {
-                    setNotification(res);
-                    setNotificatnionPopupActive(true);
-                  })
-                  .catch((err) => alert(err.response.data.message));
+                setNotification(e);
+                setNotificatnionPopupActive(true);
               },
               width: "80px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "var(--accent-1)",
+                padding: "4px",
+                round: true,
+              },
             },
           ]}
         />
       </div>
-      {notificatnionPopupActive && (
+      {notificatnionPopupActive && notification && (
         <View
           setState={setNotificatnionPopupActive}
-          data={notification}
+          nid={notification._id}
           type={"received"}
         />
       )}

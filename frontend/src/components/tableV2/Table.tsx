@@ -3,6 +3,7 @@ import style from "./table.module.scss";
 import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
 import {
+  dateFormat,
   flattenObject,
   objectDownloadAsCSV,
   objectDownloadAsJson,
@@ -20,7 +21,8 @@ type TTableItems =
   | "status"
   | "input"
   | "input-number"
-  | "select";
+  | "select"
+  | "date";
 export type TTableHeader = {
   text: string;
   type: TTableItems;
@@ -1108,6 +1110,24 @@ const Table = (props: Props) => {
                             </span>
                           </td>
                         );
+                      case "date":
+                        return (
+                          <td
+                            style={{
+                              whiteSpace: val.whiteSpace,
+                              wordBreak: val.wordBreak,
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                            }}
+                            className={style.item}
+                            key={index}
+                          >
+                            {row[`${val.key}`] &&
+                              dateFormat(new Date(row[`${val.key}`]))}
+                          </td>
+                        );
+
                       default:
                         return (
                           <td

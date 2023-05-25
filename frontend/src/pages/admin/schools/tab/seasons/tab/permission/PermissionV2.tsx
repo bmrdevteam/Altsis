@@ -33,7 +33,7 @@ import useApi from "hooks/useApi";
 import Table from "components/tableV2/Table";
 
 import Edit from "./tab/Edit";
-import { Permission } from "contexts/authType";
+import { Permission } from "types/auth";
 
 type Props = {
   _id: string;

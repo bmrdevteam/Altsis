@@ -235,7 +235,7 @@ function Basic(props: Props) {
     <>
       <Popup
         setState={props.setPopupActive}
-        style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+        style={{ maxWidth: "1000px", width: "100%" }}
         closeBtn
         title="사용자 일괄 생성"
         contentScroll
@@ -420,7 +420,7 @@ function Basic(props: Props) {
           title="도움말"
           closeBtn
           setState={setIsHelpPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          style={{ maxWidth: "1000px", width: "100%" }}
         >
           <div className={style.popup}>
             <div
@@ -454,7 +454,7 @@ function Basic(props: Props) {
           title="생성"
           closeBtn
           setState={setIsAddPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          style={{ maxWidth: "1000px", width: "100%" }}
         >
           <div className={style.popup}>
             <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>

@@ -103,7 +103,6 @@ const SecuritySettings = (props: Props) => {
       </div>
       {resetPasswordPopupActive && (
         <Popup
-          borderRadius={"8px"}
           title="비밀번호 재설정"
           setState={setResetPasswordPopupActive}
           closeBtn

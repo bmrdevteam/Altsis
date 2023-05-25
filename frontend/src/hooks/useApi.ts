@@ -207,10 +207,10 @@ export default function useApi() {
    * @returns LoggedIn User
    */
   async function RMySelf() {
-    const { user, registrations, notifications } = await database.R({
+    const { user, registrations } = await database.R({
       location: "users/current",
     });
-    return { user, registrations, notifications };
+    return { user, registrations };
   }
 
   /**
@@ -1184,11 +1184,13 @@ export default function useApi() {
     user: string;
     checked?: boolean;
   }) {
-    const { notifications } = await database.R({
+    const { notifications: _notifications } = await database.R({
       location: "notifications" + QUERY_BUILDER(props),
     });
+    const notifications = _.sortBy(_notifications, "createdAt").reverse();
     return notifications;
   }
+
   async function RNotificationById(_id: string) {
     return await database.R({
       location: `notifications/${_id}`,
