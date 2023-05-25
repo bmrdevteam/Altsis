@@ -9,14 +9,9 @@
   }
 }
 
-
-
-
-
 @media (max-width: 800px) {
   .navbar_container {
     padding: 0 24px 0 60px !important;
-
   }
 }
 
@@ -64,12 +59,10 @@
         padding: 6.5px 15px;
       }
 
-      .row:hover{
-      background-color: var(--component-hover-color);
-      border-radius: 4px;
-
+      .row:hover {
+        background-color: var(--component-hover-color);
+        border-radius: 4px;
       }
-
     }
   }
 
@@ -127,39 +120,51 @@
         margin-right: 0;
       }
 
-      .item {
-        border: var(--border-default);
-        border-radius: 8px;
-        padding: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+      .item_box {
+        max-height: calc(100vh - 280px);
+        overflow-y: scroll;
+        border-bottom: var(--border-default);
 
-        .description {
-          .type {
-            padding: 1px 3px 2px 3px;
-            background-color: var(--color-b4);
-            border-radius: 4px;
-            margin-right: 4px;
-            color: var(--accent-6);
+        .item {
+          border: var(--border-default);
+          border-radius: 8px;
+          padding: 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .description {
+            .type {
+              padding: 1px 3px 2px 3px;
+              background-color: var(--color-b4);
+              border-radius: 4px;
+              margin-right: 4px;
+              color: var(--accent-6);
+            }
+
+            cursor: pointer;
+            flex: 1 1 0;
+            line-height: 18px;
+
+            word-break: keep-all;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
           }
 
-          cursor: pointer;
-          flex: 1 1 0;
-          line-height: 18px;
-
-          word-break: keep-all;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
+          .x {
+            cursor: pointer;
+            fill: var(--accent-3);
+          }
         }
-
-        .x {
-          cursor: pointer;
-          fill: var(--accent-3);
-        }
+      }
+      .button {
+        padding-top: 12px;
+        width: 100%;
+        border: 0;
+        color: "gray";
       }
     }
   }

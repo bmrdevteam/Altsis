@@ -177,7 +177,7 @@ const Academies = (props: Props) => {
         {addPopupActive && (
           <Popup
             setState={setAddPopupActive}
-            style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+            style={{ maxWidth: "1000px", width: "100%" }}
             closeBtn
             title={"도큐먼트 생성"}
           >
@@ -273,7 +273,7 @@ const Academies = (props: Props) => {
         {addResultPopupActive && (
           <Popup
             setState={setAddResultPopupActive}
-            style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+            style={{ maxWidth: "1000px", width: "100%" }}
             closeBtn
             title={"아카데미 생성이 완료되었습니다."}
           >

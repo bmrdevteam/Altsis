@@ -41,7 +41,7 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Select from "components/select/Select";
 
 import Autofill from "components/input/Autofill";
-import { Exception, Permission } from "contexts/authType";
+import { Exception, Permission } from "types/auth";
 
 type Props = {
   setPopupActive: any;
@@ -106,7 +106,7 @@ function Basic(props: Props) {
 
   return (
     <Popup
-      style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
+      style={{ maxWidth: "600px", width: "100%" }}
       title={`${
         props.type === "syllabus"
           ? "수업 개설"

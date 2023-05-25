@@ -259,6 +259,7 @@ const NotificationSend = (props: Props) => {
           title="알림 보내기"
           style={{ maxWidth: "320px" }}
           closeBtn
+          contentScroll
         >
           <div style={{ marginTop: "12px" }}>
             <div

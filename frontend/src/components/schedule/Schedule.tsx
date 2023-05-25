@@ -132,7 +132,6 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
     <Popup
       setState={setEditor}
       style={{
-        borderRadius: "8px",
         width: "640px",
         display: "flex",
         flexDirection: "column",

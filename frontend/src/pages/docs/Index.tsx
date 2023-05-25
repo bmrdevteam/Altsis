@@ -213,12 +213,7 @@ function Docs({}: Props) {
       </div>
 
       {choosePopupActive && (
-        <Popup
-          setState={setChoosePopupActive}
-          title="a"
-          closeBtn
-          style={{ borderRadius: "4px" }}
-        >
+        <Popup setState={setChoosePopupActive} title="a" closeBtn>
           <div></div>
         </Popup>
       )}

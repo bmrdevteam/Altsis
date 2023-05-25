@@ -344,7 +344,7 @@ const Form = (props: Props) => {
 
       {formTimetablePopupActive && (
         <Popup
-          style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
+          style={{ maxWidth: "600px", width: "100%" }}
           title={`시간표 양식 선택`}
           setState={setFormTimetablePopupActive}
           closeBtn
@@ -396,7 +396,7 @@ const Form = (props: Props) => {
       )}
       {formSyllabusPopupActive && (
         <Popup
-          style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
+          style={{ maxWidth: "600px", width: "100%" }}
           title={`강의계획서 양식 선택`}
           setState={setFormSyllabusPopupActive}
           closeBtn
@@ -448,7 +448,7 @@ const Form = (props: Props) => {
       )}
       {formEvaluationSelectPopupActive && (
         <Popup
-          style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
+          style={{ maxWidth: "600px", width: "100%" }}
           title={`옵션 변경`}
           setState={setFormEvaluationSelectPopupActive}
           closeBtn

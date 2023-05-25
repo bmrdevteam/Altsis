@@ -180,7 +180,7 @@ const CourseView = (props: Props) => {
         title={courseData.classTitle}
         closeBtn
         contentScroll
-        style={{ borderRadius: "4px", width: "900px" }}
+        style={{ width: "900px" }}
       >
         <div className={style.section}>
           <div className={style.categories_container}>

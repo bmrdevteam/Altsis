@@ -6,76 +6,76 @@ import {
   getTaskRequested,
 } from "../controllers/enrollments.js";
 
-let io = undefined;
+let ioNotification = undefined;
 let ioEnrollment = undefined;
 
 const initializeWebSocket = (_server) => {
   /* initialize notification io */
-  io = new Server(_server, {
-    path: "/socket.io",
+  ioNotification = new Server(_server, {
+    path: "/io/notification",
     cors: {
       origin: process.env["URL"].trim(),
       credentials: true,
     },
   });
 
-  io.on("connect", (socket) => {
-    const req = socket.request;
-    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-    let academyId = "";
-    let userId = "";
+  ioNotification.on("connect", (socket) => {
+    socket.on("listening", async (data) => {
+      const user = `${data.academyId}/${data.userId}`;
 
-    socket.on("disconnect", async () => {
-      if (academyId && userId) {
-        const prev = await client.v4.hGet(academyId, userId);
-        if (prev) {
-          const prevSid = JSON.parse(prev).sid;
-          if (prevSid) {
-            if (prevSid.length === 1) await client.hDel(academyId, userId);
-            else
-              await client.hSet(
-                academyId,
-                userId,
-                JSON.stringify({
-                  sid: _.remove(prevSid, (sid) => sid === socket.id),
-                })
-              );
-          }
-        }
-      }
-    });
-
-    socket.on("error", () => {
-      console.log(`[${ip}] 에러가 발생했습니다. ${error}`);
-    });
-
-    socket.on("activate real-time notification", async (data) => {
-      const prev = await client.v4.hGet(data.academyId, data.userId);
+      const prev = await client.v4.hGet("io/notification/user-sidList", user);
+      const value = [socket.id];
       if (prev) {
         const prevSid = JSON.parse(prev).sid;
         if (prevSid) {
-          await client.hSet(
-            data.academyId,
-            data.userId,
-            JSON.stringify({ sid: [socket.id, ...prevSid] })
-          );
+          value.push(...prevSid);
         }
-      } else {
-        academyId = data.academyId;
-        userId = data.userId;
-        await client.hSet(
-          data.academyId,
-          data.userId,
-          JSON.stringify({ sid: [socket.id] })
+      }
+
+      await client.hSet("io/notification/sid-user", socket.id, user);
+      await client.hSet(
+        "io/notification/user-sidList",
+        user,
+        JSON.stringify({ sid: value })
+      );
+    });
+
+    socket.on("disconnect", async () => {
+      try {
+        const user = await client.v4.hGet(
+          "io/notification/sid-user",
+          socket.id
         );
+        await client.hDel("io/notification/sid-user", socket.id);
+        const data = await client.v4.hGet("io/notification/user-sidList", user);
+        if (data) {
+          const prevSidList = JSON.parse(data).sid;
+          if (prevSidList) {
+            if (prevSidList.length === 1) {
+              await client.hDel("io/notification/user-sidList", user);
+            } else {
+              const idx = _.findIndex(prevSidList, (sid) => sid === socket.id);
+              if (idx !== -1) {
+                await client.hSet(
+                  "io/notification/user-sidList",
+                  user,
+                  JSON.stringify({
+                    sid: prevSidList.splice(idx, 1),
+                  })
+                );
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
       }
     });
 
-    socket.on("requestWaitingOrder", async (data) => {
-      socket.emit("responseWaitingOrder", {
-        waitingOrder: (data.taskIdx ?? 0) - (getTaskCompleted() ?? 0),
-        waitingBehind: (getTaskRequested() ?? 0) - (data.taskIdx ?? 0),
-      });
+    socket.on("error", (err) => {
+      if (err && err.message === "unauthorized event") {
+        socket.disconnect();
+      }
     });
   });
 
@@ -101,7 +101,7 @@ const initializeWebSocket = (_server) => {
   });
 };
 
-const getIo = () => io;
+const getIoNotification = () => ioNotification;
 const getIoEnrollment = () => ioEnrollment;
 
-export { initializeWebSocket, getIo, getIoEnrollment };
+export { initializeWebSocket, getIoNotification, getIoEnrollment };

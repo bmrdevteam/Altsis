@@ -240,7 +240,7 @@ const DatatableMenu = (props: Props) => {
       </Menu>
       {dataTableMenuOpen && (
         <Popup
-          style={{ maxWidth: "800px", width: "100%", borderRadius: "8px" }}
+          style={{ maxWidth: "800px", width: "100%" }}
           title="Data 테이블 편집"
           closeBtn
           setState={setDataTableMenuOpen}
