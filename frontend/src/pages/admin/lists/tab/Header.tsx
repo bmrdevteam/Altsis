@@ -41,7 +41,6 @@ const Header = (props: Props) => {
           setState={setAddHeaderData}
           title="추가"
           closeBtn
-          style={{ borderRadius: "4px" }}
           footer={
             <Button
               type="ghost"

@@ -314,12 +314,7 @@ const One = (props: Props) => {
         />
       </div>
       {isUpdatePopupActive && (
-        <Popup
-          setState={setIsUpdatePopupActive}
-          style={{ borderRadius: "8px" }}
-          contentScroll
-          closeBtn
-        >
+        <Popup setState={setIsUpdatePopupActive} contentScroll closeBtn>
           <div>
             <p>
               {isUpdating

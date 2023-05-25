@@ -181,7 +181,7 @@ function Archive(props: Props) {
         <Popup
           closeBtn
           contentScroll
-          style={{ width: "800px", borderRadius: "4px" }}
+          style={{ width: "800px" }}
           setState={setEditArchivePopupActive}
           title={`${formData.current[editArchivefieldIndex].label}`}
         >

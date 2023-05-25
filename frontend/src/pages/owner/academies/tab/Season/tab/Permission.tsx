@@ -188,7 +188,7 @@ const Permission = (props: Props) => {
 
       {!isLoadingPermissionData && editPopupActive && (
         <Popup
-          style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
+          style={{ maxWidth: "600px", width: "100%" }}
           title={`${
             permissionType === "syllabus"
               ? "수업 개설"

@@ -10,9 +10,8 @@ import React, {
 
 import _ from "lodash";
 import { useCookies } from "react-cookie";
-import { io } from "socket.io-client";
 
-import { TUser, TSchool, TRegistration, TSeason, TWorkspace } from "./authType";
+import { TUser, TSchool, TRegistration, TSeason, TWorkspace } from "types/auth";
 
 const AuthContext = createContext<any>(null);
 
@@ -29,8 +28,6 @@ export function useAuth(): {
   currentSeason: TSeason;
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
-  currentNotificationsRef: any;
-  socket: any;
   currentWorkspace: TWorkspace;
   reloadWorkspace: () => Promise<void>;
   setCurrentWorkspace: React.Dispatch<
@@ -62,8 +59,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useState<TRegistration>();
   const [currentSeason, setCurrentSeason] = useState<TSeason>();
 
-  const currentNotificationsRef = useRef<any[]>([]);
-  const [socket, setSocket] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
 
   const [currentWorkspace, setCurrentWorkspace] = useState<
@@ -75,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   let cookieData = "";
 
   async function getLoggedInUser() {
-    const { user, registrations, notifications } = await UserApi.RMySelf();
+    const { user, registrations } = await UserApi.RMySelf();
 
     const userRegistrations = _.orderBy(
       registrations.filter((r: TRegistration) => r.isActivated),
@@ -89,10 +84,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       registrations: userRegistrations,
     });
     document.title = user.academyName;
-    currentNotificationsRef.current = _.sortBy(
-      notifications,
-      "createdAt"
-    ).reverse();
 
     /* set currentSchool using cookie */
     let schoolIdx = 0;
@@ -134,13 +125,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       );
     }
 
-    setSocket(
-      io(`${process.env.REACT_APP_SERVER_URL}`, {
-        path: "/socket.io",
-        withCredentials: true,
-      })
-    );
-
     setCurrentWorkspace(user.workspace);
   }
 
@@ -154,15 +138,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         });
   }, [loading]);
-
-  useEffect(() => {
-    if (socket !== undefined && currentUser) {
-      socket.emit("activate real-time notification", {
-        academyId: currentUser.academyId,
-        userId: currentUser.userId,
-      });
-    }
-  }, [socket, currentUser]);
 
   async function changeSchool(to: string) {
     const school = await SchoolApi.RSchool(to);
@@ -242,8 +217,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentSeason,
     updateUserProfile,
     deleteUserProfile,
-    currentNotificationsRef,
-    socket,
     currentWorkspace,
     reloadWorkspace,
     setCurrentWorkspace,

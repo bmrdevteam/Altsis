@@ -181,7 +181,6 @@ const Season = (props: Props) => {
           title={`${doc.schoolName}(${doc.schoolId}) / ${doc.year} ${doc.term}`}
           setState={setEditPopupActive}
           style={{
-            borderRadius: "8px",
             maxWidth: "800px",
             width: "100%",
           }}

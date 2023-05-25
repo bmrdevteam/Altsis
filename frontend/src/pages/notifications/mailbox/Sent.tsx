@@ -227,10 +227,10 @@ const Sent = (props: Props) => {
 
               {
                 text: "날짜",
-                key: "createdAt",
-                type: "text",
+                key: "date",
+                type: "date",
                 textAlign: "right",
-                width: "240px",
+                width: "180px",
               },
 
               {
@@ -247,14 +247,20 @@ const Sent = (props: Props) => {
                 },
                 width: "80px",
                 textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "var(--accent-1)",
+                  padding: "4px",
+                  round: true,
+                },
               },
             ]}
           />
         </div>
-        {notificatnionPopupActive && (
+        {notificatnionPopupActive && notification && (
           <View
             setState={setNotificatnionPopupActive}
-            data={notification}
+            nid={notification._id}
             type={"sent"}
           />
         )}

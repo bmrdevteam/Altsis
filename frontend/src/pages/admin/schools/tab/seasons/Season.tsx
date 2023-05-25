@@ -192,7 +192,7 @@ const Season = (props: Props) => {
       {addSeasonPopupActive && (
         <Popup
           setState={setAddSeasonPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "800px", width: "100%" }}
+          style={{ maxWidth: "800px", width: "100%" }}
           closeBtn
           title={"학기 추가"}
           contentScroll
@@ -313,7 +313,6 @@ const Season = (props: Props) => {
         <Popup
           title="복사할 학기 선택"
           setState={setSelectSeasonToCopyPopupActive}
-          style={{ borderRadius: "4px" }}
           closeBtn
           contentScroll
           footer={
@@ -394,7 +393,6 @@ const Season = (props: Props) => {
           title={`${selectedSeason.year} ${selectedSeason.term}`}
           setState={setEditSeasonPopupActive}
           style={{
-            borderRadius: "8px",
             // minHeight: "620px",
             maxWidth: "800px",
             width: "100%",

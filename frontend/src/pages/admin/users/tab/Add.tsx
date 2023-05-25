@@ -100,7 +100,7 @@ function Basic(props: Props) {
     <>
       <Popup
         setState={props.setPopupAcitve}
-        style={{ borderRadius: "8px", maxWidth: "600px", width: "100%" }}
+        style={{ maxWidth: "600px", width: "100%" }}
         closeBtn
         title="사용자 생성"
         contentScroll
@@ -241,7 +241,6 @@ function Basic(props: Props) {
           closeBtn
           setState={setIsEditSchoolPopupActive}
           title={`소속 학교 추가 및 삭제`}
-          style={{ borderRadius: "4px" }}
         >
           <div className={style.popup}>
             <div className={style.row}>
