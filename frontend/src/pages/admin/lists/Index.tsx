@@ -80,7 +80,6 @@ const Lists = (props: Props) => {
             setState={setAddDatabasePopupActive}
             title="데이터베이스 추가"
             closeBtn
-            style={{ borderRadius: "4px" }}
             footer={
               <Button
                 type="ghost"

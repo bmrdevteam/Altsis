@@ -565,7 +565,7 @@ const CoursePid = (props: Props) => {
           setState={setMentorSelectPopupActive}
           title="멘토 선택"
           closeBtn
-          style={{ borderRadius: "4px", width: "900px" }}
+          style={{ width: "900px" }}
           footer={
             <Button
               type="ghost"

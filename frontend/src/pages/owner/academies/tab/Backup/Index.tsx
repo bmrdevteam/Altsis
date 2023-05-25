@@ -250,7 +250,6 @@ ___________________
         <Popup
           setState={setAddPopupActive}
           style={{
-            borderRadius: "8px",
             maxWidth: "480px",
             maxHeight: "600px",
             width: "100%",
@@ -467,7 +466,6 @@ ___________________
           title={`${doc.title}`}
           setState={setEditPopupActive}
           style={{
-            borderRadius: "8px",
             maxWidth: "800px",
             width: "100%",
           }}

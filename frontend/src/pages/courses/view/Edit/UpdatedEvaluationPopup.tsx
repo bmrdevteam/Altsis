@@ -111,7 +111,7 @@ const CourseView = (props: Props) => {
       title={"수정된 평가 항목"}
       closeBtn
       contentScroll
-      style={{ borderRadius: "4px", width: "900px" }}
+      style={{ width: "900px" }}
       footer={
         <Button
           type="ghost"

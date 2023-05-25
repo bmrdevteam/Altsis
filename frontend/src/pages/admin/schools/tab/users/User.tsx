@@ -141,7 +141,7 @@ const Users = (props: Props) => {
       {viewPopupActive && (
         <Popup
           setState={setViewPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          style={{ maxWidth: "1000px", width: "100%" }}
           closeBtn
           title={`${user.userName}(${user.userId})`}
           contentScroll

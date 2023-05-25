@@ -168,7 +168,7 @@ navigate("add", { replace: true });
       {addPopupActive && (
         <Popup
           setState={setAddPopupActive}
-          style={{ borderRadius: "8px", maxWidth: "1000px", width: "100%" }}
+          style={{ maxWidth: "1000px", width: "100%" }}
           closeBtn
           title={"학교 추가하기"}
         >

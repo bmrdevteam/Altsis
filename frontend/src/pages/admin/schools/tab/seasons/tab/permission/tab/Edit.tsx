@@ -106,7 +106,7 @@ function Basic(props: Props) {
 
   return (
     <Popup
-      style={{ borderRadius: "4px", maxWidth: "600px", width: "100%" }}
+      style={{ maxWidth: "600px", width: "100%" }}
       title={`${
         props.type === "syllabus"
           ? "수업 개설"

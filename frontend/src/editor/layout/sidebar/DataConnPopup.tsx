@@ -106,7 +106,7 @@ const DataConnPopup = (props: Props) => {
           title="데이터 연결"
           contentScroll
           closeBtn
-          style={{ borderRadius: "4px", width: "800px" }}
+          style={{ width: "800px" }}
           footer={
             <Button
               onClick={() => {
