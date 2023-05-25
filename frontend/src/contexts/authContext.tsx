@@ -11,7 +11,7 @@ import React, {
 import _ from "lodash";
 import { useCookies } from "react-cookie";
 
-import { TUser, TSchool, TRegistration, TSeason } from "./authType";
+import { TUser, TSchool, TRegistration, TSeason } from "types/auth";
 
 const AuthContext = createContext<any>(null);
 
@@ -28,7 +28,6 @@ export function useAuth(): {
   currentSeason: TSeason;
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
-  currentNotificationsRef: any;
 } {
   return useContext(AuthContext);
 }
@@ -54,14 +53,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useState<TRegistration>();
   const [currentSeason, setCurrentSeason] = useState<TSeason>();
 
-  const currentNotificationsRef = useRef<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   /** Date for setting the cookie expire date  */
   const date = new Date();
   let cookieData = "";
 
   async function getLoggedInUser() {
-    const { user, registrations, notifications } = await UserApi.RMySelf();
+    const { user, registrations } = await UserApi.RMySelf();
 
     const userRegistrations = _.orderBy(
       registrations.filter((r: TRegistration) => r.isActivated),
@@ -75,10 +73,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       registrations: userRegistrations,
     });
     document.title = user.academyName;
-    currentNotificationsRef.current = _.sortBy(
-      notifications,
-      "createdAt"
-    ).reverse();
 
     /* set currentSchool using cookie */
     let schoolIdx = 0;
@@ -203,7 +197,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentSeason,
     updateUserProfile,
     deleteUserProfile,
-    currentNotificationsRef,
   };
   return (
     <AuthContext.Provider value={value}>

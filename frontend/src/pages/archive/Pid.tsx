@@ -14,7 +14,7 @@ import Button from "components/button/Button";
 import ArrayView from "./tab/ArrayView";
 import ObjectView from "./tab/ObjectView";
 import Loading from "components/loading/Loading";
-import { TSeasonRegistration } from "contexts/authType";
+import { TSeasonRegistration } from "types/auth";
 
 type Props = {};
 

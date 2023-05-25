@@ -196,18 +196,9 @@ export const current = async (req, res) => {
       ])
       .lean();
 
-    // notifications
-    const notifications = await Notification(user.academyId)
-      .find({
-        user: user._id,
-        checked: false,
-      })
-      .lean();
-
     return res.status(200).send({
       user: user.toObject(),
       registrations,
-      notifications,
     });
   } catch (err) {
     logger.error(err.message);
