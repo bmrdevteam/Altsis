@@ -156,7 +156,10 @@ const Calender = (props: Props) => {
   };
 
   return (
-    <div className={style.calender_container}>
+    <div
+      className={style.calender_container}
+      style={{ maxWidth: mode === "month" ? "640px" : "100%" }}
+    >
       <div className={style.calender}>
         <div className={style.top}>
           <div className={style.header}>
