@@ -11,6 +11,8 @@ import Popup from "components/popup/Popup";
 import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
 
+import ExcelPopup from "./ExcelPopup";
+
 type Props = {
   registrationList: any[];
 };
@@ -30,6 +32,8 @@ const ObjectView = (props: Props) => {
     useState<boolean>(false);
   const [updatingRatio, setUpdatingRatio] = useState<number>(0);
   const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
+
+  const [isExcelPopupActive, setIsExcelPopupActive] = useState<boolean>(false);
 
   const fileInput: {
     [key: string]: any;
@@ -89,6 +93,7 @@ const ObjectView = (props: Props) => {
         .then((archiveList) => {
           setArchiveList(archiveList);
           archiveListRef.current = archiveList;
+          setRefresh(true);
         })
         .then(() => {
           setIsUpdating(false);
@@ -589,15 +594,26 @@ const ObjectView = (props: Props) => {
   return !isLoading && !refresh ? (
     <>
       {archiveList.length !== 0 && (
-        <Button
-          type="ghost"
-          style={{ marginTop: "24px", borderColor: "red" }}
-          onClick={() => {
-            setIsUpdating(true);
-          }}
-        >
-          저장
-        </Button>
+        <div>
+          <Button
+            type="ghost"
+            style={{ marginTop: "24px", borderColor: "red" }}
+            onClick={() => {
+              setIsUpdating(true);
+            }}
+          >
+            저장
+          </Button>
+          <Button
+            type="ghost"
+            style={{ marginTop: "24px", borderColor: "red" }}
+            onClick={() => {
+              setIsExcelPopupActive(true);
+            }}
+          >
+            엑셀 파일로 수정
+          </Button>
+        </div>
       )}
       <div className={style.content} style={{ paddingBottom: "24px" }}>
         {archiveList.map((archive: any, aIdx: number) => {
@@ -658,6 +674,17 @@ const ObjectView = (props: Props) => {
             )}
           </div>
         </Popup>
+      )}
+      {isExcelPopupActive && (
+        <ExcelPopup
+          type="object"
+          setPopupActive={setIsExcelPopupActive}
+          fields={formArchive().fields}
+          pid={pid ?? "data"}
+          archiveListRef={archiveListRef}
+          archiveList={archiveList}
+          setIsUpdating={setIsUpdating}
+        />
       )}
     </>
   ) : (

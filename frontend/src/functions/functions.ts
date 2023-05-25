@@ -1,4 +1,6 @@
 import { isArray, isObject, find } from "lodash";
+import * as xlsx from "xlsx";
+
 /**
  * Generates a random string of a given length.
  *
@@ -190,6 +192,37 @@ export function objectDownloadAsJson(data: any) {
   link.href = jsonString; // set the link's href to the JSON string
   link.download = "data.json"; // set the download file name
   link.click(); // trigger a click on the link to download the JSON file
+}
+
+/**
+ * Downloads an object as a xlsx file.
+ *
+ * @param {any} data - The object to download as JSON.
+ */
+export function objectDownloadAsXlxs(props: {
+  title?: string;
+  sheets: {
+    title?: string;
+    header: string[];
+    data: any[];
+  }[];
+}) {
+  const wb = xlsx.utils.book_new();
+  for (let i = 0; i < props.sheets.length; i++) {
+    const sheet = props.sheets[i];
+    const ws = xlsx.utils.json_to_sheet(
+      sheet.data.map((data) => {
+        const row: { [key: string]: string } = {};
+        for (let hd of sheet.header) {
+          row[hd] = data[hd];
+        }
+        return row;
+      })
+    );
+    xlsx.utils.book_append_sheet(wb, ws, sheet.title ?? `sheet${i + 1}`);
+  }
+
+  xlsx.writeFile(wb, props.title ? props.title + ".xlsx" : "data.xlsx");
 }
 
 interface FlattenableObject {
