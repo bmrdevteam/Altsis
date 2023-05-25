@@ -10,7 +10,7 @@ import {
 } from "../models/index.js";
 import { client } from "../_database/redis/index.js";
 import { getPayload } from "../utils/payload.js";
-import { getIo } from "../utils/webSocket.js";
+import { getIoNotification } from "../utils/webSocket.js";
 import { validate } from "../utils/validate.js";
 
 // ____________ common ____________
@@ -54,7 +54,6 @@ export const loginGoogle = async (req, res) => {
 
 export const logout = async (req, res) => {
   const sid = await client.hGet(req.user.academyId, req.user.userId);
-  getIo().in(sid).disconnectSockets();
   await client.hDel(req.user.academyId, req.user.userId);
 
   req.logout((err) => {

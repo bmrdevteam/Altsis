@@ -10,7 +10,6 @@ import React, {
 
 import _ from "lodash";
 import { useCookies } from "react-cookie";
-import { io } from "socket.io-client";
 
 import { TUser, TSchool, TRegistration, TSeason } from "./authType";
 
@@ -30,7 +29,6 @@ export function useAuth(): {
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
   currentNotificationsRef: any;
-  socket: any;
 } {
   return useContext(AuthContext);
 }
@@ -57,7 +55,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentSeason, setCurrentSeason] = useState<TSeason>();
 
   const currentNotificationsRef = useRef<any[]>([]);
-  const [socket, setSocket] = useState<any>();
   const [loading, setLoading] = useState<boolean>(true);
   /** Date for setting the cookie expire date  */
   const date = new Date();
@@ -122,13 +119,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       );
     }
-
-    setSocket(
-      io(`${process.env.REACT_APP_SERVER_URL}`, {
-        path: "/socket.io",
-        withCredentials: true,
-      })
-    );
   }
 
   useEffect(() => {
@@ -141,15 +131,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
         });
   }, [loading]);
-
-  useEffect(() => {
-    if (socket !== undefined && currentUser) {
-      socket.emit("activate real-time notification", {
-        academyId: currentUser.academyId,
-        userId: currentUser.userId,
-      });
-    }
-  }, [socket, currentUser]);
 
   async function changeSchool(to: string) {
     const school = await SchoolApi.RSchool(to);
@@ -223,7 +204,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updateUserProfile,
     deleteUserProfile,
     currentNotificationsRef,
-    socket,
   };
   return (
     <AuthContext.Provider value={value}>
