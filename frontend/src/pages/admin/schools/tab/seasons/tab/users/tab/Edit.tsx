@@ -98,7 +98,6 @@ function Basic(props: Props) {
       title={`${props.registrationData.userName}(${props.registrationData.userId})`}
       setState={props.setPopupActive}
       style={{
-        borderRadius: "4px",
         maxWidth: "300px",
         width: "100%",
       }}
