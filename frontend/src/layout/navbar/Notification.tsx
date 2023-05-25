@@ -61,32 +61,34 @@ const Notification = () => {
   useEffect(() => {
     if (currentUser._id) {
       updateNotifications();
-
-      //* setup socket */
-      const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
-        path: "/io/notification",
-        withCredentials: true,
-      });
-
-      socket.on("connect", () => {
-        setSocket(socket);
-        socket.emit("listening", {
-          academyId: currentUser.academyId,
-          userId: currentUser.userId,
-        });
-      });
-
-      socket.on("listen", () => {
-        setIsNotifiationLoading(true);
-      });
-
-      setSocket(socket);
     }
+  }, [currentUser]);
+
+  useEffect(() => {
+    //* setup socket */
+    const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
+      path: "/io/notification",
+      withCredentials: true,
+    });
+
+    socket.on("connect", () => {
+      setSocket(socket);
+      socket.emit("listening", {
+        academyId: currentUser.academyId,
+        userId: currentUser.userId,
+      });
+    });
+
+    socket.on("listen", () => {
+      setIsNotifiationLoading(true);
+    });
+
+    setSocket(socket);
 
     return () => {
-      socket?.close();
+      socket.close();
     };
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     if (isNotificationLoading) {
