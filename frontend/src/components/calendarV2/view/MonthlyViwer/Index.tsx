@@ -43,7 +43,7 @@ const MonthlyView = (props: Props) => {
 
   const [year, setYear] = useState<number>(today.getFullYear());
   const [month, setMonth] = useState<number>(today.getMonth() + 1);
-  const todayString = dateFormat(today); //yyyy-mm-dd
+  const todayString = dateFormat(today, "YYYY-MM-DD"); //yyyy-mm-dd
 
   const curMonthStartDate = getFirstDateOfMonth(year, month);
   const curMonthEndDate = getLastDateOfMonth(year, month);
@@ -138,16 +138,15 @@ const MonthlyView = (props: Props) => {
       </div>
       <div className={style.cells}>
         {createCalender().map((date: Date, index: number) => {
-          const dateStr = `${year}-${month.toString().padStart(2, "0")}-${date
-            .toString()
-            .padStart(2, "0")}`;
+          const dateStr = dateFormat(date, "YYYY-MM-DD");
 
+          if (todayString === dateStr) {
+            console.log(dateStr);
+          }
           return date.getMonth() + 1 === month &&
             date.getFullYear() === year ? (
             <div
-              className={`${style.cell} ${style.current} ${
-                todayString === dateStr && style.today
-              }`}
+              className={`${style.cell} ${style.current} `}
               key={index}
               data-value={dateStr}
               onClick={() => {
@@ -155,7 +154,13 @@ const MonthlyView = (props: Props) => {
                 props.onDateSelect && props.onDateSelect(dateStr);
               }}
             >
-              <div className={`${style.date}`}>{date.getDate()}</div>
+              <div
+                className={`${style.date} ${
+                  todayString === dateStr && style.today
+                }`}
+              >
+                {date.getDate()}
+              </div>
               <div>
                 {eventMap[date.getMonth() + 1 + "/" + date.getDate()]?.map(
                   (item) => {
@@ -166,9 +171,7 @@ const MonthlyView = (props: Props) => {
             </div>
           ) : (
             <div
-              className={`${style.cell} ${
-                todayString === dateStr && style.today
-              }`}
+              className={`${style.cell}`}
               key={index}
               data-value={dateStr}
               onClick={() => {
