@@ -67,7 +67,7 @@ export const find = async (req, res) => {
       );
 
       if (!notification.user._id.equals(req.user._id))
-        return res.status(401).send();
+        return res.status(403).send();
       return res.status(200).send(notification);
     }
     if (!req.query.user) return res.status(400).send();

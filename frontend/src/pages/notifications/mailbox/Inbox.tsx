@@ -40,6 +40,7 @@ import _ from "lodash";
 
 // import Mailbox from "../components/mailbox";
 import View from "../popup/View";
+import { TNotificationReceived } from "types/notification";
 
 type Props = {};
 
@@ -48,7 +49,7 @@ const Received = (props: Props) => {
   const { NotificationApi } = useApi();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
-  const [notification, setNotification] = useState<any>();
+  const [notification, setNotification] = useState<TNotificationReceived>();
   const selectRef = useRef<string[]>();
 
   const [notificatnionPopupActive, setNotificatnionPopupActive] =
@@ -168,12 +169,8 @@ const Received = (props: Props) => {
               key: "_id",
               type: "button",
               onClick: (e: any) => {
-                NotificationApi.RNotificationById(e._id)
-                  .then((res) => {
-                    setNotification(res);
-                    setNotificatnionPopupActive(true);
-                  })
-                  .catch((err) => alert(err.response.data.message));
+                setNotification(e);
+                setNotificatnionPopupActive(true);
               },
               width: "80px",
               textAlign: "center",
@@ -187,10 +184,10 @@ const Received = (props: Props) => {
           ]}
         />
       </div>
-      {notificatnionPopupActive && (
+      {notificatnionPopupActive && notification && (
         <View
           setState={setNotificatnionPopupActive}
-          data={notification}
+          nid={notification._id}
           type={"received"}
         />
       )}

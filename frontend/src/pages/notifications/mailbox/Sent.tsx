@@ -257,10 +257,10 @@ const Sent = (props: Props) => {
             ]}
           />
         </div>
-        {notificatnionPopupActive && (
+        {notificatnionPopupActive && notification && (
           <View
             setState={setNotificatnionPopupActive}
-            data={notification}
+            nid={notification._id}
             type={"sent"}
           />
         )}

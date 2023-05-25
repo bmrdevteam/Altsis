@@ -115,9 +115,13 @@ const Notification = () => {
   }, [isNotificationContenLoading]);
 
   const notificationItems = () => {
-    return notifications.map((notification: any) => {
+    return notifications.map((notification: any, idx: number) => {
       return (
-        <div className={style.item} style={{ marginBottom: "12px" }}>
+        <div
+          key={`notificationItem-${idx}`}
+          className={style.item}
+          style={{ marginBottom: "12px" }}
+        >
           <div
             className={style.description}
             onClick={() => {
@@ -194,7 +198,7 @@ const Notification = () => {
           {notificationPopupActive && (
             <View
               setState={setNotificationPopupAcitve}
-              data={notification}
+              nid={notification._id}
               type={"received"}
             />
           )}
