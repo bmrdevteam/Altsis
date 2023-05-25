@@ -172,21 +172,20 @@ const Notification = () => {
           <>
             <div className={style.contents}>
               <div className={style.title}>알림</div>
-              {!isNotificationContenLoading && notifications()}
-
-              <Button
-                type="ghost"
-                onClick={(e: any) => {
-                  setNotificationContentActive(false);
-                  navigate("/notifications");
-                }}
-                style={{
-                  border: 0,
-                  color: "gray",
-                }}
-              >
-                모두보기
-              </Button>
+              <div className={style.item_box}>
+                {!isNotificationContenLoading && notifications()}
+              </div>
+              <div className={style.button}>
+                <Button
+                  type="ghost"
+                  onClick={(e: any) => {
+                    setNotificationContentActive(false);
+                    navigate("/notifications");
+                  }}
+                >
+                  모두보기
+                </Button>
+              </div>
             </div>
             {notificationPopupActive && (
               <View

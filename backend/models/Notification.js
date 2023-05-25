@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
+import { UTC } from "../utils/date.js";
 
 const userSchema = mongoose.Schema(
   {
@@ -47,6 +48,7 @@ const notificationSchema = mongoose.Schema(
       required: true,
     },
     description: String,
+    date: Date,
   },
   { timestamps: true }
 );
@@ -54,6 +56,14 @@ const notificationSchema = mongoose.Schema(
 notificationSchema.index({
   user: 1,
   createdAt: -1,
+});
+
+notificationSchema.pre("insertMany", function (next, docs) {
+  const date = UTC();
+  for (let doc of docs) {
+    doc.date = date;
+  }
+  next();
 });
 
 export const Notification = (dbName) => {

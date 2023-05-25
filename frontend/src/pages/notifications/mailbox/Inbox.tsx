@@ -156,15 +156,13 @@ const Received = (props: Props) => {
               key: "title",
               type: "text",
             },
-
             {
               text: "날짜",
-              key: "createdAt",
-              type: "text",
+              key: "date",
+              type: "date",
               textAlign: "right",
-              width: "240px",
+              width: "180px",
             },
-
             {
               text: "자세히",
               key: "_id",
@@ -179,6 +177,12 @@ const Received = (props: Props) => {
               },
               width: "80px",
               textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "var(--accent-1)",
+                padding: "4px",
+                round: true,
+              },
             },
           ]}
         />
