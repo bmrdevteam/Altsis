@@ -1,7 +1,11 @@
 import { dateFormat } from "functions/functions";
 import _ from "lodash";
+import { TRegistration } from "types/auth";
+import { GoogleCalendarData } from "types/calendar";
 
-const dayString = ["일", "월", "화", "수", "목", "금", "토"];
+export type TDay = "일" | "월" | "화" | "수" | "목" | "금" | "토";
+export const DayList: TDay[] = ["일", "월", "화", "수", "목", "금", "토"];
+
 export class DateItem {
   public _date: Date;
   public yyyy: number;
@@ -45,7 +49,7 @@ export class DateItem {
   }
 
   getDayString() {
-    return dayString[this._date.getDay()];
+    return DayList[this._date.getDay()];
   }
 
   getDateItemAfter(days: number) {
@@ -66,132 +70,194 @@ export class DateItem {
     if (opts === 3) return `${this.yyyy}년 ${this.mm}월 ${this.dd}일`;
     if (opts === 4)
       return `${this.yyyy}년 ${this.mm}월 ${this.dd}일 ${
-        dayString[this._date.getDay()]
+        DayList[this._date.getDay()]
       }요일`;
   }
 }
 
-export type GoogleCalendarData = {
-  summary: string;
-  description?: string;
-  items: GoogleCalendarItem[];
-};
-
-export type GoogleCalendarItem = {
-  id: string;
-
-  kind: string;
-  etag: string;
-
-  status: string;
-  htmlLink: string;
-  summary: string;
-  description: string;
-  location: string;
-  colorId: string;
-  creator: {
-    id: string;
-    email: string;
-    displayName: string;
-    self: boolean;
-  };
-  start: {
-    date?: Date;
-    dateTime?: Date;
-  };
-  end: {
-    date?: Date;
-    dateTime?: Date;
-  };
-  endTimeUnspecified: boolean;
-  sequence: number;
-  attendees: {
-    id: string;
-    email: string;
-    displayName: string;
-    organizer: boolean;
-    self: boolean;
-    resource: boolean;
-    optional: boolean;
-    responseStatus: string;
-    comment: string;
-    additionalGuests: number;
-  }[];
-  source: {
-    url: string;
-    title: string;
-  };
-  attachments: [
-    {
-      fileUrl: string;
-      title: string;
-      mimeType: string;
-      iconLink: string;
-      fileId: string;
-    }
-  ];
-  eventType: string;
-};
-export class CalendarData {
+export class TimetableCalendarData {
   public summary: string = "";
   public description: string | undefined = undefined;
-  private _items: calendarItem[] = [];
+  public _items: calendarItem[] = [];
+
+  constructor(registration: TRegistration, enrollments: any[]) {
+    this.summary = `${registration.year} ${registration.term}`;
+
+    const map = new Map<TDay, any[]>();
+    for (let day of DayList) {
+      map.set(day, []);
+    }
+
+    for (let enrollment of enrollments) {
+      for (let idx = 0; idx < enrollment.time.length; idx++) {
+        map.get(enrollment.time[idx].day)?.push({
+          id: `${enrollment._id}-${idx}`,
+          enrollmentId: enrollment._id,
+          summary: enrollment.classTitle,
+          startHHMM: enrollment.time[idx].start,
+          endHHMM: enrollment.time[idx].end,
+        });
+      }
+    }
+
+    const startDate = new DateItem({ text: registration.period?.start });
+    const endDate = new DateItem({ text: registration.period?.end });
+
+    const items = [];
+    for (
+      let dateItem = startDate;
+      dateItem.text <= endDate.text;
+      dateItem = dateItem.getDateItemAfter(1)
+    ) {
+      for (let enrollment of map.get(dateItem.getDayString()) ?? []) {
+        items.push({
+          ...enrollment,
+          isAllday: false,
+          startTime: new Date(dateItem.text),
+          startTimeText: dateItem.text + " " + enrollment.startHHMM,
+          endTime: new Date(dateItem.text),
+          endTimeText: dateItem.text + " " + enrollment.endHHMM,
+        });
+      }
+    }
+
+    this._items = items;
+  }
+}
+
+export class CalendarData {
+  public type?: "timetable";
+  public summary: string = "";
+  public description: string | undefined = undefined;
+  public backgroundColor: string | undefined;
+  public foregroundColor: string | undefined;
+
+  public _items: calendarItem[] = [];
   private defaultDate: Date = new Date();
 
   constructor(props: {
-    year?: number;
-    month?: number;
-    googleCalendar: GoogleCalendarData;
-  }) {
-    this.summary = props.googleCalendar.summary ?? "";
-    this.description = props.googleCalendar.description ?? undefined;
-
-    this._items = _.orderBy(
-      props.googleCalendar.items.map((_item) => {
-        const isAllday = "date" in _item.start;
-        const startTime = new Date(
-          (isAllday ? _item.start.date + " 00:00" : _item.start.dateTime) ??
-            this.defaultDate
-        );
-        const endTime = new Date(
-          (isAllday ? _item.end.date + " 00:00" : _item.end.dateTime) ??
-            this.defaultDate
-        );
-
-        const item: calendarItem = {
-          ..._item,
-          calendarSummary: this.summary,
-          isAllday,
-          startTime,
-          startTimeText: dateFormat(startTime),
-          endTime,
-          endTimeText: dateFormat(endTime),
+    googleCalendar?: GoogleCalendarData;
+    timetable?: {
+      registration: {
+        year: string;
+        term: string;
+        period?: {
+          start: string;
+          end: string;
         };
+      };
+      courseList: any[];
+    };
+    backgroundColor?: string;
+    foregroundColor?: string;
+  }) {
+    this.backgroundColor = props.backgroundColor ?? "rgb(202, 222, 255)";
+    this.foregroundColor = props.foregroundColor ?? "black";
 
-        return item;
-      }),
-      [(item) => item.startTime]
-    );
+    if (props.googleCalendar) {
+      this.summary = props.googleCalendar.summary ?? "";
+      this.description = props.googleCalendar.description ?? undefined;
+
+      this._items = _.orderBy(
+        props.googleCalendar.items.map((_item) => {
+          const isAllday = "date" in _item.start;
+          const startTime = new Date(
+            (isAllday ? _item.start.date + " 00:00" : _item.start.dateTime) ??
+              this.defaultDate
+          );
+          const endTime = new Date(
+            (isAllday ? _item.end.date + " 00:00" : _item.end.dateTime) ??
+              this.defaultDate
+          );
+
+          const item: calendarItem = {
+            ..._item,
+            calendarSummary: this.summary,
+            isAllday,
+            startTime,
+            startTimeText: dateFormat(startTime),
+            endTime,
+            endTimeText: dateFormat(endTime),
+            backgroundColor: this.backgroundColor,
+            foregroundColor: this.foregroundColor,
+          };
+
+          return item;
+        }),
+        [(item) => item.startTime]
+      );
+    }
+
+    if (props.timetable) {
+      this.type = "timetable";
+      this.summary = `${props.timetable.registration.year} ${props.timetable.registration.term}`;
+
+      const startDate = new DateItem({
+        text: props.timetable.registration.period?.start,
+      });
+      const endDate = new DateItem({
+        text: props.timetable.registration.period?.end,
+      });
+
+      const map = new Map<TDay, any[]>();
+      for (let day of DayList) {
+        map.set(day, []);
+      }
+
+      for (let enrollment of props.timetable.courseList) {
+        for (let idx = 0; idx < enrollment.time.length; idx++) {
+          map.get(enrollment.time[idx].day)?.push({
+            ...enrollment,
+            id: `${enrollment._id}-${idx}`,
+            enrollmentId: enrollment._id,
+            summary: enrollment.classTitle,
+            isAllday: false,
+            startHHMM: enrollment.time[idx].start,
+            endHHMM: enrollment.time[idx].end,
+          });
+        }
+      }
+
+      const items = [];
+      for (
+        let dateItem = startDate;
+        dateItem.text <= endDate.text;
+        dateItem = dateItem.getDateItemAfter(1)
+      ) {
+        for (let enrollment of map.get(dateItem.getDayString()) ?? []) {
+          items.push({
+            ...enrollment,
+            startTime: new Date(dateItem.text),
+            startTimeText: dateItem.text + " " + enrollment.startHHMM,
+            endTime: new Date(dateItem.text),
+            endTimeText: dateItem.text + " " + enrollment.endHHMM,
+            location: enrollment.classroom,
+            backgroundColor: this.backgroundColor,
+            foregroundColor: this.foregroundColor,
+          });
+        }
+      }
+
+      this._items = items;
+    }
   }
-
-  get items() {
-    return this._items;
-  }
-
-  set items(items: calendarItem[]) {}
 }
 
 export type calendarItem = {
   calendarSummary: string;
   id: string;
   summary: string;
-  description: string;
+  description?: string;
+  location?: string;
   isAllday: boolean;
-  startTime: Date;
+  startTime?: Date;
   startTimeText: string;
-  endTime: Date;
+  endTime?: Date;
   endTimeText: string;
-  htmlLink: string;
+  htmlLink?: string;
+  enrollmentId?: string;
+  backgroundColor?: string;
+  foregroundColor?: string;
 };
 
 export const getEventMap = (
@@ -213,7 +279,11 @@ export const getEventMap = (
 
   const items = [];
   for (let calendar of calendars) {
-    items.push(...calendar.items);
+    items.push(
+      ...calendar._items.map((item) => {
+        return { ...item };
+      })
+    );
   }
   for (let item of items) {
     if (

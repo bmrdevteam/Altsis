@@ -55,15 +55,13 @@ const Event = ({ data, isMounted }: { data: TEvent; isMounted: boolean }) => {
       style={{
         top: `${start * 80}px`,
         height: `${height * 80}px`,
+        backgroundColor: data.backgroundColor,
+        color: data.foregroundColor,
       }}
     >
       <div className={style.title}>{data.summary ?? "제목 없음"}</div>
-      {data.classroom && <div className={style.room}>{data.classroom}</div>}
-      <div className={style.time}>
-        {startTime}
-        {" ~ "}
-        {endTime}
-      </div>
+      {data.location && <div className={style.room}>{data.location}</div>}
+      {data.description && <div className={style.room}>{data.description}</div>}
     </div>
   );
 };

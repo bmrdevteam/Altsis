@@ -12,6 +12,7 @@ import { CalendarData, DateItem, getEventMap } from "./calendarData";
 import WeeklyView from "./view/WeeklyViewer/Index";
 import MonthlyView from "./view/MonthlyViwer/Index";
 import Loading from "components/loading/Loading";
+import useApi from "hooks/useApi";
 
 /**
  * calendar component
@@ -25,12 +26,15 @@ import Loading from "components/loading/Loading";
  * @version 2.0 second version
  */
 
-type Props = {};
+type Props = {
+  enrollments: any[];
+  syllabuses: any[];
+};
 
 type Mode = "day" | "week" | "month";
 
 const Calender = (props: Props) => {
-  const { currentWorkspace } = useAuth();
+  const { currentWorkspace, currentRegistration } = useAuth();
   const { isLoadingToken, CalendarAPI } = useGoogleAPI();
   const [mode, setMode] = useState<Mode>("week");
 
@@ -47,6 +51,25 @@ const Calender = (props: Props) => {
   const updateItems = async (year: number) => {
     setIsUpdatingItems(true);
     const calendars = [];
+    calendars.push(
+      new CalendarData({
+        timetable: {
+          registration: currentRegistration,
+          courseList: props.enrollments,
+        },
+        backgroundColor: "rgb(202, 222, 255)",
+      })
+    );
+    calendars.push(
+      new CalendarData({
+        timetable: {
+          registration: currentRegistration,
+          courseList: props.syllabuses,
+        },
+        backgroundColor: "rgb(228, 255, 202)",
+      })
+    );
+
     if (currentWorkspace.calendars?.items) {
       for (let _gCalendar of currentWorkspace.calendars.items) {
         if (!_gCalendar.isChecked) continue;
@@ -60,6 +83,8 @@ const Calender = (props: Props) => {
         });
         const calendar = new CalendarData({
           googleCalendar,
+          backgroundColor: _gCalendar.backgroundColor,
+          foregroundColor: _gCalendar.foregroundColor,
         });
         calendars.push(calendar);
       }
@@ -164,20 +189,11 @@ const Calender = (props: Props) => {
       6 - _endDateItem.getDay()
     );
 
-    return getEventMap(calendars, startDateItem, endDateItem);
-  };
-
-  const getMonthlyEventMap = () => {
-    const startDateItem = dateItem;
-    const endDateItem = new DateItem({
-      fields: {
-        yyyy: dateItem.yyyy,
-        mm: dateItem.mm + 1,
-        dd: 0,
-      },
-    });
-
-    return getEventMap(calendars, startDateItem, endDateItem);
+    return getEventMap(
+      calendars.filter((calendar) => calendar.type !== "timetable"),
+      startDateItem,
+      endDateItem
+    );
   };
 
   const Viewer: { [key in Mode]: React.ReactElement } = {
