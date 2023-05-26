@@ -1,27 +1,10 @@
-import React, { useState } from "react";
-import Svg from "../../../../assets/svg/Svg";
-import style from "./calendar.module.scss";
-import _ from "lodash";
 import Table from "components/tableV2/Table";
 
-import { CalendarData, GoogleCalendarData } from "../../calendarData";
-import {
-  dateFormat,
-  getFirstDateOfMonth,
-  getLastDateOfMonth,
-  getDateBefore,
-  getDateAfter,
-} from "functions/functions";
-
-// function dateFormat(date: Date) {
-//   return date.toISOString().split("T")[0];
-// }
+import { calendarItem } from "../../calendarData";
+import {} from "functions/functions";
 
 type Props = {
-  year: number;
-  month: number;
-  onDateSelect?: (date: any) => void;
-  googleCalendar?: GoogleCalendarData;
+  eventMap?: Map<string, calendarItem[]>;
 };
 
 /**
@@ -37,71 +20,19 @@ type Props = {
  */
 
 const TableView = (props: Props) => {
-  const today = new Date();
-
-  const [year, setYear] = useState<number>(today.getFullYear());
-  const [month, setMonth] = useState<number>(today.getMonth() + 1);
-  const todayString = dateFormat(today); //yyyy-mm-dd
-
-  const curMonthStartDate = getFirstDateOfMonth(year, month);
-  const curMonthEndDate = getLastDateOfMonth(year, month);
-
-  const exMonthBeginDate = getDateBefore(
-    curMonthStartDate,
-    curMonthStartDate.getDay()
-  );
-
-  const nextMonthEndDate = getDateAfter(
-    curMonthEndDate,
-    6 - curMonthEndDate.getDay()
-  );
-
-  const createCalender = () => {
-    const days: Date[] = [];
-
-    let date = new Date(exMonthBeginDate);
-    while (date <= nextMonthEndDate) {
-      const newDate = new Date(date);
-      days.push(newDate);
-      date.setDate(newDate.getDate() + 1);
+  const getItems = () => {
+    const items = [];
+    for (let dateText of Array.from(props.eventMap?.keys() ?? [])) {
+      items.push(...props.eventMap?.get(dateText)!);
     }
-    return days;
+    return items;
   };
-
-  const handleOnClick = (cmd: "left" | "right") => {
-    if (cmd === "left") {
-      if (month === 1) {
-        setYear((prev) => prev - 1);
-        setMonth(12);
-      } else {
-        setMonth((prev) => prev - 1);
-      }
-    }
-    if (cmd === "right") {
-      if (month === 12) {
-        setYear((prev) => prev + 1);
-        setMonth(1);
-      } else {
-        setMonth((prev) => prev + 1);
-      }
-    }
-  };
-
-  let calendarData: CalendarData | undefined = undefined;
-
-  if (props.googleCalendar) {
-    calendarData = new CalendarData({
-      year: props.year,
-      month: props.month,
-      googleCalendar: props.googleCalendar,
-    });
-  }
 
   return (
     <div>
       <Table
         type="object-array"
-        data={calendarData?.items ?? []}
+        data={getItems()}
         header={[
           {
             text: "title",

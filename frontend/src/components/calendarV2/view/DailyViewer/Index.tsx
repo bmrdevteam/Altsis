@@ -1,106 +1,43 @@
 import React, { useEffect, useRef, useState } from "react";
 import style from "./style.module.scss";
 import create from "zustand";
-import useGenerateId from "hooks/useGenerateId";
-import Svg from "assets/svg/Svg";
-import { useAuth } from "contexts/authContext";
-import Select from "components/select/Select";
-import Input from "components/input/Input";
-import Textarea from "components/textarea/Textarea";
-import Popup from "components/popup/Popup";
-import Button from "components/button/Button";
-import useApi from "hooks/useApi";
-import { getLastTimeOfDate, getStartTimeOfDate } from "functions/functions";
 
-type TEvent = {
-  id: string;
-  title: string;
+import { DateItem, calendarItem } from "components/calendarV2/calendarData";
 
-  startTime: Date;
-  startTimeText: string;
-  endTime: Date;
-  endTimeText: string;
-
+type TEvent = calendarItem & {
   type?: string;
   classroom?: string;
-
   memo?: string;
   _id?: string;
 };
 
 interface ICalendarState {
   events: TEvent[];
-  addEvent: (
-    title: string,
-    startTime: Date,
-    startTimeText: string,
-    endTime: Date,
-    endTimeText: string
-  ) => void;
   setEvents: (events: TEvent[]) => void;
-  editor: boolean;
-  setEditor: (to: boolean) => void;
-  currentEvent: TEvent | undefined;
-  setCurrentEvent: (id: string) => void;
 }
 
 const useStore = create<ICalendarState>()((set) => {
-  const idGen = useGenerateId;
   return {
     events: [],
     editor: false,
-    setEditor: (to: boolean) =>
-      set((state) => ({
-        editor: to,
-      })),
-    addEvent: (title, startTime, startTimeText, endTime, endTimeText) =>
-      set((state) => ({
-        events: [
-          ...state.events,
-          {
-            id: idGen(12),
-            title: "",
-            startTime: startTime,
-            startTimeText: startTimeText,
-            endTime: endTime,
-            endTimeText: endTimeText,
-          },
-        ],
-      })),
     setEvents: (events) =>
       set((state) => ({
         events: events,
-      })),
-    currentEvent: undefined,
-    setCurrentEvent: (id: string) =>
-      set((state) => ({
-        currentEvent: state.events.filter((val) => val.id === id)[0],
       })),
   };
 });
 
 const RowFunction = () => {
-  const { addEvent } = useStore();
   return (
     <div className={style.row_function}>
       {Array.from(Array(24).keys()).map((val) => {
-        return (
-          <div
-            key={val}
-            className={style.block}
-            onClick={() => {
-              // addEvent(day, `${val}:00`, `${val + 1}:00`);
-            }}
-          ></div>
-        );
+        return <div key={val} className={style.block}></div>;
       })}
     </div>
   );
 };
 
 const Event = ({ data }: { data: TEvent }) => {
-  const { setEditor, setCurrentEvent } = useStore();
-
   const startTime = data.startTimeText.split(" ")[1];
   const endTime = data.endTimeText.split(" ")[1];
 
@@ -117,14 +54,8 @@ const Event = ({ data }: { data: TEvent }) => {
         top: `${start * 80}px`,
         height: `${height * 80}px`,
       }}
-      onClick={() => {
-        setCurrentEvent(data.id);
-        setEditor(true);
-      }}
     >
-      <div className={style.title}>
-        {(data.title || data.title === " ") ?? "제목 없음"}
-      </div>
+      <div className={style.title}>{data.summary ?? "제목 없음"}</div>
       {data.classroom && <div className={style.room}>{data.classroom}</div>}
       <div className={style.time}>
         {startTime}
@@ -177,14 +108,8 @@ const RowGrid = () => {
   );
 };
 
-const mode = "edit";
-const defaultEvents: TEvent[] = [];
-
-type days = "일" | "월" | "화" | "수" | "목" | "금" | "토";
-
 type Props = {
-  date: Date;
-  events: TEvent[];
+  eventMap?: Map<string, calendarItem[]>;
 };
 
 const TimeLabels = () => {
@@ -196,29 +121,26 @@ const TimeLabels = () => {
   return <div className={style.time_labels}>{labels}</div>;
 };
 
-function Schedule(props: Props) {
-  const [date] = useState<Date>(props.date);
+function DailyView(props: Props) {
   const { setEvents } = useStore();
-  const today = new Date();
 
   useEffect(() => {
-    props.events && setEvents(props.events);
-  }, [props.events]);
+    if (props.eventMap) {
+      const events = [];
+      for (let dateText of Array.from(props.eventMap.keys())) {
+        events.push(...props.eventMap.get(dateText)!);
+      }
+      setEvents(events);
+    }
+  }, [props.eventMap]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const EventContainer = () => {
     const { events } = useStore();
-    const filteredEvents = events.filter(
-      (val) =>
-        val.endTime > getStartTimeOfDate(date) &&
-        val.startTime < getLastTimeOfDate(date)
-    );
-
-    console.log(filteredEvents);
     return (
       <div className={style.event_container}>
-        {filteredEvents.map((val) => {
+        {events.map((val) => {
           return <Event key={val.id} data={val} />;
         })}
       </div>
@@ -231,16 +153,15 @@ function Schedule(props: Props) {
         {TimeLabels()}
         <CurrentTime />
         <div className={style.grid} ref={scrollRef}>
-          <div key={"dsf"} className={style.column}>
+          <div className={style.column}>
             <RowGrid />
             <EventContainer />
             <RowFunction />
           </div>
         </div>
-        {/* <EventEditor mode={mode} /> */}
       </div>
     </div>
   );
 }
 
-export default Schedule;
+export default DailyView;
