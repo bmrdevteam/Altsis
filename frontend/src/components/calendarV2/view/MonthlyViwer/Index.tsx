@@ -9,6 +9,7 @@ type Props = {
   year: number;
   month: number;
   eventMap?: Map<string, calendarItem[]>;
+  onClickEvent: any;
 };
 
 /**
@@ -88,9 +89,7 @@ const MonthlyView = (props: Props) => {
                     return (
                       <div
                         className={style.item}
-                        onClick={() => {
-                          console.log(item);
-                        }}
+                        onClick={() => props.onClickEvent(item)}
                       >
                         {item.summary}
                       </div>

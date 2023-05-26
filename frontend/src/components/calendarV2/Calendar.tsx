@@ -7,12 +7,18 @@ import Select from "components/select/Select";
 import useGoogleAPI from "hooks/useGoogleAPI";
 import { useAuth } from "contexts/authContext";
 
-import { CalendarData, DateItem, getEventMap } from "./calendarData";
+import {
+  CalendarData,
+  DateItem,
+  calendarItem,
+  getEventMap,
+} from "./calendarData";
 
-import WeeklyView from "./view/WeeklyViewer/Index";
+import WeeklyView, { TEvent } from "./view/WeeklyViewer/Index";
 import MonthlyView from "./view/MonthlyViwer/Index";
 import Loading from "components/loading/Loading";
 import useApi from "hooks/useApi";
+import EventPopup from "./view/EventPopup/Index";
 
 /**
  * calendar component
@@ -46,6 +52,9 @@ const Calender = (props: Props) => {
   const [subDateItem, setSubDateItem] = useState<DateItem>(today);
 
   const [isMounted, setIsMounted] = useState(true);
+
+  const [event, setEvent] = useState<TEvent>();
+  const [isEventPopupActive, setIsEventPopupActive] = useState<boolean>(false);
 
   const [isUpdatingItems, setIsUpdatingItems] = useState<boolean>(false);
   const updateItems = async (year: number) => {
@@ -196,12 +205,18 @@ const Calender = (props: Props) => {
     );
   };
 
+  const onClickEventHandler = (event: calendarItem) => {
+    setEvent(event);
+    setIsEventPopupActive(true);
+  };
+
   const Viewer: { [key in Mode]: React.ReactElement } = {
     day: (
       <WeeklyView
         eventMap={getEventMap(calendars, dateItem, dateItem)}
         isMounted={isMounted}
         dayList={[dateItem.getDayString()]}
+        onClickEvent={onClickEventHandler}
       />
     ),
     week: (
@@ -209,6 +224,7 @@ const Calender = (props: Props) => {
         eventMap={getEventMap(calendars, dateItem, subDateItem)}
         isMounted={isMounted}
         dayList={["일", "월", "화", "수", "목", "금", "토"]}
+        onClickEvent={onClickEventHandler}
       />
     ),
     month: (
@@ -216,6 +232,7 @@ const Calender = (props: Props) => {
         year={dateItem.yyyy}
         month={dateItem.mm}
         eventMap={getFullMonthlyEventMap()}
+        onClickEvent={onClickEventHandler}
       />
     ),
   };
@@ -254,67 +271,72 @@ const Calender = (props: Props) => {
   }, [mode]);
 
   return (
-    <div
-      className={style.calender_container}
-      style={{ maxWidth: mode === "month" ? "640px" : "100%" }}
-    >
-      <div className={style.calender}>
-        <div className={style.top}>
-          <div className={style.header}>
-            <div className={style.title}>{Label[mode]}</div>
-            <div className={style.subTitle}></div>
-          </div>
-          <div className={style.controls}>
-            <div className={style.btn}>
-              <div
-                className={style.subBtn}
-                onClick={() => handleOnClick({ cmd: "left", mode })}
-              >
-                <Svg type={"chevronLeft"} />
-              </div>
+    <>
+      <div
+        className={style.calender_container}
+        style={{ maxWidth: mode === "month" ? "640px" : "100%" }}
+      >
+        <div className={style.calender}>
+          <div className={style.top}>
+            <div className={style.header}>
+              <div className={style.title}>{Label[mode]}</div>
+              <div className={style.subTitle}></div>
+            </div>
+            <div className={style.controls}>
+              <div className={style.btn}>
+                <div
+                  className={style.subBtn}
+                  onClick={() => handleOnClick({ cmd: "left", mode })}
+                >
+                  <Svg type={"chevronLeft"} />
+                </div>
 
-              <div
-                className={style.subBtn}
-                onClick={() => handleOnClick({ cmd: "center", mode })}
-              >
-                오늘
-              </div>
+                <div
+                  className={style.subBtn}
+                  onClick={() => handleOnClick({ cmd: "center", mode })}
+                >
+                  오늘
+                </div>
 
-              <div
-                className={style.subBtn}
-                onClick={() => handleOnClick({ cmd: "right", mode })}
-              >
-                <Svg type={"chevronRight"} />
+                <div
+                  className={style.subBtn}
+                  onClick={() => handleOnClick({ cmd: "right", mode })}
+                >
+                  <Svg type={"chevronRight"} />
+                </div>
               </div>
-            </div>
-            <div className={style.selector}>
-              <Select
-                options={[
-                  { text: "일", value: "day" },
-                  { text: "주", value: "week" },
-                  { text: "월", value: "month" },
-                ]}
-                onChange={(val: Mode) => {
-                  setMode(val);
-                }}
-                defaultSelectedValue={mode}
-              />
-            </div>
-            <div className={style.btn}>
-              <div className={style.subBtn}>일정 추가</div>
+              <div className={style.selector}>
+                <Select
+                  options={[
+                    { text: "일", value: "day" },
+                    { text: "주", value: "week" },
+                    { text: "월", value: "month" },
+                  ]}
+                  onChange={(val: Mode) => {
+                    setMode(val);
+                  }}
+                  defaultSelectedValue={mode}
+                />
+              </div>
+              <div className={style.btn}>
+                <div className={style.subBtn}>일정 추가</div>
+              </div>
             </div>
           </div>
-        </div>
-        <div className={style.viewer_container}>
-          {dateItem &&
-            (!isUpdatingItems ? (
-              Viewer[mode]
-            ) : (
-              <Loading height={"calc(100vh - 200px)"} />
-            ))}
+          <div className={style.viewer_container}>
+            {dateItem &&
+              (!isUpdatingItems ? (
+                Viewer[mode]
+              ) : (
+                <Loading height={"calc(100vh - 200px)"} />
+              ))}
+          </div>
         </div>
       </div>
-    </div>
+      {isEventPopupActive && event && (
+        <EventPopup setState={setIsEventPopupActive} event={event} />
+      )}
+    </>
   );
 };
 
