@@ -13,6 +13,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import useApi from "./useApi";
 import { useAuth } from "contexts/authContext";
+import { GoogleCalendarData } from "types/calendar";
 
 const GOOGLE_URL = "https://www.googleapis.com";
 
@@ -117,7 +118,6 @@ export default function useGoogleAPI() {
 
   async function getAccessToken() {
     if (new Date() >= expires && !isLoadingToken) {
-      console.log("REFRESH TOKEN!");
       const { access_token } = await database.POST({
         location: `oauth2/v4/token`,
         data: {
@@ -152,7 +152,16 @@ export default function useGoogleAPI() {
    * List Calendars
    */
 
-  async function RCalendars() {
+  async function RCalendars(): Promise<
+    {
+      accessRole: "owner";
+      backgroundColor: string;
+      colorId: string;
+      id: string;
+      selected: boolean;
+      summary: string;
+    }[]
+  > {
     const res = await database.GET({
       location:
         `calendar/v3/users/me/calendarList` +
@@ -162,7 +171,6 @@ export default function useGoogleAPI() {
           minAccessRole: "owner",
         }),
     });
-    console.log(res);
     return res.items;
   }
 
@@ -173,7 +181,7 @@ export default function useGoogleAPI() {
   async function REvents(props: {
     calendarId: string;
     queries: { timeMin: string; timeMax: string };
-  }) {
+  }): Promise<GoogleCalendarData> {
     const res = await database.GET({
       location:
         `calendar/v3/calendars/${props.calendarId}/events` +
