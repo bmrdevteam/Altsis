@@ -290,8 +290,30 @@ export const getEventMap = (
       item.endTimeText >= startDateText &&
       item.startTimeText <= endDateText
     ) {
-      const dateItem = new DateItem({ date: item.startTime });
-      map.get(dateItem.text)?.push(item);
+      const startDateItem = new DateItem({ date: item.startTime });
+      const endDateItem = new DateItem({ date: item.endTime });
+
+      const dateList: DateItem[] = [];
+      for (
+        let dateItem = startDateItem;
+        dateItem.text < endDateItem.text;
+        dateItem = dateItem.getDateItemAfter(1)
+      ) {
+        dateList.push(dateItem);
+      }
+
+      if (dateList.length === 1) {
+        map.get(dateList[0].text)?.push(item);
+      } else {
+        for (let i = 0; i < dateList.length; i++) {
+          map
+            .get(dateList[i].text)
+            ?.push({
+              ...item,
+              summary: item.summary + ` (${i + 1}/${dateList.length})`,
+            });
+        }
+      }
     }
   }
 
