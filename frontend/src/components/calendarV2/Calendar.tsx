@@ -43,6 +43,8 @@ const Calender = (props: Props) => {
   const [dateItem, setDateItem] = useState<DateItem>(today);
   const [subDateItem, setSubDateItem] = useState<DateItem>(today);
 
+  const [isMounted, setIsMounted] = useState(true);
+
   const updateCalendar = async (year: number) => {
     const googleCalendar = await CalendarAPI.REvents({
       calendarId: currentWorkspace.calendars?.items[4].id,
@@ -66,6 +68,7 @@ const Calender = (props: Props) => {
     mode: Mode;
   }) => {
     if (!dateItem) return;
+    setIsMounted(false);
 
     let _date: DateItem = dateItem;
 
@@ -121,10 +124,18 @@ const Calender = (props: Props) => {
 
     if (_date.yyyy !== dateItem.yyyy) {
       updateCalendar(_date.yyyy).then((res) => {
-        setDateItem(_date);
+        setIsMounted(false);
+        setTimeout(() => {
+          setIsMounted(true);
+          setDateItem(_date);
+        }, 50);
       });
     } else {
-      setDateItem(_date);
+      setIsMounted(false);
+      setTimeout(() => {
+        setIsMounted(true);
+        setDateItem(_date);
+      }, 50);
     }
   };
 
@@ -167,9 +178,17 @@ const Calender = (props: Props) => {
   };
 
   const Viewer: { [key in Mode]: React.ReactElement } = {
-    day: <DailyView eventMap={calendar?.getEventMap(dateItem, dateItem)} />,
+    day: (
+      <DailyView
+        eventMap={calendar?.getEventMap(dateItem, dateItem)}
+        isMounted={isMounted}
+      />
+    ),
     week: (
-      <WeeklyView eventMap={calendar?.getEventMap(dateItem, subDateItem)} />
+      <WeeklyView
+        eventMap={calendar?.getEventMap(dateItem, subDateItem)}
+        isMounted={isMounted}
+      />
     ),
     month: (
       <MonthlyView
@@ -192,12 +211,15 @@ const Calender = (props: Props) => {
     if (dateItem && mode === "week") {
       setSubDateItem(dateItem.getDateItemAfter(6));
     }
+
     return () => {};
   }, [dateItem]);
 
   useEffect(() => {
     if (mode === "day") {
-      // setDateItem(today);
+      if (dateItem.mm === today.mm) {
+        setDateItem(today);
+      }
     } else if (mode === "week") {
       const _dateItem = today.getDateItemBefore(today.getDay());
       setDateItem(_dateItem);

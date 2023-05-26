@@ -37,7 +37,7 @@ const RowFunction = () => {
   );
 };
 
-const Event = ({ data }: { data: TEvent }) => {
+const Event = ({ data, isMounted }: { data: TEvent; isMounted: boolean }) => {
   const startTime = data.startTimeText.split(" ")[1];
   const endTime = data.endTimeText.split(" ")[1];
 
@@ -49,7 +49,9 @@ const Event = ({ data }: { data: TEvent }) => {
 
   return (
     <div
-      className={style.event}
+      className={
+        style.event + " " + (isMounted ? style.isMounted : style.isUnmounted)
+      }
       style={{
         top: `${start * 80}px`,
         height: `${height * 80}px`,
@@ -111,6 +113,7 @@ const RowGrid = () => {
 
 type Props = {
   eventMap?: Map<string, calendarItem[]>;
+  isMounted: boolean;
 };
 
 const TimeLabels = () => {
@@ -124,13 +127,16 @@ const TimeLabels = () => {
 
 function WeeklyView(props: Props) {
   const { setEvents } = useStore();
+  const [eventMapKeys, setEventMapKeys] = useState<string[]>();
 
   useEffect(() => {
     if (props.eventMap) {
       const events = [];
-      for (let dateText of Array.from(props.eventMap.keys())) {
+      const eventMapKeys = Array.from(props.eventMap.keys());
+      for (let dateText of eventMapKeys) {
         events.push(...props.eventMap.get(dateText)!);
       }
+      setEventMapKeys(eventMapKeys);
       setEvents(events);
     }
   }, [props.eventMap]);
@@ -152,7 +158,7 @@ function WeeklyView(props: Props) {
     return (
       <div className={style.event_container}>
         {filteredEvents.map((val) => {
-          return <Event key={val.id} data={val} />;
+          return <Event key={val.id} data={val} isMounted={props.isMounted} />;
         })}
       </div>
     );
@@ -177,11 +183,13 @@ function WeeklyView(props: Props) {
         {TimeLabels()}
         <CurrentTime />
         <div className={style.grid} ref={scrollRef}>
-          {Array.from(props.eventMap?.keys() ?? []).map((dateText, idx) => {
+          {Array.from(Array(7).keys()).map((idx) => {
             return (
-              <div key={`col-${idx}`} className={style.column}>
+              <div key={idx} className={style.column}>
                 <RowGrid />
-                <EventContainer dateText={dateText} />
+                {eventMapKeys && (
+                  <EventContainer dateText={eventMapKeys[idx]} />
+                )}
                 <RowFunction />
               </div>
             );
