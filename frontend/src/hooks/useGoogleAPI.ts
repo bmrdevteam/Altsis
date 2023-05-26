@@ -159,6 +159,7 @@ export default function useGoogleAPI() {
         QUERY_BUILDER({
           key: CALENDAR_API_KEY,
           access_token: await getAccessToken(),
+          minAccessRole: "owner",
         }),
     });
     console.log(res);

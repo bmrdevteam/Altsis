@@ -59,7 +59,23 @@ export class DateItem {
     date.setDate(date.getDate() - days);
     return new DateItem({ date });
   }
+
+  formatText(opts: 1 | 2 | 3 | 4) {
+    if (opts === 1) return `${this.yyyy}년`;
+    if (opts === 2) return `${this.yyyy}년 ${this.mm}월`;
+    if (opts === 3) return `${this.yyyy}년 ${this.mm}월 ${this.dd}일`;
+    if (opts === 4)
+      return `${this.yyyy}년 ${this.mm}월 ${this.dd}일 ${
+        dayString[this._date.getDay()]
+      }요일`;
+  }
 }
+
+export type GoogleCalendarData = {
+  summary: string;
+  description?: string;
+  items: GoogleCalendarItem[];
+};
 
 export type GoogleCalendarItem = {
   id: string;
@@ -116,25 +132,6 @@ export type GoogleCalendarItem = {
   ];
   eventType: string;
 };
-
-export type GoogleCalendarData = {
-  summary: string;
-  description?: string;
-  items: GoogleCalendarItem[];
-};
-
-export type calendarItem = {
-  id: string;
-  summary: string;
-  description: string;
-  isAllday: boolean;
-  startTime: Date;
-  startTimeText: string;
-  endTime: Date;
-  endTimeText: string;
-  htmlLink: string;
-};
-
 export class CalendarData {
   public summary: string = "";
   public description: string | undefined = undefined;
@@ -163,6 +160,7 @@ export class CalendarData {
 
         const item: calendarItem = {
           ..._item,
+          calendarSummary: this.summary,
           isAllday,
           startTime,
           startTimeText: dateFormat(startTime),
@@ -181,81 +179,51 @@ export class CalendarData {
   }
 
   set items(items: calendarItem[]) {}
-
-  getItemsByDays(props: { startDate: Date; days: number }) {
-    const map = new Map<string, calendarItem[]>();
-
-    const startDateText = dateFormat(props.startDate);
-    const endDate = new Date(props.startDate);
-    endDate.setDate(props.startDate.getDate() + props.days);
-    const endDateText = dateFormat(endDate) + " 11:59:59";
-
-    let idx = _.findIndex(
-      this._items,
-      (item) => item.endTimeText >= startDateText
-    );
-    while (idx < this._items.length) {
-      if (this._items[idx].startTimeText > endDateText) {
-        break;
-      }
-      const dateString = this._items[idx].startTimeText.split(" ")[0];
-
-      if (!map.has(dateString)) {
-        map.set(dateString, []);
-      }
-      map.get(dateString)?.push(this._items[idx]);
-      idx++;
-    }
-    return map;
-  }
-
-  getItemsByDate(props: { startDate: Date; endDate: Date }) {
-    const map = new Map<string, calendarItem[]>();
-    const startDateText = dateFormat(props.startDate);
-    const endDateText = dateFormat(props.endDate) + " 11:59:59";
-
-    let idx = _.findIndex(
-      this._items,
-      (item) => item.endTimeText >= startDateText
-    );
-    while (idx < this._items.length) {
-      if (this._items[idx].startTimeText > endDateText) {
-        break;
-      }
-      const dateString = this._items[idx].startTimeText.split(" ")[0];
-
-      if (!map.has(dateString)) {
-        map.set(dateString, []);
-      }
-      map.get(dateString)?.push(this._items[idx]);
-      idx++;
-    }
-    return map;
-  }
-
-  getEventMap(startDateItem: DateItem, endDateItem: DateItem) {
-    const map = new Map<string, calendarItem[]>();
-    const startDateText = startDateItem.text;
-    const endDateText = endDateItem.text + " 11:59:59";
-
-    for (
-      let dateItem = startDateItem;
-      dateItem._date <= endDateItem._date;
-      dateItem = dateItem.getDateItemAfter(1)
-    ) {
-      map.set(dateItem.text, []);
-    }
-
-    for (let item of this._items) {
-      if (
-        item.endTimeText >= startDateText &&
-        item.startTimeText <= endDateText
-      ) {
-        const dateItem = new DateItem({ date: item.startTime });
-        map.get(dateItem.text)?.push(item);
-      }
-    }
-
-    return map;
-  }
 }
+
+export type calendarItem = {
+  calendarSummary: string;
+  id: string;
+  summary: string;
+  description: string;
+  isAllday: boolean;
+  startTime: Date;
+  startTimeText: string;
+  endTime: Date;
+  endTimeText: string;
+  htmlLink: string;
+};
+
+export const getEventMap = (
+  calendars: CalendarData[],
+  startDateItem: DateItem,
+  endDateItem: DateItem
+) => {
+  const map = new Map<string, calendarItem[]>();
+  const startDateText = startDateItem.text;
+  const endDateText = endDateItem.text + " 11:59:59";
+
+  for (
+    let dateItem = startDateItem;
+    dateItem._date <= endDateItem._date;
+    dateItem = dateItem.getDateItemAfter(1)
+  ) {
+    map.set(dateItem.text, []);
+  }
+
+  const items = [];
+  for (let calendar of calendars) {
+    items.push(...calendar.items);
+  }
+  for (let item of items) {
+    if (
+      item.endTimeText >= startDateText &&
+      item.startTimeText <= endDateText
+    ) {
+      const dateItem = new DateItem({ date: item.startTime });
+      map.get(dateItem.text)?.push(item);
+    }
+  }
+
+  return map;
+};

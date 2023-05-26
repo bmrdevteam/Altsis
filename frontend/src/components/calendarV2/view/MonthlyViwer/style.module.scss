@@ -58,6 +58,22 @@
         background-color: #007affe0;
         color: var(--accent-6);
       }
+
+      .itemList {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0px 2px;
+
+        .item {
+          border-radius: 4px;
+          padding: 2px;
+        }
+
+        .item:hover {
+          background-color: var(--component-hover-color);
+        }
+      }
     }
     .current {
       background-color: white;

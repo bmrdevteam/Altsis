@@ -7,11 +7,11 @@ import Select from "components/select/Select";
 import useGoogleAPI from "hooks/useGoogleAPI";
 import { useAuth } from "contexts/authContext";
 
-import { CalendarData, DateItem, GoogleCalendarData } from "./calendarData";
+import { CalendarData, DateItem, getEventMap } from "./calendarData";
 
 import WeeklyView from "./view/WeeklyViewer/Index";
-import TableView from "./view/TableViewer/Index";
 import MonthlyView from "./view/MonthlyViwer/Index";
+import Loading from "components/loading/Loading";
 
 /**
  * calendar component
@@ -27,15 +27,14 @@ import MonthlyView from "./view/MonthlyViwer/Index";
 
 type Props = {};
 
-type Mode = "day" | "week" | "month" | "table";
+type Mode = "day" | "week" | "month";
 
 const Calender = (props: Props) => {
   const { currentWorkspace } = useAuth();
   const { isLoadingToken, CalendarAPI } = useGoogleAPI();
   const [mode, setMode] = useState<Mode>("week");
 
-  const [googleCalendar, setGoogleCalendar] = useState<GoogleCalendarData>();
-  const [calendar, setCalendar] = useState<CalendarData>();
+  const [calendars, setCalendars] = useState<CalendarData[]>([]);
 
   const today = new DateItem({ date: new Date() });
 
@@ -44,22 +43,29 @@ const Calender = (props: Props) => {
 
   const [isMounted, setIsMounted] = useState(true);
 
-  const updateCalendar = async (year: number) => {
-    const googleCalendar = await CalendarAPI.REvents({
-      calendarId: currentWorkspace.calendars?.items[4].id,
-      queries: {
-        timeMin: new Date(year, 0, 1).toISOString(), // YYYY-01-01
-        timeMax: new Date(year, 11, 31).toISOString(), // YYYY-12-31
-      },
-    });
-    setGoogleCalendar(googleCalendar);
+  const [isUpdatingItems, setIsUpdatingItems] = useState<boolean>(false);
+  const updateItems = async (year: number) => {
+    setIsUpdatingItems(true);
+    const calendars = [];
+    if (currentWorkspace.calendars?.items) {
+      for (let _gCalendar of currentWorkspace.calendars.items) {
+        if (!_gCalendar.isChecked) continue;
 
-    const calendar = new CalendarData({
-      googleCalendar,
-    });
-    setCalendar(calendar);
-
-    // calendar?.getItemsByDays({ startDate: date, days: 7 });
+        const googleCalendar = await CalendarAPI.REvents({
+          calendarId: _gCalendar.id,
+          queries: {
+            timeMin: new Date(year, 0, 1).toISOString(), // YYYY-01-01
+            timeMax: new Date(year, 11, 31).toISOString(), // YYYY-12-31
+          },
+        });
+        const calendar = new CalendarData({
+          googleCalendar,
+        });
+        calendars.push(calendar);
+      }
+    }
+    setCalendars(calendars);
+    setIsUpdatingItems(false);
   };
 
   const handleOnClick = (props: {
@@ -71,7 +77,7 @@ const Calender = (props: Props) => {
 
     let _date: DateItem = dateItem;
 
-    if (props.mode === "month" || props.mode === "table") {
+    if (props.mode === "month") {
       if (props.cmd === "center") {
         _date = new DateItem({
           fields: {
@@ -122,7 +128,7 @@ const Calender = (props: Props) => {
     }
 
     if (_date.yyyy !== dateItem.yyyy) {
-      updateCalendar(_date.yyyy).then((res) => {
+      updateItems(_date.yyyy).then((res) => {
         setIsMounted(false);
         setTimeout(() => {
           setIsMounted(true);
@@ -139,12 +145,9 @@ const Calender = (props: Props) => {
   };
 
   const Label: { [key in Mode]: string } = {
-    day: `${dateItem?.yyyy}년 ${dateItem?.mm}월 ${
-      dateItem?.dd
-    }일 ${dateItem?.getDayString()}요일`,
-    week: `${dateItem?.yyyy}년 ${dateItem?.mm}월 ${dateItem?.dd}일 ~ ${subDateItem?.yyyy}년 ${subDateItem?.mm}월 ${subDateItem?.dd}일`,
-    month: `${dateItem?.yyyy}년 ${dateItem?.mm}월`,
-    table: `${dateItem?.yyyy}년 ${dateItem?.mm}월`,
+    day: `${dateItem.formatText(4)}`,
+    week: `${dateItem.formatText(3)} ~ ${subDateItem.formatText(3)}`,
+    month: `${dateItem.formatText(2)}`,
   };
 
   const getFullMonthlyEventMap = () => {
@@ -161,7 +164,7 @@ const Calender = (props: Props) => {
       6 - _endDateItem.getDay()
     );
 
-    return calendar?.getEventMap(startDateItem, endDateItem);
+    return getEventMap(calendars, startDateItem, endDateItem);
   };
 
   const getMonthlyEventMap = () => {
@@ -173,20 +176,21 @@ const Calender = (props: Props) => {
         dd: 0,
       },
     });
-    return calendar?.getEventMap(startDateItem, endDateItem);
+
+    return getEventMap(calendars, startDateItem, endDateItem);
   };
 
   const Viewer: { [key in Mode]: React.ReactElement } = {
     day: (
       <WeeklyView
-        eventMap={calendar?.getEventMap(dateItem, dateItem)}
+        eventMap={getEventMap(calendars, dateItem, dateItem)}
         isMounted={isMounted}
         dayList={[dateItem.getDayString()]}
       />
     ),
     week: (
       <WeeklyView
-        eventMap={calendar?.getEventMap(dateItem, subDateItem)}
+        eventMap={getEventMap(calendars, dateItem, subDateItem)}
         isMounted={isMounted}
         dayList={["일", "월", "화", "수", "목", "금", "토"]}
       />
@@ -198,12 +202,11 @@ const Calender = (props: Props) => {
         eventMap={getFullMonthlyEventMap()}
       />
     ),
-    table: <TableView eventMap={getMonthlyEventMap()} />,
   };
 
   useEffect(() => {
     if (!isLoadingToken) {
-      updateCalendar(dateItem.yyyy);
+      updateItems(dateItem.yyyy);
     }
     return () => {};
   }, [isLoadingToken]);
@@ -222,13 +225,13 @@ const Calender = (props: Props) => {
         setDateItem(today);
       }
     } else if (mode === "week") {
-      const _dateItem = today.getDateItemBefore(today.getDay());
-      setDateItem(_dateItem);
-    } else if (mode === "month" || mode === "table") {
-      const _dateItem = new DateItem({
-        fields: { yyyy: today.yyyy, mm: today.mm, dd: 1 },
-      });
-      setDateItem(_dateItem);
+      setDateItem(today.getDateItemBefore(today.getDay()));
+    } else if (mode === "month") {
+      setDateItem(
+        new DateItem({
+          fields: { yyyy: today.yyyy, mm: today.mm, dd: 1 },
+        })
+      );
     }
 
     return () => {};
@@ -253,12 +256,14 @@ const Calender = (props: Props) => {
               >
                 <Svg type={"chevronLeft"} />
               </div>
+
               <div
                 className={style.subBtn}
                 onClick={() => handleOnClick({ cmd: "center", mode })}
               >
                 오늘
               </div>
+
               <div
                 className={style.subBtn}
                 onClick={() => handleOnClick({ cmd: "right", mode })}
@@ -272,7 +277,6 @@ const Calender = (props: Props) => {
                   { text: "일", value: "day" },
                   { text: "주", value: "week" },
                   { text: "월", value: "month" },
-                  { text: "일정", value: "table" },
                 ]}
                 onChange={(val: Mode) => {
                   setMode(val);
@@ -285,7 +289,14 @@ const Calender = (props: Props) => {
             </div>
           </div>
         </div>
-        <div className={style.viewer_container}>{dateItem && Viewer[mode]}</div>
+        <div className={style.viewer_container}>
+          {dateItem &&
+            (!isUpdatingItems ? (
+              Viewer[mode]
+            ) : (
+              <Loading height={"calc(100vh - 200px)"} />
+            ))}
+        </div>
       </div>
     </div>
   );
