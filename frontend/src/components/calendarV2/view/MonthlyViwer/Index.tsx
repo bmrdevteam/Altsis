@@ -83,9 +83,18 @@ const MonthlyView = (props: Props) => {
                 >
                   {dateText.split("-")[2]}
                 </div>
-                <div>
+                <div className={style.itemList}>
                   {props.eventMap?.get(dateText)?.map((item) => {
-                    return <div>{item.summary}</div>;
+                    return (
+                      <div
+                        className={style.item}
+                        onClick={() => {
+                          console.log(item);
+                        }}
+                      >
+                        {item.summary}
+                      </div>
+                    );
                   })}
                 </div>
               </div>

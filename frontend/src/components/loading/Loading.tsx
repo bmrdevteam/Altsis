@@ -38,6 +38,7 @@ const Loading = (props: {
   coverScreen?: boolean;
   height?: React.CSSProperties["height"];
   text?: string;
+  iconHeight?: string;
 }) => {
   return (
     <div
@@ -45,7 +46,11 @@ const Loading = (props: {
       className={`${style.loading} ${props.coverScreen && style.cover_screen}`}
     >
       <div className={style.icon}>
-        <Svg type={"loading"} width={"48px"} height={"48px"} />
+        <Svg
+          type={"loading"}
+          width={props.iconHeight ?? "48px"}
+          height={props.iconHeight ?? "48px"}
+        />
       </div>
       <div className={style.text}>{props.text ?? "로딩중"}</div>
     </div>
