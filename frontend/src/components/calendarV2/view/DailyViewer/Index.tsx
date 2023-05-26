@@ -37,7 +37,7 @@ const RowFunction = () => {
   );
 };
 
-const Event = ({ data }: { data: TEvent }) => {
+const Event = ({ data, isMounted }: { data: TEvent; isMounted: boolean }) => {
   const startTime = data.startTimeText.split(" ")[1];
   const endTime = data.endTimeText.split(" ")[1];
 
@@ -49,7 +49,9 @@ const Event = ({ data }: { data: TEvent }) => {
 
   return (
     <div
-      className={style.event}
+      className={
+        style.event + " " + (isMounted ? style.isMounted : style.isUnmounted)
+      }
       style={{
         top: `${start * 80}px`,
         height: `${height * 80}px`,
@@ -110,6 +112,7 @@ const RowGrid = () => {
 
 type Props = {
   eventMap?: Map<string, calendarItem[]>;
+  isMounted: boolean;
 };
 
 const TimeLabels = () => {
@@ -141,7 +144,7 @@ function DailyView(props: Props) {
     return (
       <div className={style.event_container}>
         {events.map((val) => {
-          return <Event key={val.id} data={val} />;
+          return <Event key={val.id} data={val} isMounted={props.isMounted} />;
         })}
       </div>
     );
