@@ -12,6 +12,7 @@ export class DateItem {
   constructor(props: {
     date?: Date;
     fields?: { yyyy: number; mm: number; dd: number };
+    text?: string;
   }) {
     if (props.date) {
       this._date = props.date;
@@ -21,6 +22,8 @@ export class DateItem {
         props.fields.mm - 1,
         props.fields.dd
       );
+    } else if (props.text) {
+      this._date = new Date(props.text);
     } else {
       this._date = new Date();
     }

@@ -9,7 +9,6 @@ import { useAuth } from "contexts/authContext";
 
 import { CalendarData, DateItem, GoogleCalendarData } from "./calendarData";
 
-import DailyView from "./view/DailyViewer/Index";
 import WeeklyView from "./view/WeeklyViewer/Index";
 import TableView from "./view/TableViewer/Index";
 import MonthlyView from "./view/MonthlyViwer/Index";
@@ -179,15 +178,17 @@ const Calender = (props: Props) => {
 
   const Viewer: { [key in Mode]: React.ReactElement } = {
     day: (
-      <DailyView
+      <WeeklyView
         eventMap={calendar?.getEventMap(dateItem, dateItem)}
         isMounted={isMounted}
+        dayList={[dateItem.getDayString()]}
       />
     ),
     week: (
       <WeeklyView
         eventMap={calendar?.getEventMap(dateItem, subDateItem)}
         isMounted={isMounted}
+        dayList={["일", "월", "화", "수", "목", "금", "토"]}
       />
     ),
     month: (

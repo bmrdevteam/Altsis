@@ -114,6 +114,7 @@ const RowGrid = () => {
 type Props = {
   eventMap?: Map<string, calendarItem[]>;
   isMounted: boolean;
+  dayList: string[];
 };
 
 const TimeLabels = () => {
@@ -134,7 +135,7 @@ function WeeklyView(props: Props) {
       const events = [];
       const eventMapKeys = Array.from(props.eventMap.keys());
       for (let dateText of eventMapKeys) {
-        events.push(...props.eventMap.get(dateText)!);
+        events.push(...(props.eventMap.get(dateText) ?? []));
       }
       setEventMapKeys(eventMapKeys);
       setEvents(events);
@@ -167,12 +168,38 @@ function WeeklyView(props: Props) {
   return (
     <div className={style.viewer}>
       <div className={style.header}>
+        {props.dayList.length > 1 && (
+          <div className={style.days}>
+            <div style={{ minWidth: "80px", maxWidth: "80px" }}></div>
+            {props.dayList.map((day) => {
+              return (
+                <div key={day} className={style.day}>
+                  {day}
+                </div>
+              );
+            })}
+          </div>
+        )}
         <div className={style.days}>
           <div style={{ minWidth: "80px", maxWidth: "80px" }}></div>
-          {["일", "월", "화", "수", "목", "금", "토"].map((day) => {
+          {eventMapKeys?.map((dateText) => {
             return (
-              <div key={day} className={style.day}>
-                {day}
+              <div
+                key={dateText}
+                className={
+                  style.dayEvents +
+                  " " +
+                  (props.isMounted ? style.isMounted : style.isUnmounted)
+                }
+              >
+                {props.eventMap
+                  ?.get(dateText)
+                  ?.filter((event) => event.isAllday)
+                  .map((event) => {
+                    return (
+                      <div className={style.dayEvent}>{event.summary}</div>
+                    );
+                  })}
               </div>
             );
           })}
@@ -183,7 +210,7 @@ function WeeklyView(props: Props) {
         {TimeLabels()}
         <CurrentTime />
         <div className={style.grid} ref={scrollRef}>
-          {Array.from(Array(7).keys()).map((idx) => {
+          {props.dayList.map((day, idx) => {
             return (
               <div key={idx} className={style.column}>
                 <RowGrid />

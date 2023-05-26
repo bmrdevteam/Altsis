@@ -9,15 +9,34 @@
     border-bottom: var(--border-default);
     font-size: 14px;
     font-weight: 600;
-    padding: 6px 0px;
 
     .days {
       display: flex;
-
       .day {
+        padding: 3px 0px;
         font-weight: 500;
         flex: 1 1 0;
         text-align: center;
+
+        display: flex;
+        flex-direction: column;
+      }
+
+      .dayEvents {
+        font-weight: 500;
+        flex: 1 1 0;
+        text-align: center;
+
+        display: flex;
+        flex-direction: column;
+        transition: background-color 0.1s ease;
+
+        .dayEvent {
+          padding: 3px 0px;
+        }
+        .dayEvent:hover {
+          background-color: var(--component-hover-color);
+        }
       }
     }
   }
