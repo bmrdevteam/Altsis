@@ -172,6 +172,7 @@ export class CalendarData {
 
           const item: calendarItem = {
             ..._item,
+            type: "calendar",
             calendarSummary: this.summary,
             isAllday,
             startTime,
@@ -227,6 +228,7 @@ export class CalendarData {
         for (let enrollment of map.get(dateItem.getDayString()) ?? []) {
           items.push({
             ...enrollment,
+            type: "timetable",
             startTime: new Date(dateItem.text),
             startTimeText: dateItem.text + " " + enrollment.startHHMM,
             endTime: new Date(dateItem.text),
@@ -244,6 +246,7 @@ export class CalendarData {
 }
 
 export type calendarItem = {
+  type: "calendar" | "timetable";
   calendarSummary: string;
   id: string;
   summary: string;
@@ -293,25 +296,26 @@ export const getEventMap = (
       const startDateItem = new DateItem({ date: item.startTime });
       const endDateItem = new DateItem({ date: item.endTime });
 
-      const dateList: DateItem[] = [];
-      for (
-        let dateItem = startDateItem;
-        dateItem.text < endDateItem.text;
-        dateItem = dateItem.getDateItemAfter(1)
-      ) {
-        dateList.push(dateItem);
-      }
-
-      if (dateList.length === 1) {
-        map.get(dateList[0].text)?.push(item);
+      if (startDateItem.text === endDateItem.text) {
+        map.get(startDateItem.text)?.push(item);
       } else {
-        for (let i = 0; i < dateList.length; i++) {
-          map
-            .get(dateList[i].text)
-            ?.push({
+        const dateList: DateItem[] = [];
+        for (
+          let dateItem = startDateItem;
+          dateItem.text < endDateItem.text;
+          dateItem = dateItem.getDateItemAfter(1)
+        ) {
+          dateList.push(dateItem);
+        }
+        if (dateList.length === 1) {
+          map.get(dateList[0].text)?.push(item);
+        } else {
+          for (let i = 0; i < dateList.length; i++) {
+            map.get(dateList[i].text)?.push({
               ...item,
               summary: item.summary + ` (${i + 1}/${dateList.length})`,
             });
+          }
         }
       }
     }

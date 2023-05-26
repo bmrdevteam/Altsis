@@ -4,7 +4,7 @@ import create from "zustand";
 
 import { calendarItem } from "components/calendarV2/calendarData";
 
-type TEvent = calendarItem & {
+export type TEvent = calendarItem & {
   type?: string;
   classroom?: string;
   memo?: string;
@@ -37,7 +37,15 @@ const RowFunction = () => {
   );
 };
 
-const Event = ({ data, isMounted }: { data: TEvent; isMounted: boolean }) => {
+const Event = ({
+  data,
+  isMounted,
+  onClickEvent,
+}: {
+  data: TEvent;
+  isMounted: boolean;
+  onClickEvent: any;
+}) => {
   const startTime = data.startTimeText.split(" ")[1];
   const endTime = data.endTimeText.split(" ")[1];
 
@@ -58,6 +66,7 @@ const Event = ({ data, isMounted }: { data: TEvent; isMounted: boolean }) => {
         backgroundColor: data.backgroundColor,
         color: data.foregroundColor,
       }}
+      onClick={() => onClickEvent(data)}
     >
       <div className={style.title}>{data.summary ?? "제목 없음"}</div>
       {data.location && <div className={style.room}>{data.location}</div>}
@@ -113,6 +122,7 @@ type Props = {
   eventMap?: Map<string, calendarItem[]>;
   isMounted: boolean;
   dayList: string[];
+  onClickEvent: any;
 };
 
 const TimeLabels = () => {
@@ -157,7 +167,14 @@ function WeeklyView(props: Props) {
     return (
       <div className={style.event_container}>
         {filteredEvents.map((val) => {
-          return <Event key={val.id} data={val} isMounted={props.isMounted} />;
+          return (
+            <Event
+              key={val.id}
+              data={val}
+              isMounted={props.isMounted}
+              onClickEvent={props.onClickEvent}
+            />
+          );
         })}
       </div>
     );
@@ -195,7 +212,12 @@ function WeeklyView(props: Props) {
                   ?.filter((event) => event.isAllday)
                   .map((event) => {
                     return (
-                      <div className={style.dayEvent}>{event.summary}</div>
+                      <div
+                        className={style.dayEvent}
+                        onClick={() => props.onClickEvent(event)}
+                      >
+                        {event.summary}
+                      </div>
                     );
                   })}
               </div>

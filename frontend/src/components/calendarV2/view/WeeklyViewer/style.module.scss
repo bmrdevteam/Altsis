@@ -29,10 +29,12 @@
 
         display: flex;
         flex-direction: column;
+        align-items: center;
         transition: background-color 0.1s ease;
 
         .dayEvent {
-          padding: 3px 0px;
+          padding: 3px;
+          border-radius: 8px;
         }
         .dayEvent:hover {
           background-color: var(--component-hover-color);
