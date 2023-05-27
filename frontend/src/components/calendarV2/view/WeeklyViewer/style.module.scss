@@ -131,7 +131,7 @@
             font-size: 12px;
             padding: 4px;
             border-radius: 4px;
-            background-color: rgb(202, 222, 255);
+            background-color: #cadeff;
 
             .title {
               word-break: keep-all;
@@ -146,6 +146,22 @@
             .time {
               margin-top: 1px;
             }
+          }
+
+          .schoolCalendar {
+            background-color: #b7c6dd;
+          }
+          .schoolCalendarTimetable {
+            background-color: #e3dede;
+          }
+          .myCalendar {
+            background-color: #feee7d;
+          }
+          .enrollments {
+            background-color: #84b1ed;
+          }
+          .mentorings {
+            background-color: #b4d085;
           }
         }
 

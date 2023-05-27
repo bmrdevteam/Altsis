@@ -50,13 +50,15 @@ const Event = ({
   return (
     <div
       className={
-        style.event + " " + (isMounted ? style.isMounted : style.isUnmounted)
+        style.event +
+        " " +
+        style[data.from] +
+        " " +
+        (isMounted ? style.isMounted : style.isUnmounted)
       }
       style={{
         top: `${start * 80}px`,
         height: `${height * 80}px`,
-        backgroundColor: data.backgroundColor,
-        // color: data.foregroundColor,
       }}
       onClick={() => onClickEvent(data)}
     >
