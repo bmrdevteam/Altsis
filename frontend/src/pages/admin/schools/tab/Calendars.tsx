@@ -148,28 +148,30 @@ function Calendars(props: Props) {
                 }}
                 onClick={() => {
                   if (!calendarRef.current || calendarRef.current === "") {
-                    alert("캘린더 공유 링크를 적어주세요");
+                    alert("캘린더 ID를 적어주세요");
                   } else {
                     updateSchoolCalendar();
                   }
                 }}
               >
-                수정
+                {props.schoolData.calendar ? "수정" : "등록"}
               </Button>
-              <Button
-                type={"ghost"}
-                style={{
-                  borderRadius: "4px",
-                  height: "32px",
-                  marginTop: "20px",
-                }}
-                onClick={() => {
-                  calendarRef.current = undefined;
-                  updateSchoolCalendar();
-                }}
-              >
-                삭제
-              </Button>
+              {props.schoolData.calendar && (
+                <Button
+                  type={"ghost"}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    marginTop: "20px",
+                  }}
+                  onClick={() => {
+                    calendarRef.current = undefined;
+                    updateSchoolCalendar();
+                  }}
+                >
+                  삭제
+                </Button>
+              )}
             </div>
             <div className={style.description} style={{ margin: "4px" }}>
               {description1}
