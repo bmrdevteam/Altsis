@@ -6,7 +6,7 @@ import Select from "components/select/Select";
 import useGoogleAPI from "hooks/useGoogleAPI";
 import { useAuth } from "contexts/authContext";
 
-import { Calendar, DateItem, EventItem } from "./calendarData";
+import { Calendar, DateItem, EventItem, TRawCalendar } from "./calendarData";
 
 import WeeklyView from "./view/WeeklyViewer/Index";
 import MonthlyView from "./view/MonthlyViwer/Index";
@@ -27,8 +27,7 @@ import SettingPopup from "./view/SettingPopup/Index";
  */
 
 type Props = {
-  enrollments: any[];
-  syllabuses: any[];
+  rawCalendars: TRawCalendar[];
 };
 
 type Mode = "day" | "week" | "month";
@@ -107,7 +106,7 @@ const Viewer = memo(
 );
 
 const Calender = (props: Props) => {
-  const { currentUser, currentSchool, currentRegistration } = useAuth();
+  const { currentRegistration } = useAuth();
   const { CalendarAPI } = useGoogleAPI();
 
   const [mode, setMode] = useState<Mode>("week");
@@ -134,45 +133,31 @@ const Calender = (props: Props) => {
       timeMax: new Date(year, 11, 31).toISOString(),
     };
 
-    //* 1. school calendar(timetable)
-    if (currentSchool?.calendarTimetable) {
-      const googleCalendar = await CalendarAPI.RPublicEvents({
-        calendarId: currentSchool?.calendarTimetable,
-        queries,
-      });
-      calendar.addGoogleEvents(googleCalendar, "schoolCalendarTimetable");
-    }
-
-    //* 2. enrollments
-    calendar.addCourseEvents(
-      "enrollment",
-      currentRegistration,
-      props.enrollments
-    );
-
-    // 3. mentoring syllabuses
-    calendar.addCourseEvents(
-      "mentoring",
-      currentRegistration,
-      props.syllabuses
-    );
-
-    // 4. school calendar
-    if (currentSchool?.calendar) {
-      const googleCalendar = await CalendarAPI.RPublicEvents({
-        calendarId: currentSchool?.calendar,
-        queries,
-      });
-      calendar.addGoogleEvents(googleCalendar, "schoolCalendar");
-    }
-
-    // 5. myCalendar
-    if (currentUser?.calendar) {
-      const googleCalendar = await CalendarAPI.RPublicEvents({
-        calendarId: currentUser?.calendar,
-        queries,
-      });
-      calendar.addGoogleEvents(googleCalendar, "myCalendar");
+    for (let rawCalendar of props.rawCalendars) {
+      if (
+        rawCalendar.type === "google" &&
+        rawCalendar.calendarId &&
+        (rawCalendar.from === "schoolCalendar" ||
+          rawCalendar.from === "schoolCalendarTimetable" ||
+          rawCalendar.from === "myCalendar")
+      ) {
+        const googleCalendar = await CalendarAPI.RPublicEvents({
+          calendarId: rawCalendar.calendarId,
+          queries,
+        });
+        calendar.addGoogleEvents(googleCalendar, rawCalendar.from);
+      } else if (
+        rawCalendar.type === "course" &&
+        rawCalendar.courses &&
+        (rawCalendar.from === "enrollments" ||
+          rawCalendar.from === "mentorings")
+      ) {
+        calendar.addCourseEvents(
+          rawCalendar.from,
+          currentRegistration,
+          rawCalendar.courses
+        );
+      }
     }
 
     setCalendar(calendar);

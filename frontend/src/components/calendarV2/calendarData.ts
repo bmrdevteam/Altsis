@@ -101,29 +101,14 @@ export class DateItem {
 const getHHMM = (dateTime?: string) => {
   return dateTime?.substring(11, 16) ?? "";
 };
-
-const backgroundColor: {
-  enrollment: string;
-  mentoring: string;
-  schoolCalendar: string;
-  schoolCalendarTimetable: string;
-  myCalendar: string;
-} = {
-  enrollment: "blue",
-  mentoring: "green",
-  schoolCalendar: "purple",
-  schoolCalendarTimetable: "gray",
-  myCalendar: "yellow",
-};
-
 export class EventItem {
   type: "google" | "course" = "google";
   from:
     | "schoolCalendar"
     | "schoolCalendarTimetable"
     | "myCalendar"
-    | "enrollment"
-    | "mentoring" = "schoolCalendar";
+    | "enrollments"
+    | "mentorings" = "schoolCalendar";
   calendarId?: string;
   calendarTitle: string = "";
   id: string = "";
@@ -133,7 +118,6 @@ export class EventItem {
   endTimeText: string = "";
   duration?: number = 1;
   sequence: number = 1;
-  backgroundColor: string = "";
 
   // google
   description?: string;
@@ -184,7 +168,6 @@ export class Calendar {
         title:
           item.summary +
           (opts.duration > 1 ? `(${opts.sequence}/${opts.duration})` : ""),
-        backgroundColor: backgroundColor[from],
         ...opts,
       });
     };
@@ -249,7 +232,7 @@ export class Calendar {
   }
 
   addCourseEvents(
-    from: "enrollment" | "mentoring",
+    from: "enrollments" | "mentorings",
     registration: {
       year: string;
       term: string;
@@ -260,7 +243,7 @@ export class Calendar {
     if (!registration.period) return;
 
     const calendarTitle = `${registration.year} ${registration.term} ${
-      from === "enrollment" ? "수업" : "멘토링 수업"
+      from === "enrollments" ? "수업" : "멘토링 수업"
     }`;
 
     const map = new Map<
@@ -308,7 +291,6 @@ export class Calendar {
           from,
           calendarTitle,
           isAllday: false,
-          backgroundColor: backgroundColor[from],
           startTimeText: dateItem.text + " " + enrollment.startHHMM,
           endTimeText: dateItem.text + " " + enrollment.endHHMM,
           location: enrollment.classroom,
@@ -363,3 +345,15 @@ export class Calendar {
     });
   };
 }
+
+export type TRawCalendar = {
+  type: "google" | "course";
+  from:
+    | "schoolCalendar"
+    | "schoolCalendarTimetable"
+    | "myCalendar"
+    | "enrollments"
+    | "mentorings";
+  courses?: any[];
+  calendarId?: string;
+};

@@ -12,8 +12,8 @@ type Props = {
 };
 
 const description01 =
-  "[ 구글 캘린더 - 내 캘린더의 설정 - 일정의 엑세스 권한 - 공개 사용 설정 ]";
-const description02 = "[캘린더 통합 - 캘린더 ID]";
+  "[구글 캘린더 - 내 캘린더의 설정 - 일정의 엑세스 권한 - 공개 사용 설정 체크]";
+const description02 = "[캘린더 통합 - 캘린더 ID 복사]";
 const description03 = "등록 후 새로고침";
 const placeholder = "캘린더 ID";
 
