@@ -97,6 +97,7 @@ export default function useGoogleAPI() {
           ...props.queries,
           singleEvents: true,
           orderBy: "startTime",
+          maxResults: 2500,
         }),
     });
     return res;
