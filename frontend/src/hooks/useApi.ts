@@ -1312,80 +1312,6 @@ export default function useApi() {
     });
   }
 
-  /**
-   * Workspace API
-   * ##########################################################################
-   */
-
-  /**
-   * Get user workspace
-   * @type GET
-   * @auth member
-   * @returns LoggedIn User
-   */
-  async function RMyWorkspace() {
-    const { workspace } = await database.R({
-      location: "workspaces",
-    });
-    return { workspace };
-  }
-
-  /**
-   * Update user workspace accessToken & expires
-   * @type GET
-   * @auth member
-   * @returns LoggedIn User
-   */
-  async function UMyWorkspaceAccessToken(props: {
-    data: { accessToken: string; expires: Date };
-  }) {
-    const { workspace } = await database.U({
-      location: "workspaces",
-      data: props.data,
-    });
-    return { workspace };
-  }
-
-  /**
-   * Update user workspace calendar
-   * @type GET
-   * @auth member
-   * @returns LoggedIn User
-   */
-  async function UMyWorkspaceCalendars(props: { data: { items: any[] } }) {
-    const { workspace } = await database.U({
-      location: "workspaces/calendars",
-      data: props.data,
-    });
-    return { workspace };
-  }
-
-  /**
-   * Disconnect user workspace calendar
-   * @type GET
-   * @auth member
-   * @returns LoggedIn User
-   */
-  async function DMyWorkspaceCalendars() {
-    const { workspace } = await database.D({
-      location: "workspaces/calendars",
-    });
-    return { workspace };
-  }
-
-  /**
-   * Remove user workspace
-   * @type GET
-   * @auth member
-   * @returns LoggedIn User
-   */
-  async function DMyWorkspace() {
-    const { workspace } = await database.D({
-      location: "workspaces",
-    });
-    return workspace;
-  }
-
   return {
     AcademyApi: {
       CAcademy,
@@ -1498,13 +1424,6 @@ export default function useApi() {
       RBackup,
       DBackup,
       RestoreBackup,
-    },
-    WorkspaceApi: {
-      RMyWorkspace,
-      UMyWorkspaceAccessToken,
-      UMyWorkspaceCalendars,
-      DMyWorkspaceCalendars,
-      DMyWorkspace,
     },
   };
 }

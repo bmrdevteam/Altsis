@@ -1,5 +1,3 @@
-import { GoogleCalendarData, GoogleCalendarItem } from "types/calendar";
-
 export type TDay = "일" | "월" | "화" | "수" | "목" | "금" | "토";
 export const DayList: TDay[] = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -358,4 +356,31 @@ export type TRawCalendar = {
   from: From;
   courses?: any[];
   calendarId?: string;
+};
+
+export type GoogleCalendarItem = {
+  id: string;
+  htmlLink: string;
+  summary: string;
+  description: string;
+  location?: string;
+  colorId: string;
+  start: {
+    date?: string;
+    dateTime?: string;
+  };
+  end: {
+    date?: string;
+    dateTime?: string;
+  };
+  sequence: number;
+};
+
+export type GoogleCalendarData = {
+  id: string;
+  summary: string;
+  description?: string;
+  items: GoogleCalendarItem[];
+  backgroundColor: string;
+  foregroundColor: string;
 };
