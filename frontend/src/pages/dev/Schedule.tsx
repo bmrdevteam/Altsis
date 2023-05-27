@@ -15,7 +15,7 @@ export default function Example() {
   const [rawCalendars, setRawCalendars] = useState<TRawCalendar[]>([]);
 
   const updateData = async () => {
-    const calendars: any[] = [];
+    const calendars: TRawCalendar[] = [];
     //1. school timetable calendar
     if (currentSchool?.calendarTimetable) {
       calendars.push({
@@ -34,7 +34,7 @@ export default function Example() {
       if (enrollments.length > 0) {
         calendars.push({
           type: "course",
-          from: "enrollment",
+          from: "enrollments",
           courses: enrollments,
         });
       }

@@ -112,7 +112,7 @@ const Calender = (props: Props) => {
   const [mode, setMode] = useState<Mode>("week");
 
   const [calendar, setCalendar] = useState<Calendar>();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isMounted, setIsMounted] = useState(true);
 
   const today = new DateItem({ date: new Date() });
@@ -241,6 +241,13 @@ const Calender = (props: Props) => {
   };
 
   useEffect(() => {
+    const _mode = window.localStorage.getItem("calendarMode");
+    if (_mode && (_mode === "day" || _mode === "week" || _mode === "month")) {
+      setMode(_mode);
+    } else {
+      window.localStorage.setItem("calendarMode", "week");
+    }
+
     updateCalendar(dateItem.yyyy);
     return () => {};
   }, []);
@@ -259,6 +266,7 @@ const Calender = (props: Props) => {
         })
       );
     }
+
     return () => {};
   }, [mode]);
 
@@ -327,19 +335,18 @@ const Calender = (props: Props) => {
             </div>
           </div>
           <div className={style.viewer_container}>
-            {calendar &&
-              (!isLoading ? (
-                <Viewer
-                  mode={mode}
-                  calendar={calendar}
-                  dateItem={dateItem}
-                  isMounted={isMounted}
-                  setEvent={setEvent}
-                  setIsEventPopupActive={setIsEventPopupActive}
-                />
-              ) : (
-                <Loading height={"calc(100vh - 200px)"} />
-              ))}
+            {!isLoading && calendar ? (
+              <Viewer
+                mode={mode}
+                calendar={calendar!}
+                dateItem={dateItem}
+                isMounted={isMounted}
+                setEvent={setEvent}
+                setIsEventPopupActive={setIsEventPopupActive}
+              />
+            ) : (
+              <Loading height={"calc(100vh - 200px)"} />
+            )}
           </div>
         </div>
       </div>

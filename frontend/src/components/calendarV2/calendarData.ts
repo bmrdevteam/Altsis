@@ -3,6 +3,19 @@ import { GoogleCalendarData, GoogleCalendarItem } from "types/calendar";
 export type TDay = "일" | "월" | "화" | "수" | "목" | "금" | "토";
 export const DayList: TDay[] = ["일", "월", "화", "수", "목", "금", "토"];
 
+export type Type = "google" | "course";
+export type FromGoogle =
+  | "schoolCalendar"
+  | "schoolCalendarTimetable"
+  | "myCalendar";
+export type FromCourse = "enrollments" | "mentorings";
+
+export type From =
+  | "schoolCalendar"
+  | "schoolCalendarTimetable"
+  | "myCalendar"
+  | "enrollments"
+  | "mentorings";
 export class DateItem {
   public _date: Date;
   public yyyy: number;
@@ -103,15 +116,10 @@ const getHHMM = (dateTime?: string) => {
 };
 export class EventItem {
   type: "google" | "course" = "google";
-  from:
-    | "schoolCalendar"
-    | "schoolCalendarTimetable"
-    | "myCalendar"
-    | "enrollments"
-    | "mentorings" = "schoolCalendar";
+  from: From = "schoolCalendar";
   calendarId?: string;
   calendarTitle: string = "";
-  id: string = "";
+  id: string = ""; // course -> enrollment._id or syllabus._id
   title: string = "";
   isAllday: boolean = true;
   startTimeText: string = "";
@@ -140,10 +148,7 @@ export class Calendar {
     }
   }
 
-  addGoogleEvents(
-    googleCalendar: GoogleCalendarData,
-    from: "schoolCalendar" | "schoolCalendarTimetable" | "myCalendar"
-  ) {
+  addGoogleEvents(googleCalendar: GoogleCalendarData, from: FromGoogle) {
     const type = "google";
     const calendarId = googleCalendar.id;
     const calendarTitle = googleCalendar.summary ?? "";
@@ -232,7 +237,7 @@ export class Calendar {
   }
 
   addCourseEvents(
-    from: "enrollments" | "mentorings",
+    from: FromCourse,
     registration: {
       year: string;
       term: string;
@@ -255,6 +260,8 @@ export class Calendar {
         startHHMM: string;
         endHHMM: string;
         classroom: string;
+        enrollmentId?: string;
+        syllabusId?: string;
       }[]
     >();
 
@@ -262,15 +269,15 @@ export class Calendar {
       map.set(day, []);
     }
 
-    for (let enrollment of courses) {
-      for (let idx = 0; idx < enrollment.time.length; idx++) {
-        map.get(enrollment.time[idx].day)?.push({
-          id: `${enrollment._id}`,
+    for (let course of courses) {
+      for (let idx = 0; idx < course.time.length; idx++) {
+        map.get(course.time[idx].day)?.push({
+          id: `${course._id}`,
           sequence: idx + 1,
-          title: enrollment.classTitle,
-          startHHMM: enrollment.time[idx].start,
-          endHHMM: enrollment.time[idx].end,
-          classroom: enrollment.classroom,
+          title: course.classTitle,
+          startHHMM: course.time[idx].start,
+          endHHMM: course.time[idx].end,
+          classroom: course.classroom,
         });
       }
     }
@@ -347,13 +354,8 @@ export class Calendar {
 }
 
 export type TRawCalendar = {
-  type: "google" | "course";
-  from:
-    | "schoolCalendar"
-    | "schoolCalendarTimetable"
-    | "myCalendar"
-    | "enrollments"
-    | "mentorings";
+  type: Type;
+  from: From;
   courses?: any[];
   calendarId?: string;
 };
