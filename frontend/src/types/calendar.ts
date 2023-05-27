@@ -6,17 +6,18 @@ export type GoogleCalendarItem = {
   location?: string;
   colorId: string;
   start: {
-    date?: Date;
-    dateTime?: Date;
+    date?: string;
+    dateTime?: string;
   };
   end: {
-    date?: Date;
-    dateTime?: Date;
+    date?: string;
+    dateTime?: string;
   };
   sequence: number;
 };
 
 export type GoogleCalendarData = {
+  id: string;
   summary: string;
   description?: string;
   items: GoogleCalendarItem[];

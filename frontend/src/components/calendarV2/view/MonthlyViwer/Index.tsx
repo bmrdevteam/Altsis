@@ -3,12 +3,12 @@ import style from "./style.module.scss";
 
 import { dateFormat } from "functions/functions";
 
-import { DateItem, calendarItem } from "components/calendarV2/calendarData";
+import { DateItem, EventItem } from "components/calendarV2/calendarData";
 
 type Props = {
   year: number;
   month: number;
-  eventMap?: Map<string, calendarItem[]>;
+  eventMap?: Map<string, EventItem[]>;
   onClickEvent: any;
 };
 
@@ -91,7 +91,7 @@ const MonthlyView = (props: Props) => {
                         className={style.item}
                         onClick={() => props.onClickEvent(item)}
                       >
-                        {item.summary}
+                        {item.title}
                       </div>
                     );
                   })}

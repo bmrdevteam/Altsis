@@ -39,6 +39,7 @@ router.delete("/google", isLoggedIn, users.disconnectGoogle);
 router.put("/email", isLoggedIn, users.updateEmail);
 router.put("/tel", isLoggedIn, users.updateTel);
 router.put("/password", isLoggedIn, users.updatePassword);
+router.put("/calendar", isLoggedIn, users.updateCalendar);
 
 // ___________ update _____________
 

@@ -195,12 +195,30 @@ export default function useGoogleAPI() {
     return res;
   }
 
+  async function RPublicEvents(props: {
+    calendarId: string;
+    queries: { timeMin: string; timeMax: string };
+  }) {
+    const res = await database.GET({
+      location:
+        `calendar/v3/calendars/${props.calendarId}/events` +
+        QUERY_BUILDER({
+          key: CALENDAR_API_KEY,
+          ...props.queries,
+          singleEvents: true,
+          orderBy: "startTime",
+        }),
+    });
+    return res;
+  }
+
   return {
     isLoadingToken,
     getTokens,
     CalendarAPI: {
       RCalendars,
       REvents,
+      RPublicEvents,
     },
   };
 }

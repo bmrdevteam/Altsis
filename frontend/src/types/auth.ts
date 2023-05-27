@@ -12,6 +12,7 @@ export type TUser = {
   email?: string;
   snsId?: { google: string };
   profile?: string;
+  calendar?: string;
   academyId: string;
   academyName: string;
   //____________________//
@@ -34,6 +35,8 @@ export type TSchool = {
     url: string;
     title: string;
   }[];
+  calendar?: string;
+  calendarTimetable?: string;
 };
 
 export type TFormEvaluation = {
