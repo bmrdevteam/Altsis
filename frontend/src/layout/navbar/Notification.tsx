@@ -50,16 +50,18 @@ const Notification = () => {
   }
 
   const updateNotifications = async () => {
-    const notifications = await NotificationApi.RNotifications({
-      type: "received",
-      user: currentUser._id,
-      checked: false,
-    });
-    setNotifications(notifications);
+    if (currentUser?._id) {
+      const notifications = await NotificationApi.RNotifications({
+        type: "received",
+        user: currentUser._id,
+        checked: false,
+      });
+      setNotifications(notifications);
+    }
   };
 
   useEffect(() => {
-    if (currentUser._id) {
+    if (currentUser?._id) {
       updateNotifications();
     }
   }, [currentUser]);

@@ -1,24 +1,18 @@
 import React, { useEffect, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./calendar.module.scss";
-import _ from "lodash";
 
 import Select from "components/select/Select";
 import useGoogleAPI from "hooks/useGoogleAPI";
 import { useAuth } from "contexts/authContext";
 
-import {
-  CalendarData,
-  DateItem,
-  calendarItem,
-  getEventMap,
-} from "./calendarData";
+import { Calendar, DateItem, EventItem } from "./calendarData";
 
-import WeeklyView, { TEvent } from "./view/WeeklyViewer/Index";
+import WeeklyView from "./view/WeeklyViewer/Index";
 import MonthlyView from "./view/MonthlyViwer/Index";
 import Loading from "components/loading/Loading";
-import useApi from "hooks/useApi";
 import EventPopup from "./view/EventPopup/Index";
+import SettingPopup from "./view/SettingPopup/Index";
 
 /**
  * calendar component
@@ -40,69 +34,80 @@ type Props = {
 type Mode = "day" | "week" | "month";
 
 const Calender = (props: Props) => {
-  const { currentWorkspace, currentRegistration } = useAuth();
+  const { currentUser, currentSchool, currentRegistration } = useAuth();
   const { isLoadingToken, CalendarAPI } = useGoogleAPI();
+
   const [mode, setMode] = useState<Mode>("week");
 
-  const [calendars, setCalendars] = useState<CalendarData[]>([]);
+  const [calendar, setCalendar] = useState<Calendar>();
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState(true);
 
   const today = new DateItem({ date: new Date() });
-
   const [dateItem, setDateItem] = useState<DateItem>(today);
   const [subDateItem, setSubDateItem] = useState<DateItem>(today);
 
-  const [isMounted, setIsMounted] = useState(true);
-
-  const [event, setEvent] = useState<TEvent>();
   const [isEventPopupActive, setIsEventPopupActive] = useState<boolean>(false);
+  const [event, setEvent] = useState<EventItem>();
 
-  const [isUpdatingItems, setIsUpdatingItems] = useState<boolean>(false);
-  const updateItems = async (year: number) => {
-    setIsUpdatingItems(true);
-    const calendars = [];
-    calendars.push(
-      new CalendarData({
-        timetable: {
-          registration: currentRegistration,
-          courseList: props.enrollments,
-        },
-        backgroundColor: "rgb(202, 222, 255)",
-      })
-    );
-    calendars.push(
-      new CalendarData({
-        timetable: {
-          registration: currentRegistration,
-          courseList: props.syllabuses,
-        },
-        backgroundColor: "rgb(228, 255, 202)",
-      })
-    );
+  const [isSettingPopupActive, setIsSettingPopupActive] =
+    useState<boolean>(false);
 
-    if (currentWorkspace.calendars?.items) {
-      for (let _gCalendar of currentWorkspace.calendars.items) {
-        if (!_gCalendar.isChecked) continue;
+  const updateCalendar = async (year: number) => {
+    setIsLoading(true);
 
-        const googleCalendar = await CalendarAPI.REvents({
-          calendarId: _gCalendar.id,
-          queries: {
-            timeMin: new Date(year, 0, 1).toISOString(), // YYYY-01-01
-            timeMax: new Date(year, 11, 31).toISOString(), // YYYY-12-31
-          },
-        });
-        const calendar = new CalendarData({
-          googleCalendar,
-          backgroundColor: _gCalendar.backgroundColor,
-          foregroundColor: _gCalendar.foregroundColor,
-        });
-        calendars.push(calendar);
-      }
+    const calendar = new Calendar({ year });
+    const queries = {
+      timeMin: new Date(year, 0, 1).toISOString(),
+      timeMax: new Date(year, 11, 31).toISOString(),
+    };
+
+    //* 1. school calendar(timetable)
+    if (currentSchool?.calendarTimetable) {
+      const googleCalendar = await CalendarAPI.RPublicEvents({
+        calendarId: currentSchool?.calendarTimetable,
+        queries,
+      });
+      calendar.addGoogleEvents(googleCalendar, "schoolCalendarTimetable");
     }
-    setCalendars(calendars);
-    setIsUpdatingItems(false);
+
+    //* 2. enrollments
+    calendar.addCourseEvents(
+      "enrollment",
+      currentRegistration,
+      props.enrollments
+    );
+
+    // 3. mentoring syllabuses
+    calendar.addCourseEvents(
+      "mentoring",
+      currentRegistration,
+      props.syllabuses
+    );
+
+    // 4. school calendar
+    if (currentSchool?.calendar) {
+      const googleCalendar = await CalendarAPI.RPublicEvents({
+        calendarId: currentSchool?.calendar,
+        queries,
+      });
+      calendar.addGoogleEvents(googleCalendar, "schoolCalendar");
+    }
+
+    // 5. myCalendar
+    if (currentUser?.calendar) {
+      const googleCalendar = await CalendarAPI.RPublicEvents({
+        calendarId: currentUser?.calendar,
+        queries,
+      });
+      calendar.addGoogleEvents(googleCalendar, "myCalendar");
+    }
+
+    setCalendar(calendar);
+    setIsLoading(false);
   };
 
-  const handleOnClick = (props: {
+  const onClickNavHandler = (props: {
     cmd: "left" | "right" | "center";
     mode: Mode;
   }) => {
@@ -162,7 +167,7 @@ const Calender = (props: Props) => {
     }
 
     if (_date.yyyy !== dateItem.yyyy) {
-      updateItems(_date.yyyy).then((res) => {
+      updateCalendar(_date.yyyy).then((res) => {
         setIsMounted(false);
         setTimeout(() => {
           setIsMounted(true);
@@ -178,42 +183,25 @@ const Calender = (props: Props) => {
     }
   };
 
+  const onClickEventHandler = (event: EventItem) => {
+    setEvent(event);
+    setIsEventPopupActive(true);
+  };
+
+  const onClickSetting = () => {
+    setIsSettingPopupActive(true);
+  };
+
   const Label: { [key in Mode]: string } = {
     day: `${dateItem.formatText(4)}`,
     week: `${dateItem.formatText(3)} ~ ${subDateItem.formatText(3)}`,
     month: `${dateItem.formatText(2)}`,
   };
 
-  const getFullMonthlyEventMap = () => {
-    const startDateItem = dateItem.getDateItemBefore(dateItem.getDay());
-
-    const _endDateItem = new DateItem({
-      fields: {
-        yyyy: dateItem.yyyy,
-        mm: dateItem.mm + 1,
-        dd: 0,
-      },
-    });
-    const endDateItem = _endDateItem.getDateItemAfter(
-      6 - _endDateItem.getDay()
-    );
-
-    return getEventMap(
-      calendars.filter((calendar) => calendar.type !== "timetable"),
-      startDateItem,
-      endDateItem
-    );
-  };
-
-  const onClickEventHandler = (event: calendarItem) => {
-    setEvent(event);
-    setIsEventPopupActive(true);
-  };
-
   const Viewer: { [key in Mode]: React.ReactElement } = {
     day: (
       <WeeklyView
-        eventMap={getEventMap(calendars, dateItem, dateItem)}
+        eventMap={calendar?.getEventMap(dateItem, dateItem)}
         isMounted={isMounted}
         dayList={[dateItem.getDayString()]}
         onClickEvent={onClickEventHandler}
@@ -221,7 +209,7 @@ const Calender = (props: Props) => {
     ),
     week: (
       <WeeklyView
-        eventMap={getEventMap(calendars, dateItem, subDateItem)}
+        eventMap={calendar?.getEventMap(dateItem, subDateItem)}
         isMounted={isMounted}
         dayList={["일", "월", "화", "수", "목", "금", "토"]}
         onClickEvent={onClickEventHandler}
@@ -231,7 +219,7 @@ const Calender = (props: Props) => {
       <MonthlyView
         year={dateItem.yyyy}
         month={dateItem.mm}
-        eventMap={getFullMonthlyEventMap()}
+        eventMap={calendar?.getFullMonthlyEventMap(dateItem)}
         onClickEvent={onClickEventHandler}
       />
     ),
@@ -239,7 +227,7 @@ const Calender = (props: Props) => {
 
   useEffect(() => {
     if (!isLoadingToken) {
-      updateItems(dateItem.yyyy);
+      updateCalendar(dateItem.yyyy);
     }
     return () => {};
   }, [isLoadingToken]);
@@ -248,7 +236,6 @@ const Calender = (props: Props) => {
     if (dateItem && mode === "week") {
       setSubDateItem(dateItem.getDateItemAfter(6));
     }
-
     return () => {};
   }, [dateItem]);
 
@@ -286,21 +273,21 @@ const Calender = (props: Props) => {
               <div className={style.btn}>
                 <div
                   className={style.subBtn}
-                  onClick={() => handleOnClick({ cmd: "left", mode })}
+                  onClick={() => onClickNavHandler({ cmd: "left", mode })}
                 >
                   <Svg type={"chevronLeft"} />
                 </div>
 
                 <div
                   className={style.subBtn}
-                  onClick={() => handleOnClick({ cmd: "center", mode })}
+                  onClick={() => onClickNavHandler({ cmd: "center", mode })}
                 >
                   오늘
                 </div>
 
                 <div
                   className={style.subBtn}
-                  onClick={() => handleOnClick({ cmd: "right", mode })}
+                  onClick={() => onClickNavHandler({ cmd: "right", mode })}
                 >
                   <Svg type={"chevronRight"} />
                 </div>
@@ -318,14 +305,22 @@ const Calender = (props: Props) => {
                   defaultSelectedValue={mode}
                 />
               </div>
-              <div className={style.btn}>
-                <div className={style.subBtn}>일정 추가</div>
+              <div
+                className={style.svgBtn}
+                onClick={() => {
+                  updateCalendar(dateItem.yyyy);
+                }}
+              >
+                <Svg type="refresh" width="20px" height="20px" />
+              </div>
+              <div className={style.svgBtn} onClick={onClickSetting}>
+                <Svg type="gear" width="20px" height="20px" />
               </div>
             </div>
           </div>
           <div className={style.viewer_container}>
             {dateItem &&
-              (!isUpdatingItems ? (
+              (!isLoading ? (
                 Viewer[mode]
               ) : (
                 <Loading height={"calc(100vh - 200px)"} />
@@ -335,6 +330,9 @@ const Calender = (props: Props) => {
       </div>
       {isEventPopupActive && event && (
         <EventPopup setState={setIsEventPopupActive} event={event} />
+      )}
+      {isSettingPopupActive && (
+        <SettingPopup setState={setIsSettingPopupActive} />
       )}
     </>
   );

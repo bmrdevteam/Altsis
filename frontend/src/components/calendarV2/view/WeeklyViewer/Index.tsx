@@ -2,18 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import style from "./style.module.scss";
 import create from "zustand";
 
-import { calendarItem } from "components/calendarV2/calendarData";
-
-export type TEvent = calendarItem & {
-  type?: string;
-  classroom?: string;
-  memo?: string;
-  _id?: string;
-};
-
+import { EventItem } from "components/calendarV2/calendarData";
 interface ICalendarState {
-  events: TEvent[];
-  setEvents: (events: TEvent[]) => void;
+  events: EventItem[];
+  setEvents: (events: EventItem[]) => void;
 }
 
 const useStore = create<ICalendarState>()((set) => {
@@ -42,7 +34,7 @@ const Event = ({
   isMounted,
   onClickEvent,
 }: {
-  data: TEvent;
+  data: EventItem;
   isMounted: boolean;
   onClickEvent: any;
 }) => {
@@ -64,11 +56,11 @@ const Event = ({
         top: `${start * 80}px`,
         height: `${height * 80}px`,
         backgroundColor: data.backgroundColor,
-        color: data.foregroundColor,
+        // color: data.foregroundColor,
       }}
       onClick={() => onClickEvent(data)}
     >
-      <div className={style.title}>{data.summary ?? "제목 없음"}</div>
+      <div className={style.title}>{data.title ?? "제목 없음"}</div>
       {data.location && <div className={style.room}>{data.location}</div>}
       {data.description && <div className={style.room}>{data.description}</div>}
     </div>
@@ -119,7 +111,7 @@ const RowGrid = () => {
 };
 
 type Props = {
-  eventMap?: Map<string, calendarItem[]>;
+  eventMap?: Map<string, EventItem[]>;
   isMounted: boolean;
   dayList: string[];
   onClickEvent: any;
@@ -157,6 +149,7 @@ function WeeklyView(props: Props) {
     const filteredEvents = [];
     for (let val of events) {
       if (
+        !val.isAllday &&
         val.endTimeText <= props2.dateText + " 23:59:59" &&
         val.startTimeText >= props2.dateText
       ) {
@@ -169,7 +162,7 @@ function WeeklyView(props: Props) {
         {filteredEvents.map((val) => {
           return (
             <Event
-              key={val.id}
+              key={val.id + val.sequence}
               data={val}
               isMounted={props.isMounted}
               onClickEvent={props.onClickEvent}
@@ -213,10 +206,11 @@ function WeeklyView(props: Props) {
                   .map((event) => {
                     return (
                       <div
+                        key={event.id + event.sequence}
                         className={style.dayEvent}
                         onClick={() => props.onClickEvent(event)}
                       >
-                        {event.summary}
+                        {event.title}
                       </div>
                     );
                   })}

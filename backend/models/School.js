@@ -62,6 +62,8 @@ const schoolSchema = mongoose.Schema(
     formArchive: { type: [formArchiveSchema] },
     activatedSeason: mongoose.Types.ObjectId,
     links: { type: [LinkSchema] },
+    calendar: String,
+    calendarTimetable: String,
   },
   { timestamps: true }
 );

@@ -64,6 +64,19 @@
           }
         }
 
+        .svgBtn {
+          display: flex;
+          align-items: center;
+
+          padding: 0px 6px;
+          height: 30px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+          color: purple;
+        }
+
         span,
         div,
         svg {
