@@ -28,7 +28,6 @@ export default function Example() {
         teacher: currentUser._id,
       });
       if (syllabuses.length > 0) {
-        console.log("syllabuses: ", syllabuses);
         setSyllabusesMentoring(syllabuses);
       }
     }
