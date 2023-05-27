@@ -41,6 +41,7 @@ import Skeleton from "../../../components/skeleton/Skeleton";
 import Archive from "./tab/Archive";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
+import Calendars from "./tab/Calendars";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
@@ -140,6 +141,12 @@ const School = (props: Props) => {
               사용자: <User schoolData={schoolData} />,
               "사이드바 링크": (
                 <Links schoolData={schoolData} setSchoolData={setSchoolData} />
+              ),
+              일정: (
+                <Calendars
+                  schoolData={schoolData}
+                  setSchoolData={setSchoolData}
+                />
               ),
             }}
           />

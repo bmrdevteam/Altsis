@@ -269,6 +269,20 @@ export default function useApi() {
   }
 
   /**
+   * Update user calendar
+   * @type PUT
+   * @auth member
+   * @returns User
+   */
+  async function UUserCalendar(props: { calendar?: string }) {
+    const { calendar } = await database.U({
+      location: `users/calendar`,
+      data: props,
+    });
+    return { calendar };
+  }
+
+  /**
    * Delete users
    * @type DELETE
    * @auth member
@@ -828,6 +842,21 @@ export default function useApi() {
     });
     return links;
   }
+
+  /**
+   * Update calendars in school
+   * @auth admin
+   */
+  async function USchoolCalendars(props: {
+    schoolId: string;
+    data: { calendar?: string; calendarTimetable?: string };
+  }) {
+    const { calendar, calendarTimetable } = await database.U({
+      location: `schools/${props.schoolId}/calendars`,
+      data: props.data,
+    });
+    return { calendar, calendarTimetable };
+  }
   /**
    * Enrollment Api
    * ##########################################################################
@@ -1303,6 +1332,7 @@ export default function useApi() {
       RUser,
       RUserProfile,
       DUsers,
+      UUserCalendar,
     },
     SeasonApi: {
       CSeason,
@@ -1328,6 +1358,7 @@ export default function useApi() {
       RSchoolWithSeasons,
       USchoolFormArchive,
       USchoolLinks,
+      USchoolCalendars,
     },
     RegistrationApi: {
       CRegistrations,

@@ -50,43 +50,47 @@ const Notification = () => {
   }
 
   const updateNotifications = async () => {
-    const notifications = await NotificationApi.RNotifications({
-      type: "received",
-      user: currentUser._id,
-      checked: false,
-    });
-    setNotifications(notifications);
+    if (currentUser?._id) {
+      const notifications = await NotificationApi.RNotifications({
+        type: "received",
+        user: currentUser._id,
+        checked: false,
+      });
+      setNotifications(notifications);
+    }
   };
 
   useEffect(() => {
-    if (currentUser._id) {
+    if (currentUser?._id) {
       updateNotifications();
-
-      //* setup socket */
-      const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
-        path: "/io/notification",
-        withCredentials: true,
-      });
-
-      socket.on("connect", () => {
-        setSocket(socket);
-        socket.emit("listening", {
-          academyId: currentUser.academyId,
-          userId: currentUser.userId,
-        });
-      });
-
-      socket.on("listen", () => {
-        setIsNotifiationLoading(true);
-      });
-
-      setSocket(socket);
     }
+  }, [currentUser]);
+
+  useEffect(() => {
+    //* setup socket */
+    const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
+      path: "/io/notification",
+      withCredentials: true,
+    });
+
+    socket.on("connect", () => {
+      setSocket(socket);
+      socket.emit("listening", {
+        academyId: currentUser.academyId,
+        userId: currentUser.userId,
+      });
+    });
+
+    socket.on("listen", () => {
+      setIsNotifiationLoading(true);
+    });
+
+    setSocket(socket);
 
     return () => {
-      socket?.close();
+      socket.close();
     };
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     if (isNotificationLoading) {

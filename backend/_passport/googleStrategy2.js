@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as CustomStrategy } from "passport-custom";
+import { Strategy as GogoleStrategy } from "passport-google-oauth20";
 import { Academy, User } from "../models/index.js";
 import { getPayload } from "../utils/payload.js";
 
@@ -41,6 +42,15 @@ const google2 = () => {
       }
     })
   );
+};
+
+const getEmail = (profile) => {
+  if (profile.emails) {
+    for (let _email of profile.emails) {
+      if (_email.verified) return _email.value;
+    }
+  }
+  return undefined;
 };
 
 export { google2 };

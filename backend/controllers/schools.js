@@ -89,6 +89,24 @@ export const updateLinks = async (req, res) => {
   }
 };
 
+export const updateCalendars = async (req, res) => {
+  try {
+    const school = await School(req.user.academyId).findById(req.params._id);
+    if (!school) return res.status(404).send({ message: "school not found" });
+
+    school["calendar"] = req.body.calendar;
+    school["calendarTimetable"] = req.body.calendarTimetable;
+    await school.save();
+
+    return res.status(200).send({
+      calendar: school.calendar,
+      calendarTimetable: school.calendarTimetable,
+    });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
 /* delete */
 
 export const remove = async (req, res) => {

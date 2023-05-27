@@ -46,23 +46,31 @@ const initializeWebSocket = (_server) => {
           "io/notification/sid-user",
           socket.id
         );
-        await client.hDel("io/notification/sid-user", socket.id);
-        const data = await client.v4.hGet("io/notification/user-sidList", user);
-        if (data) {
-          const prevSidList = JSON.parse(data).sid;
-          if (prevSidList) {
-            if (prevSidList.length === 1) {
-              await client.hDel("io/notification/user-sidList", user);
-            } else {
-              const idx = _.findIndex(prevSidList, (sid) => sid === socket.id);
-              if (idx !== -1) {
-                await client.hSet(
-                  "io/notification/user-sidList",
-                  user,
-                  JSON.stringify({
-                    sid: prevSidList.splice(idx, 1),
-                  })
+        if (user) {
+          await client.hDel("io/notification/sid-user", socket.id);
+          const data = await client.v4.hGet(
+            "io/notification/user-sidList",
+            user
+          );
+          if (data) {
+            const prevSidList = JSON.parse(data).sid;
+            if (prevSidList) {
+              if (prevSidList.length === 1) {
+                await client.hDel("io/notification/user-sidList", user);
+              } else {
+                const idx = _.findIndex(
+                  prevSidList,
+                  (sid) => sid === socket.id
                 );
+                if (idx !== -1) {
+                  await client.hSet(
+                    "io/notification/user-sidList",
+                    user,
+                    JSON.stringify({
+                      sid: prevSidList.splice(idx, 1),
+                    })
+                  );
+                }
               }
             }
           }

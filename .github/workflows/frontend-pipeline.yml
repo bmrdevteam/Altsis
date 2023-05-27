@@ -33,6 +33,7 @@ jobs:
           echo "PORT=${{env.CLIENT_PORT}}" >> .env
           echo "REACT_APP_SERVER_URL=${{secrets.SERVER_URL}}" >> .env
           echo "REACT_APP_GOOGLE_CLIENT_ID=${{secrets.GOOGLE_CLIENT_ID}}" >> .env
+          echo "REACT_APP_GOOGLE_CALENDAR_API_KEY=${{secrets.REACT_APP_GOOGLE_CALENDAR_API_KEY}}" >> .env
 
       - name: Install Dependencies and Build
         run: |

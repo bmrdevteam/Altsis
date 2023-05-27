@@ -54,6 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentSeason, setCurrentSeason] = useState<TSeason>();
 
   const [loading, setLoading] = useState<boolean>(true);
+
   /** Date for setting the cookie expire date  */
   const date = new Date();
   let cookieData = "";

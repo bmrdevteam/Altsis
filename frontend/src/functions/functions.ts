@@ -46,7 +46,7 @@ export function validate(type: string, content: string) {
  * @param {Date} date - The Date object to format.
  * @return {string} The formatted date string.
  */
-export function dateFormat(date: Date) {
+export function dateFormat(date: Date, opts?: "YYYY-MM-DD") {
   let month = date.getMonth() + 1;
   let day = date.getDate();
   let hour = date.getHours();
@@ -59,6 +59,9 @@ export function dateFormat(date: Date) {
   const min = minute >= 10 ? minute : "0" + minute; // Ensure two digits for minute
   const sec = second >= 10 ? second : "0" + second; // Ensure two digits for second
 
+  if (opts === "YYYY-MM-DD") {
+    return date.getFullYear() + "-" + mm + "-" + dd;
+  }
   return (
     date.getFullYear() + "-" + mm + "-" + dd + " " + hh + ":" + min + ":" + sec
   );

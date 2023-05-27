@@ -13,6 +13,7 @@ router.get("/:_id?/:field?", isLoggedIn, schools.find);
 
 router.put("/:_id/form/archive", isAdManager, schools.updateFormArchive);
 router.put("/:_id/links", isAdManager, schools.updateLinks);
+router.put("/:_id/calendars", isAdManager, schools.updateCalendars);
 
 router.delete("/:_id", isAdManager, schools.remove);
 

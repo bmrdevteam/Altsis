@@ -499,6 +499,18 @@ export const updateTel = async (req, res) => {
   }
 };
 
+export const updateCalendar = async (req, res) => {
+  try {
+    const user = req.user;
+    user.calendar = req.body.calendar;
+    await user.save();
+    return res.status(200).send({ calendar: user.calendar });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 export const update = async (req, res) => {
   try {
     let user = undefined;
