@@ -1,0 +1,25 @@
+.section {
+  .description {
+    font-size: 13px;
+    font-family: "Pretendard";
+    font-weight: 500;
+    color: var(--accent-3);
+    margin-bottom: 12px;
+    font-style: italic;
+    display: flex;
+    gap: 4px;
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    .row {
+    }
+  }
+
+  .svg:hover {
+    cursor: pointer;
+  }
+}
