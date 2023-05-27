@@ -53,38 +53,4 @@ const getEmail = (profile) => {
   return undefined;
 };
 
-const workspace = () => {
-  passport.use(
-    "workspace",
-    new GogoleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID.trim() ?? "",
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET?.trim() ?? "",
-        callbackURL: "/api/workspaces/auth/callback",
-        passReqToCallback: true,
-      },
-      async (req, accessToken, refreshToken, profile, done) => {
-        try {
-          const expires = new Date();
-          expires.setHours(expires.getHours() + 1);
-
-          const user = req.user;
-          user.workspace = {
-            id: profile.id,
-            email: getEmail(profile),
-            accessToken: accessToken,
-            expires,
-            refreshToken: refreshToken,
-          };
-
-          await user.save();
-          return done(null, user);
-        } catch (error) {
-          done(error);
-        }
-      }
-    )
-  );
-};
-
-export { google2, workspace };
+export { google2 };

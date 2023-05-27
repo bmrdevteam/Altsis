@@ -11,7 +11,7 @@ import React, {
 import _ from "lodash";
 import { useCookies } from "react-cookie";
 
-import { TUser, TSchool, TRegistration, TSeason, TWorkspace } from "types/auth";
+import { TUser, TSchool, TRegistration, TSeason } from "types/auth";
 
 const AuthContext = createContext<any>(null);
 
@@ -28,18 +28,12 @@ export function useAuth(): {
   currentSeason: TSeason;
   updateUserProfile: React.Dispatch<any>;
   deleteUserProfile: React.Dispatch<any>;
-  currentWorkspace: TWorkspace;
-  reloadWorkspace: () => Promise<void>;
-  setCurrentWorkspace: React.Dispatch<
-    React.SetStateAction<TWorkspace | undefined>
-  >;
 } {
   return useContext(AuthContext);
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { UserApi, SeasonApi, SchoolApi, RegistrationApi, WorkspaceApi } =
-    useApi();
+  const { UserApi, SeasonApi, SchoolApi, RegistrationApi } = useApi();
   const [cookies, setCookie, removeCookie] = useCookies([
     "currentSchool",
     "currentRegistration",
@@ -60,10 +54,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentSeason, setCurrentSeason] = useState<TSeason>();
 
   const [loading, setLoading] = useState<boolean>(true);
-
-  const [currentWorkspace, setCurrentWorkspace] = useState<
-    TWorkspace | undefined
-  >();
 
   /** Date for setting the cookie expire date  */
   const date = new Date();
@@ -124,8 +114,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       );
     }
-
-    setCurrentWorkspace(user.workspace);
   }
 
   useEffect(() => {
@@ -197,13 +185,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const reloadWorkspace = async () => {
-    if (currentUser?._id) {
-      const { workspace } = await WorkspaceApi.RMyWorkspace();
-      setCurrentWorkspace(workspace);
-    }
-  };
-
   const value = {
     loading,
     setLoading,
@@ -217,9 +198,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentSeason,
     updateUserProfile,
     deleteUserProfile,
-    currentWorkspace,
-    reloadWorkspace,
-    setCurrentWorkspace,
   };
   return (
     <AuthContext.Provider value={value}>

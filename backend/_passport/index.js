@@ -1,6 +1,6 @@
 import passport from "passport";
 import { local2 } from "./localStrategy2.js";
-import { google2, workspace } from "./googleStrategy2.js";
+import { google2 } from "./googleStrategy2.js";
 import { User } from "../models/index.js";
 
 const config = () => {
@@ -18,7 +18,6 @@ const config = () => {
 
   local2();
   google2();
-  workspace();
 };
 
 export { config };
