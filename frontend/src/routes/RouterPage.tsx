@@ -435,10 +435,24 @@ function RouterPage() {
 
             {/* dev routes */}
             <Route path="dev">
-              <Route path="" element={<Dev />}></Route>
+              <Route
+                path=""
+                element={
+                  <RequireAuth>
+                    <Dev />
+                  </RequireAuth>
+                }
+              ></Route>
               <Route path="test" element={<Test />}></Route>
               <Route path="e" element={<E />}></Route>
-              <Route path="schedule" element={<Schedule />}></Route>
+              <Route
+                path="schedule"
+                element={
+                  <RequireAuth>
+                    <Schedule />
+                  </RequireAuth>
+                }
+              ></Route>
               {/*  404 error */}
               <Route path="*" element={<Http404 />}></Route>
             </Route>
