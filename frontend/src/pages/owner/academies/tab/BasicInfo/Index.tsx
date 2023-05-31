@@ -46,10 +46,6 @@ const Academy = (props: Props) => {
 
   const academyRef = useRef<{ [key: string]: string }>({});
 
-  const [isActivated, setIsActivated] = useState<boolean>(
-    props.academyData.isActivated
-  );
-
   const onClickUpdateEmailHandler = async () => {
     let email: string | undefined = academyRef.current.email.trim();
     if (email === "") email = undefined;
@@ -104,6 +100,43 @@ const Academy = (props: Props) => {
     }
   };
 
+  const onClickActivateHandler = async () => {
+    if (!window.confirm("정말 활성화하시겠습니까?")) return;
+    try {
+      const { academy } = await AcademyAPI.UActivateAcademy({
+        params: {
+          academyId: props.academyData.academyId,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.setAcademyData(academy);
+      setRefresh(true);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const onClickInactivateHandler = async () => {
+    if (
+      !window.confirm(
+        "정말 비활성화하시겠습니까? 아카데미 사용자 로그인이 제한됩니다."
+      )
+    )
+      return;
+    try {
+      const { academy } = await AcademyAPI.UInactivateAcademy({
+        params: {
+          academyId: props.academyData.academyId,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.setAcademyData(academy);
+      setRefresh(true);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   useEffect(() => {
     if (refresh) {
       setRefresh(false);
@@ -122,20 +155,6 @@ const Academy = (props: Props) => {
           flexDirection: "column",
         }}
       >
-        <Input
-          appearence="flat"
-          label="아카데미 ID"
-          required
-          defaultValue={props.academyData.academyId}
-          disabled
-        />
-        <Input
-          appearence="flat"
-          label="아카데미 이름"
-          required
-          defaultValue={props.academyData.academyName}
-          disabled
-        />
         <Input
           appearence="flat"
           label="관리자 ID"
@@ -187,7 +206,7 @@ const Academy = (props: Props) => {
       >
         <Input
           appearence="flat"
-          label="생성 날짜"
+          label="생성 날짜(UTC)"
           defaultValue={props.academyData.createdAt}
           disabled
         />
@@ -195,50 +214,35 @@ const Academy = (props: Props) => {
       <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
         <Input
           appearence="flat"
-          label="수정 날짜"
+          label="수정 날짜(UTC)"
           defaultValue={props.academyData.updatedAt}
           disabled
         />
       </div>
       <div style={{ marginTop: "24px" }}></div>
-      {/* <Button
-        type={"ghost"}
-        style={{
-          borderRadius: "4px",
-          height: "32px",
-        }}
-        onClick={() => {
-          if (isActivated) {
-            if (window.confirm("정말 비활성화하시겠습니까?")) {
-              AcademyApi.UInactivateAcademy({
-                academyId: props.academyData.academyId,
-              })
-                .then((res) => {
-                  alert(SUCCESS_MESSAGE);
-                  setIsActivated(false);
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
-            }
-          } else {
-            if (window.confirm("정말 활성화하시겠습니까?")) {
-              AcademyApi.UActivateAcademy({
-                academyId: props.academyData.academyId,
-              })
-                .then((res) => {
-                  alert(SUCCESS_MESSAGE);
-                  setIsActivated(true);
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
-            }
-          }
-        }}
-      >
-        {isActivated ? "비활성화" : "활성화"}
-      </Button> */}
+      {props.academyData.isActivated ? (
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+          }}
+          onClick={onClickInactivateHandler}
+        >
+          {"비활성화"}
+        </Button>
+      ) : (
+        <Button
+          type={"ghost"}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+          }}
+          onClick={onClickActivateHandler}
+        >
+          {"활성화"}
+        </Button>
+      )}
     </div>
   ) : (
     <></>

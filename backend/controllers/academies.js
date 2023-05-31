@@ -111,7 +111,7 @@ export const create = async (req, res) => {
 
 /**
  * @memberof APIs.AcademyAPI
- * @function RAcademies|RAcademy API
+ * @function RAcademies/RAcademy API
  * @description 아카데미 조회 API
  * @version 2.0.0
  *
@@ -166,32 +166,74 @@ export const find = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UActivateAcademy API
+ * @description 아카데미 활성화  API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/activate"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
 export const activate = async (req, res) => {
   try {
-    /* find document */
+    /* find academy */
     const academy = await Academy.findOne({ academyId: req.params.academyId });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
 
     /* activate academy */
     academy.isActivated = true;
     await academy.save();
-    return res.status(200).send();
+    return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UInactivateAcademy API
+ * @description 아카데미 비활성화  API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/inactivate"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
 export const inactivate = async (req, res) => {
   try {
-    /* find document */
+    /* find academy */
     const academy = await Academy.findOne({ academyId: req.params.academyId });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
 
     /* activate academy */
     academy.isActivated = false;
     await academy.save();
-    return res.status(200).send();
+    return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
@@ -313,27 +355,6 @@ export const findDocuments = async (req, res) => {
     ).find(req.query);
 
     return res.status(200).send({ documents });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-export const deleteDocument = async (req, res) => {
-  try {
-    if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
-      return res.status(400).send();
-
-    const document = await typeToModel(
-      req.params.docType,
-      req.user.academyId
-    ).findById(req.params.docId);
-    if (!document)
-      return res.status(404).send({ message: "document not found" });
-
-    await document.remove();
-
-    return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

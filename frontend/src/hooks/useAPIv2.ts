@@ -161,6 +161,46 @@ export default function useApi() {
     };
   }
 
+  /**
+   * UActivateAcademy API
+   * 아카데미 활성화
+   * @auth owner
+   * @returns academy
+   */
+  async function UActivateAcademy(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/activate`,
+      data: {},
+    });
+    return {
+      academy: academy as TAcademy,
+    };
+  }
+
+  /**
+   * UInactivateAcademy API
+   * 아카데미 비활성화
+   * @auth owner
+   * @returns academy
+   */
+  async function UInactivateAcademy(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/inactivate`,
+      data: {},
+    });
+    return {
+      academy: academy as TAcademy,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -168,6 +208,8 @@ export default function useApi() {
       RAcademies,
       UAcademyEmail,
       UAcademyTel,
+      UActivateAcademy,
+      UInactivateAcademy,
     },
   };
 }
