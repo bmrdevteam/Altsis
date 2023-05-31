@@ -1,5 +1,4 @@
 import { app, ready } from "./app.js";
-import { logger } from "./log/logger.js";
 import { initializeWebSocket } from "./utils/webSocket.js";
 
 let server = undefined;

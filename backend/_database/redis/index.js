@@ -1,5 +1,4 @@
 import { createClient } from "redis";
-import { logger } from "../../log/logger.js";
 
 let isConnected = false;
 let client = undefined;

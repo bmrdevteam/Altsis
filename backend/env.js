@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
-import { logger } from "./log/logger.js";
 
 console.log(`✅ NODE_ENV is ${process.env.NODE_ENV}`);
 

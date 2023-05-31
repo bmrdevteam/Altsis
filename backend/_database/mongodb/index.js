@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { root } from "./root.js";
 import { Academy } from "../../models/index.js";
-import { logger } from "../../log/logger.js";
 
 const getURL = (dbName) => {
   return `${process.env[
