@@ -13,5 +13,4 @@ if (process.env.NODE_ENV?.trim() === "local") {
   dotenv.config({ path: resolve(__dirname, "./.env.test") });
 } else {
   dotenv.config();
-  console.log(process.env.s3_bucket3);
 }
