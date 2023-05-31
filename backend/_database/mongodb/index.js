@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { root } from "./root.js";
 import { Academy } from "../../models/index.js";
-import { logger } from "../../log/logger.js";
 
 const getURL = (dbName) => {
   return `${process.env[
@@ -22,9 +21,7 @@ if (process.env.NODE_ENV.trim() !== "test") {
       }
     });
 
-    const text = "✅ MongoDB is connected";
-    console.log(text);
-    logger.info(text);
+    console.log("✅ MongoDB is connected");
     isConnected = true;
   }).select("+dbName");
 }
@@ -32,18 +29,16 @@ if (process.env.NODE_ENV.trim() !== "test") {
 const addConnection = (academy) => {
   conn[academy.academyId] = mongoose.createConnection(getURL(academy.dbName));
 
-  const text = `🌿 Connection is made: [${academy.academyId}(${academy.dbName})]`;
-  console.log(text);
-  logger.info(text);
+  console.log(
+    `🌿 Connection is made: [${academy.academyId}(${academy.dbName})]`
+  );
 };
 
 const deleteConnection = async (academyId) => {
   await conn[academyId].db.dropDatabase();
   delete conn[academyId];
 
-  const text = `🍂 Connection is removed: [${academyId}]`;
-  console.log(text);
-  logger.info(text);
+  console.log(`🍂 Connection is removed: [${academyId}]`);
 };
 
 export { conn, addConnection, deleteConnection, isConnected };
