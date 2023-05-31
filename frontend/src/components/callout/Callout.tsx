@@ -74,7 +74,7 @@ const Callout = ({
       )}
       <div className={`${calloutStyle.text}`}>
         {!description && !child ? (
-          <div>{title}</div>
+          <div className={`${calloutStyle["title-oneline"]}`}>{title}</div>
         ) : (
           <>
             <div className={`${calloutStyle.title}`}>{title}</div>

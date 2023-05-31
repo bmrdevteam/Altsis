@@ -55,25 +55,7 @@ export default function useApi() {
    * Academy Api
    * ##########################################################################
    */
-  /**
-   * Create Academy
-   * @auth owner
-   */
-  async function CAcademy(props: {
-    data: {
-      academyId: string;
-      academyName: string;
-      adminId: string;
-      adminName: string;
-      email?: string;
-      tel?: string;
-    };
-  }) {
-    return await database.C({
-      location: `academies`,
-      data: props.data,
-    });
-  }
+
   /**
    * Get Academies
    * @type GET
@@ -1314,7 +1296,6 @@ export default function useApi() {
 
   return {
     AcademyApi: {
-      CAcademy,
       RAcademies,
       RAcademy,
       UAcademy,
