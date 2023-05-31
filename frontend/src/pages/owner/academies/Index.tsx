@@ -29,7 +29,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useApi from "hooks/useApi";
+import useAPIv2 from "hooks/useAPIv2";
 
 import style from "style/pages/owner/academy.module.scss";
 
@@ -46,7 +46,7 @@ type Props = {};
 
 const Academies = (props: Props) => {
   const navigate = useNavigate();
-  const { AcademyApi } = useApi();
+  const { AcademyAPI } = useAPIv2();
 
   /* document list */
   const [academyList, setAcademyList] = useState<any>([]);
@@ -57,9 +57,9 @@ const Academies = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      AcademyApi.RAcademies()
-        .then((res) => {
-          setAcademyList(res);
+      AcademyAPI.RAcademies()
+        .then(({ academies }) => {
+          setAcademyList(academies);
           setIsLoading(false);
         })
         .catch((err) => {

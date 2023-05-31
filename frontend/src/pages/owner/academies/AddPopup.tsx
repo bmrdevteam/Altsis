@@ -28,7 +28,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import useAPIv2, { HANDLE_ERROR } from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 // components
 import Button from "components/button/Button";
@@ -141,7 +141,7 @@ const Academies = (props: Props) => {
 
       setResPopupActive(true);
     } catch (err) {
-      HANDLE_ERROR(err);
+      ALERT_ERROR(err);
     }
   };
 
