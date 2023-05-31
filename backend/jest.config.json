@@ -1,6 +1,6 @@
 {
   "rootDir": ".",
-  "testMatch": ["**/tests/archives/**"],
+  "testMatch": ["**/tests/APIs/academyAPI/**"],
   "testEnvironment": "node",
   "resetMocks": true,
   "clearMocks": true,

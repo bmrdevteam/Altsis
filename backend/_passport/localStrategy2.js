@@ -16,6 +16,11 @@ const local2 = () => {
         err.status = 404;
         return done(err, null, null);
       }
+      if (!academy.isActivated) {
+        const err = new Error("Academy is inactivated");
+        err.status = 409;
+        return done(err, null, null);
+      }
 
       const user = await User(academyId)
         .findOne({ userId })

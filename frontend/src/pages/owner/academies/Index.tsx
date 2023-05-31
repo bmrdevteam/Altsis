@@ -29,7 +29,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useApi from "hooks/useApi";
+import useAPIv2 from "hooks/useAPIv2";
 
 import style from "style/pages/owner/academy.module.scss";
 
@@ -37,47 +37,29 @@ import style from "style/pages/owner/academy.module.scss";
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import Table from "components/tableV2/Table";
-import Popup from "components/popup/Popup";
-import Input from "components/input/Input";
-import Textarea from "components/textarea/Textarea";
 import Navbar from "layout/navbar/Navbar";
+
+import AddPopup from "./AddPopup";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
 const Academies = (props: Props) => {
   const navigate = useNavigate();
-  const { AcademyApi } = useApi();
+  const { AcademyAPI } = useAPIv2();
 
   /* document list */
-  const [documentList, setDocumentList] = useState<any>([]);
+  const [academyList, setAcademyList] = useState<any>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   /* popup activation */
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
-  const [addResultPopupActive, setAddResultPopupActive] =
-    useState<boolean>(false);
-
-  /* document fields */
-  const [academyId, setAcademyId] = useState<string>("");
-  const [academyName, setAcademyName] = useState<string>("");
-  const [adminId, setAdminId] = useState<string>("");
-  const [adminName, setAdminName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [tel, setTel] = useState<string>();
-  const [adminPassword, setAdminPassword] = useState<string>();
-
-  const getDocumentString = () => {
-    let info = `아카데미 ID: ${academyId}\n아카데미 이름: ${academyName}\n관리자 ID: ${adminId}\n관리자 이름: ${adminName}\n관리자 비밀번호: ${adminPassword}`;
-    if (email) info += `\nemail:${email}`;
-    if (tel) info += `\ntel:${tel}`;
-    return info;
-  };
 
   useEffect(() => {
     if (isLoading) {
-      AcademyApi.RAcademies()
-        .then((res) => {
-          setDocumentList(res);
+      AcademyAPI.RAcademies()
+        .then(({ academies }) => {
+          setAcademyList(academies);
           setIsLoading(false);
         })
         .catch((err) => {
@@ -87,7 +69,7 @@ const Academies = (props: Props) => {
     return () => {};
   }, [isLoading]);
 
-  return (
+  return !isLoading ? (
     <>
       <Navbar />
       <div className={style.section}>
@@ -114,7 +96,8 @@ const Academies = (props: Props) => {
           <Table
             type="object-array"
             control
-            data={!isLoading ? documentList : []}
+            data={academyList}
+            defaultPageBy={10}
             header={[
               {
                 text: "No",
@@ -174,141 +157,16 @@ const Academies = (props: Props) => {
             ]}
           />
         </div>
-        {addPopupActive && (
-          <Popup
-            setState={setAddPopupActive}
-            style={{ maxWidth: "1000px", width: "100%" }}
-            closeBtn
-            title={"도큐먼트 생성"}
-          >
-            <div style={{ marginTop: "24px" }}>
-              <div style={{ display: "flex", gap: "24px" }}>
-                <Input
-                  appearence="flat"
-                  label="아카데미 ID"
-                  required={true}
-                  onChange={(e: any) => {
-                    setAcademyId(e.target.value);
-                  }}
-                />
-                <Input
-                  appearence="flat"
-                  label="아카데미 이름"
-                  required={true}
-                  onChange={(e: any) => {
-                    setAcademyName(e.target.value);
-                  }}
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-                <Input
-                  appearence="flat"
-                  label="관리자 ID"
-                  required={true}
-                  onChange={(e: any) => {
-                    setAdminId(e.target.value);
-                  }}
-                />
-                <Input
-                  appearence="flat"
-                  label="관리자 이름"
-                  required={true}
-                  onChange={(e: any) => {
-                    setAdminName(e.target.value);
-                  }}
-                />
-              </div>
-              <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-                <Input
-                  appearence="flat"
-                  label="email"
-                  onChange={(e: any) => {
-                    setEmail(e.target.value);
-                  }}
-                />
-              </div>
-              <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-                <Input
-                  appearence="flat"
-                  label="tel"
-                  onChange={(e: any) => {
-                    setTel(e.target.value);
-                  }}
-                />
-              </div>
-
-              <div style={{ height: "24px" }}></div>
-              <Button
-                type={"ghost"}
-                disableOnclick
-                onClick={() => {
-                  AcademyApi.CAcademy({
-                    data: {
-                      academyId,
-                      academyName,
-                      adminId,
-                      adminName,
-                      email: email && email !== "" ? email : undefined,
-                      tel: tel && tel !== "" ? tel : undefined,
-                    },
-                  }).then((res) => {
-                    setAddPopupActive(false);
-                    setAdminPassword(res.adminPassword);
-                    setAddResultPopupActive(true);
-                    setIsLoading(true);
-                  });
-                }}
-                style={{
-                  borderRadius: "4px",
-                  height: "32px",
-                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                }}
-              >
-                생성
-              </Button>
-            </div>
-          </Popup>
-        )}
-        {addResultPopupActive && (
-          <Popup
-            setState={setAddResultPopupActive}
-            style={{ maxWidth: "1000px", width: "100%" }}
-            closeBtn
-            title={"아카데미 생성이 완료되었습니다."}
-          >
-            <div style={{ marginTop: "24px" }}>
-              <div style={{ display: "flex", gap: "24px" }}>
-                <Textarea
-                  label="결과"
-                  placeholder="결과"
-                  defaultValue={getDocumentString()}
-                />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-              이 창을 닫은 후에는 관리자 비밀번호를 확인할 수 없습니다.
-            </div>
-            <div style={{ height: "24px" }}></div>
-            <Button
-              type={"ghost"}
-              disableOnclick
-              onClick={() => {
-                setAddResultPopupActive(false);
-                setIsLoading(true);
-              }}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-            >
-              닫기
-            </Button>
-          </Popup>
-        )}
       </div>
+      {addPopupActive && (
+        <AddPopup
+          setPopupActive={setAddPopupActive}
+          setIsLoading={setIsLoading}
+        />
+      )}
     </>
+  ) : (
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 

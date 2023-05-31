@@ -29,7 +29,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useApi from "hooks/useApi";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -41,6 +41,7 @@ import BasicInfo from "./tab/BasicInfo/Index";
 import User from "./tab/User/Index";
 import School from "./tab/School/Index";
 import Backup from "./tab/Backup/Index";
+import Remove from "./tab/Remove/Index";
 
 // import Setting from "./tab/Setting";
 import Skeleton from "components/skeleton/Skeleton";
@@ -77,7 +78,7 @@ const CannotFindAcademy = ({ schoolId }: { schoolId?: string }) => {
 
 const Academy = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { AcademyApi } = useApi();
+  const { AcademyAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -85,16 +86,14 @@ const Academy = (props: Props) => {
   const [academyData, setAcademyData] = useState<any>();
 
   useEffect(() => {
-    if (isLoading) {
-      AcademyApi.RAcademy({ academyId: pid })
-        .then((res) => {
-          setAcademyData(res);
-        })
-        .then(() => {
+    if (isLoading && pid) {
+      AcademyAPI.RAcademy({ query: { academyId: pid } })
+        .then(({ academy }) => {
+          setAcademyData(academy);
           setIsLoading(false);
         })
-        .catch(() => {
-          alert("failed to load data");
+        .catch((err: any) => {
+          ALERT_ERROR(err);
           setIsAcademy(false);
         });
     }
@@ -128,12 +127,13 @@ const Academy = (props: Props) => {
                 아카데미: (
                   <BasicInfo
                     academyData={academyData}
-                    setIsLoading={setIsLoading}
+                    setAcademyData={setAcademyData}
                   />
                 ),
                 학교: <School />,
                 사용자: <User />,
                 백업: <Backup />,
+                삭제: <Remove academyData={academyData} />,
               }}
             />
           </>

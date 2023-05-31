@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { logger } from "../../log/logger.js";
 
 let isConnected = false;
 let client = undefined;
@@ -29,22 +30,27 @@ client.on("error", function (err) {
 });
 
 client.on("ready", async () => {
-  // clean up "io/notification/*" data
-  const [keys1, keys2] = await Promise.all([
-    client.v4.hGetAll("io/notification/sid-user"),
-    client.v4.hGetAll("io/notification/user-sidList"),
-  ]);
+  // clean up "io/notification/*" data (only in production)
 
-  await Promise.all([
-    Object.keys(keys1).forEach((key) =>
-      client.hDel("io/notification/sid-user", key)
-    ),
-    Object.keys(keys2).forEach((key) =>
-      client.hDel("io/notification/user-sidList", key)
-    ),
-  ]);
+  if (process.env.NODE_ENV?.trim() === "production") {
+    const [keys1, keys2] = await Promise.all([
+      client.v4.hGetAll("io/notification/sid-user"),
+      client.v4.hGetAll("io/notification/user-sidList"),
+    ]);
 
-  console.log("✅ Redis is connected");
+    await Promise.all([
+      Object.keys(keys1).forEach((key) =>
+        client.hDel("io/notification/sid-user", key)
+      ),
+      Object.keys(keys2).forEach((key) =>
+        client.hDel("io/notification/user-sidList", key)
+      ),
+    ]);
+  }
+
+  const text = "✅ Redis is connected";
+  console.log(text);
+  logger.info(text);
   isConnected = true;
 });
 
