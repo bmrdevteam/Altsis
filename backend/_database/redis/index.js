@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { logger } from "../../log/logger.js";
 
 let isConnected = false;
 let client = undefined;
@@ -44,7 +45,9 @@ client.on("ready", async () => {
     ),
   ]);
 
-  console.log("✅ Redis is connected");
+  const text = "✅ Redis is connected";
+  console.log(text);
+  logger.info(text);
   isConnected = true;
 });
 
