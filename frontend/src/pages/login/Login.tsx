@@ -108,37 +108,34 @@ const Login = () => {
   /** */
   date.setFullYear(date.getFullYear() + 1);
 
+  const loadAcademyData = async (academyId: string) => {
+    AcademyAPI.RAcademy({ query: { academyId } })
+      .then(({ academy }) => {
+        setAcademyId(academy.academyId);
+        setAcademyName(academy.academyName);
+        setCookie("academyId", academy.academyId, {
+          path: "/",
+          expires: date,
+        });
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        ALERT_ERROR(err);
+        removeCookie("academyId");
+        navigate(`/login`, { replace: true });
+      });
+  };
+
   useEffect(() => {
     if (isLoading) {
-      if (!pid || pid === "undefined") {
-        alert("!");
-        navigate(`/login`, { replace: true });
-      } else {
-        let academyId = pid;
-
-        if (academyId === "0") {
-          if (cookies.academyId && cookies.academyId !== "0") {
-            academyId = `${cookies.academyId}`;
-          } else {
-            navigate(`/login`, { replace: true });
-          }
+      if (!pid || pid === "undefined" || pid === "0") {
+        if (cookies.academyId && cookies.academyId !== "0") {
+          loadAcademyData(cookies.academyId);
+        } else {
+          navigate(`/login`, { replace: true });
         }
-
-        AcademyAPI.RAcademy({ query: { academyId } })
-          .then(({ academy }) => {
-            setAcademyId(academy.academyId);
-            setAcademyName(academy.academyName);
-            setCookie("academyId", academy.academyId, {
-              path: "/",
-              expires: date,
-            });
-            setIsLoading(false);
-          })
-          .catch((err) => {
-            ALERT_ERROR(err);
-            removeCookie("academyId");
-            navigate(`/login`, { replace: true });
-          });
+      } else {
+        loadAcademyData(pid);
       }
     }
   }, [isLoading]);
