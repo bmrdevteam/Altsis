@@ -57,27 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Get Academies
-   * @type GET
-   * @auth guest
-   * @returns list of academies
-   */
-  async function RAcademies() {
-    const { academies: result } = await database.R({ location: "academies" });
-    return result;
-  }
-  /**
-   * Get Academy
-   * @type GET
-   * @auth owner
-   * @returns academy
-   */
-  async function RAcademy(props: { academyId?: string }) {
-    return await database.R({
-      location: `academies/${props.academyId}`,
-    });
-  }
-  /**
    * Update Academy
    * @type PUT
    * @auth owner
@@ -1296,8 +1275,6 @@ export default function useApi() {
 
   return {
     AcademyApi: {
-      RAcademies,
-      RAcademy,
       UAcademy,
       UActivateAcademy,
       UInactivateAcademy,

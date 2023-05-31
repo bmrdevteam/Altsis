@@ -137,7 +137,7 @@ export const find = async (req, res) => {
       if (!("academyId" in req.query)) {
         return res.status(400).send({ message: FIELD_REQUIRED("academyID") });
       }
-      const academy = await Academy.findOne({ academyId: { $ne: "root" } });
+      const academy = await Academy.findOne({ academyId: req.query.academyId });
       if (!academy) {
         return res.status(404).send({ message: __NOT_FOUND("academy") });
       }
@@ -147,7 +147,9 @@ export const find = async (req, res) => {
     /* if owner requested */
     if (req.user.auth === "owner") {
       if ("academyId" in req.query) {
-        const academy = await Academy.findOne({ academyId: { $ne: "root" } });
+        const academy = await Academy.findOne({
+          academyId: req.query.academyId,
+        });
         if (!academy) {
           return res.status(404).send({ message: __NOT_FOUND("academy") });
         }

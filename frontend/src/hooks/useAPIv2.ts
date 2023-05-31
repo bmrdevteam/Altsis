@@ -23,8 +23,7 @@ function QUERY_BUILDER(params?: object) {
   return query;
 }
 
-export const HANDLE_ERROR = (err: any) => {
-  console.error(err);
+export const ALERT_ERROR = (err: any) => {
   let message = "";
   if (err.response?.data?.message) {
     message += MESSAGE.get(err.response.data.message) ?? "";
@@ -55,8 +54,9 @@ export default function useApi() {
    * CAcademy API
    * 아카데미 생성 API
    * @auth owner
+   * @returns academy
+   * @returns admin
    */
-
   async function CAcademy(props: {
     data: {
       academyId: string;
@@ -77,9 +77,47 @@ export default function useApi() {
     };
   }
 
+  /**
+   * RAcademy API
+   * 아카데미 조회 API
+   * @auth not-logged-in user
+   * @returns academy
+   */
+
+  async function RAcademy(props: {
+    query: {
+      academyId: string;
+    };
+  }) {
+    const { academy } = await database.R({
+      location: `academies` + QUERY_BUILDER(props.query),
+    });
+    return {
+      academy: academy as TAcademy,
+    };
+  }
+
+  /**
+   * RAcademies API
+   * 아카데미 목록 조회 API
+   * @auth owner
+   * @returns academies
+   */
+
+  async function RAcademies() {
+    const { academies } = await database.R({
+      location: `academies`,
+    });
+    return {
+      academies: academies as TAcademy[],
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
+      RAcademy,
+      RAcademies,
     },
   };
 }

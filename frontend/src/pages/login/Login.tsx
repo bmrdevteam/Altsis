@@ -27,17 +27,18 @@
  *
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import style from "style/pages/login.module.scss";
-import axios from "axios";
 import Button from "components/button/Button";
 import { useNavigate, useParams } from "react-router-dom";
-import useGoogleLogin, { GoogleLoginBtn } from "hooks/useGoogleLogin";
-import Select from "components/select/Select";
 import { useCookies } from "react-cookie";
-import useDatabase from "hooks/useDatabase";
+
+import axios from "axios";
+
 import Input from "components/input/Input";
-import useApi from "hooks/useApi";
+
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { GoogleLoginBtn } from "hooks/useGoogleLogin";
 // import useFormValidation from "../hooks/useFormValidation";
 
 /**
@@ -83,17 +84,13 @@ const Login = () => {
   /**
    * to indicate when the data from the backend has mounted
    */
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /**
-   * academies list - from the backend
+   * current selected academy - from the backend
    */
-  const [academies, setAcademies] = useState<any[]>();
-  /**
-   * the current selected academy
-   */
-  const [academy, setAcademy] = useState<string>("");
-
+  const [academyId, setAcademyId] = useState<string>("");
+  const [academyName, setAcademyName] = useState<string>("");
   /**
    * cookies hook
    * {@link https://www.npmjs.com/package/react-cookie}
@@ -104,72 +101,54 @@ const Login = () => {
    * react-router navigation
    */
   const navigate = useNavigate();
-  const { AcademyApi } = useApi();
+  const { AcademyAPI } = useAPIv2();
+
   /** Date for setting the cookie expire date  */
   var date = new Date();
   /** */
   date.setFullYear(date.getFullYear() + 1);
 
   useEffect(() => {
-    AcademyApi.RAcademies().then((res) => {
-      setAcademies(res);
-      // console.log(res);
-
-      setLoading(false);
-    });
-
-    /**
-     *
-     */
-    if (pid !== undefined && pid !== "undefined" && pid !== "0") {
-      if (cookies.academyId === undefined) {
-        /**
-         * if the cookie is not yet set, set the cookie with the pid
-         */
-        setCookie("academyId", pid, {
-          path: "/",
-          expires: date,
-        });
-
-        /**
-         * set the current academy
-         */
-        setAcademy(pid);
+    if (isLoading) {
+      if (!pid || pid === "undefined") {
+        alert("!");
+        navigate(`/login`, { replace: true });
       } else {
-        /**
-         * chech if the cookie matched any academies from the backend
-         */
-        if (
-          !loading &&
-          !(
-            (academies?.filter((val) => val.academyId === pid) ?? []).length > 0
-          )
-        ) {
-          navigate("/login");
-        } else {
-          /**
-           * else set the academy with the current cookie
-           */
-          setCookie("academyId", pid, {
-            path: "/",
-            expires: date,
-          });
-          setAcademy(pid);
+        let academyId = pid;
+
+        if (academyId === "0") {
+          if (cookies.academyId && cookies.academyId !== "0") {
+            academyId = `${cookies.academyId}`;
+          } else {
+            navigate(`/login`, { replace: true });
+          }
         }
+
+        AcademyAPI.RAcademy({ query: { academyId } })
+          .then(({ academy }) => {
+            setAcademyId(academy.academyId);
+            setAcademyName(academy.academyName);
+            setCookie("academyId", academy.academyId, {
+              path: "/",
+              expires: date,
+            });
+            setIsLoading(false);
+          })
+          .catch((err) => {
+            ALERT_ERROR(err);
+            removeCookie("academyId");
+            navigate(`/login`, { replace: true });
+          });
       }
-    } else if (pid === "0") {
-      navigate(`/${cookies.academyId}/login`);
-    } else {
-      navigate(`/login`, { replace: true });
     }
-  }, [loading]);
+  }, [isLoading]);
 
   const onLoginSubmit = () => {
     axios
       .post(
         `${process.env.REACT_APP_SERVER_URL}/api/users/login/local`,
         {
-          academyId: academy,
+          academyId,
           userId: username,
           password: password,
         },
@@ -192,16 +171,12 @@ const Login = () => {
         }
       });
   };
-  return !loading ? (
+
+  return !isLoading ? (
     <>
       <div className={style.section}>
         <div className={style.container}>
-          <div className={style.title}>
-            {
-              academies?.filter((val) => val.academyId === academy)[0]
-                ?.academyName
-            }
-          </div>
+          <div className={style.title}>{academyName}</div>
           <div
             style={{ display: "flex", gap: "12px", flexDirection: "column" }}
           >
@@ -265,7 +240,7 @@ const Login = () => {
             다른 아카데미 선택
           </Button>
           <div style={{ height: "4px" }}></div>
-          <GoogleLoginBtn academyId={academy} />
+          <GoogleLoginBtn academyId={academyId} />
         </div>
       </div>
     </>

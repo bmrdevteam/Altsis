@@ -1,57 +1,43 @@
-import Select from "components/select/Select";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import style from "style/pages/login.module.scss";
 import { useCookies } from "react-cookie";
-import useApi from "hooks/useApi";
 import { useNavigate } from "react-router-dom";
+
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+
+// components
 import Input from "components/input/Input";
 import Button from "components/button/Button";
 
 type Props = {};
 
 const ChooseAcademy = (props: Props) => {
-  const { AcademyApi } = useApi();
   const navigate = useNavigate();
+  const [, , removeCookie] = useCookies(["academyId"]);
+  const { AcademyAPI } = useAPIv2();
+
   const formData = useRef<{ academyId: string }>({ academyId: "" });
-  const [cookies, setCookie, removeCookie] = useCookies(["academyId"]);
-  const [academies, setAcademies] = useState<any>([]);
-  useEffect(() => {
-    AcademyApi.RAcademies().then((res) => {
-      setAcademies(res);
-    });
-    removeCookie("academyId");
-  }, []);
 
   /** Date for setting the cookie expire date  */
   var date = new Date();
-  /** */
   date.setFullYear(date.getFullYear() + 1);
 
-  let options: { text: string; value: string }[] = [{ text: "", value: "" }];
-  academies?.map((value: any, index: number) => {
-    options.push({ text: value.academyName, value: value.academyId });
-  });
+  useEffect(() => {
+    removeCookie("academyId");
+  }, []);
+
   return (
     <>
       <div className={style.section}>
         <div className={style.container}>
           <div className={style.title}> 아카데미</div>
           <div className={style.subtitle}>
-            {" "}
             입장하실 아카데미 아이디를 입력하세요.
           </div>
-          {/* <Select
-            appearence="flat"
-            onChange={(e: any) => {
-              navigate("/" + e + "/login", { replace: true });
-              // console.log(e);
-            }}
-            options={options}
-          /> */}
           <Input
             appearence="flat"
             type="text"
-            placeholder="academy ID"
+            placeholder="아카데미 ID"
             onChange={(e: any) => {
               formData.current.academyId = e.target.value;
             }}
@@ -60,9 +46,17 @@ const ChooseAcademy = (props: Props) => {
           <Button
             type="ghost"
             onClick={() => {
-              navigate("/" + formData.current.academyId + "/login", {
-                replace: true,
-              });
+              AcademyAPI.RAcademy({
+                query: { academyId: formData.current.academyId.trim() },
+              })
+                .then(({ academy }) => {
+                  navigate("/" + academy.academyId + "/login", {
+                    replace: true,
+                  });
+                })
+                .catch((err) => {
+                  ALERT_ERROR(err);
+                });
             }}
           >
             입장
