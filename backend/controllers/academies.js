@@ -19,6 +19,8 @@ import {
   FIELD_INVALID,
   FIELD_IN_USE,
   FIELD_REQUIRED,
+  PERMISSION_DENIED,
+  __NOT_FOUND,
 } from "../messages/index.js";
 import { generatePassword } from "../utils/password.js";
 
@@ -107,47 +109,55 @@ export const create = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademies|RAcademy API
+ * @description 아카데미 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies"} req.url
+ *
+ * @param {Object?} req.user - RAcademies API인 경우 owner만 가능; RAcademy API인 경우 비로그인 유저 또는 owner만 가능
+ * @param {"owner"} req.user.auth
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.academyId - RAcademy API인 경우 포함
+ *
+ * @param {Object} res
+ * @param {Object?} res.academies - RAcademies API인 경우
+ * @param {Object?} res.academy - RAcademy API인 경우
+ */
 export const find = async (req, res) => {
   try {
-    /* if one academy info is requested */
-    if (req.params.academyId) {
-      if (!req.isAuthenticated())
-        return res.status(401).send({ message: "You are not logged in" });
-
-      const academy = await Academy.findOne({
-        academyId: req.params.academyId,
-      });
-
+    /* if someone requested */
+    if (!req.isAuthenticated()) {
+      if (!("academyId" in req.query)) {
+        return res.status(400).send({ message: FIELD_REQUIRED("academyID") });
+      }
+      const academy = await Academy.findOne({ academyId: { $ne: "root" } });
       if (!academy) {
-        return res.status(404).send({ message: "Academy not found" });
+        return res.status(404).send({ message: __NOT_FOUND("academy") });
       }
-      if (req.user.auth == "owner") {
-        return res.status(200).send(academy);
-      }
-
-      if (req.user.academyId != academy.academyId)
-        return res
-          .status(401)
-          .send({ message: "You are not a member of this academy" });
-
-      if (!academy.isActivated) {
-        return res.status(401).send({ message: "This academy is blocked." });
-      }
-
-      return res.status(200).send(academy);
+      return res.status(200).send({ academy });
     }
 
-    /* if user is owner: return full info but exclude root */
-    if (req.isAuthenticated() && req.user.auth == "owner") {
+    /* if owner requested */
+    if (req.user.auth === "owner") {
+      if ("academyId" in req.query) {
+        const academy = await Academy.findOne({ academyId: { $ne: "root" } });
+        if (!academy) {
+          return res.status(404).send({ message: __NOT_FOUND("academy") });
+        }
+        return res.status(200).send({ academy });
+      }
       const academies = await Academy.find({ academyId: { $ne: "root" } });
       return res.status(200).send({ academies });
     }
-    /* else: return filtered info */
-    const academies = await Academy.find({ isActivated: true }).select([
-      "academyId",
-      "academyName",
-    ]);
-    return res.status(200).send({ academies });
+
+    return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
