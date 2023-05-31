@@ -3,6 +3,27 @@ import multer from "multer";
 import multerS3 from "multer-s3";
 import aws from "aws-sdk";
 
+console.log(
+  `process.env['s3_accessKeyId']: `,
+  process.env["s3_accessKeyId"]?.slice(0, 2)
+);
+console.log(
+  `process.env['s3_accessKeyId']: `,
+  process.env["s3_accessKeyId"]?.slice(0, 3)
+);
+console.log(
+  `process.env['s3_secretAccessKey']: `,
+  process.env["s3_secretAccessKey"]?.slice(0, 2)
+);
+console.log(
+  `process.env['s3_region']: `,
+  process.env["s3_region"]?.slice(0, 2)
+);
+console.log(
+  `process.env['s3_bucket']: `,
+  process.env["s3_bucket"]?.slice(0, 2)
+);
+
 const s3 = new aws.S3({
   accessKeyId: process.env["s3_accessKeyId"].trim(),
   secretAccessKey: process.env["s3_secretAccessKey"].trim(),
