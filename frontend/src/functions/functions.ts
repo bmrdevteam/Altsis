@@ -26,6 +26,11 @@ const pattern: any = {
   email:
     "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$", // email must contain an '@' symbol
   tel: "^[0-9]{3}-[0-9]{4}-[0-9]{4}$", // phone number must be in the format 'XXX-XXXX-XXXX',
+
+  academyId: "^[a-z|A-Z|0-9]{2,20}$",
+  academyName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$",
+  adminId: "^[a-z|A-Z|0-9]{4,20}$", // user ID must be 4-20 characters long and contain only letters and digits
+  adminName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$", // user name must be 2-20 characters long and contain only letters, digits, and certain Korean characters
 };
 
 /**

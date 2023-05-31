@@ -11,15 +11,15 @@ import React, {
 import _ from "lodash";
 import { useCookies } from "react-cookie";
 
-import { TUser, TSchool, TRegistration, TSeason } from "types/auth";
+import { TCurrentUser, TSchool, TRegistration, TSeason } from "types/auth";
 
 const AuthContext = createContext<any>(null);
 
 export function useAuth(): {
   loading: boolean;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  currentUser: TUser;
-  setCurrentUser: React.Dispatch<TUser>;
+  currentUser: TCurrentUser;
+  setCurrentUser: React.Dispatch<TCurrentUser>;
   currentSchool: TSchool;
   changeSchool: (to: string) => void;
   currentRegistration: TRegistration;
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     school: {},
     loading: true,
   });
-  const [currentUser, setCurrentUser] = useState<TUser>();
+  const [currentUser, setCurrentUser] = useState<TCurrentUser>();
   const [currentSchool, setCurrentSchool] = useState<TSchool>();
   const [currentRegistration, setCurrentRegistration] =
     useState<TRegistration>();
