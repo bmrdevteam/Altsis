@@ -198,23 +198,88 @@ export const inactivate = async (req, res) => {
   }
 };
 
-export const update = async (req, res) => {
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyEmail API
+ * @description 아카데미 이메일 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/email"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.email
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
+export const updateEmail = async (req, res) => {
   try {
+    /* validate */
     if (req.body.email && !validate("email", req.body.email))
-      return res.status(400).send({ message: "validation failed" });
-    if (req.body.tel && !validate("tel", req.body.tel))
-      return res.status(400).send({ message: "validation failed" });
+      return res.status(400).send({ message: FIELD_INVALID(email) });
 
     /* find document */
     const academy = await Academy.findOne({
       academyId: req.params.academyId,
     });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    academy["email"] = req.body.email || undefined;
-    academy["tel"] = req.body.tel || undefined;
+    academy["email"] = req.body.email;
     await academy.save();
-    return res.status(200).send(academy);
+
+    return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyTel API
+ * @description 아카데미 전화번호 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/tel"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.tel
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
+export const updateTel = async (req, res) => {
+  try {
+    /* validate */
+    if (req.body.tel && !validate("tel", req.body.tel))
+      return res.status(400).send({ message: FIELD_INVALID(tel) });
+
+    /* find document */
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    academy["tel"] = req.body.tel;
+    await academy.save();
+
+    return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

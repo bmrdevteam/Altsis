@@ -126,7 +126,7 @@ const Academy = (props: Props) => {
                 아카데미: (
                   <BasicInfo
                     academyData={academyData}
-                    setIsLoading={setIsLoading}
+                    setAcademyData={setAcademyData}
                   />
                 ),
                 학교: <School />,

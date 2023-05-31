@@ -57,20 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Update Academy
-   * @type PUT
-   * @auth owner
-   */
-  async function UAcademy(props: {
-    academyId: string;
-    data: { email: string; tel: string };
-  }) {
-    return await database.U({
-      location: `academies/${props.academyId}`,
-      data: props.data,
-    });
-  }
-  /**
    * Activate Academy
    * @type PUT
    * @auth owner
@@ -1275,7 +1261,6 @@ export default function useApi() {
 
   return {
     AcademyApi: {
-      UAcademy,
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyDocument,

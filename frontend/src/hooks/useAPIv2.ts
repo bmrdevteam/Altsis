@@ -113,11 +113,61 @@ export default function useApi() {
     };
   }
 
+  /**
+   * UAcademyEmail API
+   * 아카데미 이메일 변경
+   * @auth owner
+   * @returns academies
+   */
+
+  async function UAcademyEmail(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      email?: string;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/email`,
+      data: props.data,
+    });
+    return {
+      academy: academy as TAcademy,
+    };
+  }
+
+  /**
+   * UAcademyTel API
+   * 아카데미 전화번호 변경
+   * @auth owner
+   * @returns academies
+   */
+
+  async function UAcademyTel(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      tel?: string;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/tel`,
+      data: props.data,
+    });
+    return {
+      academy: academy as TAcademy,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
       RAcademy,
       RAcademies,
+      UAcademyEmail,
+      UAcademyTel,
     },
   };
 }
