@@ -48,9 +48,7 @@ client.on("ready", async () => {
     ]);
   }
 
-  const text = "✅ Redis is connected";
-  console.log(text);
-  logger.info(text);
+  console.log("✅ Redis is connected");
   isConnected = true;
 });
 
