@@ -201,6 +201,22 @@ export default function useApi() {
     };
   }
 
+  /**
+   * DAcademy API
+   * 아카데미 삭제
+   * @auth owner
+   */
+  async function DAcademy(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    await database.D({
+      location: `academies/${props.params.academyId}`,
+    });
+    return {};
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -210,6 +226,7 @@ export default function useApi() {
       UAcademyTel,
       UActivateAcademy,
       UInactivateAcademy,
+      DAcademy,
     },
   };
 }
