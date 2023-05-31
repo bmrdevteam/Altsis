@@ -16,7 +16,9 @@ router.get("/", academies.find);
 
 router.put("/:academyId/activate", isOwner, academies.activate);
 router.put("/:academyId/inactivate", isOwner, academies.inactivate);
-router.put("/:academyId", isOwner, academies.update);
+
+router.put("/:academyId/email", isOwner, academies.updateEmail);
+router.put("/:academyId/tel", isOwner, academies.updateTel);
 
 // router.delete("/:academyId", isOwner, academies.remove);
 

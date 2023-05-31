@@ -72,12 +72,6 @@ const Academies = (props: Props) => {
   const [resAcademy, setResAcademy] = useState<TAcademy | undefined>();
   const [resAdmin, setResAdmin] = useState<TAdmin | undefined>();
 
-  useEffect(() => {
-    console.log("Popup is loaded");
-
-    return () => {};
-  }, []);
-
   const handleCreateAcademy = async () => {
     /* validate */
 
