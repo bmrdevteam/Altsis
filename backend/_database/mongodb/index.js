@@ -27,7 +27,7 @@ if (process.env.NODE_ENV.trim() !== "test") {
 
 const addConnection = (academy) => {
   conn[academy.academyId] = mongoose.createConnection(getURL(academy.dbName));
-  console.log(`coonection to [${academy.academyId}(${academy.dbName})]is made`);
+  console.log(`Connection is made: [${academy.academyId}(${academy.dbName})]`);
 };
 
 const deleteConnection = async (academyId) => {
