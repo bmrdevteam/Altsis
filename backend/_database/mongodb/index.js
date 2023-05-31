@@ -39,7 +39,7 @@ const deleteConnection = async (academyId) => {
   await conn[academyId].db.dropDatabase();
   delete conn[academyId];
 
-  logger.info(`🍂 Connection is removed: [${academyId}]`);
+  console.log(`🍂 Connection is removed: [${academyId}]`);
 };
 
 export { conn, addConnection, deleteConnection, isConnected };
