@@ -12,7 +12,7 @@ import * as registrations from "../controllers/registrations.js";
 //=================================
 
 router.post("/", isOwner, academies.create);
-router.get("/:academyId?", academies.find);
+router.get("/", academies.find);
 
 router.put("/:academyId/activate", isOwner, academies.activate);
 router.put("/:academyId/inactivate", isOwner, academies.inactivate);
