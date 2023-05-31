@@ -14,12 +14,6 @@ const Nav = ({
   children?: JSX.Element[] | JSX.Element;
   open: boolean;
 }) => {
-  const { currentSchool } = useAuth();
-  useEffect(() => {
-    document.title = currentSchool?.schoolName;
-    return () => {};
-  }, []);
-
   return (
     <nav
       id="Sidebar"
