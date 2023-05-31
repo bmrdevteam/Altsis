@@ -1,3 +1,7 @@
+/**
+ * AcademyAPI namespace
+ * @namespace APIs.AcademyAPI
+ */
 import { logger } from "../log/logger.js";
 import { addConnection, deleteConnection } from "../_database/mongodb/index.js";
 import {
@@ -11,31 +15,82 @@ import {
 
 import _ from "lodash";
 import { validate } from "../utils/validate.js";
+import {
+  FIELD_INVALID,
+  FIELD_IN_USE,
+  FIELD_REQUIRED,
+  PERMISSION_DENIED,
+  __NOT_FOUND,
+} from "../messages/index.js";
+import { generatePassword } from "../utils/password.js";
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function CAcademy API
+ * @description 아카데미 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/academies"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.academyId - "^[a-z|A-Z|0-9]{2,20}$"
+ * @param {string} req.body.academyName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$"
+ * @param {string} req.body.adminId - "^[a-z|A-Z|0-9]{4,20}$"
+ * @param {string} req.body.adminName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$"
+ * @param {string?} req.body.email - "@"
+ * @param {string?} req.body.tel - "^[0-9]{3}-[0-9]{4}-[0-9]{4}$"
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - created academy
+ * @param {Object} res.admin - created admin user
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | ACADEMYID_IN_USE | if parameter academyID is in use  |
+ *
+ *
+ */
 export const create = async (req, res) => {
   try {
     /* validate */
-    if (!Academy.isValid(req.body))
-      return res.status(400).send({ message: "validation failed" });
+    for (let field of ["academyId", "academyName", "adminId", "adminName"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+      if (!validate(field, req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
+    for (let field of ["email", "tel"]) {
+      if (field in req.body && !validate(field, req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
 
     /* check duplication */
     const exAcademy = await Academy.findOne({ academyId: req.body.academyId });
-    if (exAcademy)
+    if (exAcademy) {
       return res.status(409).send({
-        message: `academyId '${exAcademy.academyId}'is already in use`,
+        message: FIELD_IN_USE("academyId"),
       });
+    }
 
     /* create & save academy document & check validation */
-    const academy = new Academy(req.body);
-    await academy.save();
+    const academy = await Academy.create(req.body);
 
     /* create db */
     addConnection(academy);
 
     /* create & save admin document  */
-    const _User = User(academy.academyId);
-    const password = _User.generatePassword();
-    const admin = new _User({
+    const password = generatePassword();
+    const admin = await User(academy.academyId).create({
       userId: academy.adminId,
       userName: academy.adminName,
       academyId: academy.academyId,
@@ -43,10 +98,10 @@ export const create = async (req, res) => {
       password,
       auth: "admin",
     });
-    await admin.save();
 
     return res.status(200).send({
-      adminPassword: password,
+      academy,
+      admin: { ...admin, password },
     });
   } catch (err) {
     logger.error(err.message);
@@ -54,102 +109,219 @@ export const create = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademies/RAcademy API
+ * @description 아카데미 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies"} req.url
+ *
+ * @param {Object?} req.user - RAcademies API인 경우 owner만 가능; RAcademy API인 경우 비로그인 유저 또는 owner만 가능
+ * @param {"owner"} req.user.auth
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.academyId - RAcademy API인 경우 포함
+ *
+ * @param {Object} res
+ * @param {Object?} res.academies - RAcademies API인 경우
+ * @param {Object?} res.academy - RAcademy API인 경우
+ */
 export const find = async (req, res) => {
   try {
-    /* if one academy info is requested */
-    if (req.params.academyId) {
-      if (!req.isAuthenticated())
-        return res.status(401).send({ message: "You are not logged in" });
-
-      const academy = await Academy.findOne({
-        academyId: req.params.academyId,
-      });
-
+    /* if someone requested */
+    if (!req.isAuthenticated()) {
+      if (!("academyId" in req.query)) {
+        return res.status(400).send({ message: FIELD_REQUIRED("academyID") });
+      }
+      const academy = await Academy.findOne({ academyId: req.query.academyId });
       if (!academy) {
-        return res.status(404).send({ message: "Academy not found" });
+        return res.status(404).send({ message: __NOT_FOUND("academy") });
       }
-      if (req.user.auth == "owner") {
-        return res.status(200).send(academy);
-      }
-
-      if (req.user.academyId != academy.academyId)
-        return res
-          .status(401)
-          .send({ message: "You are not a member of this academy" });
-
-      if (!academy.isActivated) {
-        return res.status(401).send({ message: "This academy is blocked." });
-      }
-
-      return res.status(200).send(academy);
+      return res.status(200).send({ academy });
     }
 
-    /* if user is owner: return full info but exclude root */
-    if (req.isAuthenticated() && req.user.auth == "owner") {
+    /* if owner requested */
+    if (req.user.auth === "owner") {
+      if ("academyId" in req.query) {
+        const academy = await Academy.findOne({
+          academyId: req.query.academyId,
+        });
+        if (!academy) {
+          return res.status(404).send({ message: __NOT_FOUND("academy") });
+        }
+        return res.status(200).send({ academy });
+      }
       const academies = await Academy.find({ academyId: { $ne: "root" } });
       return res.status(200).send({ academies });
     }
-    /* else: return filtered info */
-    const academies = await Academy.find({ isActivated: true }).select([
-      "academyId",
-      "academyName",
-    ]);
-    return res.status(200).send({ academies });
+
+    return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UActivateAcademy API
+ * @description 아카데미 활성화  API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/activate"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
 export const activate = async (req, res) => {
   try {
-    /* find document */
+    /* find academy */
     const academy = await Academy.findOne({ academyId: req.params.academyId });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
 
     /* activate academy */
     academy.isActivated = true;
     await academy.save();
-    return res.status(200).send();
+    return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UInactivateAcademy API
+ * @description 아카데미 비활성화  API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/inactivate"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
 export const inactivate = async (req, res) => {
   try {
-    /* find document */
+    /* find academy */
     const academy = await Academy.findOne({ academyId: req.params.academyId });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
 
     /* activate academy */
     academy.isActivated = false;
     await academy.save();
-    return res.status(200).send();
+    return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
 
-export const update = async (req, res) => {
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyEmail API
+ * @description 아카데미 이메일 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/email"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.email
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
+export const updateEmail = async (req, res) => {
   try {
+    /* validate */
     if (req.body.email && !validate("email", req.body.email))
-      return res.status(400).send({ message: "validation failed" });
-    if (req.body.tel && !validate("tel", req.body.tel))
-      return res.status(400).send({ message: "validation failed" });
+      return res.status(400).send({ message: FIELD_INVALID(email) });
 
     /* find document */
     const academy = await Academy.findOne({
       academyId: req.params.academyId,
     });
-    if (!academy) return res.status(404).send({ message: "academy not found" });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    academy["email"] = req.body.email || undefined;
-    academy["tel"] = req.body.tel || undefined;
+    academy["email"] = req.body.email;
     await academy.save();
-    return res.status(200).send(academy);
+
+    return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyTel API
+ * @description 아카데미 전화번호 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/tel"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.tel
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ *
+ */
+export const updateTel = async (req, res) => {
+  try {
+    /* validate */
+    if (req.body.tel && !validate("tel", req.body.tel))
+      return res.status(400).send({ message: FIELD_INVALID(tel) });
+
+    /* find document */
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    academy["tel"] = req.body.tel;
+    await academy.save();
+
+    return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
@@ -189,39 +361,36 @@ export const findDocuments = async (req, res) => {
   }
 };
 
-export const deleteDocument = async (req, res) => {
-  try {
-    if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
-      return res.status(400).send();
-
-    const document = await typeToModel(
-      req.params.docType,
-      req.user.academyId
-    ).findById(req.params.docId);
-    if (!document)
-      return res.status(404).send({ message: "document not found" });
-
-    await document.remove();
-
-    return res.status(200).send();
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
+/**
+ * @memberof APIs.AcademyAPI
+ * @function DAcademy API
+ * @description 아카데미 삭제 API; 아카데미 DB의 모든 데이터를 삭제한다
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/academies/:academyId"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} res
+ *
+ */
 export const remove = async (req, res) => {
   try {
-    /* find document */
-    const academy = await Academy.findById(req.params._id);
-    if (!academy) return res.status(404).send({ message: "academy not found" });
+    /* find academy */
+    const academy = await Academy.findOne({ academyId: req.params.academyId });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    /* delete document */
-    academy.remove();
+    /* remove */
+    await academy.remove();
 
     /* delete db */
-    await deleteConnection(academy.academyId);
-    return res.status(200).send();
+    await deleteConnection(req.params.academyId);
+    return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

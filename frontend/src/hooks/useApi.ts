@@ -52,103 +52,6 @@ export default function useApi() {
   }
 
   /**
-   * Academy Api
-   * ##########################################################################
-   */
-  /**
-   * Create Academy
-   * @auth owner
-   */
-  async function CAcademy(props: {
-    data: {
-      academyId: string;
-      academyName: string;
-      adminId: string;
-      adminName: string;
-      email?: string;
-      tel?: string;
-    };
-  }) {
-    return await database.C({
-      location: `academies`,
-      data: props.data,
-    });
-  }
-  /**
-   * Get Academies
-   * @type GET
-   * @auth guest
-   * @returns list of academies
-   */
-  async function RAcademies() {
-    const { academies: result } = await database.R({ location: "academies" });
-    return result;
-  }
-  /**
-   * Get Academy
-   * @type GET
-   * @auth owner
-   * @returns academy
-   */
-  async function RAcademy(props: { academyId?: string }) {
-    return await database.R({
-      location: `academies/${props.academyId}`,
-    });
-  }
-  /**
-   * Update Academy
-   * @type PUT
-   * @auth owner
-   */
-  async function UAcademy(props: {
-    academyId: string;
-    data: { email: string; tel: string };
-  }) {
-    return await database.U({
-      location: `academies/${props.academyId}`,
-      data: props.data,
-    });
-  }
-  /**
-   * Activate Academy
-   * @type PUT
-   * @auth owner
-   */
-  async function UActivateAcademy(props: { academyId: string }) {
-    return await database.U({
-      location: `academies/${props.academyId}/activate`,
-      data: {},
-    });
-  }
-  /**
-   * Inactivate Academy
-   * @type PUT
-   * @auth owner
-   */
-  async function UInactivateAcademy(props: { academyId: string }) {
-    return await database.U({
-      location: `academies/${props.academyId}/inactivate`,
-      data: {},
-    });
-  }
-
-  /**
-   * Create Academy document(users, schools, seasons, registrations)
-   * @type PUT
-   * @auth owner
-   */
-  async function CAcademyDocument(props: {
-    academyId: string;
-    type: "users" | "schools" | "seasons" | "registrations";
-    data: any;
-  }) {
-    return await database.C({
-      location: `academies/${props.academyId}/${props.type}`,
-      data: props.data,
-    });
-  }
-
-  /**
    * User Api
    * ##########################################################################
    */
@@ -1313,15 +1216,6 @@ export default function useApi() {
   }
 
   return {
-    AcademyApi: {
-      CAcademy,
-      RAcademies,
-      RAcademy,
-      UAcademy,
-      UActivateAcademy,
-      UInactivateAcademy,
-      CAcademyDocument,
-    },
     UserApi: {
       CLoginLocal,
       RMySelf,
