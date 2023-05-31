@@ -1,3 +1,7 @@
+/**
+ * AcademyAPI namespace
+ * @namespace APIs.AcademyAPI
+ */
 import { logger } from "../log/logger.js";
 import { addConnection, deleteConnection } from "../_database/mongodb/index.js";
 import {
@@ -11,31 +15,80 @@ import {
 
 import _ from "lodash";
 import { validate } from "../utils/validate.js";
+import {
+  FIELD_INVALID,
+  FIELD_IN_USE,
+  FIELD_REQUIRED,
+} from "../messages/index.js";
+import { generatePassword } from "../utils/password.js";
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function CAcademy API
+ * @description 아카데미 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/academies"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.academyId - "^[a-z|A-Z|0-9]{2,20}$"
+ * @param {string} req.body.academyName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$"
+ * @param {string} req.body.adminId - "^[a-z|A-Z|0-9]{4,20}$"
+ * @param {string} req.body.adminName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$"
+ * @param {string?} req.body.email - "@"
+ * @param {string?} req.body.tel - "^[0-9]{3}-[0-9]{4}-[0-9]{4}$"
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - created academy
+ * @param {Object} res.admin - created admin user
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | ACADEMYID_IN_USE | if parameter academyID is in use  |
+ *
+ *
+ */
 export const create = async (req, res) => {
   try {
     /* validate */
-    if (!Academy.isValid(req.body))
-      return res.status(400).send({ message: "validation failed" });
+    for (let field of ["academyId", "academyName", "adminId", "adminName"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+      if (!validate(field, req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
+    for (let field of ["email", "tel"]) {
+      if (field in req.body && !validate(field, req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
 
     /* check duplication */
     const exAcademy = await Academy.findOne({ academyId: req.body.academyId });
-    if (exAcademy)
+    if (exAcademy) {
       return res.status(409).send({
-        message: `academyId '${exAcademy.academyId}'is already in use`,
+        message: FIELD_IN_USE("academyId"),
       });
+    }
 
     /* create & save academy document & check validation */
-    const academy = new Academy(req.body);
-    await academy.save();
+    const academy = await Academy.create(req.body);
 
     /* create db */
     addConnection(academy);
 
     /* create & save admin document  */
-    const _User = User(academy.academyId);
-    const password = _User.generatePassword();
-    const admin = new _User({
+    const password = generatePassword();
+    const admin = await User(academy.academyId).create({
       userId: academy.adminId,
       userName: academy.adminName,
       academyId: academy.academyId,
@@ -43,10 +96,10 @@ export const create = async (req, res) => {
       password,
       auth: "admin",
     });
-    await admin.save();
 
     return res.status(200).send({
-      adminPassword: password,
+      academy,
+      admin: { ...admin, password },
     });
   } catch (err) {
     logger.error(err.message);

@@ -58,4 +58,7 @@ academySchema.pre("save", function (next) {
   next();
 });
 
-export const Academy = conn?.model("Academy", academySchema);
+export const Academy =
+  process.env.NODE_ENV?.trim() !== "test"
+    ? conn?.model("Academy", academySchema)
+    : {};
