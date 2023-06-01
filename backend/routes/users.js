@@ -44,6 +44,9 @@ router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
 router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
 router.put("/:_id/google", isAdmin, users.connectGoogleByAdmin);
 router.delete("/:_id/google", isAdmin, users.disconnectGoogleByAdmin);
+router.put("/:_id/auth", isAdmin, users.updateAuthByAdmin);
+router.put("/:_id/email", isAdmin, users.updateEmailByAdmin);
+router.put("/:_id/tel", isAdmin, users.updateTelByAdmin);
 
 router.put("/:_id", isLoggedIn, users.update);
 
