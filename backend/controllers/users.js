@@ -8,7 +8,14 @@ import _ from "lodash";
 import { User, Registration } from "../models/index.js";
 import { getPayload } from "../utils/payload.js";
 import { validate } from "../utils/validate.js";
-import { FIELD_REQUIRED } from "../messages/index.js";
+import {
+  CONNECTED_ALREADY,
+  DISCONNECTED_ALREADY,
+  FIELD_INVALID,
+  FIELD_IN_USE,
+  FIELD_REQUIRED,
+  __NOT_FOUND,
+} from "../messages/index.js";
 
 /**
  * @memberof APIs.UserAPI
@@ -19,7 +26,7 @@ import { FIELD_REQUIRED } from "../messages/index.js";
  * @param {Object} req
  *
  * @param {"POST"} req.method
- * @param {"/login/local"} req.url
+ * @param {"/users/login/local"} req.url
  *
  * @param {Object} req.body
  * @param {string} req.body.academyId
@@ -72,7 +79,7 @@ export const loginLocal = async (req, res) => {
  * @param {Object} req
  *
  * @param {"POST"} req.method
- * @param {"/login/google"} req.url
+ * @param {"/users/login/google"} req.url
  *
  * @param {Object} req.body
  * @param {string} req.body.academyId
@@ -124,7 +131,7 @@ export const loginGoogle = async (req, res) => {
  * @param {Object} req
  *
  * @param {"GET"} req.method
- * @param {"/logout"} req.url
+ * @param {"/users/logout"} req.url
  *
  * @param {Object} res - returns nothing
  *
@@ -139,6 +146,125 @@ export const logout = async (req, res) => {
     res.clearCookie("connect.sid");
     return res.status(200).send();
   });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function ConnectGoogleByAdmin API
+ * @description 구글 로그인 활성화 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/:_id/google"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.email
+ *
+ * @param {Object} res
+ * @param {Object} res.snsId
+ * @param {string} res.snsId.google
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 400    | EMAIL_INVALID | if email is invalid  |
+ * | 409    | EMAIL_CONNECTED_ALREADY | if email is already connected  |
+ * | 409    | EMAIL_IN_USE | if email is in use  |
+ *
+ */
+export const connectGoogleByAdmin = async (req, res) => {
+  try {
+    /* validate */
+    if (!("email" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("email") });
+    }
+    if (!validate("email", req.body.email)) {
+      return res.status(400).send({ message: FIELD_INVALID("email") });
+    }
+
+    const admin = req.user;
+
+    /* find user */
+    const user = await User(admin.academyId).findById(req.params._id);
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
+    }
+    if (user.snsId && "google" in user.snsId) {
+      return res.status(409).send({ message: CONNECTED_ALREADY("email") });
+    }
+
+    /* check if snsId.google is duplicated */
+    const exUser = await User(admin.academyId).findOne({
+      "snsId.google": req.body.email,
+    });
+    if (exUser) {
+      return res.status(409).send({
+        message: FIELD_IN_USE("email"),
+      });
+    }
+
+    /* update user.snsId.google */
+    user.snsId = {
+      ...(user.snsId ?? {}),
+      google: req.body.email,
+    };
+    await user.save();
+
+    return res.status(200).send({ snsId: user.snsId });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function disConnectGoogleByAdmin API
+ * @description 구글 로그인 비활성화 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/users/:_id/google"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} res
+ * @param {Object} res.snsId
+ * @param {string} res.snsId.google
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | EMAIL_DISCONNECTED_ALREADY | if email is already connected  |
+ *
+ */
+export const disconnectGoogleByAdmin = async (req, res) => {
+  const admin = req.user;
+
+  /* find user */
+  const user = await User(admin.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+  if (!user.snsId || !("google" in user.snsId)) {
+    return res.status(409).send({ message: DISCONNECTED_ALREADY("email") });
+  }
+
+  user.snsId = {
+    ...(user.snsId ?? {}),
+    google: undefined,
+  };
+  await user.save();
+
+  return res.status(200).send({ snsId: user.snsId });
 };
 
 // ____________ create ____________
@@ -428,44 +554,6 @@ export const updateSchoolsBulk = async (req, res) => {
 };
 
 // ____________ update(myself) ____________
-
-export const connectGoogle = async (req, res) => {
-  try {
-    const { credential } = req.body;
-
-    /* get payload */
-    const payload = await getPayload(credential);
-
-    /* check email duplication */
-    const exUser = await User(req.user.academyId)
-      .findOne({
-        "snsId.google": payload.email,
-      })
-      .select("+snsId");
-    if (exUser)
-      return res.status(409).send({
-        message: `email '${payload.email}'is already in use`,
-      });
-
-    /* update document */
-    req.user["snsId.google"] = payload.email;
-    req.user.markModified(field);
-    await req.user.save();
-
-    return res.status(200).send();
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-export const disconnectGoogle = async (req, res) => {
-  delete req.user.snsId.google;
-  req.user.markModified("snsId");
-  await req.user.save();
-
-  return res.status(200).send();
-};
 
 export const updatePasswordByAdmin = async (req, res) => {
   try {

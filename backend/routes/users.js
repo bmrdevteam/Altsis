@@ -13,7 +13,7 @@ import * as profile from "../controllers/profiles.js";
 //             User
 //=================================
 
-// ____________ common ____________
+// ____________ Authentication ____________
 router.post("/login/local", forceNotLoggedIn, users.loginLocal);
 router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
 router.get("/logout", isLoggedIn, users.logout);
@@ -33,9 +33,6 @@ router.post("/profile", isLoggedIn, profile.upload);
 // router.get("/profile", isLoggedIn, profile.read);
 router.delete("/profile", isLoggedIn, profile.remove);
 
-router.put("/google", isLoggedIn, users.connectGoogle);
-router.delete("/google", isLoggedIn, users.disconnectGoogle);
-
 router.put("/email", isLoggedIn, users.updateEmail);
 router.put("/tel", isLoggedIn, users.updateTel);
 router.put("/password", isLoggedIn, users.updatePassword);
@@ -45,6 +42,8 @@ router.put("/calendar", isLoggedIn, users.updateCalendar);
 
 router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
 router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
+router.put("/:_id/google", isAdmin, users.connectGoogleByAdmin);
+router.delete("/:_id/google", isAdmin, users.disconnectGoogleByAdmin);
 
 router.put("/:_id", isLoggedIn, users.update);
 
