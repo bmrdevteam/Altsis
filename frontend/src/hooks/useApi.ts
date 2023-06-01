@@ -55,19 +55,6 @@ export default function useApi() {
    * User Api
    * ##########################################################################
    */
-  /**
-   * local login
-   * @type POST
-   * @auth guest
-   */
-  async function CLoginLocal(data: {
-    academyId: string;
-    userId: string;
-    password: string;
-    persist?: boolean;
-  }) {
-    return await database.C({ location: "users/login/local", data: data });
-  }
 
   /**
    * Google login
@@ -1217,7 +1204,6 @@ export default function useApi() {
 
   return {
     UserApi: {
-      CLoginLocal,
       RMySelf,
       RLogout,
       CGoogleLocal,

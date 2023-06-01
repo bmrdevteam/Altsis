@@ -46,6 +46,7 @@ export default function useApi() {
    */
 
   /**
+   * ##########################################################################
    * Academy API
    * ##########################################################################
    */
@@ -217,6 +218,31 @@ export default function useApi() {
     return {};
   }
 
+  /**
+   * ##########################################################################
+   * User API
+   * ##########################################################################
+   */
+
+  /**
+   * LoginLocal API
+   * 로컬 로그인
+   * @auth guest
+   */
+  async function LoginLocal(props: {
+    data: {
+      academyId: string;
+      userId: string;
+      password: string;
+      persist?: boolean;
+    };
+  }) {
+    return await database.C({
+      location: "users/login/local",
+      data: props.data,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -227,6 +253,9 @@ export default function useApi() {
       UActivateAcademy,
       UInactivateAcademy,
       DAcademy,
+    },
+    UserAPI: {
+      LoginLocal,
     },
   };
 }
