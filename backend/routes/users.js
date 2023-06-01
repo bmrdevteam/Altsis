@@ -48,7 +48,8 @@ router.put("/:_id/auth", isAdmin, users.updateAuthByAdmin);
 router.put("/:_id/email", isAdmin, users.updateEmailByAdmin);
 router.put("/:_id/tel", isAdmin, users.updateTelByAdmin);
 
-router.put("/:_id", isLoggedIn, users.update);
+router.post("/:_id/schools", isAdmin, users.createUserSchoolByAdmin);
+router.delete("/:_id/schools", isAdmin, users.removeUserSchoolByAdmin);
 
 // ___________ delete _____________
 router.delete("/", isAdmin, users.remove);

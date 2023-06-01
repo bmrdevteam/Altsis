@@ -13,4 +13,6 @@ export const MESSAGE = new Map<string, string>([
   ["PASSWORD_INCORRECT", "비밀번호가 틀렸습니다."],
   ["EMAIL_CONNECTED_ALREADY", "이메일이 이미 연결되어있습니다."],
   ["EMAIL_IN_USE", "사용 중인 이메일입니다."],
+  ["SCHOOL_CONNECTED_ALREADY", "이미 등록된 학교입니다."],
+  ["SCHOOL_DISCONNECTED_ALREADY", "등록되지 않은 학교입니다."],
 ]);

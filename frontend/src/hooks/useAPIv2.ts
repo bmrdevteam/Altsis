@@ -392,6 +392,58 @@ export default function useApi() {
     });
   }
 
+  /**
+   * CUserSchoolByAdmin API
+   * 소속 학교 추가 API
+   * @auth admin
+   */
+  async function CUserSchoolByAdmin(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      sid: string;
+    };
+  }) {
+    const { schools } = await database.C({
+      location: `users/${props.params.uid}/schools`,
+      data: props.data,
+    });
+    return {
+      schools: schools as {
+        school: string;
+        schoolId: string;
+        schoolName: string;
+      }[],
+    };
+  }
+
+  /**
+   * DUserSchoolByAdmin API
+   * 소속 학교 삭제 API
+   * @auth admin
+   */
+  async function DUserSchoolByAdmin(props: {
+    params: {
+      uid: string;
+    };
+    query: {
+      sid: string;
+    };
+  }) {
+    const { schools } = await database.D({
+      location:
+        `users/${props.params.uid}/schools` + QUERY_BUILDER(props.query),
+    });
+    return {
+      schools: schools as {
+        school: string;
+        schoolId: string;
+        schoolName: string;
+      }[],
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -413,6 +465,8 @@ export default function useApi() {
       UEmailByAdmin,
       UTelByAdmin,
       UPasswordByAdmin,
+      CUserSchoolByAdmin,
+      DUserSchoolByAdmin,
     },
   };
 }
