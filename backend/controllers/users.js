@@ -14,6 +14,7 @@ import {
   FIELD_INVALID,
   FIELD_IN_USE,
   FIELD_REQUIRED,
+  PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
 
@@ -718,6 +719,141 @@ export const update = async (req, res) => {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UAuthByAdmin API
+ * @description 등급 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/users/:_id/auth"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {"manager"|"member"} req.body.auth
+ *
+ * @param {Object} res
+ * @param {"manager"|"member"} res.auth
+ *
+ * @throws {}
+ *
+ */
+export const updateAuthByAdmin = async (req, res) => {
+  if (!("auth" in req.body)) {
+    return res.status(400).send({ message: FIELD_REQUIRED("auth") });
+  }
+  if (req.body.auth !== "manager" && req.body.auth !== "member") {
+    return res.status(400).send({ message: FIELD_INVALID("auth") });
+  }
+
+  const admin = req.user;
+  if (admin._id.equals(req.params._id)) {
+    return res.status(403).send({ message: PERMISSION_DENIED });
+  }
+
+  const user = await User(admin.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.auth = req.body.auth;
+  await user.save();
+
+  return res.status(200).send({ auth: user.auth });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UEmailByAdmin API
+ * @description 이메일 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/users/:_id/email"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.email
+ *
+ * @param {Object} res
+ * @param {string} res.email
+ *
+ * @throws {}
+ *
+ */
+export const updateEmailByAdmin = async (req, res) => {
+  if (!("email" in req.body)) {
+    return res.status(400).send({ message: FIELD_REQUIRED("email") });
+  }
+  if (!validate("email", req.body.email)) {
+    return res.status(400).send({ message: FIELD_INVALID("email") });
+  }
+
+  const admin = req.user;
+
+  const user = await User(admin.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.email = req.body.email;
+  await user.save();
+
+  return res.status(200).send({ email: user.email });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UTelByAdmin API
+ * @description 전화번호 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/users/:_id/tel"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {tel} req.body.tel
+ *
+ * @param {Object} res
+ * @param {string} res.tel
+ *
+ * @throws {}
+ *
+ */
+export const updateTelByAdmin = async (req, res) => {
+  if (!("tel" in req.body)) {
+    return res.status(400).send({ message: FIELD_REQUIRED("tel") });
+  }
+  if (!validate("tel", req.body.tel)) {
+    return res.status(400).send({ message: FIELD_INVALID("tel") });
+  }
+
+  const admin = req.user;
+
+  const user = await User(admin.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.tel = req.body.tel;
+  await user.save();
+
+  return res.status(200).send({ tel: user.tel });
 };
 
 // ____________ delete ____________
