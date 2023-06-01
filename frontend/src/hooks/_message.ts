@@ -11,4 +11,6 @@ export const MESSAGE = new Map<string, string>([
   ["ACADEMY_INACTIVATED", "이 아카데미에 로그인 할 수 없습니다."],
   ["USER_NOT_FOUND", "사용자를 찾을 수 없습니다."],
   ["PASSWORD_INCORRECT", "비밀번호가 틀렸습니다."],
+  ["EMAIL_CONNECTED_ALREADY", "이메일이 이미 연결되어있습니다."],
+  ["EMAIL_IN_USE", "사용 중인 이메일입니다."],
 ]);
