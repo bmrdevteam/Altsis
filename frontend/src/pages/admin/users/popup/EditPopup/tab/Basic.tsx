@@ -1,5 +1,5 @@
 /**
- * @file User Page Tab Item - Basic
+ * @file User Edit Popup Tab Item - Basic
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -28,7 +28,6 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -36,158 +35,155 @@ import style from "style/pages/admin/schools.module.scss";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
-import Popup from "components/popup/Popup";
-import Table from "components/tableV2/Table";
-import _ from "lodash";
-import Textarea from "components/textarea/Textarea";
+
+import useAPIV2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { validate } from "functions/functions";
 
 type Props = {
   user: any;
   setUser: React.Dispatch<any>;
-  updateUserList: (userId: string, userData: any) => void;
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
-  const schoolSelectRef = useRef<any[]>([]);
+  const { UserAPI } = useAPIV2();
+  const [refresh, setRefresh] = useState<boolean>(false);
+  const emailRef = useRef<string>(props.user.email ?? "");
+  const telRef = useRef<string>(props.user.tel ?? "");
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  /* document fields */
-  const [userId, setUserId] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [schools, setSchools] = useState<any[]>();
-  const [schoolsText, setSchoolsText] = useState<string>("");
-  const [auth, setAuth] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [google, setGoogle] = useState<string>("");
-  const [tel, setTel] = useState<string>("");
-
-  /* Popup Activation */
-  const [isEditSchoolPopupActive, setIsEditSchoolPopupActive] =
-    useState<boolean>(false);
-
-  async function updateUser() {
-    const result = database.U({
-      location: `users/${props.user}`,
-      data: {
-        schools,
-        auth,
-        tel: tel && tel !== "" ? tel : undefined,
-        email: email && email !== "" ? email : undefined,
-        snsId: { google: google && google !== "" ? google : undefined },
-      },
-    });
-    return result;
-  }
-
-  async function getUser() {
-    const res = await database.R({
-      location: `users/${props.user}`,
-    });
-    return res;
-  }
-
-  useEffect(() => {
-    // console.log("auth is ", auth);
-  }, [auth]);
-
-  useEffect(() => {
-    if (isLoading) {
-      getUser()
-        .then((res: any) => {
-          setUserId(res.userId);
-          setUserName(res.userName);
-          setSchools(res.schools);
-          setAuth(res.auth);
-          setEmail(res.email);
-          setTel(res.tel);
-          setGoogle(res.snsId?.google);
-        })
-        .then(() => setIsLoading(false))
-        .catch((err: any) => alert(err.response.data.message));
+  const onUpdateAuthHandler = async (value: "member" | "manager") => {
+    try {
+      if (props.user.auth === value) return;
+      const { auth } = await UserAPI.UAuthByAdmin({
+        params: { uid: props.user._id },
+        data: {
+          auth: value,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.user.auth = auth;
+      props.setUser(props.user);
+      setRefresh(true);
+    } catch (err: any) {
+      ALERT_ERROR(err);
     }
-  }, [isLoading]);
+  };
+
+  const onUpdateEmailHandler = async () => {
+    try {
+      if (props.user.email === emailRef.current) return;
+      if (!validate("email", emailRef.current)) {
+        alert("이메일 형식에 맞지 않습니다.");
+        return;
+      }
+      const { email } = await UserAPI.UEmailByAdmin({
+        params: { uid: props.user._id },
+        data: {
+          email: emailRef.current,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.user.email = email;
+      props.setUser(props.user);
+      setRefresh(true);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const onUpdateTelHandler = async () => {
+    try {
+      if (props.user.tel === telRef.current) return;
+      if (!validate("tel", telRef.current)) {
+        alert("전화번호 형식에 맞지 않습니다.");
+        return;
+      }
+      const { tel } = await UserAPI.UTelByAdmin({
+        params: { uid: props.user._id },
+        data: {
+          tel: telRef.current,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.user.tel = tel;
+      props.setUser(props.user);
+      setRefresh(true);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    }
+  };
 
   useEffect(() => {
-    if (schools) {
-      setSchoolsText(
-        schools.length !== 0
-          ? _.join(
-              schools.map((schoolData: any) => schoolData.schoolName),
-              "\n"
-            )
-          : "*가입된 학교 없음"
-      );
+    if (refresh) {
+      setRefresh(false);
     }
-  }, [schools]);
+  }, [refresh]);
 
-  return (
+  return !refresh ? (
     <div className={style.popup}>
       <div style={{ marginTop: "24px" }}>
-        {!isLoading &&
-          (props.user.auth !== "admin" ? (
-            <Select
-              appearence="flat"
-              label="등급"
-              required
-              options={[
-                { text: "멤버", value: "member" },
-                { text: "매니저", value: "manager" },
-              ]}
-              defaultSelectedValue={props.user.auth}
-              onChange={setAuth}
-            />
-          ) : (
-            <Select
-              appearence="flat"
-              label="등급"
-              options={[{ text: "관리자", value: "admin" }]}
-            />
-          ))}
+        {props.user.auth !== "admin" ? (
+          <Select
+            appearence="flat"
+            label="등급"
+            required
+            options={[
+              { text: "멤버", value: "member" },
+              { text: "매니저", value: "manager" },
+            ]}
+            defaultSelectedValue={props.user.auth}
+            onChange={onUpdateAuthHandler}
+          />
+        ) : (
+          <Select
+            appearence="flat"
+            label="등급"
+            options={[{ text: "관리자", value: "admin" }]}
+          />
+        )}
       </div>
-      <div style={{ marginTop: "24px" }}>
+      <div
+        style={{
+          marginTop: "24px",
+          display: "flex",
+          alignItems: "end",
+          gap: "12px",
+        }}
+      >
         <Input
           appearence="flat"
           label="이메일"
-          defaultValue={email}
-          onChange={(e: any) => setEmail(e.target.value)}
+          defaultValue={props.user.email ?? ""}
+          onChange={(e: any) => {
+            emailRef.current = e.target.value;
+          }}
         />
+        <Button type="ghost" onClick={onUpdateEmailHandler}>
+          수정
+        </Button>
       </div>
-      <div style={{ marginTop: "24px" }}>
+      <div
+        style={{
+          marginTop: "24px",
+          display: "flex",
+          alignItems: "end",
+          gap: "12px",
+        }}
+      >
         <Input
-          label="tel"
-          defaultValue={tel}
           appearence="flat"
-          onChange={(e: any) => setTel(e.target.value)}
+          label="전화번호"
+          defaultValue={props.user.tel ?? ""}
+          onChange={(e: any) => {
+            telRef.current = e.target.value;
+          }}
         />
-      </div>
-
-      <div style={{ marginTop: "24px" }}>
-        <Button
-          type={"ghost"}
-          onClick={() => {
-            updateUser()
-              .then((res) => {
-                alert(SUCCESS_MESSAGE);
-                // props.updateUserList(userId, res);
-                // props.setPopupAcitve(false);
-              })
-              .catch((err) => {
-                // console.log(err);
-                alert(err.response.data.message);
-              });
-          }}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-        >
-          저장
+        <Button type="ghost" onClick={onUpdateTelHandler}>
+          수정
         </Button>
       </div>
     </div>
+  ) : (
+    <></>
   );
 }
 

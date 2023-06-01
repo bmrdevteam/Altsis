@@ -310,6 +310,69 @@ export default function useApi() {
     return { snsId: snsId as { google?: string } };
   }
 
+  /**
+   * UAuthByAdmin API
+   * 등급 변경 API
+   * @auth admin
+   */
+  async function UAuthByAdmin(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      auth: "manager" | "member";
+    };
+  }) {
+    const { auth } = await database.U({
+      location: `users/${props.params.uid}/auth`,
+      data: props.data,
+    });
+
+    return { auth: auth as "member" | "manager" };
+  }
+
+  /**
+   * UEmailByAdmin API
+   * 등급 변경 API
+   * @auth admin
+   */
+  async function UEmailByAdmin(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      email: string;
+    };
+  }) {
+    const { email } = await database.U({
+      location: `users/${props.params.uid}/email`,
+      data: props.data,
+    });
+
+    return { email: email as string };
+  }
+
+  /**
+   * UTelByAdmin API
+   * 전화번호 변경 API
+   * @auth admin
+   */
+  async function UTelByAdmin(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      tel: string;
+    };
+  }) {
+    const { tel } = await database.U({
+      location: `users/${props.params.uid}/tel`,
+      data: props.data,
+    });
+
+    return { tel: tel as string };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -327,6 +390,9 @@ export default function useApi() {
       Logout,
       ConnectGoogleByAdmin,
       DisconnectGoogleByAdmin,
+      UAuthByAdmin,
+      UEmailByAdmin,
+      UTelByAdmin,
     },
   };
 }
