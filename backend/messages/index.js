@@ -55,6 +55,9 @@ export const FIELD_INVALID = (field) => `${field.toUpperCase()}_INVALID`;
  * -----------------------------------------
  */
 
+export const ACADEMY_INACTIVATED = "ACADEMY_INACTIVATED";
+export const PASSWORD_INCORRECT = "PASSWORD_INCORRECT";
+
 /**
  * -----------------------------------------
  * 403 Forbidden
