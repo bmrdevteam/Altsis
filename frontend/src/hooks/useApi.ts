@@ -61,18 +61,6 @@ export default function useApi() {
    * @type POST
    * @auth member
    */
-  async function CGoogleLocal(data: {
-    academyId: string;
-    credential: string;
-    persist?: boolean;
-  }) {
-    return await database.C({ location: "users/login/google", data: data });
-  }
-  /**
-   * Google login
-   * @type POST
-   * @auth member
-   */
   async function DGoogleLocal() {
     return await database.D({ location: "users/google" });
   }
@@ -1206,7 +1194,6 @@ export default function useApi() {
     UserApi: {
       RMySelf,
       RLogout,
-      CGoogleLocal,
       CConnectGoogle,
       RUsers,
       RUser,
