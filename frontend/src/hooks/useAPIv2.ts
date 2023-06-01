@@ -116,7 +116,7 @@ export default function useApi() {
 
   /**
    * UAcademyEmail API
-   * 아카데미 이메일 변경
+   * 아카데미 이메일 변경 API
    * @auth owner
    * @returns academies
    */
@@ -140,7 +140,7 @@ export default function useApi() {
 
   /**
    * UAcademyTel API
-   * 아카데미 전화번호 변경
+   * 아카데미 전화번호 변경 API
    * @auth owner
    * @returns academies
    */
@@ -164,7 +164,7 @@ export default function useApi() {
 
   /**
    * UActivateAcademy API
-   * 아카데미 활성화
+   * 아카데미 활성화 API
    * @auth owner
    * @returns academy
    */
@@ -184,7 +184,7 @@ export default function useApi() {
 
   /**
    * UInactivateAcademy API
-   * 아카데미 비활성화
+   * 아카데미 비활성화 API
    * @auth owner
    * @returns academy
    */
@@ -204,7 +204,7 @@ export default function useApi() {
 
   /**
    * DAcademy API
-   * 아카데미 삭제
+   * 아카데미 삭제 API
    * @auth owner
    */
   async function DAcademy(props: {
@@ -226,7 +226,7 @@ export default function useApi() {
 
   /**
    * LoginLocal API
-   * 로컬 로그인
+   * 로컬 로그인 API
    * @auth guest
    */
   async function LoginLocal(props: {
@@ -245,7 +245,7 @@ export default function useApi() {
 
   /**
    * LoginGoogle API
-   * 구글 로그인
+   * 구글 로그인 API
    * @auth guest
    */
   async function LoginGoogle(props: {
@@ -258,6 +258,17 @@ export default function useApi() {
     return await database.C({
       location: "users/login/google",
       data: props.data,
+    });
+  }
+
+  /**
+   * Logout API
+   * 로그아웃 API
+   * @auth user
+   */
+  async function Logout() {
+    return await database.R({
+      location: "users/logout",
     });
   }
 
@@ -275,6 +286,7 @@ export default function useApi() {
     UserAPI: {
       LoginLocal,
       LoginGoogle,
+      Logout,
     },
   };
 }
