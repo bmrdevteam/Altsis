@@ -5,7 +5,7 @@
 import { logger } from "../log/logger.js";
 import passport from "passport";
 import _ from "lodash";
-import { User, Registration } from "../models/index.js";
+import { User, Registration, School } from "../models/index.js";
 import { getPayload } from "../utils/payload.js";
 import { validate } from "../utils/validate.js";
 import {
@@ -643,51 +643,6 @@ export const updateCalendar = async (req, res) => {
   }
 };
 
-export const update = async (req, res) => {
-  try {
-    let user = undefined;
-
-    if (req.user._id === req.params._id) {
-      user = req.user;
-    } else if (["admin", "manager", "owner"].includes(req.user.auth)) {
-      user = await User(req.user.academyId).findById(req.params._id);
-
-      if (req.body.schools) {
-        user.schools = req.body.schools;
-      }
-      if (req.body.auth) {
-        user.auth = req.body.auth;
-      }
-    } else {
-      return res.status(401).send({ message: "You are not authorized." });
-    }
-
-    user.email = req.body.email;
-    user.tel = req.body.tel;
-    if ("google" in req.body.snsId) {
-      const exUser = await User(req.user.academyId).findOne({
-        "snsId.google": req.body.snsId.google,
-        _id: { $ne: user._id },
-      });
-      if (exUser)
-        return res.status(409).send({
-          message: `snsId.google '${req.body.snsId.google}' is already in use`,
-        });
-      else
-        user.snsId = { ...(user.snsId || {}), google: req.body.snsId.google };
-    }
-
-    if (!User(req.user.academyId).isValid(user))
-      return res.status(400).send({ message: "validation failed" });
-
-    await user.save();
-    return res.status(200).send(user);
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 /**
  * @memberof APIs.UserAPI
  * @function UAuthByAdmin API
@@ -864,6 +819,138 @@ export const updatePasswordByAdmin = async (req, res) => {
     await user.save();
 
     return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function CUserSchoolByAdmin API
+ * @description 소속 학교 추가 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/users/:_id/schools"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {ObjectId} req.body.sid - school._id
+ *
+ * @param {Object} res
+ * @param {Object} res.body
+ * @param {Object[]} res.body.schools
+ * @param {ObjectId} res.body.schools[0].school
+ * @param {string} res.body.schools[0].schoolId
+ * @param {string} res.body.schools[0].schoolName
+ *
+ * @throws {}
+ * | 409    | SCHOOL_CONNECTED_ALREADY | if user already registered to school  |
+ *
+ */
+export const createUserSchoolByAdmin = async (req, res) => {
+  try {
+    if (!("sid" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("sid") });
+    }
+
+    const admin = req.user;
+
+    const newSchool = await School(admin.academyId).findById(req.body.sid);
+    if (!newSchool) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    const user = await User(admin.academyId).findById(req.params._id);
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
+    }
+    if (
+      _.find(user.schools, (_school) => _school.school.equals(newSchool._id))
+    ) {
+      return res.status(409).send({ message: CONNECTED_ALREADY("school") });
+    }
+
+    user.schools = [
+      ...user.schools,
+      {
+        school: newSchool._id,
+        schoolId: newSchool.schoolId,
+        schoolName: newSchool.schoolName,
+      },
+    ];
+    user.markModified("schools");
+
+    await user.save();
+
+    return res.status(200).send({ schools: user.schools });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function DUserSchoolByAdmin API
+ * @description 소속 학교 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/users/:_id/schools"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.sid
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} res
+ * @param {Object} res.body
+ * @param {Object[]} res.body.schools
+ * @param {ObjectId} res.body.schools[0].school
+ * @param {string} res.body.schools[0].schoolId
+ * @param {string} res.body.schools[0].schoolName
+ *
+ * @throws {}
+ * | 409    | SCHOOL_DISCONNECTED_ALREADY | if user already deregistered to school  |
+ *
+ */
+export const removeUserSchoolByAdmin = async (req, res) => {
+  try {
+    if (!("sid" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("sid") });
+    }
+
+    const admin = req.user;
+
+    const user = await User(admin.academyId).findById(req.params._id);
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
+    }
+
+    const idx = _.findIndex(
+      user.schools,
+      (_school) => _school.school.toString() === req.query.sid
+    );
+
+    if (idx === -1) {
+      return res.status(409).send({ message: DISCONNECTED_ALREADY("school") });
+    }
+
+    user.schools.splice(idx, 1);
+    user.markModified("schools");
+
+    await user.save();
+
+    return res.status(200).send({ schools: user.schools });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

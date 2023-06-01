@@ -1,5 +1,5 @@
 /**
- * @file User Page Tab Item - Basic
+ * @file User Edit Popup Tab Item - Schools
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -28,18 +28,17 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import useDatabase from "hooks/useDatabase";
+import useApi from "hooks/useApi";
 
 import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Button from "components/button/Button";
-import Input from "components/input/Input";
 import Select from "components/select/Select";
-import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-import _ from "lodash";
-import Textarea from "components/textarea/Textarea";
+
+import useAPIv2 from "hooks/useAPIv2";
+import { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   user: any;
@@ -47,62 +46,54 @@ type Props = {
   updateUserList: (userId: string, userData: any) => void;
 };
 
-function Basic(props: Props) {
-  const database = useDatabase();
-  const schoolSelectRef = useRef<any[]>([]);
+function Schools(props: Props) {
+  const { SchoolApi } = useApi();
+  const { UserAPI } = useAPIv2();
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [refresh, setRefresh] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [schools, setSchools] = useState<
+    { _id: string; schoolId: string; schoolName: string }[]
+  >([]);
+  const selectedSIDRef = useRef<string>("");
 
-  /* document fields */
-  const [userId, setUserId] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
-  const [schools, setSchools] = useState<any[]>();
-  const [schoolsText, setSchoolsText] = useState<string>("");
-  const [auth, setAuth] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [google, setGoogle] = useState<string>("");
-  const [tel, setTel] = useState<string>("");
+  const onClickAddHandler = async () => {
+    try {
+      if (selectedSIDRef.current === "") return;
+      const { schools } = await UserAPI.CUserSchoolByAdmin({
+        params: { uid: props.user._id },
+        data: { sid: selectedSIDRef.current },
+      });
 
-  /* Popup Activation */
-  const [isEditSchoolPopupActive, setIsEditSchoolPopupActive] =
-    useState<boolean>(false);
+      alert(SUCCESS_MESSAGE);
+      props.user.schools = schools;
+      props.setUser(props.user);
+      setRefresh(true);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    }
+  };
 
-  async function updateUser() {
-    const result = database.U({
-      location: `users/${props.user}`,
-      data: {
-        schools,
-        auth,
-        tel: tel && tel !== "" ? tel : undefined,
-        email: email && email !== "" ? email : undefined,
-        snsId: { google: google && google !== "" ? google : undefined },
-      },
-    });
-    return result;
-  }
-
-  async function getUser() {
-    const res = await database.R({
-      location: `users/${props.user}`,
-    });
-    return res;
-  }
-
-  useEffect(() => {
-    // console.log("auth is ", auth);
-  }, [auth]);
+  const onClickRemoveHandler = async (sid: string) => {
+    try {
+      const { schools } = await UserAPI.DUserSchoolByAdmin({
+        params: { uid: props.user._id },
+        query: { sid },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.user.schools = schools;
+      props.setUser(props.user);
+      setRefresh(true);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    }
+  };
 
   useEffect(() => {
     if (isLoading) {
-      getUser()
-        .then((res: any) => {
-          setUserId(res.userId);
-          setUserName(res.userName);
-          setSchools(res.schools);
-          setAuth(res.auth);
-          setEmail(res.email);
-          setTel(res.tel);
-          setGoogle(res.snsId?.google);
+      SchoolApi.RSchools()
+        .then((schools: any[]) => {
+          setSchools(schools);
         })
         .then(() => setIsLoading(false))
         .catch((err: any) => alert(err.response.data.message));
@@ -110,122 +101,89 @@ function Basic(props: Props) {
   }, [isLoading]);
 
   useEffect(() => {
-    if (schools) {
-      setSchoolsText(
-        schools.length !== 0
-          ? _.join(
-              schools.map((schoolData: any) => schoolData.schoolName),
-              "\n"
-            )
-          : "*가입된 학교 없음"
-      );
+    if (refresh) {
+      setRefresh(false);
     }
-  }, [schools]);
+  }, [refresh]);
 
   return (
-    <>
-      <div className={style.popup}>
-        <div style={{ marginTop: "24px" }} />
-        <div className={style.label} style={{ marginBottom: "0px" }}>
-          소속 학교
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: "12px",
+    <div className={style.popup}>
+      <div style={{ marginTop: "24px" }} />
+      <div style={{ display: "flex", alignItems: "end", gap: "12px" }}>
+        <Select
+          appearence="flat"
+          label=""
+          options={[
+            { text: "", value: "" },
+            ...schools.map((_school) => {
+              return {
+                text: `${_school.schoolName}(${_school.schoolId})`,
+                value: _school._id,
+              };
+            }),
+          ]}
+          onChange={(e: string) => {
+            selectedSIDRef.current = e;
           }}
-        >
-          <Textarea
-            defaultValue={schoolsText}
-            disabled
-            rows={schools?.length || 1}
-            style={{ resize: "none" }}
-          />
-          <Button
-            type={"ghost"}
-            onClick={() => {
-              // console.log(schools);
-              schoolSelectRef.current = schools ? schools : [];
-              setIsEditSchoolPopupActive(true);
-            }}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-            }}
-          >
-            수정
-          </Button>
-        </div>
+        />
+        <Button type="ghost" onClick={onClickAddHandler}>
+          등록
+        </Button>
       </div>
-      {isEditSchoolPopupActive && (
-        <Popup
-          closeBtn
-          setState={setIsEditSchoolPopupActive}
-          title={`소속 학교 추가 및 삭제`}
-        >
-          <div className={style.popup}>
-            <div className={style.row}>
-              <Table
-                type="object-array"
-                data={
-                  props.user.schoolList?.map((school: any) => {
-                    // console.log(schoolSelectRef.current);
-                    if (_.find(schoolSelectRef.current, { school: school._id }))
-                      school.tableRowChecked = true;
-                    else school.tableRowChecked = false;
-                    return school;
-                  }) || []
-                }
-                onChange={(value: any[]) => {
-                  schoolSelectRef.current = _.filter(value, {
-                    tableRowChecked: true,
-                  });
-                }}
-                header={[
-                  {
-                    text: "선택",
-                    key: "",
-                    type: "checkbox",
-                    width: "48px",
-                  },
-                  { text: "학교 ID", key: "schoolId", type: "text" },
-                  { text: "학교 이름", key: "schoolName", type: "text" },
-                ]}
-              />
-            </div>
-
-            <div style={{ marginTop: "24px" }}>
-              <Button
-                type={"ghost"}
-                disableOnclick
-                onClick={() => {
-                  setSchools([
-                    ...schoolSelectRef.current.map((schoolData: any) => {
-                      return {
-                        school: schoolData._id,
-                        schoolId: schoolData.schoolId,
-                        schoolName: schoolData.schoolName,
-                      };
-                    }),
-                  ]);
-                  setIsEditSchoolPopupActive(false);
-                }}
-                style={{
-                  borderRadius: "4px",
-                  height: "32px",
-                  boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                }}
-              >
-                수정
-              </Button>
-            </div>
-          </div>
-        </Popup>
+      {!refresh ? (
+        <div style={{ marginTop: "12px" }}>
+          <Table
+            type="object-array"
+            data={props.user.schools}
+            header={[
+              {
+                text: "No",
+                key: "tableRowIndex",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "학교 이름",
+                key: "schoolName",
+                fontSize: "12px",
+                fontWeight: "600",
+                textAlign: "center",
+                width: "200px",
+                type: "text",
+              },
+              {
+                text: "학교 ID",
+                key: "schoolId",
+                fontSize: "12px",
+                fontWeight: "600",
+                textAlign: "center",
+                width: "200px",
+                type: "text",
+              },
+              {
+                text: "삭제",
+                key: "delete",
+                type: "button",
+                onClick: (e: any) => {
+                  onClickRemoveHandler(e.school);
+                },
+                width: "80px",
+                textAlign: "center",
+                btnStyle: {
+                  border: true,
+                  color: "red",
+                  padding: "4px",
+                  round: true,
+                },
+              },
+            ]}
+          />
+        </div>
+      ) : (
+        <></>
       )}
-    </>
+    </div>
   );
 }
 
-export default Basic;
+export default Schools;
