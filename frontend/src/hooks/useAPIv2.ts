@@ -373,6 +373,25 @@ export default function useApi() {
     return { tel: tel as string };
   }
 
+  /**
+   * UPasswordByAdmin API
+   * 비밀번호 변경 API
+   * @auth admin
+   */
+  async function UPasswordByAdmin(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      password: string;
+    };
+  }) {
+    return await database.U({
+      location: `users/${props.params.uid}/password`,
+      data: props.data,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -393,6 +412,7 @@ export default function useApi() {
       UAuthByAdmin,
       UEmailByAdmin,
       UTelByAdmin,
+      UPasswordByAdmin,
     },
   };
 }

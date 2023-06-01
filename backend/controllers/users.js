@@ -556,39 +556,6 @@ export const updateSchoolsBulk = async (req, res) => {
 
 // ____________ update(myself) ____________
 
-export const updatePasswordByAdmin = async (req, res) => {
-  try {
-    if (req.user._id != req.params._id) {
-      // !== 하면 안 됨
-      return res.status(401).send({
-        message: "You are not authorized.",
-      });
-    }
-    /* validate */
-    if (!validate("password", req.body.new))
-      return res.status(400).send({ message: "validation failed" });
-
-    const user = req.user;
-    req.body.academyId = req.user.academyId;
-    req.body.userId = req.user.userId;
-    req.body.password = req.body.old;
-
-    passport.authenticate("local2", async (authError, user, academyId) => {
-      try {
-        if (authError) throw authError;
-        user.password = req.body.new;
-        await user.save();
-        return res.status(200).send();
-      } catch (err) {
-        return res.status(err.status || 500).send({ message: err.message });
-      }
-    })(req, res);
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 // 기존 비밀번호가 필요한 버전
 // export const updatePassword = async (req, res) => {
 //   try {
@@ -854,6 +821,53 @@ export const updateTelByAdmin = async (req, res) => {
   await user.save();
 
   return res.status(200).send({ tel: user.tel });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UPasswordByAdmin API
+ * @description 비밀번호 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/:_id/password"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {password} req.body.password
+ *
+ * @param {Object} res - returns nothing
+ *
+ * @throws {}
+ */
+export const updatePasswordByAdmin = async (req, res) => {
+  try {
+    if (!("password" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("password") });
+    }
+    if (!validate("password", req.body.password)) {
+      return res.status(400).send({ message: FIELD_INVALID("password") });
+    }
+
+    const admin = req.user;
+
+    const user = await User(admin.academyId).findById(req.params._id);
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
+    }
+
+    user.password = req.body.password;
+    await user.save();
+
+    return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
 };
 
 // ____________ delete ____________

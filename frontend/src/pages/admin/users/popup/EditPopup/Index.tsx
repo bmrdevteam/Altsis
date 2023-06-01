@@ -37,7 +37,7 @@ import Tab from "components/tab/Tab";
 
 import Basic from "./tab/Basic";
 import Schools from "./tab/Schools";
-import SnsId from "./tab/SnsId";
+import Auth from "./tab/Auth";
 
 type Props = {
   user: any;
@@ -139,8 +139,8 @@ function Index(props: Props) {
               updateUserList={props.updateUserList}
             />
           ),
-          "소셜 로그인": (
-            <SnsId
+          로그인: (
+            <Auth
               user={props.user}
               setUser={props.setUser}
               updateUserList={props.updateUserList}

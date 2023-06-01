@@ -38,10 +38,10 @@ router.put("/tel", isLoggedIn, users.updateTel);
 router.put("/password", isLoggedIn, users.updatePassword);
 router.put("/calendar", isLoggedIn, users.updateCalendar);
 
-// ___________ update _____________
+// ___________ Update by admin _____________
 
 router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
-router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
+router.put("/:_id/password", isAdmin, users.updatePasswordByAdmin);
 router.put("/:_id/google", isAdmin, users.connectGoogleByAdmin);
 router.delete("/:_id/google", isAdmin, users.disconnectGoogleByAdmin);
 router.put("/:_id/auth", isAdmin, users.updateAuthByAdmin);
