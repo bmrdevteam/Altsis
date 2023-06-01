@@ -1,6 +1,5 @@
 import passport from "passport";
 import { Strategy as CustomStrategy } from "passport-custom";
-import { Strategy as GogoleStrategy } from "passport-google-oauth20";
 import { Academy, User } from "../models/index.js";
 import { getPayload } from "../utils/payload.js";
 
@@ -11,17 +10,18 @@ const google2 = () => {
       try {
         const { academyId, credential } = req.body;
 
-        const [payload, academy] = await Promise.all([
-          getPayload(credential),
-          Academy.findOne({
-            academyId,
-          }),
-        ]);
+        const payload = await getPayload(credential);
 
+        const academy = await Academy.findOne({
+          academyId,
+        });
         if (!academy) {
-          const err = new Error("Academy Not found");
-          err.status = 404;
-          throw err;
+          const err = new Error(__NOT_FOUND("academy"));
+          return done(err, null, null);
+        }
+        if (!academy.isActivated) {
+          const err = new Error(ACADEMY_INACTIVATED);
+          return done(err, null, null);
         }
 
         const user = await User(academyId)
@@ -29,11 +29,9 @@ const google2 = () => {
             "snsId.google": payload.email,
           })
           .select("+snsId");
-
         if (!user) {
-          const err = new Error("User not found");
-          err.status = 409;
-          throw err;
+          const err = new Error(__NOT_FOUND("user"));
+          return done(err, null, null);
         }
 
         return done(null, user, academyId);
@@ -42,15 +40,6 @@ const google2 = () => {
       }
     })
   );
-};
-
-const getEmail = (profile) => {
-  if (profile.emails) {
-    for (let _email of profile.emails) {
-      if (_email.verified) return _email.value;
-    }
-  }
-  return undefined;
 };
 
 export { google2 };

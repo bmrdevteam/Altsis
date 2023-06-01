@@ -60,7 +60,7 @@ export const loginLocal = async (req, res) => {
       return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
         /* set maxAge as 1 year if auto login is requested */
-        if (req.body.persist) {
+        if (req.body.persist === true) {
           req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
         }
         return res.status(200).send();
@@ -71,21 +71,54 @@ export const loginLocal = async (req, res) => {
   })(req, res);
 };
 
+/**
+ * @memberof APIs.UserAPI
+ * @function LocalGoogle API
+ * @description 구글 로그인 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/login/local"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.academyId
+ * @param {string} req.body.credential
+ * @param {boolean?} req.body.persist - if true, auto login is set up
+ *
+ * @param {Object} res - returns nothing
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 401    | ACADEMY_NOT_FOUND | if academy is not found  |
+ * | 401    | ACADEMY_INACTIVATED | if academy is inactivated  |
+ * | 401    | USER_NOT_FOUND | if user is not found  |
+ * | 401    | PASSWORD_INCORRECT | if password is incorrect  |
+ *
+ */
 export const loginGoogle = async (req, res) => {
-  passport.authenticate("google2", (authErr, user, academyId) => {
+  for (let field of ["academyId", "crential"]) {
+    if (!(field in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED(field) });
+    }
+  }
+  passport.authenticate("google2", (authError, user, academyId) => {
     try {
-      if (authErr) throw authErr;
+      if (authError) {
+        return res.status(401).send({ message: authError.message });
+      }
       return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
-
         /* set maxAge as 1 year if auto login is requested */
-        if (req.body.persist === "true") {
+        if (req.body.persist === true) {
           req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
         }
-        return res.status(200).send(user);
+        return res.status(200).send();
       });
     } catch (err) {
-      return res.status(err.status || 500).send({ message: err.message });
+      return res.status(500).send({ message: err.message });
     }
   })(req, res);
 };
