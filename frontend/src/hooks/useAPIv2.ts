@@ -272,6 +272,44 @@ export default function useApi() {
     });
   }
 
+  /**
+   * ConnectGoogleByAdmin API
+   * 구글 로그인 활성화 API
+   * @auth admin
+   */
+  async function ConnectGoogleByAdmin(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      email: string;
+    };
+  }) {
+    const { snsId } = await database.U({
+      location: `users/${props.params.uid}/google`,
+      data: props.data,
+    });
+
+    return { snsId: snsId as { google?: string } };
+  }
+
+  /**
+   * DisconnectGoogleByAdmin API
+   * 구글 로그인 비활성화 API
+   * @auth admin
+   */
+  async function DisconnectGoogleByAdmin(props: {
+    params: {
+      uid: string;
+    };
+  }) {
+    const { snsId } = await database.D({
+      location: `users/${props.params.uid}/google`,
+    });
+
+    return { snsId: snsId as { google?: string } };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -287,6 +325,8 @@ export default function useApi() {
       LoginLocal,
       LoginGoogle,
       Logout,
+      ConnectGoogleByAdmin,
+      DisconnectGoogleByAdmin,
     },
   };
 }
