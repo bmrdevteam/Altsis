@@ -1,3 +1,7 @@
+/**
+ * UserAPI namespace
+ * @namespace APIs.UserAPI
+ */
 import { logger } from "../log/logger.js";
 import passport from "passport";
 import _ from "lodash";
@@ -12,23 +16,57 @@ import { client } from "../_database/redis/index.js";
 import { getPayload } from "../utils/payload.js";
 import { getIoNotification } from "../utils/webSocket.js";
 import { validate } from "../utils/validate.js";
+import { FIELD_REQUIRED } from "../messages/index.js";
 
-// ____________ common ____________
-
+/**
+ * @memberof APIs.UserAPI
+ * @function LocalLogin API
+ * @description 로컬 로그인 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/login/local"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.academyId
+ * @param {string} req.body.userId
+ * @param {string} req.body.password
+ * @param {boolean?} req.body.persist - if true, auto login is set up
+ *
+ * @param {Object} res - returns nothing
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 401    | ACADEMY_NOT_FOUND | if academy is not found  |
+ * | 401    | ACADEMY_INACTIVATED | if academy is inactivated  |
+ * | 401    | USER_NOT_FOUND | if user is not found  |
+ * | 401    | PASSWORD_INCORRECT | if password is incorrect  |
+ *
+ */
 export const loginLocal = async (req, res) => {
+  for (let field of ["academyId", "userId", "password"]) {
+    if (!(field in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED(field) });
+    }
+  }
   passport.authenticate("local2", (authError, user, academyId) => {
     try {
-      if (authError) throw authError;
+      if (authError) {
+        return res.status(401).send({ message: authError.message });
+      }
       return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
         /* set maxAge as 1 year if auto login is requested */
-        if (req.body.persist === "true") {
+        if (req.body.persist) {
           req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
         }
-        return res.status(200).send(user);
+        return res.status(200).send();
       });
     } catch (err) {
-      return res.status(err.status || 500).send({ message: err.message });
+      return res.status(500).send({ message: err.message });
     }
   })(req, res);
 };
