@@ -243,6 +243,24 @@ export default function useApi() {
     });
   }
 
+  /**
+   * LoginGoogle API
+   * 구글 로그인
+   * @auth guest
+   */
+  async function LoginGoogle(props: {
+    data: {
+      academyId: string;
+      credential: string;
+      persist?: boolean;
+    };
+  }) {
+    return await database.C({
+      location: "users/login/google",
+      data: props.data,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -256,6 +274,7 @@ export default function useApi() {
     },
     UserAPI: {
       LoginLocal,
+      LoginGoogle,
     },
   };
 }
