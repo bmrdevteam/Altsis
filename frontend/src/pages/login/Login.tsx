@@ -27,7 +27,7 @@
  *
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import style from "style/pages/login.module.scss";
 import Button from "components/button/Button";
 import { useNavigate, useParams } from "react-router-dom";
@@ -65,15 +65,15 @@ const Login = () => {
     errorMsg: "",
   });
   /**
-   * usernamme and password input
+   * userId and password input
    */
-  const [username, setUsername] = useState<string>();
-  const [password, setPassword] = useState<string>();
+  const userIdRef = useRef<string>("");
+  const passwordRef = useRef<string>("");
 
   /**
    * username and password input valid state
    */
-  const [usernameInputValid, setUsernameInputValid] = useState<boolean>(true);
+  const [userIdInputValid, setUserIdInputValid] = useState<boolean>(true);
   const [passwordInputValid, setPasswordInputValid] = useState<boolean>(true);
 
   /**
@@ -101,7 +101,7 @@ const Login = () => {
    * react-router navigation
    */
   const navigate = useNavigate();
-  const { AcademyAPI } = useAPIv2();
+  const { AcademyAPI, UserAPI } = useAPIv2();
 
   /** Date for setting the cookie expire date  */
   var date = new Date();
@@ -140,33 +140,36 @@ const Login = () => {
     }
   }, [isLoading]);
 
-  const onLoginSubmit = () => {
-    axios
-      .post(
-        `${process.env.REACT_APP_SERVER_URL}/api/users/login/local`,
-        {
+  const onLoginSubmit = async () => {
+    try {
+      if (userIdRef.current.trim() === "") {
+        alert("아이디를 입력해주세요");
+        return;
+      }
+      if (passwordRef.current.trim() === "") {
+        alert("비밀번호를 입력해주세요");
+        return;
+      }
+      await UserAPI.LoginLocal({
+        data: {
           academyId,
-          userId: username,
-          password: password,
+          userId: userIdRef.current,
+          password: passwordRef.current,
         },
-        { withCredentials: true }
-      )
-      .then(function (response) {
-        /** if the result is a success */
-
-        response.status === 200 && window.location.replace("/");
-      })
-      .catch((error) => {
-        /** if the result is a success */
-        const errorMsg = error.response.data.err;
-        // // console.log(errorMsg);
-        setPasswordInputValid(false);
-        setUsernameInputValid(false);
-
-        for (let i = 0; i < errorMsg?.length; i++) {
-          setErrorMessage(errorMsg[i]?.msg);
-        }
       });
+      window.location.replace("/");
+    } catch (err: any) {
+      ALERT_ERROR(err);
+      switch (err.response?.data?.message) {
+        case "USER_NOT_FOUND":
+          setUserIdInputValid(false);
+          break;
+        case "PASSWORD_INCORRECT":
+          setUserIdInputValid(true);
+          setPasswordInputValid(false);
+          break;
+      }
+    }
   };
 
   return !isLoading ? (
@@ -180,28 +183,26 @@ const Login = () => {
             <p className={style.error}>{errorMessage}</p>
 
             <Input
-              invalid={!usernameInputValid}
+              invalid={!userIdInputValid}
               label="아이디"
               placeholder="아이디 입력"
               onChange={(e: any) => {
-                setUsername(e.target.value);
+                userIdRef.current = e.target.value;
               }}
               required
               style={{ borderRadius: "8px" }}
             />
             <Input
               invalid={!passwordInputValid}
-              label="패스워드"
-              placeholder="패스워드 입력"
+              label="비밀번호"
+              placeholder="비밀번호 입력"
               onChange={(e: any) => {
-                setPassword(e.target.value);
+                passwordRef.current = e.target.value;
               }}
               onKeyDown={(e: any) => {
                 if (
-                  username !== undefined &&
-                  password !== undefined &&
-                  username !== "" &&
-                  password !== "" &&
+                  userIdRef.current !== "" &&
+                  passwordRef.current !== "" &&
                   e.key === "Enter"
                 ) {
                   onLoginSubmit();
@@ -212,16 +213,7 @@ const Login = () => {
               style={{ borderRadius: "8px" }}
             />
 
-            <Button
-              disabled={
-                username === undefined ||
-                password === undefined ||
-                username === "" ||
-                password === ""
-              }
-              onClick={onLoginSubmit}
-              style={{ borderRadius: "8px" }}
-            >
+            <Button onClick={onLoginSubmit} style={{ borderRadius: "8px" }}>
               로그인
             </Button>
           </div>
