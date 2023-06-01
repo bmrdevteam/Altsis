@@ -5,16 +5,8 @@
 import { logger } from "../log/logger.js";
 import passport from "passport";
 import _ from "lodash";
-import {
-  User,
-  Academy,
-  Registration,
-  School,
-  Notification,
-} from "../models/index.js";
-import { client } from "../_database/redis/index.js";
+import { User, Registration } from "../models/index.js";
 import { getPayload } from "../utils/payload.js";
-import { getIoNotification } from "../utils/webSocket.js";
 import { validate } from "../utils/validate.js";
 import { FIELD_REQUIRED } from "../messages/index.js";
 
@@ -80,7 +72,7 @@ export const loginLocal = async (req, res) => {
  * @param {Object} req
  *
  * @param {"POST"} req.method
- * @param {"/login/local"} req.url
+ * @param {"/login/google"} req.url
  *
  * @param {Object} req.body
  * @param {string} req.body.academyId
@@ -123,12 +115,25 @@ export const loginGoogle = async (req, res) => {
   })(req, res);
 };
 
+/**
+ * @memberof APIs.UserAPI
+ * @function Logout API
+ * @description 로그아웃 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/logout"} req.url
+ *
+ * @param {Object} res - returns nothing
+ *
+ * @throws {}
+ *
+ */
 export const logout = async (req, res) => {
-  const sid = await client.hGet(req.user.academyId, req.user.userId);
-  await client.hDel(req.user.academyId, req.user.userId);
-
   req.logout((err) => {
-    if (err) return res.status(500).send({ err });
+    if (err) return res.status(500).send({ message: err.message });
 
     req.session.destroy();
     res.clearCookie("connect.sid");

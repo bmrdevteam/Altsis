@@ -92,16 +92,6 @@ export default function useApi() {
   }
 
   /**
-   * Logout user
-   * @type GET
-   * @auth member
-   * @returns Logout user
-   */
-  async function RLogout() {
-    return await database.R({ location: "users/logout" });
-  }
-
-  /**
    * Get user
    * @type GET
    * @auth member
@@ -1193,7 +1183,6 @@ export default function useApi() {
   return {
     UserApi: {
       RMySelf,
-      RLogout,
       CConnectGoogle,
       RUsers,
       RUser,
