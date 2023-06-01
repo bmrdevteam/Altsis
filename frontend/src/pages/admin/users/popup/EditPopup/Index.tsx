@@ -131,13 +131,7 @@ function Index(props: Props) {
       <Tab
         dontUsePaths
         items={{
-          "기본 정보": (
-            <Basic
-              user={props.user}
-              setUser={props.setUser}
-              updateUserList={props.updateUserList}
-            />
-          ),
+          "기본 정보": <Basic user={props.user} setUser={props.setUser} />,
           "소속 학교": (
             <Schools
               user={props.user}
