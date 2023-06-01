@@ -42,17 +42,16 @@ import _ from "lodash";
 import Textarea from "components/textarea/Textarea";
 
 type Props = {
-  user: string;
-  setPopupAcitve: any;
-  schoolList: any;
-  updateUserList: any;
+  user: any;
+  setUser: React.Dispatch<any>;
+  updateUserList: (userId: string, userData: any) => void;
 };
 
 function Basic(props: Props) {
   const database = useDatabase();
   const schoolSelectRef = useRef<any[]>([]);
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /* document fields */
   const [userId, setUserId] = useState<string>("");
@@ -125,120 +124,41 @@ function Basic(props: Props) {
 
   return (
     <>
-      !isLoading&&
-      <Popup
-        closeBtn
-        setState={props.setPopupAcitve}
-        title={`${userName}(${userId})`}
-        contentScroll
-      >
-        <div className={style.popup}>
-          <div className={style.label} style={{ marginBottom: "0px" }}>
-            소속 학교
-          </div>
-          <div
+      <div className={style.popup}>
+        <div style={{ marginTop: "24px" }} />
+        <div className={style.label} style={{ marginBottom: "0px" }}>
+          소속 학교
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: "12px",
+          }}
+        >
+          <Textarea
+            defaultValue={schoolsText}
+            disabled
+            rows={schools?.length || 1}
+            style={{ resize: "none" }}
+          />
+          <Button
+            type={"ghost"}
+            onClick={() => {
+              // console.log(schools);
+              schoolSelectRef.current = schools ? schools : [];
+              setIsEditSchoolPopupActive(true);
+            }}
             style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: "12px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
             }}
           >
-            <Textarea
-              defaultValue={schoolsText}
-              disabled
-              rows={schools?.length || 1}
-              style={{ resize: "none" }}
-            />
-            <Button
-              type={"ghost"}
-              onClick={() => {
-                // console.log(schools);
-                schoolSelectRef.current = schools ? schools : [];
-                setIsEditSchoolPopupActive(true);
-              }}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-            >
-              수정
-            </Button>
-          </div>
-
-          <div style={{ marginTop: "24px" }}>
-            {!isLoading &&
-              (auth !== "admin" ? (
-                <Select
-                  appearence="flat"
-                  label="등급"
-                  required
-                  options={[
-                    { text: "멤버", value: "member" },
-                    { text: "매니저", value: "manager" },
-                  ]}
-                  defaultSelectedValue={auth}
-                  onChange={setAuth}
-                />
-              ) : (
-                <Select
-                  appearence="flat"
-                  label="등급"
-                  options={[{ text: "관리자", value: "admin" }]}
-                />
-              ))}
-          </div>
-          <div style={{ marginTop: "24px" }}>
-            <Input
-              appearence="flat"
-              label="이메일"
-              defaultValue={email}
-              onChange={(e: any) => setEmail(e.target.value)}
-            />
-          </div>
-          <div style={{ marginTop: "24px" }}>
-            <Input
-              appearence="flat"
-              label="구글아이디"
-              defaultValue={google}
-              onChange={(e: any) => setGoogle(e.target.value)}
-            />
-          </div>
-          <div style={{ marginTop: "24px" }}>
-            <Input
-              label="tel"
-              defaultValue={tel}
-              appearence="flat"
-              onChange={(e: any) => setTel(e.target.value)}
-            />
-          </div>
-
-          <div style={{ marginTop: "24px" }}>
-            <Button
-              type={"ghost"}
-              onClick={() => {
-                updateUser()
-                  .then((res) => {
-                    alert(SUCCESS_MESSAGE);
-                    props.updateUserList(userId, res);
-                    props.setPopupAcitve(false);
-                  })
-                  .catch((err) => {
-                    // console.log(err);
-                    alert(err.response.data.message);
-                  });
-              }}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-            >
-              저장
-            </Button>
-          </div>
+            수정
+          </Button>
         </div>
-      </Popup>
+      </div>
       {isEditSchoolPopupActive && (
         <Popup
           closeBtn
@@ -250,7 +170,7 @@ function Basic(props: Props) {
               <Table
                 type="object-array"
                 data={
-                  props.schoolList?.map((school: any) => {
+                  props.user.schoolList?.map((school: any) => {
                     // console.log(schoolSelectRef.current);
                     if (_.find(schoolSelectRef.current, { school: school._id }))
                       school.tableRowChecked = true;

@@ -43,10 +43,10 @@ import Table from "components/tableV2/Table";
 import Select from "components/select/Select";
 
 // popup/tab elements
-import Basic from "./tab/Basic";
-import Add from "./tab/Add";
-import AddBulk from "./tab/AddBulk";
-import SchoolBulk from "./tab/SchoolBulk";
+import EditPopup from "./popup/EditPopup/Index";
+import Add from "./popup/Add";
+import AddBulk from "./popup/AddBulk";
+import SchoolBulk from "./popup/SchoolBulk";
 import _ from "lodash";
 import Navbar from "layout/navbar/Navbar";
 import Input from "components/input/Input";
@@ -60,7 +60,7 @@ const Users = (props: Props) => {
 
   /* user list */
   const [userList, setUserList] = useState<any[]>([]);
-  const [user, setUser] = useState<string>();
+  const [selectedUser, setSelectedUser] = useState<any>({});
 
   /* school list */
   const [schoolList, setSchoolList] = useState<any>();
@@ -270,7 +270,7 @@ const Users = (props: Props) => {
                 text: "자세히",
                 type: "button",
                 onClick: (e: any) => {
-                  setUser(e._id);
+                  setSelectedUser(userList[e.tableRowIndex - 1]);
                   setEditPopupActive(true);
                 },
 
@@ -287,10 +287,10 @@ const Users = (props: Props) => {
           />
         )}
       </div>
-      {editPopupActive && user && (
-        <Basic
-          user={user}
-          schoolList={schoolList}
+      {editPopupActive && selectedUser?._id && (
+        <EditPopup
+          user={selectedUser}
+          setUser={setSelectedUser}
           setPopupAcitve={setEditPopupActive}
           updateUserList={updateUserList}
         />
