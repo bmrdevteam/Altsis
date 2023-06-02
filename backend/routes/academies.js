@@ -23,7 +23,6 @@ router.put("/:academyId/tel", isOwner, academies.updateTel);
 router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */
-router.get("/:academyId/users/:_id?", ownerToAdmin, users.find);
 router.get(
   "/:academyId/:docType/:docId?",
   ownerToAdmin,

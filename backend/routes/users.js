@@ -3,7 +3,7 @@ const router = express.Router();
 import * as users from "../controllers/users.js";
 import {
   isLoggedIn,
-  isAdManager,
+  isOwAdManager,
   forceNotLoggedIn,
   isAdmin,
 } from "../middleware/auth.js";
@@ -24,7 +24,10 @@ router.post("/", isAdmin, users.createByAdmin);
 // ___________ find _____________
 router.get("/current", isLoggedIn, users.current); //
 router.get("/:_id?/profile", isLoggedIn, users.findProfile); //
-router.get("/:_id?", isLoggedIn, users.find); //
+router.get("/", isOwAdManager, users.findUsers);
+router.get("/:_id", isOwAdManager, users.findUser);
+
+//
 
 // ___________ update(onself) _____________
 
