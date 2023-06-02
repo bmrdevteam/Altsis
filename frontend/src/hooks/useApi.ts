@@ -70,18 +70,6 @@ export default function useApi() {
   }
 
   /**
-   * Get user
-   * @type GET
-   * @auth member
-   * @returns User
-   */
-  async function RUser(_id: string) {
-    return await database.R({
-      location: `users/${_id}`,
-    });
-  }
-
-  /**
    * Get user profile by _id
    * @type GET
    * @auth member
@@ -92,27 +80,6 @@ export default function useApi() {
       location: `users/${_id}/profile`,
     });
     return { profile: profile as string | undefined };
-  }
-
-  /**
-   * Get user by userId or school
-   * @type GET
-   * @auth member
-   * @returns LoggedIn User
-   */
-  async function RUsers(params?: {
-    userId?: string | number;
-    school?: string;
-    schoolId?: string;
-    "no-school"?: string;
-    fields?: string[] | string;
-    auth?: "owner" | "admin" | "manager" | "member";
-  }) {
-    if (params?.fields) params.fields = QUERY_SUB_BUILDER(params.fields);
-    const { users: result } = await database.R({
-      location: "users" + QUERY_BUILDER(params),
-    });
-    return result;
   }
 
   /**
@@ -1162,8 +1129,6 @@ export default function useApi() {
   return {
     UserApi: {
       RMySelf,
-      RUsers,
-      RUser,
       RUserProfile,
       DUsers,
       UUserCalendar,

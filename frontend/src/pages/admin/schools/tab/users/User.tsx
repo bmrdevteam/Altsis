@@ -46,10 +46,13 @@ import Registrations from "./tab/Regiatrations";
 
 import _ from "lodash";
 
+import useAPIv2 from "hooks/useAPIv2";
+
 type Props = { schoolData: any };
 
 const Users = (props: Props) => {
   const { UserApi } = useApi();
+  const { UserAPI } = useAPIv2();
 
   const [isUserListLoading, setIsUserListLoading] = useState(true);
 
@@ -64,9 +67,9 @@ const Users = (props: Props) => {
 
   useEffect(() => {
     if (isUserListLoading) {
-      UserApi.RUsers({ school: props.schoolData._id })
-        .then((res) => {
-          setUserList(_.sortBy(res, ["userName"]));
+      UserAPI.RUsers({ query: { sid: props.schoolData._id } })
+        .then(({ users }) => {
+          setUserList(users);
           setIsUserListLoading(false);
           userSelectRef.current = [];
         })

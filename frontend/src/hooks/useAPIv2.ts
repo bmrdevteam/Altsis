@@ -11,6 +11,7 @@ import useDatabase from "hooks/useDatabase";
 import { MESSAGE } from "./_message";
 import { TAcademy } from "types/academies";
 import { TAdmin } from "types/users";
+import _ from "lodash";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -38,7 +39,7 @@ export const ALERT_ERROR = (err: any) => {
   alert(message);
 };
 
-export default function useApi() {
+export default function useAPIv2() {
   const database = useDatabase();
 
   /**
@@ -472,6 +473,46 @@ export default function useApi() {
     };
   }
 
+  /**
+   * RUsers API
+   * 사용자 목록 조회 API
+   * @auth owner|admin|manager
+   */
+  async function RUsers(props: {
+    query?: {
+      sid?: string; // school objectId
+      academyId?: string; // required for owner
+    };
+  }) {
+    const { users } = await database.R({
+      location: `users` + QUERY_BUILDER(props.query),
+    });
+    return {
+      users: _.orderBy(users, ["userName", "userId"], ["asc", "asc"]),
+    };
+  }
+
+  /**
+   * RUser API
+   * 사용자 조회 API
+   * @auth owner|admin|manager
+   */
+  async function RUser(props: {
+    params: {
+      _id: string; // user objectId
+    };
+    query?: {
+      academyId?: string; // required for owner
+    };
+  }) {
+    const { user } = await database.R({
+      location: `users/${props.params._id}` + QUERY_BUILDER(props.query),
+    });
+    return {
+      user,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -496,6 +537,8 @@ export default function useApi() {
       CUserSchoolByAdmin,
       DUserSchoolByAdmin,
       CUserByAdmin,
+      RUsers,
+      RUser,
     },
   };
 }
