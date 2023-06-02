@@ -51,10 +51,14 @@ import _ from "lodash";
 import Navbar from "layout/navbar/Navbar";
 import Input from "components/input/Input";
 
+import useAPIv2 from "hooks/useAPIv2";
+
 type Props = {};
 
 const Users = (props: Props) => {
   const { UserApi, SchoolApi } = useApi();
+  const { UserAPI } = useAPIv2();
+
   const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
   const [isUserListLoading, setIsUserListLoading] = useState(true);
 
@@ -102,12 +106,12 @@ const Users = (props: Props) => {
     }
     return () => {};
   }, [isSchoolListLoading]);
+
   useEffect(() => {
     if (isUserListLoading) {
-      UserApi.RUsers({})
-        .then((res) => {
-          // console.log(res);
-          setUserList(res);
+      UserAPI.RUsers({})
+        .then(({ users }) => {
+          setUserList(users);
           userSelectRef.current = [];
           setIsUserListLoading(false);
         })
