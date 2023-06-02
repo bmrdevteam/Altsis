@@ -1047,14 +1047,35 @@ export const removeUserSchoolByAdmin = async (req, res) => {
 
 // ____________ delete ____________
 
+/**
+ * @memberof APIs.UserAPI
+ * @function DUser API
+ * @description 사용자 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/users/:_id"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} res - returns nothing
+ *
+ * @throws {}
+ * | 409    | SCHOOL_DISCONNECTED_ALREADY | if user already deregistered to school  |
+ *
+ */
+
 export const remove = async (req, res) => {
   try {
-    if (!req.query._ids) return res.status(400).send();
-    const _idList = _.split(req.query._ids, ",");
-    const result = await User(req.user.academyId).deleteMany({
-      _id: { $in: _idList },
-    });
-    return res.status(200).send(result);
+    const user = await User(req.user.academyId).findById(req.params._id);
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
+    }
+    await user.remove();
+    return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

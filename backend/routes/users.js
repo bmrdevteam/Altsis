@@ -54,6 +54,6 @@ router.post("/:_id/schools", isAdmin, users.createUserSchoolByAdmin);
 router.delete("/:_id/schools", isAdmin, users.removeUserSchoolByAdmin);
 
 // ___________ delete _____________
-router.delete("/", isAdmin, users.remove); //
+router.delete("/:_id", isAdmin, users.remove);
 
 export { router };

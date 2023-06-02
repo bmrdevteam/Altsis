@@ -47,6 +47,7 @@ import EditPopup from "./popup/EditPopup/Index";
 import Add from "./popup/Add";
 import AddBulkPopup from "./popup/AddBulkPopup/Index";
 import SchoolBulk from "./popup/SchoolBulk";
+import RemoveBulkPopup from "./popup/RemoveBulkPopup/Index";
 import _ from "lodash";
 import Navbar from "layout/navbar/Navbar";
 import Input from "components/input/Input";
@@ -73,6 +74,9 @@ const Users = (props: Props) => {
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
   const [addBulkPopupActive, setAddBulkPopupActive] = useState<boolean>(false);
   const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
+  const [removeBulkPopupActive, setRemoveBulkPopupActive] =
+    useState<boolean>(false);
+
   const userSelectRef = useRef<any[]>([]);
 
   const updateUserList = (userId: string, userData: any) => {
@@ -164,24 +168,7 @@ const Users = (props: Props) => {
             margin: "24px 0",
             boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
           }}
-          onClick={async () => {
-            // console.log("userSelectRef.current is ", userSelectRef.current);
-            if (userSelectRef.current.length === 0) {
-              alert("선택된 사용자가 없습니다.");
-            } else {
-              const _ids = _.filter(
-                userSelectRef.current,
-                (user) => user.auth !== "admin"
-              ).map((user) => user._id);
-              UserApi.DUsers({ _ids })
-                .then(() => {
-                  alert(SUCCESS_MESSAGE);
-                  userSelectRef.current = [];
-                  popUserList(_ids);
-                })
-                .catch((err) => alert(err.response.data.message));
-            }
-          }}
+          onClick={() => setRemoveBulkPopupActive(true)}
         >
           선택된 사용자 삭제
         </Button>
@@ -319,6 +306,13 @@ const Users = (props: Props) => {
           setPopupActive={setSchoolBulkPopupActive}
           updateUserList={updateUserList}
           selectedUserList={userSelectRef.current}
+        />
+      )}
+      {removeBulkPopupActive && (
+        <RemoveBulkPopup
+          setPopupActive={setRemoveBulkPopupActive}
+          selectedUserList={userSelectRef.current}
+          popUserList={popUserList}
         />
       )}
     </>
