@@ -513,6 +513,21 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * DUser API
+   * 사용자 삭제 API
+   * @auth admin
+   */
+  async function DUser(props: {
+    params: {
+      _id: string; // user objectId
+    };
+  }) {
+    return await database.D({
+      location: `users/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -539,6 +554,7 @@ export default function useAPIv2() {
       CUserByAdmin,
       RUsers,
       RUser,
+      DUser,
     },
   };
 }
