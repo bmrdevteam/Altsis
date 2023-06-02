@@ -45,7 +45,7 @@ import Select from "components/select/Select";
 // popup/tab elements
 import EditPopup from "./popup/EditPopup/Index";
 import Add from "./popup/Add";
-import AddBulk from "./popup/AddBulk";
+import AddBulkPopup from "./popup/AddBulkPopup/Index";
 import SchoolBulk from "./popup/SchoolBulk";
 import _ from "lodash";
 import Navbar from "layout/navbar/Navbar";
@@ -303,8 +303,8 @@ const Users = (props: Props) => {
         />
       )}
       {addBulkPopupActive && (
-        <AddBulk
-          schoolList={schoolList}
+        <AddBulkPopup
+          userList={userList}
           setPopupActive={setAddBulkPopupActive}
           addUserList={addUserList}
         />
