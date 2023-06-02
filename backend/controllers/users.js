@@ -399,66 +399,6 @@ export const createByAdmin = async (req, res) => {
   }
 };
 
-export const createBulk = async (req, res) => {
-  try {
-    const _User = User(req.user.academyId);
-    const users = [];
-
-    /* validate */
-    for (let _user of req.body.users) {
-      if (!_User.isValid(_user))
-        return res.status(400).send({ message: "validation failed", _user });
-    }
-
-    /* check userId duplication */
-    const exUsers = await _User.find({});
-    const duplicatedUserIds = _([...exUsers, ...req.body.users])
-      .groupBy((x) => x.userId)
-      .pickBy((x) => x.length > 1)
-      .keys()
-      .value();
-
-    if (!_.isEmpty(duplicatedUserIds)) {
-      return res
-        .status(409)
-        .send({ message: `userId '${duplicatedUserIds}' are already in use` });
-    }
-
-    /* check snsId.google duplication */
-    const duplicatedGoogleIds = _([...exUsers, ...req.body.users])
-      .filter((x) => x.snsId?.google && x.snsId.google !== "")
-      .groupBy((x) => x.snsId.google)
-      .pickBy((x) => x.length > 1)
-      .keys()
-      .value();
-
-    if (!_.isEmpty(duplicatedGoogleIds)) {
-      return res.status(409).send({
-        message: `googleId '${duplicatedGoogleIds}' are already in use`,
-      });
-    }
-
-    /* create & save documents */
-    await Promise.all([
-      req.body.users.forEach((_user) => {
-        const user = new _User({
-          ..._user,
-          academyId: req.user.academyId,
-          academyName: req.user.academyName,
-        });
-
-        user.save();
-        users.push(user);
-      }),
-    ]);
-
-    return res.status(200).send({ users });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 // ____________ find ____________
 
 /* 자기 자신을 읽음 */

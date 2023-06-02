@@ -20,7 +20,6 @@ router.get("/logout", isLoggedIn, users.logout);
 
 // ___________ create _____________
 router.post("/", isAdmin, users.createByAdmin);
-router.post("/bulk", isAdmin, users.createBulk); //
 
 // ___________ find _____________
 router.get("/current", isLoggedIn, users.current); //
