@@ -88,9 +88,10 @@ export default function useApi() {
    * @returns User
    */
   async function RUserProfile(_id: string) {
-    return await database.R({
+    const { profile } = await database.R({
       location: `users/${_id}/profile`,
     });
+    return { profile: profile as string | undefined };
   }
 
   /**
