@@ -64,17 +64,15 @@ const UserSearchResult = (props: Props) => {
             season: currentRegistration.season,
             user: uid,
           });
-          const rawUser: any = await UserApi.RUser(uid);
-          if (!rawRegistrations.length || !rawUser) {
+          const { profile } = await UserApi.RUserProfile(uid);
+          if (!rawRegistrations.length || !profile) {
             throw new Error("No such user");
           }
           const result = {
             ...rawRegistrations[0],
             _id: rawRegistrations[0].user,
           };
-          if (rawUser?.profile) {
-            result.profile = rawUser.profile;
-          }
+          result.profile = profile;
           return result;
         } catch (e) {}
       };
