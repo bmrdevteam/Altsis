@@ -19,28 +19,28 @@ router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
 router.get("/logout", isLoggedIn, users.logout);
 
 // ___________ create _____________
-router.post("/", isAdmin, users.create);
-router.post("/bulk", isAdmin, users.createBulk);
+router.post("/", isAdmin, users.createByAdmin);
+router.post("/bulk", isAdmin, users.createBulk); //
 
 // ___________ find _____________
-router.get("/current", isLoggedIn, users.current);
-router.get("/:_id?/profile", isLoggedIn, users.findProfile);
-router.get("/:_id?", isLoggedIn, users.find);
+router.get("/current", isLoggedIn, users.current); //
+router.get("/:_id?/profile", isLoggedIn, users.findProfile); //
+router.get("/:_id?", isLoggedIn, users.find); //
 
 // ___________ update(onself) _____________
 
-router.post("/profile", isLoggedIn, profile.upload);
+router.post("/profile", isLoggedIn, profile.upload); //
 // router.get("/profile", isLoggedIn, profile.read);
-router.delete("/profile", isLoggedIn, profile.remove);
+router.delete("/profile", isLoggedIn, profile.remove); //
 
 router.put("/email", isLoggedIn, users.updateEmail);
 router.put("/tel", isLoggedIn, users.updateTel);
 router.put("/password", isLoggedIn, users.updatePassword);
 router.put("/calendar", isLoggedIn, users.updateCalendar);
 
-// ___________ Update by admin _____________
+// ___________ By Admin _____________
 
-router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
+router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk); //
 router.put("/:_id/password", isAdmin, users.updatePasswordByAdmin);
 router.put("/:_id/google", isAdmin, users.connectGoogleByAdmin);
 router.delete("/:_id/google", isAdmin, users.disconnectGoogleByAdmin);
@@ -52,6 +52,6 @@ router.post("/:_id/schools", isAdmin, users.createUserSchoolByAdmin);
 router.delete("/:_id/schools", isAdmin, users.removeUserSchoolByAdmin);
 
 // ___________ delete _____________
-router.delete("/", isAdmin, users.remove);
+router.delete("/", isAdmin, users.remove); //
 
 export { router };
