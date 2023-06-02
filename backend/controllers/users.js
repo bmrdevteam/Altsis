@@ -17,6 +17,7 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+import { conn } from "../_database/mongodb/index.js";
 
 /**
  * @memberof APIs.UserAPI
@@ -441,52 +442,112 @@ export const findProfile = async (req, res) => {
     const user = await User(req.user.academyId)
       .findById(req.params._id)
       .select("profile");
-    return res.status(200).send(user);
+    return res.status(200).send({ profile: user?.profile });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
 };
 
-export const find = async (req, res) => {
+/**
+ * @memberof APIs.UserAPI
+ * @function RUsersAPI API
+ * @description 사용자 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/users"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"owner"|"admin"|"manager"} req.user.auth
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.sid - school objectId
+ * @param {string?} req.query.academyId - required by owner
+ *
+ * @param {Object} res
+ * @param {Object[]} res.users
+ *
+ * @throws {}
+ */
+export const findUsers = async (req, res) => {
   try {
-    // 소속 아카데미의 user 정보 조회 가능
-    if (req.params._id) {
-      const user = await User(req.user.academyId).findById(req.params._id);
-      return res.status(200).send(user);
+    let academyId = req.user.academyId;
+
+    /* if owner requested */
+    if ("academyId" in req.query) {
+      if (req.user.auth !== "owner") {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+      if (!conn[req.query.academyId]) {
+        return res.status(404).send({ message: __NOT_FOUND("academy") });
+      }
+      academyId = req.query.academyId;
     }
 
-    const queries = req.query;
-    let fields = [];
-    let users = [];
-
-    if (queries.school) {
-      queries["schools.school"] = queries.school;
-      delete queries.school;
+    /* find users by school objectId */
+    if ("sid" in req.query) {
+      const users = await User(academyId)
+        .find({ "schools.school": req.query.sid })
+        .lean();
+      return res.status(200).send({ users });
     }
-    if (queries.schoolId) {
-      queries["schools.schoolId"] = queries.schoolId;
-      delete queries.schoolId;
-    }
-    if (queries["no-school"]) {
-      queries["schools"] = { $size: 0 };
-      delete queries["no-school"];
-    }
-    if (queries.matches) {
-      queries[queries.field] = { $regex: queries.matches };
-      delete queries.matches;
-      delete queries.field;
-    }
-
-    if (queries["fields"]) {
-      fields = queries["fields"].split(",");
-      delete queries["fields"];
-      users = await User(req.user.academyId).find(queries).select(fields);
-    } else {
-      users = await User(req.user.academyId).find(queries);
-    }
-
+    /* find all users */
+    const users = await User(academyId).find({}).lean();
     return res.status(200).send({ users });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function RUserAPI API
+ * @description 사용자 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/users/:_id"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"owner"|"admin"|"manager"} req.user.auth
+ *
+ * @param {Object} req.params
+ * @param {string} req.params._id - user objectId
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.academyId - required by owner
+ *
+ * @param {Object} res
+ * @param {Object} res.user
+ *
+ * @throws {}
+ */
+export const findUser = async (req, res) => {
+  try {
+    let academyId = req.user.academyId;
+
+    /* if owner requested */
+    if ("academyId" in req.query) {
+      if (req.user.auth !== "owner") {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+      if (!conn[req.query.academyId]) {
+        return res.status(404).send({ message: __NOT_FOUND("academy") });
+      }
+      academyId = req.query.academyId;
+    }
+
+    const user = await User(academyId).findById(req.params._id);
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND(user) });
+    }
+    return res.status(200).send({ user });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

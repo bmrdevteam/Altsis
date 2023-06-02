@@ -59,11 +59,25 @@ export const isAdmin = (req, res, next) => {
   }
 };
 
-// isAdmin + isManager
+// isAdmin || isManager
 export const isAdManager = (req, res, next) => {
   if (
     req.isAuthenticated() &&
     (req.user.auth === "admin" || req.user.auth === "manager")
+  ) {
+    next();
+  } else {
+    res.status(403).send();
+  }
+};
+
+// isOwner || isAdmin || isManager
+export const isOwAdManager = (req, res, next) => {
+  if (
+    req.isAuthenticated() &&
+    (req.user.auth === "owner" ||
+      req.user.auth === "admin" ||
+      req.user.auth === "manager")
   ) {
     next();
   } else {
