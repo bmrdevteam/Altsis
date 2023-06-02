@@ -43,7 +43,6 @@ import { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {
   user: any;
   setUser: React.Dispatch<any>;
-  updateUserList: (userId: string, userData: any) => void;
 };
 
 function Schools(props: Props) {

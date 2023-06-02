@@ -41,7 +41,6 @@ import { validate } from "functions/functions";
 type Props = {
   user: any;
   setUser: React.Dispatch<any>;
-  updateUserList: (userId: string, userData: any) => void;
 };
 
 function Auth(props: Props) {

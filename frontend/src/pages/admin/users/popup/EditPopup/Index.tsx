@@ -38,7 +38,6 @@ import Auth from "./tab/Auth";
 type Props = {
   user: any;
   setUser: React.Dispatch<any>;
-  updateUserList: (userId: string, userData: any) => void;
   setPopupAcitve: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
@@ -54,20 +53,8 @@ function Index(props: Props) {
         dontUsePaths
         items={{
           "기본 정보": <Basic user={props.user} setUser={props.setUser} />,
-          "소속 학교": (
-            <Schools
-              user={props.user}
-              setUser={props.setUser}
-              updateUserList={props.updateUserList}
-            />
-          ),
-          로그인: (
-            <Auth
-              user={props.user}
-              setUser={props.setUser}
-              updateUserList={props.updateUserList}
-            />
-          ),
+          "소속 학교": <Schools user={props.user} setUser={props.setUser} />,
+          로그인: <Auth user={props.user} setUser={props.setUser} />,
         }}
         align={"flex-start"}
       />
