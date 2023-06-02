@@ -292,14 +292,14 @@ const Users = (props: Props) => {
           user={selectedUser}
           setUser={setSelectedUser}
           setPopupAcitve={setEditPopupActive}
-          updateUserList={updateUserList}
         />
       )}
       {addPopupActive && (
         <Add
-          schoolList={schoolList}
           setPopupAcitve={setAddPopupActive}
           addUserList={addUserList}
+          setUser={setSelectedUser}
+          setEditPopupActive={setEditPopupActive}
         />
       )}
       {addBulkPopupActive && (

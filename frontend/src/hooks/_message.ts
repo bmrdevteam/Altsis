@@ -15,4 +15,6 @@ export const MESSAGE = new Map<string, string>([
   ["EMAIL_IN_USE", "사용 중인 이메일입니다."],
   ["SCHOOL_CONNECTED_ALREADY", "이미 등록된 학교입니다."],
   ["SCHOOL_DISCONNECTED_ALREADY", "등록되지 않은 학교입니다."],
+  ["USERID_IN_USE", "사용 중인 아이디입니다."],
+  ["SNSID.GOOGLE_IN_USE", "사용 중인 구글 로그인 이메일입니다."],
 ]);

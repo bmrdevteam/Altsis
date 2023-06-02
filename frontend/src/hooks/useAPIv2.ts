@@ -444,6 +444,34 @@ export default function useApi() {
     };
   }
 
+  /**
+   * CUserByAdmin API
+   * 사용자 생성 API
+   * @auth admin
+   */
+  async function CUserByAdmin(props: {
+    data: {
+      schools: { school: string }[];
+      auth: "member" | "manager";
+      userId: string;
+      userName: string;
+      password: string;
+      tel?: string;
+      email?: string;
+      snsId?: {
+        google?: string;
+      };
+    };
+  }) {
+    const { user } = await database.C({
+      location: `users`,
+      data: props.data,
+    });
+    return {
+      user,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -467,6 +495,7 @@ export default function useApi() {
       UPasswordByAdmin,
       CUserSchoolByAdmin,
       DUserSchoolByAdmin,
+      CUserByAdmin,
     },
   };
 }
