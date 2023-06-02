@@ -268,44 +268,131 @@ export const disconnectGoogleByAdmin = async (req, res) => {
   return res.status(200).send({ snsId: user.snsId });
 };
 
-// ____________ create ____________
-
-export const create = async (req, res) => {
+/**
+ * @memberof APIs.UserAPI
+ * @function CUserByAdmin API
+ * @description 사용자 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/users"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {Object} req.body.user
+ * @param {Object} req.body.schools
+ * @param {string} req.body.schools[0].school - objectId of school
+ * @param {"member"|"manager"} req.body.auth
+ * @param {string} req.body.userId
+ * @param {string} req.body.userName
+ * @param {string} req.body.password
+ * @param {string?} req.body.tel
+ * @param {string?} req.body.email
+ * @param {Object?} req.body.snsId
+ * @param {string?} req.body.snsId.google
+ *
+ * @param {Object} res
+ * @param {Object} res.user
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | USERID_IN_USE | if userId is in use  |
+ * | 409    | SNSID.GOOGLE_IN_USE | if snsId.google is in use  |
+ *
+ */
+export const createByAdmin = async (req, res) => {
   try {
-    const _User = User(req.user.academyId);
-
-    /* check validation */
-    if (!_User.isValid(req.body) || !validate("password", req.body.password))
-      return res.status(400).send({ message: "validation failed" });
-
-    /* check duplication */
-    const exUser = await _User.findOne({ userId: req.body.userId });
-    if (exUser)
-      return res.status(409).send({
-        message: `userId '${req.body.userId}' is already in use`,
-      });
-
-    if ("google" in req.body.snsId) {
-      const exUser = await _User.findOne({
-        "snsId.google": req.body.snsId.google,
-      });
-      if (exUser)
-        return res.status(409).send({
-          message: `snsId.google '${req.body.snsId.google}' is already in use`,
-        });
+    /* validate */
+    if (!("schools" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("schools") });
+    }
+    if (_.find(req.body.schools, (_school) => !("school" in _school))) {
+      return res.status(400).send({ message: FIELD_INVALID("schools") });
+    }
+    if (!("auth" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("auth") });
+    }
+    if (req.body.auth !== "member" && req.body.auth !== "manager") {
+      return res.status(400).send({ message: FIELD_INVALID("auth") });
+    }
+    for (let field of ["userId", "userName", "password"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+      if (!validate(field, req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
+    for (let field of ["tel", "email"]) {
+      if (field in req.body && !validate(field, req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
+    if (
+      "snsId" in req.body &&
+      "google" in req.body.snsId &&
+      !validate("email", req.body.snsId.google)
+    ) {
+      return res.status(400).send({ message: FIELD_INVALID("snsId") });
     }
 
-    /* create document */
-    const user = new _User({
-      ...req.body,
-      academyId: req.user.academyId,
-      academyName: req.user.academyName,
+    const admin = req.user;
+
+    /* check duplication */
+    if (
+      await User(admin.academyId).findOne({
+        userId: req.body.userId,
+      })
+    ) {
+      return res.status(409).send({
+        message: FIELD_IN_USE("userId"),
+      });
+    }
+
+    if (
+      "snsId" in req.body &&
+      "google" in req.body.snsId &&
+      (await User(admin.academyId).findOne({
+        "snsId.google": req.body.snsId.google,
+      }))
+    ) {
+      return res.status(409).send({ message: FIELD_IN_USE("snsId.google") });
+    }
+
+    /* find schools */
+    const schools = [];
+    for (let _school of req.body.schools) {
+      const schoolData = await School(admin.academyId).findById(_school.school);
+      if (!schoolData) {
+        return res.status(404).send({ message: __NOT_FOUND("school") });
+      }
+      schools.push({
+        school: schoolData._id,
+        schoolId: schoolData.schoolId,
+        schoolName: schoolData.schoolName,
+      });
+    }
+
+    /* create user */
+    const user = await User(admin.academyId).create({
+      schools,
+      auth: req.body.auth,
+      userId: req.body.userId,
+      userName: req.body.userName,
+      password: req.body.password,
+      tel: req.body.tel,
+      email: req.body.email,
+      snsId: req.body.snsId ?? {},
+      academyId: admin.academyId,
+      academyName: admin.academyName,
     });
 
-    /* save document */
-    await user.save();
-    user.password = req.user.auth === "admin" ? user.password : undefined;
-    return res.status(200).send(user);
+    return res.status(200).send({ user });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
