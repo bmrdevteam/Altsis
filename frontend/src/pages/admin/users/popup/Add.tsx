@@ -175,7 +175,7 @@ function Add(props: Props) {
     }
 
     try {
-      const { user } = await UserAPI.CUserByAdmin({
+      const { user } = await UserAPI.CUser({
         data: {
           schools,
           auth,

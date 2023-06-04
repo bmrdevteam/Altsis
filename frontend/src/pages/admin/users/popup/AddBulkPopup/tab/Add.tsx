@@ -83,7 +83,7 @@ function Add(props: Props) {
     const failedUserList = [];
     for (let i = 0; i < props.userListRef.current.length; i++) {
       try {
-        const { user } = await UserAPI.CUserByAdmin({
+        const { user } = await UserAPI.CUser({
           data: {
             ...props.userListRef.current[i],
             schools,

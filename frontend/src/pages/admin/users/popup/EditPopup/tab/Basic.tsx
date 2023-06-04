@@ -53,7 +53,7 @@ function Basic(props: Props) {
   const onUpdateAuthHandler = async (value: "member" | "manager") => {
     try {
       if (props.user.auth === value) return;
-      const { auth } = await UserAPI.UAuthByAdmin({
+      const { auth } = await UserAPI.UUserAuth({
         params: { uid: props.user._id },
         data: {
           auth: value,
@@ -71,14 +71,14 @@ function Basic(props: Props) {
   const onUpdateEmailHandler = async () => {
     try {
       if (props.user.email === emailRef.current) return;
-      if (!validate("email", emailRef.current)) {
+      if (emailRef.current !== "" && !validate("email", emailRef.current)) {
         alert("이메일 형식에 맞지 않습니다.");
         return;
       }
-      const { email } = await UserAPI.UEmailByAdmin({
+      const { email } = await UserAPI.UUserEmail({
         params: { uid: props.user._id },
         data: {
-          email: emailRef.current,
+          email: emailRef.current !== "" ? emailRef.current : undefined,
         },
       });
       alert(SUCCESS_MESSAGE);
@@ -93,14 +93,14 @@ function Basic(props: Props) {
   const onUpdateTelHandler = async () => {
     try {
       if (props.user.tel === telRef.current) return;
-      if (!validate("tel", telRef.current)) {
+      if (telRef.current !== "" && !validate("tel", telRef.current)) {
         alert("전화번호 형식에 맞지 않습니다.");
         return;
       }
-      const { tel } = await UserAPI.UTelByAdmin({
+      const { tel } = await UserAPI.UUserTel({
         params: { uid: props.user._id },
         data: {
-          tel: telRef.current,
+          tel: telRef.current !== "" ? telRef.current : undefined,
         },
       });
       alert(SUCCESS_MESSAGE);

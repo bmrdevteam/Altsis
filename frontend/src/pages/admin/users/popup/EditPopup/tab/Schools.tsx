@@ -59,7 +59,7 @@ function Schools(props: Props) {
   const onClickAddHandler = async () => {
     try {
       if (selectedSIDRef.current === "") return;
-      const { schools } = await UserAPI.CUserSchoolByAdmin({
+      const { schools } = await UserAPI.CUserSchool({
         params: { uid: props.user._id },
         data: { sid: selectedSIDRef.current },
       });
@@ -75,7 +75,7 @@ function Schools(props: Props) {
 
   const onClickRemoveHandler = async (sid: string) => {
     try {
-      const { schools } = await UserAPI.DUserSchoolByAdmin({
+      const { schools } = await UserAPI.DUserSchool({
         params: { uid: props.user._id },
         query: { sid },
       });

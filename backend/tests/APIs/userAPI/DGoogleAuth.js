@@ -1,5 +1,5 @@
 /**
- * DisconnectGoogleByAdmin API
+ * DGoogleAuth API
  */
 import httpMocks from "node-mocks-http";
 
@@ -25,7 +25,7 @@ describe("Validate", () => {
       };
     });
 
-    await users.disconnectGoogleByAdmin(req, res);
+    await users.disconnectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("USER_NOT_FOUND");
   });
@@ -44,7 +44,7 @@ describe("Validate", () => {
       };
     });
 
-    await users.disconnectGoogleByAdmin(req, res);
+    await users.disconnectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(409);
     expect(res._getData().message).toBe("EMAIL_DISCONNECTED_ALREADY");
   });
@@ -68,7 +68,7 @@ describe("Success", () => {
       };
     });
 
-    await users.disconnectGoogleByAdmin(req, res);
+    await users.disconnectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(200);
     expect(res._getData().snsId).toEqual(expectedSnsId);
   });

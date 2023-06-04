@@ -1,5 +1,5 @@
 /**
- * CUserByAdmin API
+ * CUser API
  */
 import httpMocks from "node-mocks-http";
 import mongoose from "mongoose";
@@ -25,7 +25,7 @@ describe("Validate", () => {
     });
     const res = httpMocks.createResponse();
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(400);
     expect(res._getData().message).toBe("SCHOOLS_REQUIRED");
   });
@@ -39,7 +39,7 @@ describe("Validate", () => {
     });
     const res = httpMocks.createResponse();
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(400);
     expect(res._getData().message).toBe("SCHOOLS_INVALID");
   });
@@ -53,7 +53,7 @@ describe("Validate", () => {
     });
     const res = httpMocks.createResponse();
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(400);
     expect(res._getData().message).toBe("AUTH_REQUIRED");
   });
@@ -68,7 +68,7 @@ describe("Validate", () => {
     });
     const res = httpMocks.createResponse();
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(400);
     expect(res._getData().message).toBe("AUTH_INVALID");
   });
@@ -101,7 +101,7 @@ describe("Check Duplication", () => {
       };
     });
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(409);
     expect(res._getData().message).toBe("USERID_IN_USE");
   });
@@ -123,7 +123,7 @@ describe("Check Duplication", () => {
       };
     });
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(409);
     expect(res._getData().message).toBe("SNSID.GOOGLE_IN_USE");
   });
@@ -166,7 +166,7 @@ describe("Find Schools", () => {
       };
     });
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("SCHOOL_NOT_FOUND");
   });
@@ -228,7 +228,7 @@ describe("Success", () => {
       };
     });
 
-    await users.createByAdmin(req, res);
+    await users.create(req, res);
     expect(res._getStatusCode()).toBe(200);
     expect(res._getData().user).toEqual(expectedUser);
   });

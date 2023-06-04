@@ -71,32 +71,3 @@ export const upload = async (req, res) => {
     return res.status(200).send({ profile: user.profile });
   });
 };
-
-export const read = (req, res) => {
-  const url = req.user.profile || process.env["defaultProfile"];
-  return res.status(200).send({ url });
-};
-
-export const remove = (req, res) => {
-  const user = req.user;
-  if (!user.profile) {
-    return res.status(404).send({ message: "no profile!" });
-  }
-  s3.deleteObject(
-    {
-      Bucket: bucket,
-      Key: `original/${user.academyId}/${user._id}/${user.profile
-        .split("/")
-        .pop()}`,
-    },
-    async (err, data) => {
-      if (err) {
-        return res.status(500).send({ err: err.message });
-      }
-      user.profile = undefined;
-      await user.save();
-
-      return res.status(200).send();
-    }
-  );
-};

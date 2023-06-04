@@ -1,5 +1,5 @@
 /**
- * ConnectGoogleByAdmin API
+ * CGoogleAuth API
  */
 import httpMocks from "node-mocks-http";
 
@@ -20,7 +20,7 @@ describe("Validate", () => {
     });
     const res = httpMocks.createResponse();
 
-    await users.connectGoogleByAdmin(req, res);
+    await users.connectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(400);
     expect(res._getData().message).toBe("EMAIL_REQUIRED");
   });
@@ -34,7 +34,7 @@ describe("Validate", () => {
     });
     const res = httpMocks.createResponse();
 
-    await users.connectGoogleByAdmin(req, res);
+    await users.connectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(400);
     expect(res._getData().message).toBe("EMAIL_INVALID");
   });
@@ -54,7 +54,7 @@ describe("Validate", () => {
       };
     });
 
-    await users.connectGoogleByAdmin(req, res);
+    await users.connectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(404);
     expect(res._getData().message).toBe("USER_NOT_FOUND");
   });
@@ -78,7 +78,7 @@ describe("Validate", () => {
       };
     });
 
-    await users.connectGoogleByAdmin(req, res);
+    await users.connectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(409);
     expect(res._getData().message).toBe("EMAIL_CONNECTED_ALREADY");
   });
@@ -99,7 +99,7 @@ describe("Validate", () => {
       };
     });
 
-    await users.connectGoogleByAdmin(req, res);
+    await users.connectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(409);
     expect(res._getData().message).toBe("EMAIL_IN_USE");
   });
@@ -128,7 +128,7 @@ describe("Success", () => {
       };
     });
 
-    await users.connectGoogleByAdmin(req, res);
+    await users.connectGoogleAuth(req, res);
     expect(res._getStatusCode()).toBe(200);
     expect(res._getData().snsId).toEqual(expectedSnsId);
   });
