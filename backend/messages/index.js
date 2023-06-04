@@ -55,7 +55,24 @@ export const FIELD_INVALID = (field) => `${field.toUpperCase()}_INVALID`;
  * -----------------------------------------
  */
 
+/**
+ * @tag 401 Unauthorized
+ *
+ * @alias ACADEMY_INACTIVATED
+ * @description 아카데미가 비활성화됨
+ *
+ * @memberof APIs._MESSAGE
+ */
 export const ACADEMY_INACTIVATED = "ACADEMY_INACTIVATED";
+
+/**
+ * @tag 401 Unauthorized
+ *
+ * @alias PASSWORD_INCORRECT
+ * @description 비밀번호 틀림
+ *
+ * @memberof APIs._MESSAGE
+ */
 export const PASSWORD_INCORRECT = "PASSWORD_INCORRECT";
 
 /**
