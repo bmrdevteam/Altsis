@@ -28,7 +28,6 @@ export function useAuth(): {
   reloadRegistration: () => void;
   currentSeason: TSeason;
   updateUserProfile: React.Dispatch<any>;
-  deleteUserProfile: React.Dispatch<any>;
 } {
   return useContext(AuthContext);
 }
@@ -163,11 +162,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setCurrentUser({ ...currentUser, profile });
     }
   };
-  const deleteUserProfile = () => {
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, profile: undefined });
-    }
-  };
 
   const reloadRegistration = async () => {
     if (currentRegistration?._id) {
@@ -190,7 +184,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     reloadRegistration,
     currentSeason,
     updateUserProfile,
-    deleteUserProfile,
   };
   return (
     <AuthContext.Provider value={value}>

@@ -27,38 +27,154 @@
  *
  */
 
-import React, { useState, useRef } from "react";
-import Divider from "../../../components/divider/Divider";
-import Input from "../../../components/input/Input";
-import Textarea from "../../../components/textarea/Textarea";
-import { useAuth } from "../../../contexts/authContext";
-import style from "../../../style/pages/settings/settings.module.scss";
-import defaultProfilePic from "assets/img/default_profile.png";
+import React, { useState, useRef, useEffect } from "react";
+
+import Input from "components/input/Input";
 import Button from "components/button/Button";
-import useDatabase from "../../../hooks/useDatabase";
 import Popup from "components/popup/Popup";
+import { useAuth } from "contexts/authContext";
+
+import style from "style/pages/settings/settings.module.scss";
+import defaultProfilePic from "assets/img/default_profile.png";
+
+import useDatabase from "hooks/useDatabase";
 import { validate } from "functions/functions";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
+const EmailEditPopup = (props: {
+  setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  const { UserAPI } = useAPIv2();
+
+  const { currentUser, setCurrentUser } = useAuth();
+
+  const emailRef = useRef<string>("");
+
+  useEffect(() => {
+    if (currentUser._id) {
+      emailRef.current = currentUser.email ?? "";
+    }
+    return () => {};
+  }, [currentUser]);
+
+  const updateHandler = async () => {
+    try {
+      if (emailRef.current !== "" && !validate("email", emailRef.current)) {
+        return alert("이메일 형식에 맞지 않습니다.");
+      }
+      const { email } = await UserAPI.UUserEmail({
+        params: { uid: currentUser._id },
+        data: {
+          email: emailRef.current !== "" ? emailRef.current : undefined,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      setCurrentUser({ ...currentUser, email });
+      props.setPopupActive(false);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  return (
+    <Popup
+      title="이메일 수정"
+      setState={props.setPopupActive}
+      closeBtn
+      footer={
+        <Button type="ghost" onClick={updateHandler}>
+          수정
+        </Button>
+      }
+    >
+      <div style={{ width: "500px" }}>
+        <Input
+          appearence="flat"
+          label="이메일"
+          placeholder="이메일을 입력해주세요"
+          type="string"
+          onChange={(e: any) => {
+            emailRef.current = e.target.value;
+          }}
+          defaultValue={currentUser.email}
+        />
+      </div>
+    </Popup>
+  );
+};
+
+const TelEditPopup = (props: {
+  setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  const { UserAPI } = useAPIv2();
+
+  const { currentUser, setCurrentUser } = useAuth();
+
+  const telRef = useRef<string>("");
+
+  useEffect(() => {
+    if (currentUser._id) {
+      telRef.current = currentUser.tel ?? "";
+    }
+    return () => {};
+  }, [currentUser]);
+
+  const updateHandler = async () => {
+    try {
+      if (telRef.current !== "" && !validate("tel", telRef.current)) {
+        return alert("전화번호 형식에 맞지 않습니다.");
+      }
+      const { tel } = await UserAPI.UUserTel({
+        params: { uid: currentUser._id },
+        data: {
+          tel: telRef.current !== "" ? telRef.current : undefined,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      setCurrentUser({ ...currentUser, tel });
+      props.setPopupActive(false);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  return (
+    <Popup
+      title="전화번호 수정"
+      setState={props.setPopupActive}
+      closeBtn
+      footer={
+        <Button type="ghost" onClick={updateHandler}>
+          수정
+        </Button>
+      }
+    >
+      <div style={{ width: "500px" }}>
+        <Input
+          appearence="flat"
+          label="전화번호"
+          placeholder="전화번호를 입력해주세요"
+          type="string"
+          onChange={(e: any) => {
+            telRef.current = e.target.value;
+          }}
+          defaultValue={currentUser.tel}
+        />
+      </div>
+    </Popup>
+  );
+};
+
 const UserSettings = (props: Props) => {
-  const {
-    currentUser,
-    setCurrentUser,
-    updateUserProfile,
-    deleteUserProfile,
-    setLoading,
-  } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
   const database = useDatabase();
 
   /* popup Activattion */
-  const [emailUpdatePopupActive, setEmailUpdatePopupActive] =
+  const [emailEditPopupActive, setEmailEditPopupActive] =
     useState<boolean>(false);
-  const [telUpdatePopupAtive, setTelUpdatePopupActive] =
-    useState<boolean>(false);
-
-  const [newEmail, setNewEmail] = useState<string>("");
-  const [newTel, setNewTel] = useState<string>("");
+  const [telEditPopupActive, setTelEditPopupActive] = useState<boolean>(false);
 
   const fileInput = React.useRef<HTMLInputElement | null>(null);
 
@@ -97,26 +213,6 @@ const UserSettings = (props: Props) => {
         alert(error);
       });
   };
-
-  async function updateEmail() {
-    const res = database.U({
-      location: `users/email`,
-      data: {
-        email: newEmail,
-      },
-    });
-    return res;
-  }
-
-  async function updateTel() {
-    const res = database.U({
-      location: `users/tel`,
-      data: {
-        tel: newTel,
-      },
-    });
-    return res;
-  }
 
   return (
     <>
@@ -196,10 +292,10 @@ const UserSettings = (props: Props) => {
           <Button
             type="ghost"
             onClick={() => {
-              setEmailUpdatePopupActive(true);
+              setEmailEditPopupActive(true);
             }}
           >
-            변경
+            수정
           </Button>
         </div>
         <div
@@ -220,98 +316,21 @@ const UserSettings = (props: Props) => {
           <Button
             type="ghost"
             onClick={() => {
-              setTelUpdatePopupActive(true);
+              setTelEditPopupActive(true);
             }}
           >
-            변경
+            수정
           </Button>
         </div>
         {/* <div style={{ marginTop: "12px" }}>
      <Textarea label="설명" placeholder="설명" />
    </div> */}
       </div>
-      {emailUpdatePopupActive && (
-        <Popup
-          title="이메일 변경"
-          setState={setEmailUpdatePopupActive}
-          closeBtn
-          footer={
-            <Button
-              type="ghost"
-              onClick={() => {
-                if (!validate("email", newEmail)) {
-                  alert("이메일 형식에 맞지 않습니다.");
-                } else {
-                  updateEmail()
-                    .then((res: any) => {
-                      alert(SUCCESS_MESSAGE);
-                      setNewEmail("");
-                      setCurrentUser({ ...currentUser, email: res.data.email });
-                      setEmailUpdatePopupActive(false);
-                    })
-                    .catch((err: any) => alert(err.response.data.message));
-                }
-              }}
-            >
-              변경
-            </Button>
-          }
-        >
-          <div style={{ width: "500px" }}>
-            <Input
-              appearence="flat"
-              label="새 이메일 입력"
-              placeholder="새 이메일 입력"
-              type="string"
-              onChange={(e: any) => {
-                setNewEmail(e.target.value);
-              }}
-              required
-            />
-          </div>
-        </Popup>
+      {emailEditPopupActive && (
+        <EmailEditPopup setPopupActive={setEmailEditPopupActive} />
       )}
-      {telUpdatePopupAtive && (
-        <Popup
-          borderRadius={"8px"}
-          title="전화번호 변경"
-          setState={setTelUpdatePopupActive}
-          closeBtn
-          footer={
-            <Button
-              type="ghost"
-              onClick={() => {
-                if (!validate("tel", newTel)) {
-                  alert("전화번호 형식에 맞지 않습니다.");
-                } else {
-                  updateTel()
-                    .then((res: any) => {
-                      alert(SUCCESS_MESSAGE);
-                      setNewTel("");
-                      setCurrentUser({ ...currentUser, tel: res.data.tel });
-                      setTelUpdatePopupActive(false);
-                    })
-                    .catch((err: any) => alert(err.response.data.message));
-                }
-              }}
-            >
-              변경
-            </Button>
-          }
-        >
-          <div style={{ width: "500px" }}>
-            <Input
-              appearence="flat"
-              label="새 전화번호 입력"
-              placeholder="새 전화번호 입력"
-              type="string"
-              onChange={(e: any) => {
-                setNewTel(e.target.value);
-              }}
-              required
-            />
-          </div>
-        </Popup>
+      {telEditPopupActive && (
+        <TelEditPopup setPopupActive={setTelEditPopupActive} />
       )}
     </>
   );
