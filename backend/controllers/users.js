@@ -152,125 +152,6 @@ export const logout = async (req, res) => {
 
 /**
  * @memberof APIs.UserAPI
- * @function CGoogleAuth API
- * @description 구글 로그인 활성화 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"PUT"} req.method
- * @param {"/users/:_id/google"} req.url
- *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
- *
- * @param {Object} req.body
- * @param {string} req.body.email
- *
- * @param {Object} res
- * @param {Object} res.snsId
- * @param {string} res.snsId.google
- *
- * @throws {}
- * | status | message          | description                       |
- * | :----- | :--------------- | :-------------------------------- |
- * | 400    | EMAIL_INVALID | if email is invalid  |
- * | 409    | EMAIL_CONNECTED_ALREADY | if email is already connected  |
- * | 409    | EMAIL_IN_USE | if email is in use  |
- *
- */
-export const connectGoogleAuth = async (req, res) => {
-  try {
-    /* validate */
-    if (!("email" in req.body)) {
-      return res.status(400).send({ message: FIELD_REQUIRED("email") });
-    }
-    if (!validate("email", req.body.email)) {
-      return res.status(400).send({ message: FIELD_INVALID("email") });
-    }
-
-    const admin = req.user;
-
-    /* find user */
-    const user = await User(admin.academyId).findById(req.params._id);
-    if (!user) {
-      return res.status(404).send({ message: __NOT_FOUND("user") });
-    }
-    if (user.snsId && "google" in user.snsId) {
-      return res.status(409).send({ message: CONNECTED_ALREADY("email") });
-    }
-
-    /* check if snsId.google is duplicated */
-    const exUser = await User(admin.academyId).findOne({
-      "snsId.google": req.body.email,
-    });
-    if (exUser) {
-      return res.status(409).send({
-        message: FIELD_IN_USE("email"),
-      });
-    }
-
-    /* update user.snsId.google */
-    user.snsId = {
-      ...(user.snsId ?? {}),
-      google: req.body.email,
-    };
-    await user.save();
-
-    return res.status(200).send({ snsId: user.snsId });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-/**
- * @memberof APIs.UserAPI
- * @function DGoogleAuth API
- * @description 구글 로그인 비활성화 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"DELETE"} req.method
- * @param {"/users/:_id/google"} req.url
- *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
- *
- * @param {Object} res
- * @param {Object} res.snsId
- * @param {string} res.snsId.google
- *
- * @throws {}
- * | status | message          | description                       |
- * | :----- | :--------------- | :-------------------------------- |
- * | 409    | EMAIL_DISCONNECTED_ALREADY | if email is already connected  |
- *
- */
-export const disconnectGoogleAuth = async (req, res) => {
-  const admin = req.user;
-
-  /* find user */
-  const user = await User(admin.academyId).findById(req.params._id);
-  if (!user) {
-    return res.status(404).send({ message: __NOT_FOUND("user") });
-  }
-  if (!user.snsId || !("google" in user.snsId)) {
-    return res.status(409).send({ message: DISCONNECTED_ALREADY("email") });
-  }
-
-  user.snsId = {
-    ...(user.snsId ?? {}),
-    google: undefined,
-  };
-  await user.save();
-
-  return res.status(200).send({ snsId: user.snsId });
-};
-
-/**
- * @memberof APIs.UserAPI
  * @function CUser API
  * @description 사용자 생성 API
  * @version 2.0.0
@@ -400,82 +281,6 @@ export const create = async (req, res) => {
   }
 };
 
-// ____________ find ____________
-
-/**
- * @memberof APIs.UserAPI
- * @function RMySelf API
- * @description 본인 조회 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"GET"} req.method
- * @param {"/users/current"} req.url
- *
- * @param {Object} req.user - logged in user
- *
- * @returns {Object} res
- * @returns {Object} res.user
- * @returns {Object[]} res.registrations
- *
- * @throws {}
- *
- */
-export const current = async (req, res) => {
-  try {
-    const user = req.user;
-
-    // registrations
-    const registrations = await Registration(user.academyId)
-      .find({ user: user._id, isActivated: true })
-      .lean();
-
-    return res.status(200).send({
-      user: user.toObject(),
-      registrations,
-    });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-/**
- * @memberof APIs.UserAPI
- * @function RUserProfile API
- * @description 사용자 프로필사진 조회 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"GET"} req.method
- * @param {"/users/:_id"} req.url
- *
- * @param {Object} req.user - logged in user
- *
- * @returns {Object} res
- * @returns {string} res.profile
- *
- * @throws {}
- *
- */
-export const findProfile = async (req, res) => {
-  try {
-    const user = await User(req.user.academyId)
-      .findById(req.params._id)
-      .select("profile");
-
-    if (!user) {
-      return res.status(404).send({ message: __NOT_FOUND("user") });
-    }
-    return res.status(200).send({ profile: user.profile });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 /**
  * @memberof APIs.UserAPI
  * @function RUsersAPI API
@@ -524,6 +329,45 @@ export const findUsers = async (req, res) => {
     /* find all users */
     const users = await User(academyId).find({}).lean();
     return res.status(200).send({ users });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function RMySelf API
+ * @description 본인 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/users/current"} req.url
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @returns {Object} res
+ * @returns {Object} res.user
+ * @returns {Object[]} res.registrations
+ *
+ * @throws {}
+ *
+ */
+export const current = async (req, res) => {
+  try {
+    const user = req.user;
+
+    // registrations
+    const registrations = await Registration(user.academyId)
+      .find({ user: user._id, isActivated: true })
+      .lean();
+
+    return res.status(200).send({
+      user: user.toObject(),
+      registrations,
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
@@ -581,62 +425,35 @@ export const findUser = async (req, res) => {
   }
 };
 
-export const updateSchools = async (req, res) => {
+/**
+ * @memberof APIs.UserAPI
+ * @function RUserProfile API
+ * @description 사용자 프로필사진 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/users/:_id"} req.url
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @returns {Object} res
+ * @returns {string} res.profile
+ *
+ * @throws {}
+ *
+ */
+export const findProfile = async (req, res) => {
   try {
-    const user = await User(req.user.academyId).findById(req.params._id);
+    const user = await User(req.user.academyId)
+      .findById(req.params._id)
+      .select("profile");
 
-    switch (req.user.auth) {
-      case "owner":
-        break;
-      case "admin":
-        // admin은 member 또는 manager의 school 정보를 수정할 수 있다.
-        if (user.auth == "member" || user.auth == "manager") break;
-      case "manager":
-        // manager는 member의 school 정보를 수정할 수 있다.
-        if (user.auth == "member") break;
-      default:
-        return res.status(401).send({ message: "You are not authorized." });
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
     }
-    user.schools = req.body.new;
-    await user.save();
-    return res.status(200).send(user);
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-export const updateSchoolsBulk = async (req, res) => {
-  try {
-    const users = await User(req.user.academyId).find({
-      _id: { $in: req.body.userIds },
-    });
-
-    if (req.body.type === "add") {
-      for (let i = 0; i < users.length; i++) {
-        users[i].schools = _.uniqBy(
-          [...users[i].schools, ...req.body.schools],
-          "schoolId"
-        );
-      }
-    } else if (req.body.type === "remove") {
-      const schoolIds = req.body.schools.map((school) => school.schoolId);
-      for (let i = 0; i < users.length; i++) {
-        users[i].schools = _.filter(
-          users[i].schools,
-          (val) => !_.includes(schoolIds, val.schoolId)
-        );
-      }
-    } else return res.status(400).send({});
-
-    /* save documents */
-    await Promise.all([
-      users.forEach((user) => {
-        user.save();
-      }),
-    ]);
-
-    return res.status(200).send({ users });
+    return res.status(200).send({ profile: user.profile });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
@@ -679,49 +496,52 @@ export const updateCalendar = async (req, res) => {
 
 /**
  * @memberof APIs.UserAPI
- * @function UUserAuth API
- * @description 등급 변경 API
+ * @function UUserPassword API
+ * @description 비밀번호 변경 API
  * @version 2.0.0
  *
  * @param {Object} req
  *
  * @param {"PUT"} req.method
- * @param {"/users/:_id/auth"} req.url
+ * @param {"/users/:_id/password"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - logged in user
  *
  * @param {Object} req.body
- * @param {"manager"|"member"} req.body.auth
+ * @param {password} req.body.password
  *
- * @param {Object} res
- * @param {"manager"|"member"} res.auth
+ * @param {Object} res - returns nothing
  *
  * @throws {}
- *
  */
-export const updateAuth = async (req, res) => {
-  if (!("auth" in req.body)) {
-    return res.status(400).send({ message: FIELD_REQUIRED("auth") });
-  }
-  if (req.body.auth !== "manager" && req.body.auth !== "member") {
-    return res.status(400).send({ message: FIELD_INVALID("auth") });
-  }
+export const updatePassword = async (req, res) => {
+  try {
+    if (!("password" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("password") });
+    }
+    if (!validate("password", req.body.password)) {
+      return res.status(400).send({ message: FIELD_INVALID("password") });
+    }
 
-  const admin = req.user;
-  if (admin._id.equals(req.params._id)) {
-    return res.status(403).send({ message: PERMISSION_DENIED });
+    if (req.user._id.toString() !== req.params._id) {
+      if (req.user.auth !== "admin") {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    }
+
+    const user = await User(req.user.academyId).findById(req.params._id);
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
+    }
+
+    user.password = req.body.password;
+    await user.save();
+
+    return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
   }
-
-  const user = await User(admin.academyId).findById(req.params._id);
-  if (!user) {
-    return res.status(404).send({ message: __NOT_FOUND("user") });
-  }
-
-  user.auth = req.body.auth;
-  await user.save();
-
-  return res.status(200).send({ auth: user.auth });
 };
 
 /**
@@ -815,52 +635,168 @@ export const updateTel = async (req, res) => {
 
 /**
  * @memberof APIs.UserAPI
- * @function UUserPassword API
- * @description 비밀번호 변경 API
+ * @function UUserAuth API
+ * @description 등급 변경 API
  * @version 2.0.0
  *
  * @param {Object} req
  *
  * @param {"PUT"} req.method
- * @param {"/users/:_id/password"} req.url
+ * @param {"/users/:_id/auth"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
  *
  * @param {Object} req.body
- * @param {password} req.body.password
+ * @param {"manager"|"member"} req.body.auth
  *
- * @param {Object} res - returns nothing
+ * @param {Object} res
+ * @param {"manager"|"member"} res.auth
  *
  * @throws {}
+ *
  */
-export const updatePassword = async (req, res) => {
+export const updateAuth = async (req, res) => {
+  if (!("auth" in req.body)) {
+    return res.status(400).send({ message: FIELD_REQUIRED("auth") });
+  }
+  if (req.body.auth !== "manager" && req.body.auth !== "member") {
+    return res.status(400).send({ message: FIELD_INVALID("auth") });
+  }
+
+  const admin = req.user;
+  if (admin._id.equals(req.params._id)) {
+    return res.status(403).send({ message: PERMISSION_DENIED });
+  }
+
+  const user = await User(admin.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.auth = req.body.auth;
+  await user.save();
+
+  return res.status(200).send({ auth: user.auth });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function CGoogleAuth API
+ * @description 구글 로그인 활성화 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/:_id/google"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.email
+ *
+ * @param {Object} res
+ * @param {Object} res.snsId
+ * @param {string} res.snsId.google
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 400    | EMAIL_INVALID | if email is invalid  |
+ * | 409    | EMAIL_CONNECTED_ALREADY | if email is already connected  |
+ * | 409    | EMAIL_IN_USE | if email is in use  |
+ *
+ */
+export const connectGoogleAuth = async (req, res) => {
   try {
-    if (!("password" in req.body)) {
-      return res.status(400).send({ message: FIELD_REQUIRED("password") });
+    /* validate */
+    if (!("email" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("email") });
     }
-    if (!validate("password", req.body.password)) {
-      return res.status(400).send({ message: FIELD_INVALID("password") });
-    }
-
-    if (req.user._id.toString() !== req.params._id) {
-      if (req.user.auth !== "admin") {
-        return res.status(403).send({ message: PERMISSION_DENIED });
-      }
+    if (!validate("email", req.body.email)) {
+      return res.status(400).send({ message: FIELD_INVALID("email") });
     }
 
-    const user = await User(req.user.academyId).findById(req.params._id);
+    const admin = req.user;
+
+    /* find user */
+    const user = await User(admin.academyId).findById(req.params._id);
     if (!user) {
       return res.status(404).send({ message: __NOT_FOUND("user") });
     }
+    if (user.snsId && "google" in user.snsId) {
+      return res.status(409).send({ message: CONNECTED_ALREADY("email") });
+    }
 
-    user.password = req.body.password;
+    /* check if snsId.google is duplicated */
+    const exUser = await User(admin.academyId).findOne({
+      "snsId.google": req.body.email,
+    });
+    if (exUser) {
+      return res.status(409).send({
+        message: FIELD_IN_USE("email"),
+      });
+    }
+
+    /* update user.snsId.google */
+    user.snsId = {
+      ...(user.snsId ?? {}),
+      google: req.body.email,
+    };
     await user.save();
 
-    return res.status(200).send();
+    return res.status(200).send({ snsId: user.snsId });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
   }
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function DGoogleAuth API
+ * @description 구글 로그인 비활성화 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/users/:_id/google"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ * @param {Object} res
+ * @param {Object} res.snsId
+ * @param {string} res.snsId.google
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | EMAIL_DISCONNECTED_ALREADY | if email is already connected  |
+ *
+ */
+export const disconnectGoogleAuth = async (req, res) => {
+  const admin = req.user;
+
+  /* find user */
+  const user = await User(admin.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+  if (!user.snsId || !("google" in user.snsId)) {
+    return res.status(409).send({ message: DISCONNECTED_ALREADY("email") });
+  }
+
+  user.snsId = {
+    ...(user.snsId ?? {}),
+    google: undefined,
+  };
+  await user.save();
+
+  return res.status(200).send({ snsId: user.snsId });
 };
 
 /**
@@ -1017,7 +953,6 @@ export const deregisterSchool = async (req, res) => {
  * | 409    | SCHOOL_DISCONNECTED_ALREADY | if user already deregistered to school  |
  *
  */
-
 export const remove = async (req, res) => {
   try {
     const user = await User(req.user.academyId).findById(req.params._id);
