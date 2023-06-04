@@ -214,7 +214,7 @@ function Add(props: Props) {
       setState={props.setPopupAcitve}
       style={{ maxWidth: "480px", width: "100%" }}
       closeBtn
-      title="사용자 생성"
+      title="사용자 단일 생성"
       contentScroll
     >
       <div className={style.popup}>
