@@ -441,12 +441,35 @@ export const current = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.UserAPI
+ * @function RUserProfile API
+ * @description 사용자 프로필 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/users/:_id"} req.url
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @returns {Object} res
+ * @returns {string} res.profile
+ *
+ * @throws {}
+ *
+ */
 export const findProfile = async (req, res) => {
   try {
     const user = await User(req.user.academyId)
       .findById(req.params._id)
       .select("profile");
-    return res.status(200).send({ profile: user?.profile });
+
+    if (!user) {
+      return res.status(404).send({ message: __NOT_FOUND("user") });
+    }
+    return res.status(200).send({ profile: user.profile });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

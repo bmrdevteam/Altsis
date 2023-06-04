@@ -57,19 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Get user profile by _id
-   * @type GET
-   * @auth member
-   * @returns User
-   */
-  async function RUserProfile(_id: string) {
-    const { profile } = await database.R({
-      location: `users/${_id}/profile`,
-    });
-    return { profile: profile as string | undefined };
-  }
-
-  /**
    * Update user calendar
    * @type PUT
    * @auth member
@@ -1102,7 +1089,6 @@ export default function useApi() {
 
   return {
     UserApi: {
-      RUserProfile,
       UUserCalendar,
     },
     SeasonApi: {
