@@ -51,7 +51,6 @@ import useAPIv2 from "hooks/useAPIv2";
 type Props = { schoolData: any };
 
 const Users = (props: Props) => {
-  const { UserApi } = useApi();
   const { UserAPI } = useAPIv2();
 
   const [isUserListLoading, setIsUserListLoading] = useState(true);

@@ -351,7 +351,7 @@ export default function useAPIv2() {
       data: props.data,
     });
 
-    return { email: email as string };
+    return { email: email as string | undefined };
   }
 
   /**
@@ -372,7 +372,25 @@ export default function useAPIv2() {
       data: props.data,
     });
 
-    return { tel: tel as string };
+    return { tel: tel as string | undefined };
+  }
+
+  /**
+   * UUserCalendar API
+   * 캘린더 변경 API
+   * @auth user
+   */
+  async function UUserCalendar(props: {
+    data: {
+      calendar?: string;
+    };
+  }) {
+    const { calendar } = await database.U({
+      location: `users/calendar`,
+      data: props.data,
+    });
+
+    return { calendar: calendar as string | undefined };
   }
 
   /**
@@ -557,7 +575,7 @@ export default function useAPIv2() {
     const { profile } = await database.R({
       location: `users/${props.params._id}/profile`,
     });
-    return { profile: profile as string };
+    return { profile: profile as string | undefined };
   }
 
   return {
@@ -580,6 +598,7 @@ export default function useAPIv2() {
       UUserAuth,
       UUserEmail,
       UUserTel,
+      UUserCalendar,
       UUserPassword,
       CUserSchool,
       DUserSchool,

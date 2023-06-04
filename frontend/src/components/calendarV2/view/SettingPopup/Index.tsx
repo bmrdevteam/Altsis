@@ -3,7 +3,7 @@ import Callout from "components/callout/Callout";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
+import useAPIv2 from "hooks/useAPIv2";
 import useGoogleAPI from "hooks/useGoogleAPI";
 import { useEffect, useRef, useState } from "react";
 
@@ -19,7 +19,7 @@ const placeholder = "캘린더 ID";
 
 const Index = (props: Props) => {
   const { currentUser, setCurrentUser } = useAuth();
-  const { UserApi } = useApi();
+  const { UserAPI } = useAPIv2();
   const { CalendarAPI } = useGoogleAPI();
 
   const calendarRef = useRef<string | undefined>();
@@ -43,8 +43,10 @@ const Index = (props: Props) => {
       return;
     }
     try {
-      const { calendar } = await UserApi.UUserCalendar({
-        calendar: calendarRef.current,
+      const { calendar } = await UserAPI.UUserCalendar({
+        data: {
+          calendar: calendarRef.current,
+        },
       });
       calendarRef.current = calendar;
       currentUser.calendar = calendar;

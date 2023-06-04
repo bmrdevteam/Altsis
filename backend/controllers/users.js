@@ -643,6 +643,28 @@ export const updateSchoolsBulk = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.UserAPI
+ * @function UUserCalendar API
+ * @description 캘린더 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/calendar"} req.url
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.calendar
+ *
+ * @param {Object} res
+ * @param {string} res.calendar
+ *
+ * @throws {}
+ *
+ */
 export const updateCalendar = async (req, res) => {
   try {
     const user = req.user;

@@ -57,20 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Update user calendar
-   * @type PUT
-   * @auth member
-   * @returns User
-   */
-  async function UUserCalendar(props: { calendar?: string }) {
-    const { calendar } = await database.U({
-      location: `users/calendar`,
-      data: props,
-    });
-    return { calendar };
-  }
-
-  /**
    * Season Api
    * ##########################################################################
    */
@@ -1088,9 +1074,6 @@ export default function useApi() {
   }
 
   return {
-    UserApi: {
-      UUserCalendar,
-    },
     SeasonApi: {
       CSeason,
       RSeason,

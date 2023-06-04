@@ -57,7 +57,7 @@ import useAPIv2 from "hooks/useAPIv2";
 type Props = {};
 
 const Users = (props: Props) => {
-  const { UserApi, SchoolApi } = useApi();
+  const { SchoolApi } = useApi();
   const { UserAPI } = useAPIv2();
 
   const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
