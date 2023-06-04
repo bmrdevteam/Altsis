@@ -41,6 +41,8 @@ import Select from "components/select/Select";
 import Input from "components/input/Input";
 import Autofill from "components/input/Autofill";
 
+import useAPIv2 from "hooks/useAPIv2";
+
 type Props = {
   setPopupActive: any;
   seasonData: any;
@@ -49,7 +51,8 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { UserApi, RegistrationApi } = useApi();
+  const { RegistrationApi } = useApi();
+  const { UserAPI } = useAPIv2();
 
   const [userList, setUserList] = useState<any>();
   const selectedUsers = useRef<any>(null);
@@ -90,9 +93,11 @@ function Basic(props: Props) {
   ];
 
   useEffect(() => {
-    UserApi.RUsers({ school: props.seasonData.school }).then((res) => {
-      setUserList(res);
-    });
+    UserAPI.RUsers({ query: { sid: props.seasonData.school } }).then(
+      ({ users }) => {
+        setUserList(users);
+      }
+    );
   }, []);
 
   return (

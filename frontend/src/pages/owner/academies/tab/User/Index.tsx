@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 // hooks
-import useDatabase from "hooks/useDatabase";
 import { copyClipBoard } from "functions/functions";
 
 // components
@@ -41,10 +40,13 @@ import Popup from "components/popup/Popup";
 // popup/tab elements
 import Basic from "./tab/Basic";
 
+import useAPIv2 from "hooks/useAPIv2";
+
 type Props = {};
 
 const User = (props: Props) => {
-  const database = useDatabase();
+  const { UserAPI } = useAPIv2();
+
   const { pid: academyId = "" } = useParams<"pid">();
   const { school } = useParams<"school">();
 
@@ -56,19 +58,25 @@ const User = (props: Props) => {
   const [editPopupActive, setEditPopupActive] = useState(false);
 
   async function getDocumentList() {
-    const { users } = await database.R({
-      location: `academies/${academyId}/users${
-        school ? `?school=${school}` : ``
-      }`,
+    const { users } = await UserAPI.RUsers({
+      query: {
+        academyId,
+      },
     });
     return users;
   }
 
   async function getDocument(id: string) {
-    const result = await database.R({
-      location: `academies/${academyId}/users/${id}`,
+    const { user } = await UserAPI.RUser({
+      params: {
+        _id: id,
+      },
+      query: {
+        academyId,
+      },
     });
-    return result;
+
+    return user;
   }
 
   useEffect(() => {

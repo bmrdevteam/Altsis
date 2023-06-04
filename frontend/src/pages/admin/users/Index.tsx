@@ -1,6 +1,5 @@
 /**
- * @file Users Page
- * viewing academy Users
+ * @file Academy Users
  *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
@@ -34,50 +33,50 @@ import { useEffect, useState, useRef } from "react";
 import style from "style/pages/admin/schools.module.scss";
 
 // hooks
-import useApi from "hooks/useApi";
+import useAPIv2 from "hooks/useAPIv2";
 
 // components
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
-import Select from "components/select/Select";
 
 // popup/tab elements
-import Basic from "./tab/Basic";
-import Add from "./tab/Add";
-import AddBulk from "./tab/AddBulk";
-import SchoolBulk from "./tab/SchoolBulk";
+import EditPopup from "./popup/EditPopup/Index";
+import Add from "./popup/Add";
+import AddBulkPopup from "./popup/AddBulkPopup/Index";
+import SchoolBulkPopup from "./popup/SchoolBulkPopup/Index";
+import RemoveBulkPopup from "./popup/RemoveBulkPopup/Index";
+
 import _ from "lodash";
 import Navbar from "layout/navbar/Navbar";
-import Input from "components/input/Input";
+import Svg from "assets/svg/Svg";
+import Popup from "components/popup/Popup";
 
 type Props = {};
 
 const Users = (props: Props) => {
-  const { UserApi, SchoolApi } = useApi();
-  const [isSchoolListLoading, setIsSchoolListLoading] = useState(true);
-  const [isUserListLoading, setIsUserListLoading] = useState(true);
+  const { UserAPI } = useAPIv2();
+
+  const [isLoading, setIsLoading] = useState(true);
 
   /* user list */
   const [userList, setUserList] = useState<any[]>([]);
-  const [user, setUser] = useState<string>();
-
-  /* school list */
-  const [schoolList, setSchoolList] = useState<any>();
+  const [selectedUser, setSelectedUser] = useState<any>({});
 
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
+
+  const [addSelectPopupActive, setAddSelectPopupActive] =
+    useState<boolean>(false);
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
   const [addBulkPopupActive, setAddBulkPopupActive] = useState<boolean>(false);
   const [schoolBulkPopup, setSchoolBulkPopupActive] = useState<boolean>(false);
+  const [removeBulkPopupActive, setRemoveBulkPopupActive] =
+    useState<boolean>(false);
+
   const userSelectRef = useRef<any[]>([]);
 
-  const updateUserList = (userId: string, userData: any) => {
-    const idx = _.findIndex(userList, { userId });
-    userList[idx] = userData;
-  };
-
   const addUserList = (users: any[]) => {
-    users.forEach((user) => userList.push(user));
+    setUserList([...userList, ...users]);
   };
 
   const popUserList = (_ids: any[]) => {
@@ -89,34 +88,19 @@ const Users = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isSchoolListLoading) {
-      SchoolApi.RSchools()
-        .then((res) => {
-          setSchoolList(res);
-          setIsSchoolListLoading(false);
-          setIsUserListLoading(true);
-        })
-        .catch(() => {
-          alert("failed to load data");
-        });
-    }
-    return () => {};
-  }, [isSchoolListLoading]);
-  useEffect(() => {
-    if (isUserListLoading) {
-      UserApi.RUsers({})
-        .then((res) => {
-          // console.log(res);
-          setUserList(res);
+    if (isLoading) {
+      UserAPI.RUsers({})
+        .then(({ users }) => {
+          setUserList(users);
           userSelectRef.current = [];
-          setIsUserListLoading(false);
+          setIsLoading(false);
         })
         .catch(() => {
           alert("failed to load data");
         });
     }
     return () => {};
-  }, [isUserListLoading]);
+  }, [isLoading]);
 
   return (
     <>
@@ -124,85 +108,54 @@ const Users = (props: Props) => {
       <div className={style.section}>
         <div className={style.title}>아카데미 사용자 관리</div>
 
-        <Button
-          type={"ghost"}
+        <div
           style={{
-            borderRadius: "4px",
-            height: "32px",
-            margin: "24px 0",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={async () => {
-            setAddPopupActive(true);
+            display: "flex",
+            justifyContent: "space-between",
+            margin: "24px 12px",
           }}
         >
-          + 단일 사용자 생성
-        </Button>
-        <Button
-          type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            margin: "24px 0",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={async () => {
-            setAddBulkPopupActive(true);
-          }}
-        >
-          + 사용자 일괄 생성
-        </Button>
-        <Button
-          type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            margin: "24px 0",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={async () => {
-            // console.log("userSelectRef.current is ", userSelectRef.current);
-            if (userSelectRef.current.length === 0) {
-              alert("선택된 사용자가 없습니다.");
-            } else {
-              const _ids = _.filter(
-                userSelectRef.current,
-                (user) => user.auth !== "admin"
-              ).map((user) => user._id);
-              UserApi.DUsers({ _ids })
-                .then(() => {
-                  alert(SUCCESS_MESSAGE);
-                  userSelectRef.current = [];
-                  popUserList(_ids);
-                })
-                .catch((err) => alert(err.response.data.message));
-            }
-          }}
-        >
-          선택된 사용자 삭제
-        </Button>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <Button
+              type="ghost"
+              onClick={() => {
+                setAddSelectPopupActive(true);
+              }}
+            >
+              <Svg type={"userPlus"} width="28px" height="28px" />
+            </Button>
 
-        <Button
-          type={"ghost"}
-          style={{
-            borderRadius: "4px",
-            height: "32px",
-            margin: "24px 0",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={async () => {
-            // console.log("userSelectRef.current is ", userSelectRef.current);
-            if (userSelectRef.current.length === 0) {
-              alert("선택된 사용자가 없습니다.");
-            } else {
-              setSchoolBulkPopupActive(true);
-            }
-          }}
-        >
-          선택된 사용자 학교 설정
-        </Button>
+            <Button
+              type="ghost"
+              onClick={() => {
+                if (userSelectRef.current.length === 0) {
+                  alert("선택된 사용자가 없습니다.");
+                } else {
+                  setSchoolBulkPopupActive(true);
+                }
+              }}
+            >
+              <Svg type={"institution"} width="28px" height="28px" />
+            </Button>
+          </div>
 
-        {!isUserListLoading && (
+          <div style={{ display: "flex" }}>
+            <Button
+              type="ghost"
+              onClick={() => {
+                if (userSelectRef.current.length === 0) {
+                  alert("선택된 사용자가 없습니다.");
+                } else {
+                  setRemoveBulkPopupActive(true);
+                }
+              }}
+            >
+              <Svg type={"userMinus"} width="28px" height="28px" />
+            </Button>
+          </div>
+        </div>
+
+        {!isLoading && (
           <Table
             type="object-array"
             control
@@ -234,18 +187,6 @@ const Users = (props: Props) => {
                 width: "48px",
               },
               {
-                text: "ID",
-                key: "userId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "이름",
-                key: "userName",
-                type: "text",
-                textAlign: "center",
-              },
-              {
                 text: "등급",
                 key: "auth",
                 textAlign: "center",
@@ -260,6 +201,18 @@ const Users = (props: Props) => {
                 width: "100px",
               },
               {
+                text: "이름",
+                key: "userName",
+                type: "text",
+                textAlign: "center",
+              },
+              {
+                text: "ID",
+                key: "userId",
+                type: "text",
+                textAlign: "center",
+              },
+              {
                 text: "학교",
                 key: "schoolsText",
                 textAlign: "center",
@@ -270,7 +223,7 @@ const Users = (props: Props) => {
                 text: "자세히",
                 type: "button",
                 onClick: (e: any) => {
-                  setUser(e._id);
+                  setSelectedUser(userList[e.tableRowIndex - 1]);
                   setEditPopupActive(true);
                 },
 
@@ -287,34 +240,82 @@ const Users = (props: Props) => {
           />
         )}
       </div>
-      {editPopupActive && user && (
-        <Basic
-          user={user}
-          schoolList={schoolList}
+      {editPopupActive && selectedUser?._id && (
+        <EditPopup
+          user={selectedUser}
+          setUser={setSelectedUser}
           setPopupAcitve={setEditPopupActive}
-          updateUserList={updateUserList}
         />
+      )}
+      {addSelectPopupActive && (
+        <Popup
+          setState={setAddSelectPopupActive}
+          style={{ maxWidth: "480px", width: "100%" }}
+          closeBtn
+          title="사용자 생성"
+          contentScroll
+        >
+          <div className={style.popup}>
+            <Button
+              type={"ghost"}
+              onClick={() => {
+                setAddSelectPopupActive(false);
+                setAddPopupActive(true);
+              }}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                marginTop: "24px",
+              }}
+            >
+              + 단일 사용자 생성
+            </Button>
+            <Button
+              type={"ghost"}
+              onClick={() => {
+                setAddSelectPopupActive(false);
+                setAddBulkPopupActive(true);
+              }}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                marginTop: "24px",
+              }}
+            >
+              + 사용자 일괄 생성
+            </Button>
+          </div>
+        </Popup>
       )}
       {addPopupActive && (
         <Add
-          schoolList={schoolList}
           setPopupAcitve={setAddPopupActive}
           addUserList={addUserList}
+          setUser={setSelectedUser}
+          setEditPopupActive={setEditPopupActive}
         />
       )}
       {addBulkPopupActive && (
-        <AddBulk
-          schoolList={schoolList}
+        <AddBulkPopup
+          userList={userList}
           setPopupActive={setAddBulkPopupActive}
           addUserList={addUserList}
         />
       )}
       {schoolBulkPopup && (
-        <SchoolBulk
-          schoolList={schoolList}
+        <SchoolBulkPopup
           setPopupActive={setSchoolBulkPopupActive}
-          updateUserList={updateUserList}
           selectedUserList={userSelectRef.current}
+          setIsLoading={setIsLoading}
+        />
+      )}
+      {removeBulkPopupActive && (
+        <RemoveBulkPopup
+          setPopupActive={setRemoveBulkPopupActive}
+          selectedUserList={userSelectRef.current}
+          popUserList={popUserList}
         />
       )}
     </>

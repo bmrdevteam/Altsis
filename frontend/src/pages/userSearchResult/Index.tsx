@@ -43,12 +43,15 @@ import AppsTab from "./tab/AppsTab";
 import UserInfo from "./UserInfo";
 
 import style from "style/pages/userSearchResult/userSearchResult.module.scss";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
 const UserSearchResult = (props: Props) => {
   const { currentRegistration } = useAuth();
-  const { RegistrationApi, UserApi } = useApi();
+  const { RegistrationApi } = useApi();
+  const { UserAPI } = useAPIv2();
+
   const params = useParams();
 
   const [user, setUser] = useState<any>();
@@ -64,17 +67,17 @@ const UserSearchResult = (props: Props) => {
             season: currentRegistration.season,
             user: uid,
           });
-          const rawUser: any = await UserApi.RUser(uid);
-          if (!rawRegistrations.length || !rawUser) {
+          const { profile } = await UserAPI.RUserProfile({
+            params: { _id: uid },
+          });
+          if (!rawRegistrations.length) {
             throw new Error("No such user");
           }
           const result = {
             ...rawRegistrations[0],
             _id: rawRegistrations[0].user,
           };
-          if (rawUser?.profile) {
-            result.profile = rawUser.profile;
-          }
+          result.profile = profile;
           return result;
         } catch (e) {}
       };

@@ -1,5 +1,5 @@
 /**
- * @file Register Page
+ * @file Register Page - This page is deprecated
  *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
@@ -53,51 +53,52 @@ const Register = (props: Props) => {
     };
   }, []);
 
-  const onRegisterFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    axios
-      .post("http://localhost:3000/api/user/register", {
-        userId: usernameRef.current?.value,
-        password: passwordRef.current?.value,
-        email: emailRef.current?.value,
-      })
-      .then(function (response) {
-        // console.log(response);
-      })
-      .catch(function (error) {
-        const errorMsg = error.response.data.errors;
+  // deprecated API
+  // const onRegisterFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   axios
+  //     .post("http://localhost:3000/api/user/register", {
+  //       userId: usernameRef.current?.value,
+  //       password: passwordRef.current?.value,
+  //       email: emailRef.current?.value,
+  //     })
+  //     .then(function (response) {
+  //       // console.log(response);
+  //     })
+  //     .catch(function (error) {
+  //       const errorMsg = error.response.data.errors;
 
-        for (let i = 0; i < errorMsg.length; i++) {
-          // console.log(errorMsg[i]?.msg);
-          // console.log(errorMsg[i]?.param);
-          setErrorMessage(errorMsg[i]?.msg);
+  //       for (let i = 0; i < errorMsg.length; i++) {
+  //         // console.log(errorMsg[i]?.msg);
+  //         // console.log(errorMsg[i]?.param);
+  //         setErrorMessage(errorMsg[i]?.msg);
 
-          switch (errorMsg[i]?.msg) {
-            case "409":
-              //conflict
-              break;
-            case "ID length error":
-              // console.log(1);
+  //         switch (errorMsg[i]?.msg) {
+  //           case "409":
+  //             //conflict
+  //             break;
+  //           case "ID length error":
+  //             // console.log(1);
 
-              break;
-            case "ID must be alphanumeric":
-              // console.log(2);
+  //             break;
+  //           case "ID must be alphanumeric":
+  //             // console.log(2);
 
-              break;
-            case "Password length error":
-              // console.log(3);
+  //             break;
+  //           case "Password length error":
+  //             // console.log(3);
 
-              break;
-            case "Password must contain one special character":
-              // console.log(4);
+  //             break;
+  //           case "Password must contain one special character":
+  //             // console.log(4);
 
-              break;
+  //             break;
 
-            default:
-          }
-        }
-      });
-  };
+  //           default:
+  //         }
+  //       }
+  //     });
+  // };
   return (
     <div className={style.section}>
       <div className={style.container}>

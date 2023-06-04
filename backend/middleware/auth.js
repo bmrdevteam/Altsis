@@ -1,4 +1,3 @@
-import { logger } from "../log/logger.js";
 import { conn } from "../_database/mongodb/index.js";
 import { client } from "../_database/redis/index.js";
 
@@ -30,57 +29,59 @@ export const forceNotLoggedIn = (req, res, next) => {
 };
 
 export const isOwner = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    if (req.user.auth == "owner") {
-      if (req.params.academyId) {
-        if (conn[req.params.academyId]) {
-          req.user.academyId = req.params.academyId;
-        } else {
-          return res.status(404).send({ message: "Academy not found" });
-        }
-      }
-      next();
-    } else {
-      res.status(401).send({ message: "You are not authorized." });
-    }
+  if (req.isAuthenticated() && req.user.auth === "owner") {
+    next();
   } else {
-    res.status(403).send({ message: "You are not logged in." });
+    res.status(403).send();
+  }
+};
+
+export const ownerToAdmin = (req, res, next) => {
+  if (req.isAuthenticated() && req.user.auth === "owner") {
+    if (!("academyId" in req.params)) {
+      return res.status(400).send();
+    }
+    if (!conn[req.params.academyId]) {
+      return res.status(404).send();
+    }
+    req.user.academyId = req.params.academyId;
+    next();
+  } else {
+    res.status(403).send();
   }
 };
 
 export const isAdmin = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    if (req.user.auth == "admin") {
-      next();
-    } else {
-      res.status(401).send({ message: "You are not authorized." });
-    }
+  if (req.isAuthenticated() && req.user.auth === "admin") {
+    next();
   } else {
-    res.status(403).send({ message: "You are not logged in." });
-  }
-};
-// isAdmin + isManager
-export const isAdManager = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    if (req.user.auth == "admin" || req.user.auth == "manager") {
-      next();
-    } else {
-      res.status(401).send({ message: "You are not authorized." });
-    }
-  } else {
-    res.status(403).send({ message: "You are not logged in." });
+    res.status(403).send();
   }
 };
 
-export const isOwnerOrAdmin = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    if (req.user.auth == "owner" || req.user.auth == "admin") {
-      next();
-    } else {
-      res.status(401).send({ message: "You are not authorized." });
-    }
+// isAdmin || isManager
+export const isAdManager = (req, res, next) => {
+  if (
+    req.isAuthenticated() &&
+    (req.user.auth === "admin" || req.user.auth === "manager")
+  ) {
+    next();
   } else {
-    res.status(403).send({ message: "You are not logged in." });
+    res.status(403).send();
+  }
+};
+
+// isOwner || isAdmin || isManager
+export const isOwAdManager = (req, res, next) => {
+  if (
+    req.isAuthenticated() &&
+    (req.user.auth === "owner" ||
+      req.user.auth === "admin" ||
+      req.user.auth === "manager")
+  ) {
+    next();
+  } else {
+    res.status(403).send();
   }
 };
 

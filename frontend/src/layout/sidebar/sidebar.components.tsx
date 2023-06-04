@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 const Nav = ({
   children,
@@ -180,6 +181,7 @@ const NavProfile = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [logoutPopupActive, setLogoutPopupActive] = useState(false);
+  const { UserAPI } = useAPIv2();
 
   return (
     <>
@@ -231,12 +233,15 @@ const NavProfile = () => {
               type="ghost"
               disableOnclick
               onClick={() => {
-                fetch(`${process.env.REACT_APP_SERVER_URL}/api/users/logout`, {
-                  credentials: "include",
-                }).then(() => {
-                  window.location.reload();
-                  setLogoutPopupActive(false);
-                });
+                UserAPI.Logout()
+                  .then(() => {
+                    window.location.reload();
+                    setLogoutPopupActive(false);
+                  })
+                  .catch((err: any) => {
+                    ALERT_ERROR(err);
+                    window.location.reload();
+                  });
               }}
             >
               로그아웃

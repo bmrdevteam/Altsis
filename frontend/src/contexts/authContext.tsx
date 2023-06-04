@@ -12,6 +12,7 @@ import _ from "lodash";
 import { useCookies } from "react-cookie";
 
 import { TCurrentUser, TSchool, TRegistration, TSeason } from "types/auth";
+import useAPIv2 from "hooks/useAPIv2";
 
 const AuthContext = createContext<any>(null);
 
@@ -26,14 +27,13 @@ export function useAuth(): {
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;
   currentSeason: TSeason;
-  updateUserProfile: React.Dispatch<any>;
-  deleteUserProfile: React.Dispatch<any>;
 } {
   return useContext(AuthContext);
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { UserApi, SeasonApi, SchoolApi, RegistrationApi } = useApi();
+  const { SeasonApi, SchoolApi, RegistrationApi } = useApi();
+  const { UserAPI } = useAPIv2();
   const [cookies, setCookie, removeCookie] = useCookies([
     "currentSchool",
     "currentRegistration",
@@ -60,19 +60,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   let cookieData = "";
 
   async function getLoggedInUser() {
-    const { user, registrations } = await UserApi.RMySelf();
-
-    const userRegistrations = _.orderBy(
-      registrations.filter((r: TRegistration) => r.isActivated),
-      [(reg) => reg?.period?.end ?? ""],
-      ["desc"]
-    );
+    const { user } = await UserAPI.RMySelf();
 
     /* set currentUser */
-    setCurrentUser({
-      ...user,
-      registrations: userRegistrations,
-    });
+    setCurrentUser({ ...user });
     document.title = user.academyName;
 
     /* set currentSchool using cookie */
@@ -93,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /* set currentRegistration using cookie */
-    const re = userRegistrations.filter(
+    const re = user.registrations.filter(
       (r: any) => r.school === user.schools[schoolIdx].school
     );
 
@@ -165,17 +156,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentSeason(season);
   }
 
-  const updateUserProfile = (profile: string) => {
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, profile });
-    }
-  };
-  const deleteUserProfile = () => {
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, profile: undefined });
-    }
-  };
-
   const reloadRegistration = async () => {
     if (currentRegistration?._id) {
       const registration = await RegistrationApi.RRegistration(
@@ -196,8 +176,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     changeRegistration,
     reloadRegistration,
     currentSeason,
-    updateUserProfile,
-    deleteUserProfile,
   };
   return (
     <AuthContext.Provider value={value}>

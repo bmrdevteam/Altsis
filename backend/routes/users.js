@@ -3,7 +3,7 @@ const router = express.Router();
 import * as users from "../controllers/users.js";
 import {
   isLoggedIn,
-  isAdManager,
+  isOwAdManager,
   forceNotLoggedIn,
   isAdmin,
 } from "../middleware/auth.js";
@@ -13,42 +13,42 @@ import * as profile from "../controllers/profiles.js";
 //             User
 //=================================
 
-// ____________ common ____________
+// ____________ Authentication ____________
 router.post("/login/local", forceNotLoggedIn, users.loginLocal);
 router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
 router.get("/logout", isLoggedIn, users.logout);
 
-// ___________ create _____________
+// ___________ Create _____________
 router.post("/", isAdmin, users.create);
-router.post("/bulk", isAdmin, users.createBulk);
 
-// ___________ find _____________
+// ___________ Find _____________
+router.get("/", isOwAdManager, users.findUsers);
 router.get("/current", isLoggedIn, users.current);
-router.get("/:_id?/profile", isLoggedIn, users.findProfile);
-router.get("/:_id?", isLoggedIn, users.find);
+router.get("/:_id", isOwAdManager, users.findUser);
+router.get("/:_id/profile", isLoggedIn, users.findProfile);
 
-// ___________ update(onself) _____________
+// ___________ Update (by user) _____________
 
-router.post("/profile", isLoggedIn, profile.upload);
-// router.get("/profile", isLoggedIn, profile.read);
-router.delete("/profile", isLoggedIn, profile.remove);
-
-router.put("/google", isLoggedIn, users.connectGoogle);
-router.delete("/google", isLoggedIn, users.disconnectGoogle);
-
-router.put("/email", isLoggedIn, users.updateEmail);
-router.put("/tel", isLoggedIn, users.updateTel);
-router.put("/password", isLoggedIn, users.updatePassword);
+router.put("/profile", isLoggedIn, profile.update);
 router.put("/calendar", isLoggedIn, users.updateCalendar);
 
-// ___________ update _____________
+// ___________ Update (by user & admin) _____________
 
-router.put("/schools/bulk", isAdmin, users.updateSchoolsBulk);
-router.put("/:_id/password", isLoggedIn, users.updatePasswordByAdmin);
+router.put("/:_id/password", isLoggedIn, users.updatePassword);
+router.put("/:_id/email", isLoggedIn, users.updateEmail);
+router.put("/:_id/tel", isLoggedIn, users.updateTel);
 
-router.put("/:_id", isLoggedIn, users.update);
+// ___________ Update (by admin) _____________
 
-// ___________ delete _____________
-router.delete("/", isAdmin, users.remove);
+router.put("/:_id/auth", isAdmin, users.updateAuth);
+
+router.put("/:_id/google", isAdmin, users.connectGoogleAuth);
+router.delete("/:_id/google", isAdmin, users.disconnectGoogleAuth);
+
+router.post("/:_id/schools", isAdmin, users.registerSchool);
+router.delete("/:_id/schools", isAdmin, users.deregisterSchool);
+
+// ___________ Delete _____________
+router.delete("/:_id", isAdmin, users.remove);
 
 export { router };

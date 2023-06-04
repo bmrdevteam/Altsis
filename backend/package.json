@@ -40,7 +40,6 @@
     "p-queue": "^7.3.4",
     "passport": "^0.6.0",
     "passport-custom": "^1.1.1",
-    "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
     "path": "^0.12.7",
