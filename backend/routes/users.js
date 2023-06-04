@@ -31,7 +31,7 @@ router.get("/:_id", isOwAdManager, users.findUser);
 
 // ___________ update(onself) _____________
 
-router.post("/profile", isLoggedIn, profile.upload); //
+router.put("/profile", isLoggedIn, profile.update);
 
 router.put("/calendar", isLoggedIn, users.updateCalendar);
 

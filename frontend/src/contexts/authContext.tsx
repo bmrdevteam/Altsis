@@ -27,7 +27,6 @@ export function useAuth(): {
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;
   currentSeason: TSeason;
-  updateUserProfile: React.Dispatch<any>;
 } {
   return useContext(AuthContext);
 }
@@ -157,12 +156,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentSeason(season);
   }
 
-  const updateUserProfile = (profile: string) => {
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, profile });
-    }
-  };
-
   const reloadRegistration = async () => {
     if (currentRegistration?._id) {
       const registration = await RegistrationApi.RRegistration(
@@ -183,7 +176,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     changeRegistration,
     reloadRegistration,
     currentSeason,
-    updateUserProfile,
   };
   return (
     <AuthContext.Provider value={value}>

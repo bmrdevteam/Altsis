@@ -376,6 +376,20 @@ export default function useAPIv2() {
   }
 
   /**
+   * UUserProfile API
+   * 프로필사진 변경 API
+   * @auth user
+   */
+  async function UUserProfile(props: { data: FormData }) {
+    const { profile } = await database.U({
+      location: `users/profile`,
+      data: props.data,
+    });
+
+    return { profile: profile as string | undefined };
+  }
+
+  /**
    * UUserCalendar API
    * 캘린더 변경 API
    * @auth user
@@ -598,6 +612,7 @@ export default function useAPIv2() {
       UUserAuth,
       UUserEmail,
       UUserTel,
+      UUserProfile,
       UUserCalendar,
       UUserPassword,
       CUserSchool,
