@@ -100,7 +100,7 @@ export const loginLocal = async (req, res) => {
  *
  */
 export const loginGoogle = async (req, res) => {
-  for (let field of ["academyId", "crential"]) {
+  for (let field of ["academyId", "credential"]) {
     if (!(field in req.body)) {
       return res.status(400).send({ message: FIELD_REQUIRED(field) });
     }
