@@ -548,6 +548,18 @@ export default function useAPIv2() {
     return { user: user as TCurrentUser };
   }
 
+  /**
+   * RUserProfile API
+   * 사용자 프로필사진 조회 API
+   * @auth user
+   */
+  async function RUserProfile(props: { params: { _id: string } }) {
+    const { profile } = await database.R({
+      location: `users/${props.params._id}/profile`,
+    });
+    return { profile: profile as string };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -576,6 +588,7 @@ export default function useAPIv2() {
       RUser,
       DUser,
       RMySelf,
+      RUserProfile,
     },
   };
 }

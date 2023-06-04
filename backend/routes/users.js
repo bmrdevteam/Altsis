@@ -22,8 +22,8 @@ router.get("/logout", isLoggedIn, users.logout);
 router.post("/", isAdmin, users.createByAdmin);
 
 // ___________ find _____________
-router.get("/current", isLoggedIn, users.current); //
-router.get("/:_id?/profile", isLoggedIn, users.findProfile); //
+router.get("/current", isLoggedIn, users.current);
+router.get("/:_id/profile", isLoggedIn, users.findProfile);
 router.get("/", isOwAdManager, users.findUsers);
 router.get("/:_id", isOwAdManager, users.findUser);
 
