@@ -57,19 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Get user Logged In
-   * @type GET
-   * @auth member
-   * @returns LoggedIn User
-   */
-  async function RMySelf() {
-    const { user, registrations } = await database.R({
-      location: "users/current",
-    });
-    return { user, registrations };
-  }
-
-  /**
    * Get user profile by _id
    * @type GET
    * @auth member
@@ -1115,7 +1102,6 @@ export default function useApi() {
 
   return {
     UserApi: {
-      RMySelf,
       RUserProfile,
       UUserCalendar,
     },
