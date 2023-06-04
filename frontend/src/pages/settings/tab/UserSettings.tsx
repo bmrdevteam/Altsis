@@ -168,8 +168,8 @@ const TelEditPopup = (props: {
 };
 
 const UserSettings = (props: Props) => {
-  const { currentUser, updateUserProfile } = useAuth();
-  const database = useDatabase();
+  const { currentUser, setCurrentUser } = useAuth();
+  const { UserAPI } = useAPIv2();
 
   /* popup Activattion */
   const [emailEditPopupActive, setEmailEditPopupActive] =
@@ -201,17 +201,12 @@ const UserSettings = (props: Props) => {
     const formData = new FormData();
     formData.append("img", e.target.files[0]);
 
-    await database
-      .C({
-        location: "users/profile",
-        data: formData,
-      })
-      .then((res) => {
-        updateUserProfile(res?.profile);
-      })
-      .catch((error) => {
-        alert(error);
-      });
+    try {
+      const { profile } = await UserAPI.UUserProfile({ data: formData });
+      setCurrentUser({ ...currentUser, profile });
+    } catch (err: any) {
+      alert("사진을 업로드할 수 없습니다");
+    }
   };
 
   return (
