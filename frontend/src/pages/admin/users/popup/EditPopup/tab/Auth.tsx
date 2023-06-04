@@ -63,7 +63,7 @@ function Auth(props: Props) {
         alert("비밀번호 형식에 맞지 않습니다.");
         return;
       }
-      await UserAPI.UPasswordByAdmin({
+      await UserAPI.UUserPassword({
         params: { uid: props.user._id },
         data: {
           password: passwordRef.current,
@@ -83,7 +83,7 @@ function Auth(props: Props) {
         alert("이메일을 입력하세요");
         return;
       }
-      const { snsId } = await UserAPI.ConnectGoogleByAdmin({
+      const { snsId } = await UserAPI.CGoogleAuth({
         params: { uid: props.user._id },
         data: {
           email: emailRef.current,
@@ -100,7 +100,7 @@ function Auth(props: Props) {
 
   const onClickDisconnectHandler = async () => {
     try {
-      const { snsId } = await UserAPI.DisconnectGoogleByAdmin({
+      const { snsId } = await UserAPI.DGoogleAuth({
         params: { uid: props.user._id },
       });
       alert(SUCCESS_MESSAGE);

@@ -275,11 +275,11 @@ export default function useAPIv2() {
   }
 
   /**
-   * ConnectGoogleByAdmin API
+   * CGoogleAuth API
    * 구글 로그인 활성화 API
    * @auth admin
    */
-  async function ConnectGoogleByAdmin(props: {
+  async function CGoogleAuth(props: {
     params: {
       uid: string;
     };
@@ -296,11 +296,11 @@ export default function useAPIv2() {
   }
 
   /**
-   * DisconnectGoogleByAdmin API
+   * DGoogleAuth API
    * 구글 로그인 비활성화 API
    * @auth admin
    */
-  async function DisconnectGoogleByAdmin(props: {
+  async function DGoogleAuth(props: {
     params: {
       uid: string;
     };
@@ -313,11 +313,11 @@ export default function useAPIv2() {
   }
 
   /**
-   * UAuthByAdmin API
+   * UUserAuth API
    * 등급 변경 API
    * @auth admin
    */
-  async function UAuthByAdmin(props: {
+  async function UUserAuth(props: {
     params: {
       uid: string;
     };
@@ -334,16 +334,16 @@ export default function useAPIv2() {
   }
 
   /**
-   * UEmailByAdmin API
-   * 등급 변경 API
-   * @auth admin
+   * UUserEmail API
+   * 이메일 변경 API
+   * @auth user
    */
-  async function UEmailByAdmin(props: {
+  async function UUserEmail(props: {
     params: {
       uid: string;
     };
     data: {
-      email: string;
+      email?: string;
     };
   }) {
     const { email } = await database.U({
@@ -355,16 +355,16 @@ export default function useAPIv2() {
   }
 
   /**
-   * UTelByAdmin API
+   * UUserTel API
    * 전화번호 변경 API
-   * @auth admin
+   * @auth user
    */
-  async function UTelByAdmin(props: {
+  async function UUserTel(props: {
     params: {
       uid: string;
     };
     data: {
-      tel: string;
+      tel?: string;
     };
   }) {
     const { tel } = await database.U({
@@ -376,11 +376,11 @@ export default function useAPIv2() {
   }
 
   /**
-   * UPasswordByAdmin API
+   * UUserPassword API
    * 비밀번호 변경 API
-   * @auth admin
+   * @auth user
    */
-  async function UPasswordByAdmin(props: {
+  async function UUserPassword(props: {
     params: {
       uid: string;
     };
@@ -395,11 +395,11 @@ export default function useAPIv2() {
   }
 
   /**
-   * CUserSchoolByAdmin API
+   * CUserSchool API
    * 소속 학교 추가 API
    * @auth admin
    */
-  async function CUserSchoolByAdmin(props: {
+  async function CUserSchool(props: {
     params: {
       uid: string;
     };
@@ -421,11 +421,11 @@ export default function useAPIv2() {
   }
 
   /**
-   * DUserSchoolByAdmin API
+   * DUserSchool API
    * 소속 학교 삭제 API
    * @auth admin
    */
-  async function DUserSchoolByAdmin(props: {
+  async function DUserSchool(props: {
     params: {
       uid: string;
     };
@@ -447,11 +447,11 @@ export default function useAPIv2() {
   }
 
   /**
-   * CUserByAdmin API
+   * CUser API
    * 사용자 생성 API
    * @auth admin
    */
-  async function CUserByAdmin(props: {
+  async function CUser(props: {
     data: {
       schools: { school: string }[];
       auth: "member" | "manager";
@@ -531,7 +531,7 @@ export default function useAPIv2() {
 
   /**
    * RMySelf API
-   * 사용자 본인 조회 API
+   * 본인 조회 API
    * @auth user
    */
   async function RMySelf() {
@@ -575,15 +575,15 @@ export default function useAPIv2() {
       LoginLocal,
       LoginGoogle,
       Logout,
-      ConnectGoogleByAdmin,
-      DisconnectGoogleByAdmin,
-      UAuthByAdmin,
-      UEmailByAdmin,
-      UTelByAdmin,
-      UPasswordByAdmin,
-      CUserSchoolByAdmin,
-      DUserSchoolByAdmin,
-      CUserByAdmin,
+      CGoogleAuth,
+      DGoogleAuth,
+      UUserAuth,
+      UUserEmail,
+      UUserTel,
+      UUserPassword,
+      CUserSchool,
+      DUserSchool,
+      CUser,
       RUsers,
       RUser,
       DUser,
