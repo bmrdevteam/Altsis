@@ -31,6 +31,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/authContext";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 /**
  *
@@ -43,6 +44,7 @@ import { useAuth } from "../contexts/authContext";
 export default function useGoogleLogin(academyId: string) {
   // script script
   const [loadingScript, setLoadingScript] = useState<boolean>(true);
+  const { UserAPI } = useAPIv2();
 
   //load script on load
   useEffect(() => {
@@ -86,23 +88,18 @@ export default function useGoogleLogin(academyId: string) {
    *
    */
   window.handleGoogleLogin = function (response: any) {
-    axios
-      .post(
-        // send post request
-        `${process.env.REACT_APP_SERVER_URL}/api/users/login/google`,
-
-        // send the credential
-        {
-          credential: response.credential,
-          academyId: academyId,
-        },
-
-        // send post request with 🍪 cookies
-        { withCredentials: true }
-      )
+    UserAPI.LoginGoogle({
+      data: {
+        credential: response.credential,
+        academyId,
+      },
+    })
       .then(() => {
         //redirect the user to the index page on success
         window.location.replace("/");
+      })
+      .catch((err) => {
+        ALERT_ERROR(err);
       });
   };
 

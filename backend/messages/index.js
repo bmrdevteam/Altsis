@@ -56,6 +56,26 @@ export const FIELD_INVALID = (field) => `${field.toUpperCase()}_INVALID`;
  */
 
 /**
+ * @tag 401 Unauthorized
+ *
+ * @alias ACADEMY_INACTIVATED
+ * @description 아카데미가 비활성화됨
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const ACADEMY_INACTIVATED = "ACADEMY_INACTIVATED";
+
+/**
+ * @tag 401 Unauthorized
+ *
+ * @alias PASSWORD_INCORRECT
+ * @description 비밀번호 틀림
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const PASSWORD_INCORRECT = "PASSWORD_INCORRECT";
+
+/**
  * -----------------------------------------
  * 403 Forbidden
  * 사용자 접근 거부
@@ -114,7 +134,7 @@ export const __NOT_FOUND = (field) => `${field.toUpperCase()}_NOT_FOUND`;
  */
 
 /**
- * @tag 404 Not Found
+ * @tag 409 Conflict
  *
  * @function _FIELD_IN_USE
  * @description 사용 중인 필드
@@ -123,3 +143,27 @@ export const __NOT_FOUND = (field) => `${field.toUpperCase()}_NOT_FOUND`;
  * @memberof APIs._MESSAGE
  */
 export const FIELD_IN_USE = (field) => `${field.toUpperCase()}_IN_USE`;
+
+/**
+ * @tag 409 Conflict
+ *
+ * @function CONNECTED_ALREADY
+ * @description 이미 연결된 필드
+ * @param {string} field - 연결된 필드명
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const CONNECTED_ALREADY = (field) =>
+  `${field.toUpperCase()}_CONNECTED_ALREADY`;
+
+/**
+ * @tag 409 Conflict
+ *
+ * @function DISCONNECTED_ALREADY
+ * @description 이미 해제된 필드
+ * @param {string} field - 해제된 필드명
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const DISCONNECTED_ALREADY = (field) =>
+  `${field.toUpperCase()}_DISCONNECTED_ALREADY`;

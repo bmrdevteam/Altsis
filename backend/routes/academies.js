@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import { isOwner } from "../middleware/auth.js";
+import { isOwner, ownerToAdmin } from "../middleware/auth.js";
 import * as academies from "../controllers/academies.js";
 import * as users from "../controllers/users.js";
 import * as schools from "../controllers/schools.js";
@@ -23,7 +23,10 @@ router.put("/:academyId/tel", isOwner, academies.updateTel);
 router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */
-router.get("/:academyId/users/:_id?", isOwner, users.find);
-router.get("/:academyId/:docType/:docId?", isOwner, academies.findDocuments);
+router.get(
+  "/:academyId/:docType/:docId?",
+  ownerToAdmin,
+  academies.findDocuments
+);
 
 export { router };
