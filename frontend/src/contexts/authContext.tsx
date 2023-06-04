@@ -33,7 +33,7 @@ export function useAuth(): {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { UserApi, SeasonApi, SchoolApi, RegistrationApi } = useApi();
+  const { SeasonApi, SchoolApi, RegistrationApi } = useApi();
   const { UserAPI } = useAPIv2();
   const [cookies, setCookie, removeCookie] = useCookies([
     "currentSchool",

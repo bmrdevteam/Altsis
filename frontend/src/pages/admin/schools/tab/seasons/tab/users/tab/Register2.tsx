@@ -51,7 +51,7 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { UserApi, RegistrationApi } = useApi();
+  const { RegistrationApi } = useApi();
   const { UserAPI } = useAPIv2();
 
   const [userList, setUserList] = useState<any>();

@@ -49,7 +49,7 @@ type Props = {};
 
 const UserSearchResult = (props: Props) => {
   const { currentRegistration } = useAuth();
-  const { RegistrationApi, UserApi } = useApi();
+  const { RegistrationApi } = useApi();
   const { UserAPI } = useAPIv2();
 
   const params = useParams();
