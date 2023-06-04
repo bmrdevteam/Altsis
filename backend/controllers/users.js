@@ -402,29 +402,33 @@ export const createByAdmin = async (req, res) => {
 
 // ____________ find ____________
 
-/* 자기 자신을 읽음 */
+/**
+ * @memberof APIs.UserAPI
+ * @function RMySelf API
+ * @description 사용자 본인 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/users/current"} req.url
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @returns {Object} res
+ * @returns {Object} res.user
+ * @returns {Object[]} res.registrations
+ *
+ * @throws {}
+ *
+ */
 export const current = async (req, res) => {
   try {
     const user = req.user;
 
     // registrations
     const registrations = await Registration(user.academyId)
-      .find({ userId: user.userId })
-      .select([
-        "school",
-        "schoolId",
-        "schoolName",
-        "season",
-        "year",
-        "term",
-        "isActivated",
-        "role",
-        "period",
-        "memos",
-        "permissionSyllabusV2",
-        "permissionEnrollmentV2",
-        "permissionEvaluationV2",
-      ])
+      .find({ user: user._id, isActivated: true })
       .lean();
 
     return res.status(200).send({

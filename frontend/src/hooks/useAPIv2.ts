@@ -12,6 +12,7 @@ import { MESSAGE } from "./_message";
 import { TAcademy } from "types/academies";
 import { TAdmin } from "types/users";
 import _ from "lodash";
+import { TCurrentUser } from "types/auth";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -528,6 +529,25 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * RMySelf API
+   * 사용자 본인 조회 API
+   * @auth user
+   */
+  async function RMySelf() {
+    const { user, registrations } = await database.R({
+      location: `users/current`,
+    });
+
+    user.registrations = _.orderBy(
+      registrations,
+      [(reg) => reg?.period?.end ?? ""],
+      ["desc"]
+    );
+
+    return { user: user as TCurrentUser };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -555,6 +575,7 @@ export default function useAPIv2() {
       RUsers,
       RUser,
       DUser,
+      RMySelf,
     },
   };
 }
