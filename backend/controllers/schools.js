@@ -5,7 +5,12 @@
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import { School, Season } from "../models/index.js";
-import { FIELD_IN_USE, __NOT_FOUND } from "../messages/index.js";
+import {
+  FIELD_INVALID,
+  FIELD_IN_USE,
+  FIELD_REQUIRED,
+  __NOT_FOUND,
+} from "../messages/index.js";
 import { validate } from "../utils/validate.js";
 
 /**
@@ -115,10 +120,43 @@ export const find = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SchoolAPI
+ * @function USchoolFormArchive API
+ * @description 학교 기록 양식 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/schools/formArchive"} req.url
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} req.body
+ * @param {Object[]} req.body.formArchive
+ *
+ * @param {Object} res
+ * @param {Object} res.formArchive - updated formArchive
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
+ *
+ *
+ */
 export const updateFormArchive = async (req, res) => {
   try {
+    if (!("formArchive" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("formArchive") });
+    }
+
     const school = await School(req.user.academyId).findById(req.params._id);
-    if (!school) return res.status(404).send({ message: "school not found" });
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
     school["formArchive"] = req.body.formArchive;
     await school.save();
 
