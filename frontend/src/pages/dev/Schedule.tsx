@@ -35,7 +35,9 @@ export default function Example() {
         calendars.push({
           type: "course",
           from: "enrollments",
-          courses: enrollments,
+          courses: enrollments.filter(
+            (enrollment) => !enrollment.isHiddenFromCalendar
+          ),
         });
       }
 
