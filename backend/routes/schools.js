@@ -9,7 +9,7 @@ import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 
 router.post("/", isAdManager, schools.create);
 
-router.get("/:_id?/:field?", isLoggedIn, schools.find);
+router.get("/:_id?", isLoggedIn, schools.find);
 
 router.put("/:_id/form/archive", isAdManager, schools.updateFormArchive);
 router.put("/:_id/links", isAdManager, schools.updateLinks);

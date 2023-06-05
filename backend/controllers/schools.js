@@ -5,7 +5,7 @@
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import { School, Season } from "../models/index.js";
-import { FIELD_IN_USE } from "../messages/index.js";
+import { FIELD_IN_USE, __NOT_FOUND } from "../messages/index.js";
 import { validate } from "../utils/validate.js";
 
 /**
@@ -70,34 +70,44 @@ export const create = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SchoolAPI
+ * @function RSchools/RSchool API
+ * @description 학교 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/schools/:_id?"} req.url
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ * @param {Object} res.school - _id 파라미터가 있는 경우 단일 조회
+ * @param {Object[]} res.schools - _id 파라미터가 없는 경우 목록 조회
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
+ *
+ *
+ */
 export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const school = await School(req.user.academyId).findById(req.params._id);
-      if (!school) return res.status(404).send({ message: "school not found" });
-
-      if (req.query?.includes === "seasons") {
-        const seasons = await Season(req.user.academyId)
-          .find({ school: school._id })
-          .select([
-            "year",
-            "term",
-            "period",
-            "isActivated",
-            "isActivatedFirst",
-          ]);
-
-        return res.status(200).send({
-          school,
-          seasons,
-        });
+      if (!school) {
+        return res.status(404).send({ message: __NOT_FOUND("school") });
       }
 
-      return res.status(200).send(school);
+      return res.status(200).send({
+        school,
+      });
     }
-    const schools = await School(req.user.academyId)
-      .find({})
-      .select(["schoolId", "schoolName"]);
+
+    const schools = await School(req.user.academyId).find({}).lean();
     return res.status(200).send({ schools });
   } catch (err) {
     logger.error(err.message);
