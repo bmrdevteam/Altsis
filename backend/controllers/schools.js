@@ -129,9 +129,10 @@ export const find = async (req, res) => {
  * @param {Object} req
  *
  * @param {"PUT"} req.method
- * @param {"/schools/formArchive"} req.url
+ * @param {"/schools/:_id/formArchive"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user
+ * @param {"admin"|"manager"} req.user.auth
  *
  * @param {Object} req.body
  * @param {Object[]} req.body.formArchive
@@ -166,10 +167,43 @@ export const updateFormArchive = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SchoolAPI
+ * @function USchoolLinks API
+ * @description 학교 링크 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/schools/:_id/links"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"|"manager"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string[]} req.body.links
+ *
+ * @param {Object} res
+ * @param {Object} res.links - updated links
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
+ *
+ *
+ */
 export const updateLinks = async (req, res) => {
   try {
+    if (!("links" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("links") });
+    }
     const school = await School(req.user.academyId).findById(req.params._id);
-    if (!school) return res.status(404).send({ message: "school not found" });
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
     school["links"] = req.body.links;
     await school.save();
 
@@ -179,10 +213,41 @@ export const updateLinks = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SchoolAPI
+ * @function USchoolCalendars API
+ * @description 학교 캘린더 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/schools/:_id/links"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"|"manager"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.calendar - 학사 일정 캘린더
+ * @param {string?} req.body.calendarTimetable - 시간표 캘린더
+ *
+ * @param {Object} res
+ * @param {string?} res.calendar - updated calendar
+ * @param {string?} res.calendarTimetable - updated calendarTimetable
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
+ *
+ *
+ */
 export const updateCalendars = async (req, res) => {
   try {
     const school = await School(req.user.academyId).findById(req.params._id);
-    if (!school) return res.status(404).send({ message: "school not found" });
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
 
     school["calendar"] = req.body.calendar;
     school["calendarTimetable"] = req.body.calendarTimetable;

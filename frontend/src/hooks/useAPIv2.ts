@@ -658,7 +658,7 @@ export default function useAPIv2() {
   /**
    * USchoolFormArchive API
    * 학교 기록 양식 수정 API
-   * @auth user
+   * @auth admin|manager
    */
   async function USchoolFormArchive(props: {
     params: {
@@ -674,6 +674,52 @@ export default function useAPIv2() {
     });
     return {
       formArchive: formArchive as TSchoolFormArchive,
+    };
+  }
+
+  /**
+   * USchoolFormArchive API
+   * 학교 링크 수정 API
+   * @auth admin|manager
+   */
+  async function USchoolLinks(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      links: string[];
+    };
+  }) {
+    const { links } = await database.U({
+      location: `schools/${props.params._id}/links`,
+      data: props.data,
+    });
+    return {
+      links: links as string[],
+    };
+  }
+
+  /**
+   * USchoolCalendars API
+   * 학교 캘린더 수정 API
+   * @auth admin|manager
+   */
+  async function USchoolCalendars(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      calendar?: string;
+      calendarTimetable?: string;
+    };
+  }) {
+    const { calendar, calendarTimetable } = await database.U({
+      location: `schools/${props.params._id}/calendars`,
+      data: props.data,
+    });
+    return {
+      calendar: calendar as string | undefined,
+      calendarTimetable: calendarTimetable as string | undefined,
     };
   }
 
@@ -714,6 +760,8 @@ export default function useAPIv2() {
       RSchools,
       RSchool,
       USchoolFormArchive,
+      USchoolLinks,
+      USchoolCalendars,
     },
   };
 }

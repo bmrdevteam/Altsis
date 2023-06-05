@@ -1,29 +1,28 @@
-import Button from "components/button/Button";
-import { DateItem } from "components/calendarV2/calendarData";
-import Callout from "components/callout/Callout";
-import Input from "components/input/Input";
-import Table from "components/tableV2/Table";
-import { useAuth } from "contexts/authContext";
-import { unflattenObject } from "functions/functions";
-import useApi from "hooks/useApi";
-import useGoogleAPI from "hooks/useGoogleAPI";
-import _ from "lodash";
 import { useEffect, useRef, useState } from "react";
 import style from "style/pages/archive.module.scss";
+
+import Button from "components/button/Button";
+import Callout from "components/callout/Callout";
+import Input from "components/input/Input";
+import Textarea from "components/textarea/Textarea";
+
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useGoogleAPI from "hooks/useGoogleAPI";
 
 type Props = {
   schoolData: any;
   setSchoolData: any;
 };
-const description01 =
-  "[ 구글 캘린더 - 내 캘린더의 설정 - 일정의 엑세스 권한 - 공개 사용 설정 ]";
-const description02 = "[캘린더 통합 - 캘린더 ID]";
+
+const description = `1. [ 구글 캘린더 - 내 캘린더의 설정 - 일정의 엑세스 권한 - 공개 사용 설정 ]
+2. [캘린더 통합 - 캘린더 ID]`;
+
 const description1 = "[ 일정 ]에서 조회됩니다.";
 const description2 = "[일정 - 월 별로 보기]에서 조회됩니다.";
 const placeholder = "캘린더 ID";
 
 function Calendars(props: Props) {
-  const { SchoolApi } = useApi();
+  const { SchoolAPI } = useAPIv2();
   const { CalendarAPI } = useGoogleAPI();
   const calendarRef = useRef<string | undefined>(
     props.schoolData.calendar ?? ""
@@ -51,8 +50,10 @@ function Calendars(props: Props) {
       return;
     }
     try {
-      const { calendar, calendarTimetable } = await SchoolApi.USchoolCalendars({
-        schoolId: props.schoolData._id,
+      const { calendar, calendarTimetable } = await SchoolAPI.USchoolCalendars({
+        params: {
+          _id: props.schoolData._id,
+        },
         data: {
           calendar: calendarRef.current,
           calendarTimetable: props.schoolData.calendarTimetable,
@@ -61,8 +62,7 @@ function Calendars(props: Props) {
       props.setSchoolData({ ...props.schoolData, calendar, calendarTimetable });
       alert(SUCCESS_MESSAGE);
     } catch (err) {
-      console.error(err);
-      alert("에러가 발생했습니다.");
+      ALERT_ERROR(err);
     } finally {
       setRefresh(true);
     }
@@ -86,8 +86,10 @@ function Calendars(props: Props) {
       return;
     }
     try {
-      const { calendar, calendarTimetable } = await SchoolApi.USchoolCalendars({
-        schoolId: props.schoolData._id,
+      const { calendar, calendarTimetable } = await SchoolAPI.USchoolCalendars({
+        params: {
+          _id: props.schoolData._id,
+        },
         data: {
           calendar: props.schoolData.calendar,
           calendarTimetable: calendarTimetableRef.current,
@@ -96,8 +98,7 @@ function Calendars(props: Props) {
       props.setSchoolData({ ...props.schoolData, calendar, calendarTimetable });
       alert(SUCCESS_MESSAGE);
     } catch (err) {
-      console.error(err);
-      alert("에러가 발생했습니다.");
+      ALERT_ERROR(err);
     } finally {
       setRefresh(true);
     }
@@ -118,10 +119,16 @@ function Calendars(props: Props) {
         type={"info"}
         title={"구글 캘린더 연동하기"}
         child={
-          <ol>
-            <li>{description01}</li>
-            <li>{description02}</li>
-          </ol>
+          <Textarea
+            defaultValue={description}
+            rows={3}
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0)",
+              margin: "0px",
+              padding: "0px",
+            }}
+            disabled
+          />
         }
         showIcon
       />
