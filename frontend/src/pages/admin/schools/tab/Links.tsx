@@ -1,6 +1,6 @@
 import Table from "components/tableV2/Table";
 import { unflattenObject } from "functions/functions";
-import useApi from "hooks/useApi";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useRef } from "react";
 import style from "style/pages/archive.module.scss";
 
@@ -10,7 +10,7 @@ type Props = {
 };
 
 function Links(props: Props) {
-  const { SchoolApi } = useApi();
+  const { SchoolAPI } = useAPIv2();
   const links = useRef<any>(props.schoolData.links || []);
 
   return (
@@ -25,16 +25,16 @@ function Links(props: Props) {
           links.current = e.map((v) => {
             return unflattenObject(v);
           });
-          SchoolApi.USchoolLinks({
-            schoolId: props.schoolData._id,
-            data: links.current,
+          SchoolAPI.USchoolLinks({
+            params: { _id: props.schoolData._id },
+            data: { links: links.current },
           })
-            .then((res) => {
+            .then(({ links }) => {
               alert(SUCCESS_MESSAGE);
-              props.setSchoolData({ ...props.schoolData, links: res });
+              props.setSchoolData({ ...props.schoolData, links });
             })
             .catch((err) => {
-              alert("에러가 발생했습니다.");
+              ALERT_ERROR(err);
             });
         }}
         header={[
