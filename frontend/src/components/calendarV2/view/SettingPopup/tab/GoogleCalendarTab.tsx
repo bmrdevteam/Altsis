@@ -9,11 +9,13 @@ import Input from "components/input/Input";
 import { useAuth } from "contexts/authContext";
 import Textarea from "components/textarea/Textarea";
 
-type Props = {};
+type Props = {
+  setIsReloadRequired: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
 const description = `1. [구글 캘린더 - 내 캘린더의 설정 - 일정의 엑세스 권한 - 공개 사용 설정 체크]
 2. [캘린더 통합 - 캘린더 ID 복사]
-3. 등록 후 새로고침(F5)
+3. 등록
 `;
 const placeholder = "캘린더 ID";
 
@@ -35,6 +37,7 @@ const Index = (props: Props) => {
             timeMax: new Date(2023, 0, 1).toISOString(),
           },
         });
+        props.setIsReloadRequired(true);
       }
     } catch (err) {
       alert(

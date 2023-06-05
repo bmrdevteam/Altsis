@@ -707,6 +707,30 @@ export default function useApi() {
   }
 
   /**
+   * Hide Enrollment from calendar
+   * @type PUT
+   * @auth member
+   */
+  async function UHideEnrollmentFromCalendar(props: { _id: string }) {
+    return await database.U({
+      location: "enrollments/" + props._id + "/hide",
+      data: {},
+    });
+  }
+
+  /**
+   * Show Enrollment from calendar
+   * @type PUT
+   * @auth member
+   */
+  async function UShowEnrollmentFromCalendar(props: { _id: string }) {
+    return await database.U({
+      location: "enrollments/" + props._id + "/show",
+      data: {},
+    });
+  }
+
+  /**
    * Delete Enrollment
    * @type DELETE
    * @auth member
@@ -1121,6 +1145,8 @@ export default function useApi() {
       REnrollmentWithEvaluations,
       UEvaluation,
       UEnrollmentMemo,
+      UHideEnrollmentFromCalendar,
+      UShowEnrollmentFromCalendar,
     },
     FormApi: {
       CForm,
