@@ -952,6 +952,31 @@ export default function useApi() {
       location: `syllabuses/${_id}/confirmed`,
     });
   }
+
+  /**
+   * Hide mentoring syllabus from calendar
+   * @type PUT
+   * @auth member(teacher)
+   */
+  async function UHideSyllabusFromCalendar(props: { _id: string }) {
+    return await database.U({
+      location: "syllabuses/" + props._id + "/hide",
+      data: {},
+    });
+  }
+
+  /**
+   * Show mentoring syllabus on calendar
+   * @type PUT
+   * @auth member(teacher)
+   */
+  async function UShowSyllabusFromCalendar(props: { _id: string }) {
+    return await database.U({
+      location: "syllabuses/" + props._id + "/show",
+      data: {},
+    });
+  }
+
   /**
    * Delete Syllabus
    * @type Delete
@@ -1168,6 +1193,8 @@ export default function useApi() {
       RCourses,
       ConfirmSyllabus,
       UnconfirmSyllabus,
+      UHideSyllabusFromCalendar,
+      UShowSyllabusFromCalendar,
     },
     NotificationApi: {
       SendNotifications,
