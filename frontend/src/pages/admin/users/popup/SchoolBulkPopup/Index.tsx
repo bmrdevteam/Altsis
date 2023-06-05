@@ -39,6 +39,7 @@ import Popup from "components/popup/Popup";
 import useApi from "hooks/useApi";
 import useAPIv2 from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
+import { TSchool } from "types/schools";
 
 // functions
 
@@ -49,12 +50,9 @@ type Props = {
 };
 
 function Index(props: Props) {
-  const { SchoolApi } = useApi();
-  const { UserAPI } = useAPIv2();
+  const { UserAPI, SchoolAPI } = useAPIv2();
 
-  const [schoolList, setSchoolList] = useState<
-    { _id: string; schoolId: string; schoolName: string }[]
-  >([]);
+  const [schoolList, setSchoolList] = useState<TSchool[]>([]);
   const schoolSelectRef = useRef<any[]>([]);
 
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
@@ -117,9 +115,9 @@ function Index(props: Props) {
   };
 
   useEffect(() => {
-    SchoolApi.RSchools()
-      .then((res) => {
-        setSchoolList(res);
+    SchoolAPI.RSchools()
+      .then(({ schools }) => {
+        setSchoolList(schools);
       })
       .catch(() => {
         alert("failed to load data");

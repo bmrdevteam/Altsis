@@ -45,6 +45,8 @@ import Calendars from "./tab/Calendars";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { TSchool } from "types/schools";
 
 type Props = {};
 
@@ -77,42 +79,35 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentSchool } = useAuth();
-  const { SchoolApi, SeasonApi } = useApi();
+  const { SeasonApi } = useApi();
+  const { SchoolAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [schoolData, setSchoolData] = useState<any>();
+  const [schoolData, setSchoolData] = useState<TSchool>();
   const [seasonList, setSeasonList] = useState<any>();
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   useEffect(() => {
     if (isLoading) {
       if (pid) {
-        SchoolApi.RSchoolWithSeasons(pid)
-          .then((res) => {
-            // console.log("res is ", res);
-            setSchoolData(res.school);
-            setSeasonList(res.seasons || []);
+        SchoolAPI.RSchool({ params: { _id: pid } })
+          .then(({ school }) => {
+            setSchoolData(school);
+            SeasonApi.RSeasons({ school: school._id }).then((seasons) => {
+              setSeasonList(seasons);
+            });
           })
-          .catch(() => {
-            setIsSchool(false);
-          });
-      } else {
-        setSchoolData(currentSchool);
-        SeasonApi.RSeasons({ school: currentSchool.school })
-          .then((res) => setSeasonList(res || []))
-          .catch(() => {
+          .catch((err: any) => {
             setIsSchool(false);
           });
       }
-
-      setIsLoading(false);
     }
   }, [isLoading]);
 
   if (!isSchool) {
     return <CannotFindSchool />;
   }
+
   return (
     <>
       <Navbar />

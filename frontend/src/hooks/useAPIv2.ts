@@ -13,6 +13,7 @@ import { TAcademy } from "types/academies";
 import { TAdmin } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
+import { TSchool } from "types/schools";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -622,6 +623,38 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * RSchools API
+   * 학교 목록 조회 API
+   * @auth user
+   */
+  async function RSchools() {
+    const { schools } = await database.R({
+      location: "schools",
+    });
+    return {
+      schools: schools as TSchool[],
+    };
+  }
+
+  /**
+   * RSchool API
+   * 학교 조회 API
+   * @auth user
+   */
+  async function RSchool(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { school } = await database.R({
+      location: `schools/${props.params._id}`,
+    });
+    return {
+      school: school as TSchool,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -656,6 +689,8 @@ export default function useAPIv2() {
     },
     SchoolAPI: {
       CSchool,
+      RSchools,
+      RSchool,
     },
   };
 }

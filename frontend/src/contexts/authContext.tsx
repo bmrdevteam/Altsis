@@ -11,8 +11,9 @@ import React, {
 import _ from "lodash";
 import { useCookies } from "react-cookie";
 
-import { TCurrentUser, TSchool, TRegistration, TSeason } from "types/auth";
+import { TCurrentUser, TRegistration, TSeason } from "types/auth";
 import useAPIv2 from "hooks/useAPIv2";
+import { TSchool } from "types/schools";
 
 const AuthContext = createContext<any>(null);
 
@@ -32,8 +33,8 @@ export function useAuth(): {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { SeasonApi, SchoolApi, RegistrationApi } = useApi();
-  const { UserAPI } = useAPIv2();
+  const { SeasonApi, RegistrationApi } = useApi();
+  const { UserAPI, SchoolAPI } = useAPIv2();
   const [cookies, setCookie, removeCookie] = useCookies([
     "currentSchool",
     "currentRegistration",
@@ -77,7 +78,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (user.schools.length > schoolIdx) {
-      const school = await SchoolApi.RSchool(user.schools[schoolIdx].school);
+      const { school } = await SchoolAPI.RSchool({
+        params: { _id: user.schools[schoolIdx].school },
+      });
       setCurrentSchool({ ...school, school: school._id });
       setCookie("currentSchool", school._id);
       document.title = school.schoolName;
@@ -119,7 +122,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [loading]);
 
   async function changeSchool(to: string) {
-    const school = await SchoolApi.RSchool(to);
+    const { school } = await SchoolAPI.RSchool({ params: { _id: to } });
     setCurrentSchool({ ...school, school: school._id });
     setCookie("currentSchool", school._id);
     removeCookie("currentRegistration");

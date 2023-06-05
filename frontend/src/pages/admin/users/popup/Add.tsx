@@ -42,7 +42,6 @@ import _ from "lodash";
 import Table from "components/tableV2/Table";
 import Textarea from "components/textarea/Textarea";
 
-import useApi from "hooks/useApi";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { validate } from "functions/functions";
 
@@ -78,8 +77,7 @@ type TInput = {
 };
 
 function Add(props: Props) {
-  const { SchoolApi } = useApi();
-  const { UserAPI } = useAPIv2();
+  const { UserAPI, SchoolAPI } = useAPIv2();
 
   const [isLoadingSchools, setIsLoadingSchools] = useState<boolean>(true);
   const [schoolList, setSchoolList] = useState<TSchool[]>([]);
@@ -200,8 +198,8 @@ function Add(props: Props) {
 
   useEffect(() => {
     if (isLoadingSchools) {
-      SchoolApi.RSchools()
-        .then((schools: any[]) => {
+      SchoolAPI.RSchools()
+        .then(({ schools }) => {
           setSchoolList(schools);
         })
         .then(() => setIsLoadingSchools(false))

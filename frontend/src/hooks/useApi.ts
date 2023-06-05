@@ -553,32 +553,6 @@ export default function useApi() {
   }) {
     return await database.C({ location: "schools", data: props.data });
   }
-  /**
-   * Read Schools
-   * @auth admin
-   */
-  async function RSchools() {
-    const { schools: result } = await database.R({ location: "schools" });
-    return result;
-  }
-
-  /**
-   * Read School by id
-   * @auth member
-   */
-  async function RSchool(id: string) {
-    return await database.R({ location: "schools/" + id });
-  }
-
-  /**
-   * Read School by id with seasons
-   * @auth member
-   */
-  async function RSchoolWithSeasons(id: string) {
-    return await database.R({
-      location: "schools/" + id + "?includes=seasons",
-    });
-  }
 
   /**
    * Update formArchive in school
@@ -1141,10 +1115,6 @@ export default function useApi() {
       DSeason,
     },
     SchoolApi: {
-      CSchools,
-      RSchools,
-      RSchool,
-      RSchoolWithSeasons,
       USchoolFormArchive,
       USchoolLinks,
       USchoolCalendars,

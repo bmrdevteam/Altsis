@@ -7,13 +7,17 @@ import { useEditor } from "editor/functions/editorContext";
 import React, { useEffect, useRef, useState } from "react";
 import style from "../../editor.module.scss";
 import useApi from "hooks/useApi";
+import useAPIv2 from "hooks/useAPIv2";
+import { TSchool } from "types/schools";
 
 type Props = {
   callPageReload: () => void;
 };
 
 const DataConnPopup = (props: Props) => {
-  const { SchoolApi, DocumentApi } = useApi();
+  const { DocumentApi } = useApi();
+  const { SchoolAPI } = useAPIv2();
+
   const {
     changeCurrentCell,
     getCurrentCell,
@@ -22,7 +26,7 @@ const DataConnPopup = (props: Props) => {
     getCurrentCellIndex,
   } = useEditor();
 
-  const [schools, setSchools] = useState<any>();
+  const [schools, setSchools] = useState<TSchool[]>([]);
   const [archiveData, setArchiveData] = useState<any>();
   const [evaluationData, setEvaluationData] = useState<any>();
 
@@ -40,8 +44,8 @@ const DataConnPopup = (props: Props) => {
     useState<boolean>(false);
 
   useEffect(() => {
-    SchoolApi.RSchools().then((res) => {
-      res.map((val: any) => {
+    SchoolAPI.RSchools().then(({ schools }) => {
+      schools.map((val: any) => {
         DocumentApi.RDocumentData({ school: val._id }).then((v) => {
           setArchiveData((prev: any) => ({
             ...prev,
@@ -53,7 +57,7 @@ const DataConnPopup = (props: Props) => {
           }));
         });
       });
-      setSchools(res);
+      setSchools(schools);
     });
   }, []);
 
