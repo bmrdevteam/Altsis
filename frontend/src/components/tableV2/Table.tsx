@@ -476,17 +476,17 @@ const Table = (props: Props) => {
                       key={index}
                       onClick={() => {
                         if (allEmpty) {
-                          setTableData((prev) => ({
-                            ...prev,
-                            data: checkTo(true),
-                          }));
+                          setTableData((prev) => {
+                            callOnChangeFunc(checkTo(true));
+                            return { ...prev, data: checkTo(true) };
+                          });
                         } else {
-                          setTableData((prev) => ({
-                            ...prev,
-                            data: checkTo(false),
-                          }));
+                          setTableData((prev) => {
+                            callOnChangeFunc(checkTo(false));
+                            return { ...prev, data: checkTo(false) };
+                          });
                         }
-                        callOnChangeFunc();
+                        // callOnChangeFunc();
                       }}
                     >
                       <span className={style.icon}>

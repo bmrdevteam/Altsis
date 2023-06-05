@@ -12,7 +12,7 @@ import Divider from "components/divider/Divider";
 import Svg from "assets/svg/Svg";
 
 type Props = {
-  setState: any;
+  setPopupActive: any;
   event: EventItem;
 };
 
@@ -73,7 +73,7 @@ const GoogleEvent = (props: {}) => {};
 const Index = (props: Props) => {
   return (
     <Popup
-      setState={props.setState}
+      setState={props.setPopupActive}
       style={{
         width: "480px",
         display: "flex",

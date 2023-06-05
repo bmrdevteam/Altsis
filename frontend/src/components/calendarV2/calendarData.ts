@@ -8,12 +8,28 @@ export type FromGoogle =
   | "myCalendar";
 export type FromCourse = "enrollments" | "mentorings";
 
-export type From =
-  | "schoolCalendar"
-  | "schoolCalendarTimetable"
-  | "myCalendar"
-  | "enrollments"
-  | "mentorings";
+export type From = FromGoogle | FromCourse;
+
+export type TRawCalendar = {
+  type: Type;
+  from: From;
+  courses?: any[];
+  calendarId?: string;
+};
+
+export type TRawGoogleCalendar = TRawCalendar & {
+  type: "google";
+  from: FromGoogle;
+  calendarId: string;
+  calendarData: GoogleCalendarData;
+};
+
+export type TRawCourseCalendar = TRawCalendar & {
+  type: "course";
+  from: FromCourse;
+  calendarId: string;
+  courses: any[];
+};
 export class DateItem {
   public _date: Date;
   public yyyy: number;
@@ -350,13 +366,6 @@ export class Calendar {
     });
   };
 }
-
-export type TRawCalendar = {
-  type: Type;
-  from: From;
-  courses?: any[];
-  calendarId?: string;
-};
 
 export type GoogleCalendarItem = {
   id: string;
