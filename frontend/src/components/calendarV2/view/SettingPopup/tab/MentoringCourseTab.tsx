@@ -51,10 +51,10 @@ const Index = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading && currentSeason?._id && currentUser?._id) {
       SyllabusApi.RSyllabuses({
         season: currentSeason._id,
-        teacher: currentUser?._id,
+        teacher: currentUser._id,
       }).then(({ syllabuses }) => {
         const syllabusMap = new Map<string, any>();
         for (let syllabus of syllabuses) {
