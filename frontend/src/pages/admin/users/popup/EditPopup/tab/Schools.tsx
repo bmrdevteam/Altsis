@@ -46,8 +46,7 @@ type Props = {
 };
 
 function Schools(props: Props) {
-  const { SchoolApi } = useApi();
-  const { UserAPI } = useAPIv2();
+  const { UserAPI, SchoolAPI } = useAPIv2();
 
   const [refresh, setRefresh] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -90,8 +89,8 @@ function Schools(props: Props) {
 
   useEffect(() => {
     if (isLoading) {
-      SchoolApi.RSchools()
-        .then((schools: any[]) => {
+      SchoolAPI.RSchools()
+        .then(({ schools }) => {
           setSchools(schools);
         })
         .then(() => setIsLoading(false))

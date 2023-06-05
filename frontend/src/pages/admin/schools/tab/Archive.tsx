@@ -7,6 +7,7 @@ import Loading from "components/loading/Loading";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 import { unflattenObject } from "functions/functions";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = { school: string };
 
@@ -31,6 +32,7 @@ for (let item of Array.from(authStudentToTextMap)) {
 
 function Archive(props: Props) {
   const { SchoolApi } = useApi();
+  const { SchoolAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const formData = useRef<any>([]);
@@ -48,9 +50,9 @@ function Archive(props: Props) {
 
   useEffect(() => {
     if (isLoading && props.school) {
-      SchoolApi.RSchool(props.school)
-        .then((res) => {
-          formData.current = res.formArchive;
+      SchoolAPI.RSchool({ params: { _id: props.school } })
+        .then(({ school }) => {
+          formData.current = school.formArchive;
         })
         .then(() => {
           setIsLoading(false);

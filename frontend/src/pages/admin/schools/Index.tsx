@@ -31,7 +31,6 @@ import { useNavigate } from "react-router-dom";
 import style from "style/pages/admin/schools.module.scss";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -44,6 +43,7 @@ import Navbar from "layout/navbar/Navbar";
 
 import { useAuth } from "contexts/authContext";
 import { validate } from "functions/functions";
+import { TSchool } from "types/schools";
 
 const AddSchoolPopup = (props: {
   setPopupActive: React.Dispatch<boolean>;
@@ -131,29 +131,23 @@ const AddSchoolPopup = (props: {
 
 const Schools = () => {
   const navigate = useNavigate();
-  const { SchoolApi } = useApi();
+  const { SchoolAPI } = useAPIv2();
   const { currentUser, currentSchool } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   /* document list */
-  const [schoolsList, setSchoolsList] = useState<any>();
+  const [schoolsList, setSchoolsList] = useState<TSchool[]>([]);
 
   /* popup activation */
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
 
-  /* document fields */
-  const [schoolId, setSchoolId] = useState<string>();
-  const [schoolName, setSchoolName] = useState<string>();
-
   useEffect(() => {
-    // console.log("test");
     if (currentUser.auth === "admin") {
       setIsAuthenticated(true);
       setIsLoading(true);
-    } else if (currentSchool) {
-      // console.log("currentSchol is ", currentSchool);
-      navigate(`/admin/schools`);
+    } else if (currentSchool?._id) {
+      navigate(`/admin/schools/${currentSchool._id}`);
     } else {
       alert("가입된 학교가 없습니다.");
       navigate("/");
@@ -163,8 +157,8 @@ const Schools = () => {
 
   useEffect(() => {
     if (isLoading) {
-      SchoolApi.RSchools().then((res) => {
-        setSchoolsList(res);
+      SchoolAPI.RSchools().then(({ schools }) => {
+        setSchoolsList(schools);
         setIsLoading(false);
       });
     }
