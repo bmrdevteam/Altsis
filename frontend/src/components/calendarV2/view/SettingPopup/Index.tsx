@@ -34,7 +34,15 @@ const Index = (props: Props) => {
       <Tab
         dontUsePaths
         items={
-          currentRegistration?.role === "teacher"
+          !currentRegistration?._id
+            ? {
+                "구글 캘린더 연동": (
+                  <GoogleCalendarTab
+                    setIsReloadRequired={setIsReloadRequired}
+                  />
+                ),
+              }
+            : currentRegistration?.role === "teacher"
             ? {
                 "담당 수업": (
                   <MentoringCourseTab

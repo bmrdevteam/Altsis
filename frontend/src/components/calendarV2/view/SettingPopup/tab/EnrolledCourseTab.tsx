@@ -50,10 +50,10 @@ const Index = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading && currentSeason?._id && currentUser?._id) {
       EnrollmentApi.REnrolllments({
         season: currentSeason._id,
-        student: currentUser?._id,
+        student: currentUser._id,
       }).then((res) => {
         const enrollmentMap = new Map<string, any>();
         for (let enrollment of res) {
