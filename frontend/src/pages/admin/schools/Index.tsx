@@ -26,22 +26,108 @@
  * @version 1.0
  *
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
+
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
-import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
+import Loading from "components/loading/Loading";
+import Navbar from "layout/navbar/Navbar";
+
 import { useAuth } from "contexts/authContext";
 import { validate } from "functions/functions";
-import Navbar from "layout/navbar/Navbar";
-import Loading from "components/loading/Loading";
+
+const AddSchoolPopup = (props: {
+  setPopupActive: React.Dispatch<boolean>;
+  setSchoolsList: React.Dispatch<any>;
+}) => {
+  const { SchoolAPI } = useAPIv2();
+
+  const inputRef = useRef<{ schoolId: string; schoolName: string }>({
+    schoolId: "",
+    schoolName: "",
+  });
+
+  const onClickHandler = async () => {
+    if (inputRef.current.schoolId === "") {
+      return alert("학교 ID를 입력해주세요");
+    }
+    if (!validate("schoolId", inputRef.current.schoolId)) {
+      return alert("학교 ID 형식이 맞지 앉습니다");
+    }
+    if (inputRef.current.schoolName === "") {
+      return alert("학교 이름을 입력해주세요");
+    }
+    if (!validate("schoolName", inputRef.current.schoolName)) {
+      return alert("학교 이름 형식이 맞지 앉습니다");
+    }
+
+    try {
+      const { school } = await SchoolAPI.CSchool({
+        data: {
+          schoolId: inputRef.current.schoolId,
+          schoolName: inputRef.current.schoolName,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.setSchoolsList((prev: any) => [...prev, school]);
+      props.setPopupActive(false);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  return (
+    <Popup setState={props.setPopupActive} closeBtn title={"학교 추가하기"}>
+      <div>
+        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+          <Input
+            appearence="flat"
+            label="학교 ID"
+            required={true}
+            onChange={(e: any) => {
+              inputRef.current.schoolId = e.target.value;
+            }}
+            placeholder="영문 소문자와 숫자로 이루어진 2~20자의 문자열"
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+          <Input
+            appearence="flat"
+            label="학교 이름"
+            required={true}
+            onChange={(e: any) => {
+              inputRef.current.schoolName = e.target.value;
+            }}
+            placeholder="한글로 이루어진 2~20자의 문자열"
+          />
+        </div>
+
+        <Button
+          type={"ghost"}
+          onClick={onClickHandler}
+          style={{
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            marginTop: "24px",
+          }}
+        >
+          추가
+        </Button>
+      </div>
+    </Popup>
+  );
+};
 
 const Schools = () => {
   const navigate = useNavigate();
@@ -92,20 +178,8 @@ const Schools = () => {
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
             <div className={style.title}>학교 목록</div>
-            <div className={style.description}>
-              학교는 교육과정을 다루기 적합한 곳입니다
-            </div>
+            <div className={style.description}></div>
           </div>
-          {/* <Button
-type={"ghost"}
-borderRadius={"4px"}
-height={"32px"}
-onClick={() => {
-navigate("add", { replace: true });
-}}
->
-+ 학교추가
-</Button> */}
         </div>
         <Divider />
         <Button
@@ -134,17 +208,18 @@ navigate("add", { replace: true });
                 textAlign: "center",
               },
               {
+                text: "학교 이름",
+                key: "schoolName",
+                type: "text",
+                textAlign: "center",
+              },
+              {
                 text: "학교 ID",
                 key: "schoolId",
                 type: "text",
                 textAlign: "center",
               },
-              {
-                text: "학교명",
-                key: "schoolName",
-                type: "text",
-                textAlign: "center",
-              },
+
               {
                 text: "자세히",
                 key: "detail",
@@ -166,63 +241,10 @@ navigate("add", { replace: true });
         </div>
       </div>
       {addPopupActive && (
-        <Popup
-          setState={setAddPopupActive}
-          style={{ maxWidth: "1000px", width: "100%" }}
-          closeBtn
-          title={"학교 추가하기"}
-        >
-          <div>
-            <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-              <Input
-                appearence="flat"
-                label="schoolId"
-                required={true}
-                onChange={(e: any) => {
-                  setSchoolId(e.target.value);
-                }}
-                placeholder="2~20자의 영문 소문자와 숫자만 가능합니다."
-              />
-            </div>
-
-            <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-              <Input
-                appearence="flat"
-                label="schoolName"
-                required={true}
-                onChange={(e: any) => {
-                  setSchoolName(e.target.value);
-                }}
-                placeholder="2~20자의 문자만 가능합니다."
-              />
-            </div>
-
-            <Button
-              type={"ghost"}
-              onClick={() => {
-                if (schoolId && schoolName) {
-                  SchoolApi.CSchools({ data: { schoolId, schoolName } })
-                    .then(() => {
-                      alert(SUCCESS_MESSAGE);
-                      setAddPopupActive(false);
-                      setIsLoading(true);
-                    })
-                    .catch((err) => {
-                      alert(err.response.data.message);
-                    });
-                }
-              }}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                marginTop: "24px",
-              }}
-            >
-              추가
-            </Button>
-          </div>
-        </Popup>
+        <AddSchoolPopup
+          setPopupActive={setAddPopupActive}
+          setSchoolsList={setSchoolsList}
+        />
       )}
     </>
   ) : (

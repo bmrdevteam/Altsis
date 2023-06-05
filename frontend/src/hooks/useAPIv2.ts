@@ -592,6 +592,36 @@ export default function useAPIv2() {
     return { profile: profile as string | undefined };
   }
 
+  /**
+   * ##########################################################################
+   * School API
+   * ##########################################################################
+   */
+
+  /**
+   * CSChool API
+   * 학교 생성 API
+   * @auth admin | manager
+   */
+  async function CSchool(props: {
+    data: {
+      schoolId: string;
+      schoolName: string;
+    };
+  }) {
+    const { school } = await database.C({
+      location: "schools",
+      data: props.data,
+    });
+    return {
+      school: school as {
+        _id: string;
+        schoolId: string;
+        schoolName: string;
+      },
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -623,6 +653,9 @@ export default function useAPIv2() {
       CUserSchool,
       DUserSchool,
       DUser,
+    },
+    SchoolAPI: {
+      CSchool,
     },
   };
 }

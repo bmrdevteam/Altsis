@@ -68,13 +68,6 @@ const schoolSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-schoolSchema.statics.isValid = function (school) {
-  for (let field of ["schoolId", "schoolName"]) {
-    if (!validate(field, school[field])) return false;
-  }
-  return true;
-};
-
 export const School = (dbName) => {
   return conn[dbName].model("School", schoolSchema);
 };

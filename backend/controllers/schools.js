@@ -1,27 +1,69 @@
+/**
+ * SchoolAPI namespace
+ * @namespace APIs.SchoolAPI
+ */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import { School, Season } from "../models/index.js";
+import { FIELD_IN_USE } from "../messages/index.js";
+import { validate } from "../utils/validate.js";
 
-/* create */
+/**
+ * @memberof APIs.SchoolAPI
+ * @function CSchool API
+ * @description 학교 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/schools"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"|"manager"} req.user.auth
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.schoolId - "^[a-z|A-Z|0-9]{2,20}$"
+ * @param {string} req.body.schoolName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$"
+ *
+ * @param {Object} res
+ * @param {Object} res.school - created school
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | SCHOOLID_IN_USE | if parameter schoolId is in use  |
+ *
+ *
+ */
 export const create = async (req, res) => {
   try {
-    const _School = School(req.user.academyId);
-
     /* validate */
-    if (!_School.isValid(req.body))
-      return res.status(400).send({ message: "validation failed" });
+    for (let field of ["schoolId", "schoolName"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+      if (!validate(field, req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
+
+    const admin = req.user;
 
     /* check duplication */
-    const exSchool = await _School.findOne({ schoolId: req.body.schoolId });
-    if (exSchool)
-      return res
-        .status(409)
-        .send({ message: `schoolId ${req.body.schoolId} is already in use` });
+    if (
+      await School(admin.academyId).findOne({ schoolId: req.body.schoolId })
+    ) {
+      return res.status(409).send({ message: FIELD_IN_USE("schoolId") });
+    }
 
     /* create and save document */
-    const school = new _School(req.body);
-    await school.save();
-    return res.status(200).send(school);
+    const school = await School(admin.academyId).create({
+      schoolId: req.body.schoolId,
+      schoolName: req.body.schoolName,
+    });
+
+    return res.status(200).send({ school });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
