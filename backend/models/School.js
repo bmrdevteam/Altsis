@@ -12,22 +12,42 @@ const LinkSchema = mongoose.Schema(
   { _id: false }
 );
 
-const formArchiveSchema = mongoose.Schema(
+const formArchiveFieldSchema = mongoose.Schema(
   {
     label: String,
-    dataType: String, // "array" | "object"
-    fields: [Object],
-    authTeacher: { type: String, default: "undefined" },
-    /*
-     * "undefined"
-     * "viewAndEditStudents"
-     * "viewAndEditMyStudents"
-     */
-    authStudent: { type: String, default: "undefined" },
-    /*
-     * "undefined"
-     * "view"
-     */
+    type: {
+      type: String,
+      enum: ["select", "input", "input-number", "file", "file-image"],
+      default: "input",
+    },
+    options: [String],
+    runningTotal: {
+      type: Boolean,
+      default: false,
+    },
+    total: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: false }
+);
+
+const formArchiveItemSchema = mongoose.Schema(
+  {
+    label: String,
+    dataType: { type: String, enum: ["array", "object"], default: "array" },
+    fields: [formArchiveFieldSchema],
+    authTeacher: {
+      type: String,
+      enum: ["undefined", "viewAndEditStudents", "viewAndEditMyStudents"],
+      default: "undefined",
+    },
+    authStudent: {
+      type: String,
+      eunum: ["undefined", "view"],
+      default: "undefined",
+    },
   },
   { _id: false }
 );
@@ -43,7 +63,7 @@ const schoolSchema = mongoose.Schema(
       type: String,
       validate: (val) => validate("schoolName", val),
     },
-    formArchive: { type: [formArchiveSchema] },
+    formArchive: { type: [formArchiveItemSchema] },
     activatedSeason: mongoose.Types.ObjectId,
     links: { type: [LinkSchema] },
     calendar: String,
