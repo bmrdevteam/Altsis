@@ -384,10 +384,10 @@ const Calender = (props: Props) => {
         </div>
       </div>
       {isEventPopupActive && event && (
-        <EventPopup setState={setIsEventPopupActive} event={event} />
+        <EventPopup setPopupActive={setIsEventPopupActive} event={event} />
       )}
       {isSettingPopupActive && (
-        <SettingPopup setState={setIsSettingPopupActive} />
+        <SettingPopup setPopupActive={setIsSettingPopupActive} />
       )}
     </>
   );
