@@ -11,7 +11,7 @@ router.post("/", isAdManager, schools.create);
 
 router.get("/:_id?", isLoggedIn, schools.find);
 
-router.put("/:_id/form/archive", isAdManager, schools.updateFormArchive);
+router.put("/:_id/formArchive", isAdManager, schools.updateFormArchive);
 router.put("/:_id/links", isAdManager, schools.updateLinks);
 router.put("/:_id/calendars", isAdManager, schools.updateCalendars);
 
