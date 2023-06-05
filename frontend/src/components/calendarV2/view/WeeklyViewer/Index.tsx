@@ -3,6 +3,7 @@ import style from "./style.module.scss";
 import create from "zustand";
 
 import { EventItem } from "components/calendarV2/calendarData";
+import { generateRandomId } from "functions/functions";
 interface ICalendarState {
   events: EventItem[];
   setEvents: (events: EventItem[]) => void;
@@ -21,9 +22,9 @@ const useStore = create<ICalendarState>()((set) => {
 
 const RowFunction = () => {
   return (
-    <div className={style.row_function}>
+    <div key={generateRandomId(12)} className={style.row_function}>
       {Array.from(Array(24).keys()).map((val) => {
-        return <div key={val} className={style.block}></div>;
+        return <div key={generateRandomId(12)} className={style.block}></div>;
       })}
     </div>
   );
@@ -62,9 +63,19 @@ const Event = ({
       }}
       onClick={() => onClickEvent(data)}
     >
-      <div className={style.title}>{data.title ?? "제목 없음"}</div>
-      {data.location && <div className={style.room}>{data.location}</div>}
-      {data.description && <div className={style.room}>{data.description}</div>}
+      <div className={style.title} key={generateRandomId(12)}>
+        {data.title ?? "제목 없음"}
+      </div>
+      {data.location && (
+        <div className={style.room} key={generateRandomId(12)}>
+          {data.location}
+        </div>
+      )}
+      {data.description && (
+        <div className={style.room} key={generateRandomId(12)}>
+          {data.description}
+        </div>
+      )}
     </div>
   );
 };
@@ -96,17 +107,17 @@ const CurrentTime = () => {
       className={style.current_time}
       style={{ top: `${currentTime * 80}px` }}
     >
-      <div className={style.time}>{``}</div>
-      <div className={style.indicator}></div>
+      <div className={style.time} key={generateRandomId(12)}>{``}</div>
+      <div className={style.indicator} key={generateRandomId(12)}></div>
     </div>
   );
 };
 
 const RowGrid = () => {
   return (
-    <div className={style.row_grid}>
+    <div className={style.row_grid} key={generateRandomId(12)}>
       {Array.from(Array(24).keys()).map((val) => {
-        return <div key={val} className={style.block}></div>;
+        return <div key={generateRandomId(12)} className={style.block}></div>;
       })}
     </div>
   );
@@ -120,12 +131,26 @@ type Props = {
 };
 
 const TimeLabels = () => {
-  const labels = [<div className={style.label}></div>];
+  const labels = [
+    <div className={style.label} key={generateRandomId(12)}></div>,
+  ];
   for (let i = 1; i <= 12; i++)
-    labels.push(<div className={style.label}>{i}:00 AM</div>);
+    labels.push(
+      <div className={style.label} key={generateRandomId(12)}>
+        {i}:00 AM
+      </div>
+    );
   for (let i = 1; i < 12; i++)
-    labels.push(<div className={style.label}>{i}:00 PM</div>);
-  return <div className={style.time_labels}>{labels}</div>;
+    labels.push(
+      <div className={style.label} key={generateRandomId(12)}>
+        {i}:00 PM
+      </div>
+    );
+  return (
+    <div className={style.time_labels} key={generateRandomId(12)}>
+      {labels}
+    </div>
+  );
 };
 
 function WeeklyView(props: Props) {
@@ -164,7 +189,7 @@ function WeeklyView(props: Props) {
         {filteredEvents.map((val) => {
           return (
             <Event
-              key={val.id + val.sequence}
+              key={generateRandomId(12)}
               data={val}
               isMounted={props.isMounted}
               onClickEvent={props.onClickEvent}
@@ -183,7 +208,7 @@ function WeeklyView(props: Props) {
             <div style={{ minWidth: "80px", maxWidth: "80px" }}></div>
             {props.dayList.map((day) => {
               return (
-                <div key={day} className={style.day}>
+                <div key={generateRandomId(12)} className={style.day}>
                   {day}
                 </div>
               );
@@ -195,7 +220,7 @@ function WeeklyView(props: Props) {
           {eventMapKeys?.map((dateText) => {
             return (
               <div
-                key={dateText}
+                key={generateRandomId(12)}
                 className={
                   style.dayEvents +
                   " " +
@@ -208,7 +233,7 @@ function WeeklyView(props: Props) {
                   .map((event) => {
                     return (
                       <div
-                        key={event.id + event.sequence}
+                        key={generateRandomId(12)}
                         className={style.dayEvent}
                         onClick={() => props.onClickEvent(event)}
                       >
@@ -228,7 +253,7 @@ function WeeklyView(props: Props) {
         <div className={style.grid} ref={scrollRef}>
           {props.dayList.map((day, idx) => {
             return (
-              <div key={idx} className={style.column}>
+              <div key={generateRandomId(12)} className={style.column}>
                 <RowGrid />
                 {eventMapKeys && (
                   <EventContainer dateText={eventMapKeys[idx]} />
