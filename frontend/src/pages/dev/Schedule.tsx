@@ -3,6 +3,7 @@ import { TRawCalendar } from "components/calendarV2/calendarData";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 import Navbar from "layout/navbar/Navbar";
+import _ from "lodash";
 import { useEffect, useState } from "react";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -48,10 +49,24 @@ export default function Example() {
           teacher: currentUser._id,
         });
         if (syllabuses.length > 0) {
+          const courses = [];
+          for (let syllabus of syllabuses) {
+            const teacherIdx = _.findIndex(
+              syllabus.teachers,
+              (teacher: any) => teacher._id === currentUser._id
+            );
+            if (
+              teacherIdx !== -1 &&
+              !syllabus.teachers[teacherIdx].isHiddenFromCalendar
+            ) {
+              courses.push(syllabus);
+            }
+          }
+
           calendars.push({
             type: "course",
             from: "mentorings",
-            courses: syllabuses,
+            courses,
           });
         }
       }
