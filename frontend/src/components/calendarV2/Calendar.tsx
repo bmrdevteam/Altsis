@@ -6,7 +6,15 @@ import Select from "components/select/Select";
 import useGoogleAPI from "hooks/useGoogleAPI";
 import { useAuth } from "contexts/authContext";
 
-import { Calendar, DateItem, EventItem, TRawCalendar } from "./calendarData";
+import {
+  Calendar,
+  DateItem,
+  EventItem,
+  GoogleCalendarData,
+  TRawCalendar,
+  TRawCourseCalendar,
+  TRawGoogleCalendar,
+} from "./calendarData";
 
 import WeeklyView from "./view/WeeklyViewer/Index";
 import MonthlyView from "./view/MonthlyViwer/Index";
@@ -133,31 +141,56 @@ const Calender = (props: Props) => {
       timeMax: new Date(year, 11, 31).toISOString(),
     };
 
-    for (let rawCalendar of props.rawCalendars) {
-      if (
-        rawCalendar.type === "google" &&
-        rawCalendar.calendarId &&
-        (rawCalendar.from === "schoolCalendar" ||
-          rawCalendar.from === "schoolCalendarTimetable" ||
-          rawCalendar.from === "myCalendar")
-      ) {
-        const googleCalendar = await CalendarAPI.RPublicEvents({
-          calendarId: rawCalendar.calendarId,
-          queries,
-        });
-        calendar.addGoogleEvents(googleCalendar, rawCalendar.from);
-      } else if (
-        rawCalendar.type === "course" &&
-        rawCalendar.courses &&
-        (rawCalendar.from === "enrollments" ||
-          rawCalendar.from === "mentorings")
-      ) {
-        calendar.addCourseEvents(
-          rawCalendar.from,
-          currentRegistration,
-          rawCalendar.courses
-        );
-      }
+    // get Google calendars data
+    const rawGoogleCalendars = await Promise.all(
+      props.rawCalendars
+        .filter(
+          (rawCalendar) =>
+            rawCalendar.type === "google" &&
+            rawCalendar.calendarId &&
+            (rawCalendar.from === "schoolCalendar" ||
+              rawCalendar.from === "schoolCalendarTimetable" ||
+              rawCalendar.from === "myCalendar")
+        )
+        .map(async (_rawGoogleCalendar) => {
+          const googleCalendar = (await CalendarAPI.RPublicEvents({
+            calendarId: _rawGoogleCalendar.calendarId as string,
+            queries,
+          })) as GoogleCalendarData;
+          const rawGoogleCalendar = {
+            from: _rawGoogleCalendar.from,
+            calendarData: googleCalendar,
+          } as TRawGoogleCalendar;
+          return rawGoogleCalendar;
+        })
+    );
+
+    // get course calendars data
+    const rawCourseCalendars = props.rawCalendars
+      .filter(
+        (rawCalendar) =>
+          rawCalendar.type === "course" &&
+          rawCalendar.courses &&
+          (rawCalendar.from === "enrollments" ||
+            rawCalendar.from === "mentorings")
+      )
+      .map((_rawCourseCalendar) => _rawCourseCalendar as TRawCourseCalendar);
+
+    // set Google calendars data
+    for (let rawGoogleCalendar of rawGoogleCalendars) {
+      calendar.addGoogleEvents(
+        rawGoogleCalendar.calendarData,
+        rawGoogleCalendar.from
+      );
+    }
+
+    // set course calendars data
+    for (let rawCalendar of rawCourseCalendars) {
+      calendar.addCourseEvents(
+        rawCalendar.from,
+        currentRegistration,
+        rawCalendar.courses
+      );
     }
 
     setCalendar(calendar);
@@ -351,10 +384,10 @@ const Calender = (props: Props) => {
         </div>
       </div>
       {isEventPopupActive && event && (
-        <EventPopup setState={setIsEventPopupActive} event={event} />
+        <EventPopup setPopupActive={setIsEventPopupActive} event={event} />
       )}
       {isSettingPopupActive && (
-        <SettingPopup setState={setIsSettingPopupActive} />
+        <SettingPopup setPopupActive={setIsSettingPopupActive} />
       )}
     </>
   );

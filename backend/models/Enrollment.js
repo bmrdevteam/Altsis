@@ -53,6 +53,10 @@ const enrollmentSchema = mongoose.Schema(
     evaluation: Object,
     temp: Object,
     memo: String,
+    isHiddenFromCalendar: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -530,6 +530,50 @@ export const updateSubject = async (req, res) => {
   }
 };
 
+export const hideFromCalendar = async (req, res) => {
+  try {
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus)
+      return res.status(404).send({ message: "syllabus not found" });
+
+    const idx = _.findIndex(syllabus.teachers, (teacher) =>
+      teacher._id.equals(req.user._id)
+    );
+    if (idx === -1) return res.status(409).send({ message: "no permission" });
+
+    syllabus.teachers[idx].isHiddenFromCalendar = true;
+    await syllabus.save();
+    return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+export const showOnCalendar = async (req, res) => {
+  try {
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus)
+      return res.status(404).send({ message: "syllabus not found" });
+
+    const idx = _.findIndex(syllabus.teachers, (teacher) =>
+      teacher._id.equals(req.user._id)
+    );
+    if (idx === -1) return res.status(409).send({ message: "no permission" });
+
+    syllabus.teachers[idx].isHiddenFromCalendar = false;
+    await syllabus.save();
+    return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 /* deprecated */
 export const update = async (req, res) => {
   try {
