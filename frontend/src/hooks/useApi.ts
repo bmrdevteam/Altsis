@@ -555,18 +555,6 @@ export default function useApi() {
   }
 
   /**
-   * Update formArchive in school
-   * @auth admin
-   */
-  async function USchoolFormArchive(props: { schoolId: string; data: any }) {
-    const { formArchive } = await database.U({
-      location: `schools/${props.schoolId}/form/archive`,
-      data: { formArchive: props.data },
-    });
-    return formArchive;
-  }
-
-  /**
    * Update links(in sidebar) in school
    * @auth admin
    */
@@ -1115,7 +1103,6 @@ export default function useApi() {
       DSeason,
     },
     SchoolApi: {
-      USchoolFormArchive,
       USchoolLinks,
       USchoolCalendars,
     },

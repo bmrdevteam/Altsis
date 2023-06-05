@@ -13,7 +13,7 @@ import { TAcademy } from "types/academies";
 import { TAdmin } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
-import { TSchool } from "types/schools";
+import { TSchool, TSchoolFormArchive } from "types/schools";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -655,6 +655,28 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * USchoolFormArchive API
+   * 학교 기록 양식 수정 API
+   * @auth user
+   */
+  async function USchoolFormArchive(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      formArchive: TSchoolFormArchive;
+    };
+  }) {
+    const { formArchive } = await database.U({
+      location: `schools/${props.params._id}/formArchive`,
+      data: props.data,
+    });
+    return {
+      formArchive: formArchive as TSchoolFormArchive,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -691,6 +713,7 @@ export default function useAPIv2() {
       CSchool,
       RSchools,
       RSchool,
+      USchoolFormArchive,
     },
   };
 }
