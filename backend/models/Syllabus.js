@@ -65,6 +65,10 @@ const syllabusSchema = mongoose.Schema(
               type: Boolean,
               default: false,
             },
+            isHiddenFromCalendar: {
+              type: Boolean,
+              default: false,
+            },
           },
           { _id: false }
         ),
