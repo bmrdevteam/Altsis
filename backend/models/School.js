@@ -4,14 +4,6 @@ import { conn } from "../_database/mongodb/index.js";
 import _ from "lodash";
 import { validate } from "../utils/validate.js";
 
-const subjectSchema = mongoose.Schema(
-  {
-    label: [String],
-    data: Array,
-  },
-  { _id: false }
-);
-
 const LinkSchema = mongoose.Schema(
   {
     url: String,
@@ -51,14 +43,6 @@ const schoolSchema = mongoose.Schema(
       type: String,
       validate: (val) => validate("schoolName", val),
     },
-    classrooms: [String],
-    subjects: { type: subjectSchema, default: { label: [], data: [] } },
-    permissionSyllabus: [[]],
-    permissionEnrollment: [[]],
-    permissionEvaluation: [[]],
-    formTimetable: Object,
-    formSyllabus: Object,
-    formEvaluation: [],
     formArchive: { type: [formArchiveSchema] },
     activatedSeason: mongoose.Types.ObjectId,
     links: { type: [LinkSchema] },
