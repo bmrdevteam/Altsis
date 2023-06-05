@@ -38,7 +38,7 @@ import Tab from "components/tab/Tab";
 // tab elements
 import Season from "./tab/seasons/Season";
 import Skeleton from "../../../components/skeleton/Skeleton";
-import Archive from "./tab/Archive";
+import Archive from "./tab/archive/Index";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
 import Calendars from "./tab/Calendars";
