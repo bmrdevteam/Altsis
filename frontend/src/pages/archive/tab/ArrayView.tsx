@@ -73,7 +73,6 @@ const One = (props: Props) => {
           _id: rawArchiveList[i]._id,
         });
       }
-
       return archiveList;
     } catch (err) {
       ALERT_ERROR(err);
