@@ -13,6 +13,7 @@ import Callout from "components/callout/Callout";
 import _ from "lodash";
 
 import ExcelPopup from "./ExcelPopup";
+import { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   registrationList: any[];
@@ -50,28 +51,30 @@ const One = (props: Props) => {
 
   const findArchiveList = async () => {
     if (!pid || pid === "") return [];
-    const archiveList = [];
-    for (let idx = 0; idx < props.registrationList.length; idx++) {
-      const reg = props.registrationList[idx];
-      try {
-        const archive = await ArchiveApi.RArchiveByRegistration({
-          registrationId: reg._id,
-          label: pid,
-        });
-        archiveList.push({
-          data: archive.data[pid] ?? [],
-          registration: reg._id,
-          user: reg.user,
-          userId: reg.userId,
-          userName: reg.userName,
-          grade: reg.grade,
-          _id: archive._id,
-        });
-      } catch (err) {
-        console.error(err);
-      }
+
+    try {
+      const archiveList = await Promise.all(
+        props.registrationList.map(async (reg) => {
+          const archive = await ArchiveApi.RArchiveByRegistration({
+            registrationId: reg._id,
+            label: pid,
+          });
+          return {
+            data: archive.data[pid] ?? [],
+            registration: reg._id,
+            user: reg.user,
+            userId: reg.userId,
+            userName: reg.userName,
+            grade: reg.grade,
+            _id: archive._id,
+          };
+        })
+      );
+      return archiveList;
+    } catch (err) {
+      ALERT_ERROR(err);
+      return [];
     }
-    return archiveList;
   };
 
   const updateArchiveListFlattened = (archiveList: any[]) => {
