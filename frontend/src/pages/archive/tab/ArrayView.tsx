@@ -53,23 +53,27 @@ const One = (props: Props) => {
     if (!pid || pid === "") return [];
 
     try {
-      const archiveList = await Promise.all(
-        props.registrationList.map(async (reg) => {
-          const archive = await ArchiveApi.RArchiveByRegistration({
+      const rawArchiveList = await Promise.all(
+        props.registrationList.map(async (reg) =>
+          ArchiveApi.RArchiveByRegistration({
             registrationId: reg._id,
             label: pid,
-          });
-          return {
-            data: archive.data[pid] ?? [],
-            registration: reg._id,
-            user: reg.user,
-            userId: reg.userId,
-            userName: reg.userName,
-            grade: reg.grade,
-            _id: archive._id,
-          };
-        })
+          })
+        )
       );
+      const archiveList = [];
+      for (let i = 0; i < rawArchiveList.length; i++) {
+        archiveList.push({
+          data: rawArchiveList[i].data[pid] ?? [],
+          registration: props.registrationList[i]._id,
+          user: props.registrationList[i].user,
+          userId: props.registrationList[i].userId,
+          userName: props.registrationList[i].userName,
+          grade: props.registrationList[i].grade,
+          _id: rawArchiveList[i]._id,
+        });
+      }
+
       return archiveList;
     } catch (err) {
       ALERT_ERROR(err);
