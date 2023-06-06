@@ -19,12 +19,13 @@ import { TSeasonRegistration } from "types/auth";
 type Props = {};
 
 const ArchiveField = (props: Props) => {
-  const { pid } = useParams(); // archive label ex) 인적 사항
+  const { pid: _pid } = useParams(); // archive label ex) 인적 사항
   const { currentUser, currentSchool, currentRegistration, currentSeason } =
     useAuth();
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [pid, setPid] = useState<string>();
 
   const [, setRegistrationList] = useState<any[]>([]);
   const [selectedRegistrationList, setSelectedRegistrationList] = useState<
@@ -35,10 +36,10 @@ const ArchiveField = (props: Props) => {
   const [selectPopupAtcive, setSelectPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentRegistration && currentSeason && pid) {
+    if (!isLoading && currentRegistration.role && currentSeason._id && _pid) {
       setIsLoading(true);
     }
-  }, [currentRegistration, currentSeason, pid]);
+  }, [currentRegistration, currentSeason, _pid]);
 
   useEffect(() => {
     if (isLoading) {
@@ -82,7 +83,12 @@ const ArchiveField = (props: Props) => {
           return reg;
         }
       );
+
+      setPid(_pid);
       setRegistrationList(registrations);
+      setSelectedRegistrationList(
+        registrations.filter((reg) => reg.tableRowChecked)
+      );
       registrationListRef.current = registrations;
       setIsLoading(false);
     }
@@ -131,7 +137,7 @@ const ArchiveField = (props: Props) => {
   function formArchive() {
     return (
       currentSchool.formArchive?.filter((val: any) => {
-        return val.label === pid;
+        return val.label === _pid;
       })[0] ?? { authTeacher: "undefined", fields: [] }
     );
   }
@@ -146,11 +152,19 @@ const ArchiveField = (props: Props) => {
           <div className={style.categories}>{selectedStudents()}</div>
         </div>
 
-        {formArchive().dataType === "object" ? (
-          <ObjectView registrationList={selectedRegistrationList}></ObjectView>
-        ) : (
-          <ArrayView registrationList={selectedRegistrationList}></ArrayView>
-        )}
+        {!isLoading &&
+          pid &&
+          (formArchive().dataType === "object" ? (
+            <ObjectView
+              pid={pid}
+              registrationList={selectedRegistrationList}
+            ></ObjectView>
+          ) : (
+            <ArrayView
+              pid={pid}
+              registrationList={selectedRegistrationList}
+            ></ArrayView>
+          ))}
       </div>
       {selectPopupAtcive && (
         <Popup
