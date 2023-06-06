@@ -27,7 +27,7 @@
  *
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 // components
@@ -37,13 +37,15 @@ import Input from "components/input/Input";
 import Textarea from "components/textarea/Textarea";
 import { validate } from "functions/functions";
 import { TAcademy } from "types/academies";
-import { TAdmin } from "types/users";
+import { TUser } from "types/users";
 import Callout from "components/callout/Callout";
 
 type Props = {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
+
+type TAdmin = TUser & { password: string };
 
 const getInfoText = (academy: TAcademy, admin: TAdmin) => {
   const info = new Map<String, String>([

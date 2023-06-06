@@ -23,6 +23,19 @@ import { validate } from "../utils/validate.js";
 
 /**
  * @memberof APIs.SchoolAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
+ */
+
+/**
+ * @memberof APIs.SchoolAPI
  * @function CSchool API
  * @description 학교 생성 API
  * @version 2.0.0
@@ -32,8 +45,7 @@ import { validate } from "../utils/validate.js";
  * @param {"POST"} req.method
  * @param {"/schools"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
  * @param {string} req.body.schoolId - "^[a-z|A-Z|0-9]{2,20}$"
@@ -85,26 +97,37 @@ export const create = async (req, res) => {
 
 /**
  * @memberof APIs.SchoolAPI
- * @function RSchools/RSchool API
+ * @function RSchools API
+ * @description 학교 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/schools"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object[]} res.schools
+ *
+ */
+
+/**
+ * @memberof APIs.SchoolAPI
+ * @function RSchool API
  * @description 학교 조회 API
  * @version 2.0.0
  *
  * @param {Object} req
  *
  * @param {"GET"} req.method
- * @param {"/schools/:_id?"} req.url
+ * @param {"/schools/:_id"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user
  *
  * @param {Object} res
- * @param {Object} res.school - _id 파라미터가 있는 경우 단일 조회
- * @param {Object[]} res.schools - _id 파라미터가 없는 경우 목록 조회
- *
- * @throws {}
- * | status | message          | description                       |
- * | :----- | :--------------- | :-------------------------------- |
- * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
- *
+ * @param {Object} res.school
  *
  */
 export const find = async (req, res) => {
@@ -131,7 +154,7 @@ export const find = async (req, res) => {
 /**
  * @memberof APIs.SchoolAPI
  * @function USchoolFormArchive API
- * @description 학교 기록 양식 변경 API
+ * @description 학교 기록 양식 수정 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -139,8 +162,7 @@ export const find = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/schools/:_id/formArchive"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"|"manager"} req.user.auth
+ * @param {Object} req.user - "admin|"manager"
  *
  * @param {Object} req.body
  * @param {Object[]} req.body.formArchive
@@ -148,12 +170,7 @@ export const find = async (req, res) => {
  * @param {Object} res
  * @param {Object} res.formArchive - updated formArchive
  *
- * @throws {}
- * | status | message          | description                       |
- * | :----- | :--------------- | :-------------------------------- |
- * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
- *
- *
+ * @see models>School for more information about formArchive validation
  */
 export const updateFormArchive = async (req, res) => {
   try {
@@ -178,7 +195,7 @@ export const updateFormArchive = async (req, res) => {
 /**
  * @memberof APIs.SchoolAPI
  * @function USchoolLinks API
- * @description 학교 링크 변경 API
+ * @description 학교 링크 수정 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -186,20 +203,13 @@ export const updateFormArchive = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/schools/:_id/links"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"|"manager"} req.user.auth
+ * @param {Object} req.user - "admin"|"manager"
  *
  * @param {Object} req.body
  * @param {string[]} req.body.links
  *
  * @param {Object} res
  * @param {Object} res.links - updated links
- *
- * @throws {}
- * | status | message          | description                       |
- * | :----- | :--------------- | :-------------------------------- |
- * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
- *
  *
  */
 export const updateLinks = async (req, res) => {
@@ -224,7 +234,7 @@ export const updateLinks = async (req, res) => {
 /**
  * @memberof APIs.SchoolAPI
  * @function USchoolCalendars API
- * @description 학교 캘린더 변경 API
+ * @description 학교 캘린더 수정 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -232,8 +242,7 @@ export const updateLinks = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/schools/:_id/links"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"|"manager"} req.user.auth
+ * @param {Object} req.user - "admin"|"manager"
  *
  * @param {Object} req.body
  * @param {string?} req.body.calendar - 학사 일정 캘린더
@@ -242,12 +251,6 @@ export const updateLinks = async (req, res) => {
  * @param {Object} res
  * @param {string?} res.calendar - updated calendar
  * @param {string?} res.calendarTimetable - updated calendarTimetable
- *
- * @throws {}
- * | status | message          | description                       |
- * | :----- | :--------------- | :-------------------------------- |
- * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
- *
  *
  */
 export const updateCalendars = async (req, res) => {
@@ -273,7 +276,7 @@ export const updateCalendars = async (req, res) => {
 /**
  * @memberof APIs.SchoolAPI
  * @function DSchool API
- * @description 학교 삭제 API
+ * @description 학교 삭제 API; 관련 데이터를 모두 삭제한다
  * @version 2.0.0
  *
  * @param {Object} req
@@ -281,17 +284,9 @@ export const updateCalendars = async (req, res) => {
  * @param {"DELETE"} req.method
  * @param {"/schools/:_id"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
- *
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} res
- *
- * @throws {}
- * | status | message          | description                       |
- * | :----- | :--------------- | :-------------------------------- |
- * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
- *
  *
  */
 export const remove = async (req, res) => {

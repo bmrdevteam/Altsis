@@ -17,4 +17,6 @@ export const MESSAGE = new Map<string, string>([
   ["SCHOOL_DISCONNECTED_ALREADY", "등록되지 않은 학교입니다."],
   ["USERID_IN_USE", "사용 중인 아이디입니다."],
   ["SNSID.GOOGLE_IN_USE", "사용 중인 구글 로그인 이메일입니다."],
+  ["LIMIT_FILE_SIZE", "파일 사이즈가 커서 업로드할 수 없습니다."],
+  ["INVALID_FILE_TYPE", "파일 형식이 맞지 않아 업로드할 수 없습니다."],
 ]);
