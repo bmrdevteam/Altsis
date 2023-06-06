@@ -12,6 +12,7 @@ import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
 
 import ExcelPopup from "./ExcelPopup";
+import { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   registrationList: any[];
@@ -49,28 +50,33 @@ const ObjectView = (props: Props) => {
 
   const findArchiveList = async () => {
     if (!pid || pid === "") return [];
-    const archiveList = [];
-    for (let idx = 0; idx < props.registrationList.length; idx++) {
-      const reg = props.registrationList[idx];
-      try {
-        const archive = await ArchiveApi.RArchiveByRegistration({
-          registrationId: reg._id,
-          label: pid,
-        });
+
+    try {
+      const rawArchiveList = await Promise.all(
+        props.registrationList.map(async (reg) =>
+          ArchiveApi.RArchiveByRegistration({
+            registrationId: reg._id,
+            label: pid,
+          })
+        )
+      );
+      const archiveList = [];
+      for (let i = 0; i < rawArchiveList.length; i++) {
         archiveList.push({
-          ...(archive.data[pid] ? archive.data[pid] : {}),
-          registration: reg._id,
-          user: reg.user,
-          userId: reg.userId,
-          userName: reg.userName,
-          grade: reg.grade,
-          _id: archive._id,
+          ...(rawArchiveList[i].data[pid] ? rawArchiveList[i].data[pid] : {}),
+          registration: props.registrationList[i]._id,
+          user: props.registrationList[i].user,
+          userId: props.registrationList[i].userId,
+          userName: props.registrationList[i].userName,
+          grade: props.registrationList[i].grade,
+          _id: rawArchiveList[i]._id,
         });
-      } catch (err) {
-        console.error(err);
       }
+      return archiveList;
+    } catch (err: any) {
+      ALERT_ERROR(err);
+      return [];
     }
-    return archiveList;
   };
 
   useEffect(() => {
