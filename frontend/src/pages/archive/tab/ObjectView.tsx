@@ -4,7 +4,6 @@ import React from "react";
 import style from "style/pages/archive.module.scss";
 import { useRef, useEffect, useState } from "react";
 import useApi from "hooks/useApi";
-import { useParams } from "react-router-dom";
 
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
@@ -15,12 +14,12 @@ import ExcelPopup from "./ExcelPopup";
 import { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
+  pid: string;
   registrationList: any[];
 };
 
 const ObjectView = (props: Props) => {
   const { ArchiveApi, FileApi } = useApi();
-  const { pid } = useParams(); // archive label ex) 인적 사항
 
   const { currentSchool } = useAuth();
 
@@ -42,28 +41,24 @@ const ObjectView = (props: Props) => {
 
   const [refresh, setRefresh] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (pid) {
-      setIsLoading(true);
-    }
-  }, [props.registrationList, pid]);
-
   const findArchiveList = async () => {
-    if (!pid || pid === "") return [];
+    if (!props.pid || props.pid === "") return [];
 
     try {
       const rawArchiveList = await Promise.all(
         props.registrationList.map(async (reg) =>
           ArchiveApi.RArchiveByRegistration({
             registrationId: reg._id,
-            label: pid,
+            label: props.pid,
           })
         )
       );
       const archiveList = [];
       for (let i = 0; i < rawArchiveList.length; i++) {
         archiveList.push({
-          ...(rawArchiveList[i].data[pid] ? rawArchiveList[i].data[pid] : {}),
+          ...(rawArchiveList[i].data[props.pid]
+            ? rawArchiveList[i].data[props.pid]
+            : {}),
           registration: props.registrationList[i]._id,
           user: props.registrationList[i].user,
           userId: props.registrationList[i].userId,
@@ -80,7 +75,13 @@ const ObjectView = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading && pid) {
+    if (!isLoading) {
+      setIsLoading(true);
+    }
+  }, [props.pid]);
+
+  useEffect(() => {
+    if (isLoading && props.pid) {
       findArchiveList()
         .then((archiveList) => {
           setArchiveList(archiveList);
@@ -93,7 +94,7 @@ const ObjectView = (props: Props) => {
   }, [isLoading]);
 
   useEffect(() => {
-    if (isUpdating && pid) {
+    if (isUpdating && props.pid) {
       setIsUpdatePopupActive(true);
       updateArchives()
         .then((archiveList) => {
@@ -114,7 +115,7 @@ const ObjectView = (props: Props) => {
   function formArchive() {
     return (
       currentSchool.formArchive?.filter((val: any) => {
-        return val.label === pid;
+        return val.label === props.pid;
       })[0] ?? { fields: [] }
     );
   }
@@ -135,7 +136,7 @@ const ObjectView = (props: Props) => {
 
         const { archive } = await ArchiveApi.UArchiveByRegistration({
           _id: archiveListRef.current[i]._id,
-          label: pid ?? "",
+          label: props.pid ?? "",
           data,
           registration: archiveListRef.current[i].registration,
         });
@@ -263,7 +264,7 @@ const ObjectView = (props: Props) => {
                       fileName:
                         archiveListRef.current[aIdx]?.[label]?.originalName,
                       archive: archiveListRef.current[aIdx]?._id,
-                      label: pid ?? "",
+                      label: props.pid ?? "",
                       fieldLabel: label,
                     });
 
@@ -290,7 +291,7 @@ const ObjectView = (props: Props) => {
                       fileName:
                         archiveListRef.current[aIdx]?.[label]?.originalName,
                       archive: archiveListRef.current[aIdx]?._id,
-                      label: pid ?? "",
+                      label: props.pid ?? "",
                       fieldLabel: label,
                     });
 
@@ -466,7 +467,7 @@ const ObjectView = (props: Props) => {
                         fileName:
                           archiveListRef.current[aIdx]?.[label]?.originalName,
                         archive: archiveListRef.current[aIdx]?._id,
-                        label: pid ?? "",
+                        label: props.pid ?? "",
                         fieldLabel: label,
                       });
 
@@ -681,7 +682,7 @@ const ObjectView = (props: Props) => {
           type="object"
           setPopupActive={setIsExcelPopupActive}
           fields={formArchive().fields}
-          pid={pid ?? "data"}
+          pid={props.pid ?? "data"}
           archiveListRef={archiveListRef}
           archiveList={archiveList}
           setIsUpdating={setIsUpdating}

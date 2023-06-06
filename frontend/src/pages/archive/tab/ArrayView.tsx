@@ -4,7 +4,6 @@ import { useAuth } from "contexts/authContext";
 import style from "style/pages/archive.module.scss";
 import { useRef, useEffect, useState } from "react";
 import useApi from "hooks/useApi";
-import { useParams } from "react-router-dom";
 
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
@@ -16,6 +15,7 @@ import ExcelPopup from "./ExcelPopup";
 import { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
+  pid: string;
   registrationList: any[];
 };
 
@@ -23,7 +23,6 @@ const colors = ["#ff595e", "#2c6e49", "#1982c4", "#6a4c93"];
 
 const One = (props: Props) => {
   const { ArchiveApi } = useApi();
-  const { pid } = useParams(); // archive label ex) 인적 사항
 
   const { currentSchool } = useAuth();
 
@@ -44,27 +43,27 @@ const One = (props: Props) => {
   const [isExcelPopupActive, setIsExcelPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (pid) {
+    if (props.pid) {
       setIsLoading(true);
     }
-  }, [props.registrationList, pid]);
+  }, [props.registrationList, props.pid]);
 
   const findArchiveList = async () => {
-    if (!pid || pid === "") return [];
+    if (!props.pid || props.pid === "") return [];
 
     try {
       const rawArchiveList = await Promise.all(
         props.registrationList.map(async (reg) =>
           ArchiveApi.RArchiveByRegistration({
             registrationId: reg._id,
-            label: pid,
+            label: props.pid,
           })
         )
       );
       const archiveList = [];
       for (let i = 0; i < rawArchiveList.length; i++) {
         archiveList.push({
-          data: rawArchiveList[i].data[pid] ?? [],
+          data: rawArchiveList[i].data[props.pid] ?? [],
           registration: props.registrationList[i]._id,
           user: props.registrationList[i].user,
           userId: props.registrationList[i].userId,
@@ -113,7 +112,7 @@ const One = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading && pid) {
+    if (isLoading && props.pid) {
       findArchiveList()
         .then((archiveList) => {
           setArchiveList(archiveList);
@@ -129,7 +128,7 @@ const One = (props: Props) => {
   function formArchive() {
     return (
       currentSchool.formArchive?.filter((val: any) => {
-        return val.label === pid;
+        return val.label === props.pid;
       })[0] ?? { fields: [] }
     );
   }
@@ -167,7 +166,7 @@ const One = (props: Props) => {
       try {
         const { archive } = await ArchiveApi.UArchiveByRegistration({
           _id: _archiveList[i]._id,
-          label: pid ?? "",
+          label: props.pid ?? "",
           data: _archiveList[i].data,
           registration: _archiveList[i].registration,
         });
@@ -190,7 +189,7 @@ const One = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isUpdating && pid) {
+    if (isUpdating && props.pid) {
       setIsUpdatePopupActive(true);
       updateArchives()
         .then((archiveList) => {
@@ -351,7 +350,7 @@ const One = (props: Props) => {
           type="array"
           setPopupActive={setIsExcelPopupActive}
           fields={formArchive().fields}
-          pid={pid ?? "data"}
+          pid={props.pid ?? "data"}
           archiveListRef={archiveListFlattenedRef}
           archiveList={archiveList}
           userNameStatus={userNameStatus}
