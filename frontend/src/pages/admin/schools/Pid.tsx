@@ -42,6 +42,7 @@ import Archive from "./tab/archive/Index";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
 import Calendars from "./tab/Calendars";
+import Remove from "./tab/Remove";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
@@ -150,26 +151,56 @@ const School = (props: Props) => {
         </div>
         {schoolData && (
           <Tab
-            items={{
-              학기: (
-                <Season
-                  school={schoolData._id}
-                  seasonList={seasonList}
-                  setSeasonList={setSeasonList}
-                />
-              ),
-              기록: <Archive school={schoolData._id} />,
-              사용자: <User schoolData={schoolData} />,
-              "사이드바 링크": (
-                <Links schoolData={schoolData} setSchoolData={setSchoolData} />
-              ),
-              일정: (
-                <Calendars
-                  schoolData={schoolData}
-                  setSchoolData={setSchoolData}
-                />
-              ),
-            }}
+            items={
+              currentUser?.auth === "admin"
+                ? {
+                    학기: (
+                      <Season
+                        school={schoolData._id}
+                        seasonList={seasonList}
+                        setSeasonList={setSeasonList}
+                      />
+                    ),
+                    기록: <Archive school={schoolData._id} />,
+                    사용자: <User schoolData={schoolData} />,
+                    "사이드바 링크": (
+                      <Links
+                        schoolData={schoolData}
+                        setSchoolData={setSchoolData}
+                      />
+                    ),
+                    일정: (
+                      <Calendars
+                        schoolData={schoolData}
+                        setSchoolData={setSchoolData}
+                      />
+                    ),
+                    삭제: <Remove schoolData={schoolData} />,
+                  }
+                : {
+                    학기: (
+                      <Season
+                        school={schoolData._id}
+                        seasonList={seasonList}
+                        setSeasonList={setSeasonList}
+                      />
+                    ),
+                    기록: <Archive school={schoolData._id} />,
+                    사용자: <User schoolData={schoolData} />,
+                    "사이드바 링크": (
+                      <Links
+                        schoolData={schoolData}
+                        setSchoolData={setSchoolData}
+                      />
+                    ),
+                    일정: (
+                      <Calendars
+                        schoolData={schoolData}
+                        setSchoolData={setSchoolData}
+                      />
+                    ),
+                  }
+            }
           />
         )}
       </div>
