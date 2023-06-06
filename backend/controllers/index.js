@@ -10,7 +10,7 @@
 
 /**
  * @memberof APIs.*API
- * @function * API
+ * @function *common
  * @description 모든 API에 공통적으로 적용됨
  * @version 2.0.0
  *

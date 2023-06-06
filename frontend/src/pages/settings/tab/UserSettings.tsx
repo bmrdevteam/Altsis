@@ -37,7 +37,6 @@ import { useAuth } from "contexts/authContext";
 import style from "style/pages/settings/settings.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
-import useDatabase from "hooks/useDatabase";
 import { validate } from "functions/functions";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -205,7 +204,7 @@ const UserSettings = (props: Props) => {
       const { profile } = await UserAPI.UUserProfile({ data: formData });
       setCurrentUser({ ...currentUser, profile });
     } catch (err: any) {
-      alert("사진을 업로드할 수 없습니다");
+      ALERT_ERROR(err);
     }
   };
 

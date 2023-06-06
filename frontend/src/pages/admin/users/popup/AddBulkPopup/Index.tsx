@@ -41,6 +41,7 @@ import Help from "./tab/Help";
 import Upload from "./tab/Upload";
 import SelectSchool from "./tab/SelectSchool";
 import Add from "./tab/Add";
+import useAPIv2 from "hooks/useAPIv2";
 
 // functions
 
@@ -51,7 +52,7 @@ type Props = {
 };
 
 function AddBulk(props: Props) {
-  const { SchoolApi } = useApi();
+  const { SchoolAPI } = useAPIv2();
 
   const userListRef = useRef<any[]>([]);
   const invalidUserCntRef = useRef<number>(0);
@@ -66,10 +67,10 @@ function AddBulk(props: Props) {
   >([]);
 
   useEffect(() => {
-    SchoolApi.RSchools()
-      .then((schools: any[]) => {
+    SchoolAPI.RSchools()
+      .then(({ schools }) => {
         schoolListRef.current = schools.map((school) => {
-          return { ...school, tableRowSelect: false };
+          return { ...school, tableRowChecked: false };
         });
       })
       .catch((err: any) => alert(err.response.data.message));

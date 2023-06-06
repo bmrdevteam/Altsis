@@ -10,9 +10,10 @@ import useDatabase from "hooks/useDatabase";
 
 import { MESSAGE } from "./_message";
 import { TAcademy } from "types/academies";
-import { TAdmin } from "types/users";
+import { TUser } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
+import { TSchool, TSchoolFormArchive } from "types/schools";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -55,10 +56,9 @@ export default function useAPIv2() {
 
   /**
    * CAcademy API
-   * 아카데미 생성 API
+   * @description 아카데미 생성 API
+   * @version 2.0.0
    * @auth owner
-   * @returns academy
-   * @returns admin
    */
   async function CAcademy(props: {
     data: {
@@ -76,17 +76,19 @@ export default function useAPIv2() {
     });
     return {
       academy: academy as TAcademy,
-      admin: admin as TAdmin,
+      admin: admin as TUser & {
+        auth: "admin";
+        password: string;
+      },
     };
   }
 
   /**
    * RAcademy API
-   * 아카데미 조회 API
-   * @auth not-logged-in user
-   * @returns academy
+   * @description 아카데미 조회 API
+   * @version 2.0.0
+   * @auth owner|guest
    */
-
   async function RAcademy(props: {
     query: {
       academyId: string;
@@ -102,9 +104,9 @@ export default function useAPIv2() {
 
   /**
    * RAcademies API
-   * 아카데미 목록 조회 API
+   * @description 아카데미 목록 조회 API
+   * @version 2.0.0
    * @auth owner
-   * @returns academies
    */
 
   async function RAcademies() {
@@ -118,9 +120,9 @@ export default function useAPIv2() {
 
   /**
    * UAcademyEmail API
-   * 아카데미 이메일 변경 API
+   * @description 아카데미 이메일 변경 API
+   * @version 2.0.0
    * @auth owner
-   * @returns academies
    */
 
   async function UAcademyEmail(props: {
@@ -142,11 +144,10 @@ export default function useAPIv2() {
 
   /**
    * UAcademyTel API
-   * 아카데미 전화번호 변경 API
+   * @description 아카데미 전화번호 변경 API
+   * @version 2.0.0
    * @auth owner
-   * @returns academies
    */
-
   async function UAcademyTel(props: {
     params: {
       academyId: string;
@@ -166,9 +167,9 @@ export default function useAPIv2() {
 
   /**
    * UActivateAcademy API
-   * 아카데미 활성화 API
+   * @description 아카데미 활성화 API
+   * @version 2.0.0
    * @auth owner
-   * @returns academy
    */
   async function UActivateAcademy(props: {
     params: {
@@ -186,9 +187,9 @@ export default function useAPIv2() {
 
   /**
    * UInactivateAcademy API
-   * 아카데미 비활성화 API
+   * @description아카데미 비활성화 API
+   * @version 2.0.0
    * @auth owner
-   * @returns academy
    */
   async function UInactivateAcademy(props: {
     params: {
@@ -206,7 +207,8 @@ export default function useAPIv2() {
 
   /**
    * DAcademy API
-   * 아카데미 삭제 API
+   * @description 아카데미 삭제 API
+   * @version 2.0.0
    * @auth owner
    */
   async function DAcademy(props: {
@@ -228,7 +230,8 @@ export default function useAPIv2() {
 
   /**
    * LoginLocal API
-   * 로컬 로그인 API
+   * @description 로컬 로그인 API
+   * @version 2.0.0
    * @auth guest
    */
   async function LoginLocal(props: {
@@ -247,7 +250,8 @@ export default function useAPIv2() {
 
   /**
    * LoginGoogle API
-   * 구글 로그인 API
+   * @description 구글 로그인 API
+   * @version 2.0.0
    * @auth guest
    */
   async function LoginGoogle(props: {
@@ -265,7 +269,8 @@ export default function useAPIv2() {
 
   /**
    * Logout API
-   * 로그아웃 API
+   * @description 로그아웃 API
+   * @version 2.0.0
    * @auth user
    */
   async function Logout() {
@@ -276,7 +281,8 @@ export default function useAPIv2() {
 
   /**
    * CGoogleAuth API
-   * 구글 로그인 활성화 API
+   * @description 구글 로그인 활성화 API
+   * @version 2.0.0
    * @auth admin
    */
   async function CGoogleAuth(props: {
@@ -297,7 +303,8 @@ export default function useAPIv2() {
 
   /**
    * DGoogleAuth API
-   * 구글 로그인 비활성화 API
+   * @description 구글 로그인 비활성화 API
+   * @version 2.0.0
    * @auth admin
    */
   async function DGoogleAuth(props: {
@@ -314,7 +321,8 @@ export default function useAPIv2() {
 
   /**
    * UUserAuth API
-   * 등급 변경 API
+   * @description 등급 변경 API
+   * @version 2.0.0
    * @auth admin
    */
   async function UUserAuth(props: {
@@ -335,8 +343,9 @@ export default function useAPIv2() {
 
   /**
    * UUserEmail API
-   * 이메일 변경 API
-   * @auth user
+   * @description 이메일 변경 API
+   * @version 2.0.0
+   * @auth admin|user
    */
   async function UUserEmail(props: {
     params: {
@@ -356,8 +365,9 @@ export default function useAPIv2() {
 
   /**
    * UUserTel API
-   * 전화번호 변경 API
-   * @auth user
+   * @description 전화번호 변경 API
+   * @version 2.0.0
+   * @auth admin|user
    */
   async function UUserTel(props: {
     params: {
@@ -377,7 +387,8 @@ export default function useAPIv2() {
 
   /**
    * UUserProfile API
-   * 프로필사진 변경 API
+   * @description 프로필 사진 변경 API
+   * @version 2.0.0
    * @auth user
    */
   async function UUserProfile(props: { data: FormData }) {
@@ -391,7 +402,8 @@ export default function useAPIv2() {
 
   /**
    * UUserCalendar API
-   * 캘린더 변경 API
+   * @description 캘린더 변경 API
+   * @version 2.0.0
    * @auth user
    */
   async function UUserCalendar(props: {
@@ -409,8 +421,9 @@ export default function useAPIv2() {
 
   /**
    * UUserPassword API
-   * 비밀번호 변경 API
-   * @auth user
+   * @description 비밀번호 변경 API
+   * @version 2.0.0
+   * @auth admin|user
    */
   async function UUserPassword(props: {
     params: {
@@ -428,7 +441,8 @@ export default function useAPIv2() {
 
   /**
    * CUserSchool API
-   * 소속 학교 추가 API
+   * @description 소속 학교 추가 API
+   * @version 2.0.0
    * @auth admin
    */
   async function CUserSchool(props: {
@@ -454,7 +468,8 @@ export default function useAPIv2() {
 
   /**
    * DUserSchool API
-   * 소속 학교 삭제 API
+   * @description 소속 학교 삭제 API
+   * @version 2.0.0
    * @auth admin
    */
   async function DUserSchool(props: {
@@ -480,7 +495,8 @@ export default function useAPIv2() {
 
   /**
    * CUser API
-   * 사용자 생성 API
+   * @description 사용자 생성 API
+   * @version 2.0.0
    * @auth admin
    */
   async function CUser(props: {
@@ -508,13 +524,14 @@ export default function useAPIv2() {
 
   /**
    * RUsers API
-   * 사용자 목록 조회 API
+   * @description 사용자 목록 조회 API
+   * @version 2.0.0
    * @auth owner|admin|manager
    */
   async function RUsers(props: {
     query?: {
       sid?: string; // school objectId
-      academyId?: string; // required for owner
+      academyId?: string; // if user is owner
     };
   }) {
     const { users } = await database.R({
@@ -527,7 +544,8 @@ export default function useAPIv2() {
 
   /**
    * RUser API
-   * 사용자 조회 API
+   * @description 사용자 조회 API
+   * @version 2.0.0
    * @auth owner|admin|manager
    */
   async function RUser(props: {
@@ -548,7 +566,8 @@ export default function useAPIv2() {
 
   /**
    * DUser API
-   * 사용자 삭제 API
+   * @description 사용자 삭제 API
+   * @version 2.0.0
    * @auth admin
    */
   async function DUser(props: {
@@ -563,7 +582,8 @@ export default function useAPIv2() {
 
   /**
    * RMySelf API
-   * 본인 조회 API
+   * @description 본인 조회 API
+   * @version 2.0.0
    * @auth user
    */
   async function RMySelf() {
@@ -582,7 +602,8 @@ export default function useAPIv2() {
 
   /**
    * RUserProfile API
-   * 사용자 프로필사진 조회 API
+   * @description 사용자 프로필사진 조회 API
+   * @version 2.0.0
    * @auth user
    */
   async function RUserProfile(props: { params: { _id: string } }) {
@@ -590,6 +611,158 @@ export default function useAPIv2() {
       location: `users/${props.params._id}/profile`,
     });
     return { profile: profile as string | undefined };
+  }
+
+  /**
+   * ##########################################################################
+   * School API
+   * ##########################################################################
+   */
+
+  /**
+   * CSchool API
+   * @description 학교 생성 API
+   * @version 2.0.0
+   * @auth admin
+   */
+  async function CSchool(props: {
+    data: {
+      schoolId: string;
+      schoolName: string;
+    };
+  }) {
+    const { school } = await database.C({
+      location: "schools",
+      data: props.data,
+    });
+    return {
+      school: school as {
+        _id: string;
+        schoolId: string;
+        schoolName: string;
+      },
+    };
+  }
+
+  /**
+   * RSchools API
+   * @description 학교 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSchools() {
+    const { schools } = await database.R({
+      location: "schools",
+    });
+    return {
+      schools: schools as TSchool[],
+    };
+  }
+
+  /**
+   * RSchool API
+   * @description 학교 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSchool(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { school } = await database.R({
+      location: `schools/${props.params._id}`,
+    });
+    return {
+      school: school as TSchool,
+    };
+  }
+
+  /**
+   * USchoolFormArchive API
+   * @description 학교 기록 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USchoolFormArchive(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      formArchive: TSchoolFormArchive;
+    };
+  }) {
+    const { formArchive } = await database.U({
+      location: `schools/${props.params._id}/formArchive`,
+      data: props.data,
+    });
+    return {
+      formArchive: formArchive as TSchoolFormArchive,
+    };
+  }
+
+  /**
+   * USchoolFormArchive API
+   * @description 학교 링크 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USchoolLinks(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      links: string[];
+    };
+  }) {
+    const { links } = await database.U({
+      location: `schools/${props.params._id}/links`,
+      data: props.data,
+    });
+    return {
+      links: links as string[],
+    };
+  }
+
+  /**
+   * USchoolCalendars API
+   * @description 학교 캘린더 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USchoolCalendars(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      calendar?: string;
+      calendarTimetable?: string;
+    };
+  }) {
+    const { calendar, calendarTimetable } = await database.U({
+      location: `schools/${props.params._id}/calendars`,
+      data: props.data,
+    });
+    return {
+      calendar: calendar as string | undefined,
+      calendarTimetable: calendarTimetable as string | undefined,
+    };
+  }
+
+  /**
+   * DSchool API
+   * @description 학교 삭제 API
+   * @version 2.0.0
+   * @auth admin
+   */
+  async function DSchool(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: "schools/" + props.params._id,
+    });
   }
 
   return {
@@ -623,6 +796,15 @@ export default function useAPIv2() {
       CUserSchool,
       DUserSchool,
       DUser,
+    },
+    SchoolAPI: {
+      CSchool,
+      RSchools,
+      RSchool,
+      USchoolFormArchive,
+      USchoolLinks,
+      USchoolCalendars,
+      DSchool,
     },
   };
 }

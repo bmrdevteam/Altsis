@@ -186,7 +186,7 @@ function RouterPage() {
               <Route
                 path="schools/:pid"
                 element={
-                  <RequireAuth auth={["admin"]}>
+                  <RequireAuth auth={["admin", "manager"]}>
                     <School />
                   </RequireAuth>
                 }

@@ -7,7 +7,6 @@ import {
   forceNotLoggedIn,
   isAdmin,
 } from "../middleware/auth.js";
-import * as profile from "../controllers/profiles.js";
 
 //=================================
 //             User
@@ -29,7 +28,7 @@ router.get("/:_id/profile", isLoggedIn, users.findProfile);
 
 // ___________ Update (by user) _____________
 
-router.put("/profile", isLoggedIn, profile.update);
+router.put("/profile", isLoggedIn, users.updateProfile);
 router.put("/calendar", isLoggedIn, users.updateCalendar);
 
 // ___________ Update (by user & admin) _____________
