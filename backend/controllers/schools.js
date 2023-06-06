@@ -4,7 +4,15 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { School, Season } from "../models/index.js";
+import {
+  Archive,
+  Enrollment,
+  Registration,
+  School,
+  Season,
+  Syllabus,
+  User,
+} from "../models/index.js";
 import {
   FIELD_INVALID,
   FIELD_IN_USE,
@@ -25,7 +33,7 @@ import { validate } from "../utils/validate.js";
  * @param {"/schools"} req.url
  *
  * @param {Object} req.user
- * @param {"admin"|"manager"} req.user.auth
+ * @param {"admin"} req.user.auth
  *
  * @param {Object} req.body
  * @param {string} req.body.schoolId - "^[a-z|A-Z|0-9]{2,20}$"
@@ -262,13 +270,62 @@ export const updateCalendars = async (req, res) => {
   }
 };
 
-/* delete */
-
+/**
+ * @memberof APIs.SchoolAPI
+ * @function DSchool API
+ * @description 학교 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/schools/:_id"} req.url
+ *
+ * @param {Object} req.user
+ * @param {"admin"} req.user.auth
+ *
+ *
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SCHOOL_NOT_FOUND | if school is not found  |
+ *
+ *
+ */
 export const remove = async (req, res) => {
   try {
     const school = await School(req.user.academyId).findById(req.params._id);
-    if (!school) return res.status(404).send();
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    const admin = req.user;
+
+    const users = await User(admin.academyId).find({
+      "schools.school": school._id,
+    });
+
+    for (let user of users) {
+      const idx = _.findIndex(user.schools, (userSchool) =>
+        userSchool.school.equals(school._id)
+      );
+      if (idx !== -1) {
+        user.schools.splice(idx, 1);
+        user.isModified("schools");
+      }
+    }
+    await Promise.all(users.map((user) => user.save()));
+    await Promise.all([
+      Enrollment(admin.academyId).deleteMany({ school: school._id }),
+      Syllabus(admin.academyId).deleteMany({ school: school._id }),
+      Registration(admin.academyId).deleteMany({ school: school._id }),
+      Season(admin.academyId).deleteMany({ school: school._id }),
+      Archive(admin.academyId).deleteMany({ school: school._id }),
+    ]);
     await school.delete();
+
     return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });

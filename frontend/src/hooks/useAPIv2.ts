@@ -600,9 +600,9 @@ export default function useAPIv2() {
    */
 
   /**
-   * CSChool API
+   * CSchool API
    * 학교 생성 API
-   * @auth admin | manager
+   * @auth admin
    */
   async function CSchool(props: {
     data: {
@@ -723,6 +723,21 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * DSchool API
+   * 학교 삭제 API
+   * @auth admin
+   */
+  async function DSchool(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: "schools/" + props.params._id,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -762,6 +777,7 @@ export default function useAPIv2() {
       USchoolFormArchive,
       USchoolLinks,
       USchoolCalendars,
+      DSchool,
     },
   };
 }
