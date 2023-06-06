@@ -16,8 +16,3 @@ export type TUser = {
   academyId: string;
   academyName: string;
 };
-
-export type TAdmin = TUser & {
-  auth: "admin";
-  password: string;
-};
