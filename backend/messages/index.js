@@ -167,3 +167,23 @@ export const CONNECTED_ALREADY = (field) =>
  */
 export const DISCONNECTED_ALREADY = (field) =>
   `${field.toUpperCase()}_DISCONNECTED_ALREADY`;
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias LIMIT_FILE_SIZE
+ * @description 파일 사이즈가 커서 업로드할 수 없음
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const LIMIT_FILE_SIZE = "LIMIT_FILE_SIZE";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias INVALID_FILE_TYPE
+ * @description 파일 형식이 맞지 않아 업로드할 수 없음
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const INVALID_FILE_TYPE = "INVALID_FILE_TYPE";

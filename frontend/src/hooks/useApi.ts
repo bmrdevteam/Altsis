@@ -52,11 +52,6 @@ export default function useApi() {
   }
 
   /**
-   * User Api
-   * ##########################################################################
-   */
-
-  /**
    * Season Api
    * ##########################################################################
    */
@@ -539,85 +534,7 @@ export default function useApi() {
     const result = await database.R({ location: "forms/" + id });
     return result;
   }
-  /**
-   * School Api
-   * ##########################################################################
-   */
 
-  /**
-   * Create School
-   * @auth admin
-   */
-  async function CSchools(props: {
-    data: { schoolId: string; schoolName: string };
-  }) {
-    return await database.C({ location: "schools", data: props.data });
-  }
-  /**
-   * Read Schools
-   * @auth admin
-   */
-  async function RSchools() {
-    const { schools: result } = await database.R({ location: "schools" });
-    return result;
-  }
-
-  /**
-   * Read School by id
-   * @auth member
-   */
-  async function RSchool(id: string) {
-    return await database.R({ location: "schools/" + id });
-  }
-
-  /**
-   * Read School by id with seasons
-   * @auth member
-   */
-  async function RSchoolWithSeasons(id: string) {
-    return await database.R({
-      location: "schools/" + id + "?includes=seasons",
-    });
-  }
-
-  /**
-   * Update formArchive in school
-   * @auth admin
-   */
-  async function USchoolFormArchive(props: { schoolId: string; data: any }) {
-    const { formArchive } = await database.U({
-      location: `schools/${props.schoolId}/form/archive`,
-      data: { formArchive: props.data },
-    });
-    return formArchive;
-  }
-
-  /**
-   * Update links(in sidebar) in school
-   * @auth admin
-   */
-  async function USchoolLinks(props: { schoolId: string; data: any }) {
-    const { links } = await database.U({
-      location: `schools/${props.schoolId}/links`,
-      data: { links: props.data },
-    });
-    return links;
-  }
-
-  /**
-   * Update calendars in school
-   * @auth admin
-   */
-  async function USchoolCalendars(props: {
-    schoolId: string;
-    data: { calendar?: string; calendarTimetable?: string };
-  }) {
-    const { calendar, calendarTimetable } = await database.U({
-      location: `schools/${props.schoolId}/calendars`,
-      data: props.data,
-    });
-    return { calendar, calendarTimetable };
-  }
   /**
    * Enrollment Api
    * ##########################################################################
@@ -1139,15 +1056,6 @@ export default function useApi() {
       USeasonPermissionV2AddException,
       USeasonPermissionV2RemoveException,
       DSeason,
-    },
-    SchoolApi: {
-      CSchools,
-      RSchools,
-      RSchool,
-      RSchoolWithSeasons,
-      USchoolFormArchive,
-      USchoolLinks,
-      USchoolCalendars,
     },
     RegistrationApi: {
       CRegistrations,

@@ -26,6 +26,19 @@ import { generatePassword } from "../utils/password.js";
 
 /**
  * @memberof APIs.AcademyAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | ACADEMY_NOT_FOUND | if academy is not found  |
+ */
+
+/**
+ * @memberof APIs.AcademyAPI
  * @function CAcademy API
  * @description 아카데미 생성 API
  * @version 2.0.0
@@ -35,8 +48,7 @@ import { generatePassword } from "../utils/password.js";
  * @param {"POST"} req.method
  * @param {"/academies"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
  * @param {string} req.body.academyId - "^[a-z|A-Z|0-9]{2,20}$"
@@ -48,13 +60,12 @@ import { generatePassword } from "../utils/password.js";
  *
  * @param {Object} res
  * @param {Object} res.academy - created academy
- * @param {Object} res.admin - created admin user
+ * @param {Object} res.admin - created admin user (with password)
  *
  * @throws {}
  * | status | message          | description                       |
  * | :----- | :--------------- | :-------------------------------- |
  * | 409    | ACADEMYID_IN_USE | if parameter academyID is in use  |
- *
  *
  */
 export const create = async (req, res) => {
@@ -111,8 +122,8 @@ export const create = async (req, res) => {
 
 /**
  * @memberof APIs.AcademyAPI
- * @function RAcademies/RAcademy API
- * @description 아카데미 조회 API
+ * @function RAcademies API
+ * @description 아카데미 목록 조회 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -120,19 +131,31 @@ export const create = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/academies"} req.url
  *
- * @param {Object?} req.user - RAcademies API인 경우 owner만 가능; RAcademy API인 경우 비로그인 유저 또는 owner만 가능
- * @param {"owner"} req.user.auth
- *
- * @param {Object} req.query
- * @param {string?} req.query.academyId - RAcademy API인 경우 포함
+ * @param {Object} req.user -"owner"|"guest"
  *
  * @param {Object} res
- * @param {Object?} res.academies - RAcademies API인 경우
- * @param {Object?} res.academy - RAcademy API인 경우
+ * @param {Object[]} res.academies - academy list excluding root
+ */
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademy API
+ * @description 아카데미 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies?academyId={academyId}"} req.url
+ *
+ * @param {Object} req.user - "owner"|"guest"
+ *
+ * @param {Object} res
+ * @param {Object} res.academy
+ *
  */
 export const find = async (req, res) => {
   try {
-    /* if someone requested */
+    /* if guest requested */
     if (!req.isAuthenticated()) {
       if (!("academyId" in req.query)) {
         return res.status(400).send({ message: FIELD_REQUIRED("academyID") });
@@ -155,6 +178,7 @@ export const find = async (req, res) => {
         }
         return res.status(200).send({ academy });
       }
+
       const academies = await Academy.find({ academyId: { $ne: "root" } });
       return res.status(200).send({ academies });
     }
@@ -177,13 +201,12 @@ export const find = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/activate"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  *
  * @param {Object} res
- * @param {Object} res.academy - updated academy
+ * @param {Object} res.academy - activated academy
  *
  */
 export const activate = async (req, res) => {
@@ -214,13 +237,12 @@ export const activate = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/inactivate"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  *
  * @param {Object} res
- * @param {Object} res.academy - updated academy
+ * @param {Object} res.academy - inactivated academy
  *
  */
 export const inactivate = async (req, res) => {
@@ -230,7 +252,7 @@ export const inactivate = async (req, res) => {
     if (!academy)
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    /* activate academy */
+    /* inactivate academy */
     academy.isActivated = false;
     await academy.save();
     return res.status(200).send({ academy });
@@ -243,7 +265,7 @@ export const inactivate = async (req, res) => {
 /**
  * @memberof APIs.AcademyAPI
  * @function UAcademyEmail API
- * @description 아카데미 이메일 수정 API
+ * @description 아카데미 이메일 변경 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -251,8 +273,7 @@ export const inactivate = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/email"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  * @param {string?} req.body.email
@@ -287,7 +308,7 @@ export const updateEmail = async (req, res) => {
 /**
  * @memberof APIs.AcademyAPI
  * @function UAcademyTel API
- * @description 아카데미 전화번호 수정 API
+ * @description 아카데미 전화번호 변경 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -295,15 +316,13 @@ export const updateEmail = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/tel"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  * @param {string?} req.body.tel
  *
  * @param {Object} res
  * @param {Object} res.academy - updated academy
- *
  */
 export const updateTel = async (req, res) => {
   try {
@@ -336,6 +355,18 @@ const typeToModel = (docType, academyId) => {
   if (docType === "forms") return Form(academyId);
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function findDocuments API
+ * @version 1.0.0
+ *
+ * @deprecated owner 페이지 수정과 함께 업데이트될 예정
+ * @todo owner 페이지 수정과 함께 업데이트
+ *
+ * @param {*} req
+ * @param {*} res
+ * @returns
+ */
 export const findDocuments = async (req, res) => {
   try {
     if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
@@ -372,8 +403,7 @@ export const findDocuments = async (req, res) => {
  * @param {"DELETE"} req.method
  * @param {"/academies/:academyId"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "owner"
  *
  * @param {Object} res
  *

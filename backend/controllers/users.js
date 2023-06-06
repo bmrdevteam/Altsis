@@ -6,7 +6,6 @@ import { logger } from "../log/logger.js";
 import passport from "passport";
 import _ from "lodash";
 import { User, Registration, School } from "../models/index.js";
-import { getPayload } from "../utils/payload.js";
 import { validate } from "../utils/validate.js";
 import {
   CONNECTED_ALREADY,
@@ -14,10 +13,26 @@ import {
   FIELD_INVALID,
   FIELD_IN_USE,
   FIELD_REQUIRED,
+  INVALID_FILE_TYPE,
+  LIMIT_FILE_SIZE,
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
 import { conn } from "../_database/mongodb/index.js";
+import { profileMulter } from "../_multer/profileMulter.js";
+
+/**
+ * @memberof APIs.UserAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | USER_NOT_FOUND | if user is not found  |
+ */
 
 /**
  * @memberof APIs.UserAPI
@@ -36,7 +51,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @param {string} req.body.password
  * @param {boolean?} req.body.persist - if true, auto login is set up
  *
- * @param {Object} res - returns nothing
+ * @param {Object} res
  *
  * @throws {}
  * | status | message          | description                       |
@@ -88,7 +103,7 @@ export const loginLocal = async (req, res) => {
  * @param {string} req.body.credential
  * @param {boolean?} req.body.persist - if true, auto login is set up
  *
- * @param {Object} res - returns nothing
+ * @param {Object} res
  *
  * @throws {}
  * | status | message          | description                       |
@@ -132,12 +147,12 @@ export const loginGoogle = async (req, res) => {
  *
  * @param {Object} req
  *
+ * @param {Object} req.user
+ *
  * @param {"GET"} req.method
  * @param {"/users/logout"} req.url
  *
- * @param {Object} res - returns nothing
- *
- * @throws {}
+ * @param {Object} res
  *
  */
 export const logout = async (req, res) => {
@@ -161,8 +176,7 @@ export const logout = async (req, res) => {
  * @param {"POST"} req.method
  * @param {"/users"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
  * @param {Object} req.body.user
@@ -178,7 +192,7 @@ export const logout = async (req, res) => {
  * @param {string?} req.body.snsId.google
  *
  * @param {Object} res
- * @param {Object} res.user
+ * @param {Object} res.user - created user
  *
  * @throws {}
  * | status | message          | description                       |
@@ -292,12 +306,15 @@ export const create = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/users"} req.url
  *
- * @param {Object} req.user
- * @param {"owner"|"admin"|"manager"} req.user.auth
+ * @param {Object} req.query
+ * @param {string?} req.query.sid - school ObjectId
+ * @param {string?} req.query.academyId - if user is owner
+ *
+ * @param {Object} req.user - "owner"|"admin"|"manager"
  *
  * @param {Object} req.query
  * @param {string?} req.query.sid - school objectId
- * @param {string?} req.query.academyId - required by owner
+ * @param {string?} req.query.academyId - if user is owner
  *
  * @param {Object} res
  * @param {Object[]} res.users
@@ -338,7 +355,7 @@ export const findUsers = async (req, res) => {
 /**
  * @memberof APIs.UserAPI
  * @function RMySelf API
- * @description 본인 조회 API
+ * @description 본인 조회 API; registrations와 함께 반환함
  * @version 2.0.0
  *
  * @param {Object} req
@@ -346,13 +363,11 @@ export const findUsers = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/users/current"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user
  *
- * @returns {Object} res
- * @returns {Object} res.user
- * @returns {Object[]} res.registrations
- *
- * @throws {}
+ * @param {Object} res
+ * @param {Object} res.user
+ * @param {Object[]} res.registrations
  *
  */
 export const current = async (req, res) => {
@@ -385,19 +400,14 @@ export const current = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/users/:_id"} req.url
  *
- * @param {Object} req.user
- * @param {"owner"|"admin"|"manager"} req.user.auth
- *
- * @param {Object} req.params
- * @param {string} req.params._id - user objectId
- *
  * @param {Object} req.query
- * @param {string?} req.query.academyId - required by owner
+ * @param {string?} req.query.academyId - if user is owner
+ *
+ * @param {Object} req.user - "owner"|"admin"|"manager"
  *
  * @param {Object} res
  * @param {Object} res.user
  *
- * @throws {}
  */
 export const findUser = async (req, res) => {
   try {
@@ -436,12 +446,10 @@ export const findUser = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/users/:_id"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user
  *
- * @returns {Object} res
- * @returns {string} res.profile
- *
- * @throws {}
+ * @param {Object} res
+ * @param {string} res.profile
  *
  */
 export const findProfile = async (req, res) => {
@@ -462,6 +470,51 @@ export const findProfile = async (req, res) => {
 
 /**
  * @memberof APIs.UserAPI
+ * @function UUserProfile API
+ * @description 프로필 사진 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/profile"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {formData} req.body
+ *
+ * @param {Object} res
+ * @param {string} res.profile
+ *
+ */
+export const updateProfile = async (req, res) => {
+  profileMulter.single("img")(req, {}, async (err) => {
+    try {
+      if (err) {
+        switch (err.code) {
+          case "LIMIT_FILE_SIZE":
+            return res.status(409).send({ message: LIMIT_FILE_SIZE });
+          case "INVALID_FILE_TYPE":
+            return res.status(409).send({ message: INVALID_FILE_TYPE });
+          default:
+            return res.status(500).send({ message: err.code });
+        }
+      }
+      const user = req.user;
+
+      // 프로필은 AWS Lambda로 자동으로 사이즈가 축소되어 /thumb/ 폴더에 저장된다
+      user.profile = req.file.location.replace("/original/", "/thumb/");
+      await user.save();
+
+      return res.status(200).send({ profile: user.profile });
+    } catch (err) {
+      return res.status(500).send({ message: err.message });
+    }
+  });
+};
+
+/**
+ * @memberof APIs.UserAPI
  * @function UUserCalendar API
  * @description 캘린더 변경 API
  * @version 2.0.0
@@ -471,15 +524,13 @@ export const findProfile = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/users/calendar"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user
  *
  * @param {Object} req.body
  * @param {string?} req.body.calendar
  *
  * @param {Object} res
- * @param {string} res.calendar
- *
- * @throws {}
+ * @param {string} res.calendar - updated calendar
  *
  */
 export const updateCalendar = async (req, res) => {
@@ -505,14 +556,13 @@ export const updateCalendar = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/users/:_id/password"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user - "admin"|"user"
  *
  * @param {Object} req.body
- * @param {password} req.body.password
+ * @param {string} req.body.password
  *
- * @param {Object} res - returns nothing
+ * @param {Object} res
  *
- * @throws {}
  */
 export const updatePassword = async (req, res) => {
   try {
@@ -555,15 +605,13 @@ export const updatePassword = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/users/:_id/email"} req.url
  *
- * @param {Object} req.user - logged in user
+ * @param {Object} req.user - "admin"|"user"
  *
  * @param {Object} req.body
  * @param {string?} req.body.email
  *
  * @param {Object} res
- * @param {string} res.email
- *
- * @throws {}
+ * @param {string} res.email - updated email
  *
  */
 export const updateEmail = async (req, res) => {
@@ -599,16 +647,13 @@ export const updateEmail = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/users/:_id/tel"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"|"user"
  *
  * @param {Object} req.body
  * @param {string?} req.body.tel
  *
  * @param {Object} res
- * @param {string} res.tel
- *
- * @throws {}
+ * @param {string} res.tel - updated tel
  *
  */
 export const updateTel = async (req, res) => {
@@ -644,16 +689,13 @@ export const updateTel = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/users/:_id/auth"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
- * @param {"manager"|"member"} req.body.auth
+ * @param {} req.body.auth
  *
  * @param {Object} res
- * @param {"manager"|"member"} res.auth
- *
- * @throws {}
+ * @param {"manager"|"member"} res.auth - updated auth
  *
  */
 export const updateAuth = async (req, res) => {
@@ -691,15 +733,14 @@ export const updateAuth = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/users/:_id/google"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
  * @param {string} req.body.email
  *
  * @param {Object} res
  * @param {Object} res.snsId
- * @param {string} res.snsId.google
+ * @param {string} res.snsId.google - updated snsId.google
  *
  * @throws {}
  * | status | message          | description                       |
@@ -765,12 +806,11 @@ export const connectGoogleAuth = async (req, res) => {
  * @param {"DELETE"} req.method
  * @param {"/users/:_id/google"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} res
  * @param {Object} res.snsId
- * @param {string} res.snsId.google
+ * @param {undefined} res.snsId.google - updated snsId.google
  *
  * @throws {}
  * | status | message          | description                       |
@@ -810,8 +850,7 @@ export const disconnectGoogleAuth = async (req, res) => {
  * @param {"POST"} req.method
  * @param {"/users/:_id/schools"} req.url
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
  * @param {ObjectId} req.body.sid - school._id
@@ -883,8 +922,7 @@ export const registerSchool = async (req, res) => {
  * @param {Object} req.query
  * @param {string} req.query.sid
  *
- * @param {Object} req.user
- * @param {"admin"} req.user.auth
+ * @param {Object} req.user - "admin"
  *
  * @param {Object} res
  * @param {Object} res.body
@@ -930,8 +968,6 @@ export const deregisterSchool = async (req, res) => {
     return res.status(500).send({ message: err.message });
   }
 };
-
-// ____________ delete ____________
 
 /**
  * @memberof APIs.UserAPI

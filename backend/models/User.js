@@ -72,15 +72,6 @@ const userSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.statics.isValid = function (user) {
-  for (let field of ["userId", "userName"]) {
-    if (!validate(field, user[field])) return false;
-  }
-  if (user["email"] && !validate("email", user["email"])) return false;
-  if (user["tel"] && !validate("tel", user["tel"])) return false;
-  return true;
-};
-
 userSchema.pre("save", function (next) {
   var user = this;
   if (user.isModified("password")) {
