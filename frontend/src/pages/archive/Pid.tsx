@@ -36,7 +36,7 @@ const ArchiveField = (props: Props) => {
   const [selectPopupAtcive, setSelectPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!isLoading && currentRegistration.role && currentSeason._id && _pid) {
+    if (!isLoading && currentRegistration?.role && currentSeason?._id && _pid) {
       setIsLoading(true);
     }
   }, [currentRegistration, currentSeason, _pid]);
