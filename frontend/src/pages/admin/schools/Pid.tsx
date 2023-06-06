@@ -34,10 +34,10 @@ import style from "style/pages/admin/schools.module.scss";
 
 // components
 import Tab from "components/tab/Tab";
+import Skeleton from "components/skeleton/Skeleton";
 
 // tab elements
 import Season from "./tab/seasons/Season";
-import Skeleton from "../../../components/skeleton/Skeleton";
 import Archive from "./tab/archive/Index";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
@@ -45,8 +45,9 @@ import Calendars from "./tab/Calendars";
 
 import { useAuth } from "contexts/authContext";
 import Navbar from "layout/navbar/Navbar";
-import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
+import Loading from "components/loading/Loading";
 
 type Props = {};
 
@@ -81,6 +82,8 @@ const School = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { SeasonApi } = useApi();
   const { SchoolAPI } = useAPIv2();
+  const { currentUser, currentSchool } = useAuth();
+  const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<TSchool>();
@@ -88,35 +91,59 @@ const School = (props: Props) => {
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   useEffect(() => {
-    if (isLoading) {
-      if (pid) {
-        SchoolAPI.RSchool({ params: { _id: pid } })
-          .then(({ school }) => {
-            setSchoolData(school);
-            SeasonApi.RSeasons({ school: school._id }).then((seasons) => {
-              setSeasonList(seasons);
-            });
-          })
-          .catch((err: any) => {
-            setIsSchool(false);
-          });
+    if (isLoading && pid) {
+      if (currentUser.auth === "manager" && currentSchool._id !== pid) {
+        return navigate("/admin/schools/" + currentSchool._id);
       }
+      SchoolAPI.RSchool({ params: { _id: pid } })
+        .then(({ school }) => {
+          setSchoolData(school);
+          SeasonApi.RSeasons({ school: school._id }).then((seasons) => {
+            setSeasonList(seasons);
+            setIsLoading(false);
+          });
+        })
+        .catch((err: any) => {
+          setIsSchool(false);
+        });
     }
-  }, [isLoading]);
+  }, [isLoading, pid, currentSchool]);
 
   if (!isSchool) {
     return <CannotFindSchool />;
   }
 
-  return (
+  return !isLoading ? (
     <>
       <Navbar />
       <div className={style.section}>
-        {/* <NavigationLinks /> */}
+        <div
+          style={{
+            fontSize: "12px",
+            fontWeight: 500,
+            marginBottom: "18px",
+            display: "flex",
+            color: "var(--accent-1)",
+          }}
+        >
+          <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
+            <span>&nbsp;/&nbsp;</span>
+            <span
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                if (currentUser?.auth === "admin") {
+                  navigate("/admin/schools/list", { replace: true });
+                }
+              }}
+            >
+              {`학교 관리 / ${pid}`}
+            </span>
+          </div>
+        </div>
 
         <div className={style.title}>
           {schoolData !== undefined ? (
-            schoolData.schoolName
+            `${schoolData.schoolName} (${schoolData.schoolId})`
           ) : (
             <Skeleton height="22px" width="20%" />
           )}
@@ -124,7 +151,6 @@ const School = (props: Props) => {
         {schoolData && (
           <Tab
             items={{
-              // "기본 정보": <BasicInfo schoolData={schoolData} />,
               학기: (
                 <Season
                   school={schoolData._id}
@@ -148,6 +174,8 @@ const School = (props: Props) => {
         )}
       </div>
     </>
+  ) : (
+    <Loading height={"calc(100vh - 55px)"} />
   );
 };
 

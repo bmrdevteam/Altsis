@@ -133,8 +133,7 @@ const Schools = () => {
   const navigate = useNavigate();
   const { SchoolAPI } = useAPIv2();
   const { currentUser, currentSchool } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   /* document list */
   const [schoolsList, setSchoolsList] = useState<TSchool[]>([]);
@@ -143,35 +142,29 @@ const Schools = () => {
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
 
   useEffect(() => {
-    if (currentUser.auth === "admin") {
-      setIsAuthenticated(true);
-      setIsLoading(true);
-    } else if (currentSchool?._id) {
-      navigate(`/admin/schools/${currentSchool._id}`);
-    } else {
-      alert("가입된 학교가 없습니다.");
-      navigate("/");
-    }
-    return () => {};
-  }, [isAuthenticated]);
-
-  useEffect(() => {
     if (isLoading) {
-      SchoolAPI.RSchools().then(({ schools }) => {
-        setSchoolsList(schools);
-        setIsLoading(false);
-      });
+      if (currentUser.auth === "admin") {
+        SchoolAPI.RSchools().then(({ schools }) => {
+          setSchoolsList(schools);
+          setIsLoading(false);
+        });
+      } else if (currentSchool?._id) {
+        navigate(`/admin/schools/${currentSchool._id}`);
+      } else {
+        alert("가입된 학교가 없습니다.");
+        navigate("/");
+      }
     }
     return () => {};
-  }, [isLoading]);
+  }, [isLoading, currentSchool]);
 
-  return isAuthenticated ? (
+  return !isLoading ? (
     <>
       <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
-            <div className={style.title}>학교 목록</div>
+            <div className={style.title}>학교 관리</div>
             <div className={style.description}></div>
           </div>
         </div>

@@ -129,7 +129,6 @@ function Archive(props: Props) {
         <div style={{ marginTop: "24px" }}></div>
         <Table
           type="object-array"
-          control
           data={formArchiveParsed}
           onChange={updateFormArchive}
           header={[

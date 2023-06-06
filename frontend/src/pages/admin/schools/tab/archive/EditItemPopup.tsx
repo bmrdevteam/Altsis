@@ -64,6 +64,7 @@ function Index(props: Props) {
       });
       alert(SUCCESS_MESSAGE);
       props.setFormArchive(formArchive);
+      setFormArchiveItemFields(formArchive[props.itemIdx].fields);
     } catch (err) {
       ALERT_ERROR(err);
       setIsLoading(true);
@@ -83,6 +84,7 @@ function Index(props: Props) {
       });
       alert(SUCCESS_MESSAGE);
       props.setFormArchive(formArchive);
+      setFormArchiveItemFields(formArchive[props.itemIdx].fields);
     } catch (err) {
       ALERT_ERROR(err);
       setIsLoading(true);
@@ -95,7 +97,7 @@ function Index(props: Props) {
     }
   }, [isLoading]);
 
-  return !isLoading ? (
+  return (
     <>
       <Popup
         closeBtn
@@ -106,7 +108,7 @@ function Index(props: Props) {
       >
         <Table
           type="object-array"
-          data={formArchiveItemFields}
+          data={!isLoading ? formArchiveItemFields : []}
           onChange={updateItemFields}
           header={
             props.formArchive[props.itemIdx].dataType === "array"
@@ -248,8 +250,6 @@ function Index(props: Props) {
         </Popup>
       )}
     </>
-  ) : (
-    <Loading height={"calc(100vh - 55px)"} />
   );
 }
 
