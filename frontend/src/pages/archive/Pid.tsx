@@ -14,7 +14,7 @@ import Button from "components/button/Button";
 import ArrayView from "./tab/ArrayView";
 import ObjectView from "./tab/ObjectView";
 import Loading from "components/loading/Loading";
-import { TCurrentSeasonRegistration } from "types/auth";
+import { TSeasonRegistration } from "types/seasons";
 
 type Props = {};
 
@@ -52,10 +52,10 @@ const ArchiveField = (props: Props) => {
         navigate("/");
       }
 
-      let newRegistrationList: (TCurrentSeasonRegistration & {
+      let newRegistrationList: (TSeasonRegistration & {
         tableRowChecked?: boolean;
       })[] = [];
-      let newSelectedRegistrationList: TCurrentSeasonRegistration[] = [];
+      let newSelectedRegistrationList: TSeasonRegistration[] = [];
 
       if (formArchive().authTeacher === "viewAndEditStudents") {
         /* 1. 모든 선생님이 수정할 수 있는 양식인 경우 */

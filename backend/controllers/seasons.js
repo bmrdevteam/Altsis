@@ -189,33 +189,74 @@ export const create = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SeasonAPI
+ * @function RSeasons API
+ * @description 학기 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/seasons"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object[]} res.seasons
+ *
+ */
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function RSeason API
+ * @description 학기 조회 API; 간략한 등록 정보 목록을 함께 조회한다
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/seasons/:_id"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.school - school objectId
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.season
+ * @param {Object[]} res.registrations
+ *
+ */
 export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const season = await Season(req.user.academyId).findById(req.params._id);
-      if (req.query.withRegistrations === "true") {
-        const registrations = await Registration(req.user.academyId)
-          .find({
-            season: season._id,
-          })
-          .select([
-            "user",
-            "userId",
-            "userName",
-            "role",
-            "grade",
-            "teacher",
-            "teacherId",
-            "teacherName",
-            "subTeacher",
-            "subTeacherId",
-            "subTeacherName",
-            "group",
-          ]);
-        return res.status(200).send({ ...season.toObject(), registrations });
+      if (!season) {
+        return res.status(404).send({ message: __NOT_FOUND("season") });
       }
-      return res.status(200).send(season);
+
+      const registrations = await Registration(req.user.academyId)
+        .find({
+          season: season._id,
+        })
+        .select([
+          "user",
+          "userId",
+          "userName",
+          "role",
+          "grade",
+          "teacher",
+          "teacherId",
+          "teacherName",
+          "subTeacher",
+          "subTeacherId",
+          "subTeacherName",
+          "group",
+        ]);
+      return res.status(200).send({ season, registrations });
     }
+
     const seasons = await Season(req.user.academyId)
       .find(req.query)
       .select([

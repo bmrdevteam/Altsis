@@ -14,7 +14,7 @@ import { TUser } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
 import { TSchool, TSchoolFormArchive } from "types/schools";
-import { TSeason } from "types/seasons";
+import { TSeason, TSeasonWithRegistrations } from "types/seasons";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -797,6 +797,61 @@ export default function useAPIv2() {
     return { season: season as TSeason };
   }
 
+  /**
+   * RSeasons API
+   * @description 학기 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSeasons(props: {
+    query: {
+      school?: string;
+    };
+  }) {
+    const { seasons } = await database.R({
+      location: `seasons` + QUERY_BUILDER(props.query),
+    });
+    return {
+      seasons: _.orderBy(
+        seasons,
+        [
+          (season) => new Date(season.period?.start ?? "").getTime(),
+          (season) => new Date(season.period?.end ?? "").getTime(),
+          "createdAt",
+        ],
+        ["desc", "desc", "desc"]
+      ) as TSeason[],
+    };
+  }
+
+  /**
+   * RSeason API
+   * @description 학기 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { season, registrations } = await database.R({
+      location: `seasons/${props.params._id}`,
+    });
+    season.registrations = _.orderBy(
+      registrations,
+      [
+        (reg) => (reg.role && reg.role !== "" ? reg.role : "_"),
+        (reg) => (reg.grade && reg.grade !== "" ? reg.grade : "_"),
+        "userName",
+        "userId",
+      ],
+      ["asc", "asc", "asc", "asc"]
+    );
+
+    return { season: season as TSeasonWithRegistrations };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -840,6 +895,8 @@ export default function useAPIv2() {
     },
     SeasonAPI: {
       CSeason,
+      RSeasons,
+      RSeason,
     },
   };
 }

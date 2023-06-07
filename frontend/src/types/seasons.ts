@@ -55,3 +55,23 @@ export type TSeason = {
   formEvaluation: TFormEvaluation[];
   isActivated: boolean;
 };
+
+export type TSeasonRegistration = {
+  _id: string;
+  user: string;
+  userId: string;
+  userName: string;
+  role?: "teacher" | "student";
+  grade?: string;
+  teacher?: string;
+  teacherId?: string;
+  teacherName?: string;
+  subTeacher?: string;
+  subTeacherId?: string;
+  subTeacherName?: string;
+  group?: string;
+};
+
+export type TSeasonWithRegistrations = TSeason & {
+  registrations: TSeasonRegistration[];
+};
