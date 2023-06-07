@@ -12,6 +12,8 @@ const pattern = {
 
   schoolId: "^[a-z|A-Z|0-9]{2,20}$",
   schoolName: "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$",
+
+  dateText: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
 };
 
 const validate = (type, val) => {

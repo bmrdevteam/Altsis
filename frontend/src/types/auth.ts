@@ -84,6 +84,10 @@ export type TSeason = {
   };
   year: string;
   term: string;
+  period?: {
+    start?: string;
+    end?: string;
+  };
   permissionSyllabusV2: Permission[];
   permissionEnrollmentV2: Permission[];
   permissionEvaluationV2: Permission[];

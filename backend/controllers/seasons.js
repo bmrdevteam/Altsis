@@ -1,3 +1,7 @@
+/**
+ * SeasonAPI namespace
+ * @namespace APIs.SeasonAPI
+ */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import {
@@ -7,6 +11,13 @@ import {
   Enrollment,
   Registration,
 } from "../models/index.js";
+import {
+  FIELD_INVALID,
+  FIELD_IN_USE,
+  FIELD_REQUIRED,
+  __NOT_FOUND,
+} from "../messages/index.js";
+import { validate } from "../utils/validate.js";
 
 // check schoolId&year&term duplication
 const checkDuplication = async (academyId, schoolId, year, term) => {
@@ -36,62 +47,113 @@ const checkSyllabus = async (academyId, season) => {
   }
 };
 
-// check if evaluation exists in this season
-const checkEvaluation = async (academyId, season) => {
-  const enrollment = await Enrollment(academyId).findOne({
-    season: season._id,
-    evaluation: { $ne: null },
-  });
-  if (enrollment) {
-    const err = new Error(
-      "it can't be changed because there's a evaluation created in this season"
-    );
-    err.status = 409;
-    throw err;
-  }
-};
+/**
+ * @memberof APIs.SeasonAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SEASON_NOT_FOUND | if season is not found  |
+ */
 
-/* create */
+/**
+ * @memberof APIs.SeasonAPI
+ * @function CSeason API
+ * @description 학기 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/seasons"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.school - ObjectId of school(sid)
+ * @param {string} req.body.year
+ * @param {string} req.body.term
+ * @param {string} req.body.period
+ * @param {string} req.body.period.start - "YYYY-MM-DD"
+ * @param {string} req.body.period.end - "YYYY-MM-DD"
+ * @param {string?} req.body.copyFrom - ObjectId of season to copy from
+ *
+ * @param {Object} res
+ * @param {Object} res.season - created season
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | YEAR_TERM_IN_USE | if parameters year and term are in use  |
+ *
+ *
+ */
 
 export const create = async (req, res) => {
   try {
-    const _Season = Season(req.user.academyId);
+    /* validate */
+    for (let field of ["school", "year", "term"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+    if ("period" in req.body) {
+      for (let field of ["start", "end"]) {
+        if (
+          field in req.body.period &&
+          !validate("dateText", req.body.period[field])
+        ) {
+          return res.status(400).send({ message: FIELD_INVALID(field) });
+        }
+      }
+    }
+
+    const admin = req.user;
 
     /* check duplication */
-    const exSeason = await _Season.findOne({
-      school: req.body.school,
-      year: req.body.year,
-      term: req.body.term,
-    });
-    if (exSeason)
+    if (
+      await Season(admin.academyId).findOne({
+        school: req.body.school,
+        year: req.body.year,
+        term: req.body.term,
+      })
+    ) {
       return res.status(409).send({
-        message: `동일한 이름의 시즌(${req.body.year}, ${req.body.term})이 존재합니다.`,
+        message: FIELD_IN_USE("year_term"),
       });
+    }
 
-    const school = await School(req.user.academyId).findById(req.body.school);
-    if (!school) return res.status(404).send();
+    const school = await School(admin.academyId).findById(req.body.school);
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
 
-    if (req.body.copyFrom) {
-      const seasonToCopy = await _Season.findById(req.body.copyFrom);
-      if (!seasonToCopy)
+    if ("copyFrom" in req.body) {
+      const seasonToCopy = await Season(admin.academyId).findById(
+        req.body.copyFrom
+      );
+      if (!seasonToCopy) {
         return res.status(404).send({
-          message: `season(${req.body.copyFrom}) not found`,
+          message: __NOT_FOUND("season"),
         });
+      }
 
       /* create and save document */
-      const season = new _Season({
+      const season = await Season(admin.academyId).create({
         ...seasonToCopy.toObject(),
         _id: undefined,
         year: req.body.year,
         term: req.body.term,
-        period: req.body.period ? req.body.period : { start: "", end: "" },
+        period: req.body.period,
         isActivated: false,
         isActivatedFirst: false,
       });
 
-      await season.save();
-
-      const registrationsToCopy = await Registration(req.user.academyId).find({
+      const registrationsToCopy = await Registration(admin.academyId).find({
         season: seasonToCopy._id,
       });
       const registrations = registrationsToCopy.map((reg) => {
@@ -105,23 +167,22 @@ export const create = async (req, res) => {
           isActivated: season.isActivated,
         };
       });
-      await Registration(req.user.academyId).insertMany(registrations);
+      await Registration(admin.academyId).insertMany(registrations);
 
-      return res.status(200).send(season);
+      return res.status(200).send({ season });
     }
 
     /* create and save document */
-    const season = new _Season({
+    const season = await Season(admin.academyId).create({
       school: school._id,
       schoolId: school.schoolId,
       schoolName: school.schoolName,
       year: req.body.year,
       term: req.body.term,
-      period: req.body.period ? req.body.period : { start: "", end: "" },
+      period: req.body.period,
     });
 
-    await season.save();
-    return res.status(200).send(season);
+    return res.status(200).send({ season });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
