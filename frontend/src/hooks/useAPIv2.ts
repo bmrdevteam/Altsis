@@ -891,6 +891,72 @@ export default function useAPIv2() {
   }
 
   /**
+   * USeasonPermission API
+   * @description 학기 권한 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonPermission(props: {
+    params: {
+      _id: string;
+      type: string | "syllabus" | "enrollment" | "evaluation";
+    };
+    data: {
+      teacher?: boolean;
+      student?: boolean;
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props.params._id}/permission/${props.params.type}`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * CSeasonPermissionException API
+   * @description 학기 권한 예외 추가 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CSeasonPermissionException(props: {
+    params: {
+      _id: string;
+      type: string | "syllabus" | "enrollment" | "evaluation";
+    };
+    data: {
+      registration: string;
+      isAllowed: boolean;
+    };
+  }) {
+    return await database.C({
+      location: `seasons/${props.params._id}/permission/${props.params.type}/exceptions`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * DSeasonPermissionException API
+   * @description 학기 권한 예외 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DSeasonPermissionException(props: {
+    params: {
+      _id: string;
+      type: string | "syllabus" | "enrollment" | "evaluation";
+    };
+    query: {
+      registration: string;
+    };
+  }) {
+    return await database.D({
+      location:
+        `seasons/${props.params._id}/permission/${props.params.type}/exceptions` +
+        QUERY_BUILDER(props.query),
+    });
+  }
+
+  /**
    * DSeason API
    * @description 학기 삭제 API
    * @version 2.0.0
@@ -953,6 +1019,9 @@ export default function useAPIv2() {
       RSeason,
       UActivateSeason,
       UInactivateSeason,
+      USeasonPermission,
+      CSeasonPermissionException,
+      DSeasonPermissionException,
       DSeason,
     },
   };

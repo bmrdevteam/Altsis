@@ -27,7 +27,6 @@
  *
  */
 import { useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 
 // components
 import Table from "components/tableV2/Table";
@@ -47,7 +46,6 @@ const defaultPermission: TPermission = {
 };
 
 const Index = (props: Props) => {
-  const { SeasonApi } = useApi();
   const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
@@ -110,9 +108,8 @@ const Index = (props: Props) => {
                 text: "N",
                 color: "red",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: {
                       teacher: true,
                     },
@@ -130,9 +127,8 @@ const Index = (props: Props) => {
                 text: "Y",
                 color: "green",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: {
                       teacher: false,
                     },
@@ -159,9 +155,8 @@ const Index = (props: Props) => {
                 text: "N",
                 color: "red",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: {
                       student: true,
                     },
@@ -179,9 +174,8 @@ const Index = (props: Props) => {
                 text: "Y",
                 color: "green",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: { student: false },
                   })
                     .then((res: any) => {

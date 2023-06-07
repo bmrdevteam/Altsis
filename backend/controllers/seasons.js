@@ -447,14 +447,41 @@ const getPermissionField = (type) => {
   return undefined;
 };
 
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonPermission API
+ * @description 학기 권한 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/permission/:type"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params._id - season objectId
+ * @param {"syllabus"|"enrollment"|"evaluation"} req.params.type
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ * @param {boolean?} req.body.teacher
+ * @param {boolean?} req.body.student
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
 export const updatePermission = async (req, res) => {
   try {
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     const permission = getPermissionField(req.params.type);
     if (!permission) {
-      return res.status(400).send({ message: "invalid request" });
+      return res.status(400).send({ message: FIELD_INVALID("type") });
+    }
+
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
     if ("teacher" in req.body) {
@@ -471,7 +498,8 @@ export const updatePermission = async (req, res) => {
         },
         { [permission]: req.body.teacher }
       );
-    } else if ("student" in req.body) {
+    }
+    if ("student" in req.body) {
       season[permission].student = req.body.student;
       season.markModified(permission);
       await season.save();
@@ -485,8 +513,6 @@ export const updatePermission = async (req, res) => {
         },
         { [permission]: req.body.student }
       );
-    } else {
-      return res.status(400).send({ message: "invalid request" });
     }
 
     return res.status(200).send({ season });
@@ -495,27 +521,71 @@ export const updatePermission = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SeasonAPI
+ * @function CSeasonPermissionException API
+ * @description 학기 권한 예외 추가 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/seasons/:_id/permission/:type/exceptions"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params._id - season objectId
+ * @param {"syllabus"|"enrollment"|"evaluation"} req.params.type
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.registration - registration ObjectId
+ * @param {boolean} req.body.isAllowed
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
 export const addPermissionException = async (req, res) => {
   try {
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     const permission = getPermissionField(req.params.type);
     if (!permission) {
-      return res.status(400).send({ message: "invalid request" });
+      return res.status(400).send({ message: FIELD_INVALID("type") });
     }
 
-    if ("registration" in req.body && "isAllowed" in req.body) {
-      season[permission].exceptions.push(req.body);
-      season.markModified(permission);
-      await season.save();
-      await Registration(req.user.academyId).findByIdAndUpdate(
-        req.body.registration,
-        { [permission]: req.body.isAllowed }
-      );
-    } else {
-      return res.status(400).send({ message: "invalid request" });
+    for (let field of ["registration", "isAllowed"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
     }
+
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    const registration = await Registration(req.user.academyId).findById(
+      req.body.registration
+    );
+    if (!registration) {
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
+    }
+
+    season[permission].exceptions.push({
+      registration: req.body.registration,
+      isAllowed: req.body.isAllowed,
+      role: registration.role,
+      user: registration.user,
+      userName: registration.userName,
+      userId: registration.userId,
+    });
+    season.markModified(permission);
+
+    registration[permission] = req.body.isAllowed;
+    registration.markModified(permission);
+
+    await season.save();
+    await registration.save();
 
     return res.status(200).send({ season });
   } catch (err) {
@@ -523,39 +593,66 @@ export const addPermissionException = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SeasonAPI
+ * @function DSeasonPermissionException API
+ * @description 학기 권한 예외 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/seasons/:_id/permission/:type/exceptions"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params._id - season objectId
+ * @param {"syllabus"|"enrollment"|"evaluation"} req.params.type
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.registration
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
 export const removePermissionException = async (req, res) => {
   try {
-    console.log(req.user);
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
     const permission = getPermissionField(req.params.type);
     if (!permission) {
-      return res.status(400).send({ message: "invalid request" });
+      return res.status(400).send({ message: FIELD_INVALID("type") });
     }
 
-    if ("registration" in req.query) {
-      const idx = _.findIndex(
-        season[permission].exceptions,
-        (ex) => ex.registration === req.query.registration
-      );
-      if (idx === -1) {
-        return res.status(404).send({});
-      }
-      const registration = await Registration(req.user.academyId).findById(
-        req.query.registration
-      );
-      if (!registration) return res.status(404).send({});
-
-      registration[permission] = season[permission][registration.role];
-      await registration.save();
-
-      season[permission].exceptions.splice(idx, 1);
-      season.markModified(permission);
-      await season.save();
-    } else {
-      return res.status(400).send({ message: "invalid request" });
+    if (!("registration" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("registration") });
     }
+
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    const idx = _.findIndex(
+      season[permission].exceptions,
+      (ex) => ex.registration === req.query.registration
+    );
+    if (idx === -1) {
+      return res.status(404).send({ message: __NOT_FOUND("exception") });
+    }
+    const registration = await Registration(req.user.academyId).findById(
+      req.query.registration
+    );
+    if (!registration) {
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
+    }
+
+    registration[permission] = season[permission][registration.role];
+    await registration.save();
+
+    season[permission].exceptions.splice(idx, 1);
+    season.markModified(permission);
+    await season.save();
 
     return res.status(200).send({ season });
   } catch (err) {
