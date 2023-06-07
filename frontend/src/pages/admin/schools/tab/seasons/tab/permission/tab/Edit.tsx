@@ -41,7 +41,7 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Select from "components/select/Select";
 
 import Autofill from "components/input/Autofill";
-import { Exception, Permission } from "types/auth";
+import { TPermission, TPermissionException } from "types/seasons";
 
 type Props = {
   setPopupActive: any;
@@ -59,9 +59,9 @@ function Basic(props: Props) {
 
   const [teacher, setTeacher] = useState<boolean>(false);
   const [student, setStudent] = useState<boolean>(false);
-  const [exceptions, setExceptions] = useState<Exception[]>([]);
+  const [exceptions, setExceptions] = useState<TPermissionException[]>([]);
 
-  const exceptionRef = useRef<Exception>({
+  const exceptionRef = useRef<TPermissionException>({
     registration: "",
     role: "",
     user: "",
@@ -70,7 +70,7 @@ function Basic(props: Props) {
     isAllowed: true,
   });
 
-  const updatePermission = (permission: Permission) => {
+  const updatePermission = (permission: TPermission) => {
     setTeacher(permission.teacher);
     setStudent(permission.student);
     setExceptions(permission.exceptions);

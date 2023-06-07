@@ -11,7 +11,7 @@ import React, {
 import _ from "lodash";
 import { useCookies } from "react-cookie";
 
-import { TCurrentUser, TRegistration, TSeason } from "types/auth";
+import { TCurrentUser, TCurrentRegistration, TCurrentSeason } from "types/auth";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 
@@ -24,10 +24,10 @@ export function useAuth(): {
   setCurrentUser: React.Dispatch<TCurrentUser>;
   currentSchool: TSchool;
   changeSchool: (to: string) => void;
-  currentRegistration: TRegistration;
+  currentRegistration: TCurrentRegistration;
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;
-  currentSeason: TSeason;
+  currentSeason: TCurrentSeason;
 } {
   return useContext(AuthContext);
 }
@@ -51,8 +51,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<TCurrentUser>();
   const [currentSchool, setCurrentSchool] = useState<TSchool>();
   const [currentRegistration, setCurrentRegistration] =
-    useState<TRegistration>();
-  const [currentSeason, setCurrentSeason] = useState<TSeason>();
+    useState<TCurrentRegistration>();
+  const [currentSeason, setCurrentSeason] = useState<TCurrentSeason>();
 
   const [loading, setLoading] = useState<boolean>(true);
 

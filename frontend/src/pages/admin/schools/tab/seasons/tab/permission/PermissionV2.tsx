@@ -33,13 +33,13 @@ import useApi from "hooks/useApi";
 import Table from "components/tableV2/Table";
 
 import Edit from "./tab/Edit";
-import { Permission } from "types/auth";
+import { TPermission } from "types/seasons";
 
 type Props = {
   _id: string;
 };
 
-const defaultPermission: Permission = {
+const defaultPermission: TPermission = {
   teacher: false,
   student: false,
   exceptions: [],
@@ -51,11 +51,11 @@ const Index = (props: Props) => {
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
 
   const [permissionSyllabus, setPermissionSyllabus] =
-    useState<Permission>(defaultPermission);
+    useState<TPermission>(defaultPermission);
   const [permissionEnrollmentParsed, setPermissionEnrollmentParsed] =
-    useState<Permission>(defaultPermission);
+    useState<TPermission>(defaultPermission);
   const [permissionEvaluationParsed, setPermissionEvaluationParsed] =
-    useState<Permission>(defaultPermission);
+    useState<TPermission>(defaultPermission);
   const [type, setType] = useState<"syllabus" | "enrollment" | "evaluation">(
     "syllabus"
   );
