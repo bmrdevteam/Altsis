@@ -14,7 +14,9 @@ type Props = {};
 const ChooseAcademy = (props: Props) => {
   const navigate = useNavigate();
   const [, , removeCookie] = useCookies(["academyId"]);
-  const { AcademyAPI } = useAPIv2();
+  const { AcademyAPI, UserAPI } = useAPIv2();
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const formData = useRef<{ academyId: string }>({ academyId: "" });
 
@@ -23,47 +25,57 @@ const ChooseAcademy = (props: Props) => {
   date.setFullYear(date.getFullYear() + 1);
 
   useEffect(() => {
-    removeCookie("academyId");
-  }, []);
+    if (isLoading) {
+      UserAPI.RMySelf()
+        .then(() => {
+          // if user is already logged in
+          navigate(`/`, { replace: true });
+        })
+        .catch((err) => {
+          removeCookie("academyId");
+          setIsLoading(false);
+        });
+    }
+  }, [isLoading]);
 
-  return (
-    <>
-      <div className={style.section}>
-        <div className={style.container}>
-          <div className={style.title}> 아카데미</div>
-          <div className={style.subtitle}>
-            입장하실 아카데미 아이디를 입력하세요.
-          </div>
-          <Input
-            appearence="flat"
-            type="text"
-            placeholder="아카데미 ID"
-            onChange={(e: any) => {
-              formData.current.academyId = e.target.value;
-            }}
-          />
-          <div style={{ marginTop: "24px" }}></div>
-          <Button
-            type="ghost"
-            onClick={() => {
-              AcademyAPI.RAcademy({
-                query: { academyId: formData.current.academyId.trim() },
-              })
-                .then(({ academy }) => {
-                  navigate("/" + academy.academyId + "/login", {
-                    replace: true,
-                  });
-                })
-                .catch((err) => {
-                  ALERT_ERROR(err);
-                });
-            }}
-          >
-            입장
-          </Button>
+  return !isLoading ? (
+    <div className={style.section}>
+      <div className={style.container}>
+        <div className={style.title}> 아카데미</div>
+        <div className={style.subtitle}>
+          입장하실 아카데미 아이디를 입력하세요.
         </div>
+        <Input
+          appearence="flat"
+          type="text"
+          placeholder="아카데미 ID"
+          onChange={(e: any) => {
+            formData.current.academyId = e.target.value;
+          }}
+        />
+        <div style={{ marginTop: "24px" }}></div>
+        <Button
+          type="ghost"
+          onClick={() => {
+            AcademyAPI.RAcademy({
+              query: { academyId: formData.current.academyId.trim() },
+            })
+              .then(({ academy }) => {
+                navigate("/" + academy.academyId + "/login", {
+                  replace: true,
+                });
+              })
+              .catch((err) => {
+                ALERT_ERROR(err);
+              });
+          }}
+        >
+          입장
+        </Button>
       </div>
-    </>
+    </div>
+  ) : (
+    <></>
   );
 };
 

@@ -84,7 +84,7 @@ const Login = () => {
   /**
    * to indicate when the data from the backend has mounted
    */
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   /**
    * current selected academy - from the backend
@@ -125,6 +125,17 @@ const Login = () => {
         navigate(`/login`, { replace: true });
       });
   };
+
+  useEffect(() => {
+    UserAPI.RMySelf()
+      .then(() => {
+        // if user is already logged in
+        navigate(`/`, { replace: true });
+      })
+      .catch((err) => {
+        setIsLoading(true);
+      });
+  }, []);
 
   useEffect(() => {
     if (isLoading) {
