@@ -38,6 +38,7 @@ import Table from "components/tableV2/Table";
 import Input from "components/input/Input";
 
 import UpdateBulk from "./tab/updateBulk";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
@@ -45,6 +46,7 @@ type Props = {
 
 const Classroom = (props: Props) => {
   const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [classroomList, setClassroomList] = useState<any[]>([]);
@@ -55,9 +57,9 @@ const Classroom = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeason(props._id)
-        .then((res) => {
-          setClassroomList(res.classrooms);
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setClassroomList(season.classrooms);
         })
         .then(() => setIsLoading(false));
     }

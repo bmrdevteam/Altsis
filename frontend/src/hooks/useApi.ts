@@ -57,55 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Get Season by Id
-   * @type GET
-   * @auth member
-   * @returns Season
-   */
-  async function RSeason(id: string) {
-    const result = await database.R({ location: `seasons/${id}` });
-    return result;
-  }
-  async function RSeasonWithRegistrations(id: string) {
-    const season = await database.R({
-      location: `seasons/${id}?withRegistrations=true`,
-    });
-    season.registrations = _.orderBy(
-      season.registrations,
-      [
-        (reg) => (reg.role && reg.role !== "" ? reg.role : "_"),
-        (reg) => (reg.grade && reg.grade !== "" ? reg.grade : "_"),
-        "userName",
-        "userId",
-      ],
-      ["asc", "asc", "asc", "asc"]
-    );
-
-    return season;
-  }
-  /**
-   * Get Seasons
-   * @type GET
-   * @auth member
-   * @returns Season
-   */
-  async function RSeasons(params: { school: string }) {
-    const { seasons } = await database.R({
-      location: `seasons` + QUERY_BUILDER(params),
-    });
-
-    return _.orderBy(
-      seasons,
-      [
-        (season) => new Date(season.period?.end ?? "").getTime(),
-        (season) => new Date(season.period?.start ?? "").getTime(),
-        "createdAt",
-      ],
-      ["desc", "desc", "desc"]
-    );
-  }
-
-  /**
    * Update Season period
    * @type PUT
    * @auth admin manager
@@ -1028,9 +979,6 @@ export default function useApi() {
 
   return {
     SeasonApi: {
-      RSeason,
-      RSeasonWithRegistrations,
-      RSeasons,
       USeason,
       UActivateSeason,
       UInactivateSeason,

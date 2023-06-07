@@ -34,6 +34,7 @@ import Table from "components/tableV2/Table";
 
 import Edit from "./tab/Edit";
 import { TPermission } from "types/seasons";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
@@ -47,6 +48,7 @@ const defaultPermission: TPermission = {
 
 const Index = (props: Props) => {
   const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
 
@@ -62,11 +64,11 @@ const Index = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeason(props._id)
-        .then((res) => {
-          setPermissionSyllabus(res?.permissionSyllabusV2);
-          setPermissionEnrollmentParsed(res?.permissionEnrollmentV2);
-          setPermissionEvaluationParsed(res?.permissionEvaluationV2);
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setPermissionSyllabus(season?.permissionSyllabusV2);
+          setPermissionEnrollmentParsed(season?.permissionEnrollmentV2);
+          setPermissionEvaluationParsed(season?.permissionEvaluationV2);
         })
         .then(() => {
           setIsLoading(false);

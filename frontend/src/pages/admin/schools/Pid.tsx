@@ -29,7 +29,6 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
 
 // components
@@ -82,8 +81,7 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { SeasonApi } = useApi();
-  const { SchoolAPI } = useAPIv2();
+  const { SchoolAPI, SeasonAPI } = useAPIv2();
   const { currentUser, currentSchool } = useAuth();
   const navigate = useNavigate();
 
@@ -100,10 +98,12 @@ const School = (props: Props) => {
       SchoolAPI.RSchool({ params: { _id: pid } })
         .then(({ school }) => {
           setSchoolData(school);
-          SeasonApi.RSeasons({ school: school._id }).then((seasons) => {
-            setSeasonList(seasons);
-            setIsLoading(false);
-          });
+          SeasonAPI.RSeasons({ query: { school: school._id } }).then(
+            ({ seasons }) => {
+              setSeasonList(seasons);
+              setIsLoading(false);
+            }
+          );
         })
         .catch((err: any) => {
           setIsSchool(false);

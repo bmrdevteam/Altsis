@@ -47,6 +47,7 @@ import Users from "./tab/users/Users";
 // popup
 import AddSeasonPopup from "./AddPopup";
 import { TSeason } from "types/seasons";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   school: string;
@@ -56,6 +57,7 @@ type Props = {
 
 const Season = (props: Props) => {
   const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -66,9 +68,9 @@ const Season = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeasons({ school: props.school })
-        .then((res) => {
-          props.setSeasonList(res);
+      SeasonAPI.RSeasons({ query: { school: props.school } })
+        .then(({ seasons }) => {
+          props.setSeasonList(seasons);
           setIsLoading(false);
         })
         .catch((err) => alert(err.response.data.message));
@@ -147,10 +149,12 @@ const Season = (props: Props) => {
               key: "detail",
               type: "button",
               onClick: (e: any) => {
-                SeasonApi.RSeason(e._id).then((res) => {
-                  setSeasonToEdit(res);
-                  setEditPopupActive(true);
-                });
+                SeasonAPI.RSeason({ params: { _id: e._id } }).then(
+                  ({ season }) => {
+                    setSeasonToEdit(season);
+                    setEditPopupActive(true);
+                  }
+                );
               },
               width: "80px",
               textAlign: "center",

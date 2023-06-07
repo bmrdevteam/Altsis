@@ -33,6 +33,7 @@ import style from "style/pages/admin/schools.module.scss";
 import useApi from "hooks/useApi";
 
 import _ from "lodash";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
@@ -42,6 +43,7 @@ type Props = {
 
 function Basic(props: Props) {
   const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* document fields */
@@ -58,14 +60,14 @@ function Basic(props: Props) {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeason(props._id)
-        .then((res) => {
-          setSeasonData(res);
-          if (!res.isActivatedFirst) {
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setSeasonData(season);
+          if (!season.isActivatedFirst) {
             const undefinedForms = [];
-            if (!res.formTimetable) undefinedForms.push("시간표");
-            if (!res.formSyllabus) undefinedForms.push("강의 계획서");
-            if (res.formEvaluation.length === 0) undefinedForms.push("평가");
+            if (!season.formTimetable) undefinedForms.push("시간표");
+            if (!season.formSyllabus) undefinedForms.push("강의 계획서");
+            if (season.formEvaluation.length === 0) undefinedForms.push("평가");
             setUndefinedForms(undefinedForms);
           }
         })
