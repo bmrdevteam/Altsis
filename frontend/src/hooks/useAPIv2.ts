@@ -852,6 +852,60 @@ export default function useAPIv2() {
     return { season: season as TSeasonWithRegistrations };
   }
 
+  /**
+   * UActivateSeason API
+   * @description 학기 활성화 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UActivateSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/activate`,
+      data: {},
+    });
+
+    return { season: season as TSeason };
+  }
+
+  /**
+   * UInactivateSeason API
+   * @description 학기 비활성화 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UInactivateSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/inactivate`,
+      data: {},
+    });
+
+    return { season: season as TSeason };
+  }
+
+  /**
+   * DSeason API
+   * @description 학기 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `seasons/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -897,6 +951,9 @@ export default function useAPIv2() {
       CSeason,
       RSeasons,
       RSeason,
+      UActivateSeason,
+      UInactivateSeason,
+      DSeason,
     },
   };
 }

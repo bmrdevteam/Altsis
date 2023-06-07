@@ -75,34 +75,6 @@ export default function useApi() {
   }
 
   /**
-   * Activate Season
-   * @type PUT
-   * @auth admin manager
-   * @returns Season
-   */
-
-  async function UActivateSeason(_id: string) {
-    return await database.U({
-      location: `seasons/${_id}/activate`,
-      data: {},
-    });
-  }
-
-  /**
-   * Inactivate Season
-   * @type PUT
-   * @auth admin manager
-   * @returns Season
-   */
-
-  async function UInactivateSeason(_id: string) {
-    return await database.U({
-      location: `seasons/${_id}/inactivate`,
-      data: {},
-    });
-  }
-
-  /**
    * Update Classrooms in season
    * @auth admin / manager
    * @returns Season
@@ -220,17 +192,6 @@ export default function useApi() {
     });
   }
 
-  /**
-   * Delete Season
-   * @type DELETE
-   * @auth admin manager
-   */
-
-  async function DSeason(_id: string) {
-    return await database.D({
-      location: `seasons/${_id}`,
-    });
-  }
   /**
    * Registration Api
    * ##########################################################################
@@ -980,8 +941,6 @@ export default function useApi() {
   return {
     SeasonApi: {
       USeason,
-      UActivateSeason,
-      UInactivateSeason,
       USeasonSubject,
       USeasonClassroom,
       USeasonForm,
@@ -989,7 +948,6 @@ export default function useApi() {
       USeasonPermissionV2,
       USeasonPermissionV2AddException,
       USeasonPermissionV2RemoveException,
-      DSeason,
     },
     RegistrationApi: {
       CRegistrations,
