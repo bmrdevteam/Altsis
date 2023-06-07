@@ -35,9 +35,9 @@ import Table from "components/tableV2/Table";
 
 import style from "style/pages/admin/schools.module.scss";
 
-import { TSeason } from "types/auth";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import _ from "lodash";
+import { TSeason } from "types/seasons";
 
 type Props = {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;

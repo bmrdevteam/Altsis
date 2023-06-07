@@ -46,7 +46,7 @@ import Users from "./tab/users/Users";
 
 // popup
 import AddSeasonPopup from "./AddPopup";
-import { TSeason } from "types/auth";
+import { TSeason } from "types/seasons";
 
 type Props = {
   school: string;

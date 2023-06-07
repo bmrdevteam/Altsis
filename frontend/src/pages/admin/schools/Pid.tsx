@@ -49,7 +49,7 @@ import Navbar from "layout/navbar/Navbar";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 import Loading from "components/loading/Loading";
-import { TSeason } from "types/auth";
+import { TSeason } from "types/seasons";
 
 type Props = {};
 

@@ -12,8 +12,9 @@ import { MESSAGE } from "./_message";
 import { TAcademy } from "types/academies";
 import { TUser } from "types/users";
 import _ from "lodash";
-import { TCurrentUser, TSeason } from "types/auth";
+import { TCurrentUser } from "types/auth";
 import { TSchool, TSchoolFormArchive } from "types/schools";
+import { TSeason } from "types/seasons";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
