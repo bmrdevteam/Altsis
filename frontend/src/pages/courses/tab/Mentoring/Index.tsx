@@ -47,6 +47,7 @@ import Svg from "assets/svg/Svg";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -54,6 +55,7 @@ const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const navigate = useNavigate();
 
   const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
@@ -174,61 +176,63 @@ const CoursePid = (props: Props) => {
             navigate("/courses#담당%20수업", { replace: true });
           }
 
-          SeasonApi.RSeason(result.season).then((res: any) => {
-            let _formEvaluationHeader: any[] = [];
+          SeasonAPI.RSeason({ params: { _id: result.season } }).then(
+            ({ season }) => {
+              let _formEvaluationHeader: any[] = [];
 
-            if (currentRegistration?.permissionEvaluationV2) {
-              res.formEvaluation.forEach((val: any) => {
-                const text = val.label;
-                const key = "evaluation." + text;
+              if (currentRegistration?.permissionEvaluationV2) {
+                season.formEvaluation.forEach((val: any) => {
+                  const text = val.label;
+                  const key = "evaluation." + text;
 
-                if (val.auth.edit.teacher) {
-                  fieldEvaluationList.push({
-                    text,
-                    key,
-                  });
-                  if (val.type === "input-number") {
-                    _formEvaluationHeader.push({
+                  if (val.auth.edit.teacher) {
+                    fieldEvaluationList.push({
                       text,
                       key,
-                      type: "input-number",
                     });
-                  } else if (val.type === "select") {
+                    if (val.type === "input-number") {
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "input-number",
+                      });
+                    } else if (val.type === "select") {
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "select",
+                        option: val.options,
+                      });
+                    } else {
+                      _formEvaluationHeader.push({
+                        text,
+                        key,
+                        type: "input",
+                      });
+                    }
+                  } else if (val.auth.view.student) {
                     _formEvaluationHeader.push({
                       text,
                       key,
-                      type: "select",
-                      option: val.options,
-                    });
-                  } else {
-                    _formEvaluationHeader.push({
-                      text,
-                      key,
-                      type: "input",
+                      type: "text",
+                      whiteSpace: "pre-wrap",
                     });
                   }
-                } else if (val.auth.view.student) {
+                });
+              } else {
+                season.formEvaluation.forEach((val: any) => {
                   _formEvaluationHeader.push({
-                    text,
-                    key,
+                    text: val.label,
+                    key: "evaluation." + val.label,
                     type: "text",
                     whiteSpace: "pre-wrap",
                   });
-                }
-              });
-            } else {
-              res.formEvaluation.forEach((val: any) => {
-                _formEvaluationHeader.push({
-                  text: val.label,
-                  key: "evaluation." + val.label,
-                  type: "text",
-                  whiteSpace: "pre-wrap",
                 });
-              });
+              }
+              setFieldEvaluationList(fieldEvaluationList);
+              setFormEvaluationHeader(_formEvaluationHeader);
             }
-            setFieldEvaluationList(fieldEvaluationList);
-            setFormEvaluationHeader(_formEvaluationHeader);
-          });
+          );
         })
         .then(() => {
           setIsLoadingSyllabus(false);

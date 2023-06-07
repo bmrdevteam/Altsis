@@ -37,6 +37,7 @@ import Input from "components/input/Input";
 import Table from "components/tableV2/Table";
 
 import UpdateBulk from "./tab/updateBulk";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
@@ -44,6 +45,7 @@ type Props = {
 
 const Subjects = (props: Props) => {
   const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* subject label list */
@@ -91,9 +93,9 @@ const Subjects = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeason(props._id)
-        .then((res) => {
-          setSubjects(res.subjects);
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setSubjects(season.subjects);
         })
         .then(() => setIsLoading(false));
     }

@@ -47,13 +47,14 @@ export type TSeason = {
     start?: string;
     end?: string;
   };
-  permissionSyllabusV2: TPermission[];
-  permissionEnrollmentV2: TPermission[];
-  permissionEvaluationV2: TPermission[];
+  permissionSyllabusV2: TPermission;
+  permissionEnrollmentV2: TPermission;
+  permissionEvaluationV2: TPermission;
   formTimetable: any;
   formSyllabus: any;
   formEvaluation: TFormEvaluation[];
   isActivated: boolean;
+  isActivatedFirst: boolean;
 };
 
 export type TSeasonRegistration = {

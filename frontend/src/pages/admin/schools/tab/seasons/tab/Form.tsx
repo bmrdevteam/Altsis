@@ -35,6 +35,7 @@ import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 
 import style from "style/pages/admin/schools.module.scss";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
@@ -42,6 +43,7 @@ type Props = {
 
 const Form = (props: Props) => {
   const { SeasonApi, FormApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [isActivated, setIsActivated] = useState<boolean>();
@@ -72,9 +74,9 @@ const Form = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeason(props._id)
-        .then((res) => {
-          updateFormData(res);
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          updateFormData(season);
         })
         .then(() => setIsLoading(false));
     }

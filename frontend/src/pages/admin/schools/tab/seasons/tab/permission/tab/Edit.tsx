@@ -42,6 +42,7 @@ import Select from "components/select/Select";
 
 import Autofill from "components/input/Autofill";
 import { TPermission, TPermissionException } from "types/seasons";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   setPopupActive: any;
@@ -52,6 +53,7 @@ type Props = {
 
 function Basic(props: Props) {
   const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -78,16 +80,16 @@ function Basic(props: Props) {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeasonWithRegistrations(props._id)
-        .then((res) => {
-          setRegistrationList(res.registrations ?? []);
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setRegistrationList(season.registrations ?? []);
 
           if (props.type === "syllabus") {
-            updatePermission(res?.permissionSyllabusV2);
+            updatePermission(season?.permissionSyllabusV2);
           } else if (props.type === "enrollment") {
-            updatePermission(res?.permissionEnrollmentV2);
+            updatePermission(season?.permissionEnrollmentV2);
           } else if (props.type === "evaluation") {
-            updatePermission(res?.permissionEvaluationV2);
+            updatePermission(season?.permissionEvaluationV2);
           } else props.setPopupActive(false);
         })
         .then(() => {
