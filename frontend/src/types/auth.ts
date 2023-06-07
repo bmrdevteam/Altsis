@@ -6,7 +6,8 @@ export type TCurrentUser = TUser & {
 
 export type TFormEvaluation = {
   label: string;
-  type: string; // input,
+  type: "input" | "input-number" | "select";
+  options: string[];
   combineBy: "term" | "year";
   authOption:
     | "editByStudent"
@@ -83,9 +84,6 @@ export type TSeason = {
   };
   year: string;
   term: string;
-  // permissionSyllabus: [[]]; //deprecated
-  // permissionEnrollment: [[]]; //deprecated
-  // permissionEvaluation: [[]]; //deprecated
   permissionSyllabusV2: Permission[];
   permissionEnrollmentV2: Permission[];
   permissionEvaluationV2: Permission[];

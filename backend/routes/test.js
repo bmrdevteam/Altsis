@@ -10,16 +10,54 @@ import { Syllabus } from "../models/Syllabus.js";
 import { Notification } from "../models/Notification.js";
 import { UTC1 } from "../utils/date.js";
 
-router.get("/notifications", async (req, res) => {
+/* After v1.8.3 */
+
+/**
+ * update seasons and registrations
+ *
+ * seasons - remove fields permission*, update field formEvaluation
+ * registrations - update field formEvaluation
+ */
+router.put("/seasons", async (req, res) => {
   try {
     const academies = await Academy.find({ academyId: { $ne: "root" } });
     for (let academy of academies) {
       const academyId = academy.academyId;
-      const notifications = await Notification(academyId).find({});
-      for (let n of notifications) {
-        n.date = UTC1(new Date(n.createdAt));
-      }
-      await Promise.all(notifications.map((not) => not.save()));
+      const seasons = await Season(academyId).find({});
+      await Promise.all(
+        seasons.map((season) => {
+          season.permissionSyllabus = undefined;
+          season.permissionEnrollment = undefined;
+          season.permissionEvaluation = undefined;
+          season.isModified("permissionSyllabus");
+          season.isModified("permissionEnrollment");
+          season.isModified("permissionEvaluation");
+
+          for (let i = 0; i < season.formEvaluation.length; i++) {
+            season.formEvaluation[i] = {
+              label: season.formEvaluation[i].label,
+              type: season.formEvaluation[i].type,
+              options: season.formEvaluation[i].options,
+              combineBy: season.formEvaluation[i].combineBy,
+              authOption: season.formEvaluation[i].authOption,
+              auth: season.formEvaluation[i].auth,
+            };
+          }
+          season.isModified("formEvaluation");
+          return season.save();
+        })
+      );
+
+      await Promise.all(
+        seasons.map((season) =>
+          Registration(academyId).updateMany(
+            { season: season._id },
+            {
+              formEvaluation: season.formEvaluation,
+            }
+          )
+        )
+      );
     }
     return res.status(200).send({ academies, message: "hello world! /v2" });
   } catch (err) {
@@ -28,70 +66,23 @@ router.get("/notifications", async (req, res) => {
   }
 });
 
-/* update registrations by seasons */
-router.get("/formEvaluation", async (req, res) => {
+router.get("/seasons", async (req, res) => {
   try {
-    const academies = await Academy.find({ academyId: { $ne: "root" } });
-    for (let academy of academies) {
-      const academyId = academy.academyId;
-
-      const seasons = await Season(academyId).find({});
-      for (let season of seasons) {
-        season.formEvaluation = [...(season?.formEvaluation ?? [])];
-        await season.save();
-
-        await Registration(academyId).updateMany(
-          {
-            season: season._id,
-          },
-          {
-            formEvaluation: season.formEvaluation,
-          }
-        );
-      }
+    if (!("academyId" in req.query)) {
+      return res.status(400).send({});
     }
-    return res.status(200).send({ academies, message: "hello world! /v2" });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-});
+    const academy = await Academy.findOne({ academyId: req.query.academyId });
+    const academyId = academy.academyId;
 
-/* update registrations by seasons */
-router.get("/registrations", async (req, res) => {
-  try {
-    const academies = await Academy.find({ academyId: { $ne: "root" } });
-    for (let academy of academies) {
-      const academyId = academy.academyId;
+    const seasons = await Season(academyId).find({});
 
-      const seasons = await Season(academyId).find({});
-      for (let season of seasons) {
-        const registrations = await Registration(academyId).find({
-          season: season._id,
-        });
+    const registrations = await Registration(academyId).find({
+      season: seasons[0]._id,
+    });
 
-        for (let registration of registrations) {
-          if (registration.role === "teacher") {
-            registration.permissionSyllabusV2 =
-              season.permissionSyllabusV2.teacher;
-            registration.permissionEnrollmentV2 =
-              season.permissionEnrollmentV2.teacher;
-            registration.permissionEvaluationV2 =
-              season.permissionEvaluationV2.teacher;
-          } else if (registration.role === "student") {
-            registration.permissionSyllabusV2 =
-              season.permissionSyllabusV2.student;
-            registration.permissionEnrollmentV2 =
-              season.permissionEnrollmentV2.student;
-            registration.permissionEvaluationV2 =
-              season.permissionEvaluationV2.student;
-          }
-        }
-
-        await Promise.all(registrations.map((reg) => reg.save()));
-      }
-    }
-    return res.status(200).send({ academies, message: "hello world! /v2" });
+    return res
+      .status(200)
+      .send({ seasons, registrations, message: "hello world! /v2" });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

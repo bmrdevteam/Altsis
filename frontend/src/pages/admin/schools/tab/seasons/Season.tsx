@@ -30,14 +30,9 @@
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
-import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import Table from "components/tableV2/Table";
-import _ from "lodash";
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import Tree from "components/tree/Tree";
-import useDatabase from "hooks/useDatabase";
 import style from "style/pages/admin/schools.module.scss";
 
 import useApi from "hooks/useApi";
@@ -46,7 +41,6 @@ import useApi from "hooks/useApi";
 import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/Form";
-// import Permission from "./tab/permission/Permission";
 import Permission from "./tab/permission/PermissionV2";
 import Subject from "./tab/subjects/Subject";
 import Users from "./tab/users/Users";
