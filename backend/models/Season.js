@@ -56,9 +56,26 @@ const formEvlauationAuthSchema = mongoose.Schema(
 const formEvaluationSchema = mongoose.Schema(
   {
     label: String,
-    type: String, // input,
-    combineBy: String, // term, year
-    authOption: String, //editByStudent, editByTeacher, editByTeacherAndStudentCanView
+    type: {
+      type: String,
+      enum: ["input", "input-number", "select"],
+      defualt: "input",
+    },
+    options: [String],
+    combineBy: {
+      type: String,
+      enum: ["term", "year"],
+      default: "term",
+    },
+    authOption: {
+      type: String,
+      enum: [
+        "editByStudent",
+        "editByTeacher",
+        "editByTeacherAndStudentCanView",
+      ],
+      default: "editByTeacher",
+    },
     auth: formEvlauationAuthSchema,
   },
   { _id: false }
@@ -92,9 +109,9 @@ const seasonSchema = mongoose.Schema(
       start: String,
       end: String,
     },
-    permissionSyllabus: [[]], //deprecated
-    permissionEnrollment: [[]], //deprecated
-    permissionEvaluation: [[]], //deprecated
+    permissionSyllabus: {}, //deprecated
+    permissionEnrollment: {}, //deprecated
+    permissionEvaluation: {}, //deprecated
     permissionSyllabusV2: {
       type: permissionSchema,
       default: permissionDefault,
@@ -133,24 +150,6 @@ seasonSchema.index(
   },
   { unique: true }
 );
-
-seasonSchema.methods.checkPermission = function (permissionType, userId, role) {
-  let permission = null;
-  if (permissionType == "syllabus") permission = this.permissionSyllabus;
-  else if (permissionType == "enrollment")
-    permission = this.permissionEnrollment;
-  else if (permissionType == "evaluation")
-    permission = this.permissionEvaluation;
-
-  for (let i = 0; i < permission?.length; i++) {
-    if (permission[i][0] == "userId" && permission[i][1] == userId) {
-      return permission[i][2];
-    }
-    if (permission[i][0] == "role" && permission[i][1] == role)
-      return permission[i][2];
-  }
-  return false;
-};
 
 seasonSchema.methods.getSubdocument = function () {
   return {
