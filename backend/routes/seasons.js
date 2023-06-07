@@ -16,7 +16,7 @@ router.put("/:_id/inactivate", isAdManager, seasons.inactivate);
 
 router.put("/:_id/permission/:type", isAdManager, seasons.updatePermission);
 
-router.put(
+router.post(
   "/:_id/permission/:type/exceptions",
   isAdManager,
   seasons.addPermissionException

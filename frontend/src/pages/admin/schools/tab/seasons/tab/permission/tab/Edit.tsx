@@ -28,8 +28,6 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import useApi from "hooks/useApi";
-import _ from "lodash";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -52,7 +50,6 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { SeasonApi } = useApi();
   const { SeasonAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -132,9 +129,8 @@ function Basic(props: Props) {
               key={"toggleTeacher"}
               defaultChecked={teacher}
               onChange={(b) => {
-                SeasonApi.USeasonPermissionV2({
-                  _id: props._id,
-                  type: props.type,
+                SeasonAPI.USeasonPermission({
+                  params: { _id: props._id, type: props.type },
                   data: { teacher: b },
                 })
                   .then((res: any) => {
@@ -152,9 +148,8 @@ function Basic(props: Props) {
               key={"toggleStudent"}
               defaultChecked={student}
               onChange={(b) => {
-                SeasonApi.USeasonPermissionV2({
-                  _id: props._id,
-                  type: props.type,
+                SeasonAPI.USeasonPermission({
+                  params: { _id: props._id, type: props.type },
                   data: { student: b },
                 })
                   .then((res: any) => {
@@ -223,9 +218,8 @@ function Basic(props: Props) {
               type={"ghost"}
               onClick={() => {
                 if (exceptionRef.current.userId !== "") {
-                  SeasonApi.USeasonPermissionV2AddException({
-                    _id: props._id,
-                    type: props.type,
+                  SeasonAPI.CSeasonPermissionException({
+                    params: { _id: props._id, type: props.type },
                     data: {
                       ...exceptionRef.current,
                     },
@@ -304,10 +298,9 @@ function Basic(props: Props) {
                 type: "button",
                 onClick: (e: any) => {
                   exceptions.splice(e.tableRowIndex - 1, 1);
-                  SeasonApi.USeasonPermissionV2RemoveException({
-                    _id: props._id,
-                    type: props.type,
-                    registration: e.registration,
+                  SeasonAPI.DSeasonPermissionException({
+                    params: { _id: props._id, type: props.type },
+                    query: { registration: e.registration },
                   })
                     .then((res: any) => {
                       setIsLoading(true);
