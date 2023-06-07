@@ -339,11 +339,32 @@ export const update = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SeasonAPI
+ * @function UActivateSeason API
+ * @description 시즌 활성화 API; 시즌 등록 정보도 함께 활성화한다
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/activate"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.season - activated season
+ *
+ */
 export const activate = async (req, res) => {
   try {
     /* activate season */
     const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
 
     if (!season.isActivated) {
       season.isActivated = true;
@@ -363,14 +384,33 @@ export const activate = async (req, res) => {
           { isActivated: true }
         );
       }
-      return res.status(200).send(season);
     }
-    return res.status(409).send({ message: "season is already activated" });
+
+    return res.status(200).send({ season });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
 };
 
+/**
+ * @memberof APIs.SeasonAPI
+ * @function UInactivateSeason API
+ * @description 시즌 비활성화 API; 시즌 등록 정보도 함께 비활성화한다
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/inactivate"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.season - inactivated season
+ *
+ */
 export const inactivate = async (req, res) => {
   try {
     /* activate season */
@@ -379,7 +419,8 @@ export const inactivate = async (req, res) => {
       { isActivated: false },
       { new: true }
     );
-    if (!season) return res.status(404).send({ message: "season not found" });
+    if (!season)
+      return res.status(404).send({ message: __NOT_FOUND("season") });
 
     /* activate registrations */
     await Registration(req.user.academyId).updateMany(
@@ -387,7 +428,7 @@ export const inactivate = async (req, res) => {
       { isActivated: false }
     );
 
-    return res.status(200).send(season);
+    return res.status(200).send({ season });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
@@ -578,16 +619,36 @@ export const updateField = async (req, res) => {
   }
 };
 
-/* delete */
-
+/**
+ * @memberof APIs.SeasonAPI
+ * @function DSeason API
+ * @description 시즌 삭제 API; 시즌 관련 정보를 모두 삭제한다
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/seasons/:_id"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ *
+ */
 export const remove = async (req, res) => {
   try {
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send();
+    const admin = req.user;
 
-    await Registration(req.user.academyId).deleteMany({
-      season: season._id,
-    });
+    const season = await Season(admin.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    await Promise.all([
+      Enrollment(admin.academyId).deleteMany({ season: season._id }),
+      Syllabus(admin.academyId).deleteMany({ season: season._id }),
+      Registration(admin.academyId).deleteMany({ season: season._id }),
+    ]);
 
     await season.delete();
     return res.status(200).send();

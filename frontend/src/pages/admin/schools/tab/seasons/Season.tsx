@@ -34,8 +34,6 @@ import Table from "components/tableV2/Table";
 import React, { useEffect, useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
 
-import useApi from "hooks/useApi";
-
 // tab
 import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
@@ -43,6 +41,7 @@ import Form from "./tab/Form";
 import Permission from "./tab/permission/PermissionV2";
 import Subject from "./tab/subjects/Subject";
 import Users from "./tab/users/Users";
+import Remove from "./tab/Remove";
 
 // popup
 import AddSeasonPopup from "./AddPopup";
@@ -56,7 +55,6 @@ type Props = {
 };
 
 const Season = (props: Props) => {
-  const { SeasonApi } = useApi();
   const { SeasonAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -206,6 +204,13 @@ const Season = (props: Props) => {
               강의실: <Classroom _id={seasonToEdit._id} />,
               양식: <Form _id={seasonToEdit._id} />,
               권한: <Permission _id={seasonToEdit._id} />,
+              삭제: (
+                <Remove
+                  _id={seasonToEdit._id}
+                  setIsLoading={setIsLoading}
+                  setPopupActive={setEditPopupActive}
+                />
+              ),
             }}
             align={"flex-start"}
           />
