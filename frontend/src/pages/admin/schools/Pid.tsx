@@ -49,6 +49,7 @@ import Navbar from "layout/navbar/Navbar";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 import Loading from "components/loading/Loading";
+import { TSeason } from "types/auth";
 
 type Props = {};
 
@@ -88,7 +89,7 @@ const School = (props: Props) => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<TSchool>();
-  const [seasonList, setSeasonList] = useState<any>();
+  const [seasonList, setSeasonList] = useState<TSeason[]>([]);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   useEffect(() => {

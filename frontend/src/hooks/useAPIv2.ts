@@ -12,7 +12,7 @@ import { MESSAGE } from "./_message";
 import { TAcademy } from "types/academies";
 import { TUser } from "types/users";
 import _ from "lodash";
-import { TCurrentUser } from "types/auth";
+import { TCurrentUser, TSeason } from "types/auth";
 import { TSchool, TSchoolFormArchive } from "types/schools";
 
 function QUERY_BUILDER(params?: object) {
@@ -765,6 +765,37 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Season API
+   * ##########################################################################
+   */
+
+  /**
+   * CSeason API
+   * @description 학기 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CSeason(props: {
+    data: {
+      school: string;
+      year: string;
+      term: string;
+      period?: {
+        start?: string;
+        end?: string;
+      };
+      copyFrom?: string;
+    };
+  }) {
+    const { season } = await database.C({
+      location: `seasons`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -805,6 +836,9 @@ export default function useAPIv2() {
       USchoolLinks,
       USchoolCalendars,
       DSchool,
+    },
+    SeasonAPI: {
+      CSeason,
     },
   };
 }

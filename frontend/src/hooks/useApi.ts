@@ -57,28 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Create Season
-   * @type POST
-   * @auth admin manager
-   * @returns Season
-   */
-  async function CSeason(props: {
-    data: {
-      school: string;
-      year: string;
-      term: string;
-      period?: {
-        start?: string;
-        end?: string;
-      };
-      copyFrom?: string;
-    };
-  }) {
-    const result = await database.C({ location: `seasons`, data: props.data });
-    return result;
-  }
-
-  /**
    * Get Season by Id
    * @type GET
    * @auth member
@@ -112,10 +90,19 @@ export default function useApi() {
    * @returns Season
    */
   async function RSeasons(params: { school: string }) {
-    const { seasons: result } = await database.R({
+    const { seasons } = await database.R({
       location: `seasons` + QUERY_BUILDER(params),
     });
-    return result;
+
+    return _.orderBy(
+      seasons,
+      [
+        (season) => new Date(season.period?.end ?? "").getTime(),
+        (season) => new Date(season.period?.start ?? "").getTime(),
+        "createdAt",
+      ],
+      ["desc", "desc", "desc"]
+    );
   }
 
   /**
@@ -1041,7 +1028,6 @@ export default function useApi() {
 
   return {
     SeasonApi: {
-      CSeason,
       RSeason,
       RSeasonWithRegistrations,
       RSeasons,

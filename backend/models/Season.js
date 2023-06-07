@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 import _ from "lodash";
 
+const periodSchema = mongoose.Schema(
+  {
+    start: String, // "YYYY-MM-DD" || ""
+    end: String, // "YYYY-MM-DD" || ""
+  },
+  { _id: false }
+);
+
 const subjectSchema = mongoose.Schema(
   {
     label: [String],
@@ -106,8 +114,11 @@ const seasonSchema = mongoose.Schema(
       required: true,
     },
     period: {
-      start: String,
-      end: String,
+      type: periodSchema,
+      default: {
+        start: "",
+        end: "",
+      },
     },
     permissionSyllabus: {}, //deprecated
     permissionEnrollment: {}, //deprecated
