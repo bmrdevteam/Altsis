@@ -89,6 +89,22 @@ const formEvaluationSchema = mongoose.Schema(
   { _id: false }
 );
 
+const formTimetableSchema = mongoose.Schema(
+  {
+    label: String,
+    data: [Object],
+  },
+  { _id: false }
+);
+
+const formSyllabusSchema = mongoose.Schema(
+  {
+    label: String,
+    data: [Object],
+  },
+  { _id: false }
+);
+
 const seasonSchema = mongoose.Schema(
   {
     school: {
@@ -135,8 +151,8 @@ const seasonSchema = mongoose.Schema(
       type: permissionSchema,
       default: permissionDefault,
     },
-    formTimetable: Object,
-    formSyllabus: Object,
+    formTimetable: formTimetableSchema,
+    formSyllabus: formSyllabusSchema,
     formEvaluation: {
       type: [formEvaluationSchema],
     },

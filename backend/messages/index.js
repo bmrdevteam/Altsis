@@ -187,3 +187,13 @@ export const LIMIT_FILE_SIZE = "LIMIT_FILE_SIZE";
  * @memberof APIs._MESSAGE
  */
 export const INVALID_FILE_TYPE = "INVALID_FILE_TYPE";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias SEASON_ALREADY_ACTIVATED_FIRST
+ * @description 한 번 활성화된 학기임
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const SEASON_ALREADY_ACTIVATED_FIRST = "SEASON_ALREADY_ACTIVATED_FIRST";

@@ -10,42 +10,16 @@ import {
   Syllabus,
   Enrollment,
   Registration,
+  Form,
 } from "../models/index.js";
 import {
   FIELD_INVALID,
   FIELD_IN_USE,
   FIELD_REQUIRED,
+  SEASON_ALREADY_ACTIVATED_FIRST,
   __NOT_FOUND,
 } from "../messages/index.js";
 import { validate } from "../utils/validate.js";
-
-// check schoolId&year&term duplication
-const checkDuplication = async (academyId, schoolId, year, term) => {
-  const exSeason = await Season(academyId).findOne({
-    schoolId,
-    year,
-    term,
-  });
-  if (exSeason) {
-    const err = new Error("(schoolId, year, term) must be unique");
-    err.status = 409;
-    throw err;
-  }
-};
-
-// check if syllabus exists in this season
-const checkSyllabus = async (academyId, season) => {
-  const syllabus = await Syllabus(academyId).findOne({
-    season: season._id,
-  });
-  if (syllabus) {
-    const err = new Error(
-      "it can't be updated because there's a syllabus created in this season"
-    );
-    err.status = 409;
-    throw err;
-  }
-};
 
 /**
  * @memberof APIs.SeasonAPI
@@ -277,68 +251,6 @@ export const find = async (req, res) => {
   }
 };
 
-/* update */
-export const update = async (req, res) => {
-  try {
-    const season = await Season(req.user.academyId).findById(req.params._id);
-    if (!season) return res.status(404).send({ message: "season not found" });
-
-    // 해당 시즌의 syllabus가 존재하면 season을 수정할 수 없다.
-    await checkSyllabus(req.user.academyId, season);
-
-    const isUpdated = {
-      year: req.body.new.year != season.year,
-      term: req.body.new.term != season.term,
-      period: !_.isEqual(req.body.period, season.period),
-    };
-    const doc = {};
-    // year, term => (schoolId, year, term)은 unique해야 한다.
-    if (isUpdated["year"] || isUpdated["Term"]) {
-      await checkDuplication(
-        req.user.academyId,
-        season.schoolId,
-        req.body.new.year,
-        req.body.new.term
-      );
-      doc["year"] = req.body.new.year;
-      doc["term"] = req.body.new.term;
-    }
-    if (isUpdated["period"]) {
-      doc["period"] = req.body.new.period;
-    }
-
-    [
-      "year",
-      "term",
-      "classrooms",
-      "subjects",
-      "formTimetable",
-      "formSyllabus",
-      "formEvaluation",
-      "permissionSyllabus",
-      "permissionEnrollment",
-      "permissionEvaluation",
-      "period",
-    ].forEach((field) => {
-      season[field] = req.body.new[field];
-    });
-    await season.save();
-
-    // year, term, period가 변경되면
-    // registration 일괄 수정
-    if (!_.isEmpty(doc)) {
-      await Registration(req.user.academyId).update(
-        { season: season._id },
-        doc
-      );
-    }
-
-    return res.status(200).send(season);
-  } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
-  }
-};
-
 /**
  * @memberof APIs.SeasonAPI
  * @function UActivateSeason API
@@ -427,6 +339,318 @@ export const inactivate = async (req, res) => {
       { season: season._id },
       { isActivated: false }
     );
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonPeriod API
+ * @description 학기 기간 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/period"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.start - YYYY-MM-DD
+ * @param {string?} req.body.end - YYYY-MM-DD
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updatePeriod = async (req, res) => {
+  try {
+    if ("start" in req.body && !validate("dateText", req.body.start)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("start") });
+    }
+    if ("end" in req.body && !validate("dateText", req.body.end)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("end") });
+    }
+
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      {
+        ["period"]: {
+          start: req.body.start,
+          end: req.body.end,
+        },
+      },
+      { new: true }
+    );
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    // registration 일괄 수정
+    await Registration(req.user.academyId).updateMany(
+      { season: season._id },
+      { period: season.period }
+    );
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonClassrooms API
+ * @description 학기 강의실 목록 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/classrooms"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string[]} req.body.classrooms
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updateClassrooms = async (req, res) => {
+  try {
+    if (!("classrooms" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("classrooms") });
+    }
+
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { ["classrooms"]: req.body.classrooms },
+      { new: true }
+    );
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonSubjects API
+ * @description 학기 교과목 목록 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/subjects"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string[]} req.body.label
+ * @param {string[][]} req.body.data
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updateSubjects = async (req, res) => {
+  try {
+    if (!("label" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("label") });
+    }
+    if (!("data" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("data") });
+    }
+
+    const season = await Season(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      {
+        ["subjects"]: {
+          label: req.body.label,
+          data: req.body.data,
+        },
+      },
+      { new: true }
+    );
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+    // season[field] = req.body.new;
+    // await season.save();
+
+    // period가 변경되면
+    // registration 일괄 수정
+    if (field === "period") {
+      await Registration(req.user.academyId).updateMany(
+        { season: season._id },
+        { period: season.period }
+      );
+    }
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonFormTimetable API
+ * @description 학기 시간표 양식 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/form/timetable"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.form - form ObjectId
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updateFormTimetable = async (req, res) => {
+  try {
+    if (!("form" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("form") });
+    }
+
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    if (season.isActivatedFirst) {
+      return res.status(409).send({
+        message: SEASON_ALREADY_ACTIVATED_FIRST,
+      });
+    }
+
+    const form = await Form(req.academyId).findById(req.body.form);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+    if (form.type !== "timetable") {
+      return res.status(404).send({ message: FIELD_INVALID("form") });
+    }
+
+    season["formTimetable"] = form.toObject();
+    season.isModified("formTimetable");
+    await season.save();
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonFormSyllabus API
+ * @description 학기 강의계획서 양식 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/form/syllabus"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.form - form ObjectId
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updateFormSyllabus = async (req, res) => {
+  try {
+    if (!("form" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("form") });
+    }
+
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    if (season.isActivatedFirst) {
+      return res.status(409).send({
+        message: SEASON_ALREADY_ACTIVATED_FIRST,
+      });
+    }
+
+    const form = await Form(req.academyId).findById(req.body.form);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+    if (form.type !== "syllabus") {
+      return res.status(404).send({ message: FIELD_INVALID("form") });
+    }
+
+    season["formSyllabus"] = form.toObject();
+    season.isModified("formSyllabus");
+    await season.save();
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonFormEvaluation API
+ * @description 학기 평가 양식 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/form/evaluation"} req.url
+ *
+ * @param {Object} req.body
+ * @param {Object[]} req.body.formEvaluation
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ * @see models>Season for validation
+ */
+export const updateFormEvaluation = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    if (season.isActivatedFirst) {
+      return res.status(409).send({
+        message: "한 번 활성화된 시즌의 양식을 변경할 수 없습니다.",
+      });
+    }
+
+    season["formEvaluation"] = req.body.formEvaluation;
+    season.isModified("formEvaluation");
+    await season.save();
 
     return res.status(200).send({ season });
   } catch (err) {
@@ -655,62 +879,6 @@ export const removePermissionException = async (req, res) => {
     await season.save();
 
     return res.status(200).send({ season });
-  } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
-  }
-};
-
-export const updateField = async (req, res) => {
-  try {
-    const _season = await Season(req.user.academyId).findById(req.params._id);
-    if (!_season) return res.status(404).send({ message: "season not found" });
-
-    let field = req.params.field;
-    if (req.params.fieldType)
-      field +=
-        req.params.fieldType[0].toUpperCase() + req.params.fieldType.slice(1);
-
-    switch (field) {
-      case "formTimetable":
-      case "formSyllabus":
-      case "formEvaluation":
-        if (_season.isActivatedFirst)
-          return res.status(409).send({
-            message: "한 번 활성화된 시즌의 양식을 변경할 수 업습니다.",
-          });
-
-      // classrooms, subjects, formTimetable, formSyllabus => 해당 시즌에 syllabus가 존재하면 수정할 수 없다.
-      case "classrooms":
-      case "subjects":
-
-      // permissionSyllabus, permissionEnrollment, permissionEvaluation, period => 수정 제약 없음
-      case "permissionSyllabus":
-      case "permissionEnrollment":
-      case "permissionEvaluation":
-      case "period":
-        break;
-      default:
-        return res.status(400).send();
-    }
-
-    const season = await Season(req.user.academyId).findByIdAndUpdate(
-      _season._id,
-      { [field]: req.body.new },
-      { new: true }
-    );
-    // season[field] = req.body.new;
-    // await season.save();
-
-    // period가 변경되면
-    // registration 일괄 수정
-    if (field === "period") {
-      await Registration(req.user.academyId).updateMany(
-        { season: season._id },
-        { period: season.period }
-      );
-    }
-
-    return res.status(200).send(season);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }
