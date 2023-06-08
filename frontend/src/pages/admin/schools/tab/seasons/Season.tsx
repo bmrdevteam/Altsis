@@ -37,7 +37,7 @@ import style from "style/pages/admin/schools.module.scss";
 // tab
 import Basic from "./tab/Basic";
 import Classroom from "./tab/classrooms/Classroom";
-import Form from "./tab/Form";
+import Form from "./tab/forms/Form";
 import Permission from "./tab/permission/PermissionV2";
 import Subject from "./tab/subjects/Subject";
 import Users from "./tab/users/Users";

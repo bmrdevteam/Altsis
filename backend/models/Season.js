@@ -91,17 +91,14 @@ const formEvaluationSchema = mongoose.Schema(
 
 const formTimetableSchema = mongoose.Schema(
   {
-    label: String,
+    title: String,
     data: [Object],
   },
   { _id: false }
 );
 
 const formSyllabusSchema = mongoose.Schema(
-  {
-    label: String,
-    data: [Object],
-  },
+  { title: String, data: [Object] },
   { _id: false }
 );
 

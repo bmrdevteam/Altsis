@@ -530,7 +530,7 @@ export const updateFormTimetable = async (req, res) => {
       });
     }
 
-    const form = await Form(req.academyId).findById(req.body.form);
+    const form = await Form(req.user.academyId).findById(req.body.form);
     if (!form) {
       return res.status(404).send({ message: __NOT_FOUND("form") });
     }
@@ -585,7 +585,7 @@ export const updateFormSyllabus = async (req, res) => {
       });
     }
 
-    const form = await Form(req.academyId).findById(req.body.form);
+    const form = await Form(req.user.academyId).findById(req.body.form);
     if (!form) {
       return res.status(404).send({ message: __NOT_FOUND("form") });
     }
