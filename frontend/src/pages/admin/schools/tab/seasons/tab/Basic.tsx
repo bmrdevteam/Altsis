@@ -30,7 +30,6 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import { useState, useEffect } from "react";
 import style from "style/pages/admin/schools.module.scss";
-import useApi from "hooks/useApi";
 
 import _ from "lodash";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -42,7 +41,6 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { SeasonApi } = useApi();
   const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -50,7 +48,10 @@ function Basic(props: Props) {
   const [isActivated, setIsActivated] = useState<boolean>();
   const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>();
   const [undefinedForms, setUndefinedForms] = useState<string[]>([]);
-  const [period, setPeriod] = useState<any>({ start: "", end: "" });
+  const [period, setPeriod] = useState<{ start: string; end: string }>({
+    start: "",
+    end: "",
+  });
 
   const setSeasonData = (seasonData: any) => {
     setIsActivated(seasonData.isActivated);
@@ -110,14 +111,13 @@ function Basic(props: Props) {
                 marginTop: "24px",
               }}
               onClick={() => {
-                SeasonApi.USeason({
-                  _id: props._id,
-                  field: "period",
+                SeasonAPI.USeasonPeriod({
+                  params: { _id: props._id },
                   data: period,
                 })
-                  .then((res) => {
+                  .then(({ season }) => {
                     alert(SUCCESS_MESSAGE);
-                    setSeasonData(res);
+                    setSeasonData(season);
                     props.setIsLoading(true);
                   })
                   .catch((err) => {
