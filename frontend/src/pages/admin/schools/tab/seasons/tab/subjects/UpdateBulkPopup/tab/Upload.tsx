@@ -1,5 +1,5 @@
 /**
- * @file Seasons - Classrooms - UpdateBulkPopup
+ * @file Seasons - Subjects - UpdateBulkPopup
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -35,7 +35,10 @@ import Button from "components/button/Button";
 import Table from "components/table/Table";
 
 type Props = {
-  classroomListRef: React.MutableRefObject<string[]>;
+  subjectsRef: React.MutableRefObject<{
+    label: string[];
+    data: string[][];
+  }>;
 };
 
 function Upload(props: Props) {
@@ -43,11 +46,13 @@ function Upload(props: Props) {
   const [selectedFile, setSelectedFile] = useState<any>();
 
   /* classroom list */
-  const [classroomList, setClassroomList] = useState<any[]>(
-    props.classroomListRef.current
+  const [subjectDataList, setSubjectDataList] = useState<string[][]>(
+    props.subjectsRef.current.data
   );
+  /* subject data header*/
+  const [subjectDataHeader, setSubjectDataHeader] = useState<any[]>([]);
 
-  const fileToClassroomList = (file: any) => {
+  const fileToSubjects = (file: any) => {
     var reader = new FileReader();
 
     reader.onload = function () {
@@ -56,10 +61,35 @@ function Upload(props: Props) {
       var wb = xlsx.read(fileData, { type: "binary" });
       wb.SheetNames.forEach(function (sheetName) {
         var rowObjList = xlsx.utils.sheet_to_json(wb.Sheets[sheetName]);
-        res.push(...rowObjList.map((obj: any) => obj["강의실"] || ""));
+        res.push(...rowObjList);
       });
-      setClassroomList(res);
-      props.classroomListRef.current = res;
+
+      const _subjectLabelList = Object.keys(res[0]);
+
+      const _subjectDataList = [];
+      for (let row of res) {
+        const data = [];
+        for (let label of _subjectLabelList) {
+          data.push(row[label] ?? "");
+        }
+        _subjectDataList.push(data);
+      }
+      setSubjectDataList(_subjectDataList);
+
+      const _subjectDataHeader = [];
+      for (let j = 0; j < _subjectLabelList.length; j++) {
+        _subjectDataHeader.push({
+          text: _subjectLabelList[j],
+          key: `${j}`,
+          type: "string",
+        });
+      }
+      setSubjectDataHeader(_subjectDataHeader);
+
+      props.subjectsRef.current = {
+        label: _subjectLabelList,
+        data: _subjectDataList,
+      };
     };
 
     reader.readAsBinaryString(file);
@@ -77,18 +107,31 @@ function Upload(props: Props) {
     setSelectedFile(e.target.files[0]);
   };
 
-  useEffect(() => {
-    if (selectedFile) {
-      fileToClassroomList(selectedFile);
-    }
-    return () => {};
-  }, [selectedFile]);
-
   const handleProfileUploadButtonClick = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     if (fileInput.current) fileInput.current.click();
   };
+
+  useEffect(() => {
+    const _subjectDataHeader = [];
+    for (let j = 0; j < props.subjectsRef.current.label.length; j++) {
+      _subjectDataHeader.push({
+        text: props.subjectsRef.current.label[j],
+        key: `${j}`,
+        type: "string",
+      });
+    }
+    setSubjectDataHeader(_subjectDataHeader);
+    return () => {};
+  }, []);
+
+  useEffect(() => {
+    if (selectedFile) {
+      fileToSubjects(selectedFile);
+    }
+    return () => {};
+  }, [selectedFile]);
 
   return (
     <div>
@@ -129,7 +172,7 @@ function Upload(props: Props) {
       </div>
       <div style={{ marginTop: "24px" }}>
         <Table
-          data={classroomList}
+          data={subjectDataList}
           type="string-array"
           header={[
             {
@@ -139,11 +182,7 @@ function Upload(props: Props) {
               width: "48px",
               align: "center",
             },
-            {
-              text: "강의실",
-              key: 0,
-              type: "string",
-            },
+            ...subjectDataHeader,
           ]}
         />
       </div>

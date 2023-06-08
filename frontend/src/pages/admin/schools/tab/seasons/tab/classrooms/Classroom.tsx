@@ -37,7 +37,6 @@ import Table from "components/tableV2/Table";
 
 import UpdateBulk from "./UpdateBulkPopup/Index";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import { unflattenObject } from "functions/functions";
 
 type Props = {
   _id: string;
@@ -87,9 +86,7 @@ const Classroom = (props: Props) => {
           data={!isLoading ? classroomList : []}
           type="string-array"
           onChange={(e) => {
-            const classrooms = e.map((v) => {
-              return unflattenObject(v)["0"].trim();
-            });
+            const classrooms = e.map((v) => v["0"].trim());
             SeasonAPI.USeasonClassrooms({
               params: { _id: props._id },
               data: { classrooms },

@@ -486,17 +486,6 @@ export const updateSubjects = async (req, res) => {
     if (!season) {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
-    // season[field] = req.body.new;
-    // await season.save();
-
-    // period가 변경되면
-    // registration 일괄 수정
-    if (field === "period") {
-      await Registration(req.user.academyId).updateMany(
-        { season: season._id },
-        { period: season.period }
-      );
-    }
 
     return res.status(200).send({ season });
   } catch (err) {
