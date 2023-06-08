@@ -16,6 +16,7 @@ import {
   FIELD_INVALID,
   FIELD_IN_USE,
   FIELD_REQUIRED,
+  FORMEVALUATION_LABEL_DUPLICATED,
   SEASON_ALREADY_ACTIVATED_FIRST,
   __NOT_FOUND,
 } from "../messages/index.js";
@@ -635,6 +636,19 @@ export const updateFormEvaluation = async (req, res) => {
       return res.status(409).send({
         message: "한 번 활성화된 시즌의 양식을 변경할 수 없습니다.",
       });
+    }
+
+    // 라벨 중복 검사
+    for (let i = 0; i < req.body.formEvaluation.length; i++) {
+      for (let j = i + 1; j < req.body.formEvaluation.length; j++) {
+        if (
+          req.body.formEvaluation[i].label === req.body.formEvaluation[j].label
+        ) {
+          return res
+            .status(409)
+            .send({ message: FORMEVALUATION_LABEL_DUPLICATED });
+        }
+      }
     }
 
     season["formEvaluation"] = req.body.formEvaluation;
