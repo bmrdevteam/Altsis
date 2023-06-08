@@ -14,7 +14,11 @@ import { TUser } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
 import { TSchool, TSchoolFormArchive } from "types/schools";
-import { TSeason, TSeasonWithRegistrations } from "types/seasons";
+import {
+  TFormEvaluation,
+  TSeason,
+  TSeasonWithRegistrations,
+} from "types/seasons";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -891,6 +895,69 @@ export default function useAPIv2() {
   }
 
   /**
+   * USeasonClassrooms API
+   * @description 학기 강의실 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonClassrooms(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      classrooms: string[];
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props.params._id}/classrooms`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * USeasonSubjects API
+   * @description 학기 교과목 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonSubjects(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      label: string[];
+      data: string[][];
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props.params._id}/subjects`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * USeasonPeriod API
+   * @description 학기 기간 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonPeriod(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      start?: string;
+      end?: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/period`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
    * USeasonPermission API
    * @description 학기 권한 수정 API
    * @version 2.0.0
@@ -899,7 +966,7 @@ export default function useAPIv2() {
   async function USeasonPermission(props: {
     params: {
       _id: string;
-      type: string | "syllabus" | "enrollment" | "evaluation";
+      type: "syllabus" | "enrollment" | "evaluation";
     };
     data: {
       teacher?: boolean;
@@ -921,7 +988,7 @@ export default function useAPIv2() {
   async function CSeasonPermissionException(props: {
     params: {
       _id: string;
-      type: string | "syllabus" | "enrollment" | "evaluation";
+      type: "syllabus" | "enrollment" | "evaluation";
     };
     data: {
       registration: string;
@@ -943,7 +1010,7 @@ export default function useAPIv2() {
   async function DSeasonPermissionException(props: {
     params: {
       _id: string;
-      type: string | "syllabus" | "enrollment" | "evaluation";
+      type: "syllabus" | "enrollment" | "evaluation";
     };
     query: {
       registration: string;
@@ -954,6 +1021,69 @@ export default function useAPIv2() {
         `seasons/${props.params._id}/permission/${props.params.type}/exceptions` +
         QUERY_BUILDER(props.query),
     });
+  }
+
+  /**
+   * USeasonFormTimetable API
+   * @description 학기 시간표 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonFormTimetable(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      form: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/form/timetable`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonFormTimetable API
+   * @description 학기 강의계획서 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonFormSyllabus(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      form: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/form/syllabus`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonFormEvaluation API
+   * @description 학기 평가 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonFormEvaluation(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      formEvaluation: TFormEvaluation;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/form/evaluation`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
   }
 
   /**
@@ -1019,6 +1149,12 @@ export default function useAPIv2() {
       RSeason,
       UActivateSeason,
       UInactivateSeason,
+      USeasonPeriod,
+      USeasonClassrooms,
+      USeasonSubjects,
+      USeasonFormTimetable,
+      USeasonFormSyllabus,
+      USeasonFormEvaluation,
       USeasonPermission,
       CSeasonPermissionException,
       DSeasonPermissionException,
