@@ -27,49 +27,41 @@
  *
  */
 import { useEffect, useRef, useState } from "react";
-import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
-import Table from "components/tableV2/Table";
 
 import style from "style/pages/admin/schools.module.scss";
-import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useAPIv2 from "hooks/useAPIv2";
 import { TFormEvaluation, TFormTimetable, TSeason } from "types/seasons";
 
 import EditTimetablePopup from "./EditTimetablePopup";
 import EditSyllabusPopup from "./EditSyllabusPopup";
+import EditEvaluationTable from "./EditEvaluationTable";
 
 type Props = {
   _id: string;
 };
 
 const Form = (props: Props) => {
-  const { FormApi } = useApi();
   const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>();
+  const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>(true);
 
   const [formTimetable, setFormTimetable] = useState<TFormTimetable>();
   const [formSyllabus, setFormSyllabus] = useState<any>();
-  const formEvaluation = useRef<TFormEvaluation>([]);
+  const [formEvaluation, setFormEvaluation] = useState<TFormEvaluation>([]);
+
   const [formTimetablePopupActive, setFormTimetablePopupActive] =
     useState<boolean>(false);
   const [formSyllabusPopupActive, setFormSyllabusPopupActive] =
     useState<boolean>(false);
-  const [formEvaluationSelectPopupActive, setFormEvaluationSelectPopupActive] =
-    useState<boolean>(false);
-  const [formEvaluationSelectIndex, setFormEvaluationSelectIndex] =
-    useState<number>(0);
-
-  const [forms, setForms] = useState<any>();
 
   const updateFormData = (seasonData: TSeason) => {
     setFormSyllabus(seasonData?.formSyllabus);
     setFormTimetable(seasonData?.formTimetable);
-    formEvaluation.current = seasonData?.formEvaluation || [];
-
+    setFormEvaluation(seasonData?.formEvaluation ?? []);
     setIsActivatedFirst(seasonData.isActivatedFirst);
   };
 
@@ -84,7 +76,7 @@ const Form = (props: Props) => {
     return () => {};
   }, [isLoading]);
 
-  return (
+  return !isLoading ? (
     <>
       <div>
         <div className={style.form} style={{ marginTop: "24px" }}>
@@ -94,11 +86,7 @@ const Form = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                FormApi.RForms()
-                  .then((res) => {
-                    setForms(res);
-                  })
-                  .then(() => setFormTimetablePopupActive(true));
+                setFormTimetablePopupActive(true);
               }}
               disabled={isActivatedFirst}
             >
@@ -110,11 +98,7 @@ const Form = (props: Props) => {
             <Button
               type="ghost"
               onClick={() => {
-                FormApi.RForms()
-                  .then((res) => {
-                    setForms(res);
-                  })
-                  .then(() => setFormSyllabusPopupActive(true));
+                setFormSyllabusPopupActive(true);
               }}
               disabled={isActivatedFirst}
             >
@@ -136,207 +120,12 @@ const Form = (props: Props) => {
             >
               평가 양식
             </div>
-
-            <Table
-              type="object-array"
-              data={formEvaluation.current ?? []}
-              onChange={(e: any[]) => {
-                let _data: any[] = [];
-                e.forEach((elem) => {
-                  if (elem.label) {
-                    elem.type = elem.type || "input";
-                    elem.authOption = elem.authOption || "editByTeacher";
-                    elem.auth = {
-                      edit: {
-                        teacher:
-                          elem.authOption === "editByTeacher" ||
-                          elem.authOption === "editByTeacherAndStudentCanView",
-                        student: elem.authOption === "editByStudent",
-                      },
-                      view: {
-                        teacher: true,
-                        student:
-                          elem.authOption === "editByStudent" ||
-                          elem.authOption === "editByTeacherAndStudentCanView",
-                      },
-                    };
-                    elem.combineBy = elem.combineBy || "term";
-
-                    _data.push(elem);
-                  }
-                });
-                formEvaluation.current = _data;
-                SeasonAPI.USeasonFormEvaluation({
-                  params: { _id: props._id },
-                  data: { formEvaluation: formEvaluation.current },
-                })
-                  .then(({ season }) => {
-                    alert(SUCCESS_MESSAGE);
-                    updateFormData(season);
-                  })
-                  .catch((err) => {
-                    alert(err.response.data.message);
-                  });
-              }}
-              header={
-                !isActivatedFirst
-                  ? [
-                      {
-                        type: "text",
-                        text: "평가 항목",
-                        key: "label",
-                      },
-                      {
-                        text: "유형",
-                        key: "type",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        type: "status",
-                        status: {
-                          input: {
-                            text: "텍스트",
-                            color: "#B33F00",
-                          },
-                          "input-number": {
-                            text: "숫자",
-                            color: "#00B3AD",
-                          },
-                          select: {
-                            text: "선택 +",
-                            color: "#8657ff",
-                            onClick: (row) => {
-                              setFormEvaluationSelectIndex(row.tableRowIndex);
-                              setFormEvaluationSelectPopupActive(true);
-                            },
-                          },
-                        },
-                        width: "80px",
-                        textAlign: "center",
-                      },
-                      {
-                        text: "평가자",
-                        key: "authOption",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        type: "status",
-                        status: {
-                          editByTeacher: {
-                            text: "선생님",
-                            color: "red",
-                          },
-                          editByStudent: {
-                            text: "학생",
-                            color: "blue",
-                          },
-                          editByTeacherAndStudentCanView: {
-                            text: "선생님(학생 조회 가능)",
-                            color: "purple",
-                          },
-                        },
-                        width: "180px",
-                        textAlign: "center",
-                      },
-                      {
-                        text: "평가단위",
-                        key: "combineBy",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        type: "status",
-                        status: {
-                          term: {
-                            text: "학기",
-                            color: "green",
-                          },
-                          year: {
-                            text: "학년도",
-                            color: "gray",
-                          },
-                        },
-                        width: "100px",
-                        textAlign: "center",
-                      },
-                      {
-                        text: "수정",
-                        type: "rowEdit",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        textAlign: "center",
-                        width: "80px",
-                      },
-                    ]
-                  : [
-                      {
-                        type: "text",
-                        text: "평가 항목",
-                        key: "label",
-                      },
-                      {
-                        text: "유형",
-                        key: "type",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        type: "status",
-                        status: {
-                          input: {
-                            text: "텍스트",
-                            color: "#B33F00",
-                          },
-                          "input-number": {
-                            text: "숫자",
-                            color: "#00B3AD",
-                          },
-                          select: {
-                            text: "선택 +",
-                            color: "#8657ff",
-                          },
-                        },
-                        width: "80px",
-                        textAlign: "center",
-                      },
-                      {
-                        text: "평가자",
-                        key: "authOption",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        type: "status",
-                        status: {
-                          editByTeacher: {
-                            text: "선생님",
-                            color: "red",
-                          },
-                          editByStudent: {
-                            text: "학생",
-                            color: "blue",
-                          },
-                          editByTeacherAndStudentCanView: {
-                            text: "선생님(학생 조회 가능)",
-                            color: "purple",
-                          },
-                        },
-                        width: "180px",
-                        textAlign: "center",
-                      },
-                      {
-                        text: "평가단위",
-                        key: "combineBy",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        type: "status",
-                        status: {
-                          term: {
-                            text: "학기",
-                            color: "green",
-                          },
-                          year: {
-                            text: "학년도",
-                            color: "gray",
-                          },
-                        },
-                        width: "100px",
-                        textAlign: "center",
-                      },
-                    ]
-              }
+            <EditEvaluationTable
+              _id={props._id}
+              setPopupActive={setFormTimetablePopupActive}
+              formEvaluation={formEvaluation}
+              updateFormData={updateFormData}
+              isActivatedFirst={isActivatedFirst}
             />
           </div>
         </div>
@@ -356,6 +145,8 @@ const Form = (props: Props) => {
         />
       )}
     </>
+  ) : (
+    <></>
   );
 };
 

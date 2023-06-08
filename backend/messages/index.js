@@ -197,3 +197,14 @@ export const INVALID_FILE_TYPE = "INVALID_FILE_TYPE";
  * @memberof APIs._MESSAGE
  */
 export const SEASON_ALREADY_ACTIVATED_FIRST = "SEASON_ALREADY_ACTIVATED_FIRST";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias FORMEVALUATION_LABEL_DUPLICATED
+ * @description season.formEvaluation의 label이 중복됨
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const FORMEVALUATION_LABEL_DUPLICATED =
+  "FORMEVALUATION_LABEL_DUPLICATED";
