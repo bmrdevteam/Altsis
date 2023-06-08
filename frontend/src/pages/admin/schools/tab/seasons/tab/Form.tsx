@@ -35,23 +35,23 @@ import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 
 import style from "style/pages/admin/schools.module.scss";
-import useAPIv2 from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { TFormEvaluation } from "types/seasons";
 
 type Props = {
   _id: string;
 };
 
 const Form = (props: Props) => {
-  const { SeasonApi, FormApi } = useApi();
+  const { FormApi } = useApi();
   const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [isActivated, setIsActivated] = useState<boolean>();
   const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>();
 
   const [formTimetable, setFormTimetable] = useState<any>();
   const [formSyllabus, setFormSyllabus] = useState<any>();
-  const formEvaluation = useRef<any[]>([]);
+  const formEvaluation = useRef<TFormEvaluation>([]);
   const [formTimetablePopupActive, setFormTimetablePopupActive] =
     useState<boolean>(false);
   const [formSyllabusPopupActive, setFormSyllabusPopupActive] =
@@ -64,11 +64,10 @@ const Form = (props: Props) => {
   const [forms, setForms] = useState<any>();
 
   const updateFormData = (seasonData: any) => {
-    setFormSyllabus(seasonData?.formSyllabus || {});
-    setFormTimetable(seasonData?.formTimetable || {});
+    setFormSyllabus(seasonData?.formSyllabus);
+    setFormTimetable(seasonData?.formTimetable);
     formEvaluation.current = seasonData?.formEvaluation || [];
 
-    setIsActivated(seasonData.isActivated);
     setIsActivatedFirst(seasonData.isActivatedFirst);
   };
 
@@ -101,7 +100,7 @@ const Form = (props: Props) => {
               }}
               disabled={isActivatedFirst}
             >
-              {(!isLoading && formTimetable.title) ??
+              {(!isLoading && formTimetable?.title) ??
                 (isActivatedFirst ? "없음" : "선택")}
             </Button>
           </div>
@@ -119,11 +118,10 @@ const Form = (props: Props) => {
               disabled={isActivatedFirst}
             >
               {!isLoading &&
-                (formSyllabus.title ?? (isActivatedFirst ? "없음" : "선택"))}
+                (formSyllabus?.title ?? (isActivatedFirst ? "없음" : "선택"))}
             </Button>
           </div>
         </div>
-
         <div className={style.form} style={{ marginTop: "24px" }}>
           <div className={style.item}>
             <div
@@ -167,10 +165,9 @@ const Form = (props: Props) => {
                   }
                 });
                 formEvaluation.current = _data;
-                SeasonApi.USeasonForm({
-                  _id: props._id,
-                  type: "evaluation",
-                  data: formEvaluation.current,
+                SeasonAPI.USeasonFormEvaluation({
+                  params: { _id: props._id },
+                  data: { formEvaluation: formEvaluation.current },
                 })
                   .then((res) => {
                     alert(SUCCESS_MESSAGE);
@@ -343,7 +340,6 @@ const Form = (props: Props) => {
           </div>
         </div>
       </>
-
       {formTimetablePopupActive && (
         <Popup
           style={{ maxWidth: "600px", width: "100%" }}
@@ -368,20 +364,17 @@ const Form = (props: Props) => {
                 key: "select",
                 type: "button",
                 onClick: (e: any) => {
-                  FormApi.RForm(e._id).then((res) => {
-                    SeasonApi.USeasonForm({
-                      _id: props._id,
-                      type: "timetable",
-                      data: res,
+                  SeasonAPI.USeasonFormTimetable({
+                    params: { _id: props._id },
+                    data: { form: e._id },
+                  })
+                    .then(({ season }) => {
+                      updateFormData(season);
+                      setFormTimetablePopupActive(false);
                     })
-                      .then((res) => {
-                        updateFormData(res);
-                        setFormTimetablePopupActive(false);
-                      })
-                      .catch((err) => {
-                        alert(err.response.data.message);
-                      });
-                  });
+                    .catch((err) => {
+                      ALERT_ERROR(err);
+                    });
                 },
                 width: "80px",
                 textAlign: "center",
@@ -420,20 +413,19 @@ const Form = (props: Props) => {
                 key: "select",
                 type: "button",
                 onClick: (e: any) => {
-                  FormApi.RForm(e._id).then((res) => {
-                    SeasonApi.USeasonForm({
-                      _id: props._id,
-                      type: "syllabus",
-                      data: res,
+                  SeasonAPI.USeasonFormSyllabus({
+                    params: { _id: props._id },
+                    data: {
+                      form: e._id,
+                    },
+                  })
+                    .then(({ season }) => {
+                      updateFormData(season);
+                      setFormSyllabusPopupActive(false);
                     })
-                      .then((res) => {
-                        updateFormData(res);
-                        setFormSyllabusPopupActive(false);
-                      })
-                      .catch((err) => {
-                        alert(err.response.data.message);
-                      });
-                  });
+                    .catch((err) => {
+                      ALERT_ERROR(err);
+                    });
                 },
                 width: "80px",
                 textAlign: "center",
@@ -443,55 +435,6 @@ const Form = (props: Props) => {
                   padding: "4px",
                   round: true,
                 },
-              },
-            ]}
-          />
-        </Popup>
-      )}
-      {formEvaluationSelectPopupActive && (
-        <Popup
-          style={{ maxWidth: "600px", width: "100%" }}
-          title={`옵션 변경`}
-          setState={setFormEvaluationSelectPopupActive}
-          closeBtn
-        >
-          <Table
-            type="string-array"
-            data={
-              formEvaluation.current[formEvaluationSelectIndex - 1]?.options ??
-              []
-            }
-            onChange={(e) => {
-              let _data: any[] = [];
-              e.map((o) => _data.push(o["0"]));
-              // console.log(formEvaluation.current);
-              formEvaluation.current[formEvaluationSelectIndex - 1].options =
-                _data;
-              SeasonApi.USeasonForm({
-                _id: props._id,
-                type: "evaluation",
-                data: formEvaluation.current,
-              })
-                .then((res) => {
-                  // alert(SUCCESS_MESSAGE);
-                })
-                .catch((err) => {
-                  alert(err.response.data.message);
-                });
-            }}
-            header={[
-              {
-                text: "옵션",
-                key: "0",
-                type: "text",
-              },
-              {
-                text: "수정",
-                type: "rowEdit",
-                fontSize: "12px",
-                fontWeight: "600",
-                textAlign: "center",
-                width: "80px",
               },
             ]}
           />

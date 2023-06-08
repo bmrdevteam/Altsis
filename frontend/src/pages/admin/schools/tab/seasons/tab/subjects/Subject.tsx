@@ -28,7 +28,6 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
 
 // components
@@ -36,28 +35,25 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Table from "components/tableV2/Table";
 
-import UpdateBulk from "./tab/updateBulk";
-import useAPIv2 from "hooks/useAPIv2";
+import UpdateBulk from "./UpdateBulkPopup/Index";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
 };
 
 const Subjects = (props: Props) => {
-  const { SeasonApi } = useApi();
   const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* subject label list */
   const [subjectLabelList, setSubjectLabelList] = useState<any[]>([]);
-  const [subjectDataList, setSubjectDataList] = useState<any[]>([]);
+  const [subjectDataList, setSubjectDataList] = useState<string[][]>([]);
 
-  const subjectDataRef = useRef<string>("");
   const subjectLabelRef = useRef<string>("");
 
-  /* subject data header & object list */
-  const [subjectDataHeader, setSubjectDataHeader] = useState<any>([]);
-  const [subjectObjectList, setSubjectObjectList] = useState<any[]>([]);
+  /* subject data header*/
+  const [subjectDataHeader, setSubjectDataHeader] = useState<any[]>([]);
 
   /* popup activation */
   const [updateBulkPopup, setUpdateBulkPopupActive] = useState<boolean>(false);
@@ -74,21 +70,27 @@ const Subjects = (props: Props) => {
     for (let j = 0; j < subjectLabelList.length; j++) {
       _subjectDataHeader.push({
         text: subjectLabelList[j],
-        key: subjectLabelList[j],
+        key: `${j}`,
         type: "string",
       });
     }
     setSubjectDataHeader(_subjectDataHeader);
+  };
 
-    // parse data
-    setSubjectObjectList(
-      subjectDataList.map((data: any) =>
-        subjectLabelList.reduce(
-          (ac: any[], a: string, idx: number) => ({ ...ac, [a]: data[idx] }),
-          {}
-        )
-      )
-    );
+  const updateSubjectLabels = async () => {
+    try {
+      const { season } = await SeasonAPI.USeasonSubjects({
+        params: { _id: props._id },
+        data: {
+          label: subjectLabelRef.current.split("/"),
+          data: subjectDataList,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      setSubjects(season.subjects);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   };
 
   useEffect(() => {
@@ -133,22 +135,8 @@ const Subjects = (props: Props) => {
             appearence={"flat"}
             placeholder="ex) 교과/과목"
             onKeyDown={(e: any) => {
-              if (subjectLabelRef.current !== "" && e.key === "Enter") {
-                SeasonApi.USeasonSubject({
-                  _id: props._id,
-                  data: {
-                    label: subjectLabelRef.current.split("/"),
-                    data: subjectDataList,
-                  },
-                })
-                  .then((res: any) => {
-                    alert(SUCCESS_MESSAGE);
-                    setSubjects(res.subjects);
-                  })
-                  .catch((err) => {
-                    // console.log(err.response.data.message);
-                    // alert(err.response.data.message);
-                  });
+              if (e.key === "Enter" && subjectLabelRef.current !== "") {
+                updateSubjectLabels();
               }
             }}
           />
@@ -156,21 +144,7 @@ const Subjects = (props: Props) => {
             type={"ghost"}
             onClick={() => {
               if (subjectLabelRef.current !== "") {
-                SeasonApi.USeasonSubject({
-                  _id: props._id,
-                  data: {
-                    label: subjectLabelRef.current.split("/"),
-                    data: subjectDataList,
-                  },
-                })
-                  .then((res: any) => {
-                    alert(SUCCESS_MESSAGE);
-                    setSubjects(res.subjects);
-                  })
-                  .catch((err) => {
-                    // console.log(err.response.data.message);
-                    // alert(err.response.data.message);
-                  });
+                updateSubjectLabels();
               }
             }}
             style={{
@@ -183,127 +157,46 @@ const Subjects = (props: Props) => {
           </Button>
         </div>
 
-        <div className={style.title} style={{ marginTop: "24px" }}>
-          항목 추가하기
-        </div>
-
-        <div className={style.row}>
-          <Input
-            style={{ minHeight: "30px" }}
-            onChange={(e: any) => {
-              subjectDataRef.current = e.target.value;
-            }}
-            appearence={"flat"}
-            placeholder={"ex) 미술/서양미술사"}
-            onKeyDown={(e: any) => {
-              if (subjectDataRef.current !== "" && e.key === "Enter") {
-                SeasonApi.USeasonSubject({
-                  _id: props._id,
-                  data: {
-                    label: subjectLabelList,
-                    data: [
-                      ...subjectDataList,
-                      subjectDataRef.current.split("/"),
-                    ],
-                  },
-                })
-                  .then((res: any) => {
-                    alert(SUCCESS_MESSAGE);
-                    setSubjects(res.subjects);
-                  })
-                  .catch((err) => {
-                    // console.log(err.response.data.message);
-                    // alert(err.response.data.message);
-                  });
-              }
-            }}
-          />
-
-          <Button
-            type={"ghost"}
-            onClick={() => {
-              if (subjectDataRef.current !== "") {
-                SeasonApi.USeasonSubject({
-                  _id: props._id,
-                  data: {
-                    label: subjectLabelList,
-                    data: [
-                      ...subjectDataList,
-                      subjectDataRef.current.split("/"),
-                    ],
-                  },
-                })
-                  .then((res: any) => {
-                    alert(SUCCESS_MESSAGE);
-                    setSubjects(res.subjects);
-                  })
-                  .catch((err) => {
-                    // console.log(err.response.data.message);
-                    // alert(err.response.data.message);
-                  });
-              }
-            }}
-            style={{
-              borderRadius: "4px",
-              height: "32px",
-              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-            }}
-          >
-            추가
-          </Button>
-        </div>
-
         <div style={{ marginTop: "24px" }} />
         {!isLoading && (
           <Table
             type="object-array"
-            data={subjectObjectList || []}
+            data={subjectDataList}
+            onChange={(e) => {
+              const subjectDataList = e.map((v) => {
+                const data = [];
+                for (let i = 0; i < subjectDataHeader.length; i++) {
+                  data.push(v[`${i}`]?.trim() ?? "");
+                }
+                return data;
+              });
+              SeasonAPI.USeasonSubjects({
+                params: { _id: props._id },
+                data: { label: subjectLabelList, data: subjectDataList },
+              })
+                .then(({ season }) => {
+                  alert(SUCCESS_MESSAGE);
+                  setSubjectDataList(season.subjects.data);
+                })
+                .catch((err) => {
+                  ALERT_ERROR(err);
+                  setIsLoading(true);
+                });
+            }}
             header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
               ...subjectDataHeader,
               {
-                text: "삭제",
-                key: "delete",
-                type: "button",
-                onClick: (e: any) => {
-                  subjectDataList.splice(e.tableRowIndex - 1, 1);
-
-                  SeasonApi.USeasonSubject({
-                    _id: props._id,
-                    data: {
-                      label: subjectLabelList,
-                      data: subjectDataList,
-                    },
-                  })
-                    .then((res: any) => {
-                      alert(SUCCESS_MESSAGE);
-                      setSubjects(res.subjects);
-                    })
-                    .catch((err) => {
-                      // console.log(err.response.data.message);
-                      // alert(err.response.data.message);
-                    });
-                },
-                width: "80px",
+                text: "수정",
+                type: "rowEdit",
+                fontSize: "12px",
+                fontWeight: "600",
                 textAlign: "center",
-                btnStyle: {
-                  border: true,
-                  color: "red",
-                  padding: "4px",
-                  round: true,
-                },
+                width: "80px",
               },
             ]}
           />
         )}
       </div>
-
       {updateBulkPopup && (
         <UpdateBulk
           setPopupActive={setUpdateBulkPopupActive}
