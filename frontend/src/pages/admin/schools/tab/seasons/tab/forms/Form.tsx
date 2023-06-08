@@ -31,12 +31,14 @@ import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
-import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 
 import style from "style/pages/admin/schools.module.scss";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import { TFormEvaluation } from "types/seasons";
+import { TFormEvaluation, TFormTimetable, TSeason } from "types/seasons";
+
+import EditTimetablePopup from "./EditTimetablePopup";
+import EditSyllabusPopup from "./EditSyllabusPopup";
 
 type Props = {
   _id: string;
@@ -49,7 +51,7 @@ const Form = (props: Props) => {
 
   const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>();
 
-  const [formTimetable, setFormTimetable] = useState<any>();
+  const [formTimetable, setFormTimetable] = useState<TFormTimetable>();
   const [formSyllabus, setFormSyllabus] = useState<any>();
   const formEvaluation = useRef<TFormEvaluation>([]);
   const [formTimetablePopupActive, setFormTimetablePopupActive] =
@@ -63,7 +65,7 @@ const Form = (props: Props) => {
 
   const [forms, setForms] = useState<any>();
 
-  const updateFormData = (seasonData: any) => {
+  const updateFormData = (seasonData: TSeason) => {
     setFormSyllabus(seasonData?.formSyllabus);
     setFormTimetable(seasonData?.formTimetable);
     formEvaluation.current = seasonData?.formEvaluation || [];
@@ -84,7 +86,7 @@ const Form = (props: Props) => {
 
   return (
     <>
-      <>
+      <div>
         <div className={style.form} style={{ marginTop: "24px" }}>
           <div className={style.item}>
             <div className={style.title}>시간표 양식</div>
@@ -100,8 +102,7 @@ const Form = (props: Props) => {
               }}
               disabled={isActivatedFirst}
             >
-              {(!isLoading && formTimetable?.title) ??
-                (isActivatedFirst ? "없음" : "선택")}
+              {formTimetable?.title ?? (isActivatedFirst ? "없음" : "선택")}
             </Button>
           </div>
           <div className={style.item}>
@@ -169,9 +170,9 @@ const Form = (props: Props) => {
                   params: { _id: props._id },
                   data: { formEvaluation: formEvaluation.current },
                 })
-                  .then((res) => {
+                  .then(({ season }) => {
                     alert(SUCCESS_MESSAGE);
-                    updateFormData(res);
+                    updateFormData(season);
                   })
                   .catch((err) => {
                     alert(err.response.data.message);
@@ -339,106 +340,20 @@ const Form = (props: Props) => {
             />
           </div>
         </div>
-      </>
+      </div>
       {formTimetablePopupActive && (
-        <Popup
-          style={{ maxWidth: "600px", width: "100%" }}
-          title={`시간표 양식 선택`}
-          setState={setFormTimetablePopupActive}
-          closeBtn
-        >
-          <Table
-            type="object-array"
-            data={forms?.filter((val: any) => val.type === "timetable")}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              { text: "제목", key: "title", type: "text" },
-              {
-                text: "선택",
-                key: "select",
-                type: "button",
-                onClick: (e: any) => {
-                  SeasonAPI.USeasonFormTimetable({
-                    params: { _id: props._id },
-                    data: { form: e._id },
-                  })
-                    .then(({ season }) => {
-                      updateFormData(season);
-                      setFormTimetablePopupActive(false);
-                    })
-                    .catch((err) => {
-                      ALERT_ERROR(err);
-                    });
-                },
-                width: "80px",
-                textAlign: "center",
-                btnStyle: {
-                  border: true,
-                  color: "black",
-                  padding: "4px",
-                  round: true,
-                },
-              },
-            ]}
-          />
-        </Popup>
+        <EditTimetablePopup
+          _id={props._id}
+          setPopupActive={setFormTimetablePopupActive}
+          updateFormData={updateFormData}
+        />
       )}
       {formSyllabusPopupActive && (
-        <Popup
-          style={{ maxWidth: "600px", width: "100%" }}
-          title={`강의계획서 양식 선택`}
-          setState={setFormSyllabusPopupActive}
-          closeBtn
-        >
-          <Table
-            type="object-array"
-            data={forms?.filter((val: any) => val.type === "syllabus")}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              { text: "제목", key: "title", type: "text" },
-              {
-                text: "선택",
-                key: "select",
-                type: "button",
-                onClick: (e: any) => {
-                  SeasonAPI.USeasonFormSyllabus({
-                    params: { _id: props._id },
-                    data: {
-                      form: e._id,
-                    },
-                  })
-                    .then(({ season }) => {
-                      updateFormData(season);
-                      setFormSyllabusPopupActive(false);
-                    })
-                    .catch((err) => {
-                      ALERT_ERROR(err);
-                    });
-                },
-                width: "80px",
-                textAlign: "center",
-                btnStyle: {
-                  border: true,
-                  color: "black",
-                  padding: "4px",
-                  round: true,
-                },
-              },
-            ]}
-          />
-        </Popup>
+        <EditSyllabusPopup
+          _id={props._id}
+          setPopupActive={setFormSyllabusPopupActive}
+          updateFormData={updateFormData}
+        />
       )}
     </>
   );

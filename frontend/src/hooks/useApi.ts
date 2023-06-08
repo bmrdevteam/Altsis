@@ -57,51 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Update Season period
-   * @type PUT
-   * @auth admin manager
-   * @returns Season
-   */
-
-  async function USeason(props: {
-    _id: string;
-    field: string;
-    data: { start: string; end: string };
-  }) {
-    return await database.U({
-      location: `seasons/${props._id}/${props.field}`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
-   * Update Classrooms in season
-   * @auth admin / manager
-   * @returns Season
-   */
-  async function USeasonClassroom(props: { _id: string; data: string[] }) {
-    return await database.U({
-      location: `seasons/${props._id}/classrooms`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
-   * Update Subjects in season
-   * @auth admin / manager
-   * @returns Season
-   */
-  async function USeasonSubject(props: {
-    _id: string;
-    data: { label: string[]; data: any[] };
-  }) {
-    return await database.U({
-      location: `seasons/${props._id}/subjects`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
    * Update form in season
    * @auth admin / manager
    * @returns Season
@@ -865,9 +820,6 @@ export default function useApi() {
 
   return {
     SeasonApi: {
-      USeason,
-      USeasonSubject,
-      USeasonClassroom,
       USeasonForm,
     },
     RegistrationApi: {

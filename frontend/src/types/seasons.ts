@@ -34,6 +34,10 @@ export type TPermission = {
   exceptions: TPermissionException[];
 };
 
+export type TFormTimetable = {
+  title: string;
+  data: any[];
+};
 export type TSeason = {
   _id: string;
   classrooms: string[];
@@ -50,9 +54,9 @@ export type TSeason = {
   permissionSyllabusV2: TPermission;
   permissionEnrollmentV2: TPermission;
   permissionEvaluationV2: TPermission;
-  formTimetable: any;
+  formTimetable: TFormTimetable;
   formSyllabus: any;
-  formEvaluation: TFormEvaluation[];
+  formEvaluation: TFormEvaluation;
   isActivated: boolean;
   isActivatedFirst: boolean;
 };
