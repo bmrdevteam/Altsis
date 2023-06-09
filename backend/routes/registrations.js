@@ -7,6 +7,8 @@ import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 //             Registration
 //=================================
 
+router.post("/", isAdManager, registrations.create);
+
 router.post("/bulk", isAdManager, registrations.registerBulk);
 router.post("/copy", isAdManager, registrations.registerCopy);
 

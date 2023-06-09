@@ -31,6 +31,7 @@ const registrationSchema = mongoose.Schema({
   },
   role: {
     type: String,
+    enum: ["student", "teacher"],
     required: true,
   },
   grade: String,

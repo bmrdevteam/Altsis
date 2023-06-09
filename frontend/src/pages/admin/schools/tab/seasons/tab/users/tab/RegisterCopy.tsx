@@ -43,7 +43,7 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { RegistrationApi, SeasonApi } = useApi();
+  const { RegistrationApi } = useApi();
   const { SeasonAPI } = useAPIv2();
   const [seasonList, setSeasonList] = useState<any[]>();
 
