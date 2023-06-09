@@ -106,6 +106,7 @@ function Basic(props: Props) {
       setState={props.setPopupActive}
       style={{ maxWidth: "800px" }}
       closeBtn
+      contentScroll
       footer={
         <Button
           type={"ghost"}
@@ -195,8 +196,8 @@ function Basic(props: Props) {
           <div className={style.row}>
             <Select
               options={[
-                { text: "student", value: "student" },
-                { text: "teacher", value: "teacher" },
+                { text: "학생", value: "student" },
+                { text: "선생님", value: "teacher" },
               ]}
               appearence="flat"
               label="역할"
