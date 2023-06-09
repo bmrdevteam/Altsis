@@ -130,89 +130,77 @@ export const create = async (req, res) => {
   }
 };
 
-/** @deprecated */
-export const registerBulk = async (req, res) => {
+/**
+ * @memberof APIs.RegistrationAPI
+ * @function CCopyRegistrations API
+ * @description 학기 등록 정보 복제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/registrations/copy"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.fromSeason - ObjectId of season to cpoy registrations
+ * @param {string} req.body.toSeason - ObjectId of season to paste registrations
+ *
+ * @param {Object} res
+ * @param {Object} res.registrations - pasted registrations
+ *
+ */
+export const copyFromSeason = async (req, res) => {
   try {
-    const season = await Season(req.user.academyId).findById(req.body.season);
+    for (let field of ["fromSeason", "toSeason"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    if (
+      await Registration(req.user.academyId).findOne({
+        season: req.body.toSeason,
+      })
+    ) {
+      return res.status(409).send({ message: REGISTRATION_IN_USE });
+    }
+
+    const season = await Season(req.user.academyId).findById(req.body.toSeason);
     if (!season) {
-      return res.status(404).send({ message: "season is not found" });
+      return res.status(404).send({ message: __NOT_FOUND("toSeason") });
     }
-    const exRegistrations = await Registration(req.user.academyId).find({
-      season: season._id,
-      user: { $in: req.body.users.map((user) => user._id) },
-    });
-    if (exRegistrations.length !== 0)
-      return res.status(409).send({
-        message: `users with _id ${_.join(
-          exRegistrations.map((reg) => reg.user),
-          ", "
-        )} are already registered `,
-      });
 
-    const registerations = [];
-    const seasonSubdocument = season.getSubdocument();
-    const info = req.body.info;
-
-    for (let user of req.body.users) {
-      registerations.push({
-        ...seasonSubdocument,
-        user: user._id,
-        userId: user.userId,
-        userName: user.userName,
-        role: info.role,
-        grade: info.grade,
-        group: info.group,
-        teacher: info.teacher,
-        teacherId: info.teacherId,
-        teacherName: info.teacherName,
-        subTeacher: info.subTeacher,
-        subTeacherId: info.subTeacherId,
-        subTeacherName: info.subTeacherName,
-      });
-    }
-    const newRegistrations = await Registration(req.user.academyId).insertMany(
-      registerations
-    );
-    return res.status(200).send({ registerations: newRegistrations });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-export const registerCopy = async (req, res) => {
-  try {
-    const exRegistrations = await Registration(req.user.academyId).find({
+    const registrationsCopied = await Registration(req.user.academyId).find({
       season: req.body.fromSeason,
     });
-    const season = await Season(req.user.academyId).findById(req.body.toSeason);
-    if (!season) return res.status(404).send({ message: "season not found" });
 
-    const seasonSubdocument = season.getSubdocument();
-    const registerations = exRegistrations.map((registration) => {
-      return {
-        school: registration.school,
-        schoolId: registration.schoolId,
-        schoolName: registration.schoolName,
-        user: registration.user,
-        userId: registration.userId,
-        userName: registration.userName,
-        role: registration.role,
-        grade: registration.grade,
-        group: registration.group,
-        teacher: registration.teacher,
-        teacherId: registration.teacherId,
-        teacherName: registration.teacherName,
-        subTeacher: registration.subTeacher,
-        subTeacherId: registration.subTeacherId,
-        subTeacherName: registration.subTeacherName,
-        ...seasonSubdocument,
-      };
-    });
-    const newRegistrations = await Registration(req.user.academyId).insertMany(
-      registerations
+    const registerationPasted = await Registration(
+      req.user.academyId
+    ).insertMany(
+      registrationsCopied.map((reg) => {
+        return {
+          school: reg.school,
+          schoolId: reg.schoolId,
+          schoolName: reg.schoolName,
+          user: reg.user,
+          userId: reg.userId,
+          userName: reg.userName,
+          role: reg.role,
+          grade: reg.grade,
+          group: reg.group,
+          teacher: reg.teacher,
+          teacherId: reg.teacherId,
+          teacherName: reg.teacherName,
+          subTeacher: reg.subTeacher,
+          subTeacherId: reg.subTeacherId,
+          subTeacherName: reg.subTeacherName,
+          ...season.getSubdocument(),
+        };
+      })
     );
-    return res.status(200).send({ registerations: newRegistrations });
+    return res.status(200).send({ registerations: registerationPasted });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

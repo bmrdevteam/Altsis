@@ -1,5 +1,5 @@
 /**
- * @file User Page Tab Item - Basic
+ * @file Seasons Page Tab Item - Registration - RegisterCopy
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -28,23 +28,22 @@
  */
 
 import { useState, useEffect } from "react";
-import useApi from "hooks/useApi";
 import _ from "lodash";
 
 // components
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
-import useAPIv2 from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { TSeasonWithRegistrations } from "types/seasons";
 
 type Props = {
-  setPopupActive: any;
-  seasonData: any;
-  setIsLoading: any;
+  setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
+  seasonData: TSeasonWithRegistrations;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 function Basic(props: Props) {
-  const { RegistrationApi } = useApi();
-  const { SeasonAPI } = useAPIv2();
+  const { SeasonAPI, RegistrationAPI } = useAPIv2();
   const [seasonList, setSeasonList] = useState<any[]>();
 
   useEffect(() => {
@@ -57,9 +56,9 @@ function Basic(props: Props) {
 
   return (
     <Popup
-      title="사용자 등록"
+      title="이전 학기 등록 정보 불러오기"
       setState={props.setPopupActive}
-      style={{ maxWidth: "800px", width: "100%" }}
+      style={{ maxWidth: "640px", width: "100%" }}
       closeBtn
       contentScroll
     >
@@ -91,15 +90,20 @@ function Basic(props: Props) {
               key: "select",
               type: "button",
               onClick: (e: any) => {
-                RegistrationApi.CRegistrationsCopy({
+                RegistrationAPI.CCopyRegistrations({
                   data: {
                     fromSeason: e._id,
                     toSeason: props.seasonData._id,
                   },
-                }).then(() => {
-                  props.setIsLoading(true);
-                  props.setPopupActive(false);
-                });
+                })
+                  .then(() => {
+                    alert(SUCCESS_MESSAGE);
+                    props.setIsLoading(true);
+                    props.setPopupActive(false);
+                  })
+                  .catch((err) => {
+                    ALERT_ERROR(err);
+                  });
               },
               width: "80px",
               textAlign: "center",

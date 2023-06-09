@@ -57,25 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Create Registrations from other season
-   * @type POST
-   * @auth admin / managers
-   * @returns Registrations
-   */
-  async function CRegistrationsCopy(props: {
-    data: {
-      fromSeason: string;
-      toSeason: string;
-    };
-  }) {
-    const { registrations: result } = await database.C({
-      location: `registrations/copy`,
-      data: props.data,
-    });
-    return result;
-  }
-
-  /**
    * Get Registration by param
    * @type GET
    * @auth member
@@ -784,7 +765,6 @@ export default function useApi() {
 
   return {
     RegistrationApi: {
-      CRegistrationsCopy,
       RRegistrations,
       RRegistration,
       URegistrations,
