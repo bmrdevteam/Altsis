@@ -1119,7 +1119,7 @@ export default function useAPIv2() {
     data: {
       season: string;
       user: string;
-      role?: "teacher" | "student";
+      role: "teacher" | "student";
       grade?: string;
       group?: string;
       teacher?: string;
