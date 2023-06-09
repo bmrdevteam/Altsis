@@ -14,7 +14,7 @@ import Button from "components/button/Button";
 import ArrayView from "./tab/ArrayView";
 import ObjectView from "./tab/ObjectView";
 import Loading from "components/loading/Loading";
-import { TSeasonRegistration } from "types/auth";
+import { TSeasonRegistration } from "types/seasons";
 
 type Props = {};
 
@@ -52,18 +52,19 @@ const ArchiveField = (props: Props) => {
         navigate("/");
       }
 
-      let registrations: (TSeasonRegistration & {
+      let newRegistrationList: (TSeasonRegistration & {
         tableRowChecked?: boolean;
       })[] = [];
+      let newSelectedRegistrationList: TSeasonRegistration[] = [];
 
       if (formArchive().authTeacher === "viewAndEditStudents") {
         /* 1. 모든 선생님이 수정할 수 있는 양식인 경우 */
-        registrations = currentSeason.registrations.filter(
+        newRegistrationList = currentSeason.registrations.filter(
           (reg) => reg.role === "student"
         );
       } else if (formArchive().authTeacher === "viewAndEditMyStudents") {
         /* 2. 선생님이 담당 학생만 수정할 수 있는 양식인 경우 */
-        registrations = currentSeason.registrations.filter(
+        newRegistrationList = currentSeason.registrations.filter(
           (reg) =>
             reg.role === "student" &&
             (reg?.teacher === currentUser._id ||
@@ -74,22 +75,17 @@ const ArchiveField = (props: Props) => {
         return navigate("/");
       }
 
-      registrations = registrations.map(
-        (reg: TSeasonRegistration & { tableRowChecked?: boolean }) => {
-          reg.tableRowChecked =
-            _.findIndex(selectedRegistrationList, {
-              _id: reg._id,
-            }) !== -1;
-          return reg;
+      for (let reg of newRegistrationList) {
+        if (_.find(selectedRegistrationList, { _id: reg._id })) {
+          reg.tableRowChecked = true;
+          newSelectedRegistrationList.push(reg);
         }
-      );
+      }
 
       setPid(_pid);
-      setRegistrationList(registrations);
-      setSelectedRegistrationList(
-        registrations.filter((reg) => reg.tableRowChecked)
-      );
-      registrationListRef.current = registrations;
+      setRegistrationList(newRegistrationList);
+      registrationListRef.current = newRegistrationList;
+      setSelectedRegistrationList(newSelectedRegistrationList);
       setIsLoading(false);
     }
   }, [isLoading]);

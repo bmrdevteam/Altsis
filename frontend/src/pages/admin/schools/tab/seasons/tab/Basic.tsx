@@ -30,9 +30,9 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import { useState, useEffect } from "react";
 import style from "style/pages/admin/schools.module.scss";
-import useApi from "hooks/useApi";
 
 import _ from "lodash";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
@@ -41,14 +41,17 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* document fields */
   const [isActivated, setIsActivated] = useState<boolean>();
   const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>();
   const [undefinedForms, setUndefinedForms] = useState<string[]>([]);
-  const [period, setPeriod] = useState<any>({ start: "", end: "" });
+  const [period, setPeriod] = useState<{ start: string; end: string }>({
+    start: "",
+    end: "",
+  });
 
   const setSeasonData = (seasonData: any) => {
     setIsActivated(seasonData.isActivated);
@@ -58,14 +61,14 @@ function Basic(props: Props) {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeason(props._id)
-        .then((res) => {
-          setSeasonData(res);
-          if (!res.isActivatedFirst) {
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setSeasonData(season);
+          if (!season.isActivatedFirst) {
             const undefinedForms = [];
-            if (!res.formTimetable) undefinedForms.push("시간표");
-            if (!res.formSyllabus) undefinedForms.push("강의 계획서");
-            if (res.formEvaluation.length === 0) undefinedForms.push("평가");
+            if (!season.formTimetable) undefinedForms.push("시간표");
+            if (!season.formSyllabus) undefinedForms.push("강의 계획서");
+            if (season.formEvaluation.length === 0) undefinedForms.push("평가");
             setUndefinedForms(undefinedForms);
           }
         })
@@ -108,18 +111,17 @@ function Basic(props: Props) {
                 marginTop: "24px",
               }}
               onClick={() => {
-                SeasonApi.USeason({
-                  _id: props._id,
-                  field: "period",
+                SeasonAPI.USeasonPeriod({
+                  params: { _id: props._id },
                   data: period,
                 })
-                  .then((res) => {
+                  .then(({ season }) => {
                     alert(SUCCESS_MESSAGE);
-                    setSeasonData(res);
+                    setSeasonData(season);
                     props.setIsLoading(true);
                   })
                   .catch((err) => {
-                    alert(err.reponse.data.message);
+                    ALERT_ERROR(err);
                   });
               }}
             >
@@ -148,10 +150,10 @@ function Basic(props: Props) {
                           )})이 설정되지 않은 상태입니다. 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다.`
                         )
                   ) {
-                    SeasonApi.UActivateSeason(props._id)
-                      .then((res) => {
+                    SeasonAPI.UActivateSeason({ params: { _id: props._id } })
+                      .then(({ season }) => {
                         alert(SUCCESS_MESSAGE);
-                        setSeasonData(res);
+                        setSeasonData(season);
                         props.setIsLoading(true);
                       })
                       .catch((err) => {
@@ -160,10 +162,10 @@ function Basic(props: Props) {
                   }
                 } else {
                   if (window.confirm("정말 활성화하시겠습니까?") === true) {
-                    SeasonApi.UActivateSeason(props._id)
-                      .then((res) => {
+                    SeasonAPI.UActivateSeason({ params: { _id: props._id } })
+                      .then(({ season }) => {
                         alert(SUCCESS_MESSAGE);
-                        setSeasonData(res);
+                        setSeasonData(season);
                         props.setIsLoading(true);
                       })
                       .catch((err) => {
@@ -185,10 +187,10 @@ function Basic(props: Props) {
               }}
               onClick={() => {
                 if (window.confirm("정말 비활성화하시겠습니까?") === true) {
-                  SeasonApi.UInactivateSeason(props._id)
-                    .then((res) => {
+                  SeasonAPI.UInactivateSeason({ params: { _id: props._id } })
+                    .then(({ season }) => {
                       alert(SUCCESS_MESSAGE);
-                      setSeasonData(res);
+                      setSeasonData(season);
                       props.setIsLoading(true);
                     })
                     .catch((err) => {
@@ -198,32 +200,6 @@ function Basic(props: Props) {
               }}
             >
               {"비활성화"}
-            </Button>
-          )}
-          {!isActivated && (
-            <Button
-              type={"ghost"}
-              onClick={() => {
-                if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                  SeasonApi.DSeason(props._id)
-                    .then((res) => {
-                      alert(SUCCESS_MESSAGE);
-                      props.setIsLoading(true);
-                      props.setPopupActive(false);
-                    })
-                    .catch((err) => {
-                      alert(err.response.data.message);
-                    });
-                }
-              }}
-              style={{
-                borderRadius: "4px",
-                marginTop: "12px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-              }}
-            >
-              삭제
             </Button>
           )}
         </div>

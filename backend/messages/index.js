@@ -49,6 +49,16 @@ export const FIELD_REQUIRED = (field) => `${field.toUpperCase()}_REQUIRED`;
 export const FIELD_INVALID = (field) => `${field.toUpperCase()}_INVALID`;
 
 /**
+ * @tag 400 Bad Request
+ *
+ * @alias FORM_LABEL_DUPLICATED
+ * @description form의 label이 중복됨
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const FORM_LABEL_DUPLICATED = "FORM_LABEL_DUPLICATED";
+
+/**
  * -----------------------------------------
  * 401 Unauthorized
  * 사용자 검증 실패
@@ -187,3 +197,13 @@ export const LIMIT_FILE_SIZE = "LIMIT_FILE_SIZE";
  * @memberof APIs._MESSAGE
  */
 export const INVALID_FILE_TYPE = "INVALID_FILE_TYPE";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias SEASON_ALREADY_ACTIVATED_FIRST
+ * @description 한 번 활성화된 학기임
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const SEASON_ALREADY_ACTIVATED_FIRST = "SEASON_ALREADY_ACTIVATED_FIRST";

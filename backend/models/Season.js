@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 import _ from "lodash";
 
+const periodSchema = mongoose.Schema(
+  {
+    start: String, // "YYYY-MM-DD" || ""
+    end: String, // "YYYY-MM-DD" || ""
+  },
+  { _id: false }
+);
+
 const subjectSchema = mongoose.Schema(
   {
     label: [String],
@@ -56,11 +64,41 @@ const formEvlauationAuthSchema = mongoose.Schema(
 const formEvaluationSchema = mongoose.Schema(
   {
     label: String,
-    type: String, // input,
-    combineBy: String, // term, year
-    authOption: String, //editByStudent, editByTeacher, editByTeacherAndStudentCanView
+    type: {
+      type: String,
+      enum: ["input", "input-number", "select"],
+      defualt: "input",
+    },
+    options: [String],
+    combineBy: {
+      type: String,
+      enum: ["term", "year"],
+      default: "term",
+    },
+    authOption: {
+      type: String,
+      enum: [
+        "editByStudent",
+        "editByTeacher",
+        "editByTeacherAndStudentCanView",
+      ],
+      default: "editByTeacher",
+    },
     auth: formEvlauationAuthSchema,
   },
+  { _id: false }
+);
+
+const formTimetableSchema = mongoose.Schema(
+  {
+    title: String,
+    data: [Object],
+  },
+  { _id: false }
+);
+
+const formSyllabusSchema = mongoose.Schema(
+  { title: String, data: [Object] },
   { _id: false }
 );
 
@@ -89,12 +127,15 @@ const seasonSchema = mongoose.Schema(
       required: true,
     },
     period: {
-      start: String,
-      end: String,
+      type: periodSchema,
+      default: {
+        start: "",
+        end: "",
+      },
     },
-    permissionSyllabus: [[]], //deprecated
-    permissionEnrollment: [[]], //deprecated
-    permissionEvaluation: [[]], //deprecated
+    permissionSyllabus: {}, //deprecated
+    permissionEnrollment: {}, //deprecated
+    permissionEvaluation: {}, //deprecated
     permissionSyllabusV2: {
       type: permissionSchema,
       default: permissionDefault,
@@ -107,8 +148,8 @@ const seasonSchema = mongoose.Schema(
       type: permissionSchema,
       default: permissionDefault,
     },
-    formTimetable: Object,
-    formSyllabus: Object,
+    formTimetable: formTimetableSchema,
+    formSyllabus: formSyllabusSchema,
     formEvaluation: {
       type: [formEvaluationSchema],
     },
@@ -133,24 +174,6 @@ seasonSchema.index(
   },
   { unique: true }
 );
-
-seasonSchema.methods.checkPermission = function (permissionType, userId, role) {
-  let permission = null;
-  if (permissionType == "syllabus") permission = this.permissionSyllabus;
-  else if (permissionType == "enrollment")
-    permission = this.permissionEnrollment;
-  else if (permissionType == "evaluation")
-    permission = this.permissionEvaluation;
-
-  for (let i = 0; i < permission?.length; i++) {
-    if (permission[i][0] == "userId" && permission[i][1] == userId) {
-      return permission[i][2];
-    }
-    if (permission[i][0] == "role" && permission[i][1] == role)
-      return permission[i][2];
-  }
-  return false;
-};
 
 seasonSchema.methods.getSubdocument = function () {
   return {

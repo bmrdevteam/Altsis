@@ -27,46 +27,46 @@
  *
  */
 import { useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 
 // components
 import Table from "components/tableV2/Table";
 
 import Edit from "./tab/Edit";
-import { Permission } from "types/auth";
+import { TPermission } from "types/seasons";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   _id: string;
 };
 
-const defaultPermission: Permission = {
+const defaultPermission: TPermission = {
   teacher: false,
   student: false,
   exceptions: [],
 };
 
 const Index = (props: Props) => {
-  const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
 
   const [permissionSyllabus, setPermissionSyllabus] =
-    useState<Permission>(defaultPermission);
+    useState<TPermission>(defaultPermission);
   const [permissionEnrollmentParsed, setPermissionEnrollmentParsed] =
-    useState<Permission>(defaultPermission);
+    useState<TPermission>(defaultPermission);
   const [permissionEvaluationParsed, setPermissionEvaluationParsed] =
-    useState<Permission>(defaultPermission);
+    useState<TPermission>(defaultPermission);
   const [type, setType] = useState<"syllabus" | "enrollment" | "evaluation">(
     "syllabus"
   );
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeason(props._id)
-        .then((res) => {
-          setPermissionSyllabus(res?.permissionSyllabusV2);
-          setPermissionEnrollmentParsed(res?.permissionEnrollmentV2);
-          setPermissionEvaluationParsed(res?.permissionEvaluationV2);
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setPermissionSyllabus(season?.permissionSyllabusV2);
+          setPermissionEnrollmentParsed(season?.permissionEnrollmentV2);
+          setPermissionEvaluationParsed(season?.permissionEvaluationV2);
         })
         .then(() => {
           setIsLoading(false);
@@ -108,9 +108,8 @@ const Index = (props: Props) => {
                 text: "N",
                 color: "red",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: {
                       teacher: true,
                     },
@@ -128,9 +127,8 @@ const Index = (props: Props) => {
                 text: "Y",
                 color: "green",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: {
                       teacher: false,
                     },
@@ -157,9 +155,8 @@ const Index = (props: Props) => {
                 text: "N",
                 color: "red",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: {
                       student: true,
                     },
@@ -177,9 +174,8 @@ const Index = (props: Props) => {
                 text: "Y",
                 color: "green",
                 onClick: (e: any) => {
-                  SeasonApi.USeasonPermissionV2({
-                    _id: props._id,
-                    type: e.type,
+                  SeasonAPI.USeasonPermission({
+                    params: { _id: props._id, type: e.type },
                     data: { student: false },
                   })
                     .then((res: any) => {

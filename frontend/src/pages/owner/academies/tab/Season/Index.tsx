@@ -3,6 +3,8 @@
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
+ *
+ * @todo create sesons tab
  * -------------------------------------------------------
  *
  * IN PRODUCTION
@@ -42,7 +44,7 @@ import Basic from "./tab/Basic";
 import User from "./tab/User";
 import Classroom from "./tab/Classroom";
 import Subjects from "./tab/Subject";
-import Permission from "./tab/Permission";
+// import Permission from "./tab/Permission"; deprecated
 import Form from "./tab/Form";
 
 type Props = {};
@@ -194,7 +196,6 @@ const Season = (props: Props) => {
               교과목: <Subjects seasonData={doc} />,
               강의실: <Classroom seasonData={doc} />,
               양식: <Form seasonData={doc} />,
-              권한: <Permission seasonData={doc} />,
             }}
             align={"flex-start"}
           />

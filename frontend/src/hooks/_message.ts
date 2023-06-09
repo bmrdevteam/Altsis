@@ -19,4 +19,10 @@ export const MESSAGE = new Map<string, string>([
   ["SNSID.GOOGLE_IN_USE", "사용 중인 구글 로그인 이메일입니다."],
   ["LIMIT_FILE_SIZE", "파일 사이즈가 커서 업로드할 수 없습니다."],
   ["INVALID_FILE_TYPE", "파일 형식이 맞지 않아 업로드할 수 없습니다."],
+  ["YEAR_TERM_IN_USE", `해당 학년도에 동일한 이름의 학기가 존재합니다.`],
+  [
+    "SEASON_ALREADY_ACTIVATED_FIRST",
+    `한 번 활성화된 학기의 양식을 변경할 수 없습니다.`,
+  ],
+  ["FORM_LABEL_DUPLICATED", "양식에 중복된 항목이 있습니다."],
 ]);
