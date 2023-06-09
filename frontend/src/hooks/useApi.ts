@@ -57,35 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Update Registration
-   * @type PUT
-   * @auth admin / manager
-   * @returns
-   */
-  async function URegistrations(props: {
-    _id?: string;
-    _ids?: string[];
-    data: {
-      role?: string;
-      grade?: string;
-      group?: string;
-      teacher?: string;
-      teacherId?: string;
-      teacherName?: string;
-      subTeacher?: string;
-      subTeacherId?: string;
-      subTeacherName?: string;
-    };
-  }) {
-    if (props._ids) {
-      props._id = QUERY_SUB_BUILDER(props._ids);
-    }
-    return await database.U({
-      location: `registrations/${props._id}`,
-      data: props.data,
-    });
-  }
-  /**
    * Delete Registratios
    * @type DELETE
    * @auth admin / manager
@@ -727,7 +698,6 @@ export default function useApi() {
 
   return {
     RegistrationApi: {
-      URegistrations,
       DRegistrations,
       CMemo,
       UMemo,

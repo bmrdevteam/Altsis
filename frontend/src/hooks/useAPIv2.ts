@@ -1207,6 +1207,33 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * URegistration API
+   * @description 학기 등록 정보 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function URegistration(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      role: "teacher" | "student";
+      grade?: string;
+      group?: string;
+      teacher?: string;
+      subTeacher?: string;
+    };
+  }) {
+    const { registration } = await database.U({
+      location: `registrations/${props.params._id}`,
+      data: props.data,
+    });
+    return {
+      registration: registration as TRegistration,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1270,6 +1297,7 @@ export default function useAPIv2() {
       CCopyRegistrations,
       RRegistrations,
       RRegistration,
+      URegistration,
     },
   };
 }
