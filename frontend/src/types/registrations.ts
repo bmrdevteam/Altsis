@@ -11,7 +11,21 @@ export type TRegistration = {
   year: string;
   term: string;
   isActivated: boolean;
-  role: "teacher" | "student";
+
+  user: string;
+  userId: string;
+  userName: string;
+
+  role?: "teacher" | "student";
+  grade?: string;
+  group?: string;
+  teacher?: string;
+  teacherId?: string;
+  teacherName?: string;
+  subTeacher?: string;
+  subTeacherId?: string;
+  subTeacherName?: string;
+
   memos: any[];
   permissionSyllabusV2: boolean;
   permissionEnrollmentV2: boolean;

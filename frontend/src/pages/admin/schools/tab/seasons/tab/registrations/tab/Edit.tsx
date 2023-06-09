@@ -1,5 +1,5 @@
 /**
- * @file User Page Tab Item - Basic
+ * @file Seasons Page Tab Item - Registration - Edit
  *
  * @author jessie129j <jessie129j@gmail.com>
  *
@@ -26,9 +26,8 @@
  * @version 1.0
  *
  */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
-import useApi from "hooks/useApi";
 
 // components
 import Input from "components/input/Input";
@@ -38,6 +37,7 @@ import Select from "components/select/Select";
 
 import _ from "lodash";
 import Autofill from "components/input/Autofill";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   setPopupActive: any;
@@ -47,8 +47,10 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { RegistrationApi } = useApi();
-  const [role, setRole] = useState<string>(props.registrationData.role);
+  const { RegistrationAPI } = useAPIv2();
+  const [role, setRole] = useState<"student" | "teacher">(
+    props.registrationData.role
+  );
   const [grade, setGrade] = useState<string>(props.registrationData.grade);
   const [group, setGroup] = useState<string>(props.registrationData.group);
   const [teacher, setTeacher] = useState<string>(
@@ -74,9 +76,9 @@ function Basic(props: Props) {
     {
       text: ``,
       value: JSON.stringify({
-        teacher: "",
-        teacherId: "",
-        teacherName: "",
+        teacher: undefined,
+        teacherId: undefined,
+        teacherName: undefined,
       }),
     },
     ..._.filter(props.registrationList, {
@@ -107,26 +109,26 @@ function Basic(props: Props) {
         <Button
           type={"ghost"}
           onClick={() => {
-            RegistrationApi.URegistrations({
-              _id: props.registrationData._id,
+            RegistrationAPI.URegistration({
+              params: { _id: props.registrationData._id },
               data: {
                 role,
                 grade,
                 group,
                 teacher,
-                teacherId,
-                teacherName,
                 subTeacher,
-                subTeacherId,
-                subTeacherName,
               },
             })
               .then(() => {
                 alert(SUCCESS_MESSAGE);
-                props.setIsLoading(true);
                 props.setPopupActive(false);
               })
-              .catch((err: any) => alert(err.response.data.message));
+              .catch((err: any) => {
+                ALERT_ERROR(err);
+              })
+              .finally(() => {
+                props.setIsLoading(true);
+              });
           }}
         >
           수정
@@ -144,8 +146,8 @@ function Basic(props: Props) {
         <div className={style.row}>
           <Select
             options={[
-              { text: "student", value: "student" },
-              { text: "teacher", value: "teacher" },
+              { text: "학생", value: "student" },
+              { text: "선생님", value: "teacher" },
             ]}
             defaultSelectedValue={role}
             appearence="flat"

@@ -52,145 +52,9 @@ export default function useApi() {
   }
 
   /**
-   * Season Api
-   * ##########################################################################
-   */
-
-  /**
-   * Update form in season
-   * @auth admin / manager
-   * @returns Season
-   */
-  async function USeasonForm(props: {
-    _id: string;
-    type: "timetable" | "syllabus" | "evaluation";
-    data: any;
-  }) {
-    return await database.U({
-      location: `seasons/${props._id}/form/${props.type}`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
    * Registration Api
    * ##########################################################################
    */
-  /**
-   * Create Registrations
-   * @type POST
-   * @auth admin / managers
-   * @returns Registrations
-   */
-  async function CRegistrations(props: {
-    data: { season: string; users: any[]; info: any };
-  }) {
-    const { registrations: result } = await database.C({
-      location: `registrations/bulk`,
-      data: props.data,
-    });
-    return result;
-  }
-
-  /**
-   * Create Registrations from other season
-   * @type POST
-   * @auth admin / managers
-   * @returns Registrations
-   */
-  async function CRegistrationsCopy(props: {
-    data: {
-      fromSeason: string;
-      toSeason: string;
-    };
-  }) {
-    const { registrations: result } = await database.C({
-      location: `registrations/copy`,
-      data: props.data,
-    });
-    return result;
-  }
-
-  /**
-   * Get Registration by param
-   * @type GET
-   * @auth member
-   * @returns Registrations
-   */
-  async function RRegistrations(params?: {
-    season?: string;
-    school?: string;
-    schoolId?: string;
-    schoolName?: string;
-    year?: string;
-    term?: string;
-    user?: string;
-    userId?: string;
-    userName?: string;
-    role?: "student" | "teacher";
-    teacher?: string;
-    subTeacher?: string;
-  }) {
-    const { registrations: result } = await database.R({
-      location: `registrations${QUERY_BUILDER(params)}`,
-    });
-    return result;
-  }
-
-  /**
-   * Get Registration by _id
-   * @type GET
-   * @auth member
-   * @returns Registration
-   */
-  async function RRegistration(_id: string) {
-    return await database.R({
-      location: `registrations/${_id}`,
-    });
-  }
-
-  /**
-   * Update Registration
-   * @type PUT
-   * @auth admin / manager
-   * @returns
-   */
-  async function URegistrations(props: {
-    _id?: string;
-    _ids?: string[];
-    data: {
-      role?: string;
-      grade?: string;
-      group?: string;
-      teacher?: string;
-      teacherId?: string;
-      teacherName?: string;
-      subTeacher?: string;
-      subTeacherId?: string;
-      subTeacherName?: string;
-    };
-  }) {
-    if (props._ids) {
-      props._id = QUERY_SUB_BUILDER(props._ids);
-    }
-    return await database.U({
-      location: `registrations/${props._id}`,
-      data: props.data,
-    });
-  }
-  /**
-   * Delete Registratios
-   * @type DELETE
-   * @auth admin / manager
-   * @returns
-   */
-  async function DRegistrations(params: { _ids: string[] }) {
-    const _id = QUERY_SUB_BUILDER(params._ids);
-    const result = await database.D({
-      location: `registrations${QUERY_BUILDER({ _id })}`,
-    });
-    return result;
-  }
 
   /**
    * Create Memo
@@ -819,16 +683,7 @@ export default function useApi() {
   }
 
   return {
-    SeasonApi: {
-      USeasonForm,
-    },
     RegistrationApi: {
-      CRegistrations,
-      CRegistrationsCopy,
-      RRegistrations,
-      RRegistration,
-      URegistrations,
-      DRegistrations,
       CMemo,
       UMemo,
       DMemo,

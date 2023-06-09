@@ -48,13 +48,17 @@ import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 
 import PastePopup from "./PastePopup";
+import useAPIv2 from "hooks/useAPIv2";
+import { TRegistration } from "types/registrations";
 
 type Props = {};
 
 const CourseAdd = (props: Props) => {
   const { currentUser, currentSeason, currentRegistration } = useAuth();
   const navigate = useNavigate();
-  const { SyllabusApi, RegistrationApi } = useApi();
+  const { SyllabusApi } = useApi();
+  const { RegistrationAPI } = useAPIv2();
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingTimeClassroomRef, setIsLoadingTimeClassroomRef] =
     useState<boolean>(false);
@@ -68,7 +72,9 @@ const CourseAdd = (props: Props) => {
 
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
-  const teacherListRef = useRef<any[]>([]);
+  const teacherListRef = useRef<
+    (TRegistration & { tableRowChecked: boolean })[]
+  >([]);
 
   const [courseSubject, setCourseSubject] = useState<string>("");
   const [courseTitle, setCourseTitle] = useState<string>("");
@@ -178,11 +184,13 @@ const CourseAdd = (props: Props) => {
     setSubjectFilter(filter);
     setSubjectSelectKey(subjectSelectKey);
 
-    const res1 = await RegistrationApi.RRegistrations({
-      season: currentSeason?._id,
-      role: "teacher",
+    const { registrations: teacherRegistrations } =
+      await RegistrationAPI.RRegistrations({
+        query: { season: currentSeason?._id, role: "teacher" },
+      });
+    const teachers = teacherRegistrations.map((reg) => {
+      return { ...reg, tableRowChecked: false };
     });
-    const teachers = _.sortBy(res1, ["userName", "userId"]);
 
     if (currentRegistration?.role === "teacher") {
       setCourseMentorList([
@@ -193,7 +201,7 @@ const CourseAdd = (props: Props) => {
         },
       ]);
 
-      const idx = _.findIndex(teachers, { userId: currentUser?.userId });
+      const idx = _.findIndex(teachers, { user: currentUser?._id });
       if (idx !== -1) {
         teachers[idx].tableRowChecked = true;
         teacherListRef.current = teachers;

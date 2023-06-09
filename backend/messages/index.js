@@ -207,3 +207,13 @@ export const INVALID_FILE_TYPE = "INVALID_FILE_TYPE";
  * @memberof APIs._MESSAGE
  */
 export const SEASON_ALREADY_ACTIVATED_FIRST = "SEASON_ALREADY_ACTIVATED_FIRST";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias REGISTRATION_IN_USE
+ * @description 이미 등록 정보가 있음
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const REGISTRATION_IN_USE = "REGISTRATION_IN_USE";

@@ -113,7 +113,10 @@ function Basic(props: Props) {
               onClick={() => {
                 SeasonAPI.USeasonPeriod({
                   params: { _id: props._id },
-                  data: period,
+                  data: {
+                    start: period.start !== "" ? period.start : undefined,
+                    end: period.end !== "" ? period.end : undefined,
+                  },
                 })
                   .then(({ season }) => {
                     alert(SUCCESS_MESSAGE);
