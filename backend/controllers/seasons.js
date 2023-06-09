@@ -371,10 +371,10 @@ export const inactivate = async (req, res) => {
 export const updatePeriod = async (req, res) => {
   try {
     if ("start" in req.body && !validate("dateText", req.body.start)) {
-      return res.status(400).send({ message: FIELD_REQUIRED("start") });
+      return res.status(400).send({ message: FIELD_INVALID("start") });
     }
     if ("end" in req.body && !validate("dateText", req.body.end)) {
-      return res.status(400).send({ message: FIELD_REQUIRED("end") });
+      return res.status(400).send({ message: FIELD_INVALID("end") });
     }
 
     const season = await Season(req.user.academyId).findByIdAndUpdate(
