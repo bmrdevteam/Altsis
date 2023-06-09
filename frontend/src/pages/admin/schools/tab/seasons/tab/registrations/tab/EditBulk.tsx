@@ -231,7 +231,7 @@ function Basic(props: Props) {
                 style={{ whiteSpace: "pre" }}
                 title={"저장되지 않은 항목이 있습니다."}
                 description={failedList
-                  .map(({ userId, message }) => `${userId}: ${message}`)
+                  .map(({ userName, message }) => `${userName}: ${message}`)
                   .join("\n")}
               />
             )}

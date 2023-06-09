@@ -1234,6 +1234,22 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * DRegistration API
+   * @description 학기 등록 정보 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DRegistration(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `registrations/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1298,6 +1314,7 @@ export default function useAPIv2() {
       RRegistrations,
       RRegistration,
       URegistration,
+      DRegistration,
     },
   };
 }
