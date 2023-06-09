@@ -344,15 +344,33 @@ export const update = async (req, res) => {
   }
 };
 
-/* delete */
+/**
+ * @memberof APIs.RegistrationAPI
+ * @function DRegistration API
+ * @description 학기 등록 정보 삭제 API;
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/registrations/:_id"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ *
+ */
 export const remove = async (req, res) => {
   try {
-    const ids = _.split(req.query._id, ",");
-    const result = await Registration(req.user.academyId).deleteMany({
-      _id: { $in: ids },
-    });
+    const registration = await Registration(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!registration) {
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
+    }
+    await registration.remove();
 
-    return res.status(200).send(result);
+    return res.status(200).send();
   } catch (err) {
     return res.status(500).send({ err: err.message });
   }

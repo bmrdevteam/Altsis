@@ -57,20 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Delete Registratios
-   * @type DELETE
-   * @auth admin / manager
-   * @returns
-   */
-  async function DRegistrations(params: { _ids: string[] }) {
-    const _id = QUERY_SUB_BUILDER(params._ids);
-    const result = await database.D({
-      location: `registrations${QUERY_BUILDER({ _id })}`,
-    });
-    return result;
-  }
-
-  /**
    * Create Memo
    * @type POST
    * @auth member
@@ -698,7 +684,6 @@ export default function useApi() {
 
   return {
     RegistrationApi: {
-      DRegistrations,
       CMemo,
       UMemo,
       DMemo,

@@ -29,7 +29,6 @@
 import Table from "components/tableV2/Table";
 import { useEffect, useRef } from "react";
 import { useState } from "react";
-import useApi from "hooks/useApi";
 
 import _ from "lodash";
 
@@ -41,6 +40,12 @@ import Svg from "assets/svg/Svg";
 import style from "style/pages/admin/schools.module.scss";
 import { TSeasonRegistration, TSeasonWithRegistrations } from "types/seasons";
 import { TRegistration } from "types/registrations";
+import useAPIv2 from "hooks/useAPIv2";
+import { MESSAGE } from "hooks/_message";
+import Popup from "components/popup/Popup";
+import Progress from "components/progress/Progress";
+import Callout from "components/callout/Callout";
+import Button from "components/button/Button";
 
 type Props = {
   seasonData: TSeasonWithRegistrations;
@@ -48,7 +53,7 @@ type Props = {
 };
 
 const Index = (props: Props) => {
-  const { RegistrationApi } = useApi();
+  const { RegistrationAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [registrationList, setRegistrationList] = useState<
@@ -67,6 +72,39 @@ const Index = (props: Props) => {
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
   const [editBulkPopupActive, setEditBulkPopupActive] =
     useState<boolean>(false);
+
+  const [statusPopupActive, setStatuePopupActive] = useState<boolean>(false);
+  const [ratio, setRatio] = useState<number>(0);
+  const [failedList, setFailedList] = useState<
+    { userName: string; message: string }[]
+  >([]);
+
+  const onClickRemoveHandler = async () => {
+    if (_.isEmpty(selectedRegistrations.current)) {
+      alert("선택된 사용자가 없습니다.");
+    } else {
+      setStatuePopupActive(true);
+      setRatio(0);
+      const failedList = [];
+
+      for (let i = 0; i < selectedRegistrations.current.length; i++) {
+        try {
+          await RegistrationAPI.DRegistration({
+            params: { _id: selectedRegistrations.current[i]._id },
+          });
+        } catch (err: any) {
+          failedList.push({
+            userName: selectedRegistrations.current[i].userName,
+            message: MESSAGE.get(err) ?? "알 수 없는 에러가 발생했습니다.",
+          });
+        } finally {
+          setRatio((i + 1) / selectedRegistrations.current.length);
+        }
+        setIsLoading(true);
+        setFailedList(failedList);
+      }
+    }
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -145,30 +183,17 @@ const Index = (props: Props) => {
             style={{ display: "flex", gap: "4px" }}
           >
             <Svg type="edit" width="20px" height="20px" />
-            일괄 수정
+            수정
           </div>
         </div>
 
         <div
           className={style.icon}
-          onClick={() => {
-            if (_.isEmpty(selectedRegistrations.current)) {
-              alert("선택된 사용자가 없습니다.");
-            } else {
-              // RegistrationApi.DRegistrations({
-              //   _ids: selectedRegistrations.current,
-              // })
-              //   .then(() => {
-              //     alert(SUCCESS_MESSAGE);
-              //     setIsLoading(true);
-              //   })
-              //   .catch((err: any) => alert(err.response.data.message));
-            }
-          }}
+          onClick={onClickRemoveHandler}
           style={{ display: "flex", gap: "4px" }}
         >
           <Svg type="trash" width="20px" height="20px" />
-          일괄 삭제
+          삭제
         </div>
       </div>
 
@@ -306,6 +331,44 @@ const Index = (props: Props) => {
           seasonData={props.seasonData}
           setIsLoading={setIsLoading}
         />
+      )}
+      {statusPopupActive && (
+        <Popup
+          setState={() => {}}
+          style={{ maxWidth: "640px", width: "100%" }}
+          title="사용자 일괄 삭제"
+          contentScroll
+        >
+          <div className={style.popup}>
+            <Progress value={ratio} style={{ margin: "12px 0px" }} />
+            {failedList.length > 0 && (
+              <Callout
+                type="error"
+                style={{ whiteSpace: "pre" }}
+                title={"삭제되지 않은 항목이 있습니다."}
+                description={failedList
+                  .map(({ userName, message }) => `${userName}: ${message}`)
+                  .join("\n")}
+              />
+            )}
+            {ratio === 1 && (
+              <div>
+                <Button
+                  type={"ghost"}
+                  onClick={() => setStatuePopupActive(false)}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                    marginTop: "24px",
+                  }}
+                >
+                  확인
+                </Button>
+              </div>
+            )}
+          </div>
+        </Popup>
       )}
     </div>
   );
