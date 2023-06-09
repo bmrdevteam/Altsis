@@ -1156,6 +1156,57 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * RRegistrations API
+   * @description 학기 등록 정보 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RRegistrations(props: {
+    query: {
+      user?: string;
+      school?: string;
+      season?: string;
+      role?: string;
+    };
+  }) {
+    const { registrations } = await database.R({
+      location: "registrations" + QUERY_BUILDER(props.query),
+    });
+    return {
+      registrations: _.orderBy(
+        registrations,
+        [
+          (reg) => reg?.period?.end ?? "",
+          (reg) => (reg.role && reg.role !== "" ? reg.role : "_"),
+          (reg) => (reg.grade && reg.grade !== "" ? reg.grade : "_"),
+          "userName",
+          "userId",
+        ],
+        ["desc", "asc", "asc", "asc", "asc"]
+      ) as TRegistration[],
+    };
+  }
+
+  /**
+   * RRegistration API
+   * @description 학기 등록 정보 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RRegistration(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { registration } = await database.R({
+      location: `registrations/${props.params._id}`,
+    });
+    return {
+      registration: registration as TRegistration,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1217,6 +1268,8 @@ export default function useAPIv2() {
     RegistrationAPI: {
       CRegistration,
       CCopyRegistrations,
+      RRegistrations,
+      RRegistration,
     },
   };
 }

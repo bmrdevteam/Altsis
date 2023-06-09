@@ -33,8 +33,7 @@ export function useAuth(): {
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { RegistrationApi } = useApi();
-  const { UserAPI, SchoolAPI, SeasonAPI } = useAPIv2();
+  const { UserAPI, SchoolAPI, SeasonAPI, RegistrationAPI } = useAPIv2();
   const [cookies, setCookie, removeCookie] = useCookies([
     "currentSchool",
     "currentRegistration",
@@ -163,9 +162,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const reloadRegistration = async () => {
     if (currentRegistration?._id) {
-      const registration = await RegistrationApi.RRegistration(
-        currentRegistration._id
-      );
+      const { registration } = await RegistrationAPI.RRegistration({
+        params: { _id: currentRegistration._id },
+      });
       setCurrentRegistration(registration);
     }
   };

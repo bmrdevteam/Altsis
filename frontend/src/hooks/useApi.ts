@@ -57,44 +57,6 @@ export default function useApi() {
    */
 
   /**
-   * Get Registration by param
-   * @type GET
-   * @auth member
-   * @returns Registrations
-   */
-  async function RRegistrations(params?: {
-    season?: string;
-    school?: string;
-    schoolId?: string;
-    schoolName?: string;
-    year?: string;
-    term?: string;
-    user?: string;
-    userId?: string;
-    userName?: string;
-    role?: "student" | "teacher";
-    teacher?: string;
-    subTeacher?: string;
-  }) {
-    const { registrations: result } = await database.R({
-      location: `registrations${QUERY_BUILDER(params)}`,
-    });
-    return result;
-  }
-
-  /**
-   * Get Registration by _id
-   * @type GET
-   * @auth member
-   * @returns Registration
-   */
-  async function RRegistration(_id: string) {
-    return await database.R({
-      location: `registrations/${_id}`,
-    });
-  }
-
-  /**
    * Update Registration
    * @type PUT
    * @auth admin / manager
@@ -765,8 +727,6 @@ export default function useApi() {
 
   return {
     RegistrationApi: {
-      RRegistrations,
-      RRegistration,
       URegistrations,
       DRegistrations,
       CMemo,
