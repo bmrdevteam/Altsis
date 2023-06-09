@@ -46,7 +46,7 @@ import style from "style/pages/admin/schools.module.scss";
 type Props = {
   seasonData: any;
 };
-const Users = (props: Props) => {
+const Index = (props: Props) => {
   const { RegistrationApi } = useApi();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -361,4 +361,4 @@ const Users = (props: Props) => {
   );
 };
 
-export default Users;
+export default Index;

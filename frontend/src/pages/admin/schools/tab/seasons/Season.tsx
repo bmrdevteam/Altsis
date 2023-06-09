@@ -40,7 +40,7 @@ import Classroom from "./tab/classrooms/Classroom";
 import Form from "./tab/forms/Form";
 import Permission from "./tab/permission/PermissionV2";
 import Subject from "./tab/subjects/Subject";
-import Users from "./tab/users/Users";
+import Registrations from "./tab/registrations/Registration";
 import Remove from "./tab/Remove";
 
 // popup
@@ -199,7 +199,7 @@ const Season = (props: Props) => {
                   setIsLoading={setIsLoading}
                 />
               ),
-              사용자: <Users seasonData={seasonToEdit} />,
+              사용자: <Registrations seasonData={seasonToEdit} />,
               교과목: <Subject _id={seasonToEdit._id} />,
               강의실: <Classroom _id={seasonToEdit._id} />,
               양식: <Form _id={seasonToEdit._id} />,
