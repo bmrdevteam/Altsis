@@ -11,7 +11,7 @@ import React, {
 import _ from "lodash";
 import { useCookies } from "react-cookie";
 
-import { TCurrentUser, TRegistration, TSeason } from "types/auth";
+import { TCurrentUser, TCurrentRegistration, TCurrentSeason } from "types/auth";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 
@@ -24,17 +24,17 @@ export function useAuth(): {
   setCurrentUser: React.Dispatch<TCurrentUser>;
   currentSchool: TSchool;
   changeSchool: (to: string) => void;
-  currentRegistration: TRegistration;
+  currentRegistration: TCurrentRegistration;
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;
-  currentSeason: TSeason;
+  currentSeason: TCurrentSeason;
 } {
   return useContext(AuthContext);
 }
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { SeasonApi, RegistrationApi } = useApi();
-  const { UserAPI, SchoolAPI } = useAPIv2();
+  const { RegistrationApi } = useApi();
+  const { UserAPI, SchoolAPI, SeasonAPI } = useAPIv2();
   const [cookies, setCookie, removeCookie] = useCookies([
     "currentSchool",
     "currentRegistration",
@@ -51,8 +51,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<TCurrentUser>();
   const [currentSchool, setCurrentSchool] = useState<TSchool>();
   const [currentRegistration, setCurrentRegistration] =
-    useState<TRegistration>();
-  const [currentSeason, setCurrentSeason] = useState<TSeason>();
+    useState<TCurrentRegistration>();
+  const [currentSeason, setCurrentSeason] = useState<TCurrentSeason>();
 
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -102,9 +102,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setCurrentRegistration(re[registrationIdx]);
       setCookie("currentRegistration", re[registrationIdx]._id);
 
-      SeasonApi.RSeasonWithRegistrations(re[registrationIdx].season).then(
-        (seasonData) => {
-          setCurrentSeason(seasonData);
+      SeasonAPI.RSeason({ params: { _id: re[registrationIdx].season } }).then(
+        ({ season }) => {
+          setCurrentSeason(season);
         }
       );
     }
@@ -135,8 +135,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (re.length > 0) {
       setCookie("currentRegistration", re[0]._id);
       setCurrentRegistration(re[0]);
-      const seasonData = await SeasonApi.RSeasonWithRegistrations(re[0].season);
-      setCurrentSeason(seasonData);
+      const { season } = await SeasonAPI.RSeason({
+        params: { _id: re[0].season },
+      });
+      setCurrentSeason(season);
     } else {
       setCurrentRegistration(undefined);
       setCurrentSeason(undefined);
@@ -153,9 +155,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentRegistration(registration);
     setCookie("currentRegistration", registration._id);
 
-    const season = await SeasonApi.RSeasonWithRegistrations(
-      registration.season
-    );
+    const { season } = await SeasonAPI.RSeason({
+      params: { _id: registration.season },
+    });
     setCurrentSeason(season);
   }
 

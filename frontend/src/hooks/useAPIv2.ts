@@ -14,6 +14,11 @@ import { TUser } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
 import { TSchool, TSchoolFormArchive } from "types/schools";
+import {
+  TFormEvaluation,
+  TSeason,
+  TSeasonWithRegistrations,
+} from "types/seasons";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -712,7 +717,7 @@ export default function useAPIv2() {
       _id: string;
     };
     data: {
-      links: string[];
+      links: { title: string; url: string }[];
     };
   }) {
     const { links } = await database.U({
@@ -720,7 +725,7 @@ export default function useAPIv2() {
       data: props.data,
     });
     return {
-      links: links as string[],
+      links: links as { title: string; url: string }[],
     };
   }
 
@@ -765,6 +770,338 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Season API
+   * ##########################################################################
+   */
+
+  /**
+   * CSeason API
+   * @description 학기 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CSeason(props: {
+    data: {
+      school: string;
+      year: string;
+      term: string;
+      period?: {
+        start?: string;
+        end?: string;
+      };
+      copyFrom?: string;
+    };
+  }) {
+    const { season } = await database.C({
+      location: `seasons`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * RSeasons API
+   * @description 학기 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSeasons(props: {
+    query: {
+      school?: string;
+    };
+  }) {
+    const { seasons } = await database.R({
+      location: `seasons` + QUERY_BUILDER(props.query),
+    });
+    return {
+      seasons: _.orderBy(
+        seasons,
+        [
+          (season) => new Date(season.period?.start ?? "").getTime(),
+          (season) => new Date(season.period?.end ?? "").getTime(),
+          "createdAt",
+        ],
+        ["desc", "desc", "desc"]
+      ) as TSeason[],
+    };
+  }
+
+  /**
+   * RSeason API
+   * @description 학기 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { season, registrations } = await database.R({
+      location: `seasons/${props.params._id}`,
+    });
+    season.registrations = _.orderBy(
+      registrations,
+      [
+        (reg) => (reg.role && reg.role !== "" ? reg.role : "_"),
+        (reg) => (reg.grade && reg.grade !== "" ? reg.grade : "_"),
+        "userName",
+        "userId",
+      ],
+      ["asc", "asc", "asc", "asc"]
+    );
+
+    return { season: season as TSeasonWithRegistrations };
+  }
+
+  /**
+   * UActivateSeason API
+   * @description 학기 활성화 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UActivateSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/activate`,
+      data: {},
+    });
+
+    return { season: season as TSeason };
+  }
+
+  /**
+   * UInactivateSeason API
+   * @description 학기 비활성화 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UInactivateSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/inactivate`,
+      data: {},
+    });
+
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonClassrooms API
+   * @description 학기 강의실 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonClassrooms(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      classrooms: string[];
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props.params._id}/classrooms`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * USeasonSubjects API
+   * @description 학기 교과목 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonSubjects(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      label: string[];
+      data: string[][];
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props.params._id}/subjects`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * USeasonPeriod API
+   * @description 학기 기간 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonPeriod(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      start?: string;
+      end?: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/period`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonPermission API
+   * @description 학기 권한 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonPermission(props: {
+    params: {
+      _id: string;
+      type: "syllabus" | "enrollment" | "evaluation";
+    };
+    data: {
+      teacher?: boolean;
+      student?: boolean;
+    };
+  }) {
+    return await database.U({
+      location: `seasons/${props.params._id}/permission/${props.params.type}`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * CSeasonPermissionException API
+   * @description 학기 권한 예외 추가 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CSeasonPermissionException(props: {
+    params: {
+      _id: string;
+      type: "syllabus" | "enrollment" | "evaluation";
+    };
+    data: {
+      registration: string;
+      isAllowed: boolean;
+    };
+  }) {
+    return await database.C({
+      location: `seasons/${props.params._id}/permission/${props.params.type}/exceptions`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * DSeasonPermissionException API
+   * @description 학기 권한 예외 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DSeasonPermissionException(props: {
+    params: {
+      _id: string;
+      type: "syllabus" | "enrollment" | "evaluation";
+    };
+    query: {
+      registration: string;
+    };
+  }) {
+    return await database.D({
+      location:
+        `seasons/${props.params._id}/permission/${props.params.type}/exceptions` +
+        QUERY_BUILDER(props.query),
+    });
+  }
+
+  /**
+   * USeasonFormTimetable API
+   * @description 학기 시간표 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonFormTimetable(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      form: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/form/timetable`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonFormTimetable API
+   * @description 학기 강의계획서 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonFormSyllabus(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      form: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/form/syllabus`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonFormEvaluation API
+   * @description 학기 평가 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonFormEvaluation(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      formEvaluation: TFormEvaluation;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/form/evaluation`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * DSeason API
+   * @description 학기 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DSeason(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `seasons/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -805,6 +1142,23 @@ export default function useAPIv2() {
       USchoolLinks,
       USchoolCalendars,
       DSchool,
+    },
+    SeasonAPI: {
+      CSeason,
+      RSeasons,
+      RSeason,
+      UActivateSeason,
+      UInactivateSeason,
+      USeasonPeriod,
+      USeasonClassrooms,
+      USeasonSubjects,
+      USeasonFormTimetable,
+      USeasonFormSyllabus,
+      USeasonFormEvaluation,
+      USeasonPermission,
+      CSeasonPermissionException,
+      DSeasonPermissionException,
+      DSeason,
     },
   };
 }

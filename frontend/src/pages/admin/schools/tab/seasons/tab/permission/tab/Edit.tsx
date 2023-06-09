@@ -28,8 +28,6 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import useApi from "hooks/useApi";
-import _ from "lodash";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -41,7 +39,8 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Select from "components/select/Select";
 
 import Autofill from "components/input/Autofill";
-import { Exception, Permission } from "types/auth";
+import { TPermission, TPermissionException } from "types/seasons";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   setPopupActive: any;
@@ -51,7 +50,7 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const { SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -59,9 +58,9 @@ function Basic(props: Props) {
 
   const [teacher, setTeacher] = useState<boolean>(false);
   const [student, setStudent] = useState<boolean>(false);
-  const [exceptions, setExceptions] = useState<Exception[]>([]);
+  const [exceptions, setExceptions] = useState<TPermissionException[]>([]);
 
-  const exceptionRef = useRef<Exception>({
+  const exceptionRef = useRef<TPermissionException>({
     registration: "",
     role: "",
     user: "",
@@ -70,7 +69,7 @@ function Basic(props: Props) {
     isAllowed: true,
   });
 
-  const updatePermission = (permission: Permission) => {
+  const updatePermission = (permission: TPermission) => {
     setTeacher(permission.teacher);
     setStudent(permission.student);
     setExceptions(permission.exceptions);
@@ -78,16 +77,16 @@ function Basic(props: Props) {
 
   useEffect(() => {
     if (isLoading) {
-      SeasonApi.RSeasonWithRegistrations(props._id)
-        .then((res) => {
-          setRegistrationList(res.registrations ?? []);
+      SeasonAPI.RSeason({ params: { _id: props._id } })
+        .then(({ season }) => {
+          setRegistrationList(season.registrations ?? []);
 
           if (props.type === "syllabus") {
-            updatePermission(res?.permissionSyllabusV2);
+            updatePermission(season?.permissionSyllabusV2);
           } else if (props.type === "enrollment") {
-            updatePermission(res?.permissionEnrollmentV2);
+            updatePermission(season?.permissionEnrollmentV2);
           } else if (props.type === "evaluation") {
-            updatePermission(res?.permissionEvaluationV2);
+            updatePermission(season?.permissionEvaluationV2);
           } else props.setPopupActive(false);
         })
         .then(() => {
@@ -130,9 +129,8 @@ function Basic(props: Props) {
               key={"toggleTeacher"}
               defaultChecked={teacher}
               onChange={(b) => {
-                SeasonApi.USeasonPermissionV2({
-                  _id: props._id,
-                  type: props.type,
+                SeasonAPI.USeasonPermission({
+                  params: { _id: props._id, type: props.type },
                   data: { teacher: b },
                 })
                   .then((res: any) => {
@@ -150,9 +148,8 @@ function Basic(props: Props) {
               key={"toggleStudent"}
               defaultChecked={student}
               onChange={(b) => {
-                SeasonApi.USeasonPermissionV2({
-                  _id: props._id,
-                  type: props.type,
+                SeasonAPI.USeasonPermission({
+                  params: { _id: props._id, type: props.type },
                   data: { student: b },
                 })
                   .then((res: any) => {
@@ -221,9 +218,8 @@ function Basic(props: Props) {
               type={"ghost"}
               onClick={() => {
                 if (exceptionRef.current.userId !== "") {
-                  SeasonApi.USeasonPermissionV2AddException({
-                    _id: props._id,
-                    type: props.type,
+                  SeasonAPI.CSeasonPermissionException({
+                    params: { _id: props._id, type: props.type },
                     data: {
                       ...exceptionRef.current,
                     },
@@ -302,10 +298,9 @@ function Basic(props: Props) {
                 type: "button",
                 onClick: (e: any) => {
                   exceptions.splice(e.tableRowIndex - 1, 1);
-                  SeasonApi.USeasonPermissionV2RemoveException({
-                    _id: props._id,
-                    type: props.type,
-                    registration: e.registration,
+                  SeasonAPI.DSeasonPermissionException({
+                    params: { _id: props._id, type: props.type },
+                    query: { registration: e.registration },
                   })
                     .then((res: any) => {
                       setIsLoading(true);

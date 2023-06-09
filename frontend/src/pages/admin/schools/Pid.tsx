@@ -29,7 +29,6 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useApi from "hooks/useApi";
 import style from "style/pages/admin/schools.module.scss";
 
 // components
@@ -49,6 +48,7 @@ import Navbar from "layout/navbar/Navbar";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 import Loading from "components/loading/Loading";
+import { TSeason } from "types/seasons";
 
 type Props = {};
 
@@ -81,14 +81,13 @@ const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
 
 const School = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { SeasonApi } = useApi();
-  const { SchoolAPI } = useAPIv2();
+  const { SchoolAPI, SeasonAPI } = useAPIv2();
   const { currentUser, currentSchool } = useAuth();
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<TSchool>();
-  const [seasonList, setSeasonList] = useState<any>();
+  const [seasonList, setSeasonList] = useState<TSeason[]>([]);
   const [isSchool, setIsSchool] = useState<boolean>(true);
 
   useEffect(() => {
@@ -99,10 +98,12 @@ const School = (props: Props) => {
       SchoolAPI.RSchool({ params: { _id: pid } })
         .then(({ school }) => {
           setSchoolData(school);
-          SeasonApi.RSeasons({ school: school._id }).then((seasons) => {
-            setSeasonList(seasons);
-            setIsLoading(false);
-          });
+          SeasonAPI.RSeasons({ query: { school: school._id } }).then(
+            ({ seasons }) => {
+              setSeasonList(seasons);
+              setIsLoading(false);
+            }
+          );
         })
         .catch((err: any) => {
           setIsSchool(false);

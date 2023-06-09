@@ -17,6 +17,7 @@ import {
   FIELD_INVALID,
   FIELD_IN_USE,
   FIELD_REQUIRED,
+  FORM_LABEL_DUPLICATED,
   __NOT_FOUND,
 } from "../messages/index.js";
 import { validate } from "../utils/validate.js";
@@ -170,21 +171,49 @@ export const find = async (req, res) => {
  * @param {Object} res
  * @param {Object} res.formArchive - updated formArchive
  *
- * @see models>School for more information about formArchive validation
+ * @see models>School for validation
  */
 export const updateFormArchive = async (req, res) => {
   try {
+    /* validation */
     if (!("formArchive" in req.body)) {
       return res.status(400).send({ message: FIELD_REQUIRED("formArchive") });
     }
 
-    const school = await School(req.user.academyId).findById(req.params._id);
+    // 라벨 중복 검사
+    for (let i = 0; i < req.body.formArchive.length; i++) {
+      // 필드 중복 검사
+      for (let ii = 0; ii < req.body.formArchive[i].fields?.length; ii++) {
+        for (
+          let jj = ii + 1;
+          jj < req.body.formArchive[i].fields?.length;
+          jj++
+        ) {
+          if (
+            req.body.formArchive[i].fields[ii].label ===
+            req.body.formArchive[i].fields[jj].label
+          ) {
+            return res.status(400).send({ message: FORM_LABEL_DUPLICATED });
+          }
+        }
+      }
+      for (let j = i + 1; j < req.body.formArchive.length; j++) {
+        if (req.body.formArchive[i].label === req.body.formArchive[j].label) {
+          return res.status(400).send({ message: FORM_LABEL_DUPLICATED });
+        }
+      }
+    }
+
+    const school = await School(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      {
+        formArchive: req.body.formArchive,
+      },
+      { new: true }
+    );
     if (!school) {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
-
-    school["formArchive"] = req.body.formArchive;
-    await school.save();
 
     return res.status(200).send({ formArchive: school.formArchive });
   } catch (err) {
@@ -217,13 +246,22 @@ export const updateLinks = async (req, res) => {
     if (!("links" in req.body)) {
       return res.status(400).send({ message: FIELD_REQUIRED("links") });
     }
-    const school = await School(req.user.academyId).findById(req.params._id);
+    for (let link of req.body.links) {
+      for (let field of ["url", "title"]) {
+        if (!(field in link)) {
+          return res.status(400).send({ message: FIELD_REQUIRED(field) });
+        }
+      }
+    }
+
+    const school = await School(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { links: req.body.links },
+      { new: true }
+    );
     if (!school) {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
-
-    school["links"] = req.body.links;
-    await school.save();
 
     return res.status(200).send({ links: school.links });
   } catch (err) {

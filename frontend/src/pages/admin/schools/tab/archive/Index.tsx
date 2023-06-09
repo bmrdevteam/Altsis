@@ -56,15 +56,6 @@ function Archive(props: Props) {
           setFormArchiveParsed([...formArchiveParsed]);
           return alert("라벨을 입력해주세요");
         }
-        if (
-          _.find(
-            formArchiveParsed,
-            (exArchiveItem) => exArchiveItem.label === e[e.length - 1].label
-          )
-        ) {
-          setFormArchiveParsed([...formArchiveParsed]);
-          return alert("중복된 라벨입니다");
-        }
       }
       for (let _parsedItem of e) {
         const parsedItem = unflattenObject(_parsedItem);

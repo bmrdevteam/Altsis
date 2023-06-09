@@ -34,6 +34,7 @@ import _ from "lodash";
 // components
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   setPopupActive: any;
@@ -43,12 +44,15 @@ type Props = {
 
 function Basic(props: Props) {
   const { RegistrationApi, SeasonApi } = useApi();
+  const { SeasonAPI } = useAPIv2();
   const [seasonList, setSeasonList] = useState<any[]>();
 
   useEffect(() => {
-    SeasonApi.RSeasons({ school: props.seasonData.school }).then((res) => {
-      setSeasonList(res);
-    });
+    SeasonAPI.RSeasons({ query: { school: props.seasonData.school } }).then(
+      ({ seasons }) => {
+        setSeasonList(seasons);
+      }
+    );
   }, []);
 
   return (
