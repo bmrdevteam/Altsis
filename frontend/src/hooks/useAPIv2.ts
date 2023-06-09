@@ -1135,6 +1135,27 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * CCopyRegistrations API
+   * @description 학기 등록 정보 복제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CCopyRegistrations(props: {
+    data: {
+      toSeason: string;
+      fromSeason: string;
+    };
+  }) {
+    const { registrations } = await database.C({
+      location: "registrations/copy",
+      data: props.data,
+    });
+    return {
+      registrations: registrations as TRegistration[],
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1195,6 +1216,7 @@ export default function useAPIv2() {
     },
     RegistrationAPI: {
       CRegistration,
+      CCopyRegistrations,
     },
   };
 }

@@ -139,6 +139,7 @@ function Basic(props: Props) {
         setRatio((i + 1) / selectedUsers.current.length);
       }
     }
+    alert(SUCCESS_MESSAGE);
     setFailedUserList(failedUserList);
 
     props.setIsLoading(true);

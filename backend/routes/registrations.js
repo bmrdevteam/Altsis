@@ -8,9 +8,7 @@ import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 //=================================
 
 router.post("/", isAdManager, registrations.create);
-
-router.post("/bulk", isAdManager, registrations.registerBulk);
-router.post("/copy", isAdManager, registrations.registerCopy);
+router.post("/copy", isAdManager, registrations.copyFromSeason);
 
 router.get("/:_id?", isLoggedIn, registrations.find);
 
