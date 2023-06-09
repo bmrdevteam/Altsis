@@ -54,7 +54,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SyllabusApi, SeasonApi, EnrollmentApi } = useApi();
+  const { SyllabusApi, EnrollmentApi } = useApi();
   const { SeasonAPI } = useAPIv2();
   const navigate = useNavigate();
 

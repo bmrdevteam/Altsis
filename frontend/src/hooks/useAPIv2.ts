@@ -19,6 +19,7 @@ import {
   TSeason,
   TSeasonWithRegistrations,
 } from "types/seasons";
+import { TRegistration } from "types/registrations";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -1102,6 +1103,38 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Registration API
+   * ##########################################################################
+   */
+
+  /**
+   * CRegistration API
+   * @description 학기 등록 정보 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CRegistration(props: {
+    data: {
+      season: string;
+      user: string;
+      role?: "teacher" | "student";
+      grade?: string;
+      group?: string;
+      teacher?: string;
+      subTeacher?: string;
+    };
+  }) {
+    const { registration } = await database.C({
+      location: "registrations",
+      data: props.data,
+    });
+    return {
+      registration: registration as TRegistration,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1159,6 +1192,9 @@ export default function useAPIv2() {
       CSeasonPermissionException,
       DSeasonPermissionException,
       DSeason,
+    },
+    RegistrationAPI: {
+      CRegistration,
     },
   };
 }

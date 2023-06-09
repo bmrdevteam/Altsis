@@ -52,27 +52,6 @@ export default function useApi() {
   }
 
   /**
-   * Season Api
-   * ##########################################################################
-   */
-
-  /**
-   * Update form in season
-   * @auth admin / manager
-   * @returns Season
-   */
-  async function USeasonForm(props: {
-    _id: string;
-    type: "timetable" | "syllabus" | "evaluation";
-    data: any;
-  }) {
-    return await database.U({
-      location: `seasons/${props._id}/form/${props.type}`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
    * Registration Api
    * ##########################################################################
    */
@@ -81,6 +60,7 @@ export default function useApi() {
    * @type POST
    * @auth admin / managers
    * @returns Registrations
+   * @deprecated
    */
   async function CRegistrations(props: {
     data: { season: string; users: any[]; info: any };
@@ -819,9 +799,6 @@ export default function useApi() {
   }
 
   return {
-    SeasonApi: {
-      USeasonForm,
-    },
     RegistrationApi: {
       CRegistrations,
       CRegistrationsCopy,
