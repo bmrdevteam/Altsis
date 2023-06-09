@@ -45,7 +45,7 @@ import Remove from "./tab/Remove";
 
 // popup
 import AddSeasonPopup from "./AddPopup";
-import { TSeason } from "types/seasons";
+import { TSeason, TSeasonWithRegistrations } from "types/seasons";
 import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
@@ -61,8 +61,18 @@ const Season = (props: Props) => {
 
   const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
 
-  const [seasonToEdit, setSeasonToEdit] = useState<TSeason>();
+  const [seasonToEdit, setSeasonToEdit] = useState<TSeasonWithRegistrations>();
   const [editPopupActive, setEditPopupActive] = useState<boolean>(false);
+
+  const updateSeasonToEditRegistrations = async () => {
+    if (seasonToEdit) {
+      const { season } = await SeasonAPI.RSeason({
+        params: { _id: seasonToEdit._id },
+      });
+      seasonToEdit.registrations = season.registrations;
+      setSeasonToEdit(seasonToEdit);
+    }
+  };
 
   useEffect(() => {
     if (isLoading) {
@@ -199,7 +209,14 @@ const Season = (props: Props) => {
                   setIsLoading={setIsLoading}
                 />
               ),
-              사용자: <Registrations seasonData={seasonToEdit} />,
+              사용자: (
+                <Registrations
+                  seasonData={seasonToEdit}
+                  updateSeasonDataRegistrations={
+                    updateSeasonToEditRegistrations
+                  }
+                />
+              ),
               교과목: <Subject _id={seasonToEdit._id} />,
               강의실: <Classroom _id={seasonToEdit._id} />,
               양식: <Form _id={seasonToEdit._id} />,

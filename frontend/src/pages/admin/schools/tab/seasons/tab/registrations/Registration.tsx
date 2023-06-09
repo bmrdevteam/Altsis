@@ -1,5 +1,5 @@
 /**
- * @file Seasons Page Tab Item - Users
+ * @file Seasons Page Tab Item - Registration
  *
  * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
@@ -26,12 +26,9 @@
  * @version 1.0
  *
  */
-import Button from "components/button/Button";
-import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useState } from "react";
-import { useEffect } from "react";
 import useApi from "hooks/useApi";
 
 import _ from "lodash";
@@ -42,17 +39,23 @@ import EditBulk from "./tab/EditBulk";
 import SelectSeason from "./tab/RegisterCopy";
 import Svg from "assets/svg/Svg";
 import style from "style/pages/admin/schools.module.scss";
+import { TSeasonRegistration, TSeasonWithRegistrations } from "types/seasons";
 
 type Props = {
-  seasonData: any;
+  seasonData: TSeasonWithRegistrations;
+  updateSeasonDataRegistrations: () => Promise<void>;
 };
+
 const Index = (props: Props) => {
   const { RegistrationApi } = useApi();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [registrationList, setRegistrationList] = useState<any>();
-  const [registration, setRegistration] = useState<any>();
+  const [registrationList, setRegistrationList] = useState<
+    TSeasonRegistration[]
+  >([]);
   const selectedRegistrations = useRef<any>([]);
+
+  const [registration, setRegistration] = useState<any>();
 
   const [registerUserPopupActive, setRegisterUserPopupActive] =
     useState<boolean>(false);
@@ -64,77 +67,21 @@ const Index = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      RegistrationApi.RRegistrations({ season: props.seasonData._id }).then(
-        (res: any) => {
-          setRegistrationList(res);
-          setIsLoading(false);
-        }
-      );
+      props.updateSeasonDataRegistrations().then(() => {
+        setIsLoading(false);
+      });
     }
     return () => {};
   }, [isLoading]);
 
+  useEffect(() => {
+    setRegistrationList(props.seasonData.registrations);
+    selectedRegistrations.current = [];
+    return () => {};
+  }, [props.seasonData.registrations]);
+
   return (
     <div>
-      {/* <Button
-        type={"ghost"}
-        style={{
-          marginTop: "24px",
-        }}
-        onClick={() => {
-          setRegisterUserPopupActive(true);
-        }}
-      >
-        학기에 유저 등록
-      </Button>
-
-      <Button
-        type={"ghost"}
-        style={{
-          marginTop: "12px",
-        }}
-        onClick={() => {
-          if (registrationList.length !== 0) {
-            alert("이미 등록된 사용자가 있습니다.");
-          } else {
-            setRegisterCopyPopupActive(true);
-          }
-        }}
-      >
-        이전 학기 등록 정보 불러오기
-      </Button> */}
-
-      {/* <Button
-        type={"ghost"}
-        style={{
-          marginTop: "12px",
-        }}
-        onClick={() => {
-          setEditBulkPopupActive(true);
-        }}
-      >
-        선택된 유저 일괄 수정
-      </Button>
-
-      <Button
-        type={"ghost"}
-        style={{
-          marginTop: "12px",
-        }}
-        onClick={() => {
-          RegistrationApi.DRegistrations({
-            _ids: selectedRegistrations.current,
-          })
-            .then(() => {
-              alert(SUCCESS_MESSAGE);
-              setIsLoading(true);
-            })
-            .catch((err: any) => alert(err.response.data.message));
-        }}
-      >
-        선택된 유저 일괄 삭제
-      </Button> */}
-
       <div
         className={style.table_header}
         style={{
@@ -147,7 +94,6 @@ const Index = (props: Props) => {
         <div
           style={{
             flex: "auto",
-
             display: "flex",
             gap: "12px",
           }}
@@ -223,115 +169,116 @@ const Index = (props: Props) => {
         </div>
       </div>
 
-      <div style={{ marginTop: "24px" }}></div>
-      <>
-        {!isLoading && (
-          <Table
-            data={registrationList.map((registration: any) => {
-              return {
-                ...registration,
-                teacherTxt: registration.teacherId
-                  ? `${registration.teacherName}\n(${registration.teacherId})`
-                  : "",
-                subTeacherTxt: registration.subTeacherId
-                  ? `${registration.subTeacherName}\n(${registration.subTeacherId})`
-                  : "",
-              };
-            })}
-            type="object-array"
-            control
-            onChange={(value: any[]) => {
-              selectedRegistrations.current = _.filter(value, {
-                tableRowChecked: true,
-              }).map((val: any) => val._id);
-            }}
-            header={[
-              {
-                text: "checkbox",
-                key: "",
-                type: "checkbox",
-                width: "48px",
+      <div style={{ marginTop: "24px" }}>
+        <Table
+          data={
+            !isLoading
+              ? registrationList.map((registration: any) => {
+                  return {
+                    ...registration,
+                    teacherTxt: registration.teacherId
+                      ? `${registration.teacherName}\n(${registration.teacherId})`
+                      : "",
+                    subTeacherTxt: registration.subTeacherId
+                      ? `${registration.subTeacherName}\n(${registration.subTeacherId})`
+                      : "",
+                  };
+                })
+              : []
+          }
+          type="object-array"
+          control
+          onChange={(value: any[]) => {
+            selectedRegistrations.current = _.filter(value, {
+              tableRowChecked: true,
+            }).map((val: any) => val._id);
+          }}
+          header={[
+            {
+              text: "checkbox",
+              key: "",
+              type: "checkbox",
+              width: "48px",
+            },
+            {
+              text: "역할",
+              key: "role",
+              textAlign: "center",
+              type: "status",
+              status: {
+                teacher: { text: "선생님", color: "blue" },
+                student: { text: "학생", color: "orange" },
               },
-              {
-                text: "역할",
-                key: "role",
-                textAlign: "center",
-                type: "status",
-                status: {
-                  teacher: { text: "선생님", color: "blue" },
-                  student: { text: "학생", color: "orange" },
-                },
-                width: "84px",
-              },
-              {
-                text: "ID",
-                key: "userId",
-                type: "text",
-                textAlign: "center",
-                whiteSpace: "pre",
-              },
-              {
-                text: "이름",
-                key: "userName",
-                type: "text",
-                textAlign: "center",
-                whiteSpace: "pre",
-              },
+              width: "84px",
+            },
+            {
+              text: "학년",
+              key: "grade",
+              type: "text",
+              textAlign: "center",
+              whiteSpace: "pre",
+            },
+            {
+              text: "이름",
+              key: "userName",
+              type: "text",
+              textAlign: "center",
+              whiteSpace: "pre",
+            },
+            {
+              text: "ID",
+              key: "userId",
+              type: "text",
+              textAlign: "center",
+              whiteSpace: "pre",
+            },
 
-              {
-                text: "학년",
-                key: "grade",
-                type: "text",
-                textAlign: "center",
-                whiteSpace: "pre",
+            {
+              text: "그룹",
+              key: "group",
+              type: "text",
+              textAlign: "center",
+            },
+            {
+              text: "담임 선생님",
+              key: "teacherTxt",
+              type: "text",
+              textAlign: "center",
+              whiteSpace: "pre-wrap",
+            },
+            {
+              text: "부담임 선생님",
+              key: "subTeacherTxt",
+              type: "text",
+              textAlign: "center",
+              whiteSpace: "pre-wrap",
+            },
+            {
+              text: "수정",
+              key: "edit",
+              type: "button",
+              onClick: (e: any) => {
+                setRegistration(e);
+                setEditPopupActive(true);
               },
-              {
-                text: "그룹",
-                key: "group",
-                type: "text",
-                textAlign: "center",
+              width: "72px",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "black",
+                padding: "4px",
+                round: true,
               },
-              {
-                text: "담임 선생님",
-                key: "teacherTxt",
-                type: "text",
-                textAlign: "center",
-                whiteSpace: "pre-wrap",
-              },
-              {
-                text: "부담임 선생님",
-                key: "subTeacherTxt",
-                type: "text",
-                textAlign: "center",
-                whiteSpace: "pre-wrap",
-              },
-              {
-                text: "수정",
-                key: "edit",
-                type: "button",
-                onClick: (e: any) => {
-                  setRegistration(e);
-                  setEditPopupActive(true);
-                },
-                width: "72px",
-                textAlign: "center",
-                btnStyle: {
-                  border: true,
-                  color: "black",
-                  padding: "4px",
-                  round: true,
-                },
-              },
-            ]}
-          />
-        )}
-      </>
+            },
+          ]}
+        />
+      </div>
+
       {registerUserPopupActive && (
         <Register2
           setPopupActive={setRegisterUserPopupActive}
           seasonData={props.seasonData}
           setIsLoading={setIsLoading}
-          registrationList={registrationList}
         />
       )}
       {editPopupActive && (

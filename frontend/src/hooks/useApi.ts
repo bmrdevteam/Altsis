@@ -55,22 +55,6 @@ export default function useApi() {
    * Registration Api
    * ##########################################################################
    */
-  /**
-   * Create Registrations
-   * @type POST
-   * @auth admin / managers
-   * @returns Registrations
-   * @deprecated
-   */
-  async function CRegistrations(props: {
-    data: { season: string; users: any[]; info: any };
-  }) {
-    const { registrations: result } = await database.C({
-      location: `registrations/bulk`,
-      data: props.data,
-    });
-    return result;
-  }
 
   /**
    * Create Registrations from other season
@@ -800,7 +784,6 @@ export default function useApi() {
 
   return {
     RegistrationApi: {
-      CRegistrations,
       CRegistrationsCopy,
       RRegistrations,
       RRegistration,

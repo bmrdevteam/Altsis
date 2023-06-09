@@ -37,14 +37,16 @@ import style from "style/pages/admin/schools.module.scss";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import _ from "lodash";
-import { TSeason } from "types/seasons";
+import { TSeason, TSeasonWithRegistrations } from "types/seasons";
 
 type Props = {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
   school: string;
   seasonList: TSeason[];
   setSeasonList: React.Dispatch<React.SetStateAction<TSeason[]>>;
-  setSeasonToEdit: React.Dispatch<TSeason>;
+  setSeasonToEdit: React.Dispatch<
+    React.SetStateAction<TSeasonWithRegistrations | undefined>
+  >;
   setEditPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
@@ -101,7 +103,7 @@ const Season = (props: Props) => {
         )
       );
 
-      props.setSeasonToEdit(season);
+      props.setSeasonToEdit({ ...season, registrations: [] });
       props.setEditPopupActive(true);
       props.setPopupActive(false);
     } catch (err) {
