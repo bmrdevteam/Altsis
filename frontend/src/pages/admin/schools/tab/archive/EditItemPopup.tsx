@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-import Loading from "components/loading/Loading";
 
 import { unflattenObject } from "functions/functions";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -36,17 +35,8 @@ function Index(props: Props) {
           setIsLoading(true);
           return alert("라벨을 입력해주세요");
         }
-        if (
-          _.find(
-            formArchiveItemFields,
-            (exField) => exField.label === e[e.length - 1].label
-          )
-        ) {
-          setIsLoading(true);
-          return alert("중복된 라벨입니다");
-        }
       }
-      const newFormArchive = [...props.formArchive];
+      const newFormArchive = _.cloneDeep(props.formArchive);
       newFormArchive[props.itemIdx].fields = e
         .map((o: any) => unflattenObject(o))
         .map((field: any) => {
@@ -73,7 +63,7 @@ function Index(props: Props) {
 
   const updateItemFieldOptions = async (options: any[]) => {
     try {
-      const newFormArchive = [...props.formArchive];
+      const newFormArchive = _.cloneDeep(props.formArchive);
       newFormArchive[props.itemIdx].fields[fieldIdx].options = options;
 
       const { formArchive } = await SchoolAPI.USchoolFormArchive({
@@ -226,7 +216,9 @@ function Index(props: Props) {
         >
           <Table
             type="string-array"
-            data={formArchiveItemFields[fieldIdx].options ?? []}
+            data={
+              !isLoading ? formArchiveItemFields[fieldIdx].options ?? [] : []
+            }
             onChange={(e) => {
               const _data: string[] = e.map((o) => o["0"]);
               updateItemFieldOptions(_data);
