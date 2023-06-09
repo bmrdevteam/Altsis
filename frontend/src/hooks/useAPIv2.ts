@@ -19,6 +19,7 @@ import {
   TSeason,
   TSeasonWithRegistrations,
 } from "types/seasons";
+import { TRegistration } from "types/registrations";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -1102,6 +1103,153 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Registration API
+   * ##########################################################################
+   */
+
+  /**
+   * CRegistration API
+   * @description 학기 등록 정보 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CRegistration(props: {
+    data: {
+      season: string;
+      user: string;
+      role: "teacher" | "student";
+      grade?: string;
+      group?: string;
+      teacher?: string;
+      subTeacher?: string;
+    };
+  }) {
+    const { registration } = await database.C({
+      location: "registrations",
+      data: props.data,
+    });
+    return {
+      registration: registration as TRegistration,
+    };
+  }
+
+  /**
+   * CCopyRegistrations API
+   * @description 학기 등록 정보 복제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CCopyRegistrations(props: {
+    data: {
+      toSeason: string;
+      fromSeason: string;
+    };
+  }) {
+    const { registrations } = await database.C({
+      location: "registrations/copy",
+      data: props.data,
+    });
+    return {
+      registrations: registrations as TRegistration[],
+    };
+  }
+
+  /**
+   * RRegistrations API
+   * @description 학기 등록 정보 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RRegistrations(props: {
+    query: {
+      user?: string;
+      school?: string;
+      season?: string;
+      role?: string;
+    };
+  }) {
+    const { registrations } = await database.R({
+      location: "registrations" + QUERY_BUILDER(props.query),
+    });
+    return {
+      registrations: _.orderBy(
+        registrations,
+        [
+          (reg) => reg?.period?.end ?? "",
+          (reg) => (reg.role && reg.role !== "" ? reg.role : "_"),
+          (reg) => (reg.grade && reg.grade !== "" ? reg.grade : "_"),
+          "userName",
+          "userId",
+        ],
+        ["desc", "asc", "asc", "asc", "asc"]
+      ) as TRegistration[],
+    };
+  }
+
+  /**
+   * RRegistration API
+   * @description 학기 등록 정보 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RRegistration(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { registration } = await database.R({
+      location: `registrations/${props.params._id}`,
+    });
+    return {
+      registration: registration as TRegistration,
+    };
+  }
+
+  /**
+   * URegistration API
+   * @description 학기 등록 정보 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function URegistration(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      role: "teacher" | "student";
+      grade?: string;
+      group?: string;
+      teacher?: string;
+      subTeacher?: string;
+    };
+  }) {
+    const { registration } = await database.U({
+      location: `registrations/${props.params._id}`,
+      data: props.data,
+    });
+    return {
+      registration: registration as TRegistration,
+    };
+  }
+
+  /**
+   * DRegistration API
+   * @description 학기 등록 정보 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DRegistration(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `registrations/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1159,6 +1307,14 @@ export default function useAPIv2() {
       CSeasonPermissionException,
       DSeasonPermissionException,
       DSeason,
+    },
+    RegistrationAPI: {
+      CRegistration,
+      CCopyRegistrations,
+      RRegistrations,
+      RRegistration,
+      URegistration,
+      DRegistration,
     },
   };
 }

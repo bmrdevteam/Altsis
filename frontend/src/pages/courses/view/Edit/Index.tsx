@@ -44,6 +44,7 @@ import Loading from "components/loading/Loading";
 import Callout from "components/callout/Callout";
 
 import UpdatedEvaluationPopup from "./UpdatedEvaluationPopup";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -53,7 +54,9 @@ const CoursePid = (props: Props) => {
   const byMentor = searchParams.get("byMentor") === "true";
   const strictMode = searchParams.get("strictMode") === "true";
 
-  const { RegistrationApi, SyllabusApi } = useApi();
+  const { SyllabusApi } = useApi();
+  const { RegistrationAPI } = useAPIv2();
+
   const navigate = useNavigate();
   const { currentUser, currentSeason } = useAuth();
 
@@ -162,11 +165,13 @@ const CoursePid = (props: Props) => {
           setCourseMoreInfo(result.info || {});
           setCourseLimit(result.limit || 0);
 
-          RegistrationApi.RRegistrations({
-            season: result.season,
-            role: "teacher",
-          }).then((res) => {
-            const teachers = _.sortBy(res, ["userName", "userId"]);
+          RegistrationAPI.RRegistrations({
+            query: { season: result.season, role: "teacher" },
+          }).then(({ registrations: teacherRegistrations }) => {
+            const teachers = teacherRegistrations.map((reg) => {
+              return { ...reg, tableRowChecked: false };
+            });
+
             for (let teacher of result.teachers) {
               const idx = _.findIndex(teachers, { user: teacher._id });
 

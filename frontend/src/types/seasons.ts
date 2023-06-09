@@ -40,6 +40,7 @@ export type TFormTimetable = {
 };
 export type TSeason = {
   _id: string;
+  school: string;
   classrooms: string[];
   subjects: {
     label: string[];

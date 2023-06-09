@@ -44,13 +44,15 @@ import UserInfo from "./UserInfo";
 
 import style from "style/pages/userSearchResult/userSearchResult.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
+import { TRegistration } from "types/registrations";
 
 type Props = {};
 
+type TUser = TRegistration & { profile?: string };
+
 const UserSearchResult = (props: Props) => {
   const { currentRegistration } = useAuth();
-  const { RegistrationApi } = useApi();
-  const { UserAPI } = useAPIv2();
+  const { UserAPI, RegistrationAPI } = useAPIv2();
 
   const params = useParams();
 
@@ -63,17 +65,20 @@ const UserSearchResult = (props: Props) => {
 
       const getUser = async () => {
         try {
-          const rawRegistrations = await RegistrationApi.RRegistrations({
-            season: currentRegistration.season,
-            user: uid,
-          });
+          const { registrations: rawRegistrations } =
+            await RegistrationAPI.RRegistrations({
+              query: {
+                season: currentRegistration.season,
+                user: uid,
+              },
+            });
           const { profile } = await UserAPI.RUserProfile({
             params: { _id: uid },
           });
           if (!rawRegistrations.length) {
             throw new Error("No such user");
           }
-          const result = {
+          const result: TUser = {
             ...rawRegistrations[0],
             _id: rawRegistrations[0].user,
           };

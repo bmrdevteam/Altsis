@@ -7,13 +7,13 @@ import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 //             Registration
 //=================================
 
-router.post("/bulk", isAdManager, registrations.registerBulk);
-router.post("/copy", isAdManager, registrations.registerCopy);
+router.post("/", isAdManager, registrations.create);
+router.post("/copy", isAdManager, registrations.copyFromSeason);
 
 router.get("/:_id?", isLoggedIn, registrations.find);
 
-router.put("/:_ids", isAdManager, registrations.update);
+router.put("/:_id", isAdManager, registrations.update);
 
-router.delete("/", isAdManager, registrations.remove);
+router.delete("/:_id", isAdManager, registrations.remove);
 
 export { router };
