@@ -246,13 +246,22 @@ export const updateLinks = async (req, res) => {
     if (!("links" in req.body)) {
       return res.status(400).send({ message: FIELD_REQUIRED("links") });
     }
-    const school = await School(req.user.academyId).findById(req.params._id);
+    for (let link of req.body.links) {
+      for (let field of ["url", "title"]) {
+        if (!(field in link)) {
+          return res.status(400).send({ message: FIELD_REQUIRED(field) });
+        }
+      }
+    }
+
+    const school = await School(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { links: req.body.links },
+      { new: true }
+    );
     if (!school) {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
-
-    school["links"] = req.body.links;
-    await school.save();
 
     return res.status(200).send({ links: school.links });
   } catch (err) {

@@ -717,7 +717,7 @@ export default function useAPIv2() {
       _id: string;
     };
     data: {
-      links: string[];
+      links: { title: string; url: string }[];
     };
   }) {
     const { links } = await database.U({
@@ -725,7 +725,7 @@ export default function useAPIv2() {
       data: props.data,
     });
     return {
-      links: links as string[],
+      links: links as { title: string; url: string }[],
     };
   }
 
