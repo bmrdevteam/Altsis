@@ -27,13 +27,13 @@
  *
  */
 
-import useApi from "hooks/useApi";
-
 import style from "style/pages/admin/schools.module.scss";
 
 // components
 import { useEffect, useState } from "react";
 import Table from "components/tableV2/Table";
+import useAPIv2 from "hooks/useAPIv2";
+import { TRegistration } from "types/registrations";
 
 type Props = {
   userData: any;
@@ -41,15 +41,17 @@ type Props = {
 };
 
 function Registrations(props: Props) {
-  const { RegistrationApi } = useApi();
-  const [registrationList, setRegistrationList] = useState<any[]>([]);
+  const { RegistrationAPI } = useAPIv2();
+  const [registrationList, setRegistrationList] = useState<TRegistration[]>([]);
 
   useEffect(() => {
-    RegistrationApi.RRegistrations({
-      user: props.userData._id,
-      school: props.schoolData._id,
-    }).then((res: any) => {
-      setRegistrationList(res);
+    RegistrationAPI.RRegistrations({
+      query: {
+        user: props.userData._id,
+        school: props.schoolData._id,
+      },
+    }).then(({ registrations }) => {
+      setRegistrationList(registrations);
     });
 
     return () => {};

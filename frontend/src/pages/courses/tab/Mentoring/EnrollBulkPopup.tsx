@@ -33,8 +33,6 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 
-import style from "style/pages/courses/course.module.scss";
-
 // components
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
@@ -42,6 +40,7 @@ import Table from "components/tableV2/Table";
 import _ from "lodash";
 import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
+import useAPIv2 from "hooks/useAPIv2";
 type Props = {
   setPopupActive: any;
   courseData: any;
@@ -50,7 +49,8 @@ type Props = {
 
 const EnrollBulkPopup = (props: Props) => {
   const { currentRegistration } = useAuth();
-  const { RegistrationApi, EnrollmentApi } = useApi();
+  const { EnrollmentApi } = useApi();
+  const { RegistrationAPI } = useAPIv2();
 
   const [registrationList, setRegistrationList] = useState<any[]>();
   const selectRef = useRef<any[]>([]);
@@ -63,13 +63,11 @@ const EnrollBulkPopup = (props: Props) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    RegistrationApi.RRegistrations({ season: props.courseData.season }).then(
-      (res: any) => {
-        setRegistrationList(
-          _.sortBy(res, ["role", "grade", "userName", "userId"])
-        );
-      }
-    );
+    RegistrationAPI.RRegistrations({
+      query: { season: props.courseData.season },
+    }).then(({ registrations }: any) => {
+      setRegistrationList(registrations);
+    });
     return () => {};
   }, []);
 

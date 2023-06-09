@@ -1,17 +1,10 @@
 import Table from "components/tableV2/Table";
-import useApi from "hooks/useApi";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Props = {};
 
 const E = (props: Props) => {
-  const { RegistrationApi } = useApi();
-  const [registrations, setRegistrations] = useState<any>();
-  useEffect(() => {
-    RegistrationApi.RRegistrations().then((res) => {
-      setRegistrations(res);
-    });
-  }, []);
+  const [registrations] = useState<any>([]);
 
   return (
     <div style={{ padding: "24px" }}>

@@ -207,14 +207,59 @@ export const copyFromSeason = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.RegistrationAPI
+ * @function RRegistrations API
+ * @description 학기 등록 정보 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/registrations"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.user
+ * @param {string?} req.query.school
+ * @param {string?} req.query.season
+ * @param {string?} req.query.role
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object[]} res.registrations
+ *
+ */
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function RRegistration API
+ * @description 학기 등록 정보 조회 API;
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/registrations/:_id"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.registration
+ *
+ */
 export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const registration = await Registration(req.user.academyId).findById(
         req.params._id
       );
-      return res.status(200).send(registration);
+      if (!registration) {
+        return res.status(404).send({ message: __NOT_FOUND("registration") });
+      }
+      return res.status(200).send({ registration });
     }
+
     const registrations = await Registration(req.user.academyId).find(
       req.query
     );
