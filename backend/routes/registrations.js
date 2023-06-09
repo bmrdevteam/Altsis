@@ -12,7 +12,7 @@ router.post("/copy", isAdManager, registrations.copyFromSeason);
 
 router.get("/:_id?", isLoggedIn, registrations.find);
 
-router.put("/:_ids", isAdManager, registrations.update);
+router.put("/:_id", isAdManager, registrations.update);
 
 router.delete("/", isAdManager, registrations.remove);
 

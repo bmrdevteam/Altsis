@@ -40,6 +40,7 @@ import SelectSeason from "./tab/RegisterCopy";
 import Svg from "assets/svg/Svg";
 import style from "style/pages/admin/schools.module.scss";
 import { TSeasonRegistration, TSeasonWithRegistrations } from "types/seasons";
+import { TRegistration } from "types/registrations";
 
 type Props = {
   seasonData: TSeasonWithRegistrations;
@@ -53,7 +54,9 @@ const Index = (props: Props) => {
   const [registrationList, setRegistrationList] = useState<
     TSeasonRegistration[]
   >([]);
-  const selectedRegistrations = useRef<any>([]);
+  const selectedRegistrations = useRef<
+    (TRegistration & { tableRowSelect: boolean })[]
+  >([]);
 
   const [registration, setRegistration] = useState<any>();
 
@@ -152,14 +155,14 @@ const Index = (props: Props) => {
             if (_.isEmpty(selectedRegistrations.current)) {
               alert("선택된 사용자가 없습니다.");
             } else {
-              RegistrationApi.DRegistrations({
-                _ids: selectedRegistrations.current,
-              })
-                .then(() => {
-                  alert(SUCCESS_MESSAGE);
-                  setIsLoading(true);
-                })
-                .catch((err: any) => alert(err.response.data.message));
+              // RegistrationApi.DRegistrations({
+              //   _ids: selectedRegistrations.current,
+              // })
+              //   .then(() => {
+              //     alert(SUCCESS_MESSAGE);
+              //     setIsLoading(true);
+              //   })
+              //   .catch((err: any) => alert(err.response.data.message));
             }
           }}
           style={{ display: "flex", gap: "4px" }}
@@ -191,7 +194,7 @@ const Index = (props: Props) => {
           onChange={(value: any[]) => {
             selectedRegistrations.current = _.filter(value, {
               tableRowChecked: true,
-            }).map((val: any) => val._id);
+            });
           }}
           header={[
             {

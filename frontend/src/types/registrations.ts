@@ -13,6 +13,9 @@ export type TRegistration = {
   isActivated: boolean;
 
   user: string;
+  userId: string;
+  userName: string;
+
   role?: "teacher" | "student";
   grade?: string;
   group?: string;

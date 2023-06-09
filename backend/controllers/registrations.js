@@ -6,6 +6,7 @@ import { logger } from "../log/logger.js";
 import _ from "lodash";
 import { User, Registration, Season } from "../models/index.js";
 import {
+  FIELD_INVALID,
   FIELD_REQUIRED,
   REGISTRATION_IN_USE,
   __NOT_FOUND,
@@ -40,7 +41,7 @@ import {
  * @param {Object} req.body
  * @param {string} req.body.season - ObjectId of season
  * @param {string} req.body.user - ObjectId of user
- * @param {string?} req.body.role
+ * @param {"teacher"|"student"} req.body.role
  * @param {string?} req.body.grade
  * @param {string?} req.body.group
  * @param {string?} req.body.teacher - ObjectId of teacher
@@ -232,7 +233,7 @@ export const copyFromSeason = async (req, res) => {
  */
 
 /**
- * @memberof APIs.SeasonAPI
+ * @memberof APIs.RegistrationAPI
  * @function RRegistration API
  * @description 학기 등록 정보 조회 API;
  * @version 2.0.0
@@ -271,36 +272,72 @@ export const find = async (req, res) => {
 };
 
 /**
- * update grade, group,teacherId,teacherName
- * @param {*} req
- * @param {*} res
- * @returns
+ * @memberof APIs.RegistrationAPI
+ * @function URegistration API
+ * @description 학기 등록 정보 수정 API;
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/registrations/:_id"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.role
+ * @param {string?} req.body.grade
+ * @param {string?} req.body.group
+ * @param {string?} req.body.teacher - ObjectId of teacher
+ * @param {string?} req.body.subTeacher - ObjectId of subTeacher
+ *
+ * @param {Object} res
+ * @param {Object} res.registration - updated registration
+ *
  */
 export const update = async (req, res) => {
   try {
-    const ids = _.split(req.params._ids, ",");
-
-    const registrations = await Registration(req.user.academyId).find({
-      _id: { $in: ids },
-    });
-
-    const updates = [];
-    for (let reg of registrations) {
-      reg.role = req.body.role;
-      reg.grade = req.body.grade;
-      reg.group = req.body.group;
-      reg.teacher = req.body.teacher;
-      reg.teacherId = req.body.teacherId;
-      reg.teacherName = req.body.teacherName;
-      reg.subTeacher = req.body.subTeacher;
-      reg.subTeacherId = req.body.subTeacherId;
-      reg.subTeacherName = req.body.subTeacherName;
-      updates.push(reg.save());
+    if (!("role" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("role") });
+    }
+    if (req.body.role !== "teacher" && req.body.role !== "student") {
+      return res.status(400).send({ message: FIELD_INVALID("role") });
     }
 
-    await Promise.all(updates);
+    const admin = req.user;
 
-    return res.status(200).send(registrations);
+    let teacher = undefined;
+    if ("teacher" in req.body) {
+      teacher = await User(admin.academyId).findById(req.body.teacher);
+      if (!teacher) {
+        return res.status(404).send({ message: __NOT_FOUND("teacher") });
+      }
+    }
+
+    let subTeacher = undefined;
+    if ("subTeacher" in req.body) {
+      subTeacher = await User(admin.academyId).findById(req.body.subTeacher);
+      if (!subTeacher) {
+        return res.status(404).send({ message: __NOT_FOUND("subTeacher") });
+      }
+    }
+
+    const registration = await Registration(admin.academyId).findById(
+      req.params._id
+    );
+    registration.role = req.body.role;
+    registration.grade = req.body.grade;
+    registration.group = req.body.group;
+    registration.teacher = teacher?._id;
+    registration.teacherId = teacher?.userId;
+    registration.teacherName = teacher?.userName;
+    registration.subTeacher = subTeacher?._id;
+    registration.subTeacherId = subTeacher?.userId;
+    registration.subTeacherName = subTeacher?.userName;
+
+    await registration.save();
+
+    return res.status(200).send({ registration });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
