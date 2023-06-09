@@ -24,5 +24,5 @@ export const MESSAGE = new Map<string, string>([
     "SEASON_ALREADY_ACTIVATED_FIRST",
     `한 번 활성화된 학기의 양식을 변경할 수 없습니다.`,
   ],
-  ["FORMEVALUATION_LABEL_DUPLICATED", "중복된 평가 항목입니다."],
+  ["FORM_LABEL_DUPLICATED", "양식에 중복된 항목이 있습니다."],
 ]);
