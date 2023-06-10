@@ -105,7 +105,6 @@ const isClassroomAvailable = async (
  *
  *
  */
-
 export const create = async (req, res) => {
   try {
     /* validation */
@@ -170,63 +169,108 @@ export const create = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function RSyllabuses API
+ * @description 강의계획서 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/syllabuses"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.season - ObjectId of season
+ * @param {string?} req.query.classroom
+ * @param {string?} req.query.confirmed
+ * @param {string?} req.query.user
+ * @param {string?} req.query.teacher
+ * @param {string?} req.query.student
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.syllabuses
+ * @param {Object} res.enrollments - if req.query.student is given
+ *
+ */
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function RSyllabus API
+ * @description 강의계획서 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/syllabuses/:_id"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.syllabus
+ *
+ */
 export const find = async (req, res) => {
   try {
     if (req.params._id) {
       const syllabus = await Syllabus(req.user.academyId).findById(
         req.params._id
       );
-      return res.status(200).send(syllabus);
+      if (!syllabus) {
+        return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+      }
+      return res.status(200).send({ syllabus });
     }
 
-    const queries = req.query;
+    const query = {};
 
-    if (queries.season) {
-      const query = { season: queries.season };
+    // find by season
+    if ("season" in req.query) {
+      query["season"] = req.query.season;
+    }
 
-      if (queries.classroom) {
-        query["classroom"] = queries.classroom;
-        const syllabuses = await Syllabus(req.user.academyId)
-          .find(query)
-          .select(["classTitle", "time", "classroom"]);
-        return res.status(200).send({ syllabuses });
-      }
-      if (queries.confirmed) {
-        query["teachers.confirmed"] = { $ne: false };
-      }
-      if (queries.teacher) {
-        query["teachers._id"] = queries.teacher;
-      }
-      if (queries.user) {
-        query["user"] = queries.user;
-      }
-      if (queries.student) {
-        const enrollments = await Enrollment(req.user.academyId)
-          .find({
-            season: queries.season,
-            student: queries.student,
-          })
-          .select("syllabus");
+    // find by classroom
+    if ("classroom" in req.query) {
+      query["classroom"] = req.query.classroom;
+    }
 
-        const syllabuses = await Syllabus(req.user.academyId)
-          .find({ $in: enrollments.map((e) => e.syllabus) })
-          .select("-info");
-        return res.status(200).send({ syllabuses, enrollments });
-      }
+    // find fully-confirmed syllabuses
+    if ("confirmed" in req.query) {
+      query["teachers.confirmed"] = { $ne: false };
+    }
+
+    // find by teacher
+    if ("teacher" in req.query) {
+      query["teachers._id"] = req.query.teacher;
+    }
+
+    // find by user
+    if ("user" in req.query) {
+      query["user"] = req.query.user;
+    }
+
+    // find by student with enrollments
+    if ("student" in req.query) {
+      const enrollments = await Enrollment(req.user.academyId)
+        .find({
+          season: req.query.season,
+          student: req.query.student,
+        })
+        .select(["-evaluation", "-info"]);
 
       const syllabuses = await Syllabus(req.user.academyId)
-        .find(query)
+        .find({ $in: enrollments.map((e) => e.syllabus) })
         .select("-info");
-      return res.status(200).send({ syllabuses });
+      return res.status(200).send({ syllabuses, enrollments });
     }
 
-    if (queries.user) {
-      const syllabuses = await Syllabus(req.user.academyId)
-        .find({ user: queries.user })
-        .select("-info");
-      return res.status(200).send({ syllabuses });
-    }
-    return res.status(400).send({ message: "invalid request" });
+    const syllabuses = await Syllabus(req.user.academyId)
+      .find(query)
+      .select("-info");
+    return res.status(200).send({ syllabuses });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }

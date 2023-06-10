@@ -10,7 +10,6 @@ import { router as syllabuses } from "./syllabuses.js";
 import { router as users } from "./users.js";
 
 import { router as files } from "./files.js";
-import { router as courses } from "./courses.js";
 import { router as memos } from "./memos.js";
 import { router as documents } from "./documents.js";
 
@@ -29,7 +28,6 @@ export const routers = [
   { label: "users", routes: users },
   { label: "files", routes: files },
   { label: "users", routes: users },
-  { label: "courses", routes: courses },
   { label: "memos", routes: memos },
   { label: "documents", routes: documents },
   { label: "test", routes: test },

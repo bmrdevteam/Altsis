@@ -4,6 +4,7 @@ import CourseTable from "../table/CourseTable";
 import useApi from "hooks/useApi";
 import { useEffect, useState } from "react";
 import _ from "lodash";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   setIsReloadRequired: React.Dispatch<React.SetStateAction<boolean>>;
@@ -12,6 +13,7 @@ type Props = {
 const Index = (props: Props) => {
   const { currentUser, currentSeason } = useAuth();
   const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [syllabusMap, setSyllabusMap] = useState<Map<string, any>>(
@@ -52,26 +54,34 @@ const Index = (props: Props) => {
 
   useEffect(() => {
     if (isLoading && currentSeason?._id && currentUser?._id) {
-      SyllabusApi.RSyllabuses({
-        season: currentSeason._id,
-        teacher: currentUser._id,
-      }).then(({ syllabuses }) => {
-        const syllabusMap = new Map<string, any>();
-        for (let syllabus of syllabuses) {
-          const teacherIdx = _.findIndex(
-            syllabus.teachers,
-            (teacher: any) => teacher._id === currentUser._id
-          );
-          if (teacherIdx !== -1) {
-            syllabus.teacherIdx = teacherIdx;
-            syllabus.tableRowChecked =
-              !syllabus.teachers[teacherIdx].isHiddenFromCalendar;
-            syllabusMap.set(syllabus._id, syllabus);
+      SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentSeason._id,
+          teacher: currentUser._id,
+        },
+      })
+        .then(({ syllabuses }) => {
+          const syllabusMap = new Map<string, any>();
+          for (let syllabus of syllabuses) {
+            const teacherIdx = _.findIndex(
+              syllabus.teachers,
+              (teacher: any) => teacher._id === currentUser._id
+            );
+            if (teacherIdx !== -1) {
+              syllabusMap.set(syllabus._id, {
+                ...syllabus,
+                teacherIdx,
+                tableRowChecked:
+                  !syllabus.teachers[teacherIdx].isHiddenFromCalendar,
+              });
+            }
           }
-        }
-        setSyllabusMap(syllabusMap);
-        setIsLoading(false);
-      });
+          setSyllabusMap(syllabusMap);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          ALERT_ERROR(err);
+        });
     }
 
     return () => {};

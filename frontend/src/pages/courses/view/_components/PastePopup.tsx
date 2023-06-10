@@ -30,7 +30,6 @@
  */
 import { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/courses/course.module.scss";
 
@@ -39,6 +38,7 @@ import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 
 import _ from "lodash";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   setPopupActive: any;
@@ -47,18 +47,18 @@ type Props = {
 
 const Index = (props: Props) => {
   const { currentUser } = useAuth();
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [syllabuses, setSyllabuses] = useState<any[]>([]);
 
   useEffect(() => {
     if (isLoading) {
-      SyllabusApi.RSyllabuses({ user: currentUser?._id })
-        .then((res) => {
+      SyllabusAPI.RSyllabuses({ query: { user: currentUser?._id } })
+        .then(({ syllabuses }) => {
           setSyllabuses(
             _.orderBy(
-              res.syllabuses,
+              syllabuses,
               ["year", "term", "subject", "classTitle"],
               ["desc", "desc", "asc", "asc"]
             )

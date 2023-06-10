@@ -1283,6 +1283,45 @@ export default function useAPIv2() {
     return { syllabus: syllabus as TSyllabus };
   }
 
+  /**
+   * RSyllabuses API
+   * @description 강의계획서 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSyllabuses(props: {
+    query: {
+      season?: string;
+      classroom?: string;
+      confirmed?: boolean;
+      user?: string;
+      teacher?: string;
+      student?: string;
+    };
+  }) {
+    const { syllabuses, enrollments } = await database.R({
+      location: `syllabuses` + QUERY_BUILDER(props.query),
+    });
+    return { syllabuses: syllabuses as TSyllabus[], enrollments };
+  }
+
+  /**
+   * RSyllabuses API
+   * @description 강의계획서 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { syllabus } = await database.R({
+      location: `syllabuses/${props.params._id}`,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1351,6 +1390,8 @@ export default function useAPIv2() {
     },
     SyllabusAPI: {
       CSyllabus,
+      RSyllabuses,
+      RSyllabus,
     },
   };
 }

@@ -399,35 +399,6 @@ export default function useApi() {
    * Syllabus Api
    * ##########################################################################
    */
-
-  /**
-   * Get Syllabuses and enrollments
-   * @type GET
-   * @auth member
-   * @returns list of syllabuses
-   */
-  async function RSyllabuses(props: {
-    season?: string;
-    classroom?: string;
-    confirmed?: boolean;
-    user?: string;
-    teacher?: string;
-  }) {
-    return await database.R({
-      location: "syllabuses" + QUERY_BUILDER(props),
-    });
-  }
-  /**
-   * Get Syllabus
-   * @type GET
-   * @auth member
-   * @returns syllabus
-   */
-  async function RSyllabus(_id?: string) {
-    return await database.R({
-      location: `syllabuses/${_id}`,
-    });
-  }
   /**
    * Update Syllabus
    * @type PUT
@@ -524,18 +495,6 @@ export default function useApi() {
     return await database.D({
       location: `syllabuses/${_id}`,
     });
-  }
-  /**
-   * Read CourseList(enrolled,created,mentoring)
-   * @type GET
-   * @auth member
-   * @returns syllabuses
-   */
-  async function RCourses(props: { season: string; user: string }) {
-    const { courses } = await database.R({
-      location: "courses" + QUERY_BUILDER(props),
-    });
-    return courses;
   }
 
   /**
@@ -690,12 +649,9 @@ export default function useApi() {
       UArchiveByRegistration,
     },
     SyllabusApi: {
-      RSyllabus,
-      RSyllabuses,
       USyllabus,
       USyllabusSubject,
       DSyllabus,
-      RCourses,
       ConfirmSyllabus,
       UnconfirmSyllabus,
       UHideSyllabusFromCalendar,
