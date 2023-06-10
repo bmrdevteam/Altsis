@@ -45,6 +45,7 @@ import Callout from "components/callout/Callout";
 
 import UpdatedEvaluationPopup from "./UpdatedEvaluationPopup";
 import useAPIv2 from "hooks/useAPIv2";
+import SubjectSelect from "../_components/SubjectSelect";
 
 type Props = {};
 
@@ -67,17 +68,11 @@ const CoursePid = (props: Props) => {
     useState<boolean>(false);
   const [isLoadingMentorRef, setIsLoadingMentorRef] = useState<boolean>(false);
 
-  const [subjectDataDict, setSubjectDataDict] = useState<any>({});
-  const [subjectFilter, setSubjectFilter] = useState<[string | undefined]>([
-    "/",
-  ]);
-  const [subjectSelectKey, setSubjectSelectKey] = useState<[number]>([0]);
-
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
   const teacherListRef = useRef<any[]>([]);
 
-  const [courseSubject, setCourseSubject] = useState<string>("");
+  const [courseSubject, setCourseSubject] = useState<string[]>([]);
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseUserId, setCourseUserId] = useState<string>("");
   const [courseUserName, setCourseUserName] = useState<string>("");
@@ -123,7 +118,7 @@ const CoursePid = (props: Props) => {
       data: {
         classTitle: courseTitle,
         point: Number(coursePoint),
-        subject: courseSubject.split("/"),
+        subject: courseSubject,
         teachers: courseMentorList,
         classroom: courseClassroom,
         time: Object.values(courseTime),
@@ -135,7 +130,7 @@ const CoursePid = (props: Props) => {
       ? await SyllabusApi.USyllabusSubject({
           _id: courseData._id,
           data: {
-            subject: courseSubject.split("/"),
+            subject: courseSubject,
           },
         })
       : undefined;
@@ -154,7 +149,7 @@ const CoursePid = (props: Props) => {
             navigate("/courses#개설%20수업", { replace: true });
           }
           setCourseData(result);
-          setCourseSubject(_.join(result.subject, "/"));
+          setCourseSubject(result.subject);
           setCourseTitle(result.classTitle);
           setCourseUserId(result.userId);
           setCourseUserName(result.userName);
@@ -181,50 +176,6 @@ const CoursePid = (props: Props) => {
             }
             teacherListRef.current = teachers;
           });
-
-          const tempDict: { [key: string]: Set<string> } = {
-            "/": new Set([JSON.stringify({ text: "", value: "" })]),
-          };
-          for (let data of currentSeason?.subjects?.data) {
-            if (data.length === 0) continue;
-            let value: string = data[0];
-            tempDict["/"].add(JSON.stringify({ text: data[0], value }));
-            if (!tempDict[value])
-              tempDict[value] = new Set([
-                JSON.stringify({ text: "", value: "" }),
-              ]);
-            for (let i = 1; i < data.length; i++) {
-              tempDict[value].add(
-                JSON.stringify({ text: data[i], value: value + "/" + data[i] })
-              );
-              if (i === data.length - 1) continue;
-              value = value + "/" + data[i];
-              if (!tempDict[value])
-                tempDict[value] = new Set([
-                  JSON.stringify({ text: "", value: "" }),
-                ]);
-            }
-          }
-
-          for (let [key, value] of Object.entries(tempDict)) {
-            subjectDataDict[key] = _.sortBy(
-              Array.from(value).map((data) => JSON.parse(data)),
-              "text"
-            );
-          }
-          setSubjectDataDict({ ...subjectDataDict });
-
-          const filter: [string | undefined] = ["/"];
-          const subjectSelectKey: [number] = [0];
-          let temp = result.subject[0];
-          filter.push(temp);
-          for (let i = 1; i < result.subject.length; i++) {
-            temp = temp + "/" + result.subject[i];
-            filter.push(temp);
-            subjectSelectKey.push(0);
-          }
-          setSubjectFilter([...filter]);
-          setSubjectSelectKey(subjectSelectKey);
         })
         .then(() => setIsLoadingTimeClassroomRef(true))
         .then(() => {
@@ -285,37 +236,13 @@ const CoursePid = (props: Props) => {
               showIcon
             />
           )}
-          <div style={{ display: "flex", gap: "24px" }} key="temp">
-            {currentSeason?.subjects.label.map((label: string, idx: number) => {
-              return (
-                <Select
-                  key={label + subjectSelectKey[idx]}
-                  appearence="flat"
-                  label={label}
-                  required
-                  setValue={(e: string) => {
-                    if (subjectFilter[idx + 1] === e) return;
-                    subjectFilter[idx + 1] = e;
-                    subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-                    for (let i = idx + 2; i < subjectFilter.length; i++) {
-                      subjectFilter[i] = undefined;
-                      subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-                    }
-                    setSubjectFilter([...subjectFilter]);
-                    setSubjectSelectKey([...subjectSelectKey]);
-                    setCourseSubject(
-                      subjectFilter[subjectFilter.length - 1] ?? ""
-                    );
-                  }}
-                  options={
-                    subjectFilter && subjectFilter[idx]
-                      ? subjectDataDict[subjectFilter[idx]!]
-                      : [{ text: "", value: "" }]
-                  }
-                  defaultSelectedValue={subjectFilter[idx + 1]}
-                />
-              );
-            })}
+          <div key="subject-select-wrapper">
+            <SubjectSelect
+              subjectLabelList={currentSeason?.subjects?.label ?? []}
+              subjectDataList={currentSeason?.subjects?.data ?? []}
+              defaultSubject={courseSubject}
+              setSubject={setCourseSubject}
+            />
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -445,7 +372,7 @@ const CoursePid = (props: Props) => {
                 const num = Number(str);
                 return Number.isInteger(num) && num >= 0;
               }
-              if (!courseSubject || courseSubject === "") {
+              if (!courseSubject || courseSubject.includes("")) {
                 alert("교과목을 입력해주세요.");
               } else if (!courseTitle || courseTitle === "") {
                 alert("제목을 입력해주세요.");
