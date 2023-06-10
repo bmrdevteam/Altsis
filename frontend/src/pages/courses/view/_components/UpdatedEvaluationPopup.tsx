@@ -30,7 +30,6 @@
 import style from "style/pages/courses/course.module.scss";
 
 // components
-import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 import { useNavigate } from "react-router-dom";
@@ -52,7 +51,7 @@ type Props = {
   setPopupActive: any;
 };
 
-const CourseView = (props: Props) => {
+const Index = (props: Props) => {
   const { currentSeason } = useAuth();
   const navigate = useNavigate();
   const [changes, setChanges] = useState<any[]>([]);
@@ -178,4 +177,4 @@ const CourseView = (props: Props) => {
   );
 };
 
-export default CourseView;
+export default Index;

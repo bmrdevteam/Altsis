@@ -39,7 +39,6 @@ import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
-import Table from "components/tableV2/Table";
 
 import EditorParser from "editor/EditorParser";
 
@@ -47,9 +46,8 @@ import _ from "lodash";
 import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 
-import PastePopup from "./PastePopup";
+import PastePopup from "pages/courses/view/_components/PastePopup";
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
-
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
 
 type Props = {};

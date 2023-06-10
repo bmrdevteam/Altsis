@@ -43,10 +43,10 @@ import Loading from "components/loading/Loading";
 import Callout from "components/callout/Callout";
 
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
-import UpdatedEvaluationPopup from "./UpdatedEvaluationPopup";
+import UpdatedEvaluationPopup from "pages/courses/view/_components/UpdatedEvaluationPopup";
+import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
 
 import useAPIv2 from "hooks/useAPIv2";
-import SubjectSelect from "../_components/SubjectSelect";
 
 type Props = {};
 
