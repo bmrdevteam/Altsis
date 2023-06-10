@@ -48,8 +48,8 @@ import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 
 import PastePopup from "./PastePopup";
-import useAPIv2 from "hooks/useAPIv2";
-import { TRegistration } from "types/registrations";
+import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
+
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
 
 type Props = {};
@@ -58,22 +58,19 @@ const CourseAdd = (props: Props) => {
   const { currentUser, currentSeason, currentRegistration } = useAuth();
   const navigate = useNavigate();
   const { SyllabusApi } = useApi();
-  const { RegistrationAPI } = useAPIv2();
 
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingTimeClassroomRef, setIsLoadingTimeClassroomRef] =
     useState<boolean>(false);
-  const [isLoadingMentorRef, setIsLoadingMentorRef] = useState<boolean>(false);
 
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
-  const teacherListRef = useRef<
-    (TRegistration & { tableRowChecked: boolean })[]
-  >([]);
 
   const [courseSubject, setCourseSubject] = useState<string[]>([]);
   const [courseTitle, setCourseTitle] = useState<string>("");
-  const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
+  const [courseMentorList, setCourseMentorList] = useState<
+    { _id: string; userId: string; userName: string }[]
+  >([]);
 
   const [coursePoint, setCoursePoint] = useState<string>("");
   const [courseTime, setCourseTime] = useState<any>({});
@@ -93,7 +90,6 @@ const CourseAdd = (props: Props) => {
   const pasteSyllabus = (syllabus: string) => {
     SyllabusApi.RSyllabus(syllabus)
       .then((res) => {
-        console.log(res);
         setIsLoading(true);
         if (
           currentSeason?.subjects?.data &&
@@ -132,34 +128,6 @@ const CourseAdd = (props: Props) => {
     }
 
     return result;
-  }
-
-  async function setData() {
-    const { registrations: teacherRegistrations } =
-      await RegistrationAPI.RRegistrations({
-        query: { season: currentSeason?._id, role: "teacher" },
-      });
-    const teachers = teacherRegistrations.map((reg) => {
-      return { ...reg, tableRowChecked: false };
-    });
-
-    if (currentRegistration?.role === "teacher") {
-      setCourseMentorList([
-        {
-          _id: currentUser?._id,
-          userId: currentUser?.userId,
-          userName: currentUser?.userName,
-        },
-      ]);
-
-      const idx = _.findIndex(teachers, { user: currentUser?._id });
-      if (idx !== -1) {
-        teachers[idx].tableRowChecked = true;
-        teacherListRef.current = teachers;
-      }
-    } else {
-      teacherListRef.current = teachers;
-    }
   }
 
   async function submit() {
@@ -203,15 +171,16 @@ const CourseAdd = (props: Props) => {
   }
 
   useEffect(() => {
-    if (currentSeason?._id) {
-      setData()
-        .then(() => setIsLoading(false))
-        .catch((err) => {
-          alert("failed to load data");
-          navigate("/courses");
-        });
+    if (currentRegistration?.role === "teacher") {
+      setCourseMentorList([
+        {
+          _id: currentRegistration.user,
+          userId: currentRegistration.userId,
+          userName: currentRegistration.userName,
+        },
+      ]);
     }
-  }, [currentSeason]);
+  }, [currentRegistration]);
 
   useEffect(() => {
     if (isLoadingTimeClassroomRef) {
@@ -221,13 +190,6 @@ const CourseAdd = (props: Props) => {
     }
     return () => {};
   }, [isLoadingTimeClassroomRef]);
-
-  useEffect(() => {
-    if (isLoadingMentorRef) {
-      setIsLoadingMentorRef(false);
-    }
-    return () => {};
-  }, [isLoadingMentorRef]);
 
   return !isLoading ? (
     <>
@@ -272,44 +234,43 @@ const CourseAdd = (props: Props) => {
               defaultValue={courseTitle}
             />
           </div>
-          {!isLoadingMentorRef && (
-            <div
-              style={{
-                display: "flex",
-                gap: "24px",
-                marginTop: "24px",
-                alignItems: "flex-end",
+          <div
+            style={{
+              display: "flex",
+              gap: "24px",
+              marginTop: "24px",
+              alignItems: "flex-end",
+            }}
+          >
+            <Input
+              appearence="flat"
+              label="작성자"
+              required={true}
+              disabled
+              defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
+            />
+            <Input
+              key={"mentor-" + JSON.stringify(courseMentorList)}
+              appearence="flat"
+              label="멘토"
+              required
+              defaultValue={_.join(
+                courseMentorList.map(
+                  (teacher: any) => `${teacher.userName}(${teacher.userId})`
+                ),
+                ", "
+              )}
+              disabled
+            />
+            <Button
+              type="ghost"
+              onClick={() => {
+                setMentorSelectPopupActive(true);
               }}
             >
-              <Input
-                appearence="flat"
-                label="작성자"
-                required={true}
-                disabled
-                defaultValue={`${currentUser?.userName}(${currentUser?.userId})`}
-              />
-              <Input
-                appearence="flat"
-                label="멘토"
-                required
-                defaultValue={_.join(
-                  courseMentorList.map(
-                    (teacher: any) => `${teacher.userName}(${teacher.userId})`
-                  ),
-                  ", "
-                )}
-                disabled
-              />
-              <Button
-                type="ghost"
-                onClick={() => {
-                  setMentorSelectPopupActive(true);
-                }}
-              >
-                수정
-              </Button>
-            </div>
-          )}
+              수정
+            </Button>
+          </div>
 
           <Button
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
@@ -475,64 +436,11 @@ const CourseAdd = (props: Props) => {
       )}
 
       {mentorSelectPopupActive && (
-        <Popup
-          contentScroll
-          setState={setMentorSelectPopupActive}
-          title="멘토 선택"
-          closeBtn
-          style={{ width: "900px" }}
-          footer={
-            <Button
-              type="ghost"
-              onClick={() => {
-                setCourseMentorList(
-                  _.filter(teacherListRef.current, {
-                    tableRowChecked: true,
-                  }).map((val: any) => {
-                    return {
-                      _id: val.user,
-                      userId: val.userId,
-                      userName: val.userName,
-                    };
-                  })
-                );
-                setIsLoadingMentorRef(true);
-                setMentorSelectPopupActive(false);
-              }}
-            >
-              선택
-            </Button>
-          }
-        >
-          <Table
-            data={teacherListRef.current}
-            type="object-array"
-            control
-            onChange={(value: any[]) => {
-              teacherListRef.current = value;
-            }}
-            header={[
-              {
-                text: "checkbox",
-                key: "",
-                type: "checkbox",
-                width: "48px",
-              },
-              {
-                text: "선생님 이름",
-                key: "userName",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "선생님 ID",
-                key: "userId",
-                type: "text",
-                textAlign: "center",
-              },
-            ]}
-          />
-        </Popup>
+        <MentoringTeacherPopup
+          setPopupActive={setMentorSelectPopupActive}
+          selectedTeachers={courseMentorList}
+          setCourseMentorList={setCourseMentorList}
+        />
       )}
       {pastePopupActive && (
         <PastePopup

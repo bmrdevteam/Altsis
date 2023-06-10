@@ -39,11 +39,12 @@ import Input from "components/input/Input";
 import Button from "components/button/Button";
 import EditorParser from "editor/EditorParser";
 import Popup from "components/popup/Popup";
-import Table from "components/tableV2/Table";
 import Loading from "components/loading/Loading";
 import Callout from "components/callout/Callout";
 
+import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
 import UpdatedEvaluationPopup from "./UpdatedEvaluationPopup";
+
 import useAPIv2 from "hooks/useAPIv2";
 import SubjectSelect from "../_components/SubjectSelect";
 
@@ -66,7 +67,6 @@ const CoursePid = (props: Props) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingTimeClassroomRef, setIsLoadingTimeClassroomRef] =
     useState<boolean>(false);
-  const [isLoadingMentorRef, setIsLoadingMentorRef] = useState<boolean>(false);
 
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
@@ -156,7 +156,11 @@ const CoursePid = (props: Props) => {
           setCourseMentorList(result.teachers || []);
           setCoursePoint(result.point || 0);
           setCourseTime(_.keyBy(result.time, "label"));
-          setCourseClassroom(result.classroom);
+          setCourseClassroom(
+            currentSeason.classrooms.includes(result.classroom)
+              ? result.classroom
+              : ""
+          );
           setCourseMoreInfo(result.info || {});
           setCourseLimit(result.limit || 0);
 
@@ -197,13 +201,6 @@ const CoursePid = (props: Props) => {
     }
     return () => {};
   }, [isLoadingTimeClassroomRef]);
-
-  useEffect(() => {
-    if (isLoadingMentorRef) {
-      setIsLoadingMentorRef(false);
-    }
-    return () => {};
-  }, [isLoadingMentorRef]);
 
   useEffect(() => {
     setCoursePoint(`${Object.keys(courseTime).length}`);
@@ -255,45 +252,44 @@ const CoursePid = (props: Props) => {
               defaultValue={courseTitle}
             />
           </div>
-          {!isLoadingMentorRef && (
-            <div
-              style={{
-                display: "flex",
-                gap: "24px",
-                marginTop: "24px",
-                alignItems: "flex-end",
+          <div
+            style={{
+              display: "flex",
+              gap: "24px",
+              marginTop: "24px",
+              alignItems: "flex-end",
+            }}
+          >
+            <Input
+              appearence="flat"
+              label="작성자"
+              required={true}
+              disabled
+              defaultValue={`${courseUserName}(${courseUserId})`}
+            />
+
+            <Input
+              key={"mentor-" + JSON.stringify(courseMentorList)}
+              appearence="flat"
+              label="멘토"
+              required
+              defaultValue={_.join(
+                courseMentorList.map(
+                  (teacher: any) => `${teacher.userName}(${teacher.userId})`
+                ),
+                ", "
+              )}
+              disabled
+            />
+            <Button
+              type="ghost"
+              onClick={() => {
+                setMentorSelectPopupActive(true);
               }}
             >
-              <Input
-                appearence="flat"
-                label="작성자"
-                required={true}
-                disabled
-                defaultValue={`${courseUserName}(${courseUserId})`}
-              />
-
-              <Input
-                appearence="flat"
-                label="멘토"
-                required
-                defaultValue={_.join(
-                  courseMentorList.map(
-                    (teacher: any) => `${teacher.userName}(${teacher.userId})`
-                  ),
-                  ", "
-                )}
-                disabled
-              />
-              <Button
-                type="ghost"
-                onClick={() => {
-                  setMentorSelectPopupActive(true);
-                }}
-              >
-                수정
-              </Button>
-            </div>
-          )}
+              수정
+            </Button>
+          </div>
           <Button
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
             type="ghost"
@@ -492,64 +488,11 @@ const CoursePid = (props: Props) => {
         </Popup>
       )}
       {mentorSelectPopupActive && (
-        <Popup
-          contentScroll
-          setState={setMentorSelectPopupActive}
-          title="멘토 선택"
-          closeBtn
-          style={{ width: "900px" }}
-          footer={
-            <Button
-              type="ghost"
-              onClick={() => {
-                setCourseMentorList(
-                  _.filter(teacherListRef.current, {
-                    tableRowChecked: true,
-                  }).map((val: any) => {
-                    return {
-                      _id: val.user,
-                      userId: val.userId,
-                      userName: val.userName,
-                    };
-                  })
-                );
-                setIsLoadingMentorRef(true);
-                setMentorSelectPopupActive(false);
-              }}
-            >
-              선택
-            </Button>
-          }
-        >
-          <Table
-            data={teacherListRef.current}
-            type="object-array"
-            control
-            onChange={(value: any[]) => {
-              teacherListRef.current = value;
-            }}
-            header={[
-              {
-                text: "checkbox",
-                key: "",
-                type: "checkbox",
-                width: "48px",
-              },
-              {
-                text: "선생님 이름",
-                key: "userName",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "선생님 ID",
-                key: "userId",
-                type: "text",
-                textAlign: "center",
-              },
-            ]}
-          />
-        </Popup>
+        <MentoringTeacherPopup
+          setPopupActive={setMentorSelectPopupActive}
+          selectedTeachers={courseMentorList}
+          setCourseMentorList={setCourseMentorList}
+        />
       )}
       {changesPoupActive && pid && (
         <UpdatedEvaluationPopup
