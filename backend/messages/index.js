@@ -217,3 +217,13 @@ export const SEASON_ALREADY_ACTIVATED_FIRST = "SEASON_ALREADY_ACTIVATED_FIRST";
  * @memberof APIs._MESSAGE
  */
 export const REGISTRATION_IN_USE = "REGISTRATION_IN_USE";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias CLASSROOM_IN_USE
+ * @description 이미 사용 중인 강의실임
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const CLASSROOM_IN_USE = "CLASSROOM_IN_USE";
