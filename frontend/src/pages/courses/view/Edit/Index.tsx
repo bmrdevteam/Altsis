@@ -27,26 +27,23 @@
  * @version 1.0
  *
  */
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
 import _ from "lodash";
-import Select from "components/select/Select";
 import Input from "components/input/Input";
 import Button from "components/button/Button";
 import EditorParser from "editor/EditorParser";
-import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
 import Callout from "components/callout/Callout";
 
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
 import UpdatedEvaluationPopup from "pages/courses/view/_components/UpdatedEvaluationPopup";
+import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
-
-import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -57,7 +54,6 @@ const CoursePid = (props: Props) => {
   const strictMode = searchParams.get("strictMode") === "true";
 
   const { SyllabusApi } = useApi();
-  const { RegistrationAPI } = useAPIv2();
 
   const navigate = useNavigate();
   const { currentUser, currentSeason } = useAuth();
@@ -65,12 +61,6 @@ const CoursePid = (props: Props) => {
   const [courseData, setCourseData] = useState<any>();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingTimeClassroomRef, setIsLoadingTimeClassroomRef] =
-    useState<boolean>(false);
-
-  /* additional document list */
-  const [syllabusList, setSyllabusList] = useState<any>();
-  const teacherListRef = useRef<any[]>([]);
 
   const [courseSubject, setCourseSubject] = useState<string[]>([]);
   const [courseTitle, setCourseTitle] = useState<string>("");
@@ -79,13 +69,12 @@ const CoursePid = (props: Props) => {
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
   const [coursePoint, setCoursePoint] = useState<string>("");
-  const [courseTime, setCourseTime] = useState<any>({});
+  const [courseTime, setCourseTime] = useState<
+    { label: string; day: string; start: string; end: string }[]
+  >([]);
   const [courseClassroom, setCourseClassroom] = useState<string>("");
   const [courseMoreInfo, setCourseMoreInfo] = useState<any>({});
   const [courseLimit, setCourseLimit] = useState<string>("");
-
-  const courseClassroomRef = useRef<any>("");
-  const courseTimeRef = useRef<any>({});
 
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
     useState<boolean>(false);
@@ -94,23 +83,6 @@ const CoursePid = (props: Props) => {
 
   const [changes, setChanges] = useState<any[]>([]);
   const [changesPoupActive, setChangesPopupActive] = useState<boolean>(false);
-
-  function syllabusToTime(s: any) {
-    let result = {};
-    if (s) {
-      for (let i = 0; i < s.length; i++) {
-        const element = s[i];
-        for (let ii = 0; ii < element.time.length; ii++) {
-          Object.assign(result, {
-            [element.time[ii].label]:
-              element.classTitle + "(" + element.classroom + ")",
-          });
-        }
-      }
-    }
-
-    return result;
-  }
 
   async function update() {
     const res1 = await SyllabusApi.USyllabus({
@@ -121,7 +93,7 @@ const CoursePid = (props: Props) => {
         subject: courseSubject,
         teachers: courseMentorList,
         classroom: courseClassroom,
-        time: Object.values(courseTime),
+        time: courseTime,
         info: courseMoreInfo,
         limit: Number(courseLimit),
       },
@@ -155,7 +127,7 @@ const CoursePid = (props: Props) => {
           setCourseUserName(result.userName);
           setCourseMentorList(result.teachers || []);
           setCoursePoint(result.point || 0);
-          setCourseTime(_.keyBy(result.time, "label"));
+          setCourseTime(result.time);
           setCourseClassroom(
             currentSeason.classrooms.includes(result.classroom)
               ? result.classroom
@@ -163,25 +135,7 @@ const CoursePid = (props: Props) => {
           );
           setCourseMoreInfo(result.info || {});
           setCourseLimit(result.limit || 0);
-
-          RegistrationAPI.RRegistrations({
-            query: { season: result.season, role: "teacher" },
-          }).then(({ registrations: teacherRegistrations }) => {
-            const teachers = teacherRegistrations.map((reg) => {
-              return { ...reg, tableRowChecked: false };
-            });
-
-            for (let teacher of result.teachers) {
-              const idx = _.findIndex(teachers, { user: teacher._id });
-
-              if (idx !== -1) {
-                teachers[idx].tableRowChecked = true;
-              }
-            }
-            teacherListRef.current = teachers;
-          });
         })
-        .then(() => setIsLoadingTimeClassroomRef(true))
         .then(() => {
           setIsLoading(false);
         })
@@ -192,15 +146,6 @@ const CoursePid = (props: Props) => {
     }
     return () => {};
   }, [isLoading]);
-
-  useEffect(() => {
-    if (isLoadingTimeClassroomRef) {
-      courseTimeRef.current = { ...courseTime };
-      courseClassroomRef.current = courseClassroom;
-      setIsLoadingTimeClassroomRef(false);
-    }
-    return () => {};
-  }, [isLoadingTimeClassroomRef]);
 
   useEffect(() => {
     setCoursePoint(`${Object.keys(courseTime).length}`);
@@ -295,60 +240,61 @@ const CoursePid = (props: Props) => {
             type="ghost"
             disabled={strictMode}
             onClick={() => {
-              if (courseClassroomRef.current !== "") {
-                SyllabusApi.RSyllabuses({
-                  season: currentSeason?._id,
-                  classroom: courseClassroomRef.current,
-                }).then(({ syllabuses }) => {
-                  setSyllabusList(syllabuses);
-                });
-              }
-
-              courseTimeRef.current = { ...courseTime };
               setTimeSelectPopupActive(true);
             }}
           >
             강의실 및 시간 선택
           </Button>
-          {!isLoadingTimeClassroomRef && (
-            <div style={{ display: "flex", marginTop: "20px", gap: "24px" }}>
-              <Input
-                appearence="flat"
-                label="강의실"
-                defaultValue={courseClassroom}
-                required={true}
-                disabled
-              />
-              <Input
-                appearence="flat"
-                label="시간"
-                defaultValue={_.join(Object.keys(courseTime), ", ")}
-                required={true}
-                disabled
-              />
-              <Input
-                type="number"
-                appearence="flat"
-                label="학점"
-                required={true}
-                onChange={(e: any) => {
-                  setCoursePoint(e.target.value);
-                }}
-                defaultValue={`${coursePoint}`}
-              />
+          <div style={{ display: "flex", marginTop: "20px", gap: "24px" }}>
+            <Input
+              key={"classroom-" + courseClassroom}
+              appearence="flat"
+              label="강의실"
+              defaultValue={courseClassroom}
+              required={true}
+              disabled
+            />
+            <Input
+              key={
+                "time-" +
+                _.join(
+                  courseTime.map((timeBlock) => timeBlock.label),
+                  ", "
+                )
+              }
+              appearence="flat"
+              label="시간"
+              defaultValue={_.join(
+                courseTime.map((timeBlock) => timeBlock.label),
+                ", "
+              )}
+              required={true}
+              disabled
+            />
+            <Input
+              key={`point-${coursePoint}`}
+              type="number"
+              appearence="flat"
+              label="학점"
+              required={true}
+              onChange={(e: any) => {
+                setCoursePoint(e.target.value);
+              }}
+              defaultValue={`${coursePoint}`}
+            />
 
-              <Input
-                type="number"
-                appearence="flat"
-                label="수강정원"
-                required={true}
-                onChange={(e: any) => {
-                  setCourseLimit(e.target.value);
-                }}
-                defaultValue={`${courseLimit}`}
-              />
-            </div>
-          )}
+            <Input
+              type="number"
+              appearence="flat"
+              label="수강정원"
+              required={true}
+              onChange={(e: any) => {
+                setCourseLimit(e.target.value);
+              }}
+              defaultValue={`${courseLimit}`}
+            />
+          </div>
+
           <div style={{ display: "flex", marginTop: "24px" }}></div>
           <EditorParser
             type="syllabus"
@@ -423,69 +369,14 @@ const CoursePid = (props: Props) => {
       </div>
 
       {timeSelectPopupActive && (
-        <Popup
-          setState={setTimeSelectPopupActive}
-          title="강의실 및 시간 선택"
-          closeBtn
-          style={{ borderRadius: "4px", width: "900px" }}
-          contentScroll
-          footer={
-            <Button
-              type="ghost"
-              onClick={() => {
-                setIsLoadingTimeClassroomRef(true);
-                setCourseClassroom(courseClassroomRef.current);
-                setCourseTime({ ...courseTimeRef.current });
-                setTimeSelectPopupActive(false);
-              }}
-            >
-              선택
-            </Button>
-          }
-        >
-          <Select
-            appearence="flat"
-            options={[
-              { value: "", text: "" },
-              ...currentSeason?.classrooms?.map((val: any) => {
-                return { value: val, text: val };
-              }),
-            ]}
-            onChange={(e: any) => {
-              courseClassroomRef.current = e;
-              if (e !== "") {
-                SyllabusApi.RSyllabuses({
-                  season: currentSeason?._id,
-                  classroom: courseClassroomRef.current,
-                }).then(({ syllabuses }) => {
-                  setSyllabusList(syllabuses);
-                });
-              } else {
-                setSyllabusList([]);
-              }
-              courseTimeRef.current = [];
-            }}
-            defaultSelectedValue={courseClassroom}
-            label="강의실 선택"
-            required
-          />
-          <div style={{ height: "24px" }}></div>
-          <EditorParser
-            type="timetable"
-            auth="edit"
-            onChange={(data) => {
-              Object.assign(courseTimeRef.current, data);
-            }}
-            defaultTimetable={syllabusToTime(
-              _.filter(
-                syllabusList,
-                (syllabus: any) => syllabus._id !== courseData._id
-              )
-            )}
-            defaultValues={courseTimeRef.current}
-            data={currentSeason?.formTimetable}
-          />
-        </Popup>
+        <ClassroomTimePopup
+          syllabus={pid}
+          setPopupActive={setTimeSelectPopupActive}
+          classroom={courseClassroom}
+          setClassroom={setCourseClassroom}
+          time={courseTime}
+          setTime={setCourseTime}
+        />
       )}
       {mentorSelectPopupActive && (
         <MentoringTeacherPopup
