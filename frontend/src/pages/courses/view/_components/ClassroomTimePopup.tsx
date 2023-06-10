@@ -35,10 +35,10 @@ import { useAuth } from "contexts/authContext";
 import Popup from "components/popup/Popup";
 
 import Button from "components/button/Button";
-import useApi from "hooks/useApi";
 import Select from "components/select/Select";
 import EditorParser from "editor/EditorParser";
 import _ from "lodash";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   syllabus?: string;
@@ -65,7 +65,7 @@ type Props = {
 
 const Index = (props: Props) => {
   const { currentSeason } = useAuth();
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const [classroom, setClassroom] = useState<string>(props.classroom);
   const timeRef = useRef<{ [key: string]: any }>({});
@@ -74,15 +74,22 @@ const Index = (props: Props) => {
 
   const updateSyllabusList = async () => {
     if (classroom === "") return setSyllabusList([]);
-    const { syllabuses } = await SyllabusApi.RSyllabuses({
-      season: currentSeason?._id,
-      classroom,
-    });
-    if (props.syllabus) {
-      const idx = _.findIndex(syllabuses, { _id: props.syllabus });
-      syllabuses.splice(idx, 1);
+    try {
+      const { syllabuses } = await SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentSeason?._id,
+          classroom,
+        },
+      });
+      if (props.syllabus) {
+        const idx = _.findIndex(syllabuses, { _id: props.syllabus });
+        syllabuses.splice(idx, 1);
+      }
+      setSyllabusList(syllabuses);
+    } catch (err) {
+      ALERT_ERROR(err);
+      setSyllabusList([]);
     }
-    setSyllabusList(syllabuses);
   };
 
   function syllabusToTime(s: any) {

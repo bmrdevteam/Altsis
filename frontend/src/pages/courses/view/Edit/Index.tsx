@@ -44,6 +44,7 @@ import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeach
 import UpdatedEvaluationPopup from "pages/courses/view/_components/UpdatedEvaluationPopup";
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -54,6 +55,7 @@ const CoursePid = (props: Props) => {
   const strictMode = searchParams.get("strictMode") === "true";
 
   const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const navigate = useNavigate();
   const { currentUser, currentSeason } = useAuth();
@@ -111,36 +113,36 @@ const CoursePid = (props: Props) => {
   }
 
   useEffect(() => {
-    if (isLoading && currentSeason && currentUser) {
-      SyllabusApi.RSyllabus(pid)
-        .then((result) => {
+    if (isLoading && currentSeason && currentUser && pid) {
+      SyllabusAPI.RSyllabus({ params: { _id: pid } })
+        .then(({ syllabus }) => {
           if (
-            result.user !== currentUser._id &&
-            !_.find(result.teachers, { _id: currentUser._id })
+            syllabus.user !== currentUser._id &&
+            !_.find(syllabus.teachers, { _id: currentUser._id })
           ) {
             navigate("/courses#개설%20수업", { replace: true });
           }
-          setCourseData(result);
-          setCourseSubject(result.subject);
-          setCourseTitle(result.classTitle);
-          setCourseUserId(result.userId);
-          setCourseUserName(result.userName);
-          setCourseMentorList(result.teachers || []);
-          setCoursePoint(result.point || 0);
-          setCourseTime(result.time);
+          setCourseData(syllabus);
+          setCourseSubject(syllabus.subject);
+          setCourseTitle(syllabus.classTitle);
+          setCourseUserId(syllabus.userId);
+          setCourseUserName(syllabus.userName);
+          setCourseMentorList(syllabus.teachers || []);
+          setCoursePoint(syllabus.point.toString());
+          setCourseTime(syllabus.time);
           setCourseClassroom(
-            currentSeason.classrooms.includes(result.classroom)
-              ? result.classroom
+            currentSeason.classrooms.includes(syllabus.classroom)
+              ? syllabus.classroom
               : ""
           );
-          setCourseMoreInfo(result.info || {});
-          setCourseLimit(result.limit || 0);
+          setCourseMoreInfo(syllabus.info || {});
+          setCourseLimit(syllabus.limit.toString());
         })
         .then(() => {
           setIsLoading(false);
         })
         .catch((err) => {
-          alert("failed to load data");
+          ALERT_ERROR(err);
           navigate("/courses");
         });
     }

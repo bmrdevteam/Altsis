@@ -47,12 +47,14 @@ import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
 import Progress from "components/progress/Progress";
 import { Socket, io } from "socket.io-client";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
   const { SyllabusApi, EnrollmentApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
@@ -75,11 +77,17 @@ const CourseEnroll = (props: Props) => {
   const [isActiveWaitingPopup, activateWaitingPopup] = useState<boolean>(false);
 
   async function getCourseList() {
-    const { syllabuses } = await SyllabusApi.RSyllabuses({
-      season: currentRegistration?.season,
-      confirmed: true,
-    });
-    return syllabuses;
+    try {
+      const { syllabuses } = await SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration?.season,
+          confirmed: true,
+        },
+      });
+      return syllabuses;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   async function getEnrolledCourseList() {

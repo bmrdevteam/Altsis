@@ -37,6 +37,7 @@ import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   setPopupActive: any;
@@ -48,17 +49,24 @@ type Props = {
 const StatusPopup = (props: Props) => {
   const { currentUser } = useAuth();
   const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const [courseData, setCourseData] = useState<any>();
 
   async function getCourse(_id: string) {
-    const res = await SyllabusApi.RSyllabus(props.course);
-    return res;
+    try {
+      const { syllabus } = await SyllabusAPI.RSyllabus({
+        params: { _id: props.course },
+      });
+      return syllabus;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   useEffect(() => {
-    getCourse(props.course).then((res) => {
-      setCourseData(res);
+    getCourse(props.course).then((syllabus) => {
+      setCourseData(syllabus);
     });
     return () => {};
   }, []);

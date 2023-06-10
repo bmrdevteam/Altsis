@@ -8,7 +8,7 @@ export type TSyllabus = {
 
   subject: string[];
   classTitle: string;
-  time: { label: string; day?: string; start?: string; end?: string }[];
+  time: { label: string; day: string; start: string; end: string }[];
   classroom: string;
   teachers: {
     _id: string;
@@ -17,4 +17,9 @@ export type TSyllabus = {
     confirmed: boolean;
     isHiddenFromCalendar: boolean;
   }[];
+  point: number;
+  limit: number;
+  count: number;
+
+  info?: any;
 };

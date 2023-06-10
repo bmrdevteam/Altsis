@@ -31,7 +31,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 import style from "style/pages/courses/courseDesign.module.scss";
 
 // components
@@ -55,7 +54,6 @@ type Props = {};
 const CourseAdd = (props: Props) => {
   const { currentUser, currentSeason, currentRegistration } = useAuth();
   const navigate = useNavigate();
-  const { SyllabusApi } = useApi();
   const { SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -82,20 +80,20 @@ const CourseAdd = (props: Props) => {
   const [pastePopupActive, setPastePopupActive] = useState<boolean>(false);
 
   const pasteSyllabus = (syllabus: string) => {
-    SyllabusApi.RSyllabus(syllabus)
-      .then((res) => {
+    SyllabusAPI.RSyllabus({ params: { _id: syllabus } })
+      .then(({ syllabus }) => {
         setIsLoading(true);
         if (
           currentSeason?.subjects?.data &&
           _.find(currentSeason?.subjects?.data, (rawData) =>
-            _.isEqual(rawData, res.subject)
+            _.isEqual(rawData, syllabus.subject)
           )
         ) {
-          setCourseSubject(res.subject);
+          setCourseSubject(syllabus.subject);
         }
 
-        setCourseTitle(res.classTitle);
-        courseMoreInfo.current = res.info;
+        setCourseTitle(syllabus.classTitle);
+        courseMoreInfo.current = syllabus.info;
       })
       .then(() => {
         setTimeout(() => setIsLoading(false), 300);

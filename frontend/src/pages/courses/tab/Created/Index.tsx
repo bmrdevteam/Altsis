@@ -46,6 +46,7 @@ import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -53,6 +54,7 @@ const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { SyllabusApi, EnrollmentApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -110,24 +112,24 @@ const CoursePid = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading) {
-      SyllabusApi.RSyllabus(pid)
-        .then((result) => {
-          setSyllabus(result);
+    if (isLoading && pid) {
+      SyllabusAPI.RSyllabus({ params: { _id: pid } })
+        .then(({ syllabus }) => {
+          setSyllabus(syllabus);
 
-          if (result.season !== currentSeason._id) {
+          if (syllabus.season !== currentSeason._id) {
             navigate("/courses#개설%20수업", { replace: true });
           }
-          if (_.find(result.teachers, { _id: currentUser._id })) {
-            navigate("/courses/mentoring/" + result._id, { replace: true });
+          if (_.find(syllabus.teachers, { _id: currentUser._id })) {
+            navigate("/courses/mentoring/" + syllabus._id, { replace: true });
           }
-          if (result.user !== currentUser._id) {
+          if (syllabus.user !== currentUser._id) {
             navigate("/courses#개설%20수업", { replace: true });
           }
 
           // is this syllabus fully confirmed?
           let confirmedCnt = 0;
-          for (let teacher of result?.teachers) {
+          for (let teacher of syllabus?.teachers) {
             if (teacher.confirmed) {
               confirmedCnt += 1;
             }
@@ -135,7 +137,7 @@ const CoursePid = (props: Props) => {
           setConfirmedStatus(
             confirmedCnt === 0
               ? "notConfirmed"
-              : confirmedCnt === result?.teachers.length
+              : confirmedCnt === syllabus?.teachers.length
               ? "fullyConfirmed"
               : "semiConfirmed"
           );
@@ -144,7 +146,7 @@ const CoursePid = (props: Props) => {
           setIsLoading(false);
         })
         .catch((err) => {
-          alert(err.response.data.message);
+          ALERT_ERROR(err);
           navigate("/courses");
         });
     }

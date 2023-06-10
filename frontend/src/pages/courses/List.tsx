@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -41,12 +40,13 @@ import _ from "lodash";
 import Loading from "components/loading/Loading";
 
 import CourseTable from "./table/CourseTable";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const Courses = (props: Props) => {
   const navigate = useNavigate();
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentRegistration } = useAuth();
 
@@ -54,10 +54,16 @@ const Courses = (props: Props) => {
   const [courseList, setCourseList] = useState<any[]>([]);
 
   async function getCreatedCourseList() {
-    const { syllabuses } = await SyllabusApi.RSyllabuses({
-      season: currentRegistration?.season,
-    });
-    return syllabuses;
+    try {
+      const { syllabuses } = await SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration?.season,
+        },
+      });
+      return syllabuses;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   useEffect(() => {
