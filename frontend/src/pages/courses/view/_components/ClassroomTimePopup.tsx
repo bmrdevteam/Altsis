@@ -70,7 +70,6 @@ const Index = (props: Props) => {
   const [classroom, setClassroom] = useState<string>(props.classroom);
   const timeRef = useRef<{ [key: string]: any }>({});
 
-  const [classroomList, setClassroomList] = useState<string[]>([]);
   const [syllabusList, setSyllabusList] = useState<any[]>([]);
 
   const updateSyllabusList = async () => {
@@ -102,15 +101,6 @@ const Index = (props: Props) => {
 
     return result;
   }
-
-  useEffect(() => {
-    if (currentSeason) {
-      setClassroomList(currentSeason.classrooms);
-    }
-
-    return () => {};
-  }, [currentSeason]);
-
   useEffect(() => {
     updateSyllabusList();
     return () => {};
@@ -143,10 +133,11 @@ const Index = (props: Props) => {
       }
     >
       <Select
+        key={"classroom-select-" + classroom}
         appearence="flat"
         options={[
           { value: "", text: "" },
-          ...classroomList.map((val: any) => {
+          ...currentSeason?.classrooms.map((val: any) => {
             return { value: val, text: val };
           }),
         ]}

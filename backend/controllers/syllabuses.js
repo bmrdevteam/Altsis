@@ -1,4 +1,14 @@
+/**
+ * SyllabusAPI namespace
+ * @namespace APIs.SyllabusAPI
+ */
 import { logger } from "../log/logger.js";
+import {
+  CLASSROOM_IN_USE,
+  FIELD_REQUIRED,
+  PERMISSION_DENIED,
+  __NOT_FOUND,
+} from "../messages/index.js";
 import { Season, Registration, Syllabus, Enrollment } from "../models/index.js";
 import _ from "lodash";
 
@@ -29,26 +39,118 @@ const getUnavailableTimeLabels = async (academyId, syllabus) => {
   return unavailableTimeLabels;
 };
 
+const isClassroomAvailable = async (
+  academyId,
+  season,
+  classroom,
+  time,
+  syllabus = undefined
+) => {
+  if (classroom === "") return true;
+  const exSyllabus = await Syllabus(academyId).findOne({
+    _id: { $ne: syllabus?._id },
+    season,
+    classroom,
+    "time.label": { $in: time.map((timeBlock) => timeBlock.label) },
+  });
+
+  return exSyllabus ? false : true;
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | SYLLABUS_NOT_FOUND | if syllabus is not found  |
+ * | 403    | PERMISSION_DENIED | user has no permission for create/update/delete syllabus  |
+ */
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function CSyllabus API
+ * @description 강의계획서 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/syllabuses"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.season - ObjectId of season
+ * @param {string[]} req.body.subject
+ * @param {string} req.body.classTitle
+ * @param {Object[]} req.body.teachers
+ * @param {Object[]} req.body.time
+ * @param {string} req.body.classroom
+ * @param {number} req.body.point
+ * @param {number} req.body.limit
+ * @param {Object} req.body.info
+ *
+ * @param {Object} res
+ * @param {Object} res.syllabus - created syllabus
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | CLASSROOM_IN_USE | if classroom is in use  |
+ *
+ *
+ */
+
 export const create = async (req, res) => {
   try {
-    if (!("season" in req.body)) {
-      return res.status(400).send({ message: "field season is missing" });
+    /* validation */
+    for (let field of [
+      "season",
+      "subject",
+      "classTitle",
+      "teachers",
+      "time",
+      "classroom",
+      "point",
+      "limit",
+    ]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
     }
 
     const user = req.user;
 
+    /* 권한 확인 */
     const registration = await Registration(user.academyId).findOne({
       user: user._id,
       season: req.body.season,
     });
     if (!registration) {
-      return res.status(404).send({ message: "registration not found" });
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
     if (!registration?.permissionSyllabusV2) {
-      return res.status(403).send({ message: "you have no permission" });
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    const syllabus = new (Syllabus(req.user.academyId))({
+    /* 강의실 중복 확인 */
+    if (
+      !(await isClassroomAvailable(
+        req.user.academyId,
+        req.body.season,
+        req.body.classroom,
+        req.body.time
+      ))
+    ) {
+      return res.status(409).send({ message: CLASSROOM_IN_USE });
+    }
+
+    const syllabus = await Syllabus(req.user.academyId).create({
       ...registration.getSubdocument(),
       classTitle: req.body.classTitle,
       time: req.body.time,
@@ -61,17 +163,6 @@ export const create = async (req, res) => {
       temp: req.body.temp,
     });
 
-    // classroom 시간 확인
-    const unavailableTimeLabels = await getUnavailableTimeLabels(
-      req.user.academyId,
-      syllabus
-    );
-    if (!_.isEmpty(unavailableTimeLabels))
-      return res.status(409).send({
-        message: `classroom(${syllabus.classroom}) is not available on ${unavailableTimeLabels}`,
-      });
-
-    await syllabus.save();
     return res.status(200).send({ syllabus });
   } catch (err) {
     logger.error(err.message);

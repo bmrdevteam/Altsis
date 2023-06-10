@@ -48,6 +48,7 @@ import PastePopup from "pages/courses/view/_components/PastePopup";
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -55,6 +56,7 @@ const CourseAdd = (props: Props) => {
   const { currentUser, currentSeason, currentRegistration } = useAuth();
   const navigate = useNavigate();
   const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -118,28 +120,31 @@ const CourseAdd = (props: Props) => {
       });
     // console.log(filled);
     if (filled) {
-      return await SyllabusApi.CSyllabus({
-        data: {
-          season: currentSeason._id,
-          classTitle: courseTitle,
-          point: Number(coursePoint),
-          subject: courseSubject,
-          teachers: courseMentorList,
-          classroom: courseClassroom,
-          time: courseTime,
-          info: courseMoreInfo.current,
-          limit: Number(courseLimit),
-        },
-      })
-        .then((syllabus: any) => {
-          alert(SUCCESS_MESSAGE);
-          navigate(`/courses/created/${syllabus?._id}`, {
-            replace: true,
-          });
-        })
-        .catch((err) => {
-          alert(err.response.data.message);
+      try {
+        const { syllabus } = await SyllabusAPI.CSyllabus({
+          data: {
+            season: currentSeason._id,
+            classTitle: courseTitle,
+            point: Number(coursePoint),
+            subject: courseSubject,
+            teachers: courseMentorList,
+            classroom: courseClassroom,
+            time: courseTime,
+            info: courseMoreInfo.current,
+            limit: Number(courseLimit),
+          },
         });
+        alert(SUCCESS_MESSAGE);
+        navigate(`/courses/created/${syllabus._id}`, {
+          replace: true,
+        });
+      } catch (err: any) {
+        ALERT_ERROR(err);
+        if (err.response.data?.message === "CLASSROOM_IN_USE") {
+          setCourseClassroom("");
+          setCourseTime([]);
+        }
+      }
     } else {
       return alert("강의계획서를 작성해주세요");
     }

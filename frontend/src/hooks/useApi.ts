@@ -399,29 +399,7 @@ export default function useApi() {
    * Syllabus Api
    * ##########################################################################
    */
-  /**
-   * Create Syllabus
-   * @auth member
-   */
-  async function CSyllabus(props: {
-    data: {
-      season: string;
-      classTitle: string;
-      point: number;
-      subject: string[];
-      teachers: any[];
-      classroom: string;
-      time: any[];
-      info: any;
-      limit: number;
-    };
-  }) {
-    const { syllabus } = await database.C({
-      location: `syllabuses`,
-      data: props.data,
-    });
-    return syllabus;
-  }
+
   /**
    * Get Syllabuses and enrollments
    * @type GET
@@ -712,7 +690,6 @@ export default function useApi() {
       UArchiveByRegistration,
     },
     SyllabusApi: {
-      CSyllabus,
       RSyllabus,
       RSyllabuses,
       USyllabus,

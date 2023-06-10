@@ -26,4 +26,5 @@ export const MESSAGE = new Map<string, string>([
   ],
   ["FORM_LABEL_DUPLICATED", "양식에 중복된 항목이 있습니다."],
   ["REGISTRATION_IN_USE", "이미 등록되었습니다."],
+  ["CLASSROOM_IN_USE", "해당 시간에 강의실이 사용 중입니다."],
 ]);

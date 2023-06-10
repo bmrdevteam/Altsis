@@ -20,6 +20,7 @@ import {
   TSeasonWithRegistrations,
 } from "types/seasons";
 import { TRegistration } from "types/registrations";
+import { TSyllabus } from "types/syllabuses";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -1250,6 +1251,38 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Syllabus API
+   * ##########################################################################
+   */
+
+  /**
+   * CSyllabus API
+   * @description 강의계획서 생성 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CSyllabus(props: {
+    data: {
+      season: string;
+      classTitle: string;
+      point: number;
+      subject: string[];
+      teachers: { _id: string; userId: string; userName: string }[];
+      classroom: string;
+      time: { label: string; day?: string; start?: string; end?: string }[];
+      info: any;
+      limit: number;
+    };
+  }) {
+    const { syllabus } = await database.C({
+      location: `syllabuses`,
+      data: props.data,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1315,6 +1348,9 @@ export default function useAPIv2() {
       RRegistration,
       URegistration,
       DRegistration,
+    },
+    SyllabusAPI: {
+      CSyllabus,
     },
   };
 }
