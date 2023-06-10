@@ -50,6 +50,7 @@ import Svg from "assets/svg/Svg";
 import PastePopup from "./PastePopup";
 import useAPIv2 from "hooks/useAPIv2";
 import { TRegistration } from "types/registrations";
+import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
 
 type Props = {};
 
@@ -64,19 +65,13 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
   const [isLoadingMentorRef, setIsLoadingMentorRef] = useState<boolean>(false);
 
-  const [subjectDataDict, setSubjectDataDict] = useState<any>({});
-  const [subjectFilter, setSubjectFilter] = useState<[string | undefined]>([
-    "/",
-  ]);
-  const [subjectSelectKey, setSubjectSelectKey] = useState<[number]>([0]);
-
   /* additional document list */
   const [syllabusList, setSyllabusList] = useState<any>();
   const teacherListRef = useRef<
     (TRegistration & { tableRowChecked: boolean })[]
   >([]);
 
-  const [courseSubject, setCourseSubject] = useState<string>("");
+  const [courseSubject, setCourseSubject] = useState<string[]>([]);
   const [courseTitle, setCourseTitle] = useState<string>("");
   const [courseMentorList, setCourseMentorList] = useState<any[]>([]);
 
@@ -101,20 +96,12 @@ const CourseAdd = (props: Props) => {
         console.log(res);
         setIsLoading(true);
         if (
-          currentSeason?.subjects?.data
-            .map((subject: string[]) => _.join(subject, "_"))
-            .includes(_.join(res.subject, "_"))
+          currentSeason?.subjects?.data &&
+          _.find(currentSeason?.subjects?.data, (rawData) =>
+            _.isEqual(rawData, res.subject)
+          )
         ) {
-          setCourseSubject(_.join(res.subject, "/"));
-
-          const filter: [string | undefined] = ["/"];
-          let temp = res.subject[0];
-          filter.push(temp);
-          for (let i = 1; i < res.subject.length; i++) {
-            temp = temp + "/" + res.subject[i];
-            filter.push(temp);
-          }
-          setSubjectFilter([...filter]);
+          setCourseSubject(res.subject);
         }
 
         setCourseTitle(res.classTitle);
@@ -148,42 +135,6 @@ const CourseAdd = (props: Props) => {
   }
 
   async function setData() {
-    const tempDict: { [key: string]: Set<string> } = {
-      "/": new Set([JSON.stringify({ text: "", value: "" })]),
-    };
-    for (let data of currentSeason?.subjects?.data) {
-      if (data.length === 0) continue;
-      let value: string = data[0];
-      tempDict["/"].add(JSON.stringify({ text: data[0], value }));
-      if (!tempDict[value])
-        tempDict[value] = new Set([JSON.stringify({ text: "", value: "" })]);
-      for (let i = 1; i < data.length; i++) {
-        tempDict[value].add(
-          JSON.stringify({ text: data[i], value: value + "/" + data[i] })
-        );
-        if (i === data.length - 1) continue;
-        value = value + "/" + data[i];
-        if (!tempDict[value])
-          tempDict[value] = new Set([JSON.stringify({ text: "", value: "" })]);
-      }
-    }
-    for (let [key, value] of Object.entries(tempDict)) {
-      subjectDataDict[key] = _.sortBy(
-        Array.from(value).map((data) => JSON.parse(data)),
-        "text"
-      );
-    }
-    setSubjectDataDict({ ...subjectDataDict });
-
-    const filter: [string | undefined] = ["/"];
-    const subjectSelectKey: [number] = [0];
-    for (let i = 0; i < currentSeason?.subjects?.label.length; i++) {
-      filter.push(undefined);
-      subjectSelectKey.push(0);
-    }
-    setSubjectFilter(filter);
-    setSubjectSelectKey(subjectSelectKey);
-
     const { registrations: teacherRegistrations } =
       await RegistrationAPI.RRegistrations({
         query: { season: currentSeason?._id, role: "teacher" },
@@ -229,7 +180,7 @@ const CourseAdd = (props: Props) => {
           season: currentSeason._id,
           classTitle: courseTitle,
           point: Number(coursePoint),
-          subject: courseSubject.split("/"),
+          subject: courseSubject,
           teachers: courseMentorList,
           classroom: courseClassroom,
           time: Object.values(courseTime),
@@ -303,37 +254,12 @@ const CourseAdd = (props: Props) => {
               <Svg type="paste" width="20px" height="20px" />
             </div>
           </div>
-          <div style={{ display: "flex", gap: "24px" }} key="temp">
-            {currentSeason?.subjects.label.map((label: string, idx: number) => {
-              return (
-                <Select
-                  key={label + subjectSelectKey[idx]}
-                  appearence="flat"
-                  label={label}
-                  required
-                  setValue={(e: string) => {
-                    if (subjectFilter[idx + 1] === e) return;
-                    subjectFilter[idx + 1] = e;
-                    subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-                    for (let i = idx + 2; i < subjectFilter.length; i++) {
-                      subjectFilter[i] = undefined;
-                      subjectSelectKey[idx + 1] = subjectSelectKey[idx + 1] + 1;
-                    }
-                    setSubjectFilter([...subjectFilter]);
-                    setSubjectSelectKey([...subjectSelectKey]);
-                    setCourseSubject(
-                      subjectFilter[subjectFilter.length - 1] ?? ""
-                    );
-                  }}
-                  options={
-                    subjectFilter && subjectFilter[idx]
-                      ? subjectDataDict[subjectFilter[idx]!]
-                      : [{ text: "", value: "" }]
-                  }
-                  defaultSelectedValue={subjectFilter[idx + 1]}
-                />
-              );
-            })}
+          <div key="subject-select-wrapper">
+            <SubjectSelect
+              subjectLabelList={currentSeason?.subjects?.label ?? []}
+              subjectDataList={currentSeason?.subjects?.data ?? []}
+              setSubject={setCourseSubject}
+            />
           </div>
           <div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
             <Input
@@ -457,7 +383,7 @@ const CourseAdd = (props: Props) => {
                 const num = Number(str);
                 return Number.isInteger(num) && num >= 0;
               }
-              if (!courseSubject || courseSubject === "") {
+              if (!courseSubject || courseSubject.includes("")) {
                 alert("교과목을 입력해주세요.");
               } else if (!courseTitle || courseTitle === "") {
                 alert("제목을 입력해주세요.");
