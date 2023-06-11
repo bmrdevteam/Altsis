@@ -33,7 +33,7 @@ export const MESSAGE = new Map<string, string>([
   ],
   [
     "SYLLABUS_ENROLLED_ALREADY",
-    "수강생이 있는 강의계획서(또는 강의실, 시간 및 승인 상태)는 수정할 수 없습니다.",
+    "수강생이 있는 강의계획서(또는 강의실, 시간 및 승인 상태)는 수정(삭제)할 수 없습니다.",
   ],
   ["SYLLABUS_COUNT_EXCEEDS_LIMIT", "수강생 수가 수강정원을 초과합니다."],
 ]);

@@ -54,7 +54,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SyllabusApi, EnrollmentApi } = useApi();
+  const { EnrollmentApi } = useApi();
   const { SeasonAPI, SyllabusAPI } = useAPIv2();
   const navigate = useNavigate();
 
@@ -429,16 +429,13 @@ const CoursePid = (props: Props) => {
                           }`
                         ) === true
                       ) {
-                        SyllabusApi.DSyllabus(syllabus._id)
+                        SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
                           .then(() => {
                             alert(SUCCESS_MESSAGE);
                             navigate("/courses#담당%20수업");
                           })
                           .catch((err) => {
-                            alert(
-                              err?.response?.data?.message ??
-                                "에러가 발생했습니다."
-                            );
+                            ALERT_ERROR(err);
                           });
                       } else {
                         return false;

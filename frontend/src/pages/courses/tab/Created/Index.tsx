@@ -31,7 +31,6 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
@@ -52,7 +51,6 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SyllabusApi } = useApi();
   const { SyllabusAPI } = useAPIv2();
   const navigate = useNavigate();
 
@@ -221,15 +219,13 @@ const CoursePid = (props: Props) => {
               }}
               onClick={() => {
                 if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                  SyllabusApi.DSyllabus(syllabus._id)
+                  SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
                       navigate("/courses#개설%20수업");
                     })
                     .catch((err) => {
-                      alert(
-                        err?.response?.data?.message ?? "에러가 발생했습니다."
-                      );
+                      ALERT_ERROR(err);
                     });
                 } else {
                   return false;

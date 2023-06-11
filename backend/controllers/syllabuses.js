@@ -729,18 +729,39 @@ export const updateSubject = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function UHideSyllabusFromCalendar API
+ * @description 캘린더(멘토링 수업)에서 숨김 설정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/syllabuses/:_id/hide"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ *
+ */
 export const hideFromCalendar = async (req, res) => {
   try {
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.params._id
     );
-    if (!syllabus)
-      return res.status(404).send({ message: "syllabus not found" });
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
 
     const idx = _.findIndex(syllabus.teachers, (teacher) =>
       teacher._id.equals(req.user._id)
     );
-    if (idx === -1) return res.status(409).send({ message: "no permission" });
+    if (idx === -1) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     syllabus.teachers[idx].isHiddenFromCalendar = true;
     await syllabus.save();
@@ -751,18 +772,39 @@ export const hideFromCalendar = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function UShowSyllabusOnCalendar API
+ * @description 캘린더(멘토링 수업)에서 조회 설정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/syllabuses/:_id/show"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ *
+ */
 export const showOnCalendar = async (req, res) => {
   try {
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.params._id
     );
-    if (!syllabus)
-      return res.status(404).send({ message: "syllabus not found" });
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
 
     const idx = _.findIndex(syllabus.teachers, (teacher) =>
       teacher._id.equals(req.user._id)
     );
-    if (idx === -1) return res.status(409).send({ message: "no permission" });
+    if (idx === -1) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     syllabus.teachers[idx].isHiddenFromCalendar = false;
     await syllabus.save();
@@ -773,6 +815,27 @@ export const showOnCalendar = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function DSyllabus API
+ * @description 강의계획서 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/syllabuses/:_id"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 403    | SYLLABUS_ENROLLED_ALREADY | if syllabus has at least one enrollment |
+ *
+ */
 export const remove = async (req, res) => {
   try {
     const user = req.user;
@@ -780,31 +843,31 @@ export const remove = async (req, res) => {
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.params._id
     );
-    if (!syllabus) return res.status(404).send();
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
 
-    // 권한 확인
+    /* 권한 확인 */
     const registration = await Registration(user.academyId).findOne({
       user: user._id,
       season: syllabus.season,
     });
     if (!registration) {
-      return res.status(404).send({ message: "registration not found" });
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
     if (!registration?.permissionSyllabusV2) {
-      return res.status(403).send({ message: "you have no permission" });
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    // user가 syllabus 작성자이고 멘토가 아닌 경우
+    /* 1. user가 syllabus 작성자이고 멘토가 아닌 경우 */
     if (
       user._id.equals(syllabus.user) &&
       !_.find(syllabus.teachers, { _id: user._id })
     ) {
-      // enrollment가 있는 경우 삭제할 수 없다.
-      if (
-        await Enrollment(user.academyId).findOne({ syllabus: syllabus._id })
-      ) {
-        return res.status(409).send({
-          message: "수강생이 있는 강의계획서를 삭제할 수 없습니다.",
+      // 수강생이 있는 경우 삭제할 수 없다
+      if (syllabus.count > 0) {
+        return res.status(403).send({
+          message: SYLLABUS_ENROLLED_ALREADY,
         });
       }
 
@@ -812,23 +875,18 @@ export const remove = async (req, res) => {
       return res.status(200).send({});
     }
 
-    // user가 syllabus 멘토인 경우
+    /* 2. user가 syllabus 멘토인 경우 */
     if (_.find(syllabus.teachers, { _id: user._id })) {
-      const enrollments = await Enrollment(user.academyId).find({
+      await Enrollment(user.academyId).deleteMany({
         syllabus: syllabus._id,
       });
 
-      await Promise.all(
-        enrollments.map((e) => {
-          return e.delete();
-        })
-      );
       await syllabus.delete();
       return res.status(200).send({});
     }
 
     return res.status(403).send({
-      message: "you cannot delete this syllabus",
+      message: PERMISSION_DENIED,
     });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
