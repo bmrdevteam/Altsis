@@ -1544,7 +1544,7 @@ export default function useAPIv2() {
 
   /**
    * UEvaluation API
-   * @description 평가 수정 조회 API
+   * @description 평가 수정 API
    * @version 2.0.0
    * @auth user
    */
@@ -1559,6 +1559,60 @@ export default function useAPIv2() {
     return await database.U({
       location: `enrollments/${props.params._id}/evaluation`,
       data: props.data,
+    });
+  }
+
+  /**
+   * UEnrollmentMemo API
+   * @description 수강 정보 메모 수정 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UEnrollmentMemo(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      memo: string;
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/memo`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * UHideEnrollmentFromCalendar API
+   * @description 캘린더(수강 중인 수업)에서 숨김 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UHideEnrollmentFromCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/hide`,
+      data: {},
+    });
+  }
+
+  /**
+   * UShowEnrollmentOnCalendar API
+   * @description 캘린더(수강 중인 수업)에서 조회 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UShowEnrollmentOnCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/show`,
+      data: {},
     });
   }
 
@@ -1646,6 +1700,9 @@ export default function useAPIv2() {
       REnrollment,
       REnrollmentsWithEvaluation,
       UEvaluation,
+      UEnrollmentMemo,
+      UHideEnrollmentFromCalendar,
+      UShowEnrollmentOnCalendar,
     },
   };
 }

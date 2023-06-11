@@ -1,7 +1,6 @@
 import { useAuth } from "contexts/authContext";
 
 import CourseTable from "../table/CourseTable";
-import useApi from "hooks/useApi";
 import { useEffect, useState } from "react";
 import useAPIv2 from "hooks/useAPIv2";
 
@@ -11,7 +10,6 @@ type Props = {
 
 const Index = (props: Props) => {
   const { currentUser, currentSeason } = useAuth();
-  const { EnrollmentApi } = useApi();
   const { EnrollmentAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -29,12 +27,16 @@ const Index = (props: Props) => {
           if (e[i].tableRowChecked) {
             // show
             updates.push(
-              EnrollmentApi.UShowEnrollmentFromCalendar({ _id: e[i]._id })
+              EnrollmentAPI.UShowEnrollmentOnCalendar({
+                params: { _id: e[i]._id },
+              })
             );
           } else {
             // hide
             updates.push(
-              EnrollmentApi.UHideEnrollmentFromCalendar({ _id: e[i]._id })
+              EnrollmentAPI.UHideEnrollmentFromCalendar({
+                params: { _id: e[i]._id },
+              })
             );
           }
         }

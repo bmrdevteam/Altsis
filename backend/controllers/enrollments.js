@@ -570,18 +570,39 @@ export const updateEvaluation = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function UEnrollmentMemo API
+ * @description 수강 정보 메모 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/enrollments/:_id/memo"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.memo
+ *
+ * @param {Object} res
+ *
+ */
 export const updateMemo = async (req, res) => {
   try {
+    if (!("memo" in req.body)) {
+      return re.status(400).send({ message: FIELD_REQUIRED("memo") });
+    }
     const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
     );
-    if (!enrollment)
-      return res.status(404).send({ message: "enrollment not found" });
-
-    if (!enrollment.student.equals(req.user._id))
-      return res
-        .status(409)
-        .send({ message: "you cannot edit memo of this enrollment" });
+    if (!enrollment) {
+      return res.status(404).send({ message: __NOT_FOUND("enrollment") });
+    }
+    if (!enrollment.student.equals(req.user._id)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     enrollment.memo = req.body.memo;
     await enrollment.save();
@@ -592,18 +613,35 @@ export const updateMemo = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function UHideEnrollmentFromCalendar API
+ * @description 캘린더(수강 중인 수업)에서 숨김 설정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/enrollments/:_id/hide"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ *
+ */
 export const hideFromCalendar = async (req, res) => {
   try {
     const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
     );
-    if (!enrollment)
-      return res.status(404).send({ message: "enrollment not found" });
-
-    if (!enrollment.student.equals(req.user._id))
-      return res
-        .status(409)
-        .send({ message: "you cannot edit memo of this enrollment" });
+    if (!enrollment) {
+      return res.status(404).send({ message: __NOT_FOUND("enrollment") });
+    }
+    if (!enrollment.student.equals(req.user._id)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     enrollment.isHiddenFromCalendar = true;
     await enrollment.save();
@@ -614,18 +652,35 @@ export const hideFromCalendar = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function UShowEnrollmentOnCalendar API
+ * @description 캘린더(수강 중인 수업)에서 조회 설정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/enrollments/:_id/show"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ *
+ */
 export const showOnCalendar = async (req, res) => {
   try {
     const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
     );
-    if (!enrollment)
-      return res.status(404).send({ message: "enrollment not found" });
-
-    if (!enrollment.student.equals(req.user._id))
-      return res
-        .status(409)
-        .send({ message: "you cannot edit memo of this enrollment" });
+    if (!enrollment) {
+      return res.status(404).send({ message: __NOT_FOUND("enrollment") });
+    }
+    if (!enrollment.student.equals(req.user._id)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     enrollment.isHiddenFromCalendar = false;
     await enrollment.save();
