@@ -726,12 +726,12 @@ export const remove = async (req, res) => {
 
     const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
-      user: enrollment.student,
+      user: req.user._id,
     });
     if (!registration) {
       return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
-    if (!registration?.permissionEnrollmentV2) {
+    if (!registration.permissionEnrollmentV2) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
