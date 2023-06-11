@@ -1,5 +1,6 @@
 import Schedule from "components/schedule/Schedule";
 import { useAuth } from "contexts/authContext";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import useApi from "hooks/useApi";
 import { useEffect, useState } from "react";
 
@@ -8,7 +9,7 @@ type Props = {
 };
 
 const ScheduleTab = (props: Props) => {
-  const { EnrollmentApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
   const { currentSeason, currentRegistration } = useAuth();
 
   const [enrollments, setEnrollments] = useState<any>();
@@ -76,14 +77,15 @@ const ScheduleTab = (props: Props) => {
   // Get user enrollments in current season
   useEffect(() => {
     if (currentRegistration?._id && props.user) {
-      EnrollmentApi.REnrolllments({
-        season: currentRegistration.season,
-        student: props.user._id,
+      EnrollmentAPI.REnrollments({
+        query: { season: currentRegistration.season, student: props.user._id },
       })
-        .then((res) => {
-          setEnrollments(res);
+        .then(({ enrollments }) => {
+          setEnrollments(enrollments);
         })
-        .catch(() => {});
+        .catch((err) => {
+          ALERT_ERROR(err);
+        });
     }
   }, [currentRegistration, props.user]);
 

@@ -33,10 +33,10 @@ import QuickSearch from "../../components/quickSearch/QuickSearch";
 import Navbar from "../../layout/navbar/Navbar";
 import Schedule from "components/schedule/Schedule";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
+import useAPIv2 from "hooks/useAPIv2";
 
 const Home = () => {
-  const { EnrollmentApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
 
   const { currentUser, currentRegistration } = useAuth();
   const [enrollments, setEnrollments] = useState<any>();
@@ -103,12 +103,11 @@ const Home = () => {
 
   useEffect(() => {
     if (currentRegistration?._id) {
-      EnrollmentApi.REnrolllments({
-        season: currentRegistration.season,
-        student: currentUser._id,
+      EnrollmentAPI.REnrollments({
+        query: { season: currentRegistration.season, student: currentUser._id },
       })
-        .then((res) => {
-          setEnrollments(res);
+        .then(({ enrollments }) => {
+          setEnrollments(enrollments);
         })
         .catch(() => {});
     }

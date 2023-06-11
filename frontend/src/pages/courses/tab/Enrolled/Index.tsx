@@ -31,9 +31,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 // tab pages
 import style from "style/pages/courses/course.module.scss";
 
@@ -48,6 +46,7 @@ import _ from "lodash";
 
 import Navbar from "layout/navbar/Navbar";
 import Loading from "components/loading/Loading";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -55,7 +54,7 @@ const CourseEnrollment = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentRegistration, currentSeason } = useAuth();
   const navigate = useNavigate();
-  const { EnrollmentApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingEvaluation, setIsLoadingEvaluation] =
@@ -135,9 +134,9 @@ const CourseEnrollment = (props: Props) => {
   }, [currentUser, currentRegistration, currentSeason]);
 
   useEffect(() => {
-    if (isLoading) {
-      EnrollmentApi.REnrolllment(pid)
-        .then((enrollment) => {
+    if (isLoading && pid) {
+      EnrollmentAPI.REnrollment({ params: { _id: pid } })
+        .then(({ enrollment }) => {
           if (enrollment.season !== currentSeason._id) {
             navigate("/courses#수강신청%20현황", { replace: true });
           }
@@ -202,14 +201,14 @@ const CourseEnrollment = (props: Props) => {
               break;
             }
           }
-          EnrollmentApi.REnrolllments({ syllabus: enrollment.syllabus }).then(
-            (res: any) => {
-              setEnrollments(res);
-            }
-          );
+          EnrollmentAPI.REnrollments({
+            query: { syllabus: enrollment.syllabus },
+          }).then(({ enrollments }) => {
+            setEnrollments(enrollments);
+          });
         })
         .catch((err) => {
-          alert(err.response?.data?.message ?? "에러가 발생했습니다.");
+          ALERT_ERROR(err);
           navigate("/courses");
         });
     }
@@ -217,9 +216,9 @@ const CourseEnrollment = (props: Props) => {
   }, [isLoading]);
 
   useEffect(() => {
-    if (isLoadingEvaluation) {
-      EnrollmentApi.REnrolllment(pid)
-        .then((enrollment) => {
+    if (isLoadingEvaluation && pid) {
+      EnrollmentAPI.REnrollment({ params: { _id: pid } })
+        .then(({ enrollment }) => {
           setEnrollmentData(enrollment);
           setIsLoadingEvaluation(false);
         })
@@ -288,22 +287,24 @@ const CourseEnrollment = (props: Props) => {
                       text: "저장",
                       key: "evaluation",
                       onClick: (e: any) => {
+                        if (!pid) return;
                         const evaluation: any = {};
                         for (let obj of fieldEvaluationList) {
                           evaluation[obj.text] = e[obj.key];
                         }
-                        EnrollmentApi.UEvaluation({
-                          enrollment: pid,
-                          by: "student",
-                          data: evaluation,
+                        EnrollmentAPI.UEvaluation({
+                          params: {
+                            _id: pid,
+                          },
+                          data: {
+                            evaluation,
+                          },
                         })
-                          .then((res: any) => {
-                            alert("수정되었습니다.");
+                          .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             setIsLoadingEvaluation(true);
                           })
-                          .catch((err: any) =>
-                            alert(err.response.data.message)
-                          );
+                          .catch((err: any) => ALERT_ERROR(err));
                       },
                       type: "button",
 

@@ -36,4 +36,10 @@ export const MESSAGE = new Map<string, string>([
     "수강생이 있는 강의계획서(또는 강의실, 시간 및 승인 상태)는 수정(삭제)할 수 없습니다.",
   ],
   ["SYLLABUS_COUNT_EXCEEDS_LIMIT", "수강생 수가 수강정원을 초과합니다."],
+  ["SYLLABUS_NOT_FOUND", "강의계획서를 찾을 수 없습니다."],
+  ["ENROLLMENT_IN_USE", "이미 신청한 수업입니다."],
+  ["STUDENTS_FULL", "수강정원이 다 찼습니다."],
+  ["TIME_DUPLICATED", "시간표가 중복되었습니다."],
+  ["SYLLABUS_NOT_CONFIRMED", "승인되지 않은 수업입니다."],
+  ["PERMISSION_DENIED", "권한이 없습니다."],
 ]);

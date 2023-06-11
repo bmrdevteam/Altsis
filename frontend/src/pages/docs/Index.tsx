@@ -5,6 +5,7 @@ import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
+import useAPIv2 from "hooks/useAPIv2";
 import useApi from "hooks/useApi";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
@@ -13,8 +14,8 @@ import style from "style/pages/docs/docs.module.scss";
 type Props = {};
 
 function Docs({}: Props) {
-  const { RegistrationApi, ArchiveApi, FormApi, EnrollmentApi, DocumentApi } =
-    useApi();
+  const { ArchiveApi, FormApi, DocumentApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
@@ -35,10 +36,11 @@ function Docs({}: Props) {
 
     let processedEvaluationByYear: any = [];
 
-    const enrollments = await EnrollmentApi.REnrollmentWithEvaluations({
-      student: uid,
-      school: currentSchool.school,
-    });
+    const { enrollments: _enrollments } =
+      await EnrollmentAPI.REnrollmentsWithEvaluation({
+        query: { student: uid, school: currentSchool.school },
+      });
+    const enrollments = _enrollments as any[];
 
     for (const enrollment of enrollments) {
       const IdByYear = `${enrollment.year}${_.join(enrollment.subject)}`;
@@ -169,12 +171,15 @@ function Docs({}: Props) {
                 }),
             ]}
             onChange={(value: string | number) => {
+              if (value === "") return;
               setLoading(true);
-              const { rid, uid } = JSON.parse(`${value}`);
-              getDBData(rid, uid).then((res) => {
-                setDBData(res);
-                setLoading(false);
-              });
+              if (value !== "") {
+                const { rid, uid } = JSON.parse(`${value}`);
+                getDBData(rid, uid).then((res) => {
+                  setDBData(res);
+                  setLoading(false);
+                });
+              }
             }}
             placeholder={"검색"}
           />
