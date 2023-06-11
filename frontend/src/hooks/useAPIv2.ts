@@ -1616,6 +1616,22 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * DEnrollment API
+   * @description 수강 취소 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function DEnrollment(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `enrollments/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1703,6 +1719,7 @@ export default function useAPIv2() {
       UEnrollmentMemo,
       UHideEnrollmentFromCalendar,
       UShowEnrollmentOnCalendar,
+      DEnrollment,
     },
   };
 }

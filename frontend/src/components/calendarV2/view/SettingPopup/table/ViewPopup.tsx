@@ -31,7 +31,6 @@
  */
 import { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/courses/course.module.scss";
 
@@ -55,7 +54,6 @@ type Props = {
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
   const navigate = useNavigate();
-  const { EnrollmentApi } = useApi();
   const { SyllabusAPI, EnrollmentAPI } = useAPIv2();
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =

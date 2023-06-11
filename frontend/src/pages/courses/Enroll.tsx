@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -53,7 +52,6 @@ type Props = {};
 
 const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
-  const { EnrollmentApi } = useApi();
   const { SyllabusAPI, EnrollmentAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
@@ -277,14 +275,14 @@ const CourseEnroll = (props: Props) => {
                 key: "cancel",
                 type: "button",
                 onClick: (e: any) => {
-                  EnrollmentApi.DEnrollment(e.enrollment)
+                  EnrollmentAPI.DEnrollment({ params: { _id: e.enrollment } })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
                       setIsLoadingCourseList(true);
                       setIsLoadingEnrolledCourseList(true);
                     })
                     .catch((err) => {
-                      alert(err.response.data.message);
+                      ALERT_ERROR(err);
                     });
                 },
                 width: "72px",

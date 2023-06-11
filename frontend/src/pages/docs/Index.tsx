@@ -14,7 +14,7 @@ import style from "style/pages/docs/docs.module.scss";
 type Props = {};
 
 function Docs({}: Props) {
-  const { ArchiveApi, FormApi, EnrollmentApi, DocumentApi } = useApi();
+  const { ArchiveApi, FormApi, DocumentApi } = useApi();
   const { EnrollmentAPI } = useAPIv2();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
