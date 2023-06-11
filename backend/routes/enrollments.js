@@ -19,6 +19,6 @@ router.put("/:_id/memo", isLoggedIn, enrollments.updateMemo);
 router.put("/:_id/hide", isLoggedIn, enrollments.hideFromCalendar);
 router.put("/:_id/show", isLoggedIn, enrollments.showOnCalendar);
 
-router.delete("/:_id?", isLoggedIn, enrollments.remove);
+router.delete("/:_id", isLoggedIn, enrollments.remove);
 
 export { router };

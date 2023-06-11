@@ -29,7 +29,6 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
@@ -48,13 +47,13 @@ import Svg from "assets/svg/Svg";
 import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import Progress from "components/progress/Progress";
 
 type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { EnrollmentApi } = useApi();
   const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
   const navigate = useNavigate();
 
@@ -79,6 +78,9 @@ const CoursePid = (props: Props) => {
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
   const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
+
+  const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
+  const [ratio, setRatio] = useState<number>(0);
 
   const categories = () => {
     return (
@@ -130,6 +132,29 @@ const CoursePid = (props: Props) => {
         </div>
       </>
     );
+  };
+
+  const onClickRemoveHandler = async (e: any) => {
+    const enrollmentsToRemove = _.filter(enrollmentListRef.current, {
+      tableRowChecked: true,
+    });
+
+    if (enrollmentsToRemove.length === 0) return;
+    setRatio(0);
+    setStatusPopupActive(true);
+
+    for (let i = 0; i < enrollmentsToRemove.length; i++) {
+      try {
+        await EnrollmentAPI.DEnrollment({
+          params: {
+            _id: enrollmentsToRemove[i]._id,
+          },
+        });
+      } catch (err) {
+      } finally {
+        setRatio((i + 1) / enrollmentsToRemove.length);
+      }
+    }
   };
 
   useEffect(() => {
@@ -496,17 +521,7 @@ const CoursePid = (props: Props) => {
                     <>
                       <div
                         className={style.icon}
-                        onClick={(e: any) => {
-                          EnrollmentApi.DEnrollments(
-                            _.filter(enrollmentListRef.current, {
-                              tableRowChecked: true,
-                            }).map((e: any) => e._id)
-                          ).then(() => {
-                            alert(SUCCESS_MESSAGE);
-                            setIsLoadingSyllabus(true);
-                            setIsChecked(false);
-                          });
-                        }}
+                        onClick={onClickRemoveHandler}
                         style={{
                           display: "flex",
                           gap: "4px",
@@ -668,6 +683,37 @@ const CoursePid = (props: Props) => {
           courseData={syllabus}
           setIsEnrollmentListLoading={setIsEnrollmentsLoading}
         />
+      )}
+      {statusPopupActive && (
+        <Popup
+          setState={() => {}}
+          style={{ maxWidth: "640px", width: "100%" }}
+          title="초대 취소"
+          contentScroll
+        >
+          <div>
+            <Progress value={ratio} style={{ margin: "12px 0px" }} />
+            {ratio === 1 && (
+              <div>
+                <Button
+                  type={"ghost"}
+                  onClick={() => {
+                    setStatusPopupActive(false);
+                    setIsEnrollmentsLoading(true);
+                  }}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                    marginTop: "24px",
+                  }}
+                >
+                  확인
+                </Button>
+              </div>
+            )}
+          </div>
+        </Popup>
       )}
     </>
   );

@@ -179,37 +179,6 @@ export default function useApi() {
   }
 
   /**
-   * Enrollment Api
-   * ##########################################################################
-   */
-
-  /**
-   * Delete Enrollment
-   * @type DELETE
-   * @auth member
-   * @returns Enrollment
-   */
-  async function DEnrollment(id?: string) {
-    const result = await database.D({
-      location: "enrollments/" + id,
-    });
-    return result;
-  }
-
-  /**
-   * Delete Enrollments
-   * @type DELETE
-   * @auth member
-   * @returns Enrollment
-   */
-  async function DEnrollments(_ids: any[]) {
-    const _enrollments_ids = QUERY_SUB_BUILDER(_ids);
-    return await database.D({
-      location: "enrollments" + QUERY_BUILDER({ _ids: _enrollments_ids }),
-    });
-  }
-
-  /**
    * Archive Api
    * ##########################################################################
    */
@@ -379,10 +348,6 @@ export default function useApi() {
       CMemo,
       UMemo,
       DMemo,
-    },
-    EnrollmentApi: {
-      DEnrollment,
-      DEnrollments,
     },
     FormApi: {
       CForm,

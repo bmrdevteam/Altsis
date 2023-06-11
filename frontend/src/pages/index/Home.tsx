@@ -33,11 +33,9 @@ import QuickSearch from "../../components/quickSearch/QuickSearch";
 import Navbar from "../../layout/navbar/Navbar";
 import Schedule from "components/schedule/Schedule";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 import useAPIv2 from "hooks/useAPIv2";
 
 const Home = () => {
-  const { EnrollmentApi } = useApi();
   const { EnrollmentAPI } = useAPIv2();
 
   const { currentUser, currentRegistration } = useAuth();
