@@ -30,7 +30,6 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 
@@ -45,7 +44,6 @@ import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
 import { useNavigate } from "react-router-dom";
-import Button from "components/button/Button";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {
   setPopupActive: any;
@@ -55,7 +53,6 @@ type Props = {
 
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
-  const database = useDatabase();
   const navigate = useNavigate();
   const { EnrollmentApi } = useApi();
   const { SyllabusAPI } = useAPIv2();

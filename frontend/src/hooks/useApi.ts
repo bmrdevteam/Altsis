@@ -401,28 +401,6 @@ export default function useApi() {
    */
 
   /**
-   * Confirm Syllabus
-   * @type PUT
-   * @auth member
-   */
-  async function ConfirmSyllabus(_id: string) {
-    return await database.U({
-      location: `syllabuses/${_id}/confirmed`,
-      data: {},
-    });
-  }
-  /**
-   * Unconfirm Syllabus
-   * @type DELETE
-   * @auth member
-   */
-  async function UnconfirmSyllabus(_id: string) {
-    return await database.D({
-      location: `syllabuses/${_id}/confirmed`,
-    });
-  }
-
-  /**
    * Hide mentoring syllabus from calendar
    * @type PUT
    * @auth member(teacher)
@@ -610,8 +588,6 @@ export default function useApi() {
     },
     SyllabusApi: {
       DSyllabus,
-      ConfirmSyllabus,
-      UnconfirmSyllabus,
       UHideSyllabusFromCalendar,
       UShowSyllabusFromCalendar,
     },

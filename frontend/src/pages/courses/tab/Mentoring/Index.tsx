@@ -597,13 +597,15 @@ const CoursePid = (props: Props) => {
                     color: "red",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        SyllabusApi.ConfirmSyllabus(syllabus?._id)
+                        SyllabusAPI.UConfirmSyllabus({
+                          params: { _id: syllabus?._id },
+                        })
                           .then(() => {
                             alert(SUCCESS_MESSAGE);
                             setIsLoadingSyllabus(true);
                           })
                           .catch((err) => {
-                            alert("failed to confirm");
+                            ALERT_ERROR(err);
                           });
                       }
                     },
@@ -613,18 +615,20 @@ const CoursePid = (props: Props) => {
                     color: "green",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        if (enrollmentList && enrollmentList.length !== 0)
+                        if (syllabus?.count !== 0)
                           alert(
                             "수강신청한 학생이 있으면 승인을 취소할 수 없습니다."
                           );
                         else {
-                          SyllabusApi.UnconfirmSyllabus(syllabus?._id)
+                          SyllabusAPI.UCancleConfirmSyllabus({
+                            params: { _id: syllabus?._id },
+                          })
                             .then((res) => {
                               alert(SUCCESS_MESSAGE);
                               setIsLoadingSyllabus(true);
                             })
                             .catch((err) => {
-                              alert("failed to unconfirm");
+                              ALERT_ERROR(err);
                             });
                         }
                       }

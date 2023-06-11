@@ -10,8 +10,8 @@ import { isLoggedIn } from "../middleware/auth.js";
 router.post("/", isLoggedIn, syllabuses.create);
 router.get("/:_id?", isLoggedIn, syllabuses.find);
 
-router.put("/:_id/confirmed", isLoggedIn, syllabuses.confirm);
-router.delete("/:_id/confirmed", isLoggedIn, syllabuses.unconfirm);
+router.post("/:_id/confirmed", isLoggedIn, syllabuses.confirm);
+router.delete("/:_id/confirmed", isLoggedIn, syllabuses.cancelConfirm);
 
 router.put("/:_id", isLoggedIn, syllabuses.updateV2);
 router.put("/:_id/subject", isLoggedIn, syllabuses.updateSubject);

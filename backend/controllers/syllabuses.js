@@ -256,52 +256,87 @@ export const find = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function UConfirmSyllabus API
+ * @description 강의계획서 승인 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/syllabuses/:_id/confirm"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.syllabus - updated syllabus
+ *
+ */
 export const confirm = async (req, res) => {
   try {
-    // authentication
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.params._id
     );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
     for (let i = 0; i < syllabus.teachers.length; i++) {
       if (syllabus.teachers[i]._id.equals(req.user._id)) {
         syllabus.teachers[i].confirmed = true;
         await syllabus.save();
-        return res.status(200).send(syllabus);
+        return res.status(200).send({ syllabus });
       }
     }
-    return res
-      .status(403)
-      .send({ message: "you cannot confirm this syllabus" });
+    return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
 };
 
-export const unconfirm = async (req, res) => {
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function UCancelConfirmSyllabus API
+ * @description 강의계획서 승인 취소 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/syllabuses/:_id/confirm"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.syllabus - updated syllabus
+ *
+ */
+export const cancelConfirm = async (req, res) => {
   try {
-    // authentication
     const syllabus = await Syllabus(req.user.academyId).findById(
       req.params._id
     );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
 
     for (let i = 0; i < syllabus.teachers.length; i++) {
       if (syllabus.teachers[i]._id.equals(req.user._id)) {
-        const enrollments = await Enrollment(req.user.academyId).find({
-          syllabus: syllabus._id,
-        });
-        if (!_.isEmpty(enrollments)) {
+        if (syllabus.count > 0) {
           return res.status(409).send({
-            message: "수강신청한 학생이 있으면 승인을 취소할 수 없습니다.",
+            message: SYLLABUS_ENROLLED_ALREADY,
           });
         }
         syllabus.teachers[i].confirmed = false;
         await syllabus.save();
-        return res.status(200).send(syllabus);
+        return res.status(200).send({ syllabus });
       }
     }
-    return res
-      .status(403)
-      .send({ message: "you cannot unconfirm this syllabus" });
+    return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
     if (err) return res.status(500).send({ err: err.message });
   }
@@ -315,7 +350,7 @@ export const unconfirm = async (req, res) => {
  *
  * @param {Object} req
  *
- * @param {"POST"} req.method
+ * @param {"PUT"} req.method
  * @param {"/syllabuses/:_id"} req.url
  *
  * @param {Object} req.user
@@ -339,6 +374,7 @@ export const unconfirm = async (req, res) => {
  * | 403    | SYLLABUS_CONFIRMED_ALREADY | if syllabus is fully confirmed |
  * | 403    | SYLLABUS_ENROLLED_ALREADY | if syllabus has at least one enrollment |
  * | 409    | SYLLABUS_COUNT_EXCEEDS_LIMIT | if number of enrollments exeeds limit |
+ * | 409    | CLASSROOM_IN_USE | if classroom is in use  |
  *
  */
 export const updateV2 = async (req, res) => {
@@ -512,7 +548,7 @@ export const updateV2 = async (req, res) => {
  *
  * @param {Object} req
  *
- * @param {"POST"} req.method
+ * @param {"PUT"} req.method
  * @param {"/syllabuses/:_id"} req.url
  *
  * @param {Object} req.user

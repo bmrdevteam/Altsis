@@ -30,12 +30,10 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
 
 // components
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -48,7 +46,6 @@ type Props = {
 
 const StatusPopup = (props: Props) => {
   const { currentUser } = useAuth();
-  const { SyllabusApi } = useApi();
   const { SyllabusAPI } = useAPIv2();
 
   const [courseData, setCourseData] = useState<any>();
@@ -111,7 +108,9 @@ const StatusPopup = (props: Props) => {
                   color: "red",
                   onClick: (e) => {
                     if (props.isMentor && e._id === currentUser._id) {
-                      SyllabusApi.ConfirmSyllabus(props.course)
+                      SyllabusAPI.UConfirmSyllabus({
+                        params: { _id: props.course },
+                      })
                         .then(() => {
                           alert(SUCCESS_MESSAGE);
                           if (props.setIsLoading) {
@@ -120,7 +119,7 @@ const StatusPopup = (props: Props) => {
                           }
                         })
                         .catch((err) => {
-                          alert("failed to confirm");
+                          ALERT_ERROR(err);
                         });
                     }
                   },
@@ -130,7 +129,9 @@ const StatusPopup = (props: Props) => {
                   color: "green",
                   onClick: (e) => {
                     if (props.isMentor && e._id === currentUser._id) {
-                      SyllabusApi.UnconfirmSyllabus(props.course)
+                      SyllabusAPI.UCancleConfirmSyllabus({
+                        params: { _id: props.course },
+                      })
                         .then(() => {
                           alert(SUCCESS_MESSAGE);
                           e.confirmed = false;
@@ -139,8 +140,7 @@ const StatusPopup = (props: Props) => {
                           }
                         })
                         .catch((err) => {
-                          console.error(err);
-                          alert("failed to unconfirm");
+                          ALERT_ERROR(err);
                         });
                     }
                   },
