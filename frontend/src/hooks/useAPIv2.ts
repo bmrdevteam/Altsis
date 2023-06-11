@@ -1517,6 +1517,31 @@ export default function useAPIv2() {
     return { enrollment: enrollment as TEnrollment };
   }
 
+  /**
+   * REnrollmentsWithEvaluation API
+   * @description 평가 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function REnrollmentsWithEvaluation(props: {
+    query: {
+      syllabus?: string;
+      school?: string;
+      student?: string;
+    };
+  }) {
+    const { enrollments } = await database.R({
+      location: `enrollments/evaluations` + QUERY_BUILDER(props.query),
+    });
+    return {
+      enrollments: _.orderBy(
+        enrollments,
+        ["createdAt"],
+        ["asc"]
+      ) as TEnrollment[],
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1599,6 +1624,7 @@ export default function useAPIv2() {
       CEnrollment,
       REnrollments,
       REnrollment,
+      REnrollmentsWithEvaluation,
     },
   };
 }

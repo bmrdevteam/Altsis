@@ -55,7 +55,7 @@ const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { EnrollmentApi } = useApi();
-  const { SeasonAPI, SyllabusAPI } = useAPIv2();
+  const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
   const navigate = useNavigate();
 
   const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
@@ -248,16 +248,13 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isEnrollmentsLoading) {
-      EnrollmentApi.REnrollmentWithEvaluations({
-        syllabus: pid,
-      }).then((res: any) => {
+      EnrollmentAPI.REnrollmentsWithEvaluation({
+        query: { syllabus: pid },
+      }).then(({ enrollments }: any) => {
         setEnrollmentList(
-          _.sortBy(
-            res.map((enrollment: any) => {
-              return { ...enrollment, isModified: false };
-            }),
-            ["createdAt"]
-          )
+          enrollments.map((enrollment: any) => {
+            return { ...enrollment, isModified: false };
+          })
         );
         enrollmentListRef.current = [];
 
