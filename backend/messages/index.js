@@ -120,6 +120,26 @@ export const ALREADY_LOGGED_IN = "ALREADY_LOGGED_IN";
 export const PERMISSION_DENIED = "PERMISSION_DENIED";
 
 /**
+ * @tag 403 Forbidden
+ *
+ * @alias SYLLABUS_CONFIRMED_ALREADY
+ * @description 승인이 완료된 강의계획서는 수정할 수 없음
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const SYLLABUS_CONFIRMED_ALREADY = "SYLLABUS_CONFIRMED_ALREADY";
+
+/**
+ * @tag 403 Forbidden
+ *
+ * @alias SYLLABUS_IS_ENROLLED
+ * @description 수강생이 있는 강의계획서는 수정할 수 없음
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const SYLLABUS_ENROLLED_ALREADY = "SYLLABUS_ENROLLED_ALREADY";
+
+/**
  * -----------------------------------------
  * 404 Not Found
  * 리소스 없음
@@ -217,3 +237,23 @@ export const SEASON_ALREADY_ACTIVATED_FIRST = "SEASON_ALREADY_ACTIVATED_FIRST";
  * @memberof APIs._MESSAGE
  */
 export const REGISTRATION_IN_USE = "REGISTRATION_IN_USE";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias CLASSROOM_IN_USE
+ * @description 이미 사용 중인 강의실임
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const CLASSROOM_IN_USE = "CLASSROOM_IN_USE";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias SYLLABUS_COUNT_EXCEEDS_LIMIT
+ * @description syllabus.limit이 syllabus.count를 초과함
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const SYLLABUS_COUNT_EXCEEDS_LIMIT = "SYLLABUS_COUNT_EXCEEDS_LIMIT";

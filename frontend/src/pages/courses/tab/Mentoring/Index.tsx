@@ -47,15 +47,15 @@ import Svg from "assets/svg/Svg";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
-import useAPIv2 from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SyllabusApi, EnrollmentApi } = useApi();
-  const { SeasonAPI } = useAPIv2();
+  const { EnrollmentApi } = useApi();
+  const { SeasonAPI, SyllabusAPI } = useAPIv2();
   const navigate = useNavigate();
 
   const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
@@ -144,20 +144,20 @@ const CoursePid = (props: Props) => {
   }, [currentUser, currentSeason, currentRegistration]);
 
   useEffect(() => {
-    if (isLoadingSyllabus) {
-      SyllabusApi.RSyllabus(pid)
-        .then((result) => {
-          if (result.season !== currentSeason?._id) {
+    if (isLoadingSyllabus && pid) {
+      SyllabusAPI.RSyllabus({ params: { _id: pid } })
+        .then(({ syllabus }) => {
+          if (syllabus.season !== currentSeason?._id) {
             navigate("/courses#담당%20수업", { replace: true });
           }
 
-          setSyllabus(result);
+          setSyllabus(syllabus);
 
           // is this syllabus fully confirmed?
           // Is this user is mentor of this syllabus?
           let confirmedCnt = 0;
           let isMentor = false;
-          for (let teacher of result?.teachers) {
+          for (let teacher of syllabus?.teachers) {
             if (teacher.confirmed) {
               confirmedCnt += 1;
             }
@@ -168,7 +168,7 @@ const CoursePid = (props: Props) => {
           setConfirmedStatus(
             confirmedCnt === 0
               ? "notConfirmed"
-              : confirmedCnt === result?.teachers.length
+              : confirmedCnt === syllabus?.teachers.length
               ? "fullyConfirmed"
               : "semiConfirmed"
           );
@@ -176,7 +176,7 @@ const CoursePid = (props: Props) => {
             navigate("/courses#담당%20수업", { replace: true });
           }
 
-          SeasonAPI.RSeason({ params: { _id: result.season } }).then(
+          SeasonAPI.RSeason({ params: { _id: syllabus.season } }).then(
             ({ season }) => {
               let _formEvaluationHeader: any[] = [];
 
@@ -239,8 +239,7 @@ const CoursePid = (props: Props) => {
           setIsEnrollmentsLoading(true);
         })
         .catch((err) => {
-          console.log(err);
-          // alert(err.response.data.message);
+          ALERT_ERROR(err);
           navigate("/courses");
         });
     }
@@ -430,16 +429,13 @@ const CoursePid = (props: Props) => {
                           }`
                         ) === true
                       ) {
-                        SyllabusApi.DSyllabus(syllabus._id)
+                        SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
                           .then(() => {
                             alert(SUCCESS_MESSAGE);
                             navigate("/courses#담당%20수업");
                           })
                           .catch((err) => {
-                            alert(
-                              err?.response?.data?.message ??
-                                "에러가 발생했습니다."
-                            );
+                            ALERT_ERROR(err);
                           });
                       } else {
                         return false;
@@ -598,13 +594,15 @@ const CoursePid = (props: Props) => {
                     color: "red",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        SyllabusApi.ConfirmSyllabus(syllabus?._id)
+                        SyllabusAPI.UConfirmSyllabus({
+                          params: { _id: syllabus?._id },
+                        })
                           .then(() => {
                             alert(SUCCESS_MESSAGE);
                             setIsLoadingSyllabus(true);
                           })
                           .catch((err) => {
-                            alert("failed to confirm");
+                            ALERT_ERROR(err);
                           });
                       }
                     },
@@ -614,18 +612,20 @@ const CoursePid = (props: Props) => {
                     color: "green",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        if (enrollmentList && enrollmentList.length !== 0)
+                        if (syllabus?.count !== 0)
                           alert(
                             "수강신청한 학생이 있으면 승인을 취소할 수 없습니다."
                           );
                         else {
-                          SyllabusApi.UnconfirmSyllabus(syllabus?._id)
+                          SyllabusAPI.UCancleConfirmSyllabus({
+                            params: { _id: syllabus?._id },
+                          })
                             .then((res) => {
                               alert(SUCCESS_MESSAGE);
                               setIsLoadingSyllabus(true);
                             })
                             .catch((err) => {
-                              alert("failed to unconfirm");
+                              ALERT_ERROR(err);
                             });
                         }
                       }

@@ -20,6 +20,7 @@ import {
   TSeasonWithRegistrations,
 } from "types/seasons";
 import { TRegistration } from "types/registrations";
+import { TSyllabus } from "types/syllabuses";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -1250,6 +1251,210 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Syllabus API
+   * ##########################################################################
+   */
+
+  /**
+   * CSyllabus API
+   * @description 강의계획서 생성 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CSyllabus(props: {
+    data: {
+      season: string;
+      classTitle: string;
+      point: number;
+      subject: string[];
+      teachers: { _id: string; userId: string; userName: string }[];
+      classroom: string;
+      time: { label: string; day?: string; start?: string; end?: string }[];
+      info: any;
+      limit: number;
+    };
+  }) {
+    const { syllabus } = await database.C({
+      location: `syllabuses`,
+      data: props.data,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
+   * RSyllabuses API
+   * @description 강의계획서 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSyllabuses(props: {
+    query: {
+      season?: string;
+      classroom?: string;
+      confirmed?: boolean;
+      user?: string;
+      teacher?: string;
+      student?: string;
+    };
+  }) {
+    const { syllabuses, enrollments } = await database.R({
+      location: `syllabuses` + QUERY_BUILDER(props.query),
+    });
+    return { syllabuses: syllabuses as TSyllabus[], enrollments };
+  }
+
+  /**
+   * RSyllabuses API
+   * @description 강의계획서 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { syllabus } = await database.R({
+      location: `syllabuses/${props.params._id}`,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
+   * UConfirmSyllabus API
+   * @description 강의계획서 승인 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UConfirmSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { syllabus } = await database.C({
+      location: `syllabuses/${props.params._id}/confirmed`,
+      data: {},
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
+   * UCancleConfirmSyllabus API
+   * @description 강의계획서 승인 취소 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UCancleConfirmSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { syllabus } = await database.D({
+      location: `syllabuses/${props.params._id}/confirmed`,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
+   * USyllabus API
+   * @description 강의계획서 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function USyllabus(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      classTitle: string;
+      point: number;
+      subject: string[];
+      teachers: { _id: string; userId: string; userName: string }[];
+      classroom: string;
+      time: { label: string; day?: string; start?: string; end?: string }[];
+      info: any;
+      limit: number;
+    };
+  }) {
+    const { syllabus } = await database.U({
+      location: `syllabuses/${props.params._id}`,
+      data: props.data,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
+   * USyllabusSubject API
+   * @description 강의계획서 교과목 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function USyllabusSubject(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      subject: string[];
+    };
+  }) {
+    const { syllabus, changes } = await database.U({
+      location: `syllabuses/${props.params._id}/subject`,
+      data: props.data,
+    });
+    return { syllabus: syllabus as TSyllabus, changes };
+  }
+
+  /**
+   * UHideSyllabusFromCalendar API
+   * @description 캘린더(멘토링 수업)에서 숨김 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UHideSyllabusFromCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: "syllabuses/" + props.params._id + "/hide",
+      data: {},
+    });
+  }
+
+  /**
+   * UShowSyllabusOnCalendar API
+   * @description 캘린더(멘토링 수업)에서 조회 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UShowSyllabusOnCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: "syllabuses/" + props.params._id + "/show",
+      data: {},
+    });
+  }
+  /**
+   * DSyllabus API
+   * @description 강의계획서 삭제 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function DSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: "syllabuses/" + props.params._id,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1315,6 +1520,18 @@ export default function useAPIv2() {
       RRegistration,
       URegistration,
       DRegistration,
+    },
+    SyllabusAPI: {
+      CSyllabus,
+      RSyllabuses,
+      RSyllabus,
+      UConfirmSyllabus,
+      UCancleConfirmSyllabus,
+      USyllabus,
+      USyllabusSubject,
+      UHideSyllabusFromCalendar,
+      UShowSyllabusOnCalendar,
+      DSyllabus,
     },
   };
 }

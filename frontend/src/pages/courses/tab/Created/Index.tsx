@@ -31,7 +31,6 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
@@ -45,14 +44,14 @@ import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
-import Svg from "assets/svg/Svg";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SyllabusApi, EnrollmentApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -110,24 +109,24 @@ const CoursePid = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading) {
-      SyllabusApi.RSyllabus(pid)
-        .then((result) => {
-          setSyllabus(result);
+    if (isLoading && pid) {
+      SyllabusAPI.RSyllabus({ params: { _id: pid } })
+        .then(({ syllabus }) => {
+          setSyllabus(syllabus);
 
-          if (result.season !== currentSeason._id) {
+          if (syllabus.season !== currentSeason._id) {
             navigate("/courses#개설%20수업", { replace: true });
           }
-          if (_.find(result.teachers, { _id: currentUser._id })) {
-            navigate("/courses/mentoring/" + result._id, { replace: true });
+          if (_.find(syllabus.teachers, { _id: currentUser._id })) {
+            navigate("/courses/mentoring/" + syllabus._id, { replace: true });
           }
-          if (result.user !== currentUser._id) {
+          if (syllabus.user !== currentUser._id) {
             navigate("/courses#개설%20수업", { replace: true });
           }
 
           // is this syllabus fully confirmed?
           let confirmedCnt = 0;
-          for (let teacher of result?.teachers) {
+          for (let teacher of syllabus?.teachers) {
             if (teacher.confirmed) {
               confirmedCnt += 1;
             }
@@ -135,7 +134,7 @@ const CoursePid = (props: Props) => {
           setConfirmedStatus(
             confirmedCnt === 0
               ? "notConfirmed"
-              : confirmedCnt === result?.teachers.length
+              : confirmedCnt === syllabus?.teachers.length
               ? "fullyConfirmed"
               : "semiConfirmed"
           );
@@ -144,7 +143,7 @@ const CoursePid = (props: Props) => {
           setIsLoading(false);
         })
         .catch((err) => {
-          alert(err.response.data.message);
+          ALERT_ERROR(err);
           navigate("/courses");
         });
     }
@@ -220,15 +219,13 @@ const CoursePid = (props: Props) => {
               }}
               onClick={() => {
                 if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                  SyllabusApi.DSyllabus(syllabus._id)
+                  SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
                       navigate("/courses#개설%20수업");
                     })
                     .catch((err) => {
-                      alert(
-                        err?.response?.data?.message ?? "에러가 발생했습니다."
-                      );
+                      ALERT_ERROR(err);
                     });
                 } else {
                   return false;
@@ -284,13 +281,15 @@ const CoursePid = (props: Props) => {
                     color: "red",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        SyllabusApi.ConfirmSyllabus(syllabus?._id)
+                        SyllabusAPI.UConfirmSyllabus({
+                          params: { _id: syllabus?._id },
+                        })
                           .then(() => {
                             alert(SUCCESS_MESSAGE);
                             setIsLoading(true);
                           })
                           .catch((err) => {
-                            alert("failed to confirm");
+                            ALERT_ERROR(err);
                           });
                       }
                     },
@@ -300,24 +299,22 @@ const CoursePid = (props: Props) => {
                     color: "green",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        EnrollmentApi.REnrolllments({
-                          syllabus: syllabus._id,
-                        }).then((enrollments: any[]) => {
-                          if (enrollments.length !== 0) {
-                            alert(
-                              "수강신청한 학생이 있으면 승인을 취소할 수 없습니다."
-                            );
-                          } else {
-                            SyllabusApi.UnconfirmSyllabus(syllabus?._id)
-                              .then((res) => {
-                                alert(SUCCESS_MESSAGE);
-                                setIsLoading(true);
-                              })
-                              .catch((err) => {
-                                alert("failed to unconfirm");
-                              });
-                          }
-                        });
+                        if (syllabus?.count !== 0) {
+                          alert(
+                            "수강신청한 학생이 있으면 승인을 취소할 수 없습니다."
+                          );
+                        } else {
+                          SyllabusAPI.UCancleConfirmSyllabus({
+                            params: { _id: syllabus?._id },
+                          })
+                            .then((res) => {
+                              alert(SUCCESS_MESSAGE);
+                              setIsLoading(true);
+                            })
+                            .catch((err) => {
+                              ALERT_ERROR(err);
+                            });
+                        }
                       }
                     },
                   },

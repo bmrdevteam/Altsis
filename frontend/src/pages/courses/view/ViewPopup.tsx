@@ -30,7 +30,6 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 
@@ -45,7 +44,7 @@ import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
 import { useNavigate } from "react-router-dom";
-import Button from "components/button/Button";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {
   setPopupActive: any;
   course: string;
@@ -54,9 +53,9 @@ type Props = {
 
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
-  const database = useDatabase();
   const navigate = useNavigate();
   const { EnrollmentApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
@@ -115,11 +114,13 @@ const CourseView = (props: Props) => {
   };
 
   async function getCourse(_id: string) {
-    const res = await database.R({
-      location: `syllabuses/${props.course}`,
-    });
+    try {
+      const { syllabus } = await SyllabusAPI.RSyllabus({ params: { _id } });
 
-    return res;
+      return syllabus;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   useEffect(() => {

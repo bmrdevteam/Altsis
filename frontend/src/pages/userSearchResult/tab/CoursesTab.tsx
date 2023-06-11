@@ -7,6 +7,7 @@ import ViewPopup from "pages/courses/view/ViewPopup";
 import useApi from "hooks/useApi";
 import _ from "lodash";
 import { useEffect, useState } from "react";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   user: any;
@@ -280,7 +281,7 @@ const MyDesgins = (props: {
   user: any;
   showCourseDetail: Function;
 }) => {
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
   const { currentRegistration } = useAuth();
 
   const [courseList, setCourseList] = useState<any>();
@@ -289,11 +290,18 @@ const MyDesgins = (props: {
   );
 
   async function getCreatedCourseList() {
-    const { syllabuses } = await SyllabusApi.RSyllabuses({
-      season: currentRegistration.season,
-      user: props.user._id,
-    });
-    return syllabuses;
+    try {
+      const { syllabuses } = await SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration.season,
+          user: props.user._id,
+        },
+      });
+      return syllabuses;
+    } catch (err) {
+      ALERT_ERROR(err);
+      return [];
+    }
   }
 
   const structuring = (courseList: any[]) => {
@@ -377,7 +385,7 @@ const MyCourses = (props: {
   user: any;
   showCourseDetail: Function;
 }) => {
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
   const { currentRegistration } = useAuth();
 
   const [courseList, setCourseList] = useState<any[]>([]);
@@ -386,11 +394,18 @@ const MyCourses = (props: {
   );
 
   async function getCreatedCourseList() {
-    const { syllabuses } = await SyllabusApi.RSyllabuses({
-      season: currentRegistration.season,
-      teacher: props.user._id,
-    });
-    return syllabuses;
+    try {
+      const { syllabuses } = await SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration.season,
+          teacher: props.user._id,
+        },
+      });
+      return syllabuses;
+    } catch (err) {
+      ALERT_ERROR(err);
+      return [];
+    }
   }
 
   const structuring = (courseList: any[]) => {

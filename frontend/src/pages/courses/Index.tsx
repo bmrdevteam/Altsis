@@ -31,7 +31,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -45,12 +44,13 @@ import TimeTable from "./tab/TimeTableTab";
 import EnrolledCourseList from "./tab/Enrolled/List";
 import CreatedCourseList from "./tab/Created/List";
 import MentoringCourseList from "./tab/Mentoring/List";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
 const Course = (props: Props) => {
   const navigate = useNavigate();
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
@@ -58,15 +58,41 @@ const Course = (props: Props) => {
   const [createdCourseList, setCreatedCourseList] = useState<any[]>([]);
   const [mentoringCourseList, setMentoringCourseList] = useState<any[]>([]);
 
-  const updateCourses = () => {
-    SyllabusApi.RCourses({
-      season: currentRegistration.season,
-      user: currentUser._id,
-    }).then((res: any) => {
-      setEnrolledCourseList(res.enrolled);
-      setCreatedCourseList(res.created);
-      setMentoringCourseList(res.mentoring);
-    });
+  const updateCourses = async () => {
+    const [
+      { enrollments: enrolled, syllabuses: syllabusesEnrolled },
+      { syllabuses: created },
+      { syllabuses: mentoring },
+    ] = await Promise.all([
+      SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration.season,
+          student: currentUser._id,
+        },
+      }),
+      SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration.season,
+          user: currentUser._id,
+        },
+      }),
+      SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration.season,
+          teacher: currentUser._id,
+        },
+      }),
+    ]);
+    for (let syllabus of syllabusesEnrolled) {
+      const idx = _.findIndex(enrolled, { syllabus: syllabus._id });
+      if (idx !== -1) {
+        enrolled[idx].count = syllabus.count;
+      }
+    }
+
+    setEnrolledCourseList(enrolled);
+    setCreatedCourseList(created);
+    setMentoringCourseList(mentoring);
   };
 
   useEffect(() => {
