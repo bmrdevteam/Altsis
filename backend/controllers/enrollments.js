@@ -374,18 +374,42 @@ export const find = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function REnrollmentsWithEvaluation API
+ * @description 수강 정보 목록 평가와 함께 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/enrollments/evaluations"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.syllabus - ObjectId of syllabus
+ * @param {string?} req.query.school - ObjectId of school
+ * @param {string?} req.query.student - ObjectId of student
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object[]} res.enrollments
+ * @param {Object?} res.syllabus - if req.query.syllabus is used
+ *
+ */
 export const findEvaluations = async (req, res) => {
   try {
-    // evaluation 가져오는 권한 설정 필요
-    // if (req.user.userId != studentId) return res.status(401).send();
-
-    if (req.query.syllabus) {
+    if ("syllabus" in req.query) {
       const syllabus = await Syllabus(req.user.academyId).findById(
         req.query.syllabus
       );
-      if (!syllabus)
-        return res.status(404).send({ message: "syllabus not found" });
+      if (!syllabus) {
+        return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+      }
 
+      if (!_.find(syllabus.teachers, { _id: req.user._id })) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
       const enrollments = await Enrollment(req.user.academyId)
         .find({
           syllabus: req.query.syllabus,
@@ -408,11 +432,22 @@ export const findEvaluations = async (req, res) => {
         }),
       });
     }
+    if ("school" in req.query && "student" in req.query) {
+      if (
+        !(await Registration(req.user.academyId).findOne({
+          user: req.user._id,
+          role: "teacher",
+        }))
+      ) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
 
-    const enrollments = await Enrollment(req.user.academyId)
-      .find(req.query)
-      .select("-info");
-    return res.status(200).send({ enrollments });
+      const enrollments = await Enrollment(req.user.academyId)
+        .find({ school: req.query.school, student: req.query.student })
+        .select("-info");
+      return res.status(200).send({ enrollments });
+    }
+    return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

@@ -247,24 +247,6 @@ export default function useApi() {
   }
 
   /**
-   * Read Enrollment with Evaluations and Sort By 'createdAt'
-   * @type GET
-   * @auth member
-   * @returns Enrollments
-   */
-  async function REnrollmentWithEvaluations(params: {
-    syllabus?: string;
-    student?: string;
-    school?: string;
-  }) {
-    const { enrollments } = await database.R({
-      location: "enrollments/evaluations" + QUERY_BUILDER(params),
-    });
-    // return enrollments;
-    return _.orderBy(enrollments, ["createdAt"], ["asc"]);
-  }
-
-  /**
    * Update Evaluation
    * @type GET
    * @auth member
@@ -455,7 +437,6 @@ export default function useApi() {
     EnrollmentApi: {
       DEnrollment,
       DEnrollments,
-      REnrollmentWithEvaluations,
       UEvaluation,
       UEnrollmentMemo,
       UHideEnrollmentFromCalendar,

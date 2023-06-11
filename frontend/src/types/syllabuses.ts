@@ -2,6 +2,8 @@ export type TSyllabus = {
   _id: string;
   school: string;
   season: string;
+  year: string;
+  term: string;
   user: string;
   userId: string;
   userName: string;
