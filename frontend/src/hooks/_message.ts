@@ -27,4 +27,13 @@ export const MESSAGE = new Map<string, string>([
   ["FORM_LABEL_DUPLICATED", "양식에 중복된 항목이 있습니다."],
   ["REGISTRATION_IN_USE", "이미 등록되었습니다."],
   ["CLASSROOM_IN_USE", "해당 시간에 강의실이 사용 중입니다."],
+  [
+    "SYLLABUS_CONFIRMED_ALREADY",
+    "승인이 완료된 강의계획서는 수정할 수 없습니다.",
+  ],
+  [
+    "SYLLABUS_ENROLLED_ALREADY",
+    "수강생이 있는 강의계획서(또는 강의실 및 시간)는 수정할 수 없습니다.",
+  ],
+  ["SYLLABUS_COUNT_EXCEEDS_LIMIT", "수강생 수가 수강정원을 초과합니다."],
 ]);

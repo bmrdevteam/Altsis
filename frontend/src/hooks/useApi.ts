@@ -399,46 +399,6 @@ export default function useApi() {
    * Syllabus Api
    * ##########################################################################
    */
-  /**
-   * Update Syllabus
-   * @type PUT
-   * @auth member
-   */
-  async function USyllabus(props: {
-    _id: string;
-    data: {
-      classTitle: string;
-      point: number;
-      subject: string[];
-      teachers: any[];
-      classroom: string;
-      time: any[];
-      info: any;
-      limit: number;
-    };
-  }) {
-    return await database.U({
-      location: `syllabuses/${props._id}`,
-      data: props.data,
-    });
-  }
-
-  /**
-   * Update Syllabus subject
-   * @type PUT
-   * @auth member
-   */
-  async function USyllabusSubject(props: {
-    _id: string;
-    data: {
-      subject: string[];
-    };
-  }) {
-    return await database.U({
-      location: `syllabuses/${props._id}/subject`,
-      data: props.data,
-    });
-  }
 
   /**
    * Confirm Syllabus
@@ -649,8 +609,6 @@ export default function useApi() {
       UArchiveByRegistration,
     },
     SyllabusApi: {
-      USyllabus,
-      USyllabusSubject,
       DSyllabus,
       ConfirmSyllabus,
       UnconfirmSyllabus,
