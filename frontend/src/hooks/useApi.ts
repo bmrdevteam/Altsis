@@ -184,19 +184,6 @@ export default function useApi() {
    */
 
   /**
-   * Read Enrollment
-   * @type GET
-   * @auth member
-   * @returns Enrollment
-   */
-  async function REnrolllment(id?: string) {
-    const result = await database.R({
-      location: "enrollments/" + id,
-    });
-    return result;
-  }
-
-  /**
    * Update Enrollment memo
    * @type Post
    * @auth member
@@ -466,7 +453,6 @@ export default function useApi() {
       DMemo,
     },
     EnrollmentApi: {
-      REnrolllment,
       DEnrollment,
       DEnrollments,
       REnrollmentWithEvaluations,

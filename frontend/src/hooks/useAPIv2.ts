@@ -1483,7 +1483,7 @@ export default function useAPIv2() {
 
   /**
    * REnrollments API
-   * @description 수강 목록 조회 API
+   * @description 수강 정보 목록 조회 API
    * @version 2.0.0
    * @auth user
    */
@@ -1498,6 +1498,23 @@ export default function useAPIv2() {
       location: `enrollments` + QUERY_BUILDER(props.query),
     });
     return { enrollments: _.sortBy(enrollments, "createdAt") as TEnrollment[] };
+  }
+
+  /**
+   * REnrollment API
+   * @description 수강 정보 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function REnrollment(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { enrollment } = await database.R({
+      location: `enrollments/${props.params._id}`,
+    });
+    return { enrollment: enrollment as TEnrollment };
   }
 
   return {
@@ -1581,6 +1598,7 @@ export default function useAPIv2() {
     EnrollmentAPI: {
       CEnrollment,
       REnrollments,
+      REnrollment,
     },
   };
 }

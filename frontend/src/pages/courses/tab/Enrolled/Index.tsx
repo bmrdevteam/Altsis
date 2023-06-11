@@ -137,9 +137,9 @@ const CourseEnrollment = (props: Props) => {
   }, [currentUser, currentRegistration, currentSeason]);
 
   useEffect(() => {
-    if (isLoading) {
-      EnrollmentApi.REnrolllment(pid)
-        .then((enrollment) => {
+    if (isLoading && pid) {
+      EnrollmentAPI.REnrollment({ params: { _id: pid } })
+        .then(({ enrollment }) => {
           if (enrollment.season !== currentSeason._id) {
             navigate("/courses#수강신청%20현황", { replace: true });
           }
@@ -219,9 +219,9 @@ const CourseEnrollment = (props: Props) => {
   }, [isLoading]);
 
   useEffect(() => {
-    if (isLoadingEvaluation) {
-      EnrollmentApi.REnrolllment(pid)
-        .then((enrollment) => {
+    if (isLoadingEvaluation && pid) {
+      EnrollmentAPI.REnrollment({ params: { _id: pid } })
+        .then(({ enrollment }) => {
           setEnrollmentData(enrollment);
           setIsLoadingEvaluation(false);
         })
