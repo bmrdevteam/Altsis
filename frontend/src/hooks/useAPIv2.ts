@@ -1322,6 +1322,55 @@ export default function useAPIv2() {
     return { syllabus: syllabus as TSyllabus };
   }
 
+  /**
+   * USyllabus API
+   * @description 강의계획서 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function USyllabus(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      classTitle: string;
+      point: number;
+      subject: string[];
+      teachers: { _id: string; userId: string; userName: string }[];
+      classroom: string;
+      time: { label: string; day?: string; start?: string; end?: string }[];
+      info: any;
+      limit: number;
+    };
+  }) {
+    const { syllabus } = await database.U({
+      location: `syllabuses/${props.params._id}`,
+      data: props.data,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
+   * USyllabusSubject API
+   * @description 강의계획서 교과목 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function USyllabusSubject(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      subject: string[];
+    };
+  }) {
+    const { syllabus, changes } = await database.U({
+      location: `syllabuses/${props.params._id}/subject`,
+      data: props.data,
+    });
+    return { syllabus: syllabus as TSyllabus, changes };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1392,6 +1441,8 @@ export default function useAPIv2() {
       CSyllabus,
       RSyllabuses,
       RSyllabus,
+      USyllabus,
+      USyllabusSubject,
     },
   };
 }

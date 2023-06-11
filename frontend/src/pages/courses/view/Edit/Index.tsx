@@ -29,7 +29,6 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import useApi from "hooks/useApi";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
@@ -54,7 +53,6 @@ const CoursePid = (props: Props) => {
   const byMentor = searchParams.get("byMentor") === "true";
   const strictMode = searchParams.get("strictMode") === "true";
 
-  const { SyllabusApi } = useApi();
   const { SyllabusAPI } = useAPIv2();
 
   const navigate = useNavigate();
@@ -87,8 +85,8 @@ const CoursePid = (props: Props) => {
   const [changesPoupActive, setChangesPopupActive] = useState<boolean>(false);
 
   async function update() {
-    const res1 = await SyllabusApi.USyllabus({
-      _id: courseData._id,
+    const res1 = await SyllabusAPI.USyllabus({
+      params: { _id: courseData._id },
       data: {
         classTitle: courseTitle,
         point: Number(coursePoint),
@@ -101,8 +99,8 @@ const CoursePid = (props: Props) => {
       },
     });
     const res2 = strictMode
-      ? await SyllabusApi.USyllabusSubject({
-          _id: courseData._id,
+      ? await SyllabusAPI.USyllabusSubject({
+          params: { _id: courseData._id },
           data: {
             subject: courseSubject,
           },
