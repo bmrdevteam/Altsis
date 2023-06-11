@@ -283,7 +283,7 @@ export const enroll = async (req, res) => {
 /**
  * @memberof APIs.EnrollmentAPI
  * @function REnrollments API
- * @description 수강 목록 조회 API
+ * @description 수강 정보 목록 조회 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -302,20 +302,54 @@ export const enroll = async (req, res) => {
  * @param {Object[]} res.enrollments
  *
  */
+
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function REnrollment API
+ * @description 수강 정보 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/enrollments/:_id"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.enrollment
+ *
+ */
 export const find = async (req, res) => {
   try {
-    // find by enrollment _id (only student can view)
     if (req.params._id) {
       const enrollment = await Enrollment(req.user.academyId).findById(
         req.params._id
       );
-      if (!enrollment)
-        return res.status(404).send({ message: "enrollment not found" });
+      if (!enrollment) {
+        return res.status(404).send({ message: __NOT_FOUND("enrollment") });
+      }
 
-      // if (enrollment.studentId != req.user.userId)
-      //   return res.status(401).send(); 임시적으로 권한 허용
+      if (!enrollment.student.equals(req.user._id)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
 
-      return res.status(200).send(enrollment);
+      const registration = await Registration(req.user.academyId).findOne({
+        season: enrollment.season,
+        user: req.user._id,
+      });
+      if (!registration) {
+        return res.status(404).send({ message: __NOT_FOUND("registration") });
+      }
+      const evaluation = {};
+      for (let item of registration.formEvaluation) {
+        if (item.auth.view.student) {
+          evaluation[item.label] = enrollment.evaluation[item.label];
+        }
+      }
+      enrollment.evaluation = evaluation;
+
+      return res.status(200).send({ enrollment });
     }
 
     const query = {};
