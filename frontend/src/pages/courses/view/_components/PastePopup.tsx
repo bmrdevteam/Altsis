@@ -29,41 +29,36 @@
  *
  */
 import { useEffect, useState } from "react";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/courses/course.module.scss";
 
 // components
-import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 
-import EditorParser from "editor/EditorParser";
-
 import _ from "lodash";
-import { useNavigate } from "react-router-dom";
-import Button from "components/button/Button";
+import useAPIv2 from "hooks/useAPIv2";
+
 type Props = {
   setPopupActive: any;
   pasteFunc: any;
 };
 
-const CourseView = (props: Props) => {
+const Index = (props: Props) => {
   const { currentUser } = useAuth();
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [syllabuses, setSyllabuses] = useState<any[]>([]);
 
   useEffect(() => {
     if (isLoading) {
-      SyllabusApi.RSyllabuses({ user: currentUser?._id })
-        .then((res) => {
+      SyllabusAPI.RSyllabuses({ query: { user: currentUser?._id } })
+        .then(({ syllabuses }) => {
           setSyllabuses(
             _.orderBy(
-              res.syllabuses,
+              syllabuses,
               ["year", "term", "subject", "classTitle"],
               ["desc", "desc", "asc", "asc"]
             )
@@ -146,4 +141,4 @@ const CourseView = (props: Props) => {
   );
 };
 
-export default CourseView;
+export default Index;
