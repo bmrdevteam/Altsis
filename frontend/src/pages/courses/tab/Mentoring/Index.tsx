@@ -318,12 +318,13 @@ const CoursePid = (props: Props) => {
               for (let obj of fieldEvaluationList) {
                 evaluation[obj.text] = e[obj.key];
               }
-              EnrollmentApi.UEvaluation({
-                enrollment: e._id,
-                by: "mentor",
-                data: evaluation,
+              EnrollmentAPI.UEvaluation({
+                params: {
+                  _id: e._id,
+                },
+                data: { evaluation },
               })
-                .then((res: any) => {
+                .then(() => {
                   alert(SUCCESS_MESSAGE);
                   if (enrollmentListRef.current.length !== 0) {
                     enrollmentListRef.current[e.tableRowIndex - 1].isModified =
@@ -332,7 +333,7 @@ const CoursePid = (props: Props) => {
                   }
                 })
                 .catch((err: any) => {
-                  alert(err?.response?.data?.message ?? "저장에 실패했습니다.");
+                  ALERT_ERROR(err);
                 });
             },
           },

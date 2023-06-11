@@ -31,9 +31,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 // tab pages
 import style from "style/pages/courses/course.module.scss";
 
@@ -56,7 +54,6 @@ const CourseEnrollment = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentRegistration, currentSeason } = useAuth();
   const navigate = useNavigate();
-  const { EnrollmentApi } = useApi();
   const { EnrollmentAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -290,22 +287,24 @@ const CourseEnrollment = (props: Props) => {
                       text: "저장",
                       key: "evaluation",
                       onClick: (e: any) => {
+                        if (!pid) return;
                         const evaluation: any = {};
                         for (let obj of fieldEvaluationList) {
                           evaluation[obj.text] = e[obj.key];
                         }
-                        EnrollmentApi.UEvaluation({
-                          enrollment: pid,
-                          by: "student",
-                          data: evaluation,
+                        EnrollmentAPI.UEvaluation({
+                          params: {
+                            _id: pid,
+                          },
+                          data: {
+                            evaluation,
+                          },
                         })
-                          .then((res: any) => {
-                            alert("수정되었습니다.");
+                          .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             setIsLoadingEvaluation(true);
                           })
-                          .catch((err: any) =>
-                            alert(err.response.data.message)
-                          );
+                          .catch((err: any) => ALERT_ERROR(err));
                       },
                       type: "button",
 
