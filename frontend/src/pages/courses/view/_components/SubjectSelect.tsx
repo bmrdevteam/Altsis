@@ -58,16 +58,22 @@ const SubjectSelect = (props: Props) => {
       for (let i = 1; i < props.subjectLabelList.length; i++) {
         data[props.subjectLabelList[i]].options = [
           { text: "", value: "" },
-          ..._.filter(props.subjectDataList, (rawData) => {
-            for (let j = 0; j < i; j++) {
-              if (rawData[j] !== data[props.subjectLabelList[j]].selectedValue)
-                return false;
-            }
-            return true;
-          }).map((rawData) => {
+          ...Array.from(
+            new Set(
+              _.filter(props.subjectDataList, (rawData) => {
+                for (let j = 0; j < i; j++) {
+                  if (
+                    rawData[j] !== data[props.subjectLabelList[j]].selectedValue
+                  )
+                    return false;
+                }
+                return true;
+              }).map((rawData) => rawData[i])
+            )
+          ).map((label) => {
             return {
-              text: rawData[i],
-              value: rawData[i],
+              text: label,
+              value: label,
             };
           }),
         ];
@@ -103,19 +109,23 @@ const SubjectSelect = (props: Props) => {
                   selectedValue: "",
                   options: [
                     { text: "", value: "" },
-                    ..._.filter(props.subjectDataList, (rawData) => {
-                      for (let i = 0; i <= idx; i++) {
-                        if (
-                          rawData[i] !==
-                          data[props.subjectLabelList[i]].selectedValue
-                        )
-                          return false;
-                      }
-                      return true;
-                    }).map((rawData) => {
+                    ...Array.from(
+                      new Set(
+                        _.filter(props.subjectDataList, (rawData) => {
+                          for (let i = 0; i <= idx; i++) {
+                            if (
+                              rawData[i] !==
+                              data[props.subjectLabelList[i]].selectedValue
+                            )
+                              return false;
+                          }
+                          return true;
+                        }).map((rawData) => rawData[idx + 1])
+                      )
+                    ).map((label) => {
                       return {
-                        text: rawData[idx + 1],
-                        value: rawData[idx + 1],
+                        text: label,
+                        value: label,
                       };
                     }),
                   ],
