@@ -3,6 +3,7 @@ import { useAuth } from "contexts/authContext";
 import CourseTable from "../table/CourseTable";
 import useApi from "hooks/useApi";
 import { useEffect, useState } from "react";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   setIsReloadRequired: React.Dispatch<React.SetStateAction<boolean>>;
@@ -11,6 +12,7 @@ type Props = {
 const Index = (props: Props) => {
   const { currentUser, currentSeason } = useAuth();
   const { EnrollmentApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [enrollmentMap, setEnrollmentMap] = useState<Map<string, any>>(
@@ -51,14 +53,15 @@ const Index = (props: Props) => {
 
   useEffect(() => {
     if (isLoading && currentSeason?._id && currentUser?._id) {
-      EnrollmentApi.REnrolllments({
-        season: currentSeason._id,
-        student: currentUser._id,
-      }).then((res) => {
+      EnrollmentAPI.REnrollments({
+        query: { season: currentSeason._id, student: currentUser._id },
+      }).then(({ enrollments }) => {
         const enrollmentMap = new Map<string, any>();
-        for (let enrollment of res) {
-          enrollment.tableRowChecked = !enrollment.isHiddenFromCalendar;
-          enrollmentMap.set(enrollment._id, enrollment);
+        for (let enrollment of enrollments) {
+          enrollmentMap.set(enrollment._id, {
+            ...enrollment,
+            tableRowChecked: !enrollment.isHiddenFromCalendar,
+          });
         }
         setEnrollmentMap(enrollmentMap);
         setIsLoading(false);

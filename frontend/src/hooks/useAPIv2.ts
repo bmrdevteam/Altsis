@@ -21,6 +21,7 @@ import {
 } from "types/seasons";
 import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
+import { TEnrollment } from "types/enrollments";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -1480,6 +1481,25 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * REnrollments API
+   * @description 수강 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function REnrollments(props: {
+    query: {
+      syllabus?: string;
+      season?: string;
+      student?: string;
+    };
+  }) {
+    const { enrollments } = await database.R({
+      location: `enrollments` + QUERY_BUILDER(props.query),
+    });
+    return { enrollments: _.sortBy(enrollments, "createdAt") as TEnrollment[] };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1560,6 +1580,7 @@ export default function useAPIv2() {
     },
     EnrollmentAPI: {
       CEnrollment,
+      REnrollments,
     },
   };
 }

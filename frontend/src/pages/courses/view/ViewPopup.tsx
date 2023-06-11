@@ -31,7 +31,6 @@
  */
 import { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/courses/course.module.scss";
 
@@ -54,8 +53,7 @@ type Props = {
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
   const navigate = useNavigate();
-  const { EnrollmentApi } = useApi();
-  const { SyllabusAPI } = useAPIv2();
+  const { SyllabusAPI, EnrollmentAPI } = useAPIv2();
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
@@ -146,9 +144,9 @@ const CourseView = (props: Props) => {
           : "semiConfirmed"
       );
 
-      EnrollmentApi.REnrolllments({ syllabus: props.course }).then(
-        (res: any) => {
-          setEnrollments(_.sortBy(res, ["createdAt"]));
+      EnrollmentAPI.REnrollments({ query: { syllabus: props.course } }).then(
+        ({ enrollments }: any) => {
+          setEnrollments(enrollments);
         }
       );
     }

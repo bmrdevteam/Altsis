@@ -91,31 +91,29 @@ const CourseEnroll = (props: Props) => {
   }
 
   async function getEnrolledCourseList() {
-    const myEnrollments = await EnrollmentApi.REnrolllments({
-      season: currentRegistration?.season,
-      student: currentUser?._id,
-    });
+    const { enrollments: myEnrollments, syllabuses: mySyllabuses } =
+      await SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration?.season,
+          student: currentUser?._id,
+        },
+      });
 
     if (myEnrollments.length === 0) return [];
 
-    const sylEnrollments = await EnrollmentApi.REnrolllments({
-      syllabuses: myEnrollments.map((e: any) => e.syllabus),
-    });
-
-    const cnt = _.countBy(
-      sylEnrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
+    const syllabuses = [];
     // enrollments to syllabus
-    const syllabuses = myEnrollments.map((e: any) => {
-      return {
-        ...e,
-        enrollment: e._id,
-        _id: e.syllabus,
-        count_limit: `${cnt[e.syllabus] || 0}/${e.limit}`,
-      };
-    });
-
+    for (let syllabus of mySyllabuses) {
+      const eIdx = _.findIndex(myEnrollments, { syllabus: syllabus._id });
+      if (eIdx !== -1) {
+        syllabuses.push({
+          ...myEnrollments[eIdx],
+          _id: syllabus._id,
+          enrollment: myEnrollments[eIdx]._id,
+          count_limit: `${syllabus.count}/${syllabus.limit}`,
+        });
+      }
+    }
     return syllabuses;
   }
 

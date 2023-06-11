@@ -4,11 +4,11 @@ import { useAuth } from "contexts/authContext";
 import Table from "components/table/Table";
 import style from "style/pages/myaccount/myaccount.module.scss";
 import useDatabase from "hooks/useDatabase";
-import useApi from "hooks/useApi";
+import useAPIv2 from "hooks/useAPIv2";
 
 const Overview = () => {
   const { currentUser, currentSeason } = useAuth();
-  const { EnrollmentApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
   const database = useDatabase();
   const [Enrollments, setEnrollments] = useState<any>();
   const [courses, setCourses] = useState<any>();
@@ -18,11 +18,10 @@ const Overview = () => {
     if (currentSeason === null || currentSeason === undefined) {
       setAlertPopupActive(true);
     } else {
-      EnrollmentApi.REnrolllments({
-        season: currentSeason._id,
-        student: currentUser._id,
-      }).then((res) => {
-        setEnrollments(res);
+      EnrollmentAPI.REnrollments({
+        query: { season: currentSeason._id, student: currentUser._id },
+      }).then(({ enrollments }) => {
+        setEnrollments(enrollments);
       });
     }
   }, [currentSeason]);
