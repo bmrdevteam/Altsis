@@ -242,7 +242,7 @@ export const find = async (req, res) => {
         .select(["-evaluation", "-info"]);
 
       const syllabuses = await Syllabus(req.user.academyId)
-        .find({ $in: enrollments.map((e) => e.syllabus) })
+        .find({ _id: { $in: enrollments.map((e) => e.syllabus) } })
         .select("-info");
       return res.status(200).send({ syllabuses, enrollments });
     }
