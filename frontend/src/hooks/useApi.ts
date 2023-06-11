@@ -247,23 +247,6 @@ export default function useApi() {
   }
 
   /**
-   * Update Evaluation
-   * @type GET
-   * @auth member
-   * @returns Enrollments
-   */
-  async function UEvaluation(props: {
-    enrollment?: string;
-    by: "mentor" | "student";
-    data: any;
-  }) {
-    return await database.U({
-      location: `enrollments/${props.enrollment}/evaluation2?by=${props.by}`,
-      data: { new: props.data },
-    });
-  }
-
-  /**
    * Archive Api
    * ##########################################################################
    */
@@ -437,7 +420,6 @@ export default function useApi() {
     EnrollmentApi: {
       DEnrollment,
       DEnrollments,
-      UEvaluation,
       UEnrollmentMemo,
       UHideEnrollmentFromCalendar,
       UShowEnrollmentFromCalendar,

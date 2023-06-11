@@ -377,7 +377,7 @@ export const find = async (req, res) => {
 /**
  * @memberof APIs.EnrollmentAPI
  * @function REnrollmentsWithEvaluation API
- * @description 수강 정보 목록 평가와 함께 조회 API
+ * @description 평가 목록 조회 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -454,38 +454,61 @@ export const findEvaluations = async (req, res) => {
   }
 };
 
-export const updateEvaluation2 = async (req, res) => {
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function UEvaluation API
+ * @description 평가 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/enrollments/:_id/evaluation"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ * @param {Object} req.body.evaluation
+ *
+ * @param {Object} res
+ *
+ */
+export const updateEvaluation = async (req, res) => {
   try {
-    if (req.query.by !== "mentor" && req.query.by !== "student")
-      return res
-        .status(400)
-        .send({ message: `req.query.by is ${req.query.by}` });
+    if (!("evaluation" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("evaluation") });
+    }
 
     const enrollment = await Enrollment(req.user.academyId).findById(
       req.params._id
     );
-    if (!enrollment)
-      return res.status(404).send({ message: "enrollment not found" });
+    if (!enrollment) {
+      return res.status(404).send({ message: __NOT_FOUND("enrollment") });
+    }
 
-    if (
-      (req.query.by === "mentor" &&
-        !_.find(enrollment.teachers, { _id: req.user._id })) ||
-      (req.query.by === "student" && !enrollment.student.equals(req.user._id))
-    )
-      return res.status(401).send({
-        message: "you are not a mentor or student of this enrollment",
-      });
+    let byMentor = false;
+    let byStudent = false;
+    if (_.find(enrollment.teachers, { _id: req.user._id })) {
+      byMentor = true;
+    }
+    if (enrollment.student.equals(req.user._id)) {
+      byStudent = true;
+    }
+    if (!byMentor && !byStudent) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     // 유저 권한 확인
     const registration = await Registration(req.user.academyId).findOne({
       season: enrollment.season,
       user: req.user._id,
     });
-    if (!registration)
-      return res.status(404).send({ message: "registration not found" });
-
-    if (!registration?.permissionEvaluationV2)
-      return res.status(409).send({ message: "you have no permission" });
+    if (!registration) {
+      return res.status(404).send({ message: __NOT_FOUND("registration") });
+    }
+    if (!registration.permissionEvaluationV2) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
     const enrollmentsByTerm = await Enrollment(req.user.academyId)
       .find({
@@ -507,21 +530,30 @@ export const updateEvaluation2 = async (req, res) => {
       })
       .select("+evaluation");
 
-    for (let label in req.body.new) {
+    for (let label in req.body.evaluation) {
       const obj = _.find(registration.formEvaluation, { label });
-      if (obj.auth.edit[req.query.by === "mentor" ? "teacher" : "student"]) {
+      if (
+        (byMentor && obj?.auth.edit["teacher"]) ||
+        (byStudent && obj?.auth.edit["student"])
+      ) {
         enrollment.evaluation = {
           ...enrollment.evaluation,
-          [label]: req.body.new[label],
+          [label]: req.body.evaluation[label],
         };
         if (obj.combineBy === "term") {
           for (let e of enrollmentsByTerm)
-            Object.assign(e.evaluation || {}, { [label]: req.body.new[label] });
+            Object.assign(e.evaluation || {}, {
+              [label]: req.body.evaluation[label],
+            });
         } else {
           for (let e of enrollmentsByTerm)
-            Object.assign(e.evaluation || {}, { [label]: req.body.new[label] });
+            Object.assign(e.evaluation || {}, {
+              [label]: req.body.evaluation[label],
+            });
           for (let e of enrollmentsByYear)
-            Object.assign(e.evaluation || {}, { [label]: req.body.new[label] });
+            Object.assign(e.evaluation || {}, {
+              [label]: req.body.evaluation[label],
+            });
         }
       }
     }
@@ -530,13 +562,8 @@ export const updateEvaluation2 = async (req, res) => {
     for (let e of [enrollment, ...enrollmentsByTerm, ...enrollmentsByYear]) {
       await e.save();
     }
-    // await Promise.all([
-    //   [enrollment, ...enrollmentsByTerm, ...enrollmentsByYear].map(
-    //     (e) => e.save
-    //   ),
-    // ]);
 
-    return res.status(200).send(enrollment);
+    return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

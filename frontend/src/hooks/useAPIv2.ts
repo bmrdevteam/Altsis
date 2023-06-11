@@ -1531,7 +1531,7 @@ export default function useAPIv2() {
     };
   }) {
     const { enrollments } = await database.R({
-      location: `enrollments/evaluations` + QUERY_BUILDER(props.query),
+      location: `enrollments/evaluation` + QUERY_BUILDER(props.query),
     });
     return {
       enrollments: _.orderBy(
@@ -1540,6 +1540,26 @@ export default function useAPIv2() {
         ["asc"]
       ) as TEnrollment[],
     };
+  }
+
+  /**
+   * UEvaluation API
+   * @description 평가 수정 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UEvaluation(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      evaluation: { [key: string]: string };
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/evaluation`,
+      data: props.data,
+    });
   }
 
   return {
@@ -1625,6 +1645,7 @@ export default function useAPIv2() {
       REnrollments,
       REnrollment,
       REnrollmentsWithEvaluation,
+      UEvaluation,
     },
   };
 }
