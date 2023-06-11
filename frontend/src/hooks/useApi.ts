@@ -394,47 +394,6 @@ export default function useApi() {
     });
     return archive;
   }
-
-  /**
-   * Syllabus Api
-   * ##########################################################################
-   */
-
-  /**
-   * Hide mentoring syllabus from calendar
-   * @type PUT
-   * @auth member(teacher)
-   */
-  async function UHideSyllabusFromCalendar(props: { _id: string }) {
-    return await database.U({
-      location: "syllabuses/" + props._id + "/hide",
-      data: {},
-    });
-  }
-
-  /**
-   * Show mentoring syllabus on calendar
-   * @type PUT
-   * @auth member(teacher)
-   */
-  async function UShowSyllabusFromCalendar(props: { _id: string }) {
-    return await database.U({
-      location: "syllabuses/" + props._id + "/show",
-      data: {},
-    });
-  }
-
-  /**
-   * Delete Syllabus
-   * @type Delete
-   * @auth member
-   */
-  async function DSyllabus(_id: string) {
-    return await database.D({
-      location: `syllabuses/${_id}`,
-    });
-  }
-
   /**
    * Notification Api
    * ##########################################################################
@@ -585,11 +544,6 @@ export default function useApi() {
     ArchiveApi: {
       RArchiveByRegistration,
       UArchiveByRegistration,
-    },
-    SyllabusApi: {
-      DSyllabus,
-      UHideSyllabusFromCalendar,
-      UShowSyllabusFromCalendar,
     },
     NotificationApi: {
       SendNotifications,

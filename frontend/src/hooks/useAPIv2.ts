@@ -1406,6 +1406,55 @@ export default function useAPIv2() {
     return { syllabus: syllabus as TSyllabus, changes };
   }
 
+  /**
+   * UHideSyllabusFromCalendar API
+   * @description 캘린더(멘토링 수업)에서 숨김 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UHideSyllabusFromCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: "syllabuses/" + props.params._id + "/hide",
+      data: {},
+    });
+  }
+
+  /**
+   * UShowSyllabusOnCalendar API
+   * @description 캘린더(멘토링 수업)에서 조회 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UShowSyllabusOnCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: "syllabuses/" + props.params._id + "/show",
+      data: {},
+    });
+  }
+  /**
+   * DSyllabus API
+   * @description 강의계획서 삭제 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function DSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: "syllabuses/" + props.params._id,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1480,6 +1529,9 @@ export default function useAPIv2() {
       UCancleConfirmSyllabus,
       USyllabus,
       USyllabusSubject,
+      UHideSyllabusFromCalendar,
+      UShowSyllabusOnCalendar,
+      DSyllabus,
     },
   };
 }

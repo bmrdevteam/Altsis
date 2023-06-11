@@ -53,7 +53,7 @@ type Props = {};
 
 const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
-  const { SyllabusApi, EnrollmentApi } = useApi();
+  const { EnrollmentApi } = useApi();
   const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
