@@ -477,6 +477,10 @@ const CoursePid = (props: Props) => {
                           alert(
                             "수업이 승인되지 않아 학생을 초대할 수 없습니다."
                           );
+                        } else if (
+                          !currentRegistration?.permissionEnrollmentV2
+                        ) {
+                          alert("수업 초대 권한이 없습니다.");
                         } else {
                           setEnrollBulkPopupActive(true);
                         }

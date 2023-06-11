@@ -1,36 +1,36 @@
 /**
- * @title Version 5
- * @subTitle waiting order
- *
- * @description
- * Use socket to notify waiting order
- *
+ * EnrollmentAPI namespace
+ * @namespace APIs.EnrollmentAPI
  */
-import { logger } from "../log/logger.js";
+
 import { Enrollment, Syllabus, Registration } from "../models/index.js";
-import _ from "lodash";
 import { getIoEnrollment } from "../utils/webSocket.js";
-
-/* promise queue library */
+import { logger } from "../log/logger.js";
 import PQueue from "p-queue";
+import _ from "lodash";
+import {
+  FIELD_INVALID,
+  FIELD_IN_USE,
+  FIELD_REQUIRED,
+  PERMISSION_DENIED,
+  STUDENTS_FULL,
+  SYLLABUS_NOT_CONFIRMED,
+  TIME_DUPLICATED,
+  __NOT_FOUND,
+} from "../messages/index.js";
 
-// create a new queue, and pass how many you want to exec at once
-const queue = new PQueue({ concurrency: 1 });
-
-let taskRequested = 0;
-let taskCompleted = 0;
-let taskActivated = 0;
-
-queue.on("active", () => {
-  taskActivated += 1;
-  // console.log(`Task #${taskActivated} is activated`);
-});
-
-// regardless of whether the task completed normally or with an error.
-queue.on("next", () => {
-  taskCompleted += 1;
-  // console.log(`Task #${taskCompleted} is completed`);
-});
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | ENROLLMENT_NOT_FOUND | if enrollment is not found  |
+ */
 
 const isTimeOverlapped = (enrollments, syllabus) => {
   const unavailableTime = _.flatten(
@@ -44,10 +44,31 @@ const isTimeOverlapped = (enrollments, syllabus) => {
   return unavailableTimeLabels.length != 0;
 };
 
+// create a new queue, and pass how many you want to exec at once
+const queue = new PQueue({ concurrency: 1 });
+
+let taskRequested = 0;
+let taskCompleted = 0;
+let taskActivated = 0;
+
+// active event handler
+queue.on("active", () => {
+  taskActivated += 1;
+  // console.log(`Task #${taskActivated} is activated`);
+});
+
+// next event(task completed normally or with an error) handler
+queue.on("next", () => {
+  taskCompleted += 1;
+  // console.log(`Task #${taskCompleted} is completed`);
+});
+
+// Add task to the queue.
 async function queueEnroll(req) {
   return queue.add(() => exec(req));
 }
 
+// Exec CEnrollment
 const exec = async (req) => {
   try {
     const _Enrollment = Enrollment(req.user.academyId);
@@ -57,66 +78,87 @@ const exec = async (req) => {
       req.body.syllabus
     );
     if (!syllabus) {
-      const err = new Error("수업 정보를 찾을 수 없습니다.");
+      const err = new Error(__NOT_FOUND("syllabus"));
       err.status = 404;
       throw err;
     }
 
-    // 2. 이미 신청한 수업인지 확인
+    // 2. registration 조회
+    const registration = await Registration(req.user.academyId).findById(
+      req.body.registration
+    );
+    if (!registration) {
+      const err = new Error(__NOT_FOUND("registration"));
+      err.status = 404;
+      throw err;
+    }
+
+    // 3. 이미 신청한 수업인지 확인
     const exEnrollments = await _Enrollment.find({
-      student: req.user._id,
+      student: registration.user,
       season: syllabus.season,
     });
     if (_.find(exEnrollments, { syllabus: syllabus._id })) {
-      const err = new Error("이미 신청한 수업입니다.");
+      const err = new Error(FIELD_IN_USE("enrollment"));
       err.status = 409;
       throw err;
     }
 
-    // 3. 수강정원 확인
+    // 4. 수강정원 확인
     if (syllabus.limit !== 0 && syllabus.count >= syllabus.limit) {
-      const err = new Error("수강정원이 다 찼습니다.");
+      const err = new Error(STUDENTS_FULL);
       err.status = 409;
       throw err;
     }
 
-    // 4. 수강신청 가능한 시간인가?
+    // 5. 수강신청 가능한 시간인가?
     if (isTimeOverlapped(exEnrollments, syllabus)) {
-      const err = new Error("시간표가 중복되었습니다.");
+      const err = new Error(TIME_DUPLICATED);
       err.status = 409;
       throw err;
     }
 
-    /* 5~8단계는 요청이 들어온 시점에서 이미 검증되었을 가능성이 높음 */
+    /* 6~8단계는 요청이 들어온 시점에서 이미 검증되었을 가능성이 높음 */
 
-    // 5. 승인된 수업인지 확인
+    // 6. 승인된 수업인지 확인
     for (let i = 0; i < syllabus.teachers.length; i++) {
       if (!syllabus.teachers[i].confirmed) {
-        const err = new Error("승인되지 않은 수업입니다.");
+        const err = new Error(SYLLABUS_NOT_CONFIRMED);
         err.status = 409;
         throw err;
       }
     }
 
-    // 6. registration 조회
-    const registration = await Registration(req.user.academyId).findById(
-      req.body.registration
-    );
-    if (!registration) {
-      const err = new Error("등록 정보를 찾을 수 없습니다.");
-      err.status = 404;
-      throw err;
-    }
-    if (!req.user._id.equals(registration.user)) {
-      const err = new Error("유저 정보와 등록 정보가 일치하지 않습니다.");
-      err.status = 401;
-      throw err;
-    }
-
     // 7. 권한 검사
-    if (!registration?.permissionEnrollmentV2) {
-      const err = new Error("수강신청 권한이 없습니다.");
-      err.status = 401;
+
+    // 7-1. 사용자가 수강신청을 직접 하는 경우
+    if (req.user._id.equals(registration.user)) {
+      if (!registration.permissionEnrollmentV2) {
+        const err = new Error(PERMISSION_DENIED);
+        err.status = 403;
+        throw err;
+      }
+    }
+    // 7-2. 멘토가 수강생을 초대하는 경우
+    else if (_.find(syllabus.teachers, { _id: req.user._id })) {
+      const teacherRegistration = await Registration(
+        req.user.academyId
+      ).findOne({ season: syllabus.season, user: req.user._id });
+      if (!teacherRegistration) {
+        const err = new Error(__NOT_FOUND("teacherRegistration"));
+        err.status = 404;
+        throw err;
+      }
+      if (!teacherRegistration.permissionEnrollmentV2) {
+        const err = new Error(PERMISSION_DENIED);
+        err.status = 403;
+        throw err;
+      }
+    }
+    // 7-3. 모두 아닌 경우
+    else {
+      const err = new Error(PERMISSION_DENIED);
+      err.status = 403;
       throw err;
     }
 
@@ -172,11 +214,42 @@ export const getTaskRequested = () => {
   return taskRequested;
 };
 
+/**
+ * @memberof APIs.RegistrationAPI
+ * @function CEnrollment API
+ * @description 수강신청 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/enrollments"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.syllabus - ObjectId of syllabus
+ * @param {string} req.body.registration - ObjectId of registration
+ * @param {string?} req.body.socketId
+ *
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 409    | ENROLLMENT_IN_USE | if enrollment is already made  |
+ * | 409    | STUDENTS_FULL | if syllabus.limit!==0 and syllabus.count>=syllabus.limit  |
+ * | 409    | TIME_DUPLICATED | if time is duplicated  |
+ *
+ */
 export const enroll = async (req, res) => {
   try {
-    if (!("syllabus" in req.body) || !("registration" in req.body)) {
-      return res.status(400).send({ message: "invalud request" });
+    for (let field of ["syllabus", "registration"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
     }
+
     const taskIdx = ++taskRequested;
     // console.log(
     //   `Task ${taskIdx} is requested; Your waiting order is ${
@@ -201,131 +274,6 @@ export const enroll = async (req, res) => {
       return res.status(err.status).send({ message: err.message });
     }
     return res.status(200).send({});
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
-export const enrollbulk = async (req, res) => {
-  try {
-    const _Enrollment = Enrollment(req.user.academyId);
-
-    const syllabus = await Syllabus(req.user.academyId).findById(
-      req.body.syllabus
-    );
-    if (!syllabus)
-      return res.status(404).send({ message: "수업 정보를 찾을 수 없습니다." });
-
-    // mentor 확인 & confirmed 확인
-    let isMentor = false;
-    for (let teacher of syllabus.teachers) {
-      if (teacher._id.equals(req.user._id)) {
-        isMentor = true;
-        break;
-      }
-      if (!teacher.confirmed)
-        return res.status(409).send({ message: "syllabus is not confirmed" });
-    }
-    if (!isMentor)
-      return res.status(403).send({ message: "수업 초대 권한이 없습니다." });
-
-    // 2. 수강정원 확인
-    if (
-      syllabus.limit != 0 &&
-      syllabus.count + req.body.students.length > syllabus.limit
-    ) {
-      return res.status(409).send({ message: "수강정원을 초과합니다." });
-    }
-
-    // check permission
-    const registration = await Registration(req.user.academyId).findOne({
-      season: syllabus.season,
-      user: req.user._id,
-    });
-    if (!registration?.permissionEnrollmentV2) {
-      return res.status(403).send({ message: "수강신청 권한이 없습니다." });
-    }
-
-    const enrollments = [];
-    const syllabusSubdocument = syllabus.getSubdocument();
-
-    let cntEnrollmentsSuccess = 0;
-
-    for (let student of req.body.students) {
-      // 3. 이미 신청한 수업인가?
-      const exEnrollments = await _Enrollment.find({
-        student: student._id,
-        season: registration.season,
-      });
-
-      if (_.find(exEnrollments, { syllabus: syllabus._id })) {
-        enrollments.push({
-          success: { status: false, message: "이미 신청함" },
-          ...student,
-        });
-      }
-
-      // 4. 수강신청 가능한 시간인가?
-      else if (isTimeOverlapped(exEnrollments, syllabus))
-        enrollments.push({
-          success: { status: false, message: "시간표 중복" },
-          ...student,
-        });
-      else {
-        try {
-          const enrollment = new _Enrollment({
-            ...syllabusSubdocument,
-            student: student._id,
-            studentId: student.userId,
-            studentName: student.userName,
-            studentGrade: student.grade,
-          });
-
-          // evaluation 동기화
-          enrollment.evaluation = {};
-          for (let obj of registration.formEvaluation) {
-            if (obj.combineBy === "term") {
-              const e2 = await _Enrollment.findOne({
-                season: enrollment.season,
-                student: enrollment.student,
-                subject: enrollment.subject,
-              });
-              if (e2) {
-                enrollment.evaluation[obj.label] =
-                  e2.evaluation[obj.label] || "";
-              }
-            } else if (obj.combineBy === "year") {
-              const e2 = await _Enrollment.findOne({
-                school: enrollment.school,
-                year: enrollment.year,
-                student: enrollment.student,
-                subject: enrollment.subject,
-              });
-              if (e2) {
-                enrollment.evaluation[obj.label] =
-                  e2.evaluation[obj.label] || "";
-              }
-            }
-          }
-          await enrollment.save();
-          cntEnrollmentsSuccess += 1;
-          enrollments.push({ success: { status: true }, ...student });
-        } catch (error) {
-          enrollments.push({
-            success: { status: false, message: err.message },
-            ...student,
-          });
-        }
-      }
-    }
-    // const newEnrollments = await Enrollment(req.user.academyId).insertMany(
-    //   enrollments
-    // );
-    await Syllabus(req.user.academyId).findByIdAndUpdate(req.body.syllabus, {
-      $inc: { count: cntEnrollmentsSuccess },
-    });
-    return res.status(200).send({ enrollments });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

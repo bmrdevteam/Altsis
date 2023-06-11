@@ -257,3 +257,33 @@ export const CLASSROOM_IN_USE = "CLASSROOM_IN_USE";
  * @memberof APIs._MESSAGE
  */
 export const SYLLABUS_COUNT_EXCEEDS_LIMIT = "SYLLABUS_COUNT_EXCEEDS_LIMIT";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias STUDENTS_FULL
+ * @description 수강정원이 다 찼음
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const STUDENTS_FULL = "STUDENTS_FULL";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias TIME_DUPLICATED
+ * @description 시간표가 중복됨
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const TIME_DUPLICATED = "TIME_DUPLICATED";
+
+/**
+ * @tag 409 Conflict
+ *
+ * @alias SYLLABUS_NOT_CONFIRMED
+ * @description 승인되지 않은 강의계획서임
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const SYLLABUS_NOT_CONFIRMED = "SYLLABUS_NOT_CONFIRMED";

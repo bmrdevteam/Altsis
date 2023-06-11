@@ -184,39 +184,6 @@ export default function useApi() {
    */
 
   /**
-   * Create Enrollment
-   * @type POST
-   * @auth member
-   */
-  async function CEnrollment(props: {
-    data: { syllabus: string; registration: string; socketId?: string };
-  }) {
-    return await database.C({
-      location: "enrollments",
-      data: props.data,
-    });
-  }
-
-  /**
-   * Create Enrollments (bulk)
-   * @type POST
-   * @auth member(teacher)
-   */
-  async function CEnrollments(props: {
-    data: {
-      registration: string;
-      syllabus: string;
-      students: any[];
-    };
-  }) {
-    const { enrollments: res } = await database.C({
-      location: "enrollments/bulk",
-      data: props.data,
-    });
-    return res;
-  }
-
-  /**
    * Read Enrollments and Sort By 'CreatedAt'
    * @type GET
    * @auth member
@@ -523,8 +490,6 @@ export default function useApi() {
       DMemo,
     },
     EnrollmentApi: {
-      CEnrollment,
-      CEnrollments,
       REnrolllment,
       REnrolllments,
       DEnrollment,
