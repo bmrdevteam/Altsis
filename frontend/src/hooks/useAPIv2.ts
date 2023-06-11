@@ -1323,6 +1323,41 @@ export default function useAPIv2() {
   }
 
   /**
+   * UConfirmSyllabus API
+   * @description 강의계획서 승인 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UConfirmSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { syllabus } = await database.C({
+      location: `syllabuses/${props.params._id}/confirmed`,
+      data: {},
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
+   * UCancleConfirmSyllabus API
+   * @description 강의계획서 승인 취소 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UCancleConfirmSyllabus(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { syllabus } = await database.D({
+      location: `syllabuses/${props.params._id}/confirmed`,
+    });
+    return { syllabus: syllabus as TSyllabus };
+  }
+
+  /**
    * USyllabus API
    * @description 강의계획서 수정 API
    * @version 2.0.0
@@ -1441,6 +1476,8 @@ export default function useAPIv2() {
       CSyllabus,
       RSyllabuses,
       RSyllabus,
+      UConfirmSyllabus,
+      UCancleConfirmSyllabus,
       USyllabus,
       USyllabusSubject,
     },

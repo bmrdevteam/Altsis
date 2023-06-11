@@ -3,11 +3,10 @@ import { useEffect, useState } from "react";
 
 import { defaultHeaderList } from "./defaultHeaderList";
 import _ from "lodash";
-import Popup from "components/popup/Popup";
 
 import ViewPopup from "../view/ViewPopup";
 import StatusPopup from "../view/StatusPopup";
-import useApi from "hooks/useApi";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
@@ -22,7 +21,7 @@ type Props = {
 };
 
 const CourseTable = (props: Props) => {
-  const { SyllabusApi } = useApi();
+  const { SyllabusAPI } = useAPIv2();
   const [courseList, setCourseList] = useState<any[]>([]);
   const [headerList, setHeaderList] = useState<TTableHeader[]>([]);
 
@@ -104,7 +103,7 @@ const CourseTable = (props: Props) => {
             color: "red",
             onClick: (e) => {
               if (props.isMentor) {
-                SyllabusApi.ConfirmSyllabus(e._id)
+                SyllabusAPI.UConfirmSyllabus({ params: { _id: e._id } })
                   .then(() => {
                     alert(SUCCESS_MESSAGE);
                     if (props.setIsLoading) {
@@ -112,7 +111,7 @@ const CourseTable = (props: Props) => {
                     }
                   })
                   .catch((err) => {
-                    alert("failed to confirm");
+                    ALERT_ERROR(err);
                   });
               }
             },
@@ -122,10 +121,10 @@ const CourseTable = (props: Props) => {
             color: "green",
             onClick: (e) => {
               if (props.isMentor) {
-                if (e.count_limit[0] !== "0")
+                if (e.count !== 0)
                   alert("수강신청한 학생이 있으면 승인을 취소할 수 없습니다.");
                 else {
-                  SyllabusApi.UnconfirmSyllabus(e._id)
+                  SyllabusAPI.UCancleConfirmSyllabus({ params: { _id: e._id } })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
                       if (props.setIsLoading) {
@@ -133,7 +132,7 @@ const CourseTable = (props: Props) => {
                       }
                     })
                     .catch((err) => {
-                      alert("failed to unconfirm");
+                      ALERT_ERROR(err);
                     });
                 }
               }

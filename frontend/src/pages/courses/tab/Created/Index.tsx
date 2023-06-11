@@ -45,7 +45,6 @@ import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
-import Svg from "assets/svg/Svg";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
@@ -53,7 +52,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SyllabusApi, EnrollmentApi } = useApi();
+  const { SyllabusApi } = useApi();
   const { SyllabusAPI } = useAPIv2();
   const navigate = useNavigate();
 
@@ -286,13 +285,15 @@ const CoursePid = (props: Props) => {
                     color: "red",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        SyllabusApi.ConfirmSyllabus(syllabus?._id)
+                        SyllabusAPI.UConfirmSyllabus({
+                          params: { _id: syllabus?._id },
+                        })
                           .then(() => {
                             alert(SUCCESS_MESSAGE);
                             setIsLoading(true);
                           })
                           .catch((err) => {
-                            alert("failed to confirm");
+                            ALERT_ERROR(err);
                           });
                       }
                     },
@@ -302,24 +303,22 @@ const CoursePid = (props: Props) => {
                     color: "green",
                     onClick: (e: any) => {
                       if (e._id === currentUser._id) {
-                        EnrollmentApi.REnrolllments({
-                          syllabus: syllabus._id,
-                        }).then((enrollments: any[]) => {
-                          if (enrollments.length !== 0) {
-                            alert(
-                              "수강신청한 학생이 있으면 승인을 취소할 수 없습니다."
-                            );
-                          } else {
-                            SyllabusApi.UnconfirmSyllabus(syllabus?._id)
-                              .then((res) => {
-                                alert(SUCCESS_MESSAGE);
-                                setIsLoading(true);
-                              })
-                              .catch((err) => {
-                                alert("failed to unconfirm");
-                              });
-                          }
-                        });
+                        if (syllabus?.count !== 0) {
+                          alert(
+                            "수강신청한 학생이 있으면 승인을 취소할 수 없습니다."
+                          );
+                        } else {
+                          SyllabusAPI.UCancleConfirmSyllabus({
+                            params: { _id: syllabus?._id },
+                          })
+                            .then((res) => {
+                              alert(SUCCESS_MESSAGE);
+                              setIsLoading(true);
+                            })
+                            .catch((err) => {
+                              ALERT_ERROR(err);
+                            });
+                        }
                       }
                     },
                   },
