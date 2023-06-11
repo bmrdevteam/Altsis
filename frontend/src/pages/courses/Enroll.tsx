@@ -54,7 +54,7 @@ type Props = {};
 const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
   const { EnrollmentApi } = useApi();
-  const { SyllabusAPI } = useAPIv2();
+  const { SyllabusAPI, EnrollmentAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
@@ -230,7 +230,7 @@ const CourseEnroll = (props: Props) => {
                 type: "button",
                 onClick: (e: any) => {
                   activateSendingPopup(true);
-                  EnrollmentApi.CEnrollment({
+                  EnrollmentAPI.CEnrollment({
                     data: {
                       syllabus: e._id,
                       registration: currentRegistration?._id,
@@ -243,7 +243,7 @@ const CourseEnroll = (props: Props) => {
                       setIsLoadingEnrolledCourseList(true);
                     })
                     .catch((err) => {
-                      alert(err.response.data.message);
+                      ALERT_ERROR(err);
                     })
                     .finally(() => {
                       activateSendingPopup(false);

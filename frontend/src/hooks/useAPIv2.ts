@@ -1455,6 +1455,31 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Enrollment API
+   * ##########################################################################
+   */
+
+  /**
+   * CEnrollment API
+   * @description 수강신청 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CEnrollment(props: {
+    data: {
+      syllabus: string;
+      registration: string;
+      socketId?: string;
+    };
+  }) {
+    return await database.C({
+      location: `enrollments`,
+      data: props.data,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1532,6 +1557,9 @@ export default function useAPIv2() {
       UHideSyllabusFromCalendar,
       UShowSyllabusOnCalendar,
       DSyllabus,
+    },
+    EnrollmentAPI: {
+      CEnrollment,
     },
   };
 }
