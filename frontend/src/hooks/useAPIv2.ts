@@ -21,6 +21,7 @@ import {
 } from "types/seasons";
 import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
+import { TEnrollment } from "types/enrollments";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -1455,6 +1456,182 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Enrollment API
+   * ##########################################################################
+   */
+
+  /**
+   * CEnrollment API
+   * @description 수강신청 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CEnrollment(props: {
+    data: {
+      syllabus: string;
+      registration: string;
+      socketId?: string;
+    };
+  }) {
+    return await database.C({
+      location: `enrollments`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * REnrollments API
+   * @description 수강 정보 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function REnrollments(props: {
+    query: {
+      syllabus?: string;
+      season?: string;
+      student?: string;
+    };
+  }) {
+    const { enrollments } = await database.R({
+      location: `enrollments` + QUERY_BUILDER(props.query),
+    });
+    return { enrollments: _.sortBy(enrollments, "createdAt") as TEnrollment[] };
+  }
+
+  /**
+   * REnrollment API
+   * @description 수강 정보 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function REnrollment(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { enrollment } = await database.R({
+      location: `enrollments/${props.params._id}`,
+    });
+    return { enrollment: enrollment as TEnrollment };
+  }
+
+  /**
+   * REnrollmentsWithEvaluation API
+   * @description 평가 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function REnrollmentsWithEvaluation(props: {
+    query: {
+      syllabus?: string;
+      school?: string;
+      student?: string;
+    };
+  }) {
+    const { enrollments } = await database.R({
+      location: `enrollments/evaluation` + QUERY_BUILDER(props.query),
+    });
+    return {
+      enrollments: _.orderBy(
+        enrollments,
+        ["createdAt"],
+        ["asc"]
+      ) as TEnrollment[],
+    };
+  }
+
+  /**
+   * UEvaluation API
+   * @description 평가 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UEvaluation(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      evaluation: { [key: string]: string };
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/evaluation`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * UEnrollmentMemo API
+   * @description 수강 정보 메모 수정 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UEnrollmentMemo(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      memo: string;
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/memo`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * UHideEnrollmentFromCalendar API
+   * @description 캘린더(수강 중인 수업)에서 숨김 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UHideEnrollmentFromCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/hide`,
+      data: {},
+    });
+  }
+
+  /**
+   * UShowEnrollmentOnCalendar API
+   * @description 캘린더(수강 중인 수업)에서 조회 설정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UShowEnrollmentOnCalendar(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: `enrollments/${props.params._id}/show`,
+      data: {},
+    });
+  }
+
+  /**
+   * DEnrollment API
+   * @description 수강 취소 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function DEnrollment(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `enrollments/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1532,6 +1709,17 @@ export default function useAPIv2() {
       UHideSyllabusFromCalendar,
       UShowSyllabusOnCalendar,
       DSyllabus,
+    },
+    EnrollmentAPI: {
+      CEnrollment,
+      REnrollments,
+      REnrollment,
+      REnrollmentsWithEvaluation,
+      UEvaluation,
+      UEnrollmentMemo,
+      UHideEnrollmentFromCalendar,
+      UShowEnrollmentOnCalendar,
+      DEnrollment,
     },
   };
 }

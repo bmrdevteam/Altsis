@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 import style from "style/pages/enrollment.module.scss";
 
@@ -53,8 +52,7 @@ type Props = {};
 
 const CourseEnroll = (props: Props) => {
   const navigate = useNavigate();
-  const { EnrollmentApi } = useApi();
-  const { SyllabusAPI } = useAPIv2();
+  const { SyllabusAPI, EnrollmentAPI } = useAPIv2();
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
@@ -91,31 +89,29 @@ const CourseEnroll = (props: Props) => {
   }
 
   async function getEnrolledCourseList() {
-    const myEnrollments = await EnrollmentApi.REnrolllments({
-      season: currentRegistration?.season,
-      student: currentUser?._id,
-    });
+    const { enrollments: myEnrollments, syllabuses: mySyllabuses } =
+      await SyllabusAPI.RSyllabuses({
+        query: {
+          season: currentRegistration?.season,
+          student: currentUser?._id,
+        },
+      });
 
     if (myEnrollments.length === 0) return [];
 
-    const sylEnrollments = await EnrollmentApi.REnrolllments({
-      syllabuses: myEnrollments.map((e: any) => e.syllabus),
-    });
-
-    const cnt = _.countBy(
-      sylEnrollments.map((enrollment: any) => enrollment.syllabus)
-    );
-
+    const syllabuses = [];
     // enrollments to syllabus
-    const syllabuses = myEnrollments.map((e: any) => {
-      return {
-        ...e,
-        enrollment: e._id,
-        _id: e.syllabus,
-        count_limit: `${cnt[e.syllabus] || 0}/${e.limit}`,
-      };
-    });
-
+    for (let syllabus of mySyllabuses) {
+      const eIdx = _.findIndex(myEnrollments, { syllabus: syllabus._id });
+      if (eIdx !== -1) {
+        syllabuses.push({
+          ...myEnrollments[eIdx],
+          _id: syllabus._id,
+          enrollment: myEnrollments[eIdx]._id,
+          count_limit: `${syllabus.count}/${syllabus.limit}`,
+        });
+      }
+    }
     return syllabuses;
   }
 
@@ -230,7 +226,7 @@ const CourseEnroll = (props: Props) => {
                 type: "button",
                 onClick: (e: any) => {
                   activateSendingPopup(true);
-                  EnrollmentApi.CEnrollment({
+                  EnrollmentAPI.CEnrollment({
                     data: {
                       syllabus: e._id,
                       registration: currentRegistration?._id,
@@ -243,7 +239,7 @@ const CourseEnroll = (props: Props) => {
                       setIsLoadingEnrolledCourseList(true);
                     })
                     .catch((err) => {
-                      alert(err.response.data.message);
+                      ALERT_ERROR(err);
                     })
                     .finally(() => {
                       activateSendingPopup(false);
@@ -279,14 +275,14 @@ const CourseEnroll = (props: Props) => {
                 key: "cancel",
                 type: "button",
                 onClick: (e: any) => {
-                  EnrollmentApi.DEnrollment(e.enrollment)
+                  EnrollmentAPI.DEnrollment({ params: { _id: e.enrollment } })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
                       setIsLoadingCourseList(true);
                       setIsLoadingEnrolledCourseList(true);
                     })
                     .catch((err) => {
-                      alert(err.response.data.message);
+                      ALERT_ERROR(err);
                     });
                 },
                 width: "72px",

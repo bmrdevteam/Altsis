@@ -12,10 +12,10 @@ type Props = {
   /* not user but registration */
   user: any;
 };
-
+/** @deprecated */
 function Docs(props: Props) {
   const database = useDatabase();
-  const { ArchiveApi, FormApi, EnrollmentApi } = useApi();
+  const { ArchiveApi, FormApi } = useApi();
   const { currentSchool } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
@@ -32,10 +32,11 @@ function Docs(props: Props) {
 
     let processedEvaluation: any[] = [];
     let processedEvaluationByYear: any = [];
-    const evaluations = await EnrollmentApi.REnrollmentWithEvaluations({
-      school: props.user.school,
-      student: props.user._id,
-    });
+    // const evaluations = await EnrollmentApi.REnrollmentWithEvaluations({
+    //   school: props.user.school,
+    //   student: props.user._id,
+    // });
+    const evaluations: any[] = [];
 
     for (let i = 0; i < evaluations.length; i++) {
       const evaluation = evaluations[i];
