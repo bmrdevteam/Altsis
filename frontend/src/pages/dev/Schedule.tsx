@@ -2,7 +2,6 @@ import Calendar from "components/calendarV2/Calendar";
 import { TRawCalendar } from "components/calendarV2/calendarData";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import useApi from "hooks/useApi";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import { useEffect, useState } from "react";
@@ -10,8 +9,7 @@ import { useEffect, useState } from "react";
 import style from "style/pages/admin/schools.module.scss";
 
 export default function Example() {
-  const { EnrollmentApi } = useApi();
-  const { SyllabusAPI } = useAPIv2();
+  const { SyllabusAPI, EnrollmentAPI } = useAPIv2();
   const { currentUser, currentRegistration, currentSchool } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -30,9 +28,8 @@ export default function Example() {
 
     if (currentRegistration.period) {
       // 2. enrollments
-      const enrollments = await EnrollmentApi.REnrolllments({
-        season: currentRegistration.season,
-        student: currentUser._id,
+      const { enrollments } = await EnrollmentAPI.REnrollments({
+        query: { season: currentRegistration.season, student: currentUser._id },
       });
       if (enrollments.length > 0) {
         calendars.push({

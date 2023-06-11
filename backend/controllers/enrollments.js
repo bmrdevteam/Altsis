@@ -280,6 +280,28 @@ export const enroll = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.EnrollmentAPI
+ * @function REnrollments API
+ * @description 수강 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/enrollments"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.syllabus - ObjectId of syllabus
+ * @param {string?} req.query.season - ObjectId of season
+ * @param {string?} req.query.student - ObjectId of student
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object[]} res.enrollments
+ *
+ */
 export const find = async (req, res) => {
   try {
     // find by enrollment _id (only student can view)
@@ -296,89 +318,22 @@ export const find = async (req, res) => {
       return res.status(200).send(enrollment);
     }
 
-    const { season, year, student, studentId, syllabus, syllabuses } =
-      req.query;
-
-    // find by season & studentId (deprecated)
-    if (season && studentId) {
-      const enrollments = await Enrollment(req.user.academyId).find({
-        season,
-        studentId,
-      });
-      //  .select("-evaluation"); 임시적으로 권한 허용
-      return res.status(200).send({ enrollments });
+    const query = {};
+    if ("syllabus" in req.query) {
+      query["syllabus"] = req.query.syllabus;
+    }
+    if ("season" in req.query) {
+      query["season"] = req.query.season;
+    }
+    if ("student" in req.query) {
+      query["student"] = req.query.student;
     }
 
-    // find by season & studentId
-    if (season && student) {
-      const enrollments = await Enrollment(req.user.academyId).find({
-        season,
-        student,
-      });
-      //  .select("-evaluation"); 임시적으로 권한 허용
-      return res.status(200).send({ enrollments });
-    }
+    const enrollments = await Enrollment(req.user.academyId)
+      .find(query)
+      .select("-evaluation");
 
-    if (year && studentId) {
-      //deprecated
-      const enrollments = await Enrollment(req.user.academyId).find({
-        year,
-        studentId,
-      });
-      //   .select("-evaluation"); // 임시적으로 권한 허용
-      return res.status(200).send({ enrollments });
-    }
-
-    if (year && student) {
-      //deprecated
-      const enrollments = await Enrollment(req.user.academyId).find({
-        year,
-        student,
-      });
-      //   .select("-evaluation"); // 임시적으로 권한 허용
-      return res.status(200).send({ enrollments });
-    }
-
-    if (studentId) {
-      //deprecated
-      const enrollments = await Enrollment(req.user.academyId).find({
-        studentId,
-      });
-      //  .select("-evaluation"); 임시적으로 권한 허용
-      return res.status(200).send({ enrollments });
-    }
-
-    if (student) {
-      const enrollments = await Enrollment(req.user.academyId).find({
-        student,
-      });
-      //  .select("-evaluation"); 임시적으로 권한 허용
-      return res.status(200).send({ enrollments });
-    }
-
-    // find by syllabus
-    if (syllabus) {
-      const enrollments = await Enrollment(req.user.academyId)
-        .find({ syllabus })
-        .select([
-          "student",
-          "studentId",
-          "studentName",
-          "studentGrade",
-          "createdAt",
-        ]);
-      return res.status(200).send({ enrollments });
-    }
-
-    // find by multiple syllabuses
-    if (syllabuses) {
-      const enrollments = await Enrollment(req.user.academyId)
-        .find({ syllabus: { $in: syllabuses.split(",") } })
-        .select("syllabus");
-
-      return res.status(200).send({ enrollments });
-    }
-    return res.status(400).send();
+    return res.status(200).send({ enrollments });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

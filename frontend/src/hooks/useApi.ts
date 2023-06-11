@@ -184,30 +184,6 @@ export default function useApi() {
    */
 
   /**
-   * Read Enrollments and Sort By 'CreatedAt'
-   * @type GET
-   * @auth member
-   * @returns Enrollments
-   */
-  async function REnrolllments(params: {
-    syllabus?: string;
-    season?: string;
-    studentId?: string | number; //deprecated
-    student?: string | number;
-    syllabuses?: string[] | string;
-  }) {
-    if (params.syllabuses)
-      params.syllabuses = QUERY_SUB_BUILDER(params?.syllabuses);
-
-    const { enrollments } = await database.R({
-      location: "enrollments" + QUERY_BUILDER(params),
-    });
-
-    // return enrollments;
-    return _.sortBy(enrollments, "createdAt");
-  }
-
-  /**
    * Read Enrollment
    * @type GET
    * @auth member
@@ -491,7 +467,6 @@ export default function useApi() {
     },
     EnrollmentApi: {
       REnrolllment,
-      REnrolllments,
       DEnrollment,
       DEnrollments,
       REnrollmentWithEvaluations,

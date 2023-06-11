@@ -48,6 +48,7 @@ import _ from "lodash";
 
 import Navbar from "layout/navbar/Navbar";
 import Loading from "components/loading/Loading";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -56,6 +57,7 @@ const CourseEnrollment = (props: Props) => {
   const { currentUser, currentRegistration, currentSeason } = useAuth();
   const navigate = useNavigate();
   const { EnrollmentApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingEvaluation, setIsLoadingEvaluation] =
@@ -202,14 +204,14 @@ const CourseEnrollment = (props: Props) => {
               break;
             }
           }
-          EnrollmentApi.REnrolllments({ syllabus: enrollment.syllabus }).then(
-            (res: any) => {
-              setEnrollments(res);
-            }
-          );
+          EnrollmentAPI.REnrollments({
+            query: { syllabus: enrollment.syllabus },
+          }).then(({ enrollments }) => {
+            setEnrollments(enrollments);
+          });
         })
         .catch((err) => {
-          alert(err.response?.data?.message ?? "에러가 발생했습니다.");
+          ALERT_ERROR(err);
           navigate("/courses");
         });
     }
