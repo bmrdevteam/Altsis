@@ -10,6 +10,7 @@ import Textarea from "components/textarea/Textarea";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import useApi from "hooks/useApi";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type TEvent = {
   id: string;
@@ -95,7 +96,8 @@ const RowFunction = ({ day }: { day: string }) => {
 const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
   const { editor, setEditor, currentEvent } = useStore();
   const { currentSeason, currentRegistration, reloadRegistration } = useAuth();
-  const { EnrollmentApi, RegistrationApi } = useApi();
+  const { RegistrationApi } = useApi();
+  const { EnrollmentAPI } = useAPIv2();
 
   const today = new Date();
 
@@ -149,9 +151,11 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                   currentEvent?.type === "course" &&
                   currentEvent?._id !== ""
                 ) {
-                  EnrollmentApi.UEnrollmentMemo({
-                    _id: currentEvent._id,
-                    memo,
+                  EnrollmentAPI.UEnrollmentMemo({
+                    params: {
+                      _id: currentEvent._id,
+                    },
+                    data: { memo },
                   })
                     .then(async () => {
                       reloadRegistration();
@@ -160,7 +164,9 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
                       alert(SUCCESS_MESSAGE);
                       setEditor(false);
                     })
-                    .catch((err) => alert("error!"));
+                    .catch((err) => {
+                      ALERT_ERROR(err);
+                    });
                 } else {
                   if (!title) alert("제목을 입력해주세요");
                   else if (!day || !start || !end) alert("시간을 선택해주세요");

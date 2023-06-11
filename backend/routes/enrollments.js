@@ -14,10 +14,8 @@ router.get("/:_id?", isLoggedIn, enrollments.find);
 
 router.put("/:_id/evaluation", isLoggedIn, enrollments.updateEvaluation);
 
-// 수강 정보에 memo 작성 (only student can access)
 router.put("/:_id/memo", isLoggedIn, enrollments.updateMemo);
 
-// 수강 정보 캘린더에서 조회/미조회
 router.put("/:_id/hide", isLoggedIn, enrollments.hideFromCalendar);
 router.put("/:_id/show", isLoggedIn, enrollments.showOnCalendar);
 

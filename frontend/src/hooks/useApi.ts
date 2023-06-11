@@ -184,43 +184,6 @@ export default function useApi() {
    */
 
   /**
-   * Update Enrollment memo
-   * @type Post
-   * @auth member
-   */
-  async function UEnrollmentMemo(props: { _id?: string; memo: string }) {
-    const result = await database.U({
-      location: "enrollments/" + props._id + "/memo",
-      data: { memo: props.memo },
-    });
-    return result;
-  }
-
-  /**
-   * Hide Enrollment from calendar
-   * @type PUT
-   * @auth member
-   */
-  async function UHideEnrollmentFromCalendar(props: { _id: string }) {
-    return await database.U({
-      location: "enrollments/" + props._id + "/hide",
-      data: {},
-    });
-  }
-
-  /**
-   * Show Enrollment from calendar
-   * @type PUT
-   * @auth member
-   */
-  async function UShowEnrollmentFromCalendar(props: { _id: string }) {
-    return await database.U({
-      location: "enrollments/" + props._id + "/show",
-      data: {},
-    });
-  }
-
-  /**
    * Delete Enrollment
    * @type DELETE
    * @auth member
@@ -420,9 +383,6 @@ export default function useApi() {
     EnrollmentApi: {
       DEnrollment,
       DEnrollments,
-      UEnrollmentMemo,
-      UHideEnrollmentFromCalendar,
-      UShowEnrollmentFromCalendar,
     },
     FormApi: {
       CForm,
