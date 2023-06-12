@@ -285,17 +285,6 @@ export default function useApi() {
       location: "files/backup/signed" + QUERY_BUILDER(props),
     });
   }
-  async function SignFileArchive(props: {
-    key: string;
-    fileName: string;
-    archive: string;
-    label: string;
-    fieldLabel: string;
-  }) {
-    return await database.R({
-      location: "files/archive/signed" + QUERY_BUILDER(props),
-    });
-  }
 
   /**
    * Backup Api
@@ -364,7 +353,6 @@ export default function useApi() {
     },
     FileApi: {
       SignFileBackup,
-      SignFileArchive,
     },
     BackupApi: {
       CBackup,

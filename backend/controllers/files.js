@@ -41,7 +41,7 @@ import {
  */
 
 /**
- * @memberof APIs.RegistrationAPI
+ * @memberof APIs.FileAPI
  * @function CUploadFileArchive API
  * @description 아카이브 파일 업로드 API
  * @version 2.0.0
@@ -92,8 +92,30 @@ export const uploadArchive = async (req, res) => {
   });
 };
 
-/* sign file */
-
+/**
+ * @memberof APIs.FileAPI
+ * @function RSignedUrlArchive API
+ * @description 서명된 아카이브 파일 주소 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/files/archive/signed"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.key - file key
+ * @param {string} req.query.archive - ObjectId of archive
+ * @param {string} req.query.label - archive[i].label
+ * @param {string} req.query.fieldLabel - archive[i].fields[j].label
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {string} res.preSignedUrl - file preSignedUrl
+ * @param {Date} res.expiryDate - expiryDate of file preSignedUrl
+ *
+ */
 export const signArchive = async (req, res) => {
   for (let field of ["key", "archive", "label", "fieldLabel"]) {
     if (!(field in req.query)) {
