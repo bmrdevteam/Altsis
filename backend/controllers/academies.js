@@ -362,9 +362,32 @@ export const updateTel = async (req, res) => {
  * @param {Object} req.user - "owner"
  *
  * @param {Object} res
- * @param {Object} res.academy - updated academy
+ * @param {Object[]} res.backupList
+ * @param {string} res.backupList[i].title
+ * @param {string} res.backupList[i].key
  */
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyBackup API
+ * @description 아카데미 백업 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies/:academyId/backup?title={backup.title}"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res
+ * @param {Object[]} res.backup
+ * @param {string} res.backup[i].title
+ * @param {string} res.backup[i].key
+ * @param {number} res.backup[i].size
+ * @param {Date} res.backup[i].lastModified
+ *
+ */
 export const findBackup = async (req, res) => {
   try {
     /* RAcademyBackupList */
@@ -395,7 +418,28 @@ export const findBackup = async (req, res) => {
       return res.status(200).send({ backupList });
     }
 
-    return res.status(200).send({ documents: [] });
+    /* RAcademyBackup */
+    const backup = [];
+
+    const data = await fileS3
+      .listObjectsV2({
+        Bucket: fileBucket,
+        Prefix: `${req.params.academyId}/backup/${req.query.title}/`,
+      })
+      .promise();
+
+    for (let content of data?.Contents) {
+      const keys = content.Key.split("/");
+      if (keys.length === 4 && keys[3] !== "") {
+        backup.push({
+          title: keys[3],
+          size: content.Size,
+          key: content.Key,
+          lastModified: content.LastModified,
+        });
+      }
+    }
+    return res.status(200).send({ backup });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

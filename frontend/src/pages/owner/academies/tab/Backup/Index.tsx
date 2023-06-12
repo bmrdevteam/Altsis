@@ -203,9 +203,11 @@ ___________________
               key: "detail",
               type: "button",
               onClick: (e: any) => {
-                BackupApi.RBackup({ academyId, title: e.title }).then((res) => {
-                  console.log(res);
-                  setDoc({ ...e, list: res });
+                AcademyAPI.RAcademyBackup({
+                  params: { academyId },
+                  query: { title: e.title },
+                }).then(({ backup }) => {
+                  setDoc({ ...e, list: backup });
                   setEditPopupActive(true);
                 });
               },
