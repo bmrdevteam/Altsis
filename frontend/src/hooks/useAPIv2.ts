@@ -1749,14 +1749,14 @@ export default function useAPIv2() {
    * @version 2.0.0
    * @auth user
    */
-  async function RArchiveByRegistration(params: {
+  async function RArchiveByRegistration(props: {
     query: {
       registration: string;
       label?: string;
     };
   }) {
     const { archive } = await database.R({
-      location: "archives" + QUERY_BUILDER(params.query),
+      location: "archives" + QUERY_BUILDER(props.query),
     });
     return {
       archive: archive as {
@@ -1767,6 +1767,28 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * UArchiveByRegistration API
+   * @description 아카이브 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UArchiveByRegistration(props: {
+    params: { _id: string };
+    data: { label: string; data: object; registration: string };
+  }) {
+    const { archive } = await database.U({
+      location: `archives/${props.params._id}`,
+      data: props.data,
+    });
+    return {
+      archive: archive as {
+        _id: string;
+        user: string;
+        data: any;
+      },
+    };
+  }
   /**
    * ##########################################################################
    * File API
@@ -1956,6 +1978,7 @@ export default function useAPIv2() {
     },
     ArchiveAPI: {
       RArchiveByRegistration,
+      UArchiveByRegistration,
     },
     FileAPI: {
       CUploadFileArchive,

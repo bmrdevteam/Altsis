@@ -15,7 +15,7 @@ type Props = {
 /** @deprecated */
 function Docs(props: Props) {
   const database = useDatabase();
-  const { ArchiveApi, FormApi } = useApi();
+  const { FormApi } = useApi();
   const { currentSchool } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
