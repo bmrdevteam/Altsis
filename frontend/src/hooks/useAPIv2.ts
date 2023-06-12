@@ -1682,6 +1682,27 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * RSignedUrlDocument API
+   * @description 서명된 문서 파일 주소 조회
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSignedUrlDocument(props: {
+    query: {
+      key: string;
+      fileName: string;
+    };
+  }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: "files/document/signed" + QUERY_BUILDER(props.query),
+    });
+    return {
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1774,6 +1795,7 @@ export default function useAPIv2() {
     FileAPI: {
       CUploadFileArchive,
       RSignedUrlArchive,
+      RSignedUrlDocument,
     },
   };
 }

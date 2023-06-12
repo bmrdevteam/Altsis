@@ -1,7 +1,8 @@
 import { useAuth } from "contexts/authContext";
-import _, { isArray, isNumber } from "lodash";
-import React from "react";
+import _, { isArray, isNumber, isObject } from "lodash";
+import React, { useState } from "react";
 import style from "../../editor.module.scss";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   blockData: any;
@@ -14,6 +15,8 @@ type Props = {
 };
 const ParsedTableBlock = (props: Props) => {
   const { currentSchool } = useAuth();
+  const { FileAPI } = useAPIv2();
+
   const SetColumn = () => {
     const columns = props.blockData?.data?.columns;
     if (columns && isArray(columns)) {
@@ -78,6 +81,8 @@ const ParsedTableBlock = (props: Props) => {
     table: any;
     colIndex: number;
   }) => {
+    const [url, setUrl] = useState<string>("");
+
     switch (data.type) {
       case "paragraph":
         return (
@@ -109,7 +114,38 @@ const ParsedTableBlock = (props: Props) => {
                       ][locationArr[locationArr.length - 1]]
                     );
                   } else {
-                    return _.get(props.dbData, locationArr, "");
+                    const result = _.get(props.dbData, locationArr, "");
+
+                    // if data is image
+                    if (
+                      isObject(result) &&
+                      "key" in result &&
+                      "originalName" in result
+                    ) {
+                      const key = result.key as string;
+                      const originalName = result.originalName as string;
+                      return (
+                        <div style={{ maxWidth: "120px", margin: "auto" }}>
+                          <img
+                            src={url}
+                            onError={async (e) => {
+                              e.currentTarget.onerror = null;
+                              FileAPI.RSignedUrlDocument({
+                                query: {
+                                  key,
+                                  fileName: originalName,
+                                },
+                              }).then(({ preSignedUrl }) => {
+                                setUrl(preSignedUrl);
+                              });
+                            }}
+                            alt="undefined"
+                          />
+                        </div>
+                      );
+                    } else {
+                      return _.get(props.dbData, locationArr, "");
+                    }
                   }
                 }
                 if (dataTextElement.tag === "BR") {
