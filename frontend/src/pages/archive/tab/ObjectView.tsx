@@ -20,7 +20,7 @@ type Props = {
 
 const ObjectView = (props: Props) => {
   const { ArchiveApi } = useApi();
-  const { FileAPI } = useAPIv2();
+  const { ArchiveAPI, FileAPI } = useAPIv2();
 
   const { currentSchool } = useAuth();
 
@@ -46,14 +46,16 @@ const ObjectView = (props: Props) => {
     if (!props.pid || props.pid === "") return [];
 
     try {
-      const rawArchiveList = await Promise.all(
-        props.registrationList.map(async (reg) =>
-          ArchiveApi.RArchiveByRegistration({
-            registrationId: reg._id,
-            label: props.pid,
-          })
+      const rawArchiveList = (
+        await Promise.all(
+          props.registrationList.map(async (reg) =>
+            ArchiveAPI.RArchiveByRegistration({
+              query: { registration: reg._id, label: props.pid },
+            })
+          )
         )
-      );
+      ).map(({ archive }) => archive);
+
       const archiveList = [];
       for (let i = 0; i < rawArchiveList.length; i++) {
         archiveList.push({

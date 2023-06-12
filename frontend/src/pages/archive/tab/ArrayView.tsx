@@ -12,7 +12,7 @@ import Callout from "components/callout/Callout";
 import _ from "lodash";
 
 import ExcelPopup from "./ExcelPopup";
-import { ALERT_ERROR } from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   pid: string;
@@ -23,7 +23,7 @@ const colors = ["#ff595e", "#2c6e49", "#1982c4", "#6a4c93"];
 
 const One = (props: Props) => {
   const { ArchiveApi } = useApi();
-
+  const { ArchiveAPI } = useAPIv2();
   const { currentSchool } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -52,14 +52,16 @@ const One = (props: Props) => {
     if (!props.pid || props.pid === "") return [];
 
     try {
-      const rawArchiveList = await Promise.all(
-        props.registrationList.map(async (reg) =>
-          ArchiveApi.RArchiveByRegistration({
-            registrationId: reg._id,
-            label: props.pid,
-          })
+      const rawArchiveList = (
+        await Promise.all(
+          props.registrationList.map(async (reg) =>
+            ArchiveAPI.RArchiveByRegistration({
+              query: { registration: reg._id, label: props.pid },
+            })
+          )
         )
-      );
+      ).map(({ archive }) => archive);
+
       const archiveList = [];
       for (let i = 0; i < rawArchiveList.length; i++) {
         archiveList.push({

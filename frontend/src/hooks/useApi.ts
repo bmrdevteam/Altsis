@@ -184,22 +184,6 @@ export default function useApi() {
    */
 
   /**
-   * Read Archive by registration
-   * @type GET
-   * @auth admin
-   * @returns Archives
-   */
-  async function RArchiveByRegistration(params: {
-    registrationId: string;
-    label?: string;
-  }) {
-    const { archive } = await database.R({
-      location: "archives" + QUERY_BUILDER(params),
-    });
-    return archive;
-  }
-
-  /**
    * Update Archive by registration
    * @type PUT
    * @auth admin
@@ -289,7 +273,6 @@ export default function useApi() {
       RForm,
     },
     ArchiveApi: {
-      RArchiveByRegistration,
       UArchiveByRegistration,
     },
     NotificationApi: {

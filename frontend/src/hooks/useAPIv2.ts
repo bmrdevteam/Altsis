@@ -1739,6 +1739,36 @@ export default function useAPIv2() {
 
   /**
    * ##########################################################################
+   * Archive API
+   * ##########################################################################
+   */
+
+  /**
+   * RArchiveByRegistration API
+   * @description 아카이브 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RArchiveByRegistration(params: {
+    query: {
+      registration: string;
+      label?: string;
+    };
+  }) {
+    const { archive } = await database.R({
+      location: "archives" + QUERY_BUILDER(params.query),
+    });
+    return {
+      archive: archive as {
+        _id: string;
+        user: string;
+        data: any;
+      },
+    };
+  }
+
+  /**
+   * ##########################################################################
    * File API
    * ##########################################################################
    */
@@ -1923,6 +1953,9 @@ export default function useAPIv2() {
       UHideEnrollmentFromCalendar,
       UShowEnrollmentOnCalendar,
       DEnrollment,
+    },
+    ArchiveAPI: {
+      RArchiveByRegistration,
     },
     FileAPI: {
       CUploadFileArchive,

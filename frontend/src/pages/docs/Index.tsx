@@ -14,8 +14,8 @@ import style from "style/pages/docs/docs.module.scss";
 type Props = {};
 
 function Docs({}: Props) {
-  const { ArchiveApi, FormApi, DocumentApi } = useApi();
-  const { EnrollmentAPI } = useAPIv2();
+  const { FormApi, DocumentApi } = useApi();
+  const { ArchiveAPI, EnrollmentAPI } = useAPIv2();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
@@ -30,8 +30,8 @@ function Docs({}: Props) {
   const [evaluationData, setEvaluationData] = useState<any>();
 
   async function getDBData(rid: string, uid: string) {
-    const archive = await ArchiveApi.RArchiveByRegistration({
-      registrationId: rid,
+    const { archive } = await ArchiveAPI.RArchiveByRegistration({
+      query: { registration: rid },
     });
 
     let processedEvaluationByYear: any = [];
