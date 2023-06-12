@@ -119,68 +119,11 @@ export default function useApi() {
     return result;
   }
 
-  /**
-   * Notification Api
-   * ##########################################################################
-   */
-  async function SendNotifications(props: {
-    data: {
-      toUserList: any[];
-      category: string;
-      title: string;
-      description: string;
-    };
-  }) {
-    return await database.C({
-      location: `notifications`,
-      data: props.data,
-    });
-  }
-
-  async function RNotifications(props: {
-    type: "received" | "sent";
-    user: string;
-    checked?: boolean;
-  }) {
-    const { notifications: _notifications } = await database.R({
-      location: "notifications" + QUERY_BUILDER(props),
-    });
-    const notifications = _.sortBy(_notifications, "createdAt").reverse();
-    return notifications;
-  }
-
-  async function RNotificationById(_id: string) {
-    return await database.R({
-      location: `notifications/${_id}`,
-    });
-  }
-  async function UCheckNotification(_id: string) {
-    const res = await database.U({
-      location: `notifications/${_id}/check`,
-      data: {},
-    });
-    return res;
-  }
-
-  async function DNotifications(_ids: string[]) {
-    const _notifications_ids = QUERY_SUB_BUILDER(_ids);
-    return await database.D({
-      location: "notifications" + QUERY_BUILDER({ _ids: _notifications_ids }),
-    });
-  }
-
   return {
     RegistrationApi: {
       CMemo,
       UMemo,
       DMemo,
-    },
-    NotificationApi: {
-      SendNotifications,
-      RNotifications,
-      RNotificationById,
-      UCheckNotification,
-      DNotifications,
     },
   };
 }
