@@ -40,11 +40,13 @@ import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
 import Select from "components/select/Select";
 import Textarea from "components/textarea/Textarea";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
 const Backup = (props: Props) => {
-  const { BackupApi, FileApi } = useApi();
+  const { BackupApi } = useApi();
+  const { FileAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -119,17 +121,11 @@ ___________________
     return () => {};
   }, [isLoading]);
 
-  async function getPresinedUrl(key: string, title: string) {
-    const { preSignedUrl, expiryDate } = await FileApi.SignFileBackup({
-      key,
-      fileName: title,
-    });
-    return { preSignedUrl, expiryDate };
-  }
-
   const handleFileDownload = async (key: string, title: string) => {
     try {
-      const { preSignedUrl, expiryDate } = await getPresinedUrl(key, title);
+      const { preSignedUrl } = await FileAPI.RSignedUrlBackup({
+        query: { key, fileName: title },
+      });
 
       const anchor = document.createElement("a");
       anchor.href = preSignedUrl;

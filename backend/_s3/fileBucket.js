@@ -2,7 +2,7 @@ import _ from "lodash";
 import aws from "aws-sdk";
 import { parseISO, addSeconds } from "date-fns";
 
-export const archiveS3 = new aws.S3({
+export const fileS3 = new aws.S3({
   accessKeyId: process.env["s3_accessKeyId2"].trim(),
   secretAccessKey: process.env["s3_secretAccessKey2"].trim(),
   region: process.env["s3_region"].trim(),
@@ -14,7 +14,7 @@ export const fileBucket = process.env["s3_bucket2"].trim();
 const signedUrlExpireSeconds = 60 * 5;
 
 export const signUrl = (key, filename, seconds = signedUrlExpireSeconds) => {
-  const preSignedUrl = archiveS3.getSignedUrl("getObject", {
+  const preSignedUrl = fileS3.getSignedUrl("getObject", {
     Bucket: fileBucket,
     Key: key,
     Expires: seconds,
