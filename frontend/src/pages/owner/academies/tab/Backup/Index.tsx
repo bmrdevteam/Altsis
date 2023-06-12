@@ -120,7 +120,7 @@ ___________________
   }, [isLoading]);
 
   async function getPresinedUrl(key: string, title: string) {
-    const { preSignedUrl, expiryDate } = await FileApi.SignFile({
+    const { preSignedUrl, expiryDate } = await FileApi.SignFileBackup({
       key,
       fileName: title,
     });

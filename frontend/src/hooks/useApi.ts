@@ -280,9 +280,9 @@ export default function useApi() {
    * File Api
    * ##########################################################################
    */
-  async function SignFile(props: { key: string; fileName: string }) {
+  async function SignFileBackup(props: { key: string; fileName: string }) {
     return await database.R({
-      location: "files/signed" + QUERY_BUILDER(props),
+      location: "files/backup/signed" + QUERY_BUILDER(props),
     });
   }
   async function SignFileArchive(props: {
@@ -293,7 +293,7 @@ export default function useApi() {
     fieldLabel: string;
   }) {
     return await database.R({
-      location: "files/signed" + QUERY_BUILDER(props),
+      location: "files/archive/signed" + QUERY_BUILDER(props),
     });
   }
 
@@ -370,7 +370,7 @@ export default function useApi() {
       RDocumentData,
     },
     FileApi: {
-      SignFile,
+      SignFileBackup,
       SignFileArchive,
       UploadFileArchive,
     },
