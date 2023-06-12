@@ -6,17 +6,17 @@ import Tree, { TreeItem } from "components/tree/Tree";
 import { useEditor } from "editor/functions/editorContext";
 import React, { useEffect, useRef, useState } from "react";
 import style from "../../editor.module.scss";
-import useApi from "hooks/useApi";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
+import { zipSeasonsFormEvaluation } from "functions/docs";
+import _ from "lodash";
 
 type Props = {
   callPageReload: () => void;
 };
 
 const DataConnPopup = (props: Props) => {
-  const { DocumentApi } = useApi();
-  const { SchoolAPI } = useAPIv2();
+  const { SchoolAPI, SeasonAPI } = useAPIv2();
 
   const {
     changeCurrentCell,
@@ -45,17 +45,27 @@ const DataConnPopup = (props: Props) => {
 
   useEffect(() => {
     SchoolAPI.RSchools().then(({ schools }) => {
-      schools.map((val: any) => {
-        DocumentApi.RDocumentData({ school: val._id }).then((v) => {
-          setArchiveData((prev: any) => ({
-            ...prev,
-            [val._id]: v.dataArchive,
-          }));
-          setEvaluationData((prev: any) => ({
-            ...prev,
-            [val._id]: v.dataEvaluation,
-          }));
+      schools.map((school) => {
+        const formArchive = school.formArchive.map((item) => {
+          const fields = _.filter(
+            item.fields,
+            (field) => field.type !== "file"
+          );
+          return { ...item, fields };
         });
+        setArchiveData((prev: any) => ({
+          ...prev,
+          [school._id]: formArchive,
+        }));
+
+        SeasonAPI.RSeasons({ query: { school: school._id } }).then(
+          ({ seasons }) => {
+            setEvaluationData((prev: any) => ({
+              ...prev,
+              [school._id]: zipSeasonsFormEvaluation(seasons),
+            }));
+          }
+        );
       });
       setSchools(schools);
     });

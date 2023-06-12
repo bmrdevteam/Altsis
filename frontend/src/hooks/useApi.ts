@@ -227,11 +227,6 @@ export default function useApi() {
       location: "notifications" + QUERY_BUILDER({ _ids: _notifications_ids }),
     });
   }
-  async function RDocumentData(params: { school: string }) {
-    return await database.R({
-      location: `documents/data` + QUERY_BUILDER(params),
-    });
-  }
 
   return {
     RegistrationApi: {
@@ -251,9 +246,6 @@ export default function useApi() {
       RNotificationById,
       UCheckNotification,
       DNotifications,
-    },
-    DocumentApi: {
-      RDocumentData,
     },
   };
 }
