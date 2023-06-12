@@ -11,7 +11,7 @@ import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
 
 import ExcelPopup from "./ExcelPopup";
-import { ALERT_ERROR } from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   pid: string;
@@ -20,6 +20,7 @@ type Props = {
 
 const ObjectView = (props: Props) => {
   const { ArchiveApi, FileApi } = useApi();
+  const { FileAPI } = useAPIv2();
 
   const { currentSchool } = useAuth();
 
@@ -78,7 +79,7 @@ const ObjectView = (props: Props) => {
     if (!isLoading) {
       setIsLoading(true);
     }
-  }, [props.pid]);
+  }, [props.registrationList, props.pid]);
 
   useEffect(() => {
     if (isLoading && props.pid) {
@@ -193,12 +194,12 @@ const ObjectView = (props: Props) => {
 
     const formData = new FormData();
     formData.append("file", e.target.files[0]);
-    return await FileApi.UploadFileArchive({ data: formData })
+    return await FileAPI.CUploadFileArchive({ data: formData })
       .then((res) => {
         return res;
       })
-      .catch((error) => {
-        alert(error);
+      .catch((err) => {
+        ALERT_ERROR(err);
       });
   };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,12 +215,12 @@ const ObjectView = (props: Props) => {
 
     const formData = new FormData();
     formData.append("file", e.target.files[0]);
-    return await FileApi.UploadFileArchive({ data: formData })
+    return await FileAPI.CUploadFileArchive({ data: formData })
       .then((res) => {
         return res;
       })
-      .catch((error) => {
-        alert(error);
+      .catch((err) => {
+        ALERT_ERROR(err);
       });
   };
 

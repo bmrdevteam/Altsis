@@ -1,3 +1,7 @@
+/**
+ * FileAPI namespace
+ * @namespace APIs.FileAPI
+ */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import {
@@ -23,8 +27,42 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 
-/* upload file */
+/**
+ * @memberof APIs.FileAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | FILE_NOT_FOUND | if file is not found  |
+ */
 
+/**
+ * @memberof APIs.RegistrationAPI
+ * @function CUploadFileArchive API
+ * @description 아카이브 파일 업로드 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/files/archive"} req.url
+ *
+ * @param {Object} req.user
+ *
+ * @param {FormData} req.body
+ *
+ * @param {Object} res
+ * @param {string} res.originalName - file original name
+ * @param {string} res.key - file key
+ * @param {string} res.url - file url
+ * @param {string} res.preSignedUrl - file preSignedUrl
+ * @param {Date} res.expiryDate - expiryDate of file preSignedUrl
+ *
+ */
 export const uploadArchive = async (req, res) => {
   archiveMulter.single("file")(req, {}, async (err) => {
     if (err) {
@@ -57,7 +95,7 @@ export const uploadArchive = async (req, res) => {
 /* sign file */
 
 export const signArchive = async (req, res) => {
-  for (let field in ["key", "archive", "label", "fieldLabel"]) {
+  for (let field of ["key", "archive", "label", "fieldLabel"]) {
     if (!(field in req.query)) {
       return res.status(400).send({ message: FIELD_REQUIRED(field) });
     }
