@@ -29,10 +29,6 @@ router.delete("/:academyId/backup", isOwner, academies.removeBackup);
 router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */
-router.get(
-  "/:academyId/:docType/:docId?",
-  ownerToAdmin,
-  academies.findDocuments
-);
+router.get("/:academyId/:docType/:docId?", isOwner, academies.findDocuments);
 
 export { router };

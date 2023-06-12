@@ -2,14 +2,14 @@ import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
 import _ from "lodash";
 import { useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 import { useNavigate, useParams } from "react-router-dom";
 import Loading from "components/loading/Loading";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const One = (props: Props) => {
-  const { ArchiveApi } = useApi();
+  const { ArchiveAPI } = useAPIv2();
   const { pid } = useParams(); // archive label ex) 인적 사항
 
   const { currentSchool, currentRegistration } = useAuth();
@@ -19,15 +19,17 @@ const One = (props: Props) => {
 
   useEffect(() => {
     if (isLoading && currentRegistration && pid) {
-      ArchiveApi.RArchiveByRegistration({
-        registrationId: currentRegistration?._id,
-        label: pid,
+      ArchiveAPI.RArchiveByRegistration({
+        query: { registration: currentRegistration?._id, label: pid },
       })
-        .then((res) => {
-          setArchiveData(res.data[pid]);
+        .then(({ archive }) => {
+          setArchiveData(archive.data[pid]);
         })
         .then(() => {
           setIsLoading(false);
+        })
+        .catch((err) => {
+          ALERT_ERROR(err);
         });
     }
   }, [isLoading]);

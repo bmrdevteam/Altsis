@@ -41,16 +41,17 @@ import _ from "lodash";
 // import Mailbox from "../components/mailbox";
 import View from "../popup/View";
 import { TNotificationReceived } from "types/notification";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
 const Received = (props: Props) => {
   const { currentUser } = useAuth();
-  const { NotificationApi } = useApi();
+  const { NotificationAPI } = useAPIv2();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
   const [notification, setNotification] = useState<TNotificationReceived>();
-  const selectRef = useRef<string[]>();
+  const selectRef = useRef<string[]>([]);
 
   const [notificatnionPopupActive, setNotificatnionPopupActive] =
     useState<boolean>(false);
@@ -59,13 +60,12 @@ const Received = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
-      NotificationApi.RNotifications({
-        type: "received",
-        user: currentUser._id,
+      NotificationAPI.RNotifications({
+        query: { type: "received" },
       })
-        .then((res: any) => {
+        .then(({ notifications }) => {
           setNotificationList(
-            res.map((val: any) => {
+            notifications.map((val: any) => {
               return {
                 ...val,
                 fromUser: `${val.fromUserName}(${val.fromUserId})`,
@@ -93,16 +93,18 @@ const Received = (props: Props) => {
           >
             <div
               className={style.icon}
-              onClick={() => {
+              onClick={async () => {
                 if (_.isEmpty(selectRef.current)) {
-                  alert("select notifications to delete");
+                  alert("선택된 알림이 없습니다.");
                 } else {
-                  NotificationApi.DNotifications(selectRef.current || [])
-                    .then((res: any) => {
-                      setIsLoading(true);
-                      alert(SUCCESS_MESSAGE);
-                    })
-                    .catch((err: any) => alert(err.response.data.message));
+                  await Promise.all(
+                    selectRef.current?.map((_id) =>
+                      NotificationAPI.DNotification({ params: { _id } })
+                    )
+                  );
+
+                  setIsLoading(true);
+                  alert(SUCCESS_MESSAGE);
                 }
               }}
             >

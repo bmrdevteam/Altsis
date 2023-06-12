@@ -5,8 +5,8 @@ import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
-import useAPIv2 from "hooks/useAPIv2";
-import useApi from "hooks/useApi";
+import { zipSeasonsFormEvaluation } from "functions/docs";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
@@ -14,8 +14,7 @@ import style from "style/pages/docs/docs.module.scss";
 type Props = {};
 
 function Docs({}: Props) {
-  const { ArchiveApi, FormApi, DocumentApi } = useApi();
-  const { EnrollmentAPI } = useAPIv2();
+  const { ArchiveAPI, EnrollmentAPI, SeasonAPI, FormAPI } = useAPIv2();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
@@ -30,8 +29,8 @@ function Docs({}: Props) {
   const [evaluationData, setEvaluationData] = useState<any>();
 
   async function getDBData(rid: string, uid: string) {
-    const archive = await ArchiveApi.RArchiveByRegistration({
-      registrationId: rid,
+    const { archive } = await ArchiveAPI.RArchiveByRegistration({
+      query: { registration: rid },
     });
 
     let processedEvaluationByYear: any = [];
@@ -48,11 +47,11 @@ function Docs({}: Props) {
       enrollment._subject = {};
       for (
         let idx = 0;
-        idx < evaluationData?.subjectlabelsBySeason[enrollment?.season]?.length;
+        idx < evaluationData?.subjectLabelsBySeason[enrollment?.season]?.length;
         idx++
       ) {
         enrollment._subject[
-          evaluationData?.subjectlabelsBySeason[enrollment?.season][idx]
+          evaluationData?.subjectLabelsBySeason[enrollment?.season][idx]
         ] = enrollment?.subject[idx];
       }
 
@@ -99,15 +98,25 @@ function Docs({}: Props) {
     const registrations = currentSeason?.registrations.filter(
       (reg) => reg.role === "student"
     );
-    const [forms, documentData] = await Promise.all([
-      FormApi.RForms({ type: "print" }),
-
-      DocumentApi.RDocumentData({ school: currentSchool?.school }),
+    const [{ forms }, { seasons }] = await Promise.all([
+      FormAPI.RForms({ query: { type: "print", archived: false } }),
+      SeasonAPI.RSeasons({ query: { school: currentSchool?.school } }),
     ]);
 
-    const form =
-      forms.length > 0 ? await FormApi.RForm(forms[0]._id) : undefined;
-    return { registrations, forms, form, documentData };
+    let form: object | undefined = undefined;
+    if (forms.length > 0) {
+      const { form: _form } = await FormAPI.RForm({
+        params: { _id: forms[0]._id },
+      });
+      form = _form;
+    }
+
+    return {
+      registrations,
+      forms,
+      form,
+      documentData: zipSeasonsFormEvaluation(seasons),
+    };
   };
 
   useEffect(() => {
@@ -117,7 +126,7 @@ function Docs({}: Props) {
           registrations: any[];
           forms: any[];
           form?: any;
-          documentData: any;
+          documentData: {};
         }) => {
           // registrations
           const g: any = _.uniqBy(res.registrations, "grade");
@@ -132,7 +141,7 @@ function Docs({}: Props) {
           // forms, form, documentData
           setPrintForms(res.forms);
           setFormData(res.form);
-          setEvaluationData(res.documentData.dataEvaluation);
+          setEvaluationData(res.documentData);
         }
       )
       .then(() => {
@@ -191,9 +200,13 @@ function Docs({}: Props) {
               }),
             ]}
             onChange={(val: string) => {
-              FormApi.RForm(val).then((res) => {
-                setFormData(res);
-              });
+              FormAPI.RForm({ params: { _id: val } })
+                .then(({ form }) => {
+                  setFormData(form);
+                })
+                .catch((err) => {
+                  ALERT_ERROR(err);
+                });
             }}
           />
           <div

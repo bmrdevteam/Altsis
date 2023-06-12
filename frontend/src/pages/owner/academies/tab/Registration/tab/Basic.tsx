@@ -27,10 +27,6 @@
  *
  */
 
-import { useState } from "react";
-import useDatabase from "hooks/useDatabase";
-
-import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Select from "components/select/Select";
 
@@ -42,21 +38,6 @@ type Props = {
 };
 
 function Basic(props: Props) {
-  const database = useDatabase();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const [role, setRole] = useState<string>(props.registrationData.role);
-
-  async function updateRegistration() {
-    const result = database.U({
-      location: `academies/${props.academyId}/registrations/${props.registrationData._id}`,
-      data: {
-        role,
-      },
-    });
-    return result;
-  }
-
   return (
     <div>
       <div className={style.popup}>
@@ -123,35 +104,10 @@ function Basic(props: Props) {
               { text: "student", value: "student" },
               { text: "teacher", value: "teacher" },
             ]}
-            setValue={setRole}
             appearence={"flat"}
-            defaultSelectedValue={role}
+            defaultSelectedValue={props.registrationData.role}
           />
         </div>
-
-        <Button
-          type={"ghost"}
-          disabled={isLoading}
-          onClick={() => {
-            setIsLoading(true);
-            updateRegistration()
-              .then(() => {
-                alert(SUCCESS_MESSAGE);
-              })
-              .catch((err) => {
-                alert(err.response.data.message);
-              });
-            setIsLoading(false);
-          }}
-          style={{
-            borderRadius: "4px",
-            marginTop: "24px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-        >
-          {isLoading ? "저장중" : "저장"}
-        </Button>
       </div>
     </div>
   );

@@ -31,7 +31,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import style from "style/pages/admin/forms.module.scss";
 
 // hooks
-import useDatabase from "hooks/useDatabase";
 import useSearch from "hooks/useSearch";
 
 import Button from "components/button/Button";
@@ -44,8 +43,8 @@ import Table from "components/tableV2/Table";
 
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
-import useApi from "hooks/useApi";
 import Navbar from "layout/navbar/Navbar";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -56,18 +55,19 @@ type Props = {};
  */
 
 const Forms = (props: Props) => {
-  const database = useDatabase();
   const location = useLocation();
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);
-  const { FormApi } = useApi();
+  const { FormAPI } = useAPIv2();
 
   const [view, setView] = useState<"list" | "grid">("grid");
 
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
 
   const [inputFormTitle, setInputFormTitle] = useState<string>("");
-  const [selectFormType, setSelectFormType] = useState<string>();
+  const [selectFormType, setSelectFormType] = useState<
+    "timetable" | "syllabus" | "print" | "other"
+  >("timetable");
 
   useEffect(() => {
     getForms();
@@ -79,9 +79,13 @@ const Forms = (props: Props) => {
    * @returns {Array} list of forms
    */
   async function getForms() {
-    const { forms: res } = await database.R({ location: "forms" });
-    setFormList(res.reverse());
-    return res;
+    try {
+      const { forms } = await FormAPI.RForms({});
+      setFormList(forms.reverse());
+      return forms;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   /**
@@ -91,25 +95,22 @@ const Forms = (props: Props) => {
    */
 
   async function addForm() {
-    await database
-      .C({
-        location: "forms",
+    try {
+      if (selectFormType === "other") return;
+      await FormAPI.CForm({
         data: {
           title: inputFormTitle,
           type: selectFormType,
           data: [],
         },
-      })
-      .then(() => {
-        getForms();
-        setAddFormPopupActive(false);
-      })
-      .catch((error) => {
-        if (error.response.status === 409) {
-          alert("이미 존재하는 제목 입니다");
-          setAddFormPopupActive(false);
-        }
       });
+      alert(SUCCESS_MESSAGE);
+      getForms();
+      setAddFormPopupActive(false);
+    } catch (err) {
+      ALERT_ERROR(err);
+      setAddFormPopupActive(false);
+    }
   }
 
   /**
@@ -197,11 +198,16 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        FormApi.CopyForm({
-                          copyFrom: data._id,
-                        }).then(() => {
-                          getForms();
-                        });
+                        FormAPI.CCopyForm({
+                          params: { _id: data._id },
+                        })
+                          .then(() => {
+                            alert(SUCCESS_MESSAGE);
+                            getForms();
+                          })
+                          .catch((err) => {
+                            ALERT_ERROR(err);
+                          });
                       }}
                     >
                       복사하기
@@ -209,13 +215,13 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        database
-                          .U({
-                            location: `forms/${data._id}/archived`,
-                            data: { new: true },
-                          })
+                        FormAPI.UArchiveForm({ params: { _id: data._id } })
                           .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             getForms();
+                          })
+                          .catch((err) => {
+                            ALERT_ERROR(err);
                           });
                       }}
                     >
@@ -227,12 +233,13 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        database
-                          .D({
-                            location: `forms/${data._id}`,
-                          })
+                        FormAPI.DForm({ params: { _id: data._id } })
                           .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             getForms();
+                          })
+                          .catch((err) => {
+                            ALERT_ERROR(err);
                           });
                       }}
                     >
@@ -241,13 +248,15 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        database
-                          .U({
-                            location: `forms/${data._id}/archived`,
-                            data: { new: false },
-                          })
+                        FormAPI.URestoreForm({
+                          params: { _id: data._id },
+                        })
                           .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             getForms();
+                          })
+                          .catch((err) => {
+                            ALERT_ERROR(err);
                           });
                       }}
                     >

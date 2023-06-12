@@ -28,7 +28,6 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import useDatabase from "hooks/useDatabase";
 
 import style from "style/pages/admin/schools.module.scss";
 

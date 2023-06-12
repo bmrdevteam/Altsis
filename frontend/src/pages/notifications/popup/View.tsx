@@ -41,23 +41,29 @@ import Reply from "./Reply";
 
 import style from "./mail.module.scss";
 import { TNotification } from "types/notification";
-import useApi from "hooks/useApi";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = { setState: any; type?: string; nid?: string };
 
 const NotificationView = (props: Props) => {
   const [replyPopupActive, setReplyPopupActive] = useState<boolean>(false);
-  const { NotificationApi } = useApi();
+  const { NotificationAPI } = useAPIv2();
 
   const [notification, setNotification] = useState<TNotification | undefined>();
 
   useEffect(() => {
-    NotificationApi.RNotificationById(props.nid ?? "").then((notifcation) => {
-      setNotification(notifcation);
-    });
+    if (props.nid) {
+      NotificationAPI.RNotification({ params: { _id: props.nid } })
+        .then(({ notification }) => {
+          setNotification(notification);
+        })
+        .catch((err) => {
+          ALERT_ERROR(err);
+        });
+    }
 
     return () => {};
-  }, []);
+  }, [props.nid]);
 
   return (
     <>
