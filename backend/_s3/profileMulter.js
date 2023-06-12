@@ -1,15 +1,8 @@
 import multer from "multer";
 import multerS3 from "multer-s3";
-import aws from "aws-sdk";
 import { FIELD_INVALID } from "../messages/index.js";
 import mongoose from "mongoose";
-
-const profileS3 = new aws.S3({
-  accessKeyId: process.env["s3_accessKeyId"].trim(),
-  secretAccessKey: process.env["s3_secretAccessKey"].trim(),
-  region: process.env["s3_region"].trim(),
-});
-const profileBucket = process.env["s3_bucket"].trim();
+import { profileS3, profileBucket } from "./profileBucket.js";
 
 const whitelist = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 

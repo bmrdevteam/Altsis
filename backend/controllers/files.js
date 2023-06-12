@@ -11,109 +11,31 @@ import {
   Archive,
   Notification,
 } from "../models/index.js";
-import multer from "multer";
-import multerS3 from "multer-s3";
-import aws from "aws-sdk";
-import { parseISO, addSeconds } from "date-fns";
 import { format } from "date-fns";
-
-const s3 = new aws.S3({
-  accessKeyId: process.env["s3_accessKeyId2"].trim(),
-  secretAccessKey: process.env["s3_secretAccessKey2"].trim(),
-  region: process.env["s3_region"].trim(),
-  signatureVersion: "v4",
-});
-const bucket = process.env["s3_bucket2"].trim();
-const signedUrlExpireSeconds = 60 * 5;
-
-const randomString = () => {
-  const chars =
-    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let tmp = "";
-  for (var i = 0; i < 12; i++) {
-    const randomNumber = Math.floor(Math.random() * chars.length);
-    tmp += chars[randomNumber];
-  }
-  return tmp;
-};
-
-const signUrl = (key, filename, seconds = signedUrlExpireSeconds) => {
-  const preSignedUrl = s3.getSignedUrl("getObject", {
-    Bucket: bucket,
-    Key: key,
-    Expires: seconds,
-    ResponseContentDisposition: `attachment; filename ="${encodeURI(
-      filename
-    )}"`,
-    // ContentType: "image/*",
-  });
-
-  const params = new URL(preSignedUrl).searchParams;
-  const creationDate = parseISO(params.get("X-Amz-Date"));
-  const expiresInSecs = Number(params.get("X-Amz-Expires"));
-  const expiryDate = addSeconds(creationDate, expiresInSecs);
-
-  return { preSignedUrl, expiryDate };
-};
-
-const whitelist = [
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "application/vnd.hancom.hwp",
-  "application/pdf",
-  "application/octet-stream",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/zip",
-];
-
-const tmpMulter = multer({
-  limits: {
-    files: 1,
-    fileSize: 5 * 1024 * 1024,
-  },
-  storage: multerS3({
-    s3: s3,
-    bucket: bucket,
-    acl: "public-read",
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function (req, file, cb) {
-      cb(null, req.tmp.key);
-    },
-  }),
-  fileFilter: async (req, file, cb) => {
-    if (!whitelist.includes(file.mimetype)) {
-      const err = new Error("file is not allowed");
-      err.code = "INVALID_FILE_TYPE";
-      return cb(err);
-    }
-
-    file.originalname = Buffer.from(file.originalname, "latin1").toString(
-      "utf8"
-    );
-    req.tmp = {
-      key: `${req.user.academyId}/archive/${
-        Date.now() + "_" + randomString()
-      }.${file.originalname.split(".").pop()}`,
-    };
-
-    cb(null, true);
-  },
-});
+import { archiveMulter } from "../_s3/archiveMulter.js";
+import { signUrl } from "../_s3/fileBucket.js";
+import {
+  FIELD_INVALID,
+  FIELD_REQUIRED,
+  INVALID_FILE_TYPE,
+  LIMIT_FILE_SIZE,
+  PERMISSION_DENIED,
+  __NOT_FOUND,
+} from "../messages/index.js";
 
 /* upload file */
 
 export const uploadArchive = async (req, res) => {
-  tmpMulter.single("file")(req, {}, async (err) => {
+  archiveMulter.single("file")(req, {}, async (err) => {
     if (err) {
-      if (err.code == "LIMIT_FILE_SIZE" || err.code == "INVALID_FILE_TYPE")
-        return res.status(409).send({ message: err.message });
-      if (err.code == "ARCHIVE_NOT_FOUND")
-        return res.status(404).send({ message: err.message });
-      logger.error(err.message);
-      return res.status(500).send({ message: err.message });
+      switch (err.code) {
+        case "LIMIT_FILE_SIZE":
+          return res.status(409).send({ message: LIMIT_FILE_SIZE });
+        case "INVALID_FILE_TYPE":
+          return res.status(409).send({ message: INVALID_FILE_TYPE });
+        default:
+          return res.status(500).send({ message: err.code });
+      }
     }
 
     const { preSignedUrl, expiryDate } = signUrl(
@@ -134,120 +56,128 @@ export const uploadArchive = async (req, res) => {
 
 /* sign file */
 
-export const sign = async (req, res) => {
-  let seconds = 0;
+export const signArchive = async (req, res) => {
+  for (let field in ["key", "archive", "label", "fieldLabel"]) {
+    if (!(field in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED(field) });
+    }
+  }
 
-  /* 권한 검사 */
   const keys = req.query.key.split("/");
-  if (keys[1] === "archive") {
-    if (
-      !"archive" in req.query ||
-      !"label" in req.query ||
-      !"fieldLabel" in req.query
-    ) {
-      return res.status(400).send({
-        message: "archive, label, fieldLabel is required",
-      });
+  if (keys[1] !== "archive") {
+    return res.status(400).send({ message: FIELD_INVALID("key") });
+  }
+
+  /* find archive */
+  const archive = await Archive(req.user.academyId).findById(req.query.archive);
+  if (!archive) {
+    return res.status(404).send({ message: __NOT_FOUND("archive") });
+  }
+
+  if (
+    !(req.query.label in archive.data) ||
+    !(req.query.fieldLabel in archive.data[req.query.label]) ||
+    !("key" in archive.data[req.query.label][req.query.fieldLabel]) ||
+    archive.data[req.query.label][req.query.fieldLabel].key !== req.query.key
+  ) {
+    return res.status(404).send({ message: __NOT_FOUND("archive") });
+  }
+
+  /* find school & check permission */
+  const school = await School(req.user.academyId)
+    .findById(archive.school)
+    .lean();
+  if (!school) {
+    return res.status(404).send({ message: __NOT_FOUND("school") });
+  }
+
+  const formItem = _.find(
+    school.formArchive,
+    (form) => form.label === req.query.label
+  );
+
+  if (!formItem) {
+    return res.status(404).send({ message: __NOT_FOUND("formItem") });
+  }
+
+  const formItemField = _.find(
+    formItem.fields,
+    (field) => field.label === req.query.fieldLabel
+  );
+  if (!formItemField) {
+    return res.status(404).send({ message: __NOT_FOUND("formItemField") });
+  }
+
+  const authStudent = formItem.authStudent ?? "undefined";
+  const authTeacher = formItem.authTeacher ?? "undefined";
+
+  if (archive.user.equals(req.user._id)) {
+    if (authStudent !== "view") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
-
-    /* find archive */
-    const archive = await Archive(req.user.academyId).findById(
-      req.query.archive
-    );
-    if (!archive) return res.status(404).send({ message: "archive not found" });
-    if (
-      !req.query.label in archive.data ||
-      !req.query.fieldLabel in archive.data[req.query.label] ||
-      !"key" in archive.data[req.query.label][req.query.fieldLabel]
-    ) {
-      return res.status(404).send({ message: "archive not found" });
-    }
-    if (
-      archive.data[req.query.label][req.query.fieldLabel].key !== req.query.key
-    ) {
-      return res.status(404).send({ message: "archive not found" });
-    }
-
-    /* find school & check permission */
-    const school = await School(req.user.academyId)
-      .findById(archive.school)
-      .lean();
-    if (!school) return res.status(404).send({ message: "school not found" });
-    const form = _.find(
-      school.formArchive,
-      (form) => form.label === req.query.label
-    );
-    if (!form)
-      return res.status(404).send({
-        message: "form not found",
+  } else {
+    if (authTeacher === "viewAndEditStudents") {
+      const registrationTeacher = await Registration(
+        req.user.academyId
+      ).findOne({
+        school: archive.school,
+        user: req.user._id,
+        role: "teacher",
       });
-    const field = _.find(
-      form.fields,
-      (field) => field.label === req.query.fieldLabel
-    );
-    if (!field)
-      return res.status(404).send({
-        message: "form not found",
-      });
-
-    const authStudent = form.authStudent ?? "undefined";
-    const authTeacher = form.authTeacher ?? "undefined";
-
-    if (archive.user.equals(req.user._id)) {
-      if (authStudent !== "view") {
-        return res.status(403).send({ message: "Access Denied" });
+      if (!registrationTeacher) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    } else if (authTeacher === "viewAndEditMyStudents") {
+      const registrationStudent = await Registration(req.user.academyId)
+        .findOne({
+          $or: [
+            {
+              school: archive.school,
+              user: archive.user,
+              teacher: req.user._id,
+            },
+            {
+              school: archive.school,
+              user: archive.user,
+              subTeacher: req.user._id,
+            },
+          ],
+        })
+        .lean();
+      if (!registrationStudent) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else {
-      if (authTeacher === "viewAndEditStudents") {
-        const registrationTeacher = await Registration(req.user.academyId)
-          .findOne({
-            school: archive.school,
-            user: req.user._id,
-            role: "teacher",
-          })
-          .lean();
-        if (!registrationTeacher) {
-          return res.status(403).send({ message: "Access Denied" });
-        }
-      } else if (authTeacher === "viewAndEditMyStudents") {
-        const registrationStudent = await Registration(req.user.academyId)
-          .findOne({
-            $or: [
-              {
-                school: archive.school,
-                user: archive.user,
-                teacher: req.user._id,
-              },
-              {
-                school: archive.school,
-                user: archive.user,
-                subTeacher: req.user._id,
-              },
-            ],
-          })
-          .lean();
-        if (!registrationStudent) {
-          return res.status(403).send({ message: "Access Denied" });
-        }
-      } else {
-        return res.status(403).send({ message: "Access Denied" });
-      }
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
-
-    seconds = 60;
-  } else if (keys[1] === "backup") {
-    // is owner?
-    if (req.user.auth !== "owner")
-      return res.status(403).send({ message: "Access Denied" });
-    seconds = 60;
-  } else {
-    return res.status(403).send({ message: "Access Denied" });
   }
 
   const { preSignedUrl, expiryDate } = signUrl(
     req.query.key,
     req.query.fileName,
-    seconds
+    60
+  );
+
+  return res.status(200).send({
+    preSignedUrl,
+    expiryDate,
+  });
+};
+
+export const signBackup = async (req, res) => {
+  if (!("key" in req.query)) {
+    return res.status(400).send({ message: FIELD_REQUIRED("key") });
+  }
+
+  const keys = req.query.key.split("/");
+  if (keys[1] !== "backup") {
+    return res.status(400).send({ message: FIELD_INVALID("key") });
+  }
+
+  const { preSignedUrl, expiryDate } = signUrl(
+    req.query.key,
+    req.query.fileName,
+    60
   );
 
   return res.status(200).send({

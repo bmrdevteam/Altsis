@@ -8,7 +8,9 @@ import { isAdManager, isOwner, isLoggedIn } from "../middleware/auth.js";
 //=================================
 
 router.post("/archive", isAdManager, files.uploadArchive);
-router.get("/signed", isLoggedIn, files.sign);
+
+router.get("/archive/signed", isLoggedIn, files.signArchive);
+router.get("/backup/signed", isOwner, files.signBackup);
 
 router.get("/backup", isOwner, files.findBackup);
 router.post("/backup", isOwner, files.uploadBackup);
