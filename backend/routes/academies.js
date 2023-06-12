@@ -20,6 +20,12 @@ router.put("/:academyId/inactivate", isOwner, academies.inactivate);
 router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
 
+/* backup */
+router.post("/:academyId/backup", isOwner, academies.createBackup);
+router.put("/:academyId/restore", isOwner, academies.restoreBackup);
+router.get("/:academyId/backup", isOwner, academies.findBackup);
+router.delete("/:academyId/backup", isOwner, academies.removeBackup);
+
 router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */

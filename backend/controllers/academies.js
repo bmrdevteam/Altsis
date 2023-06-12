@@ -11,6 +11,10 @@ import {
   Season,
   Form,
   Registration,
+  Notification,
+  Enrollment,
+  Syllabus,
+  Archive,
 } from "../models/index.js";
 
 import _ from "lodash";
@@ -23,6 +27,8 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { generatePassword } from "../utils/password.js";
+import { fileS3, fileBucket } from "../_s3/fileBucket.js";
+import { format } from "date-fns";
 
 /**
  * @memberof APIs.AcademyAPI
@@ -341,6 +347,332 @@ export const updateTel = async (req, res) => {
     await academy.save();
 
     return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+const Model = (title, academyId) => {
+  switch (title) {
+    case "schools":
+      return School(academyId);
+    case "users":
+      return User(academyId);
+    case "archives":
+      return Archive(academyId);
+    case "seasons":
+      return Season(academyId);
+    case "registrations":
+      return Registration(academyId);
+    case "syllabuses":
+      return Syllabus(academyId);
+    case "enrollments":
+      return Enrollment(academyId);
+    case "forms":
+      return Form(academyId);
+    case "notifications":
+      return Notification(academyId);
+    default:
+      return undefined;
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function CAcademyBackup API
+ * @description 아카데미 백업 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/academies/:academyId/backup"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {Object[]} req.body.models
+ * @param {string} req.body.models[i].title
+ *
+ * @param {Object} res
+ * @param {string[]} res.logs
+ *
+ */
+export const createBackup = async (req, res) => {
+  try {
+    if (!("models" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("models") });
+    }
+    for (let model of req.body.models) {
+      if (!("title" in model)) {
+        return res.status(400).send({ message: FIELD_REQUIRED("title") });
+      }
+    }
+
+    const logs = [];
+    const title = format(Date.now(), "yyyy-MM-dd_HH:mm:ss.SSS");
+    logs.push(`┌ [Backup] ${req.params.academyId}/backup/${title}`);
+    logs.push(`├ requested by ${req.user.userId}(${req.params.academyId})`);
+
+    const startTime = new Date().getTime();
+    for (let model of req.body.models) {
+      try {
+        logs.push(`│┌ backup ${model.title}...`);
+        const subStartTime = new Date().getTime();
+
+        const cursor = Model(model.title, req.params.academyId)
+          ?.find()
+          .batchSize(1000)
+          .cursor();
+        if (!cursor) continue;
+
+        const docs = [];
+        let idx = 1;
+        let subIdx = 1;
+        for await (const doc of cursor) {
+          docs.push(JSON.stringify(doc, null, "\t"));
+          if (subIdx === 1000) {
+            logs.push(`│├ reading ${model.title}... ${idx}`);
+            subIdx = 0;
+          }
+          idx += 1;
+          subIdx += 1;
+        }
+        if (subIdx > 0) {
+          logs.push(`│├ reading ${model.title}... ${idx - 1}`);
+        }
+
+        logs.push(`│├ writing ${model.title}...`);
+        const data = "[" + _.join(docs, ",\n") + "]";
+        await fileS3
+          .upload({
+            Bucket: fileBucket,
+            Key: `${req.params.academyId}/backup/${title}/${model.title}.json`,
+            Body: data,
+            ContentType: "application/json",
+          })
+          .promise();
+
+        const subEndTime = new Date().getTime();
+        logs.push(
+          `│└ backup ${model.title} is done(${subEndTime - subStartTime}ms)`
+        );
+      } catch (err) {
+        logs.push(`│└ backup ${model.title} is failed: ${err.message}`);
+      }
+    }
+    const endTime = new Date().getTime();
+    logs.push(
+      `└ [Backup] ${req.params.academyId}/backup/${title} is done(${
+        endTime - startTime
+      }ms)`
+    );
+
+    await fileS3
+      .upload({
+        Bucket: fileBucket,
+        Key: `${req.params.academyId}/backup/${title}/log.txt`,
+        Body: _.join(logs, `\n`),
+        ContentType: "application/json",
+      })
+      .promise();
+
+    return res.status(200).send({ logs });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function URestoreAcademy API
+ * @description 아카데미 복구 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/restore"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.model
+ * @param {Object[]} req.body.documents
+ *
+ * @param {Object} res
+ *
+ */
+export const restoreBackup = async (req, res) => {
+  try {
+    for (let field of ["model", "documents"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+    if (!Array.isArray(req.body.documents)) {
+      return res.status(400).send({ message: FIELD_INVALID("documents") });
+    }
+
+    await Model(req.body.model, req.params.academyId).deleteMany({});
+    if (req.body.model === "archives" || req.body.model === "enrollments") {
+      await Promise.all(
+        documents.map((_doc) => {
+          const doc = new (Model(req.body.model, req.params.academyId))(_doc);
+          return doc.save();
+        })
+      );
+    } else {
+      await Model(req.body.model, req.params.academyId).insertMany(documents);
+    }
+
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyBackupList API
+ * @description 아카데미 백업 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies/:academyId/backup"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res
+ * @param {Object[]} res.backupList
+ * @param {string} res.backupList[i].title
+ * @param {string} res.backupList[i].key
+ */
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyBackup API
+ * @description 아카데미 백업 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies/:academyId/backup?title={backup.title}"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res
+ * @param {Object[]} res.backup
+ * @param {string} res.backup[i].title
+ * @param {string} res.backup[i].key
+ * @param {number} res.backup[i].size
+ * @param {Date} res.backup[i].lastModified
+ *
+ */
+export const findBackup = async (req, res) => {
+  try {
+    /* RAcademyBackupList */
+    if (!("title" in req.query)) {
+      const backupList = [];
+
+      const data = [];
+      let token = undefined;
+      do {
+        const _data = await fileS3
+          .listObjectsV2({
+            Bucket: fileBucket,
+            Prefix: `${req.params.academyId}/backup/`,
+            ContinuationToken: token,
+            Delimiter: "/",
+          })
+          .promise();
+        data.push(..._data.CommonPrefixes);
+        token = data.NextContinuationToken;
+      } while (token);
+
+      for (let content of data) {
+        backupList.push({
+          title: content.Prefix.split("/")[2],
+          key: content.Prefix,
+        });
+      }
+      return res.status(200).send({ backupList });
+    }
+
+    /* RAcademyBackup */
+    const backup = [];
+
+    const data = await fileS3
+      .listObjectsV2({
+        Bucket: fileBucket,
+        Prefix: `${req.params.academyId}/backup/${req.query.title}/`,
+      })
+      .promise();
+
+    for (let content of data?.Contents) {
+      const keys = content.Key.split("/");
+      if (keys.length === 4 && keys[3] !== "") {
+        backup.push({
+          title: keys[3],
+          size: content.Size,
+          key: content.Key,
+          lastModified: content.LastModified,
+        });
+      }
+    }
+    return res.status(200).send({ backup });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function DAcademyBackup API
+ * @description 아카데미 백업 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/academies/:academyId/backup?title={backup.title}"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res
+ *
+ */
+export const removeBackup = async (req, res) => {
+  try {
+    if (!("title" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("title") });
+    }
+
+    const data = await fileS3
+      .listObjectsV2({
+        Bucket: fileBucket,
+        Prefix: `${req.params.academyId}/backup/${req.query.title}/`,
+      })
+      .promise();
+
+    const keys = data.Contents.map((content) => {
+      return { Key: content.Key };
+    });
+    await fileS3
+      .deleteObjects({
+        Bucket: fileBucket,
+        Delete: { Objects: keys },
+      })
+      .promise();
+
+    return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

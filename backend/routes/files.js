@@ -8,16 +8,10 @@ import { isAdManager, isOwner, isLoggedIn } from "../middleware/auth.js";
 //=================================
 
 router.post("/archive", isAdManager, files.uploadArchive);
-router.get("/signed", isLoggedIn, files.sign);
+router.get("/archive/signed", isLoggedIn, files.signArchive);
 
-router.get("/backup", isOwner, files.findBackup);
-router.post("/backup", isOwner, files.uploadBackup);
-router.delete("/backup", isOwner, files.removeBackup);
+router.get("/document/signed", isLoggedIn, files.signDocument);
 
-router.post("/restore", isOwner, files.restoreBackup);
-
-// router.get("/:_id?", isAdManager, files.find);
-// router.put("/:_id/:field?", isAdManager, files.update);
-router.delete("/", isAdManager, files.remove);
+router.get("/backup/signed", isOwner, files.signBackup);
 
 export { router };

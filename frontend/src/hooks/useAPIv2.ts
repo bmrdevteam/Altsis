@@ -214,6 +214,111 @@ export default function useAPIv2() {
   }
 
   /**
+   * CAcademyBackup API
+   * @description 아카데미 백업 생성 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function CAcademyBackup(props: {
+    params: { academyId: string };
+    data: { models: { title: string }[] };
+  }) {
+    const { logs } = await database.C({
+      location: `academies/${props.params.academyId}/backup`,
+      data: props.data,
+    });
+    return { logs: logs as string[] };
+  }
+
+  /**
+   * URestoreAcademy API
+   * @description 아카데미 복구 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function URestoreAcademy(props: {
+    params: { academyId: string };
+    data: { model: string; documents: any[] };
+  }) {
+    return await database.U({
+      location: `academies/${props.params.academyId}/restore`,
+      data: props.data,
+    });
+  }
+
+  /**
+   * RAcademyBackupList API
+   * @description 아카데미 백업 목록 조회 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RAcademyBackupList(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    const { backupList } = await database.R({
+      location: `academies/${props.params.academyId}/backup`,
+    });
+    return {
+      backupList: _.sortBy(backupList, "title").reverse() as {
+        title: string;
+        key: string;
+      }[],
+    };
+  }
+
+  /**
+   * RAcademyBackup API
+   * @description 아카데미 백업 조회 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RAcademyBackup(props: {
+    params: {
+      academyId: string;
+    };
+    query: {
+      title: string;
+    };
+  }) {
+    const { backup } = await database.R({
+      location:
+        `academies/${props.params.academyId}/backup` +
+        QUERY_BUILDER(props.query),
+    });
+    return {
+      backup: backup as {
+        title: string;
+        key: string;
+        size: number;
+        lastModified: string;
+      }[],
+    };
+  }
+
+  /**
+   * DAcademyBackup API
+   * @description 아카데미 백업 삭제 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function DAcademyBackup(props: {
+    params: {
+      academyId: string;
+    };
+    query: {
+      title: string;
+    };
+  }) {
+    return await database.D({
+      location:
+        `academies/${props.params.academyId}/backup` +
+        QUERY_BUILDER(props.query),
+    });
+  }
+
+  /**
    * DAcademy API
    * @description 아카데미 삭제 API
    * @version 2.0.0
@@ -1632,6 +1737,99 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * File API
+   * ##########################################################################
+   */
+
+  /**
+   * CUploadFileArchive API
+   * @description 아카이브 파일 업로드 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CUploadFileArchive(props: { data: FormData }) {
+    const { originalName, key, url, preSignedUrl, expiryDate } =
+      await database.C({
+        location: "files/archive",
+        data: props.data,
+      });
+    return {
+      originalName: originalName as string,
+      key: key as string,
+      url: url as string,
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string,
+    };
+  }
+
+  /**
+   * RSignedUrlArchive API
+   * @description 서명된 아카이브 파일 주소 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSignedUrlArchive(props: {
+    query: {
+      key: string;
+      archive: string;
+      label: string;
+      fieldLabel: string;
+      fileName: string;
+    };
+  }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: "files/archive/signed" + QUERY_BUILDER(props.query),
+    });
+    return {
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string,
+    };
+  }
+
+  /**
+   * RSignedUrlDocument API
+   * @description 서명된 문서 파일 주소 조회
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RSignedUrlDocument(props: {
+    query: {
+      key: string;
+      fileName: string;
+    };
+  }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: "files/document/signed" + QUERY_BUILDER(props.query),
+    });
+    return {
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string,
+    };
+  }
+
+  /**
+   * RSignedUrlBackup API
+   * @description 서명된 백업 파일 주소 조회
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RSignedUrlBackup(props: {
+    query: {
+      key: string;
+      fileName: string;
+    };
+  }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: "files/backup/signed" + QUERY_BUILDER(props.query),
+    });
+    return {
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1641,6 +1839,11 @@ export default function useAPIv2() {
       UAcademyTel,
       UActivateAcademy,
       UInactivateAcademy,
+      CAcademyBackup,
+      URestoreAcademy,
+      RAcademyBackupList,
+      RAcademyBackup,
+      DAcademyBackup,
       DAcademy,
     },
     UserAPI: {
@@ -1720,6 +1923,12 @@ export default function useAPIv2() {
       UHideEnrollmentFromCalendar,
       UShowEnrollmentOnCalendar,
       DEnrollment,
+    },
+    FileAPI: {
+      CUploadFileArchive,
+      RSignedUrlArchive,
+      RSignedUrlDocument,
+      RSignedUrlBackup,
     },
   };
 }

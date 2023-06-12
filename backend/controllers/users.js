@@ -19,7 +19,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { conn } from "../_database/mongodb/index.js";
-import { profileMulter } from "../_multer/profileMulter.js";
+import { profileMulter } from "../_s3/profileMulter.js";
 
 /**
  * @memberof APIs.UserAPI
