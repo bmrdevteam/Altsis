@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 // hooks
-import useDatabase from "hooks/useDatabase";
 import { copyClipBoard } from "functions/functions";
 
 // components
@@ -40,11 +39,12 @@ import Popup from "components/popup/Popup";
 
 // tab elements
 import Basic from "./tab/Basic";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
 const Registration = (props: Props) => {
-  const database = useDatabase();
+  const { AcademyAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
 
   /* document list */
@@ -55,17 +55,17 @@ const Registration = (props: Props) => {
   const [editPopupActive, setEditPopupActive] = useState(false);
 
   async function getDocumentList() {
-    const { documents } = await database.R({
-      location: `academies/${academyId}/registrations`,
+    const { documents } = await AcademyAPI.RAcademyDocuments({
+      params: { academyId, docType: "registrations" },
     });
     return documents;
   }
 
   async function getDocument(id: string) {
-    const result = await database.R({
-      location: `academies/${academyId}/registrations/${id}`,
+    const { document } = await AcademyAPI.RAcademyDocument({
+      params: { academyId, docType: "registrations", docId: id },
     });
-    return result;
+    return document;
   }
 
   useEffect(() => {
