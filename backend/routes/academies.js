@@ -23,6 +23,7 @@ router.put("/:academyId/tel", isOwner, academies.updateTel);
 /* backup */
 router.post("/:academyId/backup", isOwner, academies.createBackup);
 router.get("/:academyId/backup", isOwner, academies.findBackup);
+router.delete("/:academyId/backup", isOwner, academies.removeBackup);
 
 router.delete("/:academyId", isOwner, academies.remove);
 

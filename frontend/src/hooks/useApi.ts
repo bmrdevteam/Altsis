@@ -281,11 +281,6 @@ export default function useApi() {
    * ##########################################################################
    */
 
-  async function DBackup(props: { academyId: string; title: string }) {
-    return await database.D({
-      location: "files/backup" + QUERY_BUILDER(props),
-    });
-  }
   async function RestoreBackup(props: {
     academyId: string;
     model: string;
@@ -324,7 +319,6 @@ export default function useApi() {
       RDocumentData,
     },
     BackupApi: {
-      DBackup,
       RestoreBackup,
     },
   };

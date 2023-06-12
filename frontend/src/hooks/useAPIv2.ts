@@ -282,6 +282,27 @@ export default function useAPIv2() {
   }
 
   /**
+   * DAcademyBackup API
+   * @description 아카데미 백업 삭제 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function DAcademyBackup(props: {
+    params: {
+      academyId: string;
+    };
+    query: {
+      title: string;
+    };
+  }) {
+    return await database.D({
+      location:
+        `academies/${props.params.academyId}/backup` +
+        QUERY_BUILDER(props.query),
+    });
+  }
+
+  /**
    * DAcademy API
    * @description 아카데미 삭제 API
    * @version 2.0.0
@@ -1805,6 +1826,7 @@ export default function useAPIv2() {
       CAcademyBackup,
       RAcademyBackupList,
       RAcademyBackup,
+      DAcademyBackup,
       DAcademy,
     },
     UserAPI: {

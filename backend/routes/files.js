@@ -13,7 +13,6 @@ router.get("/archive/signed", isLoggedIn, files.signArchive);
 router.get("/document/signed", isLoggedIn, files.signDocument);
 
 router.get("/backup/signed", isOwner, files.signBackup);
-router.delete("/backup", isOwner, files.removeBackup);
 
 router.post("/restore", isOwner, files.restoreBackup);
 

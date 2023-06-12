@@ -583,6 +583,52 @@ export const findBackup = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function DAcademyBackup API
+ * @description 아카데미 백업 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/academies/:academyId/backup?title={backup.title}"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res
+ *
+ */
+export const removeBackup = async (req, res) => {
+  try {
+    if (!("title" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("title") });
+    }
+
+    const data = await fileS3
+      .listObjectsV2({
+        Bucket: fileBucket,
+        Prefix: `${req.params.academyId}/backup/${req.query.title}/`,
+      })
+      .promise();
+
+    const keys = data.Contents.map((content) => {
+      return { Key: content.Key };
+    });
+    await fileS3
+      .deleteObjects({
+        Bucket: fileBucket,
+        Delete: { Objects: keys },
+      })
+      .promise();
+
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 const typeToModel = (docType, academyId) => {
   if (docType === "schools") return School(academyId);
   if (docType === "seasons") return Season(academyId);

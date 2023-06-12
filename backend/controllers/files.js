@@ -334,39 +334,6 @@ const Model = (title, academyId) => {
   if (title === "notifications") return Notification(academyId);
 };
 
-export const removeBackup = async (req, res) => {
-  try {
-    if (!("academyId" in req.query)) {
-      return res.status(400).send({ message: "query(academyId) is required" });
-    }
-    if (!("title" in req.query)) {
-      return res.status(400).send({ message: "query(title) is required" });
-    }
-
-    const data = await fileS3
-      .listObjectsV2({
-        Bucket: fileBucket,
-        Prefix: `${req.query.academyId}/backup/${req.query.title}/`,
-      })
-      .promise();
-
-    const keys = data.Contents.map((content) => {
-      return { Key: content.Key };
-    });
-    await fileS3
-      .deleteObjects({
-        Bucket: fileBucket,
-        Delete: { Objects: keys },
-      })
-      .promise();
-
-    return res.status(200).send({});
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 export const restoreBackup = async (req, res) => {
   try {
     const { academyId, model, documents } = req.body;
