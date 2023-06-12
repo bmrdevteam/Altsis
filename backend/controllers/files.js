@@ -321,69 +321,6 @@ export const signBackup = async (req, res) => {
   });
 };
 
-/* find backup */
-export const findBackup = async (req, res) => {
-  try {
-    if (!("academyId" in req.query)) {
-      return res.status(400).send({ message: "query(academyId) is required" });
-    }
-
-    const list = [];
-
-    /*  특정 백업 목록 불러오기 */
-    if ("title" in req.query) {
-      const data = await fileS3
-        .listObjectsV2({
-          Bucket: fileBucket,
-          Prefix: `${req.query.academyId}/backup/${req.query.title}/`,
-        })
-        .promise();
-
-      for (let content of data.Contents) {
-        const keys = content.Key.split("/");
-        if (keys.length === 4 && keys[3] !== "") {
-          list.push({
-            title: keys[3],
-            size: content.Size,
-            key: content.Key,
-            lastModified: content.LastModified,
-          });
-        }
-      }
-    } else {
-      /* 백업 리스트 불러오기 */
-      const data = [];
-      let token = undefined;
-
-      /* list all data */
-      do {
-        const _data = await fileS3
-          .listObjectsV2({
-            Bucket: fileBucket,
-            Prefix: `${req.query.academyId}/backup/`,
-            ContinuationToken: token,
-            Delimiter: "/",
-          })
-          .promise();
-        data.push(..._data.CommonPrefixes);
-        token = data.NextContinuationToken;
-      } while (token);
-
-      for (let content of data) {
-        list.push({
-          title: content.Prefix.split("/")[2],
-          key: content.Prefix,
-        });
-      }
-    }
-
-    return res.status(200).send({ list });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
-
 /* upload backup */
 const Model = (title, academyId) => {
   if (title === "schools") return School(academyId);
