@@ -280,7 +280,7 @@ export const archive = async (req, res) => {
 
 /**
  * @memberof APIs.FormAPI
- * @function URestoreArchive API
+ * @function URestoreForm API
  * @description 양식 복원 API
  * @version 2.0.0
  *

@@ -6,6 +6,9 @@ import { profileS3, profileBucket } from "./profileBucket.js";
 
 const whitelist = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
+/**
+ *  @description Upload file "abc.jpg" as "{bucket}/original/{user._id}/abc.jpg" and AWS Lambda will copy this as "{bucket}/thumb/{user._id}/abc.jpg"
+ */
 export const profileMulter = multer({
   limits: {
     files: 1,

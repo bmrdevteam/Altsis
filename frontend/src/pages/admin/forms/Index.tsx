@@ -248,7 +248,7 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        FormAPI.URestoreArchive({
+                        FormAPI.URestoreForm({
                           params: { _id: data._id },
                         })
                           .then(() => {
