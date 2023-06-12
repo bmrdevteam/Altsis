@@ -40,7 +40,7 @@ import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
 import Select from "components/select/Select";
 import Textarea from "components/textarea/Textarea";
-import useAPIv2 from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
@@ -262,17 +262,16 @@ ___________________
               onClick={async () => {
                 try {
                   setIsCreatingBackup(true);
-                  await BackupApi.CBackup({
-                    academyId,
-                    models: modelSelectRef.current,
+                  await AcademyAPI.CAcademyBackup({
+                    params: { academyId },
+                    data: { models: modelSelectRef.current },
                   });
                   setIsCreatingBackup(false);
                   setAddPopupActive(false);
                   alert(SUCCESS_MESSAGE);
                   setIsLoading(true);
                 } catch (err: any) {
-                  alert("에러가 발생했습니다.");
-                  console.log(err.message);
+                  ALERT_ERROR(err);
                   setIsCreatingBackup(false);
                   setAddPopupActive(false);
                 }

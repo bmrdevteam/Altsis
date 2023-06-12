@@ -11,6 +11,10 @@ import {
   Season,
   Form,
   Registration,
+  Notification,
+  Enrollment,
+  Syllabus,
+  Archive,
 } from "../models/index.js";
 
 import _ from "lodash";
@@ -24,6 +28,7 @@ import {
 } from "../messages/index.js";
 import { generatePassword } from "../utils/password.js";
 import { fileS3, fileBucket } from "../_s3/fileBucket.js";
+import { format } from "date-fns";
 
 /**
  * @memberof APIs.AcademyAPI
@@ -342,6 +347,138 @@ export const updateTel = async (req, res) => {
     await academy.save();
 
     return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+const Model = (title, academyId) => {
+  switch (title) {
+    case "schools":
+      return School(academyId);
+    case "users":
+      return User(academyId);
+    case "archives":
+      return Archive(academyId);
+    case "seasons":
+      return Season(academyId);
+    case "registrations":
+      return Registration(academyId);
+    case "syllabuses":
+      return Syllabus(academyId);
+    case "enrollments":
+      return Enrollment(academyId);
+    case "forms":
+      return Form(academyId);
+    case "notifications":
+      return Notification(academyId);
+    default:
+      return undefined;
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function CAcademyBackup API
+ * @description 아카데미 백업 생성 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/academies/:academyId/backup"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {Object[]} req.body.models
+ * @param {string} req.body.models[i].title
+ *
+ * @param {Object} res
+ * @param {string[]} res.logs
+ *
+ */
+export const createBackup = async (req, res) => {
+  try {
+    if (!("models" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("models") });
+    }
+    for (let model of req.body.models) {
+      if (!("title" in model)) {
+        return res.status(400).send({ message: FIELD_REQUIRED("title") });
+      }
+    }
+
+    const logs = [];
+    const title = format(Date.now(), "yyyy-MM-dd_HH:mm:ss.SSS");
+    logs.push(`┌ [Backup] ${req.params.academyId}/backup/${title}`);
+    logs.push(`├ requested by ${req.user.userId}(${req.params.academyId})`);
+
+    const startTime = new Date().getTime();
+    for (let model of req.body.models) {
+      try {
+        logs.push(`│┌ backup ${model.title}...`);
+        const subStartTime = new Date().getTime();
+
+        const cursor = Model(model.title, req.params.academyId)
+          ?.find()
+          .batchSize(1000)
+          .cursor();
+        if (!cursor) continue;
+
+        const docs = [];
+        let idx = 1;
+        let subIdx = 1;
+        for await (const doc of cursor) {
+          docs.push(JSON.stringify(doc, null, "\t"));
+          if (subIdx === 1000) {
+            logs.push(`│├ reading ${model.title}... ${idx}`);
+            subIdx = 0;
+          }
+          idx += 1;
+          subIdx += 1;
+        }
+        if (subIdx > 0) {
+          logs.push(`│├ reading ${model.title}... ${idx - 1}`);
+        }
+
+        logs.push(`│├ writing ${model.title}...`);
+        const data = "[" + _.join(docs, ",\n") + "]";
+        await fileS3
+          .upload({
+            Bucket: fileBucket,
+            Key: `${req.params.academyId}/backup/${title}/${model.title}.json`,
+            Body: data,
+            ContentType: "application/json",
+          })
+          .promise();
+
+        const subEndTime = new Date().getTime();
+        logs.push(
+          `│└ backup ${model.title} is done(${subEndTime - subStartTime}ms)`
+        );
+      } catch (err) {
+        logs.push(`│└ backup ${model.title} is failed: ${err.message}`);
+      }
+    }
+    const endTime = new Date().getTime();
+    logs.push(
+      `└ [Backup] ${req.params.academyId}/backup/${title} is done(${
+        endTime - startTime
+      }ms)`
+    );
+
+    await fileS3
+      .upload({
+        Bucket: fileBucket,
+        Key: `${req.params.academyId}/backup/${title}/log.txt`,
+        Body: _.join(logs, `\n`),
+        ContentType: "application/json",
+      })
+      .promise();
+
+    return res.status(200).send({ logs });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
