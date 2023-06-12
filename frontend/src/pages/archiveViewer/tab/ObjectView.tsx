@@ -104,6 +104,7 @@ const One = (props: Props) => {
                         archive: archiveId,
                         label: pid ?? "",
                         fieldLabel: label,
+                        fileName: archiveData?.[label]?.originalName,
                       },
                     });
 
@@ -186,6 +187,7 @@ const One = (props: Props) => {
                         archive: archiveId,
                         label: pid ?? "",
                         fieldLabel: label,
+                        fileName: archiveData?.[label]?.originalName,
                       },
                     });
 
@@ -211,6 +213,7 @@ const One = (props: Props) => {
                         archive: archiveId,
                         label: pid ?? "",
                         fieldLabel: label,
+                        fileName: archiveData?.[label]?.originalName,
                       },
                     });
 
