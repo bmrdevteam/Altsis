@@ -243,6 +243,8 @@ export const find = async (req, res) => {
         "period",
         "isActivated",
         "isActivatedFirst",
+        "formEvaluation",
+        "subjects",
       ]);
 
     return res.status(200).send({ seasons });
