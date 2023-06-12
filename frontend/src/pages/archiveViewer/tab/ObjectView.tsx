@@ -7,11 +7,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import Loading from "components/loading/Loading";
 
 import _ from "lodash";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
 const One = (props: Props) => {
-  const { ArchiveApi, FileApi } = useApi();
+  const { ArchiveApi } = useApi();
+  const { FileAPI } = useAPIv2();
   const { pid } = useParams(); // archive label ex) 인적 사항
   const navigate = useNavigate();
 
@@ -96,12 +98,13 @@ const One = (props: Props) => {
                 }}
                 onClick={async () => {
                   try {
-                    const { preSignedUrl } = await FileApi.SignFileArchive({
-                      key: archiveData?.[label]?.key,
-                      fileName: archiveData?.[label]?.originalName,
-                      archive: archiveId,
-                      label: pid ?? "",
-                      fieldLabel: label,
+                    const { preSignedUrl } = await FileAPI.RSignedUrlArchive({
+                      query: {
+                        key: archiveData?.[label]?.key,
+                        archive: archiveId,
+                        label: pid ?? "",
+                        fieldLabel: label,
+                      },
                     });
 
                     const anchor = document.createElement("a");
@@ -177,12 +180,13 @@ const One = (props: Props) => {
                 onError={async (e) => {
                   e.currentTarget.onerror = null;
                   const { preSignedUrl, expiryDate } =
-                    await FileApi.SignFileArchive({
-                      key: archiveData?.[label]?.key,
-                      fileName: archiveData?.[label]?.originalName,
-                      archive: archiveId,
-                      label: pid ?? "",
-                      fieldLabel: label,
+                    await FileAPI.RSignedUrlArchive({
+                      query: {
+                        key: archiveData?.[label]?.key,
+                        archive: archiveId,
+                        label: pid ?? "",
+                        fieldLabel: label,
+                      },
                     });
 
                   archiveData[label].preSignedUrl = preSignedUrl;
@@ -201,14 +205,14 @@ const One = (props: Props) => {
                 }}
                 onClick={async () => {
                   try {
-                    const { preSignedUrl, expiryDate } =
-                      await FileApi.SignFileArchive({
+                    const { preSignedUrl } = await FileAPI.RSignedUrlArchive({
+                      query: {
                         key: archiveData?.[label]?.key,
-                        fileName: archiveData?.[label]?.originalName,
                         archive: archiveId,
                         label: pid ?? "",
                         fieldLabel: label,
-                      });
+                      },
+                    });
 
                     const anchor = document.createElement("a");
                     anchor.href = preSignedUrl;
