@@ -28,7 +28,6 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -43,6 +42,7 @@ import Table from "components/tableV2/Table";
 
 import style from "./mail.module.scss";
 import Svg from "assets/svg/Svg";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   setState: any;
@@ -55,7 +55,7 @@ type Props = {
 };
 
 const NotificationSend = (props: Props) => {
-  const { NotificationApi } = useApi();
+  const { NotificationAPI } = useAPIv2();
   const [receiverList, setReceiverList] = useState<any[]>();
   const [receiverSelectedList, setReceiverSelectedList] = useState<any[]>(
     props.receiverSelectedList || []
@@ -410,10 +410,10 @@ const NotificationSend = (props: Props) => {
                 if (_.isEmpty(receiverSelectedList)) {
                   alert("받는사람을 한 명 이상 지정해야 합니다.");
                 } else if (title === "") {
-                  alert("타이틀 없이 메일을 보낼 수 없습니다.");
+                  alert("제목 없이 메일을 보낼 수 없습니다.");
                 } else {
                   // console.log(receiverSelectedList);
-                  NotificationApi.SendNotifications({
+                  NotificationAPI.CNotification({
                     data: {
                       toUserList: receiverSelectedList.map((receiver: any) => {
                         return {
@@ -427,13 +427,19 @@ const NotificationSend = (props: Props) => {
                       description,
                     },
                   })
-                    .then((res: any) => {
+                    .then(() => {
                       alert(SUCCESS_MESSAGE);
 
-                      props.setIsLoading(true);
+                      if (props.setIsLoading) {
+                        props.setIsLoading(true);
+                      }
+
                       props.setState(false);
                     })
-                    .catch((err) => alert(err.response.data.message));
+                    .catch((err) => {
+                      ALERT_ERROR(err);
+                      console.error(err);
+                    });
                 }
               }}
             >

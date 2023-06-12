@@ -7,7 +7,6 @@ import * as notifications from "../controllers/notifications.js";
 router.post("/", isLoggedIn, notifications.send);
 router.get("/:_id?", isLoggedIn, notifications.find);
 router.put("/:_id/check", isLoggedIn, notifications.check);
-router.put("/:_id/uncheck", isLoggedIn, notifications.uncheck);
-router.delete("/", isLoggedIn, notifications.remove);
+router.delete("/:_id", isLoggedIn, notifications.remove);
 
 export { router };

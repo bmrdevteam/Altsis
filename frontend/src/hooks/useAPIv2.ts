@@ -22,6 +22,7 @@ import {
 import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
+import { TNotification } from "types/notification";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -2034,6 +2035,104 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * ##########################################################################
+   * Form API
+   * ##########################################################################
+   */
+
+  /**
+   * CNotification API
+   * @description 알림 생성 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CNotification(props: {
+    data: {
+      toUserList: { user: string; userId: string; userName: string }[];
+      category?: string;
+      title: string;
+      description: string;
+    };
+  }) {
+    return await database.C({ location: "notifications", data: props.data });
+  }
+
+  /**
+   * RNotifications API
+   * @description 알림 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RNotifications(props: {
+    query: {
+      type: "received" | "sent";
+      checked?: boolean;
+    };
+  }) {
+    const { notifications } = await database.R({
+      location: "notifications" + QUERY_BUILDER(props.query),
+    });
+
+    return {
+      notifications: _.sortBy(
+        notifications,
+        "createdAt"
+      ).reverse() as TNotification[],
+    };
+  }
+
+  /**
+   * RNotification API
+   * @description 알림 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RNotification(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { notification } = await database.R({
+      location: `notifications/${props.params._id}`,
+    });
+
+    return { notification: notification as TNotification };
+  }
+
+  /**
+   * UCheckNotification API
+   * @description 알림 확인 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UCheckNotification(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: `notifications/${props.params._id}/check`,
+      data: {},
+    });
+  }
+
+  /**
+   * DNotification API
+   * @description 알림 삭제 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function DNotification(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `notifications/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -2147,6 +2246,13 @@ export default function useAPIv2() {
       RSignedUrlArchive,
       RSignedUrlDocument,
       RSignedUrlBackup,
+    },
+    NotificationAPI: {
+      CNotification,
+      RNotifications,
+      RNotification,
+      UCheckNotification,
+      DNotification,
     },
   };
 }
