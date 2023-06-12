@@ -214,6 +214,23 @@ export default function useAPIv2() {
   }
 
   /**
+   * CAcademyBackup API
+   * @description 아카데미 백업 생성 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function CAcademyBackup(props: {
+    params: { academyId: string };
+    data: { models: { title: string }[] };
+  }) {
+    const { logs } = await database.C({
+      location: `academies/${props.params.academyId}/backup`,
+      data: props.data,
+    });
+    return { logs: logs as string[] };
+  }
+
+  /**
    * RAcademyBackupList API
    * @description 아카데미 백업 목록 조회 API
    * @version 2.0.0
@@ -1785,6 +1802,7 @@ export default function useAPIv2() {
       UAcademyTel,
       UActivateAcademy,
       UInactivateAcademy,
+      CAcademyBackup,
       RAcademyBackupList,
       RAcademyBackup,
       DAcademy,
