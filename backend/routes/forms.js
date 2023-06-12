@@ -14,7 +14,7 @@ router.get("/:_id?", isAdManager, forms.find);
 
 router.put("/:_id", isAdManager, forms.update);
 router.put("/:_id/archive", isAdManager, forms.archive);
-router.put("/:_id/archive/cancel", isAdManager, forms.cancelArchive);
+router.put("/:_id/restore", isAdManager, forms.restore);
 
 router.delete("/:_id", isAdManager, forms.remove);
 

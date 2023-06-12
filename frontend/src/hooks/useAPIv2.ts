@@ -1907,22 +1907,38 @@ export default function useAPIv2() {
   }
 
   /**
-   * UCancleArchiveForm API
-   * @description 양식 보관 취소 API
+   * URestoreArchive API
+   * @description 양식 복원 API
    * @version 2.0.0
    * @auth admin|manager
    */
-  async function UCancleArchiveForm(props: {
+  async function URestoreArchive(props: {
     params: {
       _id: string;
     };
   }) {
     const { form } = await database.U({
-      location: `forms/${props.params._id}/archive/cancel`,
+      location: `forms/${props.params._id}/restore`,
       data: {},
     });
 
     return { form };
+  }
+
+  /**
+   * DForm API
+   * @description 양식 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `forms/${props.params._id}`,
+    });
   }
 
   /**
@@ -2123,7 +2139,8 @@ export default function useAPIv2() {
       RForm,
       UForm,
       UArchiveForm,
-      UCancleArchiveForm,
+      URestoreArchive,
+      DForm,
     },
     FileAPI: {
       CUploadFileArchive,
