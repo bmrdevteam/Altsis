@@ -214,6 +214,28 @@ export default function useAPIv2() {
   }
 
   /**
+   * RAcademyBackupList API
+   * @description 아카데미 백업 목록 조회 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RAcademyBackupList(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    const { backupList } = await database.R({
+      location: `academies/${props.params.academyId}/backup`,
+    });
+    return {
+      backupList: _.sortBy(backupList, "title").reverse() as {
+        title: string;
+        key: string;
+      }[],
+    };
+  }
+
+  /**
    * DAcademy API
    * @description 아카데미 삭제 API
    * @version 2.0.0
@@ -1734,6 +1756,7 @@ export default function useAPIv2() {
       UAcademyTel,
       UActivateAcademy,
       UInactivateAcademy,
+      RAcademyBackupList,
       DAcademy,
     },
     UserAPI: {

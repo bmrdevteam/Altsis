@@ -287,12 +287,6 @@ export default function useApi() {
     });
   }
 
-  async function RBackupList(props: { academyId: string }) {
-    const { list } = await database.R({
-      location: "files/backup" + QUERY_BUILDER(props),
-    });
-    return list;
-  }
   async function RBackup(props: { academyId: string; title: string }) {
     const { list } = await database.R({
       location: "files/backup" + QUERY_BUILDER(props),
@@ -343,7 +337,6 @@ export default function useApi() {
     },
     BackupApi: {
       CBackup,
-      RBackupList,
       RBackup,
       DBackup,
       RestoreBackup,
