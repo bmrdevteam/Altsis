@@ -135,30 +135,34 @@ export const EditorProvider = (props: {
    */
   async function saveEditorData() {
     if (!(editorType === "timetable")) {
-      await database.U({
-        location: `forms/${props.id}`,
-        data: {
-          new: {
-            title: editorTitle,
-            type: editorType,
+      try {
+        await FormAPI.UForm({
+          params: { _id: props.id },
+          data: {
+            title: editorTitle ?? "undefined",
             data: result(),
           },
-        },
-      });
+        });
+        alert(SUCCESS_MESSAGE);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
     } else {
       parseTimeBlocks();
 
-      await database.U({
-        location: `forms/${props.id}`,
-        data: {
-          new: {
-            title: editorTitle,
-            type: editorType,
+      try {
+        await FormAPI.UForm({
+          params: { _id: props.id },
+          data: {
+            title: editorTitle ?? "undefined",
             data: result(),
-            timeBlocks: parseTimeBlocks(),
+            // timeBlocks: parseTimeBlocks(),
           },
-        },
-      });
+        });
+        alert(SUCCESS_MESSAGE);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
     }
   }
 
