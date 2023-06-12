@@ -217,13 +217,13 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        database
-                          .U({
-                            location: `forms/${data._id}/archived`,
-                            data: { new: true },
-                          })
+                        FormAPI.UArchiveForm({ params: { _id: data._id } })
                           .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             getForms();
+                          })
+                          .catch((err) => {
+                            ALERT_ERROR(err);
                           });
                       }}
                     >
@@ -249,13 +249,15 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        database
-                          .U({
-                            location: `forms/${data._id}/archived`,
-                            data: { new: false },
-                          })
+                        FormAPI.UCancleArchiveForm({
+                          params: { _id: data._id },
+                        })
                           .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             getForms();
+                          })
+                          .catch((err) => {
+                            ALERT_ERROR(err);
                           });
                       }}
                     >

@@ -197,30 +197,117 @@ export const find = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.FormAPI
+ * @function UForm API
+ * @description 양식 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/forms/:_id"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.title
+ * @param {Object[]} req.body.data
+ *
+ * @param {Object} res
+ * @param {Object} res.form - updated form
+ *
+ *
+ */
 export const update = async (req, res) => {
   try {
-    const form = await Form(req.user.academyId).findById(req.params._id);
-    if (!form) return res.status(404).send({ message: "form not found" });
-
-    //const fields = ["type", "title", "contents"]; // temp-1.1: form의 data가 object type인 경우
-    const fields = ["type", "title", "data", "archived"]; // temp1-2. form의 data가 Array type인 경우
-
-    if (req.params.field) {
-      if (fields.includes(req.params.field)) {
-        form[req.params.field] = req.body.new;
-      } else {
-        return res.status(400).send({
-          message: `field '${req.params.field}' does not exist or cannot be updated`,
-        });
+    for (let field of ["title", "data"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
-    } else {
-      fields.forEach((field) => {
-        form[field] = req.body.new[field];
-      });
     }
 
+    const form = await Form(req.user.academyId).findById(req.params._id);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("field") });
+    }
+
+    form["title"] = req.body.title;
+    form["data"] = req.body.data;
     await form.save();
-    return res.status(200).send(form);
+    return res.status(200).send({ form });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.FormAPI
+ * @function UArchiveForm API
+ * @description 양식 보관 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/forms/:_id/archive"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.form - updated form
+ *
+ *
+ */
+export const archive = async (req, res) => {
+  try {
+    const form = await Form(req.user.academyId).findById(req.params._id);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("field") });
+    }
+
+    form["archived"] = true;
+    await form.save();
+    return res.status(200).send({ form });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.FormAPI
+ * @function UCancelArchiveForm API
+ * @description 양식 보관 취소 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/forms/:_id/archive/cancel"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ *
+ * @param {Object} res
+ * @param {Object} res.form - updated form
+ *
+ *
+ */
+export const cancelArchive = async (req, res) => {
+  try {
+    const form = await Form(req.user.academyId).findById(req.params._id);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("field") });
+    }
+
+    form["archived"] = false;
+    await form.save();
+    return res.status(200).send({ form });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

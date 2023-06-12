@@ -1865,6 +1865,67 @@ export default function useAPIv2() {
   }
 
   /**
+   * UForm API
+   * @description 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UForm(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      title: string;
+      data: object[];
+    };
+  }) {
+    const { form } = await database.U({
+      location: `forms/${props.params._id}`,
+      data: props.data,
+    });
+
+    return { form };
+  }
+
+  /**
+   * UArchiveForm API
+   * @description 양식 보관 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UArchiveForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { form } = await database.U({
+      location: `forms/${props.params._id}/archive`,
+      data: {},
+    });
+
+    return { form };
+  }
+
+  /**
+   * UCancleArchiveForm API
+   * @description 양식 보관 취소 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UCancleArchiveForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { form } = await database.U({
+      location: `forms/${props.params._id}/archive/cancel`,
+      data: {},
+    });
+
+    return { form };
+  }
+
+  /**
    * ##########################################################################
    * File API
    * ##########################################################################
@@ -2060,6 +2121,9 @@ export default function useAPIv2() {
       CCopyForm,
       RForms,
       RForm,
+      UForm,
+      UArchiveForm,
+      UCancleArchiveForm,
     },
     FileAPI: {
       CUploadFileArchive,
