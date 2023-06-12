@@ -235,12 +235,13 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        database
-                          .D({
-                            location: `forms/${data._id}`,
-                          })
+                        FormAPI.DForm({ params: { _id: data._id } })
                           .then(() => {
+                            alert(SUCCESS_MESSAGE);
                             getForms();
+                          })
+                          .catch((err) => {
+                            ALERT_ERROR(err);
                           });
                       }}
                     >
@@ -249,7 +250,7 @@ const Forms = (props: Props) => {
                     <div
                       className={style.menu_item}
                       onClick={() => {
-                        FormAPI.UCancleArchiveForm({
+                        FormAPI.URestoreArchive({
                           params: { _id: data._id },
                         })
                           .then(() => {

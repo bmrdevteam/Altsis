@@ -280,14 +280,14 @@ export const archive = async (req, res) => {
 
 /**
  * @memberof APIs.FormAPI
- * @function UCancelArchiveForm API
- * @description 양식 보관 취소 API
+ * @function URestoreArchive API
+ * @description 양식 복원 API
  * @version 2.0.0
  *
  * @param {Object} req
  *
  * @param {"PUT"} req.method
- * @param {"/forms/:_id/archive/cancel"} req.url
+ * @param {"/forms/:_id/restore"} req.url
  *
  * @param {Object} req.user - "admin"|"manager"
  *
@@ -298,7 +298,7 @@ export const archive = async (req, res) => {
  *
  *
  */
-export const cancelArchive = async (req, res) => {
+export const restore = async (req, res) => {
   try {
     const form = await Form(req.user.academyId).findById(req.params._id);
     if (!form) {
@@ -314,10 +314,29 @@ export const cancelArchive = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.FormAPI
+ * @function DForm API
+ * @description 양식 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/forms/:_id"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ *
+ *
+ */
 export const remove = async (req, res) => {
   try {
     const form = await Form(req.user.academyId).findById(req.params._id);
-    if (!form) return res.status(404).send();
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
     await form.remove();
     return res.status(200).send();
   } catch (err) {
