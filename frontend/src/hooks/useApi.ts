@@ -276,22 +276,6 @@ export default function useApi() {
     });
   }
 
-  /**
-   * Backup Api
-   * ##########################################################################
-   */
-
-  async function RestoreBackup(props: {
-    academyId: string;
-    model: string;
-    documents: any[];
-  }) {
-    return await database.C({
-      location: "files/restore",
-      data: props,
-    });
-  }
-
   return {
     RegistrationApi: {
       CMemo,
@@ -317,9 +301,6 @@ export default function useApi() {
     },
     DocumentApi: {
       RDocumentData,
-    },
-    BackupApi: {
-      RestoreBackup,
     },
   };
 }
