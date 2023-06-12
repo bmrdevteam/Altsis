@@ -226,10 +226,17 @@ ___________________
               type: "button",
               onClick: (e: any) => {
                 if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                  BackupApi.DBackup({ academyId, title: e.title }).then(() => {
-                    alert(SUCCESS_MESSAGE);
-                    setIsLoading(true);
-                  });
+                  AcademyAPI.DAcademyBackup({
+                    params: { academyId },
+                    query: { title: e.title },
+                  })
+                    .then(() => {
+                      alert(SUCCESS_MESSAGE);
+                      setIsLoading(true);
+                    })
+                    .catch((err) => {
+                      ALERT_ERROR(err);
+                    });
                 }
               },
               width: "80px",
