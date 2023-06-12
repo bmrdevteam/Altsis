@@ -1632,6 +1632,33 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * File API
+   * ##########################################################################
+   */
+
+  /**
+   * CUploadFileArchive API
+   * @description 아카이브 파일 업로드 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CUploadFileArchive(props: { data: FormData }) {
+    const { originalName, key, url, preSignedUrl, expiryDate } =
+      await database.C({
+        location: "files/archive",
+        data: props.data,
+      });
+    return {
+      originalName: originalName as string,
+      key: key as string,
+      url: url as string,
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string,
+    };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1720,6 +1747,9 @@ export default function useAPIv2() {
       UHideEnrollmentFromCalendar,
       UShowEnrollmentOnCalendar,
       DEnrollment,
+    },
+    FileAPI: {
+      CUploadFileArchive,
     },
   };
 }

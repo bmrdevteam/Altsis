@@ -297,13 +297,6 @@ export default function useApi() {
     });
   }
 
-  async function UploadFileArchive(props: { data: FormData }) {
-    return await database.C({
-      location: "files/archive",
-      data: props.data,
-    });
-  }
-
   /**
    * Backup Api
    * ##########################################################################
@@ -372,7 +365,6 @@ export default function useApi() {
     FileApi: {
       SignFileBackup,
       SignFileArchive,
-      UploadFileArchive,
     },
     BackupApi: {
       CBackup,
