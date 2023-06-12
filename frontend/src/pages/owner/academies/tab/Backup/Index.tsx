@@ -30,7 +30,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 // hooks
-import useApi from "hooks/useApi";
 import _ from "lodash";
 
 // components
@@ -45,7 +44,6 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {};
 
 const Backup = (props: Props) => {
-  const { BackupApi } = useApi();
   const { AcademyAPI, FileAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -364,16 +362,18 @@ ___________________
                 } else {
                   try {
                     setIsRestoring(true);
-                    await BackupApi.RestoreBackup({
-                      academyId,
-                      model: modelSelectRef.current[0],
-                      documents: dataToRestore,
+                    await AcademyAPI.URestoreAcademy({
+                      params: { academyId },
+                      data: {
+                        model: modelSelectRef.current[0],
+                        documents: dataToRestore,
+                      },
                     });
                     setIsRestoring(false);
                     setRestorePopupActive(false);
                     alert(SUCCESS_MESSAGE);
-                  } catch {
-                    alert("에러가 발생했습니다.");
+                  } catch (err) {
+                    ALERT_ERROR(err);
                     setIsRestoring(false);
                     setRestorePopupActive(false);
                   }

@@ -487,6 +487,56 @@ export const createBackup = async (req, res) => {
 
 /**
  * @memberof APIs.AcademyAPI
+ * @function URestoreAcademy API
+ * @description 아카데미 복구 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/restore"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.model
+ * @param {Object[]} req.body.documents
+ *
+ * @param {Object} res
+ *
+ */
+export const restoreBackup = async (req, res) => {
+  try {
+    for (let field of ["model", "documents"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+    if (!Array.isArray(req.body.documents)) {
+      return res.status(400).send({ message: FIELD_INVALID("documents") });
+    }
+
+    await Model(req.body.model, req.params.academyId).deleteMany({});
+    if (req.body.model === "archives" || req.body.model === "enrollments") {
+      await Promise.all(
+        documents.map((_doc) => {
+          const doc = new (Model(req.body.model, req.params.academyId))(_doc);
+          return doc.save();
+        })
+      );
+    } else {
+      await Model(req.body.model, req.params.academyId).insertMany(documents);
+    }
+
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
  * @function RAcademyBackupList API
  * @description 아카데미 백업 목록 조회 API
  * @version 2.0.0

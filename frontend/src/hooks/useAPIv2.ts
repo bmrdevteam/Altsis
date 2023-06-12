@@ -231,6 +231,22 @@ export default function useAPIv2() {
   }
 
   /**
+   * URestoreAcademy API
+   * @description 아카데미 복구 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function URestoreAcademy(props: {
+    params: { academyId: string };
+    data: { model: string; documents: any[] };
+  }) {
+    return await database.U({
+      location: `academies/${props.params.academyId}/restore`,
+      data: props.data,
+    });
+  }
+
+  /**
    * RAcademyBackupList API
    * @description 아카데미 백업 목록 조회 API
    * @version 2.0.0
@@ -1824,6 +1840,7 @@ export default function useAPIv2() {
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyBackup,
+      URestoreAcademy,
       RAcademyBackupList,
       RAcademyBackup,
       DAcademyBackup,
