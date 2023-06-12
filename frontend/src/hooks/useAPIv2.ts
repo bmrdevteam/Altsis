@@ -1834,6 +1834,37 @@ export default function useAPIv2() {
   }
 
   /**
+   * RForms API
+   * @description 양식 목록 조회 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RForms(props: {
+    query?: {
+      type: "syllabus" | "timetable" | "print";
+      archived?: boolean;
+    };
+  }) {
+    const { forms } = await database.R({
+      location: "forms" + QUERY_BUILDER(props.query),
+    });
+    return { forms };
+  }
+
+  /**
+   * RForm API
+   * @description 양식 조회 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RForm(props: { params: { _id: string } }) {
+    const { form } = await database.R({
+      location: `forms/${props.params._id}`,
+    });
+    return { form };
+  }
+
+  /**
    * ##########################################################################
    * File API
    * ##########################################################################
@@ -2027,6 +2058,8 @@ export default function useAPIv2() {
     FormAPI: {
       CForm,
       CCopyForm,
+      RForms,
+      RForm,
     },
     FileAPI: {
       CUploadFileArchive,

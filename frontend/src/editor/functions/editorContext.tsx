@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Loading from "../../components/loading/Loading";
 import useDatabase from "../../hooks/useDatabase";
 import useGenerateId from "../../hooks/useGenerateId";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 const EditorContext = createContext<any>(null);
 
@@ -85,6 +86,7 @@ export const EditorProvider = (props: {
    * database hook
    */
   const database = useDatabase();
+  const { FormAPI } = useAPIv2();
   const generateId = useGenerateId;
 
   /**
@@ -120,10 +122,12 @@ export const EditorProvider = (props: {
    * @async
    */
   async function getEditorData() {
-    const result = await database.R({
-      location: `forms/${props.id}`,
-    });
-    return result;
+    try {
+      const { form } = await FormAPI.RForm({ params: { _id: props.id } });
+      return form;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   /**

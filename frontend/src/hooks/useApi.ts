@@ -120,39 +120,6 @@ export default function useApi() {
   }
 
   /**
-   * Form Api
-   * ##########################################################################
-   */
-
-  /**
-   * Read Forms
-   * @type GET
-   * @auth admin
-   * @returns Form list ([data]Field omitted)
-   */
-  async function RForms(params?: {
-    userId?: string;
-    userName?: string;
-    type?: "syllabus" | "timetable" | "evaluation" | "archive" | "print";
-    title?: string;
-  }) {
-    const { forms: result } = await database.R({
-      location: "forms" + QUERY_BUILDER(params),
-    });
-    return result;
-  }
-  /**
-   * Read Form by id
-   * @type GET
-   * @auth admin
-   * @returns Form
-   */
-  async function RForm(id: string) {
-    const result = await database.R({ location: "forms/" + id });
-    return result;
-  }
-
-  /**
    * Notification Api
    * ##########################################################################
    */
@@ -207,10 +174,6 @@ export default function useApi() {
       CMemo,
       UMemo,
       DMemo,
-    },
-    FormApi: {
-      RForms,
-      RForm,
     },
     NotificationApi: {
       SendNotifications,

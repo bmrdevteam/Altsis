@@ -128,15 +128,68 @@ export const copy = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.FormAPI
+ * @function RForms API
+ * @description 양식 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/forms"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.type
+ * @param {boolean?} req.query.archived
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object[]} res.forms
+ *
+ *
+ */
+
+/**
+ * @memberof APIs.FormAPI
+ * @function RForm API
+ * @description 양식 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/forms/:_id"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.form
+ *
+ *
+ */
 export const find = async (req, res) => {
   try {
+    /* RForm */
     if (req.params._id) {
       const form = await Form(req.user.academyId).findById(req.params._id);
-      return res.status(200).send(form);
+      if (!form) {
+        return res.status(404).send({ message: __NOT_FOUND("form") });
+      }
+      return res.status(200).send({ form });
     }
-    const forms = await Form(req.user.academyId)
-      .find(req.query)
-      .select("-data");
+
+    /* RForms */
+    const query = {};
+    if ("type" in req.query) {
+      query["type"] = req.query.type;
+    }
+    if ("archived" in req.query) {
+      query["archived"] = req.query.archived === "true";
+    }
+
+    const forms = await Form(req.user.academyId).find(query).select("-data");
     return res.status(200).send({ forms });
   } catch (err) {
     logger.error(err.message);
