@@ -1671,6 +1671,7 @@ export default function useAPIv2() {
       archive: string;
       label: string;
       fieldLabel: string;
+      fileName: string;
     };
   }) {
     const { preSignedUrl, expiryDate } = await database.R({

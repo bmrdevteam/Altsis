@@ -108,6 +108,7 @@ export const uploadArchive = async (req, res) => {
  * @param {string} req.query.archive - ObjectId of archive
  * @param {string} req.query.label - archive[i].label
  * @param {string} req.query.fieldLabel - archive[i].fields[j].label
+ * @param {string} req.query.fileName- fileName
  *
  * @param {Object} req.user
  *
@@ -117,7 +118,7 @@ export const uploadArchive = async (req, res) => {
  *
  */
 export const signArchive = async (req, res) => {
-  for (let field of ["key", "archive", "label", "fieldLabel"]) {
+  for (let field of ["key", "archive", "label", "fieldLabel", "fileName"]) {
     if (!(field in req.query)) {
       return res.status(400).send({ message: FIELD_REQUIRED(field) });
     }

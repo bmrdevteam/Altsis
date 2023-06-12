@@ -266,6 +266,8 @@ const ObjectView = (props: Props) => {
                         archive: archiveListRef.current[aIdx]?._id,
                         label: props.pid ?? "",
                         fieldLabel: label,
+                        fileName:
+                          archiveListRef.current[aIdx]?.[label]?.originalName,
                       },
                     });
 
@@ -293,6 +295,8 @@ const ObjectView = (props: Props) => {
                         archive: archiveListRef.current[aIdx]?._id,
                         label: props.pid ?? "",
                         fieldLabel: label,
+                        fileName:
+                          archiveListRef.current[aIdx]?.[label]?.originalName,
                       },
                     });
 
@@ -469,6 +473,8 @@ const ObjectView = (props: Props) => {
                           archive: archiveListRef.current[aIdx]?._id,
                           label: props.pid ?? "",
                           fieldLabel: label,
+                          fileName:
+                            archiveListRef.current[aIdx]?.[label]?.originalName,
                         },
                       });
 
