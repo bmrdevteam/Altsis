@@ -30,7 +30,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 // hooks
-import useApi from "hooks/useApi";
 import _ from "lodash";
 
 // components
@@ -40,11 +39,12 @@ import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
 import Select from "components/select/Select";
 import Textarea from "components/textarea/Textarea";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const Backup = (props: Props) => {
-  const { BackupApi, FileApi } = useApi();
+  const { AcademyAPI, FileAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -107,9 +107,9 @@ ___________________
 
   useEffect(() => {
     if (isLoading) {
-      BackupApi.RBackupList({ academyId })
-        .then((res) => {
-          setDocumentList(_.sortBy(res, "title").reverse());
+      AcademyAPI.RAcademyBackupList({ params: { academyId } })
+        .then(({ backupList }) => {
+          setDocumentList(backupList);
         })
         .then(() => setIsLoading(false))
         .catch(() => {
@@ -119,17 +119,11 @@ ___________________
     return () => {};
   }, [isLoading]);
 
-  async function getPresinedUrl(key: string, title: string) {
-    const { preSignedUrl, expiryDate } = await FileApi.SignFile({
-      key,
-      fileName: title,
-    });
-    return { preSignedUrl, expiryDate };
-  }
-
   const handleFileDownload = async (key: string, title: string) => {
     try {
-      const { preSignedUrl, expiryDate } = await getPresinedUrl(key, title);
+      const { preSignedUrl } = await FileAPI.RSignedUrlBackup({
+        query: { key, fileName: title },
+      });
 
       const anchor = document.createElement("a");
       anchor.href = preSignedUrl;
@@ -207,9 +201,11 @@ ___________________
               key: "detail",
               type: "button",
               onClick: (e: any) => {
-                BackupApi.RBackup({ academyId, title: e.title }).then((res) => {
-                  console.log(res);
-                  setDoc({ ...e, list: res });
+                AcademyAPI.RAcademyBackup({
+                  params: { academyId },
+                  query: { title: e.title },
+                }).then(({ backup }) => {
+                  setDoc({ ...e, list: backup });
                   setEditPopupActive(true);
                 });
               },
@@ -228,10 +224,17 @@ ___________________
               type: "button",
               onClick: (e: any) => {
                 if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                  BackupApi.DBackup({ academyId, title: e.title }).then(() => {
-                    alert(SUCCESS_MESSAGE);
-                    setIsLoading(true);
-                  });
+                  AcademyAPI.DAcademyBackup({
+                    params: { academyId },
+                    query: { title: e.title },
+                  })
+                    .then(() => {
+                      alert(SUCCESS_MESSAGE);
+                      setIsLoading(true);
+                    })
+                    .catch((err) => {
+                      ALERT_ERROR(err);
+                    });
                 }
               },
               width: "80px",
@@ -264,17 +267,16 @@ ___________________
               onClick={async () => {
                 try {
                   setIsCreatingBackup(true);
-                  await BackupApi.CBackup({
-                    academyId,
-                    models: modelSelectRef.current,
+                  await AcademyAPI.CAcademyBackup({
+                    params: { academyId },
+                    data: { models: modelSelectRef.current },
                   });
                   setIsCreatingBackup(false);
                   setAddPopupActive(false);
                   alert(SUCCESS_MESSAGE);
                   setIsLoading(true);
                 } catch (err: any) {
-                  alert("에러가 발생했습니다.");
-                  console.log(err.message);
+                  ALERT_ERROR(err);
                   setIsCreatingBackup(false);
                   setAddPopupActive(false);
                 }
@@ -360,16 +362,18 @@ ___________________
                 } else {
                   try {
                     setIsRestoring(true);
-                    await BackupApi.RestoreBackup({
-                      academyId,
-                      model: modelSelectRef.current[0],
-                      documents: dataToRestore,
+                    await AcademyAPI.URestoreAcademy({
+                      params: { academyId },
+                      data: {
+                        model: modelSelectRef.current[0],
+                        documents: dataToRestore,
+                      },
                     });
                     setIsRestoring(false);
                     setRestorePopupActive(false);
                     alert(SUCCESS_MESSAGE);
-                  } catch {
-                    alert("에러가 발생했습니다.");
+                  } catch (err) {
+                    ALERT_ERROR(err);
                     setIsRestoring(false);
                     setRestorePopupActive(false);
                   }
