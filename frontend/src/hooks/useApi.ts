@@ -125,32 +125,6 @@ export default function useApi() {
    */
 
   /**
-   * Create Form
-   * @type POST
-   * @auth admin
-   * @returns Created Form
-   */
-  async function CForm(data: {
-    type: "syllabus" | "timetable" | "evaluation" | "archive";
-    title: string;
-    data: any[];
-  }) {
-    const result = await database.C({ location: "forms", data });
-    return result;
-  }
-
-  /**
-   * Copy Form
-   * @type POST
-   * @auth admin
-   * @returns Created Form
-   */
-  async function CopyForm(data: { copyFrom: string }) {
-    const result = await database.C({ location: "forms", data });
-    return result;
-  }
-
-  /**
    * Read Forms
    * @type GET
    * @auth admin
@@ -235,8 +209,6 @@ export default function useApi() {
       DMemo,
     },
     FormApi: {
-      CForm,
-      CopyForm,
       RForms,
       RForm,
     },
