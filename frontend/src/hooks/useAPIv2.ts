@@ -1789,6 +1789,50 @@ export default function useAPIv2() {
       },
     };
   }
+
+  /**
+   * ##########################################################################
+   * Form API
+   * ##########################################################################
+   */
+
+  /**
+   * CForm API
+   * @description 양식 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CForm(props: {
+    data: {
+      type: "syllabus" | "timetable" | "print";
+      title: string;
+      data: object[];
+    };
+  }) {
+    const { form } = await database.C({ location: "forms", data: props.data });
+
+    return { form };
+  }
+
+  /**
+   * CCopyForm API
+   * @description 양식 복사 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CCopyForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { form } = await database.C({
+      location: `forms/${props.params._id}/copy`,
+      data: {},
+    });
+
+    return { form };
+  }
+
   /**
    * ##########################################################################
    * File API
@@ -1979,6 +2023,10 @@ export default function useAPIv2() {
     ArchiveAPI: {
       RArchiveByRegistration,
       UArchiveByRegistration,
+    },
+    FormAPI: {
+      CForm,
+      CCopyForm,
     },
     FileAPI: {
       CUploadFileArchive,

@@ -8,6 +8,8 @@ import { isAdManager } from "../middleware/auth.js";
 //=================================
 
 router.post("/", isAdManager, forms.create);
+router.post("/:_id/copy", isAdManager, forms.copy);
+
 router.get("/:_id?", isAdManager, forms.find);
 router.put("/:_id/:field?", isAdManager, forms.update);
 router.delete("/:_id", isAdManager, forms.remove);
