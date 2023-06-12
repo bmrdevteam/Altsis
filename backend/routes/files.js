@@ -14,10 +14,4 @@ router.get("/document/signed", isLoggedIn, files.signDocument);
 
 router.get("/backup/signed", isOwner, files.signBackup);
 
-router.post("/restore", isOwner, files.restoreBackup);
-
-// router.get("/:_id?", isAdManager, files.find);
-// router.put("/:_id/:field?", isAdManager, files.update);
-router.delete("/", isAdManager, files.remove);
-
 export { router };
