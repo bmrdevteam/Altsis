@@ -1,8 +1,8 @@
 import _, { isArray, isEmpty } from "lodash";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Loading from "../../components/loading/Loading";
-import useDatabase from "../../hooks/useDatabase";
 import useGenerateId from "../../hooks/useGenerateId";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 const EditorContext = createContext<any>(null);
 
@@ -84,7 +84,7 @@ export const EditorProvider = (props: {
   /**
    * database hook
    */
-  const database = useDatabase();
+  const { FormAPI } = useAPIv2();
   const generateId = useGenerateId;
 
   /**
@@ -120,10 +120,12 @@ export const EditorProvider = (props: {
    * @async
    */
   async function getEditorData() {
-    const result = await database.R({
-      location: `forms/${props.id}`,
-    });
-    return result;
+    try {
+      const { form } = await FormAPI.RForm({ params: { _id: props.id } });
+      return form;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   /**
@@ -131,30 +133,34 @@ export const EditorProvider = (props: {
    */
   async function saveEditorData() {
     if (!(editorType === "timetable")) {
-      await database.U({
-        location: `forms/${props.id}`,
-        data: {
-          new: {
-            title: editorTitle,
-            type: editorType,
+      try {
+        await FormAPI.UForm({
+          params: { _id: props.id },
+          data: {
+            title: editorTitle ?? "undefined",
             data: result(),
           },
-        },
-      });
+        });
+        alert(SUCCESS_MESSAGE);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
     } else {
       parseTimeBlocks();
 
-      await database.U({
-        location: `forms/${props.id}`,
-        data: {
-          new: {
-            title: editorTitle,
-            type: editorType,
+      try {
+        await FormAPI.UForm({
+          params: { _id: props.id },
+          data: {
+            title: editorTitle ?? "undefined",
             data: result(),
-            timeBlocks: parseTimeBlocks(),
+            // timeBlocks: parseTimeBlocks(),
           },
-        },
-      });
+        });
+        alert(SUCCESS_MESSAGE);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
     }
   }
 

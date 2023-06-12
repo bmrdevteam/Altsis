@@ -1,19 +1,17 @@
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/archive.module.scss";
 import { useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 import { useParams, useNavigate } from "react-router-dom";
 
 import Loading from "components/loading/Loading";
 
 import _ from "lodash";
-import useAPIv2 from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const One = (props: Props) => {
-  const { ArchiveApi } = useApi();
-  const { FileAPI } = useAPIv2();
+  const { ArchiveAPI, FileAPI } = useAPIv2();
   const { pid } = useParams(); // archive label ex) 인적 사항
   const navigate = useNavigate();
 
@@ -27,16 +25,18 @@ const One = (props: Props) => {
 
   useEffect(() => {
     if (isLoading && currentRegistration && pid) {
-      ArchiveApi.RArchiveByRegistration({
-        registrationId: currentRegistration?._id,
-        label: pid,
+      ArchiveAPI.RArchiveByRegistration({
+        query: { registration: currentRegistration?._id, label: pid },
       })
-        .then((res) => {
-          setArchiveId(res._id);
-          setArchiveData(res.data[pid]);
+        .then(({ archive }) => {
+          setArchiveId(archive._id);
+          setArchiveData(archive.data[pid]);
         })
         .then(() => {
           setIsLoading(false);
+        })
+        .catch((err) => {
+          ALERT_ERROR(err);
         });
     }
   }, [isLoading]);

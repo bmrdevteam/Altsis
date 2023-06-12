@@ -19,8 +19,7 @@
       "outputSourceFiles": false
     },
     "docdash": {
-      "static": false,
-      "sort": true
+      "static": false
     }
   }
 }

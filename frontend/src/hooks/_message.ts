@@ -42,4 +42,5 @@ export const MESSAGE = new Map<string, string>([
   ["TIME_DUPLICATED", "시간표가 중복되었습니다."],
   ["SYLLABUS_NOT_CONFIRMED", "승인되지 않은 수업입니다."],
   ["PERMISSION_DENIED", "권한이 없습니다."],
+  ["TITLE_IN_USE", "제목이 중복됩니다."],
 ]);

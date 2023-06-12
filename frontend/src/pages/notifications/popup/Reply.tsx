@@ -28,15 +28,14 @@
  */
 
 import { useState } from "react";
-import useDatabase from "hooks/useDatabase";
 
 // components
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
 
-import _ from "lodash";
 import Textarea from "components/textarea/Textarea";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   setState: any;
@@ -47,30 +46,32 @@ type Props = {
 };
 
 const NotificationSend = (props: Props) => {
-  const database = useDatabase();
-
+  const { NotificationAPI } = useAPIv2();
   const [title, setTitle] = useState<string>(`RE: ${props.title}`);
   const [category, setCategory] = useState<string>("");
   const [description, setDescription] = useState<string>("");
 
   async function sendNotifications() {
-    const res = await database.C({
-      location: `notifications`,
-      data: {
-        toUserList: [
-          {
-            user: props.toUser,
-            userId: props.toUserId,
-            userName: props.toUserName,
-          },
-        ],
-        category,
-        title,
-        description,
-      },
-    });
-
-    return res;
+    try {
+      await NotificationAPI.CNotification({
+        data: {
+          toUserList: [
+            {
+              user: props.toUser,
+              userId: props.toUserId,
+              userName: props.toUserName,
+            },
+          ],
+          category,
+          title,
+          description,
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+      props.setState(false);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   return (
@@ -121,12 +122,7 @@ const NotificationSend = (props: Props) => {
             if (title === "") {
               alert("타이틀 없이 메일을 보낼 수 없습니다.");
             } else {
-              sendNotifications()
-                .then((res: any) => {
-                  alert(SUCCESS_MESSAGE);
-                  props.setState(false);
-                })
-                .catch((err) => alert(err.response.data.message));
+              sendNotifications();
             }
           }}
         >

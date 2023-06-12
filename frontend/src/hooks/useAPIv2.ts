@@ -22,6 +22,7 @@ import {
 import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
+import { TNotification } from "types/notification";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -316,6 +317,50 @@ export default function useAPIv2() {
         `academies/${props.params.academyId}/backup` +
         QUERY_BUILDER(props.query),
     });
+  }
+
+  /**
+   * RAcademyDocuments API
+   * @description 아카데미 데이터 목록 조회 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RAcademyDocuments(props: {
+    params: {
+      academyId: string;
+      docType: "schools" | "registrations" | "seasons";
+    };
+    query?: object;
+  }) {
+    const { documents } = await database.R({
+      location:
+        `academies/${props.params.academyId}/${props.params.docType}` +
+        (props.query ? QUERY_BUILDER(props.query) : ""),
+    });
+    return {
+      documents,
+    };
+  }
+
+  /**
+   * RAcademyDocument API
+   * @description 아카데미 데이터 조회 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RAcademyDocument(props: {
+    params: {
+      academyId: string;
+      docType: "schools" | "registrations" | "seasons";
+      docId: string;
+    };
+  }) {
+    const { document } = await database.R({
+      location: `academies/${props.params.academyId}/${props.params.docType}/${props.params.docId}`,
+    });
+    return {
+      document,
+    };
   }
 
   /**
@@ -1739,6 +1784,210 @@ export default function useAPIv2() {
 
   /**
    * ##########################################################################
+   * Archive API
+   * ##########################################################################
+   */
+
+  /**
+   * RArchiveByRegistration API
+   * @description 아카이브 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RArchiveByRegistration(props: {
+    query: {
+      registration: string;
+      label?: string;
+    };
+  }) {
+    const { archive } = await database.R({
+      location: "archives" + QUERY_BUILDER(props.query),
+    });
+    return {
+      archive: archive as {
+        _id: string;
+        user: string;
+        data: any;
+      },
+    };
+  }
+
+  /**
+   * UArchiveByRegistration API
+   * @description 아카이브 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UArchiveByRegistration(props: {
+    params: { _id: string };
+    data: { label: string; data: object; registration: string };
+  }) {
+    const { archive } = await database.U({
+      location: `archives/${props.params._id}`,
+      data: props.data,
+    });
+    return {
+      archive: archive as {
+        _id: string;
+        user: string;
+        data: any;
+      },
+    };
+  }
+
+  /**
+   * ##########################################################################
+   * Form API
+   * ##########################################################################
+   */
+
+  /**
+   * CForm API
+   * @description 양식 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CForm(props: {
+    data: {
+      type: "syllabus" | "timetable" | "print";
+      title: string;
+      data: object[];
+    };
+  }) {
+    const { form } = await database.C({ location: "forms", data: props.data });
+
+    return { form };
+  }
+
+  /**
+   * CCopyForm API
+   * @description 양식 복사 생성 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CCopyForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { form } = await database.C({
+      location: `forms/${props.params._id}/copy`,
+      data: {},
+    });
+
+    return { form };
+  }
+
+  /**
+   * RForms API
+   * @description 양식 목록 조회 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RForms(props: {
+    query?: {
+      type: "syllabus" | "timetable" | "print";
+      archived?: boolean;
+    };
+  }) {
+    const { forms } = await database.R({
+      location: "forms" + QUERY_BUILDER(props.query),
+    });
+    return { forms };
+  }
+
+  /**
+   * RForm API
+   * @description 양식 조회 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RForm(props: { params: { _id: string } }) {
+    const { form } = await database.R({
+      location: `forms/${props.params._id}`,
+    });
+    return { form };
+  }
+
+  /**
+   * UForm API
+   * @description 양식 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UForm(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      title: string;
+      data: object[];
+    };
+  }) {
+    const { form } = await database.U({
+      location: `forms/${props.params._id}`,
+      data: props.data,
+    });
+
+    return { form };
+  }
+
+  /**
+   * UArchiveForm API
+   * @description 양식 보관 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UArchiveForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { form } = await database.U({
+      location: `forms/${props.params._id}/archive`,
+      data: {},
+    });
+
+    return { form };
+  }
+
+  /**
+   * URestoreForm API
+   * @description 양식 복원 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function URestoreForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { form } = await database.U({
+      location: `forms/${props.params._id}/restore`,
+      data: {},
+    });
+
+    return { form };
+  }
+
+  /**
+   * DForm API
+   * @description 양식 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DForm(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `forms/${props.params._id}`,
+    });
+  }
+
+  /**
+   * ##########################################################################
    * File API
    * ##########################################################################
    */
@@ -1830,6 +2079,104 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * ##########################################################################
+   * Form API
+   * ##########################################################################
+   */
+
+  /**
+   * CNotification API
+   * @description 알림 생성 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function CNotification(props: {
+    data: {
+      toUserList: { user: string; userId: string; userName: string }[];
+      category?: string;
+      title: string;
+      description: string;
+    };
+  }) {
+    return await database.C({ location: "notifications", data: props.data });
+  }
+
+  /**
+   * RNotifications API
+   * @description 알림 목록 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RNotifications(props: {
+    query: {
+      type: "received" | "sent";
+      checked?: boolean;
+    };
+  }) {
+    const { notifications } = await database.R({
+      location: "notifications" + QUERY_BUILDER(props.query),
+    });
+
+    return {
+      notifications: _.sortBy(
+        notifications,
+        "createdAt"
+      ).reverse() as TNotification[],
+    };
+  }
+
+  /**
+   * RNotification API
+   * @description 알림 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RNotification(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { notification } = await database.R({
+      location: `notifications/${props.params._id}`,
+    });
+
+    return { notification: notification as TNotification };
+  }
+
+  /**
+   * UCheckNotification API
+   * @description 알림 확인 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UCheckNotification(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.U({
+      location: `notifications/${props.params._id}/check`,
+      data: {},
+    });
+  }
+
+  /**
+   * DNotification API
+   * @description 알림 삭제 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function DNotification(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    return await database.D({
+      location: `notifications/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -1844,6 +2191,8 @@ export default function useAPIv2() {
       RAcademyBackupList,
       RAcademyBackup,
       DAcademyBackup,
+      RAcademyDocuments,
+      RAcademyDocument,
       DAcademy,
     },
     UserAPI: {
@@ -1924,11 +2273,32 @@ export default function useAPIv2() {
       UShowEnrollmentOnCalendar,
       DEnrollment,
     },
+    ArchiveAPI: {
+      RArchiveByRegistration,
+      UArchiveByRegistration,
+    },
+    FormAPI: {
+      CForm,
+      CCopyForm,
+      RForms,
+      RForm,
+      UForm,
+      UArchiveForm,
+      URestoreForm,
+      DForm,
+    },
     FileAPI: {
       CUploadFileArchive,
       RSignedUrlArchive,
       RSignedUrlDocument,
       RSignedUrlBackup,
+    },
+    NotificationAPI: {
+      CNotification,
+      RNotifications,
+      RNotification,
+      UCheckNotification,
+      DNotification,
     },
   };
 }

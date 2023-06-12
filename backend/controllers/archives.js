@@ -1,19 +1,66 @@
+/**
+ * ArchiveAPI namespace
+ * @namespace APIs.ArchiveAPI
+ */
+
 import { logger } from "../log/logger.js";
 import { Archive } from "../models/Archive.js";
-import { User } from "../models/User.js";
 import { School } from "../models/School.js";
 import { Registration } from "../models/Registration.js";
 import mongoose from "mongoose";
 const ObjectId = mongoose.Types.ObjectId;
 import _ from "lodash";
-import { PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
+import {
+  FIELD_INVALID,
+  FIELD_REQUIRED,
+  PERMISSION_DENIED,
+  __NOT_FOUND,
+} from "../messages/index.js";
 
+/**
+ * @memberof APIs.ArchiveAPI
+ * @function *common
+ *
+ * @param {Object} req
+ * @param {Object} res
+ *
+ * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
+ * | 404    | ARCHIVE_NOT_FOUND | if archive is not found  |
+ */
+
+/**
+ * @memberof APIs.ArchiveAPI
+ * @function RArchiveByRegistration API
+ * @description 기록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/archives"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.registration - ObjectId of registration
+ * @param {string?} req.query.label - archive label
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.archive
+ * @param {string} res.archive._id
+ * @param {string} res.archive.user - ObjectId of user
+ * @param {Object} res.archive.data
+ *
+ */
 export const findByRegistration = async (req, res) => {
   try {
-    let { label, registrationId } = req.query;
-    if (!registrationId) {
-      return res.status(400).send({});
+    if (!("registration" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("registration") });
     }
+
+    let { label, registration: rid } = req.query;
 
     const _Archive = Archive(req.user.academyId);
 
@@ -21,7 +68,7 @@ export const findByRegistration = async (req, res) => {
     if (label) {
       const studentRegistration = await Registration(
         req.user.academyId
-      ).findById(registrationId);
+      ).findById(rid);
       if (!studentRegistration) {
         return res
           .status(404)
@@ -106,10 +153,10 @@ export const findByRegistration = async (req, res) => {
     }
 
     /* teacher request for archive for docs */
-    if (!ObjectId.isValid(registrationId)) return res.status(400).send();
+    if (!ObjectId.isValid(rid)) return res.status(400).send();
 
     const studentRegistration = await Registration(req.user.academyId).findById(
-      registrationId
+      rid
     );
     if (!studentRegistration) {
       return res
@@ -150,18 +197,45 @@ export const findByRegistration = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.ArchiveAPI
+ * @function UArchiveByRegistration API
+ * @description 기록 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/archives/:_id"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.registration - ObjectId of registration
+ * @param {string} req.body.label
+ * @param {Object[]} req.body.data
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.archive
+ * @param {string} res.archive._id
+ * @param {string} res.archive.user - ObjectId of user
+ * @param {Object} res.archive.data
+ *
+ */
 export const updateByRegistration = async (req, res) => {
   try {
-    if (!ObjectId.isValid(req.params._id)) return res.status(400).send();
+    if (!ObjectId.isValid(req.params._id)) {
+      return res.status(400).send({ message: FIELD_INVALID("_id") });
+    }
     for (let field of ["label", "data", "registration"]) {
       if (!(field in req.body)) {
-        return res.status(400).send();
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
     }
 
     const user = req.user;
 
-    const archive = await Archive(req.user.academyId).findById(req.params._id);
+    const archive = await Archive(user.academyId).findById(req.params._id);
     if (!archive) {
       return res.status(404).send({ message: __NOT_FOUND("archive") });
     }

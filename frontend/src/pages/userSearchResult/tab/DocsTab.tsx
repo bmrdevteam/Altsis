@@ -3,8 +3,7 @@ import Loading from "components/loading/Loading";
 import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
-import useApi from "hooks/useApi";
-import useDatabase from "hooks/useDatabase";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import style from "style/pages/userSearchResult/docsTab.module.scss";
@@ -14,9 +13,8 @@ type Props = {
 };
 /** @deprecated */
 function Docs(props: Props) {
-  const database = useDatabase();
-  const { ArchiveApi, FormApi } = useApi();
   const { currentSchool } = useAuth();
+  const { FormAPI } = useAPIv2();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
   const [printForms, setPrintForms] = useState<any>([]);
@@ -104,10 +102,12 @@ function Docs(props: Props) {
   }
 
   async function getFormData(id: string) {
-    const result = await database.R({
-      location: `forms/` + id,
-    });
-    return result;
+    try {
+      const { form } = await FormAPI.RForm({ params: { _id: id } });
+      return form;
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   }
 
   useEffect(() => {
@@ -116,14 +116,16 @@ function Docs(props: Props) {
       setLoading(false);
     });
 
-    FormApi.RForms({}).then((res) => {
-      const r = res.filter((val: any) => val.type === "print");
-      setPrintForms(r);
-      getFormData(r[0]._id).then((result) => {
-        setFormData(result);
-        setLoading(false);
-      });
-    });
+    FormAPI.RForms({ query: { type: "print", archived: false } }).then(
+      ({ forms }) => {
+        const r = forms;
+        setPrintForms(r);
+        getFormData(r[0]._id).then((result) => {
+          setFormData(result);
+          setLoading(false);
+        });
+      }
+    );
   }, []);
 
   return (
@@ -139,9 +141,13 @@ function Docs(props: Props) {
               }),
             ]}
             onChange={(val: string) => {
-              FormApi.RForm(val).then((res) => {
-                setFormData(res);
-              });
+              FormAPI.RForm({ params: { _id: val } })
+                .then(({ form }) => {
+                  setFormData(form);
+                })
+                .catch((err) => {
+                  ALERT_ERROR(err);
+                });
             }}
           />
           <div

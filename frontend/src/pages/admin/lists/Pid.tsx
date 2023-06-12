@@ -1,6 +1,5 @@
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Tab from "components/tab/Tab";
-import useDatabase from "hooks/useDatabase";
 import { useParams } from "react-router-dom";
 import style from "style/pages/admin/list.module.scss";
 import Body from "./tab/Body";

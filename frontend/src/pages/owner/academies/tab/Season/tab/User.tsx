@@ -30,7 +30,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 // hooks
-import useDatabase from "hooks/useDatabase";
 import { copyClipBoard } from "functions/functions";
 
 // components
@@ -38,34 +37,30 @@ import Table from "components/tableV2/Table";
 
 // tab elements
 import _ from "lodash";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = { season: string };
 
 const Registration = (props: Props) => {
-  const database = useDatabase();
+  const { AcademyAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
 
   /* document list */
   const [documentList, setDocumentList] = useState<any>();
-  const [doc, setDoc] = useState<any>();
-
-  /* popup activation */
-  const [editPopupActive, setEditPopupActive] = useState(false);
-  const [addPopupActive, setAddPopupActive] = useState<boolean>(false);
 
   async function getDocumentList() {
-    const { documents } = await database.R({
-      location: `academies/${academyId}/registrations?season=${props.season}`,
+    const { documents } = await AcademyAPI.RAcademyDocuments({
+      params: { academyId, docType: "registrations" },
+      query: { season: props.season },
     });
-    // console.log(documents);
     return documents;
   }
 
   async function getDocument(id: string) {
-    const result = await database.R({
-      location: `academies/${academyId}/registrations/${id}`,
+    const { document } = await AcademyAPI.RAcademyDocument({
+      params: { academyId, docType: "registrations", docId: id },
     });
-    return result;
+    return document;
   }
 
   useEffect(() => {

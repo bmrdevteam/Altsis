@@ -3,7 +3,6 @@ import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/archive.module.scss";
 import { useRef, useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
@@ -12,7 +11,7 @@ import Callout from "components/callout/Callout";
 import _ from "lodash";
 
 import ExcelPopup from "./ExcelPopup";
-import { ALERT_ERROR } from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   pid: string;
@@ -22,8 +21,7 @@ type Props = {
 const colors = ["#ff595e", "#2c6e49", "#1982c4", "#6a4c93"];
 
 const One = (props: Props) => {
-  const { ArchiveApi } = useApi();
-
+  const { ArchiveAPI } = useAPIv2();
   const { currentSchool } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -52,14 +50,16 @@ const One = (props: Props) => {
     if (!props.pid || props.pid === "") return [];
 
     try {
-      const rawArchiveList = await Promise.all(
-        props.registrationList.map(async (reg) =>
-          ArchiveApi.RArchiveByRegistration({
-            registrationId: reg._id,
-            label: props.pid,
-          })
+      const rawArchiveList = (
+        await Promise.all(
+          props.registrationList.map(async (reg) =>
+            ArchiveAPI.RArchiveByRegistration({
+              query: { registration: reg._id, label: props.pid },
+            })
+          )
         )
-      );
+      ).map(({ archive }) => archive);
+
       const archiveList = [];
       for (let i = 0; i < rawArchiveList.length; i++) {
         archiveList.push({
@@ -164,11 +164,13 @@ const One = (props: Props) => {
 
     for (let i = 0; i < _archiveList.length; i++) {
       try {
-        const { archive } = await ArchiveApi.UArchiveByRegistration({
-          _id: _archiveList[i]._id,
-          label: props.pid ?? "",
-          data: _archiveList[i].data,
-          registration: _archiveList[i].registration,
+        const { archive } = await ArchiveAPI.UArchiveByRegistration({
+          params: { _id: _archiveList[i]._id },
+          data: {
+            label: props.pid ?? "",
+            data: _archiveList[i].data,
+            registration: _archiveList[i].registration,
+          },
         });
         archiveList.push({
           ..._archiveList[i],

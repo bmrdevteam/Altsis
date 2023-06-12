@@ -28,8 +28,6 @@
  */
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "contexts/authContext";
-import useDatabase from "hooks/useDatabase";
-import useApi from "hooks/useApi";
 import style from "./mailbox.module.scss";
 
 // components
@@ -41,17 +39,17 @@ import _ from "lodash";
 // import Mailbox from "../components/mailbox";
 import Send from "../popup/Send";
 import View from "../popup/View";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
 
 const Sent = (props: Props) => {
-  const database = useDatabase();
-  const { currentUser, currentRegistration, currentSchool } = useAuth();
-  const { NotificationApi } = useApi();
+  const { currentSeason, currentRegistration, currentSchool } = useAuth();
+  const { UserAPI, NotificationAPI } = useAPIv2();
 
   const [notificationList, setNotificationList] = useState<any[]>([]);
   const [notification, setNotification] = useState<any>();
-  const selectRef = useRef<string[]>();
+  const selectRef = useRef<string[]>([]);
 
   const [notificatnionPopupActive, setNotificatnionPopupActive] =
     useState<boolean>(false);
@@ -63,36 +61,26 @@ const Sent = (props: Props) => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  async function getRegistrationList() {
-    const { registrations } = await database.R({
-      location: `registrations?season=${currentRegistration?.season}`,
-    });
-
-    return registrations;
-  }
-
   async function getSchoolUserList() {
-    const { users } = await database.R({
-      location: `users?schools.school=${currentSchool.school}`,
+    const { users } = await UserAPI.RUsers({
+      query: { sid: currentSchool.school },
     });
 
     return users;
   }
 
   async function getUserList() {
-    const { users } = await database.R({
-      location: `users`,
-    });
+    const { users } = await UserAPI.RUsers({});
 
     return users;
   }
 
   useEffect(() => {
     if (isLoading) {
-      NotificationApi.RNotifications({ type: "sent", user: currentUser._id })
-        .then((res) => {
+      NotificationAPI.RNotifications({ query: { type: "sent" } })
+        .then(({ notifications }) => {
           setNotificationList(
-            res.map((val: any) => {
+            notifications.map((val: any) => {
               return {
                 ...val,
                 toUser: `${val.toUserList[0].userName}(${
@@ -116,11 +104,9 @@ const Sent = (props: Props) => {
   }, [isLoading]);
 
   async function updateReceiverList() {
-    if (currentRegistration) {
+    if (currentRegistration && currentSeason) {
       setReceiverType("season");
-      getRegistrationList().then((res: any) => {
-        setReceiverList(res);
-      });
+      setReceiverList(currentSeason.registrations);
     } else if (currentSchool) {
       setReceiverType("school");
       getSchoolUserList().then((res: any) => {
@@ -149,16 +135,17 @@ const Sent = (props: Props) => {
             >
               <div
                 className={style.icon}
-                onClick={() => {
+                onClick={async () => {
                   if (_.isEmpty(selectRef.current)) {
-                    alert("select notifications to delete");
+                    alert("선택된 알림이 없습니다.");
                   } else {
-                    NotificationApi.DNotifications(selectRef.current || [])
-                      .then((res: any) => {
-                        setIsLoading(true);
-                        alert(SUCCESS_MESSAGE);
-                      })
-                      .catch((err: any) => alert(err.response.data.message));
+                    await Promise.all(
+                      selectRef.current?.map((_id) =>
+                        NotificationAPI.DNotification({ params: { _id } })
+                      )
+                    );
+                    setIsLoading(true);
+                    alert(SUCCESS_MESSAGE);
                   }
                 }}
               >
@@ -238,12 +225,12 @@ const Sent = (props: Props) => {
                 key: "_id",
                 type: "button",
                 onClick: (e: any) => {
-                  NotificationApi.RNotificationById(e._id)
-                    .then((res) => {
-                      setNotification(res);
+                  NotificationAPI.RNotification({ params: { _id: e._id } })
+                    .then(({ notification }) => {
+                      setNotification(notification);
                     })
                     .then(() => setNotificatnionPopupActive(true))
-                    .catch((err) => alert(err.response.data.message));
+                    .catch((err) => ALERT_ERROR(err));
                 },
                 width: "80px",
                 textAlign: "center",

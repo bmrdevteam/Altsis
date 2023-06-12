@@ -6,7 +6,6 @@ import _ from "lodash";
 
 // hooks
 import { useAuth } from "contexts/authContext";
-import useApi from "hooks/useApi";
 
 // components
 import Button from "components/button/Button";
@@ -15,10 +14,11 @@ import View from "pages/notifications/popup/View";
 
 import audioURL from "assets/audio/notification-a.mp3";
 import { TNotificationReceived } from "types/notification";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 const Notification = () => {
   const { currentUser } = useAuth();
-  const { NotificationApi } = useApi();
+  const { NotificationAPI } = useAPIv2();
   const navigate = useNavigate();
 
   const [socket, setSocket] = useState<Socket>();
@@ -51,12 +51,14 @@ const Notification = () => {
 
   const updateNotifications = async () => {
     if (currentUser?._id) {
-      const notifications = await NotificationApi.RNotifications({
-        type: "received",
-        user: currentUser._id,
-        checked: false,
-      });
-      setNotifications(notifications);
+      try {
+        const { notifications } = await NotificationAPI.RNotifications({
+          query: { type: "received", checked: false },
+        });
+        setNotifications(notifications as TNotificationReceived[]);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
     }
   };
 
@@ -141,7 +143,9 @@ const Notification = () => {
           <Button
             type="ghost"
             onClick={(e: any) => {
-              NotificationApi.UCheckNotification(notification._id)
+              NotificationAPI.UCheckNotification({
+                params: { _id: notification._id },
+              })
                 .then(() => {
                   notifications.splice(
                     _.findIndex(
@@ -153,7 +157,7 @@ const Notification = () => {
                   setNotifications([...notifications]);
                 })
                 .catch((err) => {
-                  alert(err.response.data.message);
+                  ALERT_ERROR(err);
                 });
             }}
             style={{
