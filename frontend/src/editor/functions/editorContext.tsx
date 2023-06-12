@@ -1,7 +1,6 @@
 import _, { isArray, isEmpty } from "lodash";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Loading from "../../components/loading/Loading";
-import useDatabase from "../../hooks/useDatabase";
 import useGenerateId from "../../hooks/useGenerateId";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -85,7 +84,6 @@ export const EditorProvider = (props: {
   /**
    * database hook
    */
-  const database = useDatabase();
   const { FormAPI } = useAPIv2();
   const generateId = useGenerateId;
 

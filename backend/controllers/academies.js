@@ -679,44 +679,65 @@ export const removeBackup = async (req, res) => {
   }
 };
 
-const typeToModel = (docType, academyId) => {
-  if (docType === "schools") return School(academyId);
-  if (docType === "seasons") return Season(academyId);
-  if (docType === "users") return User(academyId);
-  if (docType === "registrations") return Registration(academyId);
-  if (docType === "forms") return Form(academyId);
-};
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyDocuments API
+ * @description 아카데미 데이터 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies/:academyId/:docType"} req.url
+ *
+ * @param {Object} req.query
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res.documents
+ *
+ *
+ */
 
 /**
  * @memberof APIs.AcademyAPI
- * @function findDocuments API
- * @version 1.0.0
+ * @function RAcademyDocument API
+ * @description 아카데미 데이터 조회 API
+ * @version 2.0.0
  *
- * @deprecated owner 페이지 수정과 함께 업데이트될 예정
- * @todo owner 페이지 수정과 함께 업데이트
+ * @param {Object} req
  *
- * @param {*} req
- * @param {*} res
- * @returns
+ * @param {"GET"} req.method
+ * @param {"/academies/:academyId/:docType/:docId"} req.url
+ *
+ * @param {Object} req.query
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res.document
+ *
+ *
  */
 export const findDocuments = async (req, res) => {
   try {
-    if (!_.find(["schools", "seasons", "users", "registrations", "forms"]))
-      return res.status(400).send();
-
-    if (req.params.docId) {
-      const document = await typeToModel(
-        req.params.docType,
-        req.user.academyId
-      ).findById(req.params.docId);
-      return res.status(200).send(document);
+    const _Model = Model(req.params.docType, req.params.academyId);
+    if (!_Model) {
+      return res.status(400).send({ message: FIELD_INVALID("docType") });
     }
 
-    const documents = await typeToModel(
-      req.params.docType,
-      req.user.academyId
-    ).find(req.query);
+    /* RAcademyDocument */
+    if (req.params.docId) {
+      const document = await _Model.findById(req.params.docId);
+      if (!document) {
+        return res.status(404).send({
+          message: __NOT_FOUND("document"),
+        });
+      }
+      return res.status(200).send({ document });
+    }
 
+    /* RAcademyDocuments */
+    const documents = await _Model.find(req.query);
     return res.status(200).send({ documents });
   } catch (err) {
     logger.error(err.message);

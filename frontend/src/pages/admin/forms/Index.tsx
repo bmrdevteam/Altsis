@@ -31,7 +31,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import style from "style/pages/admin/forms.module.scss";
 
 // hooks
-import useDatabase from "hooks/useDatabase";
 import useSearch from "hooks/useSearch";
 
 import Button from "components/button/Button";
@@ -56,7 +55,6 @@ type Props = {};
  */
 
 const Forms = (props: Props) => {
-  const database = useDatabase();
   const location = useLocation();
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);

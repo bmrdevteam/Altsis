@@ -320,6 +320,50 @@ export default function useAPIv2() {
   }
 
   /**
+   * RAcademyDocuments API
+   * @description 아카데미 데이터 목록 조회 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RAcademyDocuments(props: {
+    params: {
+      academyId: string;
+      docType: "schools" | "registrations" | "seasons";
+    };
+    query?: object;
+  }) {
+    const { documents } = await database.R({
+      location:
+        `academies/${props.params.academyId}/${props.params.docType}` +
+        (props.query ? QUERY_BUILDER(props.query) : ""),
+    });
+    return {
+      documents,
+    };
+  }
+
+  /**
+   * RAcademyDocument API
+   * @description 아카데미 데이터 조회 API
+   * @version 2.0.0
+   * @auth owner
+   */
+  async function RAcademyDocument(props: {
+    params: {
+      academyId: string;
+      docType: "schools" | "registrations" | "seasons";
+      docId: string;
+    };
+  }) {
+    const { document } = await database.R({
+      location: `academies/${props.params.academyId}/${props.params.docType}/${props.params.docId}`,
+    });
+    return {
+      document,
+    };
+  }
+
+  /**
    * DAcademy API
    * @description 아카데미 삭제 API
    * @version 2.0.0
@@ -2147,6 +2191,8 @@ export default function useAPIv2() {
       RAcademyBackupList,
       RAcademyBackup,
       DAcademyBackup,
+      RAcademyDocuments,
+      RAcademyDocument,
       DAcademy,
     },
     UserAPI: {

@@ -29,19 +29,17 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
-import { copyClipBoard } from "functions/functions";
 import style from "style/pages/admin/schools.module.scss";
 // components
-import Table from "components/tableV2/Table";
 import Navbar from "layout/navbar/Navbar";
 import Tab from "components/tab/Tab";
 import Season from "./tab/Season/Index";
 import User from "./tab/User/Index";
+import useAPIv2 from "hooks/useAPIv2";
 type Props = {};
 
 const School = (props: Props) => {
-  const database = useDatabase();
+  const { AcademyAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
   const { school = "" } = useParams<"school">();
   const navigate = useNavigate();
@@ -51,10 +49,14 @@ const School = (props: Props) => {
   const [schoolData, setSchoolData] = useState<any>();
 
   async function getDocument() {
-    const result = await database.R({
-      location: `academies/${academyId}/schools/${school}`,
+    const { document } = await AcademyAPI.RAcademyDocument({
+      params: {
+        academyId,
+        docType: "schools",
+        docId: school,
+      },
     });
-    return result;
+    return document;
   }
 
   useEffect(() => {

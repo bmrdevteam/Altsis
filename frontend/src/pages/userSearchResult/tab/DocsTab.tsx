@@ -4,7 +4,6 @@ import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import useDatabase from "hooks/useDatabase";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import style from "style/pages/userSearchResult/docsTab.module.scss";
@@ -14,7 +13,6 @@ type Props = {
 };
 /** @deprecated */
 function Docs(props: Props) {
-  const database = useDatabase();
   const { currentSchool } = useAuth();
   const { FormAPI } = useAPIv2();
   const [loading, setLoading] = useState<boolean>(true);

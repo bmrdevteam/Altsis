@@ -31,7 +31,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
 import { copyClipBoard } from "functions/functions";
 
 // components
@@ -46,11 +45,12 @@ import Classroom from "./tab/Classroom";
 import Subjects from "./tab/Subject";
 // import Permission from "./tab/Permission"; deprecated
 import Form from "./tab/Form";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {};
 
 const Season = (props: Props) => {
-  const database = useDatabase();
+  const { AcademyAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState(true);
   const { pid: academyId = "" } = useParams<"pid">();
   const { school } = useParams<"school">();
@@ -63,19 +63,18 @@ const Season = (props: Props) => {
   const [editPopupActive, setEditPopupActive] = useState(false);
 
   async function getDocumentList() {
-    const { documents } = await database.R({
-      location: `academies/${academyId}/seasons${
-        school ? `?school=${school}` : ``
-      }`,
+    const { documents } = await AcademyAPI.RAcademyDocuments({
+      params: { academyId, docType: "seasons" },
+      query: school ? { school } : undefined,
     });
     return documents;
   }
 
   async function getDocument(id: string) {
-    const result = await database.R({
-      location: `academies/${academyId}/seasons/${id}`,
+    const { document } = await AcademyAPI.RAcademyDocument({
+      params: { academyId, docType: "seasons", docId: id },
     });
-    return result;
+    return document;
   }
 
   useEffect(() => {

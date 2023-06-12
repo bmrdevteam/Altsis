@@ -29,15 +29,15 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import useDatabase from "hooks/useDatabase";
 import { copyClipBoard } from "functions/functions";
 
 // components
 import Table from "components/tableV2/Table";
+import useAPIv2 from "hooks/useAPIv2";
 type Props = {};
 
 const School = (props: Props) => {
-  const database = useDatabase();
+  const { AcademyAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
   const navigate = useNavigate();
 
@@ -45,9 +45,10 @@ const School = (props: Props) => {
   const [documentList, setDocumentList] = useState<any>();
 
   async function getDocumentList() {
-    const { documents } = await database.R({
-      location: `academies/${academyId}/schools`,
+    const { documents } = await AcademyAPI.RAcademyDocuments({
+      params: { academyId, docType: "schools" },
     });
+
     return documents;
   }
 
