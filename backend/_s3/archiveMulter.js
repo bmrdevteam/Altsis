@@ -2,7 +2,7 @@ import _ from "lodash";
 import multer from "multer";
 import multerS3 from "multer-s3";
 import { FIELD_INVALID } from "../messages/index.js";
-import { fileBucket, archiveS3 } from "./fileBucket.js";
+import { fileBucket, fileS3 } from "./fileBucket.js";
 
 const getRandomString = () => {
   const chars =
@@ -43,7 +43,7 @@ export const archiveMulter = multer({
     fileSize: 5 * 1024 * 1024,
   },
   storage: multerS3({
-    s3: archiveS3,
+    s3: fileS3,
     bucket: fileBucket,
     acl: "public-read",
     contentType: multerS3.AUTO_CONTENT_TYPE,

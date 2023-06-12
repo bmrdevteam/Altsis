@@ -17,7 +17,7 @@ import {
 } from "../models/index.js";
 import { format } from "date-fns";
 import { archiveMulter } from "../_s3/archiveMulter.js";
-import { signUrl } from "../_s3/fileBucket.js";
+import { signUrl, fileS3, fileBucket } from "../_s3/fileBucket.js";
 import {
   FIELD_INVALID,
   FIELD_REQUIRED,
@@ -275,9 +275,33 @@ export const signDocument = async (req, res) => {
   });
 };
 
+/**
+ * @memberof APIs.FileAPI
+ * @function RSignedUrlBackup API
+ * @description 서명된 백업 파일 주소 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/files/backup/signed"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.key - file key
+ * @param {string} req.query.fileName- fileName
+ *
+ * @param {Object} req.user - owner
+ *
+ * @param {Object} res
+ * @param {string} res.preSignedUrl - file preSignedUrl
+ * @param {Date} res.expiryDate - expiryDate of file preSignedUrl
+ *
+ */
 export const signBackup = async (req, res) => {
-  if (!("key" in req.query)) {
-    return res.status(400).send({ message: FIELD_REQUIRED("key") });
+  for (let field of ["key", "fileName"]) {
+    if (!(field in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED(field) });
+    }
   }
 
   const keys = req.query.key.split("/");
@@ -308,9 +332,9 @@ export const findBackup = async (req, res) => {
 
     /*  특정 백업 목록 불러오기 */
     if ("title" in req.query) {
-      const data = await s3
+      const data = await fileS3
         .listObjectsV2({
-          Bucket: bucket,
+          Bucket: fileBucket,
           Prefix: `${req.query.academyId}/backup/${req.query.title}/`,
         })
         .promise();
@@ -333,9 +357,9 @@ export const findBackup = async (req, res) => {
 
       /* list all data */
       do {
-        const _data = await s3
+        const _data = await fileS3
           .listObjectsV2({
-            Bucket: bucket,
+            Bucket: fileBucket,
             Prefix: `${req.query.academyId}/backup/`,
             ContinuationToken: token,
             Delimiter: "/",
@@ -416,9 +440,9 @@ export const uploadBackup = async (req, res) => {
 
         logs.push(`│├ writing ${model.title}...`);
         const data = "[" + _.join(docs, ",\n") + "]";
-        await s3
+        await fileS3
           .upload({
-            Bucket: bucket,
+            Bucket: fileBucket,
             Key: `${req.query.academyId}/backup/${title}/${model.title}.json`,
             Body: data,
             ContentType: "application/json",
@@ -440,9 +464,9 @@ export const uploadBackup = async (req, res) => {
       }ms)`
     );
 
-    await s3
+    await fileS3
       .upload({
-        Bucket: bucket,
+        Bucket: fileBucket,
         Key: `${req.query.academyId}/backup/${title}/log.txt`,
         Body: _.join(logs, `\n`),
         ContentType: "application/json",
@@ -465,9 +489,9 @@ export const removeBackup = async (req, res) => {
       return res.status(400).send({ message: "query(title) is required" });
     }
 
-    const data = await s3
+    const data = await fileS3
       .listObjectsV2({
-        Bucket: bucket,
+        Bucket: fileBucket,
         Prefix: `${req.query.academyId}/backup/${req.query.title}/`,
       })
       .promise();
@@ -475,9 +499,9 @@ export const removeBackup = async (req, res) => {
     const keys = data.Contents.map((content) => {
       return { Key: content.Key };
     });
-    await s3
+    await fileS3
       .deleteObjects({
-        Bucket: bucket,
+        Bucket: fileBucket,
         Delete: { Objects: keys },
       })
       .promise();
@@ -631,9 +655,9 @@ export const updateDataField = async (req, res) => {
 
 export const remove = async (req, res) => {
   try {
-    s3.deleteObject(
+    fileS3.deleteObject(
       {
-        Bucket: bucket,
+        Bucket: fileBucket,
         Key: req.query.key,
       },
       async (err, data) => {
@@ -680,7 +704,7 @@ export const test = async (req, res) => {
     archive.files = {
       ...archive.files,
       ["사진"]: {
-        url: `https://${bucket}.s3.ap-northeast-2.amazonaws.com/${key}`,
+        url: `https://${fileBucket}.s3.ap-northeast-2.amazonaws.com/${key}`,
         key,
       },
     };
