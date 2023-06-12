@@ -11,6 +11,7 @@ import mongoose from "mongoose";
 const ObjectId = mongoose.Types.ObjectId;
 import _ from "lodash";
 import {
+  FIELD_INVALID,
   FIELD_REQUIRED,
   PERMISSION_DENIED,
   __NOT_FOUND,
@@ -196,18 +197,45 @@ export const findByRegistration = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.ArchiveAPI
+ * @function UArchiveByRegistration API
+ * @description 기록 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/archives/:_id"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.registration - ObjectId of registration
+ * @param {string} req.body.label
+ * @param {Object[]} req.body.data
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {Object} res.archive
+ * @param {string} res.archive._id
+ * @param {string} res.archive.user - ObjectId of user
+ * @param {Object} res.archive.data
+ *
+ */
 export const updateByRegistration = async (req, res) => {
   try {
-    if (!ObjectId.isValid(req.params._id)) return res.status(400).send();
+    if (!ObjectId.isValid(req.params._id)) {
+      return res.status(400).send({ message: FIELD_INVALID("_id") });
+    }
     for (let field of ["label", "data", "registration"]) {
       if (!(field in req.body)) {
-        return res.status(400).send();
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
     }
 
     const user = req.user;
 
-    const archive = await Archive(req.user.academyId).findById(req.params._id);
+    const archive = await Archive(user.academyId).findById(req.params._id);
     if (!archive) {
       return res.status(404).send({ message: __NOT_FOUND("archive") });
     }

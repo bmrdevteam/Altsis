@@ -179,33 +179,6 @@ export default function useApi() {
   }
 
   /**
-   * Archive Api
-   * ##########################################################################
-   */
-
-  /**
-   * Update Archive by registration
-   * @type PUT
-   * @auth admin
-   * @returns Archive
-   */
-  async function UArchiveByRegistration(params: {
-    _id: string;
-    label: string;
-    data: object;
-    registration: string;
-  }) {
-    const { archive } = await database.U({
-      location: `archives/${params._id}`,
-      data: {
-        label: params.label,
-        data: params.data,
-        registration: params.registration,
-      },
-    });
-    return archive;
-  }
-  /**
    * Notification Api
    * ##########################################################################
    */
@@ -271,9 +244,6 @@ export default function useApi() {
       CopyForm,
       RForms,
       RForm,
-    },
-    ArchiveApi: {
-      UArchiveByRegistration,
     },
     NotificationApi: {
       SendNotifications,

@@ -3,7 +3,6 @@ import { useAuth } from "contexts/authContext";
 import React from "react";
 import style from "style/pages/archive.module.scss";
 import { useRef, useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
@@ -19,7 +18,6 @@ type Props = {
 };
 
 const ObjectView = (props: Props) => {
-  const { ArchiveApi } = useApi();
   const { ArchiveAPI, FileAPI } = useAPIv2();
 
   const { currentSchool } = useAuth();
@@ -137,11 +135,13 @@ const ObjectView = (props: Props) => {
           data[field.label] = archiveListRef.current[i][field.label];
         }
 
-        const { archive } = await ArchiveApi.UArchiveByRegistration({
-          _id: archiveListRef.current[i]._id,
-          label: props.pid ?? "",
-          data,
-          registration: archiveListRef.current[i].registration,
+        const { archive } = await ArchiveAPI.UArchiveByRegistration({
+          params: { _id: archiveListRef.current[i]._id },
+          data: {
+            label: props.pid ?? "",
+            data,
+            registration: archiveListRef.current[i].registration,
+          },
         });
         archiveList.push({
           ...archiveListRef.current[i],

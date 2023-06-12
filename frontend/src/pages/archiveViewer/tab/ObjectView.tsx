@@ -1,7 +1,6 @@
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/archive.module.scss";
 import { useEffect, useState } from "react";
-import useApi from "hooks/useApi";
 import { useParams, useNavigate } from "react-router-dom";
 
 import Loading from "components/loading/Loading";
@@ -12,7 +11,6 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {};
 
 const One = (props: Props) => {
-  const { ArchiveApi } = useApi();
   const { ArchiveAPI, FileAPI } = useAPIv2();
   const { pid } = useParams(); // archive label ex) 인적 사항
   const navigate = useNavigate();
