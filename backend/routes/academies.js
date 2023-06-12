@@ -20,6 +20,9 @@ router.put("/:academyId/inactivate", isOwner, academies.inactivate);
 router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
 
+/* backup */
+router.get("/:academyId/backup", isOwner, academies.findBackup);
+
 router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */

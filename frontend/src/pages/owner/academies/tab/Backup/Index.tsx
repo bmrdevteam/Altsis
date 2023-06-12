@@ -46,7 +46,7 @@ type Props = {};
 
 const Backup = (props: Props) => {
   const { BackupApi } = useApi();
-  const { FileAPI } = useAPIv2();
+  const { AcademyAPI, FileAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -109,9 +109,9 @@ ___________________
 
   useEffect(() => {
     if (isLoading) {
-      BackupApi.RBackupList({ academyId })
-        .then((res) => {
-          setDocumentList(_.sortBy(res, "title").reverse());
+      AcademyAPI.RAcademyBackupList({ params: { academyId } })
+        .then(({ backupList }) => {
+          setDocumentList(backupList);
         })
         .then(() => setIsLoading(false))
         .catch(() => {

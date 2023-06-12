@@ -23,6 +23,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { generatePassword } from "../utils/password.js";
+import { fileS3, fileBucket } from "../_s3/fileBucket.js";
 
 /**
  * @memberof APIs.AcademyAPI
@@ -341,6 +342,60 @@ export const updateTel = async (req, res) => {
     await academy.save();
 
     return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyBackupList API
+ * @description 아카데미 백업 목록 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies/:academyId/backup"} req.url
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res
+ * @param {Object} res.academy - updated academy
+ */
+
+export const findBackup = async (req, res) => {
+  try {
+    /* RAcademyBackupList */
+    if (!("title" in req.query)) {
+      const backupList = [];
+
+      const data = [];
+      let token = undefined;
+      do {
+        const _data = await fileS3
+          .listObjectsV2({
+            Bucket: fileBucket,
+            Prefix: `${req.params.academyId}/backup/`,
+            ContinuationToken: token,
+            Delimiter: "/",
+          })
+          .promise();
+        data.push(..._data.CommonPrefixes);
+        token = data.NextContinuationToken;
+      } while (token);
+
+      for (let content of data) {
+        backupList.push({
+          title: content.Prefix.split("/")[2],
+          key: content.Prefix,
+        });
+      }
+      return res.status(200).send({ backupList });
+    }
+
+    return res.status(200).send({ documents: [] });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
