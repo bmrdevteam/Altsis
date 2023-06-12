@@ -29,7 +29,7 @@ import {
  */
 
 /**
- * @memberof APIs.SchoolAPI
+ * @memberof APIs.NotificationAPI
  * @function CNotification API
  * @description 알림 생성 API
  * @version 2.0.0
@@ -121,7 +121,7 @@ export const send = async (req, res) => {
 };
 
 /**
- * @memberof APIs.SchoolAPI
+ * @memberof APIs.NotificationAPI
  * @function RNotifications API
  * @description 알림 목록 조회 API
  * @version 2.0.0
@@ -144,7 +144,7 @@ export const send = async (req, res) => {
  */
 
 /**
- * @memberof APIs.SchoolAPI
+ * @memberof APIs.NotificationAPI
  * @function RNotification API
  * @description 알림 조회 API
  * @version 2.0.0
@@ -202,7 +202,7 @@ export const find = async (req, res) => {
 };
 
 /**
- * @memberof APIs.SchoolAPI
+ * @memberof APIs.NotificationAPI
  * @function UCheckNotification API
  * @description 알림 확인 API
  * @version 2.0.0
@@ -242,7 +242,7 @@ export const check = async (req, res) => {
 };
 
 /**
- * @memberof APIs.SchoolAPI
+ * @memberof APIs.NotificationAPI
  * @function DNotification API
  * @description 알림 삭제 API
  * @version 2.0.0

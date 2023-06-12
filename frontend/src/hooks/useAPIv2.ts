@@ -1952,12 +1952,12 @@ export default function useAPIv2() {
   }
 
   /**
-   * URestoreArchive API
+   * URestoreForm API
    * @description 양식 복원 API
    * @version 2.0.0
    * @auth admin|manager
    */
-  async function URestoreArchive(props: {
+  async function URestoreForm(props: {
     params: {
       _id: string;
     };
@@ -2284,7 +2284,7 @@ export default function useAPIv2() {
       RForm,
       UForm,
       UArchiveForm,
-      URestoreArchive,
+      URestoreForm,
       DForm,
     },
     FileAPI: {

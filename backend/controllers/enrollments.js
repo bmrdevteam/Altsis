@@ -215,7 +215,7 @@ export const getTaskRequested = () => {
 };
 
 /**
- * @memberof APIs.RegistrationAPI
+ * @memberof APIs.EnrollmentAPI
  * @function CEnrollment API
  * @description 수강신청 API
  * @version 2.0.0

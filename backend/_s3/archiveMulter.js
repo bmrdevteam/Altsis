@@ -34,8 +34,7 @@ const whitelist = [
 ];
 
 /**
- * upload archive file
- * @example Upload file "abc.jpg" as "{bucket}/{academyId}/archive/{randomString}.jpg"
+ *  @description Upload file "abc.jpg" as "{bucket}/{academyId}/archive/{randomString}.jpg"
  */
 export const archiveMulter = multer({
   limits: {

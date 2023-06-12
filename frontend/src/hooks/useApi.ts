@@ -29,7 +29,6 @@
  */
 
 import useDatabase from "hooks/useDatabase";
-import _ from "lodash";
 export default function useApi() {
   const database = useDatabase();
 
@@ -47,10 +46,6 @@ export default function useApi() {
     return query;
   }
 
-  function QUERY_SUB_BUILDER(params: string[] | string) {
-    return _.join(params, ",");
-  }
-
   /**
    * Registration Api
    * ##########################################################################
@@ -61,6 +56,7 @@ export default function useApi() {
    * @type POST
    * @auth member
    * @returns memos
+   * @deprecated
    */
   async function CMemo(params: {
     rid: string;
@@ -85,6 +81,7 @@ export default function useApi() {
    * @type PUT
    * @auth member
    * @returns memos
+   * @deprecated
    */
   async function UMemo(params: {
     _id: string;
@@ -110,6 +107,7 @@ export default function useApi() {
    * @type DELETE
    * @auth member
    * @returns memos
+   * @deprecated
    */
   async function DMemo(params: { _id: string; rid: string }) {
     const result = await database.D({
