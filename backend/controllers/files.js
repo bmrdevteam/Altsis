@@ -224,6 +224,56 @@ export const signArchive = async (req, res) => {
   });
 };
 
+/**
+ * @memberof APIs.FileAPI
+ * @function RSignedUrlDocument API
+ * @description 서명된 문서 파일 주소 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/files/document/signed"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.key - file key
+ * @param {string} req.query.fileName- fileName
+ *
+ * @param {Object} req.user
+ *
+ * @param {Object} res
+ * @param {string} res.preSignedUrl - file preSignedUrl
+ * @param {Date} res.expiryDate - expiryDate of file preSignedUrl
+ *
+ */
+export const signDocument = async (req, res) => {
+  for (let field of ["key", "fileName"]) {
+    if (!(field in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED(field) });
+    }
+  }
+
+  if (
+    !(await Registration(req.user.academyId).findOne({
+      user: req.user._id,
+      role: "teacher",
+    }))
+  ) {
+    return res.status(403).send({ message: PERMISSION_DENIED });
+  }
+
+  const { preSignedUrl, expiryDate } = signUrl(
+    req.query.key,
+    req.query.fileName,
+    60
+  );
+
+  return res.status(200).send({
+    preSignedUrl,
+    expiryDate,
+  });
+};
+
 export const signBackup = async (req, res) => {
   if (!("key" in req.query)) {
     return res.status(400).send({ message: FIELD_REQUIRED("key") });
