@@ -6,8 +6,7 @@ import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 import { zipSeasonsFormEvaluation } from "functions/docs";
-import useAPIv2 from "hooks/useAPIv2";
-import useApi from "hooks/useApi";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
@@ -15,8 +14,7 @@ import style from "style/pages/docs/docs.module.scss";
 type Props = {};
 
 function Docs({}: Props) {
-  const { FormApi } = useApi();
-  const { ArchiveAPI, EnrollmentAPI, SeasonAPI } = useAPIv2();
+  const { ArchiveAPI, EnrollmentAPI, SeasonAPI, FormAPI } = useAPIv2();
   const { currentSchool, currentSeason } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
@@ -100,13 +98,19 @@ function Docs({}: Props) {
     const registrations = currentSeason?.registrations.filter(
       (reg) => reg.role === "student"
     );
-    const [forms, { seasons }] = await Promise.all([
-      FormApi.RForms({ type: "print" }),
+    const [{ forms }, { seasons }] = await Promise.all([
+      FormAPI.RForms({ query: { type: "print", archived: false } }),
       SeasonAPI.RSeasons({ query: { school: currentSchool?.school } }),
     ]);
 
-    const form =
-      forms.length > 0 ? await FormApi.RForm(forms[0]._id) : undefined;
+    let form: object | undefined = undefined;
+    if (forms.length > 0) {
+      const { form: _form } = await FormAPI.RForm({
+        params: { _id: forms[0]._id },
+      });
+      form = _form;
+    }
+
     return {
       registrations,
       forms,
@@ -196,9 +200,13 @@ function Docs({}: Props) {
               }),
             ]}
             onChange={(val: string) => {
-              FormApi.RForm(val).then((res) => {
-                setFormData(res);
-              });
+              FormAPI.RForm({ params: { _id: val } })
+                .then(({ form }) => {
+                  setFormData(form);
+                })
+                .catch((err) => {
+                  ALERT_ERROR(err);
+                });
             }}
           />
           <div

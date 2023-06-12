@@ -33,7 +33,6 @@ import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import useApi from "hooks/useApi";
 import { useEffect, useState } from "react";
 import { TSeason } from "types/seasons";
 
@@ -44,15 +43,18 @@ type Props = {
 };
 
 const Index = (props: Props) => {
-  const { SeasonAPI } = useAPIv2();
-  const { FormApi } = useApi();
+  const { SeasonAPI, FormAPI } = useAPIv2();
 
   const [forms, setForms] = useState<{ _id: string; title: string }[]>([]);
 
   useEffect(() => {
-    FormApi.RForms({ type: "syllabus" }).then((res) => {
-      setForms(res);
-    });
+    FormAPI.RForms({ query: { type: "syllabus" } })
+      .then(({ forms }) => {
+        setForms(forms);
+      })
+      .catch((err) => {
+        ALERT_ERROR(err);
+      });
 
     return () => {};
   }, []);
