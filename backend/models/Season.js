@@ -1,7 +1,19 @@
+/**
+ * Season namespace
+ * @namespace Models.Season
+ * @version 2.0.0
+ */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 import _ from "lodash";
 
+/**
+ * @memberof Models.Season
+ * @typedef TPeriod
+ *
+ * @prop {string} start - ex) "YYYY-MM-DD" || ""
+ * @prop {string} end - - ex) "YYYY-MM-DD" || ""
+ */
 const periodSchema = mongoose.Schema(
   {
     start: String, // "YYYY-MM-DD" || ""
@@ -10,6 +22,13 @@ const periodSchema = mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * @memberof Models.Season
+ * @typedef TSubject
+ *
+ * @prop {string[]} label - ex) ["교과","과목"]
+ * @prop {string[][]} data - ex) [["국어","현대시"],["수학","미적분"],...]
+ */
 const subjectSchema = mongoose.Schema(
   {
     label: [String],
@@ -18,6 +37,17 @@ const subjectSchema = mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * @memberof Models.Season
+ * @typedef TPermissionException
+ *
+ * @prop {string} registration - registration._id
+ * @prop {string} role - registration.role
+ * @prop {string} user - registration.user
+ * @prop {string} userId - registration.userId
+ * @prop {string} userName - registration.userName
+ * @prop {boolean} isAllowed
+ */
 const permissionExceptionSchema = mongoose.Schema(
   {
     registration: String,
@@ -30,6 +60,14 @@ const permissionExceptionSchema = mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * @memberof Models.Season
+ * @typedef TPermission
+ *
+ * @prop {boolean} teacher
+ * @prop {boolean} student
+ * @prop {TPermissionException[]} exceptions
+ */
 const permissionSchema = mongoose.Schema(
   {
     teacher: Boolean,
@@ -45,6 +83,13 @@ const permissionDefault = {
   exceptions: [],
 };
 
+/**
+ * @memberof Models.Season
+ * @typedef TFormEvlauationAuthItemSchema
+ *
+ * @prop {boolean} teacher
+ * @prop {boolean} student
+ */
 const formEvlauationAuthItemSchema = mongoose.Schema(
   {
     student: Boolean,
@@ -53,6 +98,13 @@ const formEvlauationAuthItemSchema = mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * @memberof Models.Season
+ * @typedef TFormEvaluationAuth
+ *
+ * @prop {TFormEvlauationAuthItemSchema} edit
+ * @prop {TFormEvlauationAuthItemSchema} view
+ */
 const formEvlauationAuthSchema = mongoose.Schema(
   {
     edit: formEvlauationAuthItemSchema,
@@ -61,7 +113,18 @@ const formEvlauationAuthSchema = mongoose.Schema(
   { _id: false }
 );
 
-const formEvaluationSchema = mongoose.Schema(
+/**
+ * @memberof Models.Season
+ * @typedef TFormEvaluationItem
+ *
+ * @prop {string} label - ex) "멘토평가"
+ * @prop {"input"|"input-number"|"select"} type="input"
+ * @prop {string[]} options - type==="select"인 경우 선택 옵션
+ * @prop {"term"|"year"} combineBy="term" - 평가가 동기화되는 단위
+ * @prop {"editByStudent"|"editByTeacher"|"editByTeacherAndStudentCanView"} authOption="editByTeacher"
+ * @prop {TFormEvaluationAuth} auth - authOption에 따라 자동 설정된다
+ */
+const formEvaluationItemSchema = mongoose.Schema(
   {
     label: String,
     type: {
@@ -89,6 +152,13 @@ const formEvaluationSchema = mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * @memberof Models.Season
+ * @typedef TFormTimetable
+ *
+ * @prop {string} title
+ * @prop {Object} data - 에디터에 의해 설정된다
+ */
 const formTimetableSchema = mongoose.Schema(
   {
     title: String,
@@ -97,11 +167,42 @@ const formTimetableSchema = mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * @memberof Models.Season
+ * @typedef TFormSyllabus
+ *
+ * @prop {string} title
+ * @prop {Object} data - 에디터에 의해 설정된다
+ */
 const formSyllabusSchema = mongoose.Schema(
   { title: String, data: [Object] },
   { _id: false }
 );
 
+/**
+ * @memberof Models.Season
+ * @typedef TSeason
+ *
+ * @prop {ObjectId} _id
+ * @prop {string} school - school._id
+ * @prop {string} schoolId - school.schoolId
+ * @prop {string} schoolName - school.schoolName
+ * @prop {string[]} classrooms - 강의실 목록
+ * @prop {TSubject} subjects - 교과목
+ * @prop {string} year - 학년도
+ * @prop {string} term - 학기
+ * @prop {TPeriod} period - 기간
+ * @prop {TPermission} permissionSyllabusV2 - 수업 개설 권한
+ * @prop {TPermission} permissionEnrollmentV2 - 수강신청 권한
+ * @prop {TPermission} permissionEvaluationV2 - 평가 권한
+ * @prop {TFormTimetable} formTimetable - 시간표 양식
+ * @prop {TFormSyllabus} formSyllabus - 강의계획서 양식
+ * @prop {TFormEvaluationItem[]} formEvaluation - 평가 양식
+ * @prop {boolean} isActivated=false - 학기 활성화 상태
+ * @prop {boolean} isActivated=false - 학기 최초 활성화 여부
+ *
+ * @description 학기
+ */
 const seasonSchema = mongoose.Schema(
   {
     school: {
@@ -133,9 +234,6 @@ const seasonSchema = mongoose.Schema(
         end: "",
       },
     },
-    permissionSyllabus: {}, //deprecated
-    permissionEnrollment: {}, //deprecated
-    permissionEvaluation: {}, //deprecated
     permissionSyllabusV2: {
       type: permissionSchema,
       default: permissionDefault,
@@ -151,7 +249,7 @@ const seasonSchema = mongoose.Schema(
     formTimetable: formTimetableSchema,
     formSyllabus: formSyllabusSchema,
     formEvaluation: {
-      type: [formEvaluationSchema],
+      type: [formEvaluationItemSchema],
     },
     temp: Object,
     isActivated: {

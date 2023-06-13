@@ -1,7 +1,7 @@
 /**
  * SchoolAPI namespace
  * @namespace APIs.SchoolAPI
- * @see {@link Models.School}
+ * @see TSchool in {@link Models.School}
  */
 
 /**

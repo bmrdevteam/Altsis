@@ -1,7 +1,7 @@
 /**
  * AcademyAPI namespace
  * @namespace APIs.AcademyAPI
- * @see {@link Models.Academy}
+ * @see TAcademy in {@link Models.Academy}
  */
 /**
  * @typedef {import('../models/Academy.js').TAcademy} TAcademy
