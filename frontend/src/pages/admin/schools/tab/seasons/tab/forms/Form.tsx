@@ -94,7 +94,7 @@ const Form = (props: Props) => {
             </Button>
           </div>
           <div className={style.item}>
-            <div className={style.title}>강의 계획서 양식</div>
+            <div className={style.title}>강의계획서 양식</div>
             <Button
               type="ghost"
               onClick={() => {

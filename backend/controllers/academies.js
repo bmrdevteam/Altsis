@@ -554,13 +554,15 @@ export const restoreBackup = async (req, res) => {
     await Model(req.body.model, req.params.academyId).deleteMany({});
     if (req.body.model === "archives" || req.body.model === "enrollments") {
       await Promise.all(
-        documents.map((_doc) => {
+        req.body.documents.map((_doc) => {
           const doc = new (Model(req.body.model, req.params.academyId))(_doc);
           return doc.save();
         })
       );
     } else {
-      await Model(req.body.model, req.params.academyId).insertMany(documents);
+      await Model(req.body.model, req.params.academyId).insertMany(
+        req.body.documents
+      );
     }
 
     return res.status(200).send({});

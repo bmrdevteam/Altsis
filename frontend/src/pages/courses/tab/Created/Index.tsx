@@ -109,7 +109,7 @@ const CoursePid = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading && pid) {
+    if (isLoading && pid && currentUser?._id && currentSeason?._id) {
       SyllabusAPI.RSyllabus({ params: { _id: pid } })
         .then(({ syllabus }) => {
           setSyllabus(syllabus);
@@ -148,7 +148,7 @@ const CoursePid = (props: Props) => {
         });
     }
     return () => {};
-  }, [isLoading]);
+  }, [isLoading, pid, currentUser, currentSeason]);
 
   return !isLoading ? (
     <>
