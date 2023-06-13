@@ -1,6 +1,11 @@
 /**
  * UserAPI namespace
  * @namespace APIs.UserAPI
+ * @see {@link Models.User}
+ */
+/**
+ * @typedef {import('../models/User.js').TUser} TUser
+ * @typedef {import('../models/User.js').TUserSchool} TUserSchool
  */
 import { logger } from "../log/logger.js";
 import passport from "passport";
@@ -179,9 +184,7 @@ export const logout = async (req, res) => {
  * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
- * @param {Object} req.body.user
- * @param {Object} req.body.schools
- * @param {string} req.body.schools[0].school - objectId of school
+ * @param {Object[]} req.body.schools - ex) [{school:"1234sdf"}]
  * @param {"member"|"manager"} req.body.auth
  * @param {string} req.body.userId
  * @param {string} req.body.userName
@@ -192,7 +195,7 @@ export const logout = async (req, res) => {
  * @param {string?} req.body.snsId.google
  *
  * @param {Object} res
- * @param {Object} res.user - created user
+ * @param {TUser} res.user - created user
  *
  * @throws {}
  * | status | message          | description                       |
@@ -200,6 +203,7 @@ export const logout = async (req, res) => {
  * | 409    | USERID_IN_USE | if userId is in use  |
  * | 409    | SNSID.GOOGLE_IN_USE | if snsId.google is in use  |
  *
+ * @see {@link Models.User} for validation
  */
 export const create = async (req, res) => {
   try {
@@ -312,12 +316,8 @@ export const create = async (req, res) => {
  *
  * @param {Object} req.user - "owner"|"admin"|"manager"
  *
- * @param {Object} req.query
- * @param {string?} req.query.sid - school objectId
- * @param {string?} req.query.academyId - if user is owner
- *
  * @param {Object} res
- * @param {Object[]} res.users
+ * @param {TUser[]} res.users
  *
  * @throws {}
  */
@@ -366,7 +366,7 @@ export const findUsers = async (req, res) => {
  * @param {Object} req.user
  *
  * @param {Object} res
- * @param {Object} res.user
+ * @param {TUser} res.user
  * @param {Object[]} res.registrations
  *
  */
@@ -406,7 +406,7 @@ export const current = async (req, res) => {
  * @param {Object} req.user - "owner"|"admin"|"manager"
  *
  * @param {Object} res
- * @param {Object} res.user
+ * @param {TUser} res.user
  *
  */
 export const findUser = async (req, res) => {
@@ -681,7 +681,7 @@ export const updateTel = async (req, res) => {
 /**
  * @memberof APIs.UserAPI
  * @function UUserAuth API
- * @description 등급 변경 API
+ * @description 등급 변경 API; admin이 사용자 등급을 manager 또는 member로 수정할 수 있다.
  * @version 2.0.0
  *
  * @param {Object} req
@@ -692,7 +692,7 @@ export const updateTel = async (req, res) => {
  * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
- * @param {} req.body.auth
+ * @param {"manager"|"member"} req.body.auth
  *
  * @param {Object} res
  * @param {"manager"|"member"} res.auth - updated auth
@@ -853,16 +853,15 @@ export const disconnectGoogleAuth = async (req, res) => {
  * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
- * @param {ObjectId} req.body.sid - school._id
+ * @param {string} req.body.sid - ObjectId of school
  *
  * @param {Object} res
  * @param {Object} res.body
- * @param {Object[]} res.body.schools
- * @param {ObjectId} res.body.schools[0].school
- * @param {string} res.body.schools[0].schoolId
- * @param {string} res.body.schools[0].schoolName
+ * @param {TUserSchool[]} res.body.schools
  *
  * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
  * | 409    | SCHOOL_CONNECTED_ALREADY | if user already registered to school  |
  *
  */
@@ -920,18 +919,17 @@ export const registerSchool = async (req, res) => {
  * @param {"/users/:_id/schools"} req.url
  *
  * @param {Object} req.query
- * @param {string} req.query.sid
+ * @param {string} req.query.sid - ObjectId of school
  *
  * @param {Object} req.user - "admin"
  *
  * @param {Object} res
  * @param {Object} res.body
- * @param {Object[]} res.body.schools
- * @param {ObjectId} res.body.schools[0].school
- * @param {string} res.body.schools[0].schoolId
- * @param {string} res.body.schools[0].schoolName
+ * @param {TUserSchool[]} res.body.schools
  *
  * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
  * | 409    | SCHOOL_DISCONNECTED_ALREADY | if user already deregistered to school  |
  *
  */
@@ -986,6 +984,8 @@ export const deregisterSchool = async (req, res) => {
  * @param {Object} res - returns nothing
  *
  * @throws {}
+ * | status | message          | description                       |
+ * | :----- | :--------------- | :-------------------------------- |
  * | 409    | SCHOOL_DISCONNECTED_ALREADY | if user already deregistered to school  |
  *
  */

@@ -1,3 +1,8 @@
+/**
+ * User namespace
+ * @namespace Models.User
+ * @version 2.0.0
+ */
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
@@ -5,6 +10,41 @@ import { conn } from "../_database/mongodb/index.js";
 
 import { validate } from "../utils/validate.js";
 
+/**
+ * @memberof Models.User
+ * @typedef TUserSchool
+ *
+ * @prop {string} school - ObjectId of school
+ * @prop {string} schoolId
+ * @prop {string} schoolName
+ */
+
+/**
+ * @memberof Models.User
+ * @typedef TSnsId
+ *
+ * @prop {string?} google - gogole email
+ */
+
+/**
+ * @memberof Models.User
+ * @typedef TUser
+ *
+ * @prop {ObjectId} _id
+ * @prop {string} userId - unique; validate
+ * @prop {string} userName - validate
+ * @prop {string} password - validate; API로 조회할 수 없다; bcrypt로 해시화되어 저장된다;
+ * @prop {"owner"|"admin"|"manager"|"member"} auth="member" - 등급
+ * @prop {string?} email - validate
+ * @prop {string?} tel - validate
+ * @prop {TSnsId?} snsId - 소셜 로그인 계정
+ * @prop {TUserSchool[]} schools - 등록된 학교 목록
+ * @prop {string?} profile - 프로필 사진 주소
+ * @prop {string} academyId
+ * @prop {string} academyName
+ *
+ * @description 사용자
+ */
 const userSchema = mongoose.Schema(
   {
     userId: {
@@ -23,6 +63,7 @@ const userSchema = mongoose.Schema(
     },
     auth: {
       type: String,
+      enum: ["owner", "admin", "manager", "member"],
       default: "member",
     },
     email: {
