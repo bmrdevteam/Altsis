@@ -2,6 +2,12 @@
  * Syllabus namespace
  * @namespace Models.Syllabus
  * @version 2.0.0
+ *
+ * @description 강의계획서
+ * | Indexes    | Properties        |
+ * | :-----     | ----------        |
+ * | _id        | UNIQUE            |
+ * | season_1   |                   |
  */
 
 import mongoose from "mongoose";
@@ -53,7 +59,6 @@ import { timeBlockSchema as TimeBlock } from "./TimeBlock.js";
  * @prop {Object} info - 세부정보; 에디터에 의해 설정된다
  * @prop {TTeacher[]} teachers - 멘토 목록
  *
- * @description 강의계획서
  */
 const syllabusSchema = mongoose.Schema(
   {

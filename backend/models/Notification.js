@@ -2,6 +2,12 @@
  * Notification namespace
  * @namespace Models.Notification
  * @version 2.0.0
+ *
+ * @description 알림
+ * | Indexes            | Properties  |
+ * | :-----             | ----------  |
+ * | _id                | UNIQUE      |
+ * | user_1_created_-1  | COMPOUND   |
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -42,7 +48,6 @@ const userSchema = mongoose.Schema(
  * @prop {string} description
  * @prop {Date} date
  *
- * @description 알림
  */
 const notificationSchema = mongoose.Schema(
   {

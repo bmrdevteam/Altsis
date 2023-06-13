@@ -2,6 +2,12 @@
  * School namespace
  * @namespace Models.School
  * @version 2.0.0
+ *
+ * @description 학교
+ * | Indexes     | Properties  |
+ * | :-----      | ----------  |
+ * | _id         | UNIQUE      |
+ * | schoolId_1  | UNIQUE      |
  */
 
 import mongoose from "mongoose";
@@ -97,7 +103,6 @@ const formArchiveItemSchema = mongoose.Schema(
  * @prop {string?} calendar - 학사 일정 캘린더 ID
  * @prop {string?} calendarTimetable - 시간표 캘린더 ID
  *
- * @description 학교
  */
 const schoolSchema = mongoose.Schema(
   {

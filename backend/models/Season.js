@@ -2,6 +2,12 @@
  * Season namespace
  * @namespace Models.Season
  * @version 2.0.0
+ *
+ * @description 학기
+ * | Indexes                  | Properties        |
+ * | :-----                   | ----------        |
+ * | _id                      | UNIQUE            |
+ * | school_1_year_-1_term_1  | UNIQUE; COMPOUND  |
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -201,7 +207,6 @@ const formSyllabusSchema = mongoose.Schema(
  * @prop {boolean} isActivated=false - 학기 활성화 상태
  * @prop {boolean} isActivated=false - 학기 최초 활성화 여부
  *
- * @description 학기
  */
 const seasonSchema = mongoose.Schema(
   {

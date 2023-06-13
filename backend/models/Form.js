@@ -2,6 +2,11 @@
  * Form namespace
  * @namespace Models.Form
  * @version 2.0.0
+ *
+ * @description 양식
+ * | Indexes      | Properties  |
+ * | :-----       | ----------  |
+ * | _id          | UNIQUE      |
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -18,7 +23,6 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {Object} data - 에디터에 의해 설정됨
  * @prop {boolean} archived=false - 보관 처리 설정
  *
- * @description 양식
  */
 
 const formSchema = mongoose.Schema(

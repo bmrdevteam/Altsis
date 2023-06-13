@@ -2,6 +2,12 @@
  * Registration namespace
  * @namespace Models.Registration
  * @version 2.0.0
+ *
+ * @description 학기 등록 정보
+ * | Indexes          | Properties          |
+ * | :-----           | ----------          |
+ * | _id              | UNIQUE              |
+ * | season_1_user_1  | UNIQUE; COMPOUND   |
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -55,7 +61,6 @@ const memoSchema = mongoose.Schema({
  * @prop {boolean} permissionEvaluationV2=false - 평가 권한; season.permissionEvaluationV2에 의해 설정된다
  * @prop {Object[]} formEvaluation - season.formEvaluation
  *
- * @description 학기 등록 정보
  */
 const registrationSchema = mongoose.Schema({
   season: {
