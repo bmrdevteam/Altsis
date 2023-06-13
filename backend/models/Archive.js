@@ -1,7 +1,27 @@
+/**
+ * Archive namespace
+ * @namespace Models.Archive
+ * @version 2.0.0
+ */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 import encrypt from "mongoose-encryption";
 
+/**
+ * @memberof Models.Archive
+ * @typedef TArchive
+ *
+ * @prop {ObjectId} _id
+ * @prop {string} school - school._id
+ * @prop {string} schoolId - school.schoolId
+ * @prop {string} schoolName - school.schoolName
+ * @prop {ObjectId} user - user._id
+ * @prop {string} userId - user.userId
+ * @prop {string} userName - user.userName
+ * @prop {Object} data - ex) {인적사항: {이름: "..."}, 등록정보: [{...}, {...}]}; 암호화되어 저장된다
+ *
+ * @description 기록
+ */
 const archiveSchema = mongoose.Schema(
   {
     user: { type: mongoose.Types.ObjectId, required: true },
