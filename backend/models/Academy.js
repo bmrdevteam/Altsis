@@ -11,8 +11,7 @@ import { validate } from "../utils/validate.js";
 
 /**
  * @memberof Models.Academy
- * @alias TAcademy
- * @summary 아카데미
+ * @typedef TAcademy
  *
  * @prop {string} academyId - 아카데미 ID; unique; validate
  * @prop {string} academyName - 아카데미 이름; validate
@@ -21,9 +20,9 @@ import { validate } from "../utils/validate.js";
  * @prop {string} adminId - validate
  * @prop {string} adminName - validate
  * @prop {string} dbName - 아카데미 DB명; 아카데미 생성 시 자동 설정되며 API를 통해 조회할 수 없다
- * @prop {string} isActivated - 아카데미 활성화 상태; false인 경우 해당 아카데미에 로그인할 수 없다
+ * @prop {boolean} isActivated=true - 아카데미 활성화 상태; false인 경우 해당 아카데미에 로그인할 수 없다
  *
- * @description academy document는 루트 DB에 저장되며 academy 관련 도큐먼트는 아카데미 DB에 저장된다.
+ * @description 아카데미; academy document는 루트 DB에 저장되며 academy 관련 도큐먼트는 아카데미 DB에 저장된다.
  */
 const academySchema = mongoose.Schema(
   {

@@ -3,9 +3,9 @@
  * @namespace APIs.AcademyAPI
  */
 /**
- * @memberof APIs.AcademyAPI
- * @typedef TAcademy {@link Modles.Academy}
+ * @typedef {import('../models/Academy.js').TAcademy} TAcademy
  */
+
 import { logger } from "../log/logger.js";
 import { addConnection, deleteConnection } from "../_database/mongodb/index.js";
 import {
@@ -80,7 +80,7 @@ import { format } from "date-fns";
  * | :----- | :--------------- | :-------------------------------- |
  * | 409    | ACADEMYID_IN_USE | if parameter academyID is in use  |
  *
- * @see {@link Modles.Academy} for validation
+ * @see {@link Models.Academy} for validation
  */
 export const create = async (req, res) => {
   try {
