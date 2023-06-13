@@ -1,6 +1,7 @@
 /**
  * SyllabusAPI namespace
  * @namespace APIs.SyllabusAPI
+ * @see TSyllabus in {@link Models.Syllabus}
  */
 import { logger } from "../log/logger.js";
 import {

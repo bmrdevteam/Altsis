@@ -1,6 +1,7 @@
 /**
  * ArchiveAPI namespace
  * @namespace APIs.ArchiveAPI
+ * @see TArchive in {@link Models.Archive}
  */
 
 import { logger } from "../log/logger.js";

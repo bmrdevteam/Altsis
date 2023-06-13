@@ -1,6 +1,7 @@
 /**
  * RegistrationAPI namespace
  * @namespace APIs.RegistrationAPI
+ * @see TRegistration in {@link Models.Registration}
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";

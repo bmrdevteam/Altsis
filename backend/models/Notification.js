@@ -1,3 +1,14 @@
+/**
+ * Notification namespace
+ * @namespace Models.Notification
+ * @version 2.0.0
+ *
+ * @description 알림
+ * | Indexes            | Properties  |
+ * | :-----             | ----------  |
+ * | _id                | UNIQUE      |
+ * | user_1_created_-1  | COMPOUND   |
+ */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 import { UTC } from "../utils/date.js";
@@ -17,6 +28,27 @@ const userSchema = mongoose.Schema(
   { _id: false }
 );
 
+/**
+ * @memberof Models.Notification
+ * @typedef TNotification
+ *
+ * @prop {ObjectId} _id
+ * @prop {"sent"|"received"} type
+ * @prop {ObjectId} user - user._id
+ * @prop {string} userId - user.userId
+ * @prop {string} userName - user.userName
+ *
+ * @prop {Object[]} toUserList - type이 sent인 경우; 수신자 목록을 나타냄
+ * @prop {ObjectId} fromUser - type이 received인 경우; 발신자._id
+ * @prop {string} fromUserId - type이 received인 경우; 발신자.userId
+ * @prop {string} fromUserName - type이 received인 경우; 발신자.userName
+ * @prop {boolean} checked=false - type이 received인 경우; 확인 여부
+ * @prop {string?} category
+ * @prop {string} title
+ * @prop {string} description
+ * @prop {Date} date
+ *
+ */
 const notificationSchema = mongoose.Schema(
   {
     type: {

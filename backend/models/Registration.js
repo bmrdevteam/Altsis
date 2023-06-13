@@ -1,6 +1,27 @@
+/**
+ * Registration namespace
+ * @namespace Models.Registration
+ * @version 2.0.0
+ *
+ * @description 학기 등록 정보
+ * | Indexes          | Properties          |
+ * | :-----           | ----------          |
+ * | _id              | UNIQUE              |
+ * | season_1_user_1  | UNIQUE; COMPOUND   |
+ */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 
+/**
+ * @memberof Models.Registration
+ * @typedef TMemo
+ *
+ * @prop {string} title
+ * @prop {string} day
+ * @prop {string} start
+ * @prop {string} end
+ * @prop {string} memo
+ */
 const memoSchema = mongoose.Schema({
   title: String,
   day: String,
@@ -9,6 +30,38 @@ const memoSchema = mongoose.Schema({
   memo: String,
 });
 
+/**
+ * @memberof Models.Registration
+ * @typedef TRegistration
+ *
+ * @prop {ObjectId} _id
+ * @prop {ObjectId} season - season._id
+ * @prop {string} school - season.school
+ * @prop {string} schoolId - season.schoolId
+ * @prop {string} schoolName - season.schoolName
+ * @prop {string} year - season.year
+ * @prop {string} term - season.term
+ * @prop {Object} period - season.period
+ * @prop {ObjectId} user - user._id
+ * @prop {string} userId - user.userId
+ * @prop {string} userName - user.userName
+ * @prop {"student"|"teacher"} role="student" - 역할
+ * @prop {string?} grade - 학년
+ * @prop {string?} group - 그룹
+ * @prop {ObjectId?} teacher - teacher(user)._id
+ * @prop {string?} teacherId - teacher(user).userId
+ * @prop {string?} teacherName - teacher(user).userName
+ * @prop {ObjectId?} subTeacher - subTeacher(user)._id
+ * @prop {string?} subTeacherId - subTeacher(user).userId
+ * @prop {string?} subTeacherName - subTeacher(user).userName
+ * @prop {boolean} isActivated - season.isActivated
+ * @prop {TMemo[]} memos
+ * @prop {boolean} permissionSyllabusV2=false - 수업 개설 권한; season.permissionSyllabusV2에 의해 설정된다
+ * @prop {boolean} permissionEnrollmentV2=false - 수강신청 권한; season.permissionEnrollmentV2에 의해 설정된다
+ * @prop {boolean} permissionEvaluationV2=false - 평가 권한; season.permissionEvaluationV2에 의해 설정된다
+ * @prop {Object[]} formEvaluation - season.formEvaluation
+ *
+ */
 const registrationSchema = mongoose.Schema({
   season: {
     type: mongoose.Types.ObjectId,
@@ -32,6 +85,7 @@ const registrationSchema = mongoose.Schema({
   role: {
     type: String,
     enum: ["student", "teacher"],
+    default: "student",
     required: true,
   },
   grade: String,
