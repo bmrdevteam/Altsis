@@ -2,6 +2,12 @@
  * User namespace
  * @namespace Models.User
  * @version 2.0.0
+ *
+ * @description 사용자
+ * | Indexes    | Properties        |
+ * | :-----     | ----------        |
+ * | _id        | UNIQUE            |
+ * | userId_1   | UNIQUE            |
  */
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
@@ -44,7 +50,6 @@ import { validate } from "../utils/validate.js";
  * @prop {string} academyName
  * @prop {string?} calendar - 개인 캘린더 공유 ID
  *
- * @description 사용자
  */
 const userSchema = mongoose.Schema(
   {

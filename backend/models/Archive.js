@@ -2,6 +2,12 @@
  * Archive namespace
  * @namespace Models.Archive
  * @version 2.0.0
+ *
+ * @description 기록
+ * | Indexes      | Properties  |
+ * | :-----       | ----------  |
+ * | _id          | UNIQUE      |
+ * | school_1_user_1  | UNIQUE; COMPOUND      |
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -20,7 +26,6 @@ import encrypt from "mongoose-encryption";
  * @prop {string} userName - user.userName
  * @prop {Object} data - ex) {인적사항: {이름: "..."}, 등록정보: [{...}, {...}]}; 암호화되어 저장된다
  *
- * @description 기록
  */
 const archiveSchema = mongoose.Schema(
   {

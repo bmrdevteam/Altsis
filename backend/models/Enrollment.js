@@ -2,6 +2,13 @@
  * Enrollment namespace
  * @namespace Models.Enrollment
  * @version 2.0.0
+ *
+ * @description 수강 정보
+ * | Indexes      | Properties  |
+ * | :-----       | ----------  |
+ * | _id          | UNIQUE      |
+ * | student_1_season_1  | COMPOUND      |
+ * | syllabus_1_student_1  | UNIQUE; COMPOUND      |
  */
 
 import mongoose from "mongoose";
@@ -39,7 +46,6 @@ import encrypt from "mongoose-encryption";
  * @prop {string?} memo
  * @prop {boolean} isHiddenFromCalendar=false - 캘린더에서 숨김 설정
  *
- * @description 수강 정보
  */
 const enrollmentSchema = mongoose.Schema(
   {
