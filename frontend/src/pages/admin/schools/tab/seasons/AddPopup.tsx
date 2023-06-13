@@ -103,8 +103,10 @@ const Season = (props: Props) => {
         )
       );
 
-      props.setSeasonToEdit({ ...season, registrations: [] });
-      props.setEditPopupActive(true);
+      if (!selectedSeasonToCopy?._id) {
+        props.setSeasonToEdit({ ...season, registrations: [] });
+        props.setEditPopupActive(true);
+      }
       props.setPopupActive(false);
     } catch (err) {
       ALERT_ERROR(err);
