@@ -38,7 +38,7 @@ const periodSchema = mongoose.Schema(
 const subjectSchema = mongoose.Schema(
   {
     label: [String],
-    data: Array,
+    data: [[String]],
   },
   { _id: false }
 );
