@@ -1,7 +1,60 @@
+/**
+ * Syllabus namespace
+ * @namespace Models.Syllabus
+ * @version 2.0.0
+ */
+
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 import { timeBlockSchema as TimeBlock } from "./TimeBlock.js";
 
+/**
+ * @memberof Models.Syllabus
+ * @typedef TTeacher
+ *
+ * @prop {string} _id - ex) teacher(user)._id
+ * @prop {string} userId - ex) teacher(user).userId
+ * @prop {string} userName - ex) teacher(user).userName
+ * @prop {boolean} confirmed=false - 승인 상태
+ * @prop {boolean} isHiddenFromCalendar=false - 캘린더에서 숨김 설정
+ */
+
+/**
+ * @memberof Models.Syllabus
+ * @typedef TTimeBlock
+ *
+ * @prop {string} label - ex) 월8
+ * @prop {string} day - ex) 월
+ * @prop {string} start - ex) "10:00"
+ * @prop {string} end - ex) "11:00"
+ */
+
+/**
+ * @memberof Models.Syllabus
+ * @typedef TSyllabus
+ *
+ * @prop {ObjectId} _id
+ * @prop {ObjectId} season - season._id
+ * @prop {string} school - season.school
+ * @prop {string} schoolId - season.schoolId
+ * @prop {string} schoolName - season.schoolName
+ * @prop {string} year - season.year
+ * @prop {string} term - season.term
+ * @prop {ObjectId} user - user._id; 수업 개설자
+ * @prop {string} userId - user.userId
+ * @prop {string} userName - user.userName
+ * @prop {string} classTitle - 제목
+ * @prop {TTimeBlock[]} time - 시간
+ * @prop {string} classroom - 강의실
+ * @prop {string[]} subject - 교과목
+ * @prop {number} point=0 - 학점
+ * @prop {number} limit=0 - 수강정원; 0인 경우 수강 제한 없음
+ * @prop {number} count=0 - 수강생 수
+ * @prop {Object} info - 세부정보; 에디터에 의해 설정된다
+ * @prop {TTeacher[]} teachers - 멘토 목록
+ *
+ * @description 강의계획서
+ */
 const syllabusSchema = mongoose.Schema(
   {
     season: {
