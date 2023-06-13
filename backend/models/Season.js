@@ -184,7 +184,7 @@ const formSyllabusSchema = mongoose.Schema(
  * @typedef TSeason
  *
  * @prop {ObjectId} _id
- * @prop {string} school - school._id
+ * @prop {ObjectId} school - school._id
  * @prop {string} schoolId - school.schoolId
  * @prop {string} schoolName - school.schoolName
  * @prop {string[]} classrooms - 강의실 목록

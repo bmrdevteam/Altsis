@@ -14,7 +14,7 @@ import { validate } from "../utils/validate.js";
  * @memberof Models.User
  * @typedef TUserSchool
  *
- * @prop {string} school - ObjectId of school
+ * @prop {ObjectId} school - ObjectId of school
  * @prop {string} schoolId
  * @prop {string} schoolName
  */
