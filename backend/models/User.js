@@ -42,6 +42,7 @@ import { validate } from "../utils/validate.js";
  * @prop {string?} profile - 프로필 사진 주소
  * @prop {string} academyId
  * @prop {string} academyName
+ * @prop {string?} calendar - 개인 캘린더 공유 ID
  *
  * @description 사용자
  */
