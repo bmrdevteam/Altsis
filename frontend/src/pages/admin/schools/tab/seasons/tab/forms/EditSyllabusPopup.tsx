@@ -48,7 +48,7 @@ const Index = (props: Props) => {
   const [forms, setForms] = useState<{ _id: string; title: string }[]>([]);
 
   useEffect(() => {
-    FormAPI.RForms({ query: { type: "syllabus" } })
+    FormAPI.RForms({ query: { type: "syllabus", archived: false } })
       .then(({ forms }) => {
         setForms(forms);
       })
