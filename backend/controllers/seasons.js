@@ -1,6 +1,7 @@
 /**
  * SeasonAPI namespace
  * @namespace APIs.SeasonAPI
+ * @see TSeason in {@link Models.Season}
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";

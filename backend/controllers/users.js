@@ -1,7 +1,7 @@
 /**
  * UserAPI namespace
  * @namespace APIs.UserAPI
- * @see {@link Models.User}
+ * @see TUser in {@link Models.User}
  */
 /**
  * @typedef {import('../models/User.js').TUser} TUser
