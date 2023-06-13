@@ -67,7 +67,7 @@ function Basic(props: Props) {
           if (!season.isActivatedFirst) {
             const undefinedForms = [];
             if (!season.formTimetable) undefinedForms.push("시간표");
-            if (!season.formSyllabus) undefinedForms.push("강의 계획서");
+            if (!season.formSyllabus) undefinedForms.push("강의계획서");
             if (season.formEvaluation.length === 0) undefinedForms.push("평가");
             setUndefinedForms(undefinedForms);
           }
@@ -144,13 +144,13 @@ function Basic(props: Props) {
                   if (
                     undefinedForms.length === 0
                       ? window.confirm(
-                          "정말 활성화하시겠습니까? 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다."
+                          "정말 활성화하시겠습니까? 처음 활성화 이후에는 양식(시간표, 강의계획서, 평가)을 수정할 수 없습니다."
                         )
                       : window.confirm(
                           `정말 활성화하시겠습니까? 양식(${_.join(
                             undefinedForms,
                             ", "
-                          )})이 설정되지 않은 상태입니다. 처음 활성화 이후에는 양식(시간표, 강의 계획서, 평가)을 수정할 수 없습니다.`
+                          )})이 설정되지 않은 상태입니다. 처음 활성화 이후에는 양식(시간표, 강의계획서, 평가)을 수정할 수 없습니다.`
                         )
                   ) {
                     SeasonAPI.UActivateSeason({ params: { _id: props._id } })
