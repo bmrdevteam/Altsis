@@ -1,6 +1,7 @@
 /**
  * EnrollmentAPI namespace
  * @namespace APIs.EnrollmentAPI
+ * @see TEnrollment in {@link Models.Enrollment}
  */
 
 import { Enrollment, Syllabus, Registration } from "../models/index.js";
