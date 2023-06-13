@@ -2,6 +2,10 @@
  * AcademyAPI namespace
  * @namespace APIs.AcademyAPI
  */
+/**
+ * @memberof APIs.AcademyAPI
+ * @typedef TAcademy {@link Modles.Academy}
+ */
 import { logger } from "../log/logger.js";
 import { addConnection, deleteConnection } from "../_database/mongodb/index.js";
 import {
@@ -46,7 +50,7 @@ import { format } from "date-fns";
 /**
  * @memberof APIs.AcademyAPI
  * @function CAcademy API
- * @description 아카데미 생성 API
+ * @description 아카데미 생성 API; academy document와 academy DB를 생성한다
  * @version 2.0.0
  *
  * @param {Object} req
@@ -57,22 +61,26 @@ import { format } from "date-fns";
  * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
- * @param {string} req.body.academyId - "^[a-z|A-Z|0-9]{2,20}$"
- * @param {string} req.body.academyName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$"
- * @param {string} req.body.adminId - "^[a-z|A-Z|0-9]{4,20}$"
- * @param {string} req.body.adminName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣]{2,20}$"
- * @param {string?} req.body.email - "@"
- * @param {string?} req.body.tel - "^[0-9]{3}-[0-9]{4}-[0-9]{4}$"
+ * @param {string} req.body.academyId
+ * @param {string} req.body.academyName
+ * @param {string} req.body.adminId
+ * @param {string} req.body.adminName
+ * @param {string?} req.body.email
+ * @param {string?} req.body.tel
  *
  * @param {Object} res
- * @param {Object} res.academy - created academy
- * @param {Object} res.admin - created admin user (with password)
+ * @param {TAcademy} res.academy - created academy
+ * @param {Object} res.admin - created admin
+ * @param {string} res.admin.userId
+ * @param {string} res.admin.userName
+ * @param {string} res.admin.password
  *
  * @throws {}
  * | status | message          | description                       |
  * | :----- | :--------------- | :-------------------------------- |
  * | 409    | ACADEMYID_IN_USE | if parameter academyID is in use  |
  *
+ * @see {@link Modles.Academy} for validation
  */
 export const create = async (req, res) => {
   try {
@@ -140,7 +148,7 @@ export const create = async (req, res) => {
  * @param {Object} req.user -"owner"|"guest"
  *
  * @param {Object} res
- * @param {Object[]} res.academies - academy list excluding root
+ * @param {TAcademy[]} res.academies - academy list
  */
 /**
  * @memberof APIs.AcademyAPI
@@ -151,12 +159,15 @@ export const create = async (req, res) => {
  * @param {Object} req
  *
  * @param {"GET"} req.method
- * @param {"/academies?academyId={academyId}"} req.url
+ * @param {"/academies"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.academyId
  *
  * @param {Object} req.user - "owner"|"guest"
  *
  * @param {Object} res
- * @param {Object} res.academy
+ * @param {TAcademy} res.academy
  *
  */
 export const find = async (req, res) => {
@@ -207,12 +218,15 @@ export const find = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/activate"} req.url
  *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  *
  * @param {Object} res
- * @param {Object} res.academy - activated academy
+ * @param {TAcademy} res.academy - activated academy
  *
  */
 export const activate = async (req, res) => {
@@ -243,12 +257,15 @@ export const activate = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/inactivate"} req.url
  *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  *
  * @param {Object} res
- * @param {Object} res.academy - inactivated academy
+ * @param {TAcademy} res.academy - inactivated academy
  *
  */
 export const inactivate = async (req, res) => {
@@ -279,13 +296,16 @@ export const inactivate = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/email"} req.url
  *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  * @param {string?} req.body.email
  *
  * @param {Object} res
- * @param {Object} res.academy - updated academy
+ * @param {TAcademy} res.academy - updated academy
  *
  */
 export const updateEmail = async (req, res) => {
@@ -322,13 +342,16 @@ export const updateEmail = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/tel"} req.url
  *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
  * @param {string?} req.body.tel
  *
  * @param {Object} res
- * @param {Object} res.academy - updated academy
+ * @param {TAcademy} res.academy - updated academy
  */
 export const updateTel = async (req, res) => {
   try {
@@ -380,8 +403,14 @@ const Model = (title, academyId) => {
 
 /**
  * @memberof APIs.AcademyAPI
+ * @typedef TModel
+ * @prop {string} title - ex) "users", "schools", etc.
+ */
+
+/**
+ * @memberof APIs.AcademyAPI
  * @function CAcademyBackup API
- * @description 아카데미 백업 생성 API
+ * @description 아카데미 백업 생성 API; 특정 모델의 아카데미 도큐먼트를 전체 조회하여 s3에 업로드한다
  * @version 2.0.0
  *
  * @param {Object} req
@@ -389,11 +418,13 @@ const Model = (title, academyId) => {
  * @param {"POST"} req.method
  * @param {"/academies/:academyId/backup"} req.url
  *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
- * @param {Object[]} req.body.models
- * @param {string} req.body.models[i].title
+ * @param {TModel[]} req.body.models
  *
  * @param {Object} res
  * @param {string[]} res.logs
@@ -488,7 +519,7 @@ export const createBackup = async (req, res) => {
 /**
  * @memberof APIs.AcademyAPI
  * @function URestoreAcademy API
- * @description 아카데미 복구 API
+ * @description 아카데미 복구 API; 특정 모델의 아카데미 도큐먼트를 모두 교체한다
  * @version 2.0.0
  *
  * @param {Object} req
@@ -496,10 +527,13 @@ export const createBackup = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/academies/:academyId/restore"} req.url
  *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} req.body
- * @param {string} req.body.model
+ * @param {string} req.body.model - ex) "users", "schools", ...
  * @param {Object[]} req.body.documents
  *
  * @param {Object} res
@@ -537,8 +571,25 @@ export const restoreBackup = async (req, res) => {
 
 /**
  * @memberof APIs.AcademyAPI
+ * @typedef TBackup
+ * @prop {string} backupTitle - ex) 20231232-12303
+ * @prop {string} key - ex) "{{bucket}}/{{academyId}}/backup/{{backupTitle}}"
+ *
+ */
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @typedef TBackupData
+ * @prop {string} title - ex) users.json
+ * @prop {string} key - ex) "{{bucket}}/{{academyId}}/backup/{{backupTitle}}/{{title}}"
+ * @prop {number} size
+ * @prop {Date} lastModified
+ */
+
+/**
+ * @memberof APIs.AcademyAPI
  * @function RAcademyBackupList API
- * @description 아카데미 백업 목록 조회 API
+ * @description 아카데미 백업 목록 조회 API; s3에 업로드된 백업 목록을 조회한다
  * @version 2.0.0
  *
  * @param {Object} req
@@ -546,12 +597,13 @@ export const restoreBackup = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/academies/:academyId/backup"} req.url
  *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} res
- * @param {Object[]} res.backupList
- * @param {string} res.backupList[i].title
- * @param {string} res.backupList[i].key
+ * @param {TBackup[]} res.backupList
  */
 
 /**
@@ -563,16 +615,18 @@ export const restoreBackup = async (req, res) => {
  * @param {Object} req
  *
  * @param {"GET"} req.method
- * @param {"/academies/:academyId/backup?title={backup.title}"} req.url
+ * @param {"/academies/:academyId/backup"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.title - backup title ex) "202312-232"
  *
  * @param {Object} req.user - "owner"
  *
  * @param {Object} res
- * @param {Object[]} res.backup
- * @param {string} res.backup[i].title
- * @param {string} res.backup[i].key
- * @param {number} res.backup[i].size
- * @param {Date} res.backup[i].lastModified
+ * @param {TBackupData[]} res.backup
  *
  */
 export const findBackup = async (req, res) => {
@@ -642,7 +696,13 @@ export const findBackup = async (req, res) => {
  * @param {Object} req
  *
  * @param {"DELETE"} req.method
- * @param {"/academies/:academyId/backup?title={backup.title}"} req.url
+ * @param {"/academies/:academyId/backup"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.title - backup title ex) "202312-232"
  *
  * @param {Object} req.user - "owner"
  *
@@ -690,11 +750,15 @@ export const removeBackup = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/academies/:academyId/:docType"} req.url
  *
- * @param {Object} req.query
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ * @param {string} req.params.docType - ex) "schools", "seasons", etc.
+ *
+ * @param {Object} req.query - 자유롭게 요청 가능
  *
  * @param {Object} req.user - "owner"
  *
- * @param {Object} res.documents
+ * @param {Object[]} res.documents
  *
  *
  */
@@ -710,7 +774,10 @@ export const removeBackup = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/academies/:academyId/:docType/:docId"} req.url
  *
- * @param {Object} req.query
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ * @param {string} req.params.docType - ex) "schools", "seasons", etc.
+ * @param {string} req.params.docId - objectId of document
  *
  * @param {Object} req.user - "owner"
  *
@@ -755,6 +822,9 @@ export const findDocuments = async (req, res) => {
  *
  * @param {"DELETE"} req.method
  * @param {"/academies/:academyId"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
  *
  * @param {Object} req.user - "owner"
  *
