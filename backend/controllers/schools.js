@@ -2,6 +2,13 @@
  * SchoolAPI namespace
  * @namespace APIs.SchoolAPI
  */
+
+/**
+ * @typedef {import('../models/School.js').TSchool} TSchool
+ * @typedef {import('../models/School.js').TFormArchiveItem} TFormArchiveItem
+ * @typedef {import('../models/School.js').TLink} TLink
+ */
+
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import {
@@ -49,18 +56,18 @@ import { validate } from "../utils/validate.js";
  * @param {Object} req.user - "admin"
  *
  * @param {Object} req.body
- * @param {string} req.body.schoolId - "^[a-z|A-Z|0-9]{2,20}$"
- * @param {string} req.body.schoolName - "^[a-z|A-Z|0-9|ㄱ-ㅎ|ㅏ-ㅣ|가-힣| ]{2,20}$"
+ * @param {string} req.body.schoolId
+ * @param {string} req.body.schoolName
  *
  * @param {Object} res
- * @param {Object} res.school - created school
+ * @param {TSchool} res.school - created school
  *
  * @throws {}
  * | status | message          | description                       |
  * | :----- | :--------------- | :-------------------------------- |
  * | 409    | SCHOOLID_IN_USE | if parameter schoolId is in use  |
  *
- *
+ * @see {@link Models.School} for validation
  */
 export const create = async (req, res) => {
   try {
@@ -110,7 +117,7 @@ export const create = async (req, res) => {
  * @param {Object} req.user
  *
  * @param {Object} res
- * @param {Object[]} res.schools
+ * @param {TSchool[]} res.schools
  *
  */
 
@@ -128,7 +135,7 @@ export const create = async (req, res) => {
  * @param {Object} req.user
  *
  * @param {Object} res
- * @param {Object} res.school
+ * @param {TSchool} res.school
  *
  */
 export const find = async (req, res) => {
@@ -166,10 +173,10 @@ export const find = async (req, res) => {
  * @param {Object} req.user - "admin|"manager"
  *
  * @param {Object} req.body
- * @param {Object[]} req.body.formArchive
+ * @param {TFormArchiveItem[]} req.body.formArchive
  *
  * @param {Object} res
- * @param {Object} res.formArchive - updated formArchive
+ * @param {TFormArchiveItem[]} res.formArchive - updated formArchive
  *
  * @see models>School for validation
  */
@@ -235,10 +242,10 @@ export const updateFormArchive = async (req, res) => {
  * @param {Object} req.user - "admin"|"manager"
  *
  * @param {Object} req.body
- * @param {string[]} req.body.links
+ * @param {TLink[]} req.body.links
  *
  * @param {Object} res
- * @param {Object} res.links - updated links
+ * @param {TLink[]} res.links - updated links
  *
  */
 export const updateLinks = async (req, res) => {
