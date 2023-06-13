@@ -1,6 +1,7 @@
 /**
  * NotificationAPI namespace
  * @namespace APIs.NotificationAPI
+ * @see TNotification in {@link Models.Notification}
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
