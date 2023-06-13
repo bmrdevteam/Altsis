@@ -1,6 +1,7 @@
 /**
  * SchoolAPI namespace
  * @namespace APIs.SchoolAPI
+ * @see {@link Models.School}
  */
 
 /**
