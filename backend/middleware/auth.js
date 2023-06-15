@@ -1,11 +1,12 @@
 import { conn } from "../_database/mongodb/index.js";
 import { client } from "../_database/redis/index.js";
+import { PERMISSION_DENIED } from "../messages/index.js";
 
 export const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
     next();
   } else {
-    res.status(403).send({ message: "You are not logged in." });
+    res.status(403).send({ message: PERMISSION_DENIED });
   }
 };
 
@@ -13,7 +14,7 @@ export const isNotLoggedIn = (req, res, next) => {
   if (!req.isAuthenticated()) {
     next();
   } else {
-    res.status(403).send({ message: "You are already logged in." });
+    res.status(403).send({ message: PERMISSION_DENIED });
   }
 };
 
@@ -55,7 +56,7 @@ export const isAdmin = (req, res, next) => {
   if (req.isAuthenticated() && req.user.auth === "admin") {
     next();
   } else {
-    res.status(403).send();
+    res.status(403).send({ message: PERMISSION_DENIED });
   }
 };
 
@@ -67,7 +68,7 @@ export const isAdManager = (req, res, next) => {
   ) {
     next();
   } else {
-    res.status(403).send();
+    res.status(403).send({ message: PERMISSION_DENIED });
   }
 };
 
@@ -81,7 +82,7 @@ export const isOwAdManager = (req, res, next) => {
   ) {
     next();
   } else {
-    res.status(403).send();
+    res.status(403).send({ message: PERMISSION_DENIED });
   }
 };
 
