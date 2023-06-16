@@ -109,7 +109,7 @@ const ParsedTableBlock = (props: Props) => {
                   ) {
                     return (
                       isNumber(dataRepeatIndex) &&
-                      _.get(props.dbData, locationArr.slice(0, -1), "")[
+                      _.get(props?.dbData, locationArr.slice(0, -1), "")[
                         dataRepeatIndex
                       ][locationArr[locationArr.length - 1]]
                     );

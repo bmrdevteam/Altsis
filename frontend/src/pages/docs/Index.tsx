@@ -40,6 +40,7 @@ function Docs({}: Props) {
         query: { student: uid, school: currentSchool.school },
       });
     const enrollments = _enrollments as any[];
+    console.log(enrollments);
 
     for (const enrollment of enrollments) {
       const IdByYear = `${enrollment.year}${_.join(enrollment.subject)}`;
@@ -89,7 +90,7 @@ function Docs({}: Props) {
     return {
       [currentSchool.schoolId]: {
         archive: archive.data,
-        evaluation: processedEvaluationByYear,
+        evaluation: _.sortBy(processedEvaluationByYear, ["학년도","교과","과목"]),
       },
     };
   }
