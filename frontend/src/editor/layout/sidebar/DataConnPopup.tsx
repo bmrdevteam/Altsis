@@ -268,7 +268,7 @@ const DataConnPopup = (props: Props) => {
                                 }}
                               />,
                               <>
-                                {evaluationData[school._id]?.subjectLabels?.map(
+                                {evaluationData && evaluationData?.[school._id]?.subjectLabels?.map(
                                   (subLabel: string) => (
                                     <TreeItem
                                       key={subLabel}
@@ -284,7 +284,7 @@ const DataConnPopup = (props: Props) => {
                                 )}
                               </>,
                               <>
-                                {evaluationData[
+                                {evaluationData &&evaluationData?.[
                                   school._id
                                 ]?.evaluationFieldsByYear?.map(
                                   (evField: {
@@ -307,7 +307,7 @@ const DataConnPopup = (props: Props) => {
                                   }
                                 )}
                               </>,
-                              ...evaluationData[school._id]?.terms?.map(
+                              evaluationData?.[school._id]?.terms?.map(
                                 (term: string) => {
                                   return (
                                     <>
@@ -323,7 +323,7 @@ const DataConnPopup = (props: Props) => {
                                           });
                                         }}
                                       />
-                                      {evaluationData[
+                                      {evaluationData?.[
                                         school._id
                                       ]?.evaluationFieldsByTerm[term]?.map(
                                         (evField: {
