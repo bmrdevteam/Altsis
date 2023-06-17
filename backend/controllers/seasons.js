@@ -871,12 +871,10 @@ export const removePermissionException = async (req, res) => {
     const registration = await Registration(req.user.academyId).findById(
       req.query.registration
     );
-    if (!registration) {
-      return res.status(404).send({ message: __NOT_FOUND("registration") });
+    if (registration) {
+      registration[permission] = season[permission][registration.role];
+      await registration.save();
     }
-
-    registration[permission] = season[permission][registration.role];
-    await registration.save();
 
     season[permission].exceptions.splice(idx, 1);
     season.markModified(permission);
