@@ -140,7 +140,6 @@ const Index = (props: Props) => {
       }
     >
       <Select
-        key={"classroom-select-" + classroom}
         appearence="flat"
         options={[
           { value: "", text: "" },
