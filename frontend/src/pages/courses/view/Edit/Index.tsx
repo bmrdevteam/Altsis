@@ -344,9 +344,7 @@ const CoursePid = (props: Props) => {
                     }
                   })
                   .catch((err) => {
-                    alert(
-                      err?.response?.data?.message ?? "에러가 발생했습니다."
-                    );
+                    ALERT_ERROR(err);
                   });
             }}
           >
