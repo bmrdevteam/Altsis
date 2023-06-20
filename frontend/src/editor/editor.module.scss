@@ -608,6 +608,11 @@ parsed block
     }
 }
 
+.editor_parser_container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
 .parsed_block {
     color: var(--accent-1);
     font-size: 12px;
