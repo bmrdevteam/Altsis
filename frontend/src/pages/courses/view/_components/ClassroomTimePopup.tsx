@@ -83,7 +83,9 @@ const Index = (props: Props) => {
       });
       if (props.syllabus) {
         const idx = _.findIndex(syllabuses, { _id: props.syllabus });
-        syllabuses.splice(idx, 1);
+        if (idx !== -1) {
+          syllabuses.splice(idx, 1);
+        }
       }
       setSyllabusList(syllabuses);
     } catch (err) {
@@ -140,7 +142,6 @@ const Index = (props: Props) => {
       }
     >
       <Select
-        key={"classroom-select-" + classroom}
         appearence="flat"
         options={[
           { value: "", text: "" },

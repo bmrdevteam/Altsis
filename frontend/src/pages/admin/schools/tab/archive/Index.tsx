@@ -124,6 +124,14 @@ function Archive(props: Props) {
           onChange={updateFormArchive}
           header={[
             {
+              text: "순서",
+              fontSize: "12px",
+              fontWeight: "600",
+              type: "rowOrder",
+              width: "80px",
+              textAlign: "center",
+            },
+            {
               text: "이름",
               key: "label",
               type: "text",
