@@ -288,6 +288,7 @@ seasonSchema.methods.getSubdocument = function () {
     term: this.term,
     isActivated: this.isActivated,
     period: this.period,
+    formEvaluation: this.formEvaluation,
   };
 };
 

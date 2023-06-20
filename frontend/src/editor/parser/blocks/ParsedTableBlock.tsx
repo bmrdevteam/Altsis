@@ -164,7 +164,7 @@ const ParsedTableBlock = (props: Props) => {
                       const key = result.key as string;
                       const originalName = result.originalName as string;
                       return (
-                        <div style={{ maxWidth: "120px", margin: "auto" }}>
+                        <div style={{ margin: "auto" }}>
                           <img
                             src={url}
                             onError={async (e) => {

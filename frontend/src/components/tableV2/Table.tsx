@@ -11,6 +11,7 @@ import {
 } from "functions/functions";
 import useOutsideClick from "hooks/useOutsideClick";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
+import Button from "components/button/Button";
 
 type TTableItems =
   | "text"
@@ -22,7 +23,8 @@ type TTableItems =
   | "input"
   | "input-number"
   | "select"
-  | "date";
+  | "date"
+  | "rowOrder";
 export type TTableHeader = {
   text: string;
   type: TTableItems;
@@ -1125,6 +1127,80 @@ const Table = (props: Props) => {
                           >
                             {row[`${val.key}`] &&
                               dateFormat(new Date(row[`${val.key}`]))}
+                          </td>
+                        );
+                      case "rowOrder":
+                        return (
+                          <td
+                            style={{
+                              textAlign: val.textAlign,
+                              fontSize: val.fontSize,
+                              fontWeight: val.fontWeight,
+                              cursor: "pointer",
+                            }}
+                            className={style.item}
+                            key={index}
+                          >
+                            <span
+                              style={{
+                                color: "gray",
+                                border: "1px solid",
+                                borderRadius: "4px",
+                                padding: "4px",
+                                display: "flex",
+                              }}
+                            >
+                              <Button
+                                type="ghost"
+                                style={{ maxHeight: "16px" }}
+                                onClick={() => {
+                                  if (row.tableRowIndex === 1) {
+                                    return;
+                                  }
+                                  /* swap */
+                                  setTableData((prev) => {
+                                    const newData = [...prev.data];
+                                    const temp = newData[row.tableRowIndex - 1];
+                                    newData[row.tableRowIndex - 1] =
+                                      newData[row.tableRowIndex - 2];
+                                    newData[row.tableRowIndex - 2] = temp;
+                                    callOnChangeFunc(newData);
+                                    return {
+                                      ...prev,
+                                      data: newData,
+                                    };
+                                  });
+                                }}
+                              >
+                                ↑
+                              </Button>
+                              <Button
+                                style={{ maxHeight: "16px" }}
+                                type="ghost"
+                                onClick={() => {
+                                  if (
+                                    row.tableRowIndex === tableData.data.length
+                                  ) {
+                                    return;
+                                  }
+                                  /* swap */
+                                  setTableData((prev) => {
+                                    const newData = [...prev.data];
+                                    const temp = newData[row.tableRowIndex];
+                                    newData[row.tableRowIndex] =
+                                      newData[row.tableRowIndex - 1];
+                                    newData[row.tableRowIndex - 1] = temp;
+                                    callOnChangeFunc(newData);
+                                    return {
+                                      ...prev,
+                                      data: newData,
+                                    };
+                                  });
+                                }}
+                              >
+                                ↓
+                              </Button>
+                            </span>
                           </td>
                         );
 
