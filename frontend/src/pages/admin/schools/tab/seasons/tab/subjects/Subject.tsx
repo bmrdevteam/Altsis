@@ -184,6 +184,14 @@ const Subjects = (props: Props) => {
                 });
             }}
             header={[
+              {
+                text: "순서",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "rowOrder",
+                width: "80px",
+                textAlign: "center",
+              },
               ...subjectDataHeader,
               {
                 text: "수정",
