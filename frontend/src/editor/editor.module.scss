@@ -602,6 +602,12 @@
 /*
 parsed block
 */
+@media print {
+    .editor_parser_container {
+        margin: 24px 0;
+    }
+}
+
 .parsed_block {
     color: var(--accent-1);
     font-size: 12px;
