@@ -104,6 +104,14 @@ function Index(props: Props) {
             props.formArchive[props.itemIdx].dataType === "array"
               ? [
                   {
+                    text: "순서",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    type: "rowOrder",
+                    width: "80px",
+                    textAlign: "center",
+                  },
+                  {
                     text: "필드명",
                     key: "label",
                     type: "text",
@@ -166,6 +174,14 @@ function Index(props: Props) {
                 ]
               : [
                   {
+                    text: "순서",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    type: "rowOrder",
+                    width: "80px",
+                    textAlign: "center",
+                  },
+                  {
                     text: "필드명",
                     key: "label",
                     type: "text",
@@ -224,6 +240,14 @@ function Index(props: Props) {
               updateItemFieldOptions(_data);
             }}
             header={[
+              {
+                text: "순서",
+                fontSize: "12px",
+                fontWeight: "600",
+                type: "rowOrder",
+                width: "80px",
+                textAlign: "center",
+              },
               {
                 text: "옵션",
                 key: "0",
