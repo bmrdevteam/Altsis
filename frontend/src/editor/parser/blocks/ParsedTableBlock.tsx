@@ -36,6 +36,36 @@ const ParsedTableBlock = (props: Props) => {
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
   );
+  let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
+    if (props.blockData.data.dataFilter?.length > 0) {
+      let boolCount: number = 0;
+      let boola: string = "";
+      props.blockData.data.dataFilter?.map((filter: any, iasd: number) => {
+        boola = boola.concat(
+          `${iasd}${v?.[filter.by]} ${filter.operator} ${filter.value}`
+        );
+        if (
+          filter.operator === "===" &&
+          v?.[filter.by] !== undefined &&
+          v?.[filter.by] !== filter.value
+        ) {
+          boolCount += 1;
+        }
+
+        if (
+          filter.operator === "!==" &&
+          v?.[filter.by] !== undefined &&
+          v?.[filter.by] === filter.value
+        ) {
+          boolCount += 1;
+        }
+      });
+      if (boolCount > 0) {
+        return false;
+      }
+    }
+    return true;
+  });
   // sort
   if (
     props.blockData.data?.dataRepeat?.by.split("//").includes("archive") &&
@@ -45,25 +75,34 @@ const ParsedTableBlock = (props: Props) => {
       props.blockData.data?.dataRepeat?.by.split("//")[
         props.blockData.data?.dataRepeat?.by.split("//").length - 1
       ];
+
     for (const e of currentSchool?.formArchive.find((o: any) => o.label === z)
       ?.fields ?? []) {
       if (e.runningTotal) {
         let track = 0;
-        repeat.map((ob: any) => {
-          track += parseFloat(ob[e.label]);
-
-          return (ob[`${e.label}[누계합산]`] = track);
-        });
+        for (const ob of filteredRepeat) {
+          track += parseFloat(ob?.[e.label]);
+          ob[`${e.label}[누계합산]`] = track;
+        }
       }
       if (e.total) {
-        // console.log(z);
-        let track = 0;
-        repeat.map((ob: any) => {
-          track += parseFloat(ob[e.label]);
-        });
-        repeat.map((ob: any) => {
-          return (ob[`${e.label}[합산]`] = track);
-        });
+        if (e.type === "input-number") {
+          let track = 0;
+          for (const ob of filteredRepeat) {
+            track += parseFloat(ob?.[e.label]);
+          }
+          for (const ob of filteredRepeat) {
+            ob[`${e.label}[합산]`] = track;
+          }
+        } else {
+          let track = "";
+          filteredRepeat?.map((ob: any) => {
+            track += ob?.[e.label];
+          });
+          filteredRepeat?.map((ob: any) => {
+            return { ...ob, [`${e.label}[합산]`]: track };
+          });
+        }
       }
     }
   }
@@ -341,39 +380,39 @@ const ParsedTableBlock = (props: Props) => {
           {props.blockData.data.table.map((value: any[], index: number) => {
             if (props.blockData.data.dataRepeat?.index === index) {
               return (
-                repeat &&
-                repeat.map((v: any, i: number) => {
-                  if (props.blockData.data.dataFilter?.length > 0) {
-                    let boolCount: number = 0;
-                    let boola: string = "";
-                    props.blockData.data.dataFilter?.map(
-                      (filter: any, iasd: number) => {
-                        boola = boola.concat(
-                          `${iasd}${v?.[filter.by]} ${filter.operator} ${
-                            filter.value
-                          }`
-                        );
-                        if (
-                          filter.operator === "===" &&
-                          v?.[filter.by] !== undefined &&
-                          v?.[filter.by] !== filter.value
-                        ) {
-                          boolCount += 1;
-                        }
+                filteredRepeat &&
+                filteredRepeat.map((v: any, i: number) => {
+                  // if (props.blockData.data.dataFilter?.length > 0) {
+                  //   let boolCount: number = 0;
+                  //   let boola: string = "";
+                  //   props.blockData.data.dataFilter?.map(
+                  //     (filter: any, iasd: number) => {
+                  //       boola = boola.concat(
+                  //         `${iasd}${v?.[filter.by]} ${filter.operator} ${
+                  //           filter.value
+                  //         }`
+                  //       );
+                  //       if (
+                  //         filter.operator === "===" &&
+                  //         v?.[filter.by] !== undefined &&
+                  //         v?.[filter.by] !== filter.value
+                  //       ) {
+                  //         boolCount += 1;
+                  //       }
 
-                        if (
-                          filter.operator === "!==" &&
-                          v?.[filter.by] !== undefined &&
-                          v?.[filter.by] === filter.value
-                        ) {
-                          boolCount += 1;
-                        }
-                      }
-                    );
-                    if (boolCount > 0) {
-                      return;
-                    }
-                  }
+                  //       if (
+                  //         filter.operator === "!==" &&
+                  //         v?.[filter.by] !== undefined &&
+                  //         v?.[filter.by] === filter.value
+                  //       ) {
+                  //         boolCount += 1;
+                  //       }
+                  //     }
+                  //   );
+                  //   if (boolCount > 0) {
+                  //     return;
+                  //   }
+                  // }
 
                   return (
                     <tr key={`${index}-${i}`}>
