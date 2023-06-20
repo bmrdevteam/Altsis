@@ -1,6 +1,7 @@
 import { isArray } from "lodash";
 import { useEffect, useRef } from "react";
 import ParsedBlock from "./parser/blocks/ParsedBlock";
+import style from "./editor.module.scss";
 
 type Props = {
   data: any;
@@ -18,6 +19,7 @@ const EditorParser = (props: Props) => {
 
   return (
     <div
+      className={style.editor_parser_container}
       onInput={() => {
         // console.log(returnData.current);
 
