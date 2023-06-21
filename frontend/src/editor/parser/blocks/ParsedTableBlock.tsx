@@ -66,6 +66,8 @@ const ParsedTableBlock = (props: Props) => {
     }
     return true;
   });
+  console.log(filteredRepeat);
+
   // sort
   if (
     props.blockData.data?.dataRepeat?.by.split("//").includes("archive") &&
@@ -110,11 +112,13 @@ const ParsedTableBlock = (props: Props) => {
   const Cell = ({
     data,
     dataRepeatIndex,
+    dataRepeat,
     row,
     table,
     colIndex,
   }: {
     data: any;
+    dataRepeat?: any[];
     dataRepeatIndex?: number;
     row: any;
     table: any;
@@ -144,15 +148,15 @@ const ParsedTableBlock = (props: Props) => {
                 if (dataTextElement.tag === "DATA") {
                   const locationArr = dataTextElement.location.split("//");
                   if (
-                    isArray(_.get(props.dbData, locationArr.slice(0, -1), ""))
+                    // isArray(_.get(props.dbData, locationArr.slice(0, -1), ""))
+                    !dataRepeat
                   ) {
-                    return (
-                      isNumber(dataRepeatIndex) &&
-                      _.get(props?.dbData, locationArr.slice(0, -1), "")[
-                        dataRepeatIndex
-                      ][locationArr[locationArr.length - 1]]
-                    );
-                  } else {
+                    // return (
+                    //   isNumber(dataRepeatIndex) &&
+                    //   _.get(props?.dbData, locationArr.slice(0, -1), "")[
+                    //     dataRepeatIndex
+                    //   ][locationArr[locationArr.length - 1]]
+                    // );
                     const result = _.get(props.dbData, locationArr, "");
 
                     // if data is image
@@ -182,9 +186,10 @@ const ParsedTableBlock = (props: Props) => {
                           />
                         </div>
                       );
-                    } else {
-                      return _.get(props.dbData, locationArr, "");
                     }
+                    return `${_.get(props.dbData, locationArr, "")}`;
+                  } else {
+                    return dataRepeat?.[locationArr[locationArr.length - 1]];
                   }
                 }
                 if (dataTextElement.tag === "BR") {
@@ -382,38 +387,6 @@ const ParsedTableBlock = (props: Props) => {
               return (
                 filteredRepeat &&
                 filteredRepeat.map((v: any, i: number) => {
-                  // if (props.blockData.data.dataFilter?.length > 0) {
-                  //   let boolCount: number = 0;
-                  //   let boola: string = "";
-                  //   props.blockData.data.dataFilter?.map(
-                  //     (filter: any, iasd: number) => {
-                  //       boola = boola.concat(
-                  //         `${iasd}${v?.[filter.by]} ${filter.operator} ${
-                  //           filter.value
-                  //         }`
-                  //       );
-                  //       if (
-                  //         filter.operator === "===" &&
-                  //         v?.[filter.by] !== undefined &&
-                  //         v?.[filter.by] !== filter.value
-                  //       ) {
-                  //         boolCount += 1;
-                  //       }
-
-                  //       if (
-                  //         filter.operator === "!==" &&
-                  //         v?.[filter.by] !== undefined &&
-                  //         v?.[filter.by] === filter.value
-                  //       ) {
-                  //         boolCount += 1;
-                  //       }
-                  //     }
-                  //   );
-                  //   if (boolCount > 0) {
-                  //     return;
-                  //   }
-                  // }
-
                   return (
                     <tr key={`${index}-${i}`}>
                       {value.map((val, ind: number) => {
@@ -457,6 +430,7 @@ const ParsedTableBlock = (props: Props) => {
                           >
                             <Cell
                               data={val}
+                              dataRepeat={v}
                               dataRepeatIndex={i}
                               row={value}
                               table={props.blockData.data.table}
@@ -472,6 +446,7 @@ const ParsedTableBlock = (props: Props) => {
                           >
                             <Cell
                               data={val}
+                              dataRepeat={v}
                               dataRepeatIndex={i}
                               row={value}
                               table={props.blockData.data.table}
