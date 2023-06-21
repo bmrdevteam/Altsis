@@ -59,6 +59,19 @@ const ParsedTableBlock = (props: Props) => {
         ) {
           boolCount += 1;
         }
+        if (
+          filter.operator === "!==" &&
+          !filter.value &&
+          !v?.[filter.by] === !filter.value
+        ) {
+          // console.log(
+          //   !v?.[filter.by] === !filter.value,
+          //   v?.[filter.by],
+          //   filter.value
+          // );
+
+          boolCount += 1;
+        }
       });
       if (boolCount > 0) {
         return false;
@@ -66,7 +79,6 @@ const ParsedTableBlock = (props: Props) => {
     }
     return true;
   });
-  console.log(filteredRepeat);
 
   // sort
   if (
@@ -98,12 +110,12 @@ const ParsedTableBlock = (props: Props) => {
           }
         } else {
           let track = "";
-          filteredRepeat?.map((ob: any) => {
+          for (const ob of filteredRepeat) {
             track += ob?.[e.label];
-          });
-          filteredRepeat?.map((ob: any) => {
-            return { ...ob, [`${e.label}[합산]`]: track };
-          });
+          }
+          for (const ob of filteredRepeat) {
+            ob[`${e.label}[합산]`] = track;
+          }
         }
       }
     }
@@ -341,7 +353,6 @@ const ParsedTableBlock = (props: Props) => {
                       delete props.returnData[data?.name];
                     }
                   }
-                  // console.log(props.returnData);
                 }}
               />
             )}
