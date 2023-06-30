@@ -68,20 +68,22 @@ const Index = (props: Props) => {
 
   const getDefaultTeacherList = () => {
     return (
-      currentSeason?.registrations.map((reg) => {
-        return {
-          _id: reg.user,
-          userId: reg.userId,
-          userName: reg.userName,
-          tableRowChecked: props.selectedTeachers
-            ? _.find(props.selectedTeachers, {
-                _id: reg.user,
-              })
-              ? true
-              : false
-            : false,
-        };
-      }) ?? []
+      currentSeason?.registrations
+        .filter((reg) => reg.role === "teacher")
+        .map((reg) => {
+          return {
+            _id: reg.user,
+            userId: reg.userId,
+            userName: reg.userName,
+            tableRowChecked: props.selectedTeachers
+              ? _.find(props.selectedTeachers, {
+                  _id: reg.user,
+                })
+                ? true
+                : false
+              : false,
+          };
+        }) ?? []
     );
   };
 
