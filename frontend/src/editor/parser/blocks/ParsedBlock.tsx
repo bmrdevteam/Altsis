@@ -7,6 +7,8 @@ type Props = {
   returnData: any;
   defaultValues?: any;
   defaultTimetable?: any;
+  idTimetable?: any;
+  onClickCourse?: any;
   dbData?: any;
   type: "timetable" | "archive" | "syllabus";
 };
@@ -21,7 +23,7 @@ const ParsedBlock = (props: Props) => {
             width: `${props.blockData.data.width ?? 100}%`,
             fontSize: props.blockData.data.fontSize,
             fontWeight: props.blockData.data.fontWeight,
-            textAlign:props.blockData.data.textAlign
+            textAlign: props.blockData.data.textAlign,
           }}
         >
           {props.blockData.data.text}
@@ -36,6 +38,8 @@ const ParsedBlock = (props: Props) => {
           defaultValues={props.defaultValues}
           returnData={props.returnData}
           defaultTimetable={props.defaultTimetable}
+          idTimetable={props.idTimetable}
+          onClickCourse={props.onClickCourse}
           dbData={props.dbData}
         />
       );

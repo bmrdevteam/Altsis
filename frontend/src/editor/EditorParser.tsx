@@ -10,6 +10,8 @@ type Props = {
   type: "timetable" | "archive" | "syllabus";
   defaultValues?: any;
   defaultTimetable?: any;
+  idTimetable?: any;
+  onClickCourse?: any;
   dbData?: any;
 };
 
@@ -37,6 +39,8 @@ const EditorParser = (props: Props) => {
               auth={props.auth}
               dbData={props.dbData}
               defaultTimetable={props.defaultTimetable}
+              idTimetable={props.idTimetable}
+              onClickCourse={props.onClickCourse}
               defaultValues={props.defaultValues}
             />
           );
