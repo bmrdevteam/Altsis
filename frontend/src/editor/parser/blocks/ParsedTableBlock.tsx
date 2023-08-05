@@ -11,8 +11,11 @@ type Props = {
   type: "timetable" | "archive" | "syllabus";
   defaultValues?: any;
   defaultTimetable?: any;
+  idTimetable?: any;
+  onClickCourse?: any;
   dbData?: any;
 };
+
 const ParsedTableBlock = (props: Props) => {
   const { currentSchool } = useAuth();
   const { FileAPI } = useAPIv2();
@@ -302,7 +305,16 @@ const ParsedTableBlock = (props: Props) => {
           return (
             <div
               className={style.cell}
-              style={{ textAlign: data.align, fontSize: data.fontSize }}
+              style={{
+                textAlign: data.align,
+                fontSize: data.fontSize,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                if (props.onClickCourse && props.idTimetable?.[data?.name]) {
+                  props.onClickCourse(props.idTimetable?.[data?.name]);
+                }
+              }}
             >
               {props.defaultTimetable?.[data?.name] ??
                 props.defaultTimetable?.[data?.id]}
