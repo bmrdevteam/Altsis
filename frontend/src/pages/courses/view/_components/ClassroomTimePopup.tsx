@@ -40,6 +40,8 @@ import EditorParser from "editor/EditorParser";
 import _ from "lodash";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
+import CourseView from "../ViewPopup";
+
 type Props = {
   syllabus?: string;
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
@@ -72,6 +74,9 @@ const Index = (props: Props) => {
 
   const [syllabusList, setSyllabusList] = useState<any[]>([]);
 
+  const [coursePopupActive, setCoursePoupActive] = useState<boolean>(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+
   const updateSyllabusList = async () => {
     if (classroom === "") return setSyllabusList([]);
     try {
@@ -94,7 +99,7 @@ const Index = (props: Props) => {
     }
   };
 
-  function syllabusToTime(s: any) {
+  function syllabusLabelByTime(s: any) {
     let result = {};
     if (s) {
       for (let i = 0; i < s.length; i++) {
@@ -110,6 +115,23 @@ const Index = (props: Props) => {
 
     return result;
   }
+
+  function syllabusIdByTime(s: any) {
+    let result = {};
+    if (s) {
+      for (let i = 0; i < s.length; i++) {
+        const element = s[i];
+        for (let ii = 0; ii < element.time.length; ii++) {
+          Object.assign(result, {
+            [element.time[ii].label]: element._id,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
   useEffect(() => {
     updateSyllabusList();
     return () => {};
@@ -121,54 +143,67 @@ const Index = (props: Props) => {
   }, [props.time]);
 
   return (
-    <Popup
-      contentScroll
-      setState={props.setPopupActive}
-      title="강의실 및 시간 선택"
-      closeBtn
-      style={{ width: "900px" }}
-      footer={
-        <Button
-          type="ghost"
-          onClick={() => {
-            props.setClassroom(classroom);
-            props.setTime(Object.values(timeRef.current));
+    <>
+      <Popup
+        contentScroll
+        setState={props.setPopupActive}
+        title="강의실 및 시간 선택"
+        closeBtn
+        style={{ width: "900px" }}
+        footer={
+          <Button
+            type="ghost"
+            onClick={() => {
+              props.setClassroom(classroom);
+              props.setTime(Object.values(timeRef.current));
 
-            props.setPopupActive(false);
+              props.setPopupActive(false);
+            }}
+          >
+            선택
+          </Button>
+        }
+      >
+        <Select
+          appearence="flat"
+          options={[
+            { value: "", text: "" },
+            ...currentSeason?.classrooms.map((val: any) => {
+              return { value: val, text: val };
+            }),
+          ]}
+          onChange={(e: any) => {
+            setClassroom(e);
+            timeRef.current = {};
           }}
-        >
-          선택
-        </Button>
-      }
-    >
-      <Select
-        appearence="flat"
-        options={[
-          { value: "", text: "" },
-          ...currentSeason?.classrooms.map((val: any) => {
-            return { value: val, text: val };
-          }),
-        ]}
-        onChange={(e: any) => {
-          setClassroom(e);
-          timeRef.current = {};
-        }}
-        defaultSelectedValue={props.classroom}
-        label="강의실 선택"
-        required
-      />
-      <div style={{ height: "24px" }}></div>
-      <EditorParser
-        type="timetable"
-        auth="edit"
-        onChange={(data) => {
-          timeRef.current = data;
-        }}
-        defaultTimetable={syllabusToTime(syllabusList)}
-        defaultValues={timeRef.current}
-        data={currentSeason?.formTimetable}
-      />
-    </Popup>
+          defaultSelectedValue={props.classroom}
+          label="강의실 선택"
+          required
+        />
+        <div style={{ height: "24px" }}></div>
+        <EditorParser
+          type="timetable"
+          auth="edit"
+          onChange={(data) => {
+            timeRef.current = data;
+          }}
+          defaultTimetable={syllabusLabelByTime(syllabusList)}
+          idTimetable={syllabusIdByTime(syllabusList)}
+          onClickCourse={(id: string) => {
+            setSelectedCourseId(id);
+            setCoursePoupActive(true);
+          }}
+          defaultValues={timeRef.current}
+          data={currentSeason?.formTimetable}
+        />
+      </Popup>
+      {coursePopupActive && selectedCourseId !== "" && (
+        <CourseView
+          setPopupActive={setCoursePoupActive}
+          course={selectedCourseId}
+        />
+      )}
+    </>
   );
 };
 
