@@ -7,7 +7,7 @@ export default function Example() {
     <div>
       <Navbar />
       <div className={style.section} style={{ backgroundColor: "white" }}>
-        {"실험 중인 기능입니다."}
+        {"실험 중인 기능입니다🥕"}
       </div>
     </div>
   );
