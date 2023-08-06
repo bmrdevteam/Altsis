@@ -185,6 +185,12 @@ export const SidebarData = (auth: string, role?: string): any => {
     icon: <Svg type="flask" />,
     subLink: [
       {
+        title: "강의실",
+        name: "강의실",
+        path: "/dev/classrooms",
+        icon: <Svg type="door-open" />,
+      },
+      {
         title: "일정",
         name: "일정",
         path: "/dev/schedule",
