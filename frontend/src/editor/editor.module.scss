@@ -399,7 +399,7 @@
                 table {
                     width: 100%;
                     border-color: var(--accent-5);
-                    white-space: pre-wrap;
+                    white-space: pre-line;
 
                     tr {
                         height: 26px;
@@ -553,7 +553,7 @@
     width: 100%;
     table-layout: fixed;
     overflow: hidden;
-    white-space: pre-wrap;
+    white-space: pre-line;
 
     td {
         border: var(--border-default);
@@ -640,7 +640,7 @@ parsed block
     width: 100%;
     table-layout: fixed;
     overflow: hidden;
-    white-space: pre-wrap;
+    white-space: pre-line;
 
     .cell {
         outline: none;
