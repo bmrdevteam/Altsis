@@ -568,6 +568,16 @@ const DataConnPopup = (props: Props) => {
                                 ).by = e.target.value;
                               }}
                             />
+                            <input
+                              type="text"
+                              placeholder="우선순위 '/'로 구분하여 입력"
+                              defaultValue={value.priority}
+                              onChange={(e) => {
+                                ordersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).priority = e.target.value;
+                              }}
+                            />
                             <select
                               defaultValue={value.order}
                               onChange={(e) => {
@@ -602,6 +612,7 @@ const DataConnPopup = (props: Props) => {
                           ordersRef.current.push({
                             key: id,
                             by: "",
+                            priority: "",
                             order: "asc",
                           });
                           setOrders(ordersRef.current.slice());
