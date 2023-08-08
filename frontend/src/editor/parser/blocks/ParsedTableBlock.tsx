@@ -1,5 +1,5 @@
 import { useAuth } from "contexts/authContext";
-import _, { isArray, isNumber, isObject } from "lodash";
+import _, { filter, forEach, isArray, isNumber, isObject } from "lodash";
 import React, { useState } from "react";
 import style from "../../editor.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
@@ -39,13 +39,30 @@ const ParsedTableBlock = (props: Props) => {
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
   );
-
-  let sortInfo = _.get(props.blockData.data,"dataOrder");
-
+  const sortInfo = _.get(props.blockData.data,"dataOrder");
   const sortByArray = _.map(sortInfo, 'by');
   const sortOrderArray = _.map(sortInfo, 'order');
-
-  repeat = _.sortBy(repeat,sortByArray,sortOrderArray);
+  const sortPriorityArray = _.map(sortInfo, 'priority');
+  
+  let matchedItem : any[] = []; // 우선순위와 일치하는 아이템을 저장할 배열
+  let unmatchedItem : any[] = []; // 우선순위와 일치하지 않는 아이템을 저장할 배열
+  
+  _.forEach(sortPriorityArray, (item : any, index : number) => {
+    if(item){
+      const priorityArray = item.split("/");
+      const byArray = sortByArray[index];
+      _.forEach(priorityArray, (item : any, index : number) => {
+        matchedItem = [...matchedItem, ..._.orderBy(_.filter(repeat, (v) => v[byArray] === item ),sortByArray, sortOrderArray)];
+      });
+    }
+  });
+  
+  // 우선순위와 일치하지 않는 아이템 찾기
+  unmatchedItem = _.orderBy(_.difference(repeat, matchedItem), sortByArray, sortOrderArray);
+  
+  // 우선순위와 일치하는 아이템과 일치하지 않는 아이템을 합친 후 repeat 배열을 갱신
+  repeat = [...matchedItem, ...unmatchedItem];
+  
 
   let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
     if (props.blockData.data.dataFilter?.length > 0) {
