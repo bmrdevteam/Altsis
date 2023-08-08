@@ -39,6 +39,14 @@ const ParsedTableBlock = (props: Props) => {
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
   );
+
+  let sortInfo = _.get(props.blockData.data,"dataOrder");
+
+  const sortByArray = _.map(sortInfo, 'by');
+  const sortOrderArray = _.map(sortInfo, 'order');
+
+  repeat = _.sortBy(repeat,sortByArray,sortOrderArray);
+
   let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
     if (props.blockData.data.dataFilter?.length > 0) {
       let boolCount: number = 0;
