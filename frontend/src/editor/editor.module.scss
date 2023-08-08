@@ -335,6 +335,51 @@
 
                 }
 
+                .orders {
+                    display: flex;
+                    gap: 8px;
+                    margin-top: 5px;
+
+                    flex-direction: column;
+
+                    .order {
+                        display: flex;
+                        gap: 4px;
+                        border: 1px solid rgb(225, 225, 225);
+                        font-size: 14px;
+                        background-color: rgb(245, 245, 245);
+
+
+                        height: 32px;
+                        padding: 6px;
+                        border-radius: 4px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+
+                        input {
+                            background-color: transparent;
+                            border: none;
+                            height: 28px;
+                            padding: 0 6px;
+                            font-weight: 600;
+                        }
+
+                        select {
+                            height: 32px;
+                            font-weight: 600;
+                            background-color: transparent;
+                            border: none;
+                        }
+
+                        .icon {
+
+                            cursor: pointer;
+                        }
+                    }
+
+                }
+
 
                 .btn {
                     border: 1px solid rgb(225, 225, 225);

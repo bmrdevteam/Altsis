@@ -40,6 +40,10 @@ const DataConnPopup = (props: Props) => {
     getCurrentBlock()?.data?.dataFilter ?? []
   );
   const filtersRef = useRef<any[]>(getCurrentBlock()?.data?.dataFilter ?? []);
+  const [orders, setOrders] = useState<any[]>(
+    getCurrentBlock()?.data?.dataOrder ?? []
+  );
+  const ordersRef = useRef<any[]>(getCurrentBlock()?.data?.dataOrder ?? []);
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
 
@@ -145,6 +149,7 @@ const DataConnPopup = (props: Props) => {
                 changeCurrentBlockData({
                   dataRepeat: repeat.current,
                   dataFilter: filtersRef.current,
+                  dataOrder: ordersRef.current,
                 });
 
                 props.callPageReload();
@@ -178,8 +183,6 @@ const DataConnPopup = (props: Props) => {
                                     subItem={
                                       archive.fields &&
                                       archive.fields?.map((v: any) => {
-                                        // console.log();
-
                                         let returnArchive = [
                                           <TreeItem
                                             key={`${school.schoolId}//archive//${archive.label}//${v.label}`}
@@ -479,8 +482,8 @@ const DataConnPopup = (props: Props) => {
                       </select>
                     </div>
                     <div className={style.filters}>
-                      <label style={{ textAlign: "center" }}>
-                        테이블 반복 필터
+                      <label>
+                        필터
                       </label>
                       {filters.map((value, index) => {
                         return (
@@ -493,7 +496,6 @@ const DataConnPopup = (props: Props) => {
                                 filtersRef.current.find(
                                   (v) => v.key === value.key
                                 ).by = e.target.value;
-                                // console.log(filtersRef.current);
                               }}
                             />
                             <select
@@ -502,7 +504,6 @@ const DataConnPopup = (props: Props) => {
                                 filtersRef.current.find(
                                   (v) => v.key === value.key
                                 ).operator = e.target.value;
-                                // console.log(filtersRef.current);
                               }}
                             >
                               <option value="===">==</option>
@@ -515,7 +516,6 @@ const DataConnPopup = (props: Props) => {
                                 filtersRef.current.find(
                                   (v) => v.key === value.key
                                 ).value = e.target.value;
-                                // console.log(filtersRef.current);
                               }}
                               defaultValue={value.value}
                             />
@@ -548,7 +548,66 @@ const DataConnPopup = (props: Props) => {
                           setFilters(filtersRef.current.slice());
                         }}
                       >
-                        필터 추가
+                        추가
+                      </div>
+                    </div>
+                    <label>
+                        정렬
+                      </label>
+                    <div className={style.orders}>
+                      {orders.map((value, index) => {
+                        return (
+                          <div className={style.order} key={value.key}>
+                            <input
+                              type="text"
+                              placeholder="필드"
+                              defaultValue={value.by}
+                              onChange={(e) => {
+                                ordersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).by = e.target.value;
+                              }}
+                            />
+                            <select
+                              defaultValue={value.order}
+                              onChange={(e) => {
+                                ordersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).order = e.target.value;
+                              }}
+                            >
+                              <option value="asc">오름차순</option>
+                              <option value="desc">내림차순</option>
+                            </select>
+                            <span
+                              className={style.icon}
+                              onClick={() => {
+                                ordersRef.current = ordersRef.current.filter(
+                                  (v) => v.key !== value.key
+                                );
+                                setOrders(ordersRef.current.slice());
+                              }}
+                            >
+                              <Svg type={"x"} />
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div
+                        className={style.btn}
+                        onClick={() => {
+                          const id = Math.random()
+                            .toString(36)
+                            .substring(2, 11);
+                          ordersRef.current.push({
+                            key: id,
+                            by: "",
+                            order: "asc",
+                          });
+                          setOrders(ordersRef.current.slice());
+                        }}
+                      >
+                        추가
                       </div>
                     </div>
                   </div>
