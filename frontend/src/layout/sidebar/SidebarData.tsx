@@ -95,14 +95,12 @@ export const SidebarData = (auth: string, role?: string): any => {
           });
         }
       }
-      if (auth === "manager" || auth === "admin") {
-        data.push({
-          title: "docs",
-          name: "문서",
-          path: "/docs",
-          icon: <Svg type="docs" />,
-        });
-      }
+      data.push({
+        title: "docs",
+        name: "문서",
+        path: "/docs",
+        icon: <Svg type="docs" />,
+      });
     } else if (currentRegistration.role === "student") {
       const myFormArchive = currentSchool?.formArchive?.filter(
         (form: any) => form.authStudent && form.authStudent !== "undefined"
