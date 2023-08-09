@@ -1,7 +1,7 @@
 import express from "express";
 const router = express.Router();
 import * as forms from "../controllers/forms.js";
-import { isAdManager } from "../middleware/auth.js";
+import { isAdManager, isLoggedIn } from "../middleware/auth.js";
 
 //=================================
 //             Form
@@ -10,7 +10,7 @@ import { isAdManager } from "../middleware/auth.js";
 router.post("/", isAdManager, forms.create);
 router.post("/:_id/copy", isAdManager, forms.copy);
 
-router.get("/:_id?", isAdManager, forms.find);
+router.get("/:_id?", isLoggedIn, forms.find);
 
 router.put("/:_id", isAdManager, forms.update);
 router.put("/:_id/archive", isAdManager, forms.archive);

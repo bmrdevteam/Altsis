@@ -156,14 +156,14 @@ export const copy = async (req, res) => {
  * @memberof APIs.FormAPI
  * @function RForm API
  * @description 양식 조회 API
- * @version 2.0.0
+ * @version 2.0.1
  *
  * @param {Object} req
  *
  * @param {"GET"} req.method
  * @param {"/forms/:_id"} req.url
  *
- * @param {Object} req.user - "admin"|"manager"
+ * @param {Object} req.user
  *
  * @param {Object} res
  * @param {Object} res.form
