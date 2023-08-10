@@ -40,6 +40,10 @@ const DataConnPopup = (props: Props) => {
     getCurrentBlock()?.data?.dataFilter ?? []
   );
   const filtersRef = useRef<any[]>(getCurrentBlock()?.data?.dataFilter ?? []);
+  const [orFilters, setOrFilters] = useState<any[]>(
+    getCurrentBlock()?.data?.dataOrFilter ?? []
+  );
+  const orFiltersRef = useRef<any[]>(getCurrentBlock()?.data?.dataOrFilter ?? []);
   const [orders, setOrders] = useState<any[]>(
     getCurrentBlock()?.data?.dataOrder ?? []
   );
@@ -149,6 +153,7 @@ const DataConnPopup = (props: Props) => {
                 changeCurrentBlockData({
                   dataRepeat: repeat.current,
                   dataFilter: filtersRef.current,
+                  dataOrFilter: orFiltersRef.current,
                   dataOrder: ordersRef.current,
                 });
 
@@ -483,7 +488,7 @@ const DataConnPopup = (props: Props) => {
                     </div>
                     <div className={style.filters}>
                       <label>
-                        필터
+                        AND 필터
                       </label>
                       {filters.map((value, index) => {
                         return (
@@ -546,6 +551,76 @@ const DataConnPopup = (props: Props) => {
                             value: "",
                           });
                           setFilters(filtersRef.current.slice());
+                        }}
+                      >
+                        추가
+                      </div>
+                    </div>
+                    <div className={style.orfilters}>
+                      <label>
+                        OR 필터
+                      </label>
+                      {orFilters.map((value, index) => {
+                        return (
+                          <div className={style.orfilter} key={value.key}>
+                            <input
+                              type="text"
+                              placeholder="필드"
+                              defaultValue={value.by}
+                              onChange={(e) => {
+                                orFiltersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).by = e.target.value;
+                              }}
+                            />
+                            <select
+                              defaultValue={value.operator}
+                              onChange={(e) => {
+                                orFiltersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).operator = e.target.value;
+                              }}
+                            >
+                              <option value="===">==</option>
+                              <option value="!==">!=</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="값"
+                              onChange={(e) => {
+                                orFiltersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).value = e.target.value;
+                              }}
+                              defaultValue={value.value}
+                            />
+                            <span
+                              className={style.icon}
+                              onClick={() => {
+                                orFiltersRef.current = orFiltersRef.current.filter(
+                                  (v) => v.key !== value.key
+                                );
+                                setOrFilters(orFiltersRef.current.slice());
+                              }}
+                            >
+                              <Svg type={"x"} />
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div
+                        className={style.btn}
+                        onClick={() => {
+                          const id = Math.random()
+                            .toString(36)
+                            .substring(2, 11);
+                          orFiltersRef.current.push({
+                            key: id,
+                            by: "",
+                            operator: "===",
+                            value: "",
+                          });
+                          setOrFilters(orFiltersRef.current.slice());
                         }}
                       >
                         추가
