@@ -39,7 +39,6 @@ const ParsedTableBlock = (props: Props) => {
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
   );
-  console.log(props.dbData);
   const sortInfo = _.get(props.blockData.data,"dataOrder");
   const sortByArray = _.map(sortInfo, 'by');
   const sortOrderArray = _.map(sortInfo, 'order');
@@ -97,7 +96,6 @@ const ParsedTableBlock = (props: Props) => {
       }
     }
     // OR 필터
-    console.log(props.blockData.data.dataOrFilter);
     if (props.blockData.data.dataOrFilter?.length > 0) {
       let boolCount: number = 0;
       let orCount: number = 0;
