@@ -621,7 +621,6 @@ const DataConnPopup = (props: Props) => {
                             value: "",
                           });
                           setOrFilters(orFiltersRef.current.slice());
-                          console.log(orFilters);
                         }}
                       >
                         추가
