@@ -39,6 +39,7 @@ const ParsedTableBlock = (props: Props) => {
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
   );
+  console.log(props.dbData);
   const sortInfo = _.get(props.blockData.data,"dataOrder");
   const sortByArray = _.map(sortInfo, 'by');
   const sortOrderArray = _.map(sortInfo, 'order');
@@ -63,15 +64,12 @@ const ParsedTableBlock = (props: Props) => {
   // 우선순위와 일치하는 아이템과 일치하지 않는 아이템을 합친 후 repeat 배열을 갱신
   repeat = [...matchedItem, ...unmatchedItem];
   
-
+  // 필터
   let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
+     // AND 필터
     if (props.blockData.data.dataFilter?.length > 0) {
       let boolCount: number = 0;
-      let boola: string = "";
       props.blockData.data.dataFilter?.map((filter: any, iasd: number) => {
-        boola = boola.concat(
-          `${iasd}${v?.[filter.by]} ${filter.operator} ${filter.value}`
-        );
         if (
           filter.operator === "===" &&
           v?.[filter.by] !== undefined &&
@@ -79,7 +77,6 @@ const ParsedTableBlock = (props: Props) => {
         ) {
           boolCount += 1;
         }
-
         if (
           filter.operator === "!==" &&
           v?.[filter.by] !== undefined &&
@@ -92,16 +89,43 @@ const ParsedTableBlock = (props: Props) => {
           !filter.value &&
           !v?.[filter.by] === !filter.value
         ) {
-          // console.log(
-          //   !v?.[filter.by] === !filter.value,
-          //   v?.[filter.by],
-          //   filter.value
-          // );
-
           boolCount += 1;
         }
       });
       if (boolCount > 0) {
+        return false;
+      }
+    }
+    // OR 필터
+    console.log(props.blockData.data.dataOrFilter);
+    if (props.blockData.data.dataOrFilter?.length > 0) {
+      let boolCount: number = 0;
+      let orCount: number = 0;
+      props.blockData.data.dataOrFilter?.map((filter: any, iasd: number) => {
+        if (
+          filter.operator === "===" &&
+          v?.[filter.by] !== undefined &&
+          v?.[filter.by] !== filter.value
+        ) {
+          boolCount += 1;
+        }
+        if (
+          filter.operator === "!==" &&
+          v?.[filter.by] !== undefined &&
+          v?.[filter.by] === filter.value
+        ) {
+          boolCount += 1;
+        }
+        if (
+          filter.operator === "!==" &&
+          !filter.orValue &&
+          !v?.[filter.by] === !filter.value
+        ) {
+          boolCount += 1;
+        }
+        orCount += 1;
+      });
+      if (boolCount === orCount) {
         return false;
       }
     }
