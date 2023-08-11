@@ -1,5 +1,15 @@
+.section::-webkit-scrollbar {
+  display: none;
+}
+
 .section {
-    margin: 24px;
+  height: calc(100vh - 56px);
+  padding: 24px;
+  overflow-y: auto;
+  color: var(--accent-1);
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 
     .title {
         font-size: 18px;
@@ -8,9 +18,8 @@
         color: var(--accent-1);
 
     }
-}
 
-.categories_container {
+  .categories_container {
     overflow: scroll auto;
     -ms-overflow-style: none;
     /* IE and Edge */
@@ -25,18 +34,19 @@
   .categories {
     display: flex;
     gap: 4px;
-
-    .category {
-      cursor: pointer;
-      border: var(--border-default);
-      padding: 10px 14px;
-      font-size: 14px;
-      font-family: Pretendard;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .category:hover {
-      background-color: #ebebeb;
-    }
   }
+
+  .category {
+    cursor: pointer;
+    border: var(--border-default);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: Pretendard;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .category:hover {
+    background-color: #ebebeb;
+  }
+}
