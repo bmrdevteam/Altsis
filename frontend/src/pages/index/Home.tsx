@@ -29,7 +29,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import style from "../../style/pages/home.module.scss";
-import QuickSearch from "../../components/quickSearch/QuickSearch";
+// import QuickSearch from "../../components/quickSearch/QuickSearch";
 import Navbar from "../../layout/navbar/Navbar";
 import Schedule from "components/schedule/Schedule";
 import { useAuth } from "contexts/authContext";
@@ -115,7 +115,7 @@ const Home = () => {
 
   return (
     <>
-      <QuickSearch />
+      {/* <QuickSearch /> */}
       <Navbar />
       <div className={style.section}>
         <Schedule
