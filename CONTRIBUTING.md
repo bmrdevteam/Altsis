@@ -1,5 +1,5 @@
 # 기여하는 방법
-Altsis는 별무리학교에서 만든 대안적인 학교 정보 시스템(Alternative School Infomation System)으로서 오픈 소스 프로젝트로 전환하여 많은 학교와 교육기관에 도움을 주고자 하고 있습니다. 이 프로젝트에 최대한 쉽고 간편하게 기여할 수 있도록 노력하고 있지만, 아직 부족한 상태입니다. 이 문서를 통해 여러분이 프로젝트에 기여하는 절차에 대해 명확하게 인지하고 궁금한 점들을 해결할 수 있기를 바랍니다.
+Altsis는 [별무리학교](http://bmrschool.net)에서 만든 대안적인 학교 정보 시스템(Alternative School Infomation System)으로서 오픈 소스 프로젝트로 전환하여 많은 학교와 교육기관에 도움을 주고자 하고 있습니다. 이 프로젝트에 최대한 쉽고 간편하게 기여할 수 있도록 노력하고 있지만, 아직 부족한 상태입니다. 이 문서를 통해 여러분이 프로젝트에 기여하는 절차에 대해 명확하게 인지하고 궁금한 점들을 해결할 수 있기를 바랍니다.
 
 ## 행동 강령
 Altsis은 [Contributor Covenant](https://github.com/bmrdevteam/school-information-system/blob/document/CONTRIBUTOR_COVENANT.md)를 행동 강령으로 채택했으며 모든 프로젝트 참여자가 준수하기를 기대합니다. 전문을 읽고 어떤 행동이 허용되고 허용되지 않는지 이해할 수 있습니다.
@@ -57,7 +57,6 @@ Public API를 변경하거나 구현을 간단하게 변경하려 할 때 [이�
 7. prettier로 코드를 포맷하세요. (yarn prettier).
 8. 코드를 린트하세요 (yarn lint). Tip: yarn linc 는 변경된 파일만 확인할 수 있습니다.
 9. Flow 타입 검사를 실행하세요. (yarn flow).
-10. 아직 CLA에 서명하지 않았다면, 서명을 완료해주세요.
 
 ## 기여 선행 조건
 Node LTS와 Yarn이 설치되어 있어야 합니다.
@@ -72,13 +71,6 @@ Altsis 저장소를 복사한 후 yarn 명령을 사용하면 다음과 같은 �
 그러면 linter는 코드에 존재할 수 있는 문제를 잡아냅니다. 단순히 변경한 코드의 스타일을 점검하고 싶을 땐 yarn linc를 사용해주세요.
 
 그러나, 아직 linter에서도 점검할 수 없는 스타일이 존재합니다. 모르는 것이 있다면 [Airbnb’s Style Guide](https://github.com/airbnb/javascript)에서 적절한 방법을 안내받을 수 있습니다.
-
-## Request for Comments (RFC)
-버그 수정이나 문서 개선을 포함한 많은 변경 사항은 일반적인 GitHub 풀 리퀘스트의 워크플로우를 통해 구현될 수 있고 검토될 수 있습니다.
-
-다만, 일부 변화가 “크고 본질적”이라면, 약간의 설계 프로세스를 거쳐서 React 코어 팀에서 합의를 하도록 요청합니다.
-
-“RFC” (request for comments) 프로세스는 새로운 기능이 프로젝트에 들어가기까지 일관되고 정비된 경로를 제공하는 것을 목적으로 하고 있습니다. rfcs 저장소를 방문해서 기여할 수 있습니다.
 
 ## 라이선스
 React에 기여할 때, 여러분은 그 기여가 MIT 라이선스에 따라 라이선스가 부여되는 것에 동의했다고 간주합니다.
