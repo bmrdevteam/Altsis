@@ -7,92 +7,68 @@ Altsis(Alternative School Infomation System)는 학교에서 다루는 모든 �
 - 미래 지향적인 교육철학을 실현하는 **교육적인 시스템**
 
 ## 역사
-- 2016 [별무리학교](http://bmrschool.net) 수강 신청을 위한 [BLMS](https://github.com/devgoodway/BLMS_OSV) 개발 @[devgoodway](https://github.com/devgoodway)
+- 2016 [별무리학교](http://bmrschool.net) 수강 신청을 위한 맞춤형 학습 관리 시스템 [BLMS](https://github.com/devgoodway/BLMS_OSV) 개발 @[devgoodway](https://github.com/devgoodway)
 - 2022 BLMS를 발전시킨 [ALTSIS](https://github.com/bmrdevteam/school-information-system) 개발 @[devgoodway](https://github.com/devgoodway) @[jessie129j](https://github.com/jessie129j) @[seedlessapple](https://github.com/seedlessapple) and @[O-ye](https://github.com/O-ye)
-- 2023 [ALTSIS](https://github.com/bmrdevteam/school-information-system) 오픈 소스 프로젝트 시작
+- 2023 [ALTSIS](https://github.com/bmrdevteam/school-information-system) 오픈 소스 프로젝트 시작 @[devgoodway](https://github.com/devgoodway)
 
-## Idea
-- 하나의 교육 공동체(아카데미) 안에는 다양한 학교(교육과정)가 있다.
-- 교육과정은 학기라는 이름으로 진행된다.
-- 학기마다 학생, 교사, 수업이 등록된다.
-- 학생, 교사를 위한 별도의 정보가 기록된다.
-- 모든 정보에 대한 관리 방식은 학교의 규칙과 문화에 따라 다르다.
+## 주요특징
+### 🏫 Multi Schooling
+아카데미에서 여러 학교를 생성하여 동시에 운영
+### ❌ No-code
+코드 없이 맞춤형 시스템 구성
+### 🎒 Student-centered
+학생 중심 수업 개설 및 수강 신청 시스템
+### 1️⃣ One-stop
+학생의 수업, 평가, 기록, 출력을 하나의 시스템에서 관리
 
-## Concept Tree Map
-- Academy(교육 공동체)
-    - School(학교)
-        - Season(교육과정, 학기)
-            - Syllabus(수업)
-            - Enrollment(수강정보)
-        - Archive(기록)
-    - Forms(양식)
-        - TimeTable(시간표)
-        - Syllabus(강의계획서)
-        - Docs(문서)
-    - User(학생, 교사, 학부모)
+## 시스템 구조
+* Academy(관리)
+    * School(학교)
+        * Season(학기)
+            * Syllabus(수업)
+            * Enrollment(수강정보)
+            * Form(양식)
+            * SeasonUser(학생, 교사)
+        * SchoolUser(학생, 교사)
+            * Archive(기록)
+    * Forms(양식)
+        * TimeTable(시간표)
+        * Syllabus(강의계획서)
+        * Docs(문서)
+    * AcamdemyUser(학생, 교사)
 
-## Installation
+## 설치
 
-React has been designed for gradual adoption from the start, and **you can use as little or as much React as you need**:
+## 문서
 
-* Use [Online Playgrounds](https://reactjs.org/docs/getting-started.html#online-playgrounds) to get a taste of React.
-* [Add React to a Website](https://reactjs.org/docs/add-react-to-a-website.html) as a `<script>` tag in one minute.
-* [Create a New React App](https://reactjs.org/docs/create-a-new-react-app.html) if you're looking for a powerful JavaScript toolchain.
+Altsis와 관련된 문서는 [Github Page](https://github.com/bmrdevteam/school-information-system)에서 확인 할 수 있습니다.
 
-You can use React as a `<script>` tag from a [CDN](https://reactjs.org/docs/cdn-links.html), or as a `react` package on [npm](https://www.npmjs.com/package/react).
+문서는 아래의 섹션으로 나눠져 있습니다.
 
-## Documentation
+* [README](https://github.com/bmrdevteam/school-information-system/blob/document/README.md)
+* [WIKI](https://github.com/bmrdevteam/school-information-system/wiki)
+* [CONTRIBUTOR](https://github.com/bmrdevteam/school-information-system/blob/document/CONTRIBUTOR.md)
+* [CONTRIBUTOR_COVENANT](https://github.com/bmrdevteam/school-information-system/blob/document/CONTRIBUTOR_COVENANT.md)
+* [LICENSE](https://github.com/bmrdevteam/school-information-system/blob/document/LISENCE)
+  
+당신의 참여로  [Altsis](https://github.com/bmrdevteam/school-information-system)의 시스템 문서를 발전 시킬 수 있습니다.
 
-You can find the React documentation [on the website](https://react.dev/).  
+## 기여하는 방법
 
-Check out the [Getting Started](https://react.dev/learn) page for a quick overview.
-
-The documentation is divided into several sections:
-
-* [Tutorial](https://reactjs.org/tutorial/tutorial.html)
-* [Main Concepts](https://reactjs.org/docs/hello-world.html)
-* [Advanced Guides](https://reactjs.org/docs/jsx-in-depth.html)
-* [API Reference](https://reactjs.org/docs/react-api.html)
-* [Where to Get Support](https://reactjs.org/community/support.html)
-* [Contributing Guide](https://reactjs.org/docs/how-to-contribute.html)
-
-You can improve it by sending pull requests to [this repository](https://github.com/reactjs/reactjs.org).
-
-## Examples
-
-We have several examples [on the website](https://reactjs.org/). Here is the first one to get you started:
-
-```jsx
-import { createRoot } from 'react-dom/client';
-
-function HelloMessage({ name }) {
-  return <div>Hello {name}</div>;
-}
-
-const root = createRoot(document.getElementById('container'));
-root.render(<HelloMessage name="Taylor" />);
-```
-
-This example will render "Hello Taylor" into a container on the page.
-
-You'll notice that we used an HTML-like syntax; [we call it JSX](https://reactjs.org/docs/introducing-jsx.html). JSX is not required to use React, but it makes code more readable, and writing it feels like writing HTML. If you're using React as a `<script>` tag, read [this section](https://reactjs.org/docs/add-react-to-a-website.html#optional-try-react-with-jsx) on integrating JSX; otherwise, the [recommended JavaScript toolchains](https://reactjs.org/docs/create-a-new-react-app.html) handle it automatically.
-
-## Contributing
-
-The main purpose of this repository is to continue evolving React core, making it faster and easier to use. Development of React happens in the open on GitHub, and we are grateful to the community for contributing bugfixes and improvements. Read below to learn how you can take part in improving React.
+이 프로젝트의 주요 목적은 Altsis의 주요 기능을 더욱 발전 시키고 많은 사람들이 더욱 쉽게 사용하도록 하기 위함입니다. Altsis는 Github를 통해서 개발하게 되는데 이는 오류를 수정하고 코드를 발전시키기 위해 좋은 도구가 됩니다. 반드시 아래 문서를 자세히 읽고 프로젝트에 동참해주세요.
 
 ### [Code of Conduct](https://github.com/bmrdevteam/school-information-system/blob/document/CONTRIBUTOR_COVENANT.md)
 
-Facebook has adopted a Code of Conduct that we expect project participants to adhere to. Please read [the full text](https://code.fb.com/codeofconduct) so that you can understand what actions will and will not be tolerated.
+[Code of Conduct](https://github.com/bmrdevteam/school-information-system/blob/document/CONTRIBUTOR_COVENANT.md)는 우리 프로젝트에 참여할 때 지켜야 할 약속과 태도를 기술하고 있습니다.
 
 ### [Contributing Guide](https://github.com/bmrdevteam/school-information-system/blob/0b4c0ce6552edb88e53053553e352b19c87482b7/CONTRIBUTING.md)
 
-Read our [contributing guide](https://reactjs.org/docs/how-to-contribute.html) to learn about our development process, how to propose bugfixes and improvements, and how to build and test your changes to React.
+[contributing guide](https://reactjs.org/docs/how-to-contribute.html)를 통해서 당신이 우리 프로젝트의 오류를 수정하고 코드를 발전시키는 방법에 대해서 배울 수 있습니다.
 
-### Good First Issues
+### 좋은 첫번째 이슈
 
-To help you get your feet wet and get you familiar with our contribution process, we have a list of [good first issues](https://github.com/facebook/react/labels/good%20first%20issue) that contain bugs that have a relatively limited scope. This is a great place to get started.
+당신이 이 프로젝트에 기여하기 위해서 이슈를 올리고자 할 때 [good first issues](https://github.com/bmrdevteam/school-information-system/good%20first%20issue)에 있는 이슈를 참고하시면 도움이 될 것 입니다.
 
-### License
+### 라이센스
 
-React is [MIT licensed](./LICENSE).
+Altsis is [MIT licensed](./LICENSE).
