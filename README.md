@@ -12,7 +12,7 @@ Altsis(Alternative School Infomation System)는 학교에서 다루는 모든 �
 - 2023 [ALTSIS](https://github.com/bmrdevteam/school-information-system) 오픈 소스 프로젝트 시작 @[devgoodway](https://github.com/devgoodway)
 
 ## 주요특징
-### 🏫 Multi Schooling
+### 🏫 Multiple School
 아카데미에서 여러 학교를 생성하여 동시에 운영
 ### ❌ No-code
 코드 없이 맞춤형 시스템 구성
