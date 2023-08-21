@@ -31,14 +31,14 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 
-import style from "style/pages/enrollment.module.scss";
-
-import EditorParser from "editor/EditorParser";
+import style from "style/pages/courses/course.module.scss";
 import Divider from "components/divider/Divider";
+import EditorParser from "editor/EditorParser";
+import useApi from "hooks/useApi";
 
 type Props = { courseList: any[] };
-
 const Timetable = (props: Props) => {
+  const { RegistrationApi } = useApi();
   const navigate = useNavigate();
 
   const { currentSeason, currentRegistration } = useAuth();
@@ -86,6 +86,18 @@ const Timetable = (props: Props) => {
 
   return (
     <div className={style.section}>
+      <div className={style.categories_container}> 
+        <div className={style.categories}>
+          <div className={style.category}
+            onClick={() => {
+              
+            }}
+          >
+          일정추가
+          </div>
+        </div>
+      </div>
+      <Divider />
       {currentSeason?.formTimetable && (
         <>
           <EditorParser
@@ -98,9 +110,7 @@ const Timetable = (props: Props) => {
             }}
             data={currentSeason?.formTimetable}
           />
-          <div style={{ height: "24px" }}></div>
-          <Divider />
-          <div style={{ height: "24px" }}></div>
+          <div style={{ height: "12px" }}></div>
         </>
       )}
     </div>
