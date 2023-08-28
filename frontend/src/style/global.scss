@@ -16,7 +16,6 @@
 
 body {
   height: 100vh;
-  overflow: hidden;
 }
 
 /* smartphones, touchscreens */
@@ -74,7 +73,7 @@ svg {
 .content {
   flex: 1 1 0;
   height: 100vh;
-  overflow-y: scroll;
+  overflow-y: auto;
   background-color: var(--background-color);
 
   -ms-overflow-style: none;
