@@ -44,13 +44,17 @@ const DataConnPopup = (props: Props) => {
     getCurrentBlock()?.data?.dataOrFilter ?? []
   );
   const orFiltersRef = useRef<any[]>(getCurrentBlock()?.data?.dataOrFilter ?? []);
+  const [cellFilters, setCellFilters] = useState<any[]>(
+    getCurrentBlock()?.data?.dataCellFilter ?? []
+  );
+  const cellFiltersRef = useRef<any[]>(getCurrentBlock()?.data?.dataCellFilter ?? []);
   const [orders, setOrders] = useState<any[]>(
     getCurrentBlock()?.data?.dataOrder ?? []
   );
   const ordersRef = useRef<any[]>(getCurrentBlock()?.data?.dataOrder ?? []);
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
-
+    console.log(getCurrentBlock().data);
   useEffect(() => {
     SchoolAPI.RSchools().then(({ schools }) => {
       schools.map((school) => {
@@ -155,6 +159,7 @@ const DataConnPopup = (props: Props) => {
                   dataFilter: filtersRef.current,
                   dataOrFilter: orFiltersRef.current,
                   dataOrder: ordersRef.current,
+                  dataCellFilter: cellFiltersRef.current,
                 });
 
                 props.callPageReload();
@@ -366,7 +371,7 @@ const DataConnPopup = (props: Props) => {
                 </Tree>
               </div>
               <div className={style.divider}></div>
-              <div style={{ flex: "1 1 0" }}>
+              <div style={{ flex: "1 1 0", overflow: "hidden" }}>
                 <div className={style.title}>데이터 옵션</div>
                 <div
                   style={{
@@ -621,6 +626,87 @@ const DataConnPopup = (props: Props) => {
                             value: "",
                           });
                           setOrFilters(orFiltersRef.current.slice());
+                        }}
+                      >
+                        추가
+                      </div>
+                    </div>
+                    <div className={style.cellfilters}>
+                      <label>
+                        CELL 필터
+                      </label>
+                      {cellFilters.map((value, index) => {
+                        return (
+                          <div className={style.cellfilter} key={value.key}>
+                            <input
+                              type="text"
+                              placeholder="필드"
+                              defaultValue={value.by}
+                              onChange={(e) => {
+                                cellFiltersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).by = e.target.value;
+                              }}
+                            />
+                            <select
+                              defaultValue={value.operator}
+                              onChange={(e) => {
+                                cellFiltersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).operator = e.target.value;
+                              }}
+                            >
+                              <option value="===">==</option>
+                              <option value="!==">!=</option>
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="값"
+                              onChange={(e) => {
+                                cellFiltersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).value = e.target.value;
+                              }}
+                              defaultValue={value.value}
+                            />
+                            <input
+                              type="text"
+                              placeholder="값"
+                              onChange={(e) => {
+                                cellFiltersRef.current.find(
+                                  (v) => v.key === value.key
+                                ).cell = e.target.value;
+                              }}
+                              defaultValue={value.cell}
+                            />
+                            <span
+                              className={style.icon}
+                              onClick={() => {
+                                cellFiltersRef.current = cellFiltersRef.current.filter(
+                                  (v) => v.key !== value.key
+                                );
+                                setCellFilters(cellFiltersRef.current.slice());
+                              }}
+                            >
+                              <Svg type={"x"} />
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div
+                        className={style.btn}
+                        onClick={() => {
+                          const id = Math.random()
+                            .toString(36)
+                            .substring(2, 11);
+                          cellFiltersRef.current.push({
+                            key: id,
+                            by: "",
+                            cell: "",
+                            operator: "===",
+                            value: "",
+                          });
+                          setCellFilters(cellFiltersRef.current.slice());
                         }}
                       >
                         추가
