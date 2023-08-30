@@ -252,6 +252,7 @@
 
                 .select_data {
                     flex: 1 1 0;
+                    overflow: hidden;
                 }
 
                 .divider {
@@ -293,17 +294,13 @@
                 .filters {
                     display: flex;
                     gap: 8px;
-
                     flex-direction: column;
-
                     .filter {
                         display: flex;
                         gap: 4px;
                         border: 1px solid rgb(225, 225, 225);
                         font-size: 14px;
                         background-color: rgb(245, 245, 245);
-
-
                         height: 32px;
                         padding: 6px;
                         border-radius: 4px;
@@ -317,6 +314,7 @@
                             height: 28px;
                             padding: 0 6px;
                             font-weight: 600;
+                            width: 100%;
                         }
 
                         select {
@@ -325,6 +323,7 @@
                             font-weight: 600;
                             background-color: transparent;
                             border: none;
+                            width: 100%;
                         }
 
                         .icon {
@@ -363,6 +362,7 @@
                             height: 28px;
                             padding: 0 6px;
                             font-weight: 600;
+                            width: 100%;
                         }
 
                         select {
@@ -370,6 +370,54 @@
                             font-weight: 600;
                             background-color: transparent;
                             border: none;
+                            width: 100%;
+                        }
+
+                        .icon {
+
+                            cursor: pointer;
+                        }
+                    }
+
+                }
+
+                .cellfilters {
+                    display: flex;
+                    gap: 8px;
+                    margin-top: 5px;
+
+                    flex-direction: column;
+
+                    .cellfilter {
+                        display: flex;
+                        gap: 4px;
+                        border: 1px solid rgb(225, 225, 225);
+                        font-size: 14px;
+                        background-color: rgb(245, 245, 245);
+
+
+                        height: 32px;
+                        padding: 6px;
+                        border-radius: 4px;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+
+                        input {
+                            background-color: transparent;
+                            border: none;
+                            height: 28px;
+                            padding: 0 6px;
+                            font-weight: 600;
+                            width: 100%;
+                        }
+
+                        select {
+                            height: 32px;
+                            font-weight: 600;
+                            background-color: transparent;
+                            border: none;
+                            width: 100%;
                         }
 
                         .icon {
@@ -408,6 +456,7 @@
                             height: 28px;
                             padding: 0 6px;
                             font-weight: 600;
+                            width: 100%;
                         }
 
                         select {
@@ -415,6 +464,7 @@
                             font-weight: 600;
                             background-color: transparent;
                             border: none;
+                            width: 100%;
                         }
 
                         .icon {
