@@ -34,11 +34,11 @@ const ParsedTableBlock = (props: Props) => {
     }
     return <colgroup></colgroup>;
   };
-
   let repeat = _.get(
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
   );
+  
   const sortInfo = _.get(props.blockData.data,"dataOrder");
   const sortByArray = _.map(sortInfo, 'by');
   const sortOrderArray = _.map(sortInfo, 'order');
@@ -116,7 +116,7 @@ const ParsedTableBlock = (props: Props) => {
         }
         if (
           filter.operator === "!==" &&
-          !filter.orValue &&
+          !filter.value &&
           !v?.[filter.by] === !filter.value
         ) {
           boolCount += 1;
@@ -127,8 +127,66 @@ const ParsedTableBlock = (props: Props) => {
         return false;
       }
     }
-    return true;
-  });
+  return true;
+});
+
+// CELL 필터
+_.forEach(filteredRepeat, (item : any, index : number) => {
+  let Temp = "";
+  let cellName = "";
+  if (props.blockData.data.dataCellFilter?.length > 0) {
+    _.forEach(props.blockData.data.dataCellFilter, (filter: any, iasd: number) => {
+      Temp = item[filter.cell];
+      cellName = filter.cell;
+      if(filter.by !== filter.cell){
+        if (
+          filter.operator === "===" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] !== filter.value
+        ) {
+          item[filter.cell] = "";
+        }
+        if (
+          filter.operator === "!==" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] === filter.value
+        ) {
+          item[filter.cell] = "";
+        }
+        if (
+          filter.operator === "!==" &&
+          !filter.value &&
+          !item?.[filter.by] === !filter.value
+        ) {
+          item[filter.cell] = "";
+        }
+      }else{
+        if (
+          filter.operator === "===" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] !== filter.value
+        ) {
+          Temp = "";
+        }
+        if (
+          filter.operator === "!==" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] === filter.value
+        ) {
+          Temp = "";
+        }
+        if (
+          filter.operator === "!==" &&
+          !filter.value &&
+          !item?.[filter.by] === !filter.value
+        ) {
+          Temp = "";
+        }
+      }
+    })
+    item[cellName] = Temp;
+  }
+});
 
   // sort
   if (
