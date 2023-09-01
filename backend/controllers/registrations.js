@@ -12,6 +12,11 @@ import {
   REGISTRATION_IN_USE,
   __NOT_FOUND,
 } from "../messages/index.js";
+import { Types } from "mongoose";
+
+import { RegistrationService } from "../services/registrations.js";
+import { SeasonService } from "../services/seasons.js";
+import { UserService } from "../services/users.js";
 
 /**
  * @memberof APIs.RegistrationAPI
@@ -65,64 +70,81 @@ export const create = async (req, res) => {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
     }
+    for (let field of ["season", "user", "teacher", "subTeacher"]) {
+      if (field in req.body && !Types.ObjectId.isValid(req.body[field])) {
+        return res.status(400).send({ message: FIELD_INVALID(field) });
+      }
+    }
     if (req.body.role !== "teacher" && req.body.role !== "student") {
       return res.status(400).send({ message: FIELD_REQUIRED("role") });
     }
 
-    const admin = req.user;
+    const {
+      season: seasonId,
+      user: uid,
+      role,
+      grade,
+      group,
+      teacher: teacherUID,
+      subTeacher: subTeacherUID,
+    } = req.body;
+
+    const academyId = req.user.academyId;
+    const registrationService = new RegistrationService(academyId);
+    const seasonService = new SeasonService(academyId);
+    const userService = new UserService(academyId);
 
     // 기존 등록 정보가 있는지 확인
-    if (
-      await Registration(admin.academyId).findOne({
-        season: req.body.season,
-        user: req.body.user,
-      })
-    ) {
+    const { registration: exRegistration } =
+      await registrationService.findBySeasonIdAndUID(seasonId, uid);
+    if (exRegistration) {
       return res.status(409).send({
         message: REGISTRATION_IN_USE,
       });
     }
 
-    const season = await Season(admin.academyId).findById(req.body.season);
+    const { season } = await seasonService.findById(seasonId);
     if (!season) {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
-    const user = await User(admin.academyId).findById(req.body.user);
+    const { user } = await userService.findByUID(uid);
     if (!user) {
       return res.status(404).send({ message: __NOT_FOUND("user") });
     }
 
-    let teacher = undefined;
-    if ("teacher" in req.body) {
-      teacher = await User(admin.academyId).findById(req.body.teacher);
-      if (!teacher) {
+    const teacher = {};
+    if (teacherUID) {
+      const { registration: teacherReg } =
+        await registrationService.findBySeasonIdAndUID(seasonId, teacherUID);
+      if (!teacherReg) {
         return res.status(404).send({ message: __NOT_FOUND("teacher") });
       }
+      teacher._id = teacherReg.user;
+      teacher.userId = teacherReg.userId;
+      teacher.userName = teacherReg.userName;
     }
 
-    let subTeacher = undefined;
-    if ("subTeacher" in req.body) {
-      subTeacher = await User(admin.academyId).findById(req.body.subTeacher);
-      if (!subTeacher) {
+    const subTeacher = {};
+    if (subTeacherUID) {
+      const { registration: teacherReg } =
+        await registrationService.findBySeasonIdAndUID(seasonId, subTeacherUID);
+      if (!teacherReg) {
         return res.status(404).send({ message: __NOT_FOUND("subTeacher") });
       }
+      subTeacher._id = teacherReg.user;
+      subTeacher.userId = teacherReg.userId;
+      subTeacher.userName = teacherReg.userName;
     }
 
-    const registration = await Registration(admin.academyId).create({
-      ...season.getSubdocument(),
-      user: user._id,
-      userId: user.userId,
-      userName: user.userName,
-      role: req.body.role,
-      grade: req.body.grade,
-      group: req.body.group,
-      teacher: teacher?._id,
-      teacherId: teacher?.userId,
-      teacherName: teacher?.userName,
-      subTeacher: subTeacher?._id,
-      subTeacherId: subTeacher?.userId,
-      subTeacherName: subTeacher?.userName,
+    const { registration } = await registrationService.create({
+      season,
+      user,
+      teacher,
+      subTeacher,
+      role,
+      grade,
+      group,
     });
 
     return res.status(200).send({ registration });
