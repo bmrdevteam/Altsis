@@ -122,8 +122,6 @@ function Upload(props: Props) {
         .map((exUser) => exUser.snsId?.google)
         .filter((val) => val);
 
-      console.log({ exUserIds, exGoogleLoginEmails });
-
       let invalidUserCnt = 0;
       for (let user of newUserList) {
         let invalidFields: string[] = [];
