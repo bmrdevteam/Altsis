@@ -71,13 +71,15 @@ function Add(props: Props) {
   const onClickAddBulkHandler = async () => {
     setIsStatusPopupActive(true);
 
-    const schools = props.schoolListRef.current?.map((school) => {
-      return {
-        school: school._id,
-        schoolId: school.schoolId,
-        schoolName: school.schoolName,
-      };
-    });
+    const schools = props.schoolListRef.current
+      ?.filter((school) => school.tableRowChecked)
+      .map((school) => {
+        return {
+          school: school._id,
+          schoolId: school.schoolId,
+          schoolName: school.schoolName,
+        };
+      });
 
     const addedUserList = [];
     const failedUserList = [];

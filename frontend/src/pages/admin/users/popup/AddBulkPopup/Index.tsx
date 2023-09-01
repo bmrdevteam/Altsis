@@ -70,7 +70,8 @@ function AddBulk(props: Props) {
     SchoolAPI.RSchools()
       .then(({ schools }) => {
         schoolListRef.current = schools.map((school) => {
-          return { ...school, tableRowChecked: false };
+          const { _id, schoolId, schoolName } = school;
+          return { _id, schoolId, schoolName, tableRowChecked: false };
         });
       })
       .catch((err: any) => alert(err.response.data.message));
