@@ -301,7 +301,7 @@ const Users = (props: Props) => {
         <AddBulkPopup
           userList={userList}
           setPopupActive={setAddBulkPopupActive}
-          addUserList={addUserList}
+          setIsLoading={setIsLoading}
         />
       )}
       {schoolBulkPopup && (
