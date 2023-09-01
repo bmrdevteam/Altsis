@@ -35,7 +35,7 @@ import { UserService } from "../services/users.js";
  * @memberof APIs.RegistrationAPI
  * @function CRegistration API
  * @description 학기 등록 정보 생성 API
- * @version 2.0.0
+ * @version 2.1.0 - set permission
  *
  * @param {Object} req
  *
