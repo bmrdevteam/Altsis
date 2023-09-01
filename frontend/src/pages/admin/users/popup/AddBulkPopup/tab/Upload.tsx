@@ -102,15 +102,21 @@ function Upload(props: Props) {
       const newUserList: any[] = [];
       for (let _user of res) {
         newUserList.push({
-          userId: _user["ID"],
-          userName: _user["이름"],
-          password: _user["비밀번호"],
-          email: _user["이메일"] !== "" ? _user["이메일"] : undefined,
-          tel: _user["전화번호"] !== "" ? _user["전화번호"] : undefined,
+          userId: _user["ID"]?.trim(),
+          userName: _user["이름"]?.trim(),
+          password: _user["비밀번호"]?.trim(),
+          email:
+            _user["이메일"]?.trim() !== ""
+              ? _user["이메일"]?.trim()
+              : undefined,
+          tel:
+            _user["전화번호"]?.trim() !== ""
+              ? _user["전화번호"]?.trim()
+              : undefined,
           snsId: {
             google:
-              _user["구글 로그인 이메일"] !== ""
-                ? _user["구글 로그인 이메일"]
+              _user["구글 로그인 이메일"]?.trim() !== ""
+                ? _user["구글 로그인 이메일"]?.trim()
                 : undefined,
           },
         });
