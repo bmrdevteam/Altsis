@@ -62,3 +62,47 @@ export const hasPermission = (type, seasonRecord, userId, role) => {
   }
   return false;
 };
+
+/**
+ * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionEvaluationV2}} seasonRecord
+ * @param {string} userId
+ */
+export const removePermissionExcepted = async (seasonRecord, userId) => {
+  let isUpdated = false;
+  for (
+    let i = 0;
+    i < seasonRecord.permissionSyllabusV2.exceptions.length;
+    i++
+  ) {
+    if (seasonRecord.permissionSyllabusV2.exceptions[i].userId === userId) {
+      seasonRecord.permissionSyllabusV2.exceptions.splice(i, 1);
+      isUpdated = true;
+      break;
+    }
+  }
+  for (
+    let i = 0;
+    i < seasonRecord.permissionEnrollmentV2.exceptions.length;
+    i++
+  ) {
+    if (seasonRecord.permissionEnrollmentV2.exceptions[i].userId === userId) {
+      seasonRecord.permissionEnrollmentV2.exceptions.splice(i, 1);
+      isUpdated = true;
+      break;
+    }
+  }
+  for (
+    let i = 0;
+    i < seasonRecord.permissionEvaluationV2.exceptions.length;
+    i++
+  ) {
+    if (seasonRecord.permissionEvaluationV2.exceptions[i].userId === userId) {
+      seasonRecord.permissionEvaluationV2.exceptions.splice(i, 1);
+      isUpdated = true;
+      break;
+    }
+  }
+  if (isUpdated) {
+    await seasonRecord.save();
+  }
+};
