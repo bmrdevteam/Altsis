@@ -761,7 +761,7 @@ export const updatePermission = async (req, res) => {
  * @memberof APIs.SeasonAPI
  * @function CSeasonPermissionException API
  * @description 학기 권한 예외 추가 API
- * @version 2.0.0
+ * @version 2.1.0 - userId in exceptions is unique
  *
  * @param {Object} req
  *
