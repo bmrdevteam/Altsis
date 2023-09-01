@@ -95,3 +95,24 @@ export class RegistrationService {
     await registrationRecord.remove();
   };
 }
+
+export const updateRegistrationPermission = async (
+  type,
+  registrationRecord,
+  isAllowed
+) => {
+  switch (type) {
+    case "syllabus":
+      registrationRecord.permissionSyllabusV2 = isAllowed;
+      break;
+    case "enrollment":
+      registrationRecord.permissionEnrollmentV2 = isAllowed;
+      break;
+    case "evaluation":
+      registrationRecord.permissionEvaluationV2 = isAllowed;
+      break;
+    default:
+      return;
+  }
+  await registrationRecord.save();
+};

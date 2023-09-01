@@ -22,6 +22,14 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { validate } from "../utils/validate.js";
+import {
+  SeasonService,
+  addSeasonPermissionException,
+} from "../services/seasons.js";
+import {
+  RegistrationService,
+  updateRegistrationPermission,
+} from "../services/registrations.js";
 
 /**
  * @memberof APIs.SeasonAPI
@@ -776,44 +784,31 @@ export const updatePermission = async (req, res) => {
  */
 export const addPermissionException = async (req, res) => {
   try {
-    const permission = getPermissionField(req.params.type);
-    if (!permission) {
-      return res.status(400).send({ message: FIELD_INVALID("type") });
-    }
-
     for (let field of ["registration", "isAllowed"]) {
       if (!(field in req.body)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
     }
 
-    const season = await Season(req.user.academyId).findById(req.params._id);
+    const { _id: seasonId, type } = req.params;
+    const { registration: registrationId, isAllowed } = req.body;
+
+    const academyId = req.user.academyId;
+    const seasonService = new SeasonService(academyId);
+    const registrationService = new RegistrationService(academyId);
+
+    const { season } = await seasonService.findById(seasonId);
     if (!season) {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
-    const registration = await Registration(req.user.academyId).findById(
-      req.body.registration
-    );
+    const { registration } = await registrationService.findById(registrationId);
     if (!registration) {
       return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
 
-    season[permission].exceptions.push({
-      registration: req.body.registration,
-      isAllowed: req.body.isAllowed,
-      role: registration.role,
-      user: registration.user,
-      userName: registration.userName,
-      userId: registration.userId,
-    });
-    season.markModified(permission);
-
-    registration[permission] = req.body.isAllowed;
-    registration.markModified(permission);
-
-    await season.save();
-    await registration.save();
+    await addSeasonPermissionException(type, season, registration, isAllowed);
+    await updateRegistrationPermission(type, registration, isAllowed);
 
     return res.status(200).send({ season });
   } catch (err) {
