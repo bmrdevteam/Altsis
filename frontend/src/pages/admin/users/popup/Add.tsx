@@ -117,20 +117,29 @@ function Add(props: Props) {
   };
 
   async function addUserHandler() {
-    const {
-      auth,
-      userId,
-      userName,
-      password,
-      tel: _tel,
-      email: _email,
-      snsId: _snsId,
-    } = inputRef.current;
+    const auth = inputRef.current.auth;
+    const userId = inputRef.current.userId.trim();
+    const userName = inputRef.current.userName.trim();
+    const password = inputRef.current.password.trim();
+    const tel =
+      inputRef.current.tel.trim() !== ""
+        ? inputRef.current.tel.trim()
+        : undefined;
+    const email =
+      inputRef.current.email.trim() !== ""
+        ? inputRef.current.email.trim()
+        : undefined;
+    const snsId = {
+      google:
+        inputRef.current.snsId.google.trim() !== ""
+          ? inputRef.current.snsId.google.trim()
+          : undefined,
+    };
 
     /* validate */
 
     // validate userId
-    if (userId.trim() === "") {
+    if (userId === "") {
       return alert("ID를 입력해주세요");
     }
     if (!validate("userId", userId)) {
@@ -138,7 +147,7 @@ function Add(props: Props) {
     }
 
     // validate userName
-    if (userName.trim() === "") {
+    if (userName === "") {
       return alert("이름를 입력해주세요");
     }
     if (!validate("userName", userName)) {
@@ -146,27 +155,24 @@ function Add(props: Props) {
     }
 
     // validate password
-    if (password.trim() === "") return alert("비밀번호를 입력해주세요");
+    if (password === "") {
+      return alert("비밀번호를 입력해주세요");
+    }
     if (!validate("password", password)) {
       return alert("비밀번호가 형식에 맞지 않습니다");
     }
 
     // validate email
-    const email = _email.trim() !== "" ? _email : undefined;
     if (email && !validate("email", email)) {
       return alert("이메일이 형식에 맞지 않습니다");
     }
 
     // validate tel
-    const tel = _tel.trim() !== "" ? _tel : undefined;
     if (tel && !validate("tel", tel)) {
       return alert("전화번호가 형식에 맞지 않습니다");
     }
 
     // validate snsId
-    const snsId = {
-      google: _snsId.google.trim() !== "" ? _snsId.google : undefined,
-    };
     if (snsId.google && !validate("email", snsId.google)) {
       return alert("구글 로그인 이메일이 형식에 맞지 않습니다");
     }
