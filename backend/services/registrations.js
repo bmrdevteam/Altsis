@@ -1,5 +1,10 @@
 import { Registration } from "../models/index.js";
-import { getSeasonSubRecord, hasPermission } from "./seasons.js";
+import {
+  SeasonService,
+  getSeasonSubRecord,
+  hasPermission,
+  removePermissionExcepted,
+} from "./seasons.js";
 
 export class RegistrationService {
   constructor(academyId) {
@@ -57,6 +62,16 @@ export class RegistrationService {
   };
 
   /**
+   * @param {ObjectId|string} registrationId - registration._id
+   */
+  findById = async (registrationId) => {
+    const registrationRecord = await Registration(this.academyId).findById(
+      registrationId
+    );
+    return { registration: registrationRecord };
+  };
+
+  /**
    * @param {ObjectId} seasonId - season._id
    * @param {ObjectId} uid - user._id
    */
@@ -66,5 +81,17 @@ export class RegistrationService {
       user: uid,
     });
     return { registration: registrationRecord };
+  };
+
+  remove = async (registrationRecord) => {
+    const seasonService = new SeasonService(this.academyId);
+
+    const { season: seasonRecord } = await seasonService.findById(
+      registrationRecord.season
+    );
+    if (seasonRecord) {
+      await removePermissionExcepted(seasonRecord, registrationRecord.userId);
+    }
+    await registrationRecord.remove();
   };
 }
