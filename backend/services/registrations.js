@@ -1,5 +1,5 @@
 import { Registration } from "../models/index.js";
-import { getSeasonSubRecord } from "./seasons.js";
+import { getSeasonSubRecord, hasPermission } from "./seasons.js";
 
 export class RegistrationService {
   constructor(academyId) {
@@ -15,6 +15,25 @@ export class RegistrationService {
     grade,
     group,
   }) => {
+    const permissionSyllabusV2 = hasPermission(
+      "syllabus",
+      seasonRecord,
+      userRecord.userId,
+      role
+    );
+    const permissionEnrollmentV2 = hasPermission(
+      "enrollment",
+      seasonRecord,
+      userRecord.userId,
+      role
+    );
+    const permissionEvaluationV2 = hasPermission(
+      "evaluation",
+      seasonRecord,
+      userRecord.userId,
+      role
+    );
+
     const registrationRecord = await Registration(this.academyId).create({
       ...getSeasonSubRecord(seasonRecord),
       user: userRecord._id,
@@ -29,6 +48,9 @@ export class RegistrationService {
       subTeacherName: subTeacherRecord.userName,
       grade,
       group,
+      permissionSyllabusV2,
+      permissionEnrollmentV2,
+      permissionEvaluationV2,
     });
 
     return { registration: registrationRecord };
