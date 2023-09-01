@@ -385,13 +385,13 @@ export const update = async (req, res) => {
  */
 export const remove = async (req, res) => {
   try {
-    const registration = await Registration(req.user.academyId).findById(
-      req.params._id
-    );
+    const registrationService = new RegistrationService(req.user.academyId);
+
+    const { registration } = await registrationService.findById(req.params._id);
     if (!registration) {
       return res.status(404).send({ message: __NOT_FOUND("registration") });
     }
-    await registration.remove();
+    await registrationService.remove(registration);
 
     return res.status(200).send();
   } catch (err) {
