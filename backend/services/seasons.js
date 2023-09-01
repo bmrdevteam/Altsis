@@ -29,6 +29,55 @@ export const getSeasonSubRecord = (seasonRecord) => {
 };
 
 /**
+ * @param {"syllabus"|"enrollment"|"evaluation"} type
+ * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionEvaluationV2}} seasonRecord
+ * @param {{_id,userId,userName,role}} registrationRecord
+ * @param {boolean} isAllowed
+ */
+export const addSeasonPermissionException = async (
+  type,
+  seasonRecord,
+  registrationRecord,
+  isAllowed
+) => {
+  let permission = undefined;
+  switch (type) {
+    case "syllabus":
+      permission = seasonRecord.permissionSyllabusV2;
+      break;
+    case "enrollment":
+      permission = seasonRecord.permissionEnrollmentV2;
+      break;
+    case "evaluation":
+      permission = seasonRecord.permissionEvaluationV2;
+      break;
+    default:
+      return;
+  }
+
+  for (let i = 0; i < permission.exceptions.length; i++) {
+    if (permission.exceptions[i].userId === registrationRecord.userId) {
+      if (permission.exceptions[i].isAllowed !== isAllowed) {
+        permission.exceptions[i].isAllowed = isAllowed;
+        await seasonRecord.save();
+      }
+      return;
+    }
+  }
+
+  permission.exceptions.push({
+    registration: registrationRecord._id,
+    role: registrationRecord.role,
+    user: registrationRecord.user,
+    userName: registrationRecord.userName,
+    userId: registrationRecord.userId,
+    isAllowed,
+  });
+
+  await seasonRecord.save();
+};
+
+/**
  * @param {Object} permission
  * @param {boolean} permission.teacher
  * @param {boolean} permission.student
