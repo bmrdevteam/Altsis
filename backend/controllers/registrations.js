@@ -371,7 +371,7 @@ export const update = async (req, res) => {
  * @memberof APIs.RegistrationAPI
  * @function DRegistration API
  * @description 학기 등록 정보 삭제 API;
- * @version 2.0.0
+ * @version 2.1.0 - remove permission exception
  *
  * @param {Object} req
  *
