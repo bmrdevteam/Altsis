@@ -34,11 +34,11 @@ const ParsedTableBlock = (props: Props) => {
     }
     return <colgroup></colgroup>;
   };
-  let repeat = _.get(
+  let repeat = _.cloneDeep(_.get(
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
-  );
-  
+  ));
+
   const sortInfo = _.get(props.blockData.data,"dataOrder");
   const sortByArray = _.map(sortInfo, 'by');
   const sortOrderArray = _.map(sortInfo, 'order');
@@ -64,6 +64,48 @@ const ParsedTableBlock = (props: Props) => {
   repeat = [...matchedItem, ...unmatchedItem];
   
   // 필터
+
+// CELL 필터
+  let cellName : any [] = [];
+  // filteredRepeat 배열의 각 항목에 대해 반복합니다.
+  _.forEach(repeat, (item : any, index : number) => {
+    // props로 전달된 dataCellFilter가 비어있지 않은 경우에만 아래 코드 블록을 실행합니다.
+    if (props.blockData.data.dataCellFilter?.length > 0) {
+      // dataCellFilter 배열의 각 filter에 대해 반복합니다.
+      _.forEach(props.blockData.data.dataCellFilter, (filter: any, iasd: number) => {
+        // 조건에 따라 filter.cell 값을 cellName 배열에 추가합니다.
+        if (
+          filter.operator === "===" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] !== filter.value
+        ) {
+          cellName = [...cellName, filter.cell];
+        }
+        if (
+          filter.operator === "!==" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] === filter.value
+        ) {
+          cellName = [...cellName, filter.cell];
+        }
+        if (
+          filter.operator === "!==" &&
+          !filter.value &&
+          !item?.[filter.by] === !filter.value
+        ) {
+          cellName = [...cellName, filter.cell];
+        }
+      })
+      // cellName 배열에 저장된 값들에 대해 반복합니다.
+      _.forEach(cellName, (cv: any, ci: number) => {      
+        // item[cv] 값을 빈 문자열로 변경하여 해당 데이터 항목의 값을 비웁니다.
+        item[cv] = null;
+      })
+      // 작업이 끝난 후, cellName 배열을 초기화합니다.
+      cellName = [];
+    }
+  });
+  
   let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
      // AND 필터
     if (props.blockData.data.dataFilter?.length > 0) {
@@ -128,50 +170,6 @@ const ParsedTableBlock = (props: Props) => {
       }
     }
   return true;
-});
-
-// CELL 필터
-  let cellName : any [] = [];
-// filteredRepeat 배열의 각 항목에 대해 반복합니다.
-_.forEach(filteredRepeat, (item : any, index : number) => {
-  // props로 전달된 dataCellFilter가 비어있지 않은 경우에만 아래 코드 블록을 실행합니다.
-  if (props.blockData.data.dataCellFilter?.length > 0) {
-    // dataCellFilter 배열의 각 filter에 대해 반복합니다.
-    _.forEach(props.blockData.data.dataCellFilter, (filter: any, iasd: number) => {
-      // 조건에 따라 filter.cell 값을 cellName 배열에 추가합니다.
-      if (
-        filter.operator === "===" &&
-        item?.[filter.by] !== undefined &&
-        item?.[filter.by] !== filter.value
-      ) {
-        cellName = [...cellName, filter.cell];
-        console.log(cellName);
-      }
-      if (
-        filter.operator === "!==" &&
-        item?.[filter.by] !== undefined &&
-        item?.[filter.by] === filter.value
-      ) {
-        cellName = [...cellName, filter.cell];
-        console.log(cellName);
-      }
-      if (
-        filter.operator === "!==" &&
-        !filter.value &&
-        !item?.[filter.by] === !filter.value
-      ) {
-        cellName = [...cellName, filter.cell];
-        console.log(cellName);
-      }
-    })
-    // cellName 배열에 저장된 값들에 대해 반복합니다.
-    _.forEach(cellName, (cv: any, ci: number) => {      
-      // item[cv] 값을 빈 문자열로 변경하여 해당 데이터 항목의 값을 비웁니다.
-      item[cv] = "";
-    })
-    // 작업이 끝난 후, cellName 배열을 초기화합니다.
-    cellName = [];
-  }
 });
 
   // sort
