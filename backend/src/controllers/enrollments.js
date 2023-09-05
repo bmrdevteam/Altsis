@@ -141,7 +141,7 @@ const exec = async (req) => {
       }
     }
     // 7-2. 멘토가 수강생을 초대하는 경우
-    else if (_.find(syllabus.teachers, { _id: req.user._id })) {
+    else if (_.find(syllabus.teachers, { _id: req.user._id }) || req.user.auth === "manager") {
       const teacherRegistration = await Registration(
         req.user.academyId
       ).findOne({ season: syllabus.season, user: req.user._id });
@@ -408,7 +408,7 @@ export const findEvaluations = async (req, res) => {
         return res.status(404).send({ message: __NOT_FOUND("syllabus") });
       }
 
-      if (!_.find(syllabus.teachers, { _id: req.user._id })) {
+      if (!_.find(syllabus.teachers, { _id: req.user._id }) || req.user.auth !== "manager") {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
       const enrollments = await Enrollment(req.user.academyId)
@@ -489,7 +489,7 @@ export const updateEvaluation = async (req, res) => {
 
     let byMentor = false;
     let byStudent = false;
-    if (_.find(enrollment.teachers, { _id: req.user._id })) {
+    if (_.find(enrollment.teachers, { _id: req.user._id }) || req.user.auth === "manager") {
       byMentor = true;
     }
     if (enrollment.student.equals(req.user._id)) {
@@ -720,7 +720,7 @@ export const remove = async (req, res) => {
 
     if (
       !enrollment.student.equals(req.user._id) &&
-      !_.find(enrollment.teachers, { _id: req.user._id })
+      !_.find(enrollment.teachers, { _id: req.user._id } && req.user.auth !== "manager")
     ) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
