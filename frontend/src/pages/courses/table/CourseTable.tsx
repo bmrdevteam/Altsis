@@ -1,5 +1,7 @@
 import Table, { TTableHeader } from "components/tableV2/Table";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "contexts/authContext";
 
 import { defaultHeaderList } from "./defaultHeaderList";
 import _ from "lodash";
@@ -22,12 +24,14 @@ type Props = {
 
 const CourseTable = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
+  const { currentUser } = useAuth();
   const [courseList, setCourseList] = useState<any[]>([]);
   const [headerList, setHeaderList] = useState<TTableHeader[]>([]);
 
   const [courseId, setCourseId] = useState<string | undefined>(undefined);
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   const structuring = (data: any[]) => {
     return _.sortBy(
@@ -156,8 +160,12 @@ const CourseTable = (props: Props) => {
       onClick: props.onClickDetail
         ? props.onClickDetail
         : (e: any) => {
-            setCourseId(e._id);
-            setViewPopupActive(true);
+            if(currentUser.auth === "manager"){
+              navigate(`/courses/mentoring/${e._id}`);
+            }else{
+              setCourseId(e._id);
+              setViewPopupActive(true);
+            }
           },
       width: "72px",
       textAlign: "center",

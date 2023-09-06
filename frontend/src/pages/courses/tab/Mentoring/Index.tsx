@@ -186,7 +186,7 @@ const CoursePid = (props: Props) => {
             if (teacher.confirmed) {
               confirmedCnt += 1;
             }
-            if (teacher.userId === currentUser?.userId) {
+            if (teacher.userId === currentUser?.userId || currentUser.auth === "manager") {
               isMentor = true;
             }
           }
