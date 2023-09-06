@@ -720,8 +720,7 @@ export const remove = async (req, res) => {
 
     if (
       !enrollment.student.equals(req.user._id) &&
-      !_.find(enrollment.teachers, { _id: req.user._id } && req.user.auth !== "manager")
-    ) {
+      !_.find(enrollment.teachers, { _id: req.user._id }) && req.user.auth !== "manager") {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
