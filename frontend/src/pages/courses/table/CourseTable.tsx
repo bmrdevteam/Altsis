@@ -24,7 +24,7 @@ type Props = {
 
 const CourseTable = (props: Props) => {
   const { SyllabusAPI } = useAPIv2();
-  const { currentSeason, currentUser, currentRegistration } = useAuth();
+  const { currentUser } = useAuth();
   const [courseList, setCourseList] = useState<any[]>([]);
   const [headerList, setHeaderList] = useState<TTableHeader[]>([]);
 
