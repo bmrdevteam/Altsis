@@ -423,7 +423,8 @@ export const updateV2 = async (req, res) => {
           (timeBlock, idx) => timeBlock.label === req.body.time[idx].label
         )
       ),
-      classroom: syllabus.classroom !== req.body.classroom,
+      // syllabus.classroom과 req.body.classroom가 동시에 ''또는 undefined일 경우는 false를 반환한다.
+      classroom: syllabus.classroom !== req.body.classroom && !(!syllabus.classroom && !req.body.classroom),
       subject: !_.isEqual(syllabus.subject, req.body.subject),
       limit: syllabus.limit !== req.body.limit,
     };
@@ -431,7 +432,7 @@ export const updateV2 = async (req, res) => {
     /* 1. user가 syllabus 작성자이고 멘토가 아닌 경우 */
     if (
       user._id.equals(syllabus.user) &&
-      !_.find(syllabus.teachers, { _id: user._id })
+      !_.find(syllabus.teachers, { _id: user._id }) && req.user.auth !== "manager"
     ) {
       // 승인이 완료된 강의계획서는 수정할 수 없다.
       if (isFullyConfirmed(syllabus)) {
@@ -470,7 +471,7 @@ export const updateV2 = async (req, res) => {
     }
 
     /* 2. user가 syllabus 멘토인 경우 */
-    if (_.find(syllabus.teachers, { _id: user._id })) {
+    if (_.find(syllabus.teachers, { _id: user._id }) || req.user.auth === "manager") {
       /* 2-1. 수강생이 없는 경우 */
       if (syllabus.count === 0) {
         /* 강의실 중복 확인 */
@@ -592,7 +593,7 @@ export const updateSubject = async (req, res) => {
     }
 
     // user가 syllabus 멘토인지 확인
-    if (!_.find(syllabus.teachers, { _id: user._id })) {
+    if (!_.find(syllabus.teachers, { _id: user._id }) && req.user.auth !== "manager") {
       return res.status(403).send({
         message: PERMISSION_DENIED,
       });
@@ -863,7 +864,7 @@ export const remove = async (req, res) => {
     /* 1. user가 syllabus 작성자이고 멘토가 아닌 경우 */
     if (
       user._id.equals(syllabus.user) &&
-      !_.find(syllabus.teachers, { _id: user._id })
+      !_.find(syllabus.teachers, { _id: user._id }) && req.user.auth !== "manager"
     ) {
       // 수강생이 있는 경우 삭제할 수 없다
       if (syllabus.count > 0) {
@@ -877,7 +878,7 @@ export const remove = async (req, res) => {
     }
 
     /* 2. user가 syllabus 멘토인 경우 */
-    if (_.find(syllabus.teachers, { _id: user._id })) {
+    if (_.find(syllabus.teachers, { _id: user._id }) || req.user.auth === "manager") {
       await Enrollment(user.academyId).deleteMany({
         syllabus: syllabus._id,
       });
