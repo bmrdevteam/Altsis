@@ -141,10 +141,16 @@ const CourseEnrollment = (props: Props) => {
             navigate("/courses#수강신청%20현황", { replace: true });
           }
 
-          if (_.find(enrollment.teachers, { user: currentUser._id })) {
-            navigate(`../mentoring/${enrollment.syllabus}`, {
-              replace: true,
-            });
+          if (_.find(enrollment.teachers, { _id: currentUser._id })) {
+            if (
+              window.confirm(
+                "담당 중인 수업입니다. 멘토링 페이지로 이동하시겠습니까?"
+              )
+            ) {
+              navigate(`../mentoring/${enrollment.syllabus}`, {
+                replace: true,
+              });
+            }
           }
 
           if (enrollment.student !== currentUser._id) {

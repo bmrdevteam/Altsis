@@ -1,5 +1,5 @@
 import { useAuth } from "contexts/authContext";
-import _, { isArray, isNumber, isObject } from "lodash";
+import _, { filter, forEach, isArray, isNumber, isObject } from "lodash";
 import React, { useState } from "react";
 import style from "../../editor.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
@@ -11,8 +11,11 @@ type Props = {
   type: "timetable" | "archive" | "syllabus";
   defaultValues?: any;
   defaultTimetable?: any;
+  idTimetable?: any;
+  onClickCourse?: any;
   dbData?: any;
 };
+
 const ParsedTableBlock = (props: Props) => {
   const { currentSchool } = useAuth();
   const { FileAPI } = useAPIv2();
@@ -31,19 +34,83 @@ const ParsedTableBlock = (props: Props) => {
     }
     return <colgroup></colgroup>;
   };
-
-  let repeat = _.get(
+  let repeat = _.cloneDeep(_.get(
     props.dbData,
     props.blockData.data?.dataRepeat?.by.split("//")
-  );
+  ));
+
+  const sortInfo = _.get(props.blockData.data,"dataOrder");
+  const sortByArray = _.map(sortInfo, 'by');
+  const sortOrderArray = _.map(sortInfo, 'order');
+  const sortPriorityArray = _.map(sortInfo, 'priority');
+  
+  let matchedItem : any[] = []; // 우선순위와 일치하는 아이템을 저장할 배열
+  let unmatchedItem : any[] = []; // 우선순위와 일치하지 않는 아이템을 저장할 배열
+  
+  _.forEach(sortPriorityArray, (item : any, index : number) => {
+    if(item){
+      const priorityArray = item.split("/");
+      const byArray = sortByArray[index];
+      _.forEach(priorityArray, (item : any, index : number) => {
+        matchedItem = [...matchedItem, ..._.orderBy(_.filter(repeat, (v) => v[byArray] === item ),sortByArray, sortOrderArray)];
+      });
+    }
+  });
+  
+  // 우선순위와 일치하지 않는 아이템 찾기
+  unmatchedItem = _.orderBy(_.difference(repeat, matchedItem), sortByArray, sortOrderArray);
+  
+  // 우선순위와 일치하는 아이템과 일치하지 않는 아이템을 합친 후 repeat 배열을 갱신
+  repeat = [...matchedItem, ...unmatchedItem];
+  
+  // 필터
+
+// CELL 필터
+  let cellName : any [] = [];
+  // filteredRepeat 배열의 각 항목에 대해 반복합니다.
+  _.forEach(repeat, (item : any, index : number) => {
+    // props로 전달된 dataCellFilter가 비어있지 않은 경우에만 아래 코드 블록을 실행합니다.
+    if (props.blockData.data.dataCellFilter?.length > 0) {
+      // dataCellFilter 배열의 각 filter에 대해 반복합니다.
+      _.forEach(props.blockData.data.dataCellFilter, (filter: any, iasd: number) => {
+        // 조건에 따라 filter.cell 값을 cellName 배열에 추가합니다.
+        if (
+          filter.operator === "===" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] !== filter.value
+        ) {
+          cellName = [...cellName, filter.cell];
+        }
+        if (
+          filter.operator === "!==" &&
+          item?.[filter.by] !== undefined &&
+          item?.[filter.by] === filter.value
+        ) {
+          cellName = [...cellName, filter.cell];
+        }
+        if (
+          filter.operator === "!==" &&
+          !filter.value &&
+          !item?.[filter.by] === !filter.value
+        ) {
+          cellName = [...cellName, filter.cell];
+        }
+      })
+      // cellName 배열에 저장된 값들에 대해 반복합니다.
+      _.forEach(cellName, (cv: any, ci: number) => {      
+        // item[cv] 값을 빈 문자열로 변경하여 해당 데이터 항목의 값을 비웁니다.
+        item[cv] = null;
+      })
+      // 작업이 끝난 후, cellName 배열을 초기화합니다.
+      cellName = [];
+    }
+  });
+  
   let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
+     // AND 필터
     if (props.blockData.data.dataFilter?.length > 0) {
       let boolCount: number = 0;
-      let boola: string = "";
       props.blockData.data.dataFilter?.map((filter: any, iasd: number) => {
-        boola = boola.concat(
-          `${iasd}${v?.[filter.by]} ${filter.operator} ${filter.value}`
-        );
         if (
           filter.operator === "===" &&
           v?.[filter.by] !== undefined &&
@@ -51,7 +118,6 @@ const ParsedTableBlock = (props: Props) => {
         ) {
           boolCount += 1;
         }
-
         if (
           filter.operator === "!==" &&
           v?.[filter.by] !== undefined &&
@@ -64,12 +130,6 @@ const ParsedTableBlock = (props: Props) => {
           !filter.value &&
           !v?.[filter.by] === !filter.value
         ) {
-          // console.log(
-          //   !v?.[filter.by] === !filter.value,
-          //   v?.[filter.by],
-          //   filter.value
-          // );
-
           boolCount += 1;
         }
       });
@@ -77,8 +137,40 @@ const ParsedTableBlock = (props: Props) => {
         return false;
       }
     }
-    return true;
-  });
+    // OR 필터
+    if (props.blockData.data.dataOrFilter?.length > 0) {
+      let boolCount: number = 0;
+      let orCount: number = 0;
+      props.blockData.data.dataOrFilter?.map((filter: any, iasd: number) => {
+        if (
+          filter.operator === "===" &&
+          v?.[filter.by] !== undefined &&
+          v?.[filter.by] !== filter.value
+        ) {
+          boolCount += 1;
+        }
+        if (
+          filter.operator === "!==" &&
+          v?.[filter.by] !== undefined &&
+          v?.[filter.by] === filter.value
+        ) {
+          boolCount += 1;
+        }
+        if (
+          filter.operator === "!==" &&
+          !filter.value &&
+          !v?.[filter.by] === !filter.value
+        ) {
+          boolCount += 1;
+        }
+        orCount += 1;
+      });
+      if (boolCount === orCount) {
+        return false;
+      }
+    }
+  return true;
+});
 
   // sort
   if (
@@ -302,7 +394,16 @@ const ParsedTableBlock = (props: Props) => {
           return (
             <div
               className={style.cell}
-              style={{ textAlign: data.align, fontSize: data.fontSize }}
+              style={{
+                textAlign: data.align,
+                fontSize: data.fontSize,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                if (props.onClickCourse && props.idTimetable?.[data?.name]) {
+                  props.onClickCourse(props.idTimetable?.[data?.name]);
+                }
+              }}
             >
               {props.defaultTimetable?.[data?.name] ??
                 props.defaultTimetable?.[data?.id]}

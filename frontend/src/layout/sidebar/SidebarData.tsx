@@ -95,14 +95,12 @@ export const SidebarData = (auth: string, role?: string): any => {
           });
         }
       }
-      if (auth === "manager" || auth === "admin") {
-        data.push({
-          title: "docs",
-          name: "문서",
-          path: "/docs",
-          icon: <Svg type="docs" />,
-        });
-      }
+      data.push({
+        title: "docs",
+        name: "문서",
+        path: "/docs",
+        icon: <Svg type="docs" />,
+      });
     } else if (currentRegistration.role === "student") {
       const myFormArchive = currentSchool?.formArchive?.filter(
         (form: any) => form.authStudent && form.authStudent !== "undefined"
@@ -184,6 +182,12 @@ export const SidebarData = (auth: string, role?: string): any => {
     path: "/dev",
     icon: <Svg type="flask" />,
     subLink: [
+      {
+        title: "강의실",
+        name: "강의실",
+        path: "/dev/classrooms",
+        icon: <Svg type="door-open" />,
+      },
       {
         title: "일정",
         name: "일정",

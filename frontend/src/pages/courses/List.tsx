@@ -85,7 +85,6 @@ const Courses = (props: Props) => {
       <Navbar />
       <div className={style.section}>
         <div className={style.title}>수업 목록</div>
-        <div style={{ height: "24px" }}></div>
         {!isLoading ? (
           <CourseTable
             defaultPageBy={50}

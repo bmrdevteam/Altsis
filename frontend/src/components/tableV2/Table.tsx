@@ -959,12 +959,15 @@ const Table = (props: Props) => {
                               onFocus={(e) => {
                                 e.currentTarget.style.height =
                                   e.currentTarget.scrollHeight + "px";
-                                e.currentTarget.style.width = "300px";
+                                e.currentTarget.style.width = "100%"; // 최소 너비는 100%로 설정
+                                if (e.currentTarget.offsetWidth < 300) {
+                                  e.currentTarget.style.width = "300px"; // 최소 너비가 300px보다 작을 경우 300px로 조정
+                                }
                               }}
-                              onKeyDown={(e) => {
+                              onBlur={(e) => {
                                 e.currentTarget.style.height =
                                   e.currentTarget.scrollHeight + "px";
-                                e.currentTarget.style.width = "300px";
+                                e.currentTarget.style.width = "100%"; // 최소 너비는 100%로 설정
                               }}
                               style={{
                                 whiteSpace: val.whiteSpace,
