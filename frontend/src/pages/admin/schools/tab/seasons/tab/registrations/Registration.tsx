@@ -100,9 +100,9 @@ const Index = (props: Props) => {
         } finally {
           setRatio((i + 1) / selectedRegistrations.current.length);
         }
-        setIsLoading(true);
-        setFailedList(failedList);
       }
+      setIsLoading(true);
+      setFailedList(failedList);
     }
   };
 

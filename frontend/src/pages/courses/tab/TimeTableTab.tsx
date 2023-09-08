@@ -51,7 +51,7 @@ const Timetable = (props: Props) => {
     return () => {};
   }, [currentRegistration]);
 
-  function syllabusToTime(s: any) {
+  function syllabusLabelByTime(s: any) {
     let result = {};
     if (s) {
       for (let i = 0; i < s.length; i++) {
@@ -68,6 +68,22 @@ const Timetable = (props: Props) => {
     return result;
   }
 
+  function syllabusIdByTime(s: any) {
+    let result = {};
+    if (s) {
+      for (let i = 0; i < s.length; i++) {
+        const element = s[i];
+        for (let ii = 0; ii < element.time.length; ii++) {
+          Object.assign(result, {
+            [element.time[ii].label]: element._id,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
   return (
     <div className={style.section}>
       {currentSeason?.formTimetable && (
@@ -75,7 +91,11 @@ const Timetable = (props: Props) => {
           <EditorParser
             type={"timetable"}
             auth="view"
-            defaultTimetable={syllabusToTime(props.courseList)}
+            defaultTimetable={syllabusLabelByTime(props.courseList)}
+            idTimetable={syllabusIdByTime(props.courseList)}
+            onClickCourse={(id: string) => {
+              window.open("/courses/enrolled/" + id, "_blank");
+            }}
             data={currentSeason?.formTimetable}
           />
           <div style={{ height: "24px" }}></div>

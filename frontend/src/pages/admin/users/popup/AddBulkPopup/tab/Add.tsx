@@ -53,7 +53,7 @@ type Props = {
     }[]
   >;
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
-  addUserList: (users: any[]) => void;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 function Add(props: Props) {
@@ -71,13 +71,15 @@ function Add(props: Props) {
   const onClickAddBulkHandler = async () => {
     setIsStatusPopupActive(true);
 
-    const schools = props.schoolListRef.current?.map((school) => {
-      return {
-        school: school._id,
-        schoolId: school.schoolId,
-        schoolName: school.schoolName,
-      };
-    });
+    const schools = props.schoolListRef.current
+      ?.filter((school) => school.tableRowChecked)
+      .map((school) => {
+        return {
+          school: school._id,
+          schoolId: school.schoolId,
+          schoolName: school.schoolName,
+        };
+      });
 
     const addedUserList = [];
     const failedUserList = [];
@@ -102,7 +104,7 @@ function Add(props: Props) {
         setRatio((i + 1) / props.userListRef.current.length);
       }
     }
-    props.addUserList(addedUserList);
+    // props.addUserList(addedUserList);
     setFailedUserList(failedUserList);
   };
 
@@ -166,7 +168,10 @@ function Add(props: Props) {
               <div>
                 <Button
                   type={"ghost"}
-                  onClick={() => props.setPopupActive(false)}
+                  onClick={() => {
+                    props.setIsLoading(true);
+                    props.setPopupActive(false);
+                  }}
                   style={{
                     borderRadius: "4px",
                     height: "32px",

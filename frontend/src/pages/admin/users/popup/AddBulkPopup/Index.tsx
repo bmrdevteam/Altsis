@@ -48,7 +48,7 @@ import useAPIv2 from "hooks/useAPIv2";
 type Props = {
   userList: any[];
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
-  addUserList: (users: any[]) => void;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 function AddBulk(props: Props) {
@@ -70,7 +70,8 @@ function AddBulk(props: Props) {
     SchoolAPI.RSchools()
       .then(({ schools }) => {
         schoolListRef.current = schools.map((school) => {
-          return { ...school, tableRowChecked: false };
+          const { _id, schoolId, schoolName } = school;
+          return { _id, schoolId, schoolName, tableRowChecked: false };
         });
       })
       .catch((err: any) => alert(err.response.data.message));
@@ -103,7 +104,7 @@ function AddBulk(props: Props) {
                 invalidUserCntRef={invalidUserCntRef}
                 schoolListRef={schoolListRef}
                 setPopupActive={props.setPopupActive}
-                addUserList={props.addUserList}
+                setIsLoading={props.setIsLoading}
               />
             ),
           }}

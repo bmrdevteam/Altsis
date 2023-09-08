@@ -116,7 +116,7 @@ const CoursePid = (props: Props) => {
         .then(({ syllabus }) => {
           if (
             syllabus.user !== currentUser._id &&
-            !_.find(syllabus.teachers, { _id: currentUser._id })
+            !_.find(syllabus.teachers, { _id: currentUser._id }) && currentUser.auth !== "manager"
           ) {
             navigate("/courses#개설%20수업", { replace: true });
           }

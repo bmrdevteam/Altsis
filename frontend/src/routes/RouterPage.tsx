@@ -61,6 +61,7 @@ import Docs from "pages/docs/Index";
 import ChooseAcademy from "pages/login/ChooseAcademy";
 import Dev from "pages/dev/Index";
 import Schedule from "pages/dev/Schedule";
+import Classrooms from "pages/dev/Classrooms";
 
 function RouterPage() {
   const { currentUser } = useAuth();
@@ -450,6 +451,14 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <Schedule />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="classrooms"
+                element={
+                  <RequireAuth>
+                    <Classrooms />
                   </RequireAuth>
                 }
               ></Route>
