@@ -37,7 +37,105 @@ Altsis(Alternative School Infomation System)는 학교에서 다루는 모든 �
         * Docs(문서)
     * AcamdemyUser(학생, 교사)
 
-## 설치
+## [설치(backend)](https://github.com/bmrdevteam/school-information-system/wiki/Docs-(new)#%EC%8B%A4%ED%96%89-%EA%B0%80%EC%9D%B4%EB%93%9C%EB%9D%BC%EC%9D%B8-1)
+### 환경 설정
+
+프로젝트를 실행하려면 다음 환경 변수를 설정해야 합니다. 관리자에게 키를 받거나 새로 설정하세요.
+
+```yaml
+URL: cors 설정을 위한 클라이언트 주소
+SERVER_PORT: 서버를 실행할 포트
+
+DB_URL: MongoDB 클러스터 연결 URI
+REDIS_URL: Redis 연결 URI
+session_key: 세션 저장에 사용할 암호키
+
+GOOGLE_CLIENT_ID: 
+- 구글 로그인에 사용되는 client ID (구글 클라우드에서 생성)
+
+# S3에 프로필 사진을 저장하기 위한 환경 변수
+s3_accessKeyId: AWS S3 업로드 권한을 가진 IAM의 keyId
+s3_secretAccessKey: secretAccessKey
+s3_region: s3 region
+s3_bucket: 버킷명
+
+# S3에 파일을 저장하기 위한 환경 변수
+s3_accessKeyId2: AWS S3 업로드 권한을 가진 IAM의 keyId
+s3_secretAccessKey2: secretAccessKey
+s3_bucket2: 버킷명
+
+# s3에 로그를 저장하기 위한 환경 변수
+s3_bucket3: 버킷명
+
+# 수강 정보의 평가 정보를 암호화하기 위한 환경 변수 (mongoose-encryption)
+ENCKEY_E: 공개키
+SIGKEY_E: 비밀키
+
+# 학생 기록 정보를 암호화하기 위한 환경 변수 (mongoose-encryption)
+ENCKEY_A: 공개키
+SIGKEY_A: 비밀키
+
+saltRounds: 비밀번호 해싱을 위한 설정값 (passport)
+```
+
+### 실행 가이드라인
+
+1. 프로젝트를 클론합니다.
+
+2. `프로젝트 디렉토리 > backend`로 이동합니다.
+
+3. 의존성 패키지를 설치합니다. 
+
+   `yarn`
+
+4. cross-env, nodemon을 전역으로 설치합니다.
+
+   `yarn global add cross-env`
+   
+   `yarn global add nodemon`
+
+5. `.env` 파일을 생성하고, 필요한 환경 변수 값을 설정합니다.
+
+6. 서버를 실행합니다.
+
+   `yarn dev`
+
+### [처음 실행 시✨](https://github.com/bmrdevteam/school-information-system/wiki/Docs-(new)#%EC%B2%98%EC%9D%8C-%EC%8B%A4%ED%96%89-%EC%8B%9C)
+
+## [설치(frontend)](https://github.com/bmrdevteam/school-information-system/wiki/Docs-(new)#%EC%8B%A4%ED%96%89-%EA%B0%80%EC%9D%B4%EB%93%9C%EB%9D%BC%EC%9D%B8-2)
+### 환경 설정
+
+프로젝트를 실행하려면 다음 환경 변수를 설정해야 합니다. 관리자에게 키를 받거나 새로 설정하세요.
+
+```yaml
+REACT_APP_GOOGLE_CLIENT_ID='구글 로그인에 사용되는 client ID (구글 클라우드에서 생성)'
+REACT_APP_SERVER_URL='cors 설정을 위한 클라이언트 주소'
+PORT=서버를 실행할 포트
+```
+
+**example**
+
+```yaml
+REACT_APP_GOOGLE_CLIENT_ID='[개인키].apps.googleusercontent.com'
+REACT_APP_SERVER_URL='http://localhost:8080'
+PORT=3030
+```
+### 실행 가이드라인
+
+1. 프로젝트를 클론합니다.
+
+2. `프로젝트 디렉토리 > frontend`로 이동합니다.
+
+3. 의존성 패키지를 설치합니다. 
+
+   `yarn`
+
+4. `.env` 파일을 생성하고, 필요한 환경 변수 값을 설정합니다.
+
+5. 서버를 실행합니다.
+
+   `yarn start`
+
 
 ## 문서
 

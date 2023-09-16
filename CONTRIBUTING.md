@@ -25,7 +25,7 @@ dev에 반영된 코드는 가장 최근의 안정된 배포와 반드시 호환
 버그가 발생하는 작은 테스트 케이스를 제공하는 게 버그를 수정하기 위한 가장 좋은 방법입니다. 이때 [JSFiddle](https://jsfiddle.net/) 템플릿이 좋은 시작점입니다.
 
 ## 연락 방법
-Altsis에 대한 도움이 필요한 경우 [Discord](https://discord.gg/2MxW4NfS) 채팅 플랫폼에서 Altsis 사용자 커뮤니티를 이용할 수 있습니다.
+Altsis에 대한 도움이 필요한 경우 [Discussion](https://github.com/bmrdevteam/school-information-system/discussions)을 이용하여 사용자 커뮤니티에 의견을 게시 할 수 있습니다.
 
 ## 변경 제안
 Public API를 변경하거나 구현을 간단하게 변경하려 할 때 [이슈](https://github.com/bmrdevteam/school-information-system/issues)를 먼저 제출하길 권장합니다. 수정하려고 많은 노력을 기울이기 전에 제안에 대한 합의에 도달할 수 있도록 해줍니다.
