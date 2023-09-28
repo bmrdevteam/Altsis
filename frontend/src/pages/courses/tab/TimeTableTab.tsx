@@ -27,7 +27,7 @@
  * @version 1.0
  *
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 
@@ -36,7 +36,22 @@ import style from "style/pages/enrollment.module.scss";
 import EditorParser from "editor/EditorParser";
 import Divider from "components/divider/Divider";
 
+import Svg from "assets/svg/Svg";
+import { useReactToPrint } from 'react-to-print';
+
 type Props = { courseList: any[] };
+type PrintButtonProps = { onClick: () => void };
+
+const PrintButton = ({ onClick }: PrintButtonProps ) => {
+  return (
+    <button
+      className={style.printButton}
+      onClick={onClick}
+    >
+      <Svg type="print" width="16" height="16" />
+    </button>
+  );
+}
 
 const Timetable = (props: Props) => {
   const navigate = useNavigate();
@@ -84,20 +99,29 @@ const Timetable = (props: Props) => {
     return result;
   }
 
+  const timetableRef = useRef(null);
+  const handlePrint = useReactToPrint({
+    content: () => timetableRef.current,
+  });
   return (
     <div className={style.section}>
       {currentSeason?.formTimetable && (
         <>
-          <EditorParser
-            type={"timetable"}
-            auth="view"
-            defaultTimetable={syllabusLabelByTime(props.courseList)}
-            idTimetable={syllabusIdByTime(props.courseList)}
-            onClickCourse={(id: string) => {
-              window.open("/courses/enrolled/" + id, "_blank");
-            }}
-            data={currentSeason?.formTimetable}
-          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <PrintButton onClick={handlePrint} />
+          </div>
+          <div ref={timetableRef}>
+            <EditorParser
+              type={"timetable"}
+              auth="view"
+              defaultTimetable={syllabusLabelByTime(props.courseList)}
+              idTimetable={syllabusIdByTime(props.courseList)}
+              onClickCourse={(id: string) => {
+                window.open("/courses/enrolled/" + id, "_blank");
+              }}
+              data={currentSeason?.formTimetable}
+            />
+          </div>
           <div style={{ height: "24px" }}></div>
           <Divider />
           <div style={{ height: "24px" }}></div>
