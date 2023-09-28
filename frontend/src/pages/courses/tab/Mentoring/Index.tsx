@@ -27,9 +27,10 @@
  * @version 1.0
  *
  */
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {useNavigate, useParams, useBeforeUnload, useLocation} from "react-router-dom";
 import { useAuth } from "contexts/authContext";
+
 import style from "style/pages/courses/course.module.scss";
 
 import Navbar from "layout/navbar/Navbar";
@@ -81,6 +82,33 @@ const CoursePid = (props: Props) => {
 
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [ratio, setRatio] = useState<number>(0);
+  const location = useLocation();
+
+  const autosave = () => {
+    const evaluation: any = {};
+
+    enrollmentListRef.current.map(e => {
+      for (let obj of fieldEvaluationList) {
+        evaluation[obj.text] = e[obj.key];
+      }
+
+      EnrollmentAPI.UEvaluation({
+        params: {
+          _id: e._id,
+        },
+        data: {evaluation},
+      }).then(() => {
+      }).catch((_errIgnore: any) => {
+      });
+    })
+  }
+
+  useEffect(() => {
+    autosave();
+    console.log(location)
+  }, [location]);
+
+  useBeforeUnload(useCallback(autosave, [location]));
 
   const categories = () => {
     return (
