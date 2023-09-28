@@ -56,7 +56,7 @@ const PrintButton = ({ onClick }: PrintButtonProps ) => {
         className={style.printButton}
         onClick={onClick}
       >
-      <Svg type="print" width="16" height="16" />
+      <Svg type="print" width="20" height="20" />
     </button>
       </>
   );
