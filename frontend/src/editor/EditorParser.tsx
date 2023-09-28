@@ -1,5 +1,5 @@
 import { isArray } from "lodash";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef } from "react";
 import ParsedBlock from "./parser/blocks/ParsedBlock";
 import style from "./editor.module.scss";
 
@@ -15,7 +15,7 @@ type Props = {
   dbData?: any;
 };
 
-const EditorParser = (props: Props) => {
+const EditorParser = ( props: Props) => {
   const returnData = useRef<any>({});
   returnData.current = props.defaultValues || {};
 
