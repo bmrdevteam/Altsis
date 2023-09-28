@@ -39,17 +39,26 @@ import Divider from "components/divider/Divider";
 import Svg from "assets/svg/Svg";
 import { useReactToPrint } from 'react-to-print';
 
+import { Tooltip } from 'react-tooltip'
+
+import 'react-tooltip/dist/react-tooltip.css'
+
 type Props = { courseList: any[] };
 type PrintButtonProps = { onClick: () => void };
 
 const PrintButton = ({ onClick }: PrintButtonProps ) => {
   return (
-    <button
-      className={style.printButton}
-      onClick={onClick}
-    >
+    <>
+      <Tooltip id="timetable-tooltip" />
+      <button
+        data-tooltip-id="timetable-tooltip"
+        data-tooltip-content="시간표 인쇄"
+        className={style.printButton}
+        onClick={onClick}
+      >
       <Svg type="print" width="16" height="16" />
     </button>
+      </>
   );
 }
 
