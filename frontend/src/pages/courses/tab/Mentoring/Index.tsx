@@ -105,7 +105,6 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     autosave();
-    console.log(location)
   }, [location]);
 
   useBeforeUnload(useCallback(autosave, [location]));
