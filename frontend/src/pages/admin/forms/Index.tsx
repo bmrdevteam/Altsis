@@ -325,6 +325,8 @@ const Forms = (props: Props) => {
     );
   };
 
+  const navigate = useNavigate();
+
   return (
     <>
       <Navbar />
@@ -352,6 +354,22 @@ const Forms = (props: Props) => {
                           text: "종류",
                           width: "240px",
                         },
+                        {
+                          type: "button",
+                          key: "edit",
+                          text: "수정",
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                          onClick: (row) => {
+                            navigate(row._id);
+                          }
+                        },
                       ]}
                     />
                   )}
@@ -374,6 +392,22 @@ const Forms = (props: Props) => {
                           key: "type",
                           text: "종류",
                           width: "240px",
+                        },
+                        {
+                          type: "button",
+                          key: "edit",
+                          text: "수정",
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                          onClick: (row) => {
+                            navigate(row._id);
+                          }
                         },
                       ]}
                     />
@@ -402,6 +436,22 @@ const Forms = (props: Props) => {
                           text: "종류",
                           width: "240px",
                         },
+                        {
+                          type: "button",
+                          key: "edit",
+                          text: "수정",
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                          onClick: (row) => {
+                            navigate(row._id);
+                          }
+                        },
                       ]}
                     />
                   )}
@@ -425,6 +475,22 @@ const Forms = (props: Props) => {
                           text: "종류",
                           width: "240px",
                         },
+                        {
+                          type: "button",
+                          key: "edit",
+                          text: "수정",
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                          onClick: (row) => {
+                            navigate(row._id);
+                          }
+                        },
                       ]}
                     />
                   )}
@@ -447,6 +513,22 @@ const Forms = (props: Props) => {
                           key: "type",
                           text: "종류",
                           width: "240px",
+                        },
+                        {
+                          type: "button",
+                          key: "edit",
+                          text: "수정",
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                          onClick: (row) => {
+                            navigate(row._id);
+                          }
                         },
                       ]}
                     />
