@@ -98,3 +98,13 @@
     }
   }
 }
+
+.printButton {
+  background: transparent;
+  border: 0 none;
+  cursor: pointer;
+
+  & svg {
+    fill: var(--accent-4);
+  }
+}
