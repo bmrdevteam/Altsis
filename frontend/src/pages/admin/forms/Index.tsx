@@ -152,8 +152,14 @@ const Forms = (props: Props) => {
      * @return null
      */
     const exportToJSON = (data: object) => {
+      const filteredData = Object.entries(data).reduce((obj: any, [key, val]) => {
+        if(![ '_id', '__v', 'userId', 'userName', 'createdAt', 'updatedAt', 'archived'].includes(key)) {
+          obj[key] = val;
+        }
+        return obj;
+      }, {});
       const filename: string = uuidv4() + '.json';
-      const blob = new Blob([JSON.stringify(data)], {
+      const blob = new Blob([JSON.stringify(filteredData)], {
         type: "application/json;charset=utf-8",
       });
       FileSaver.saveAs(blob, filename);
