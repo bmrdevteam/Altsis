@@ -28,6 +28,8 @@
  */
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+import FileSaver from "file-saver";
 import style from "style/pages/admin/forms.module.scss";
 
 // hooks
@@ -143,6 +145,20 @@ const Forms = (props: Props) => {
         break;
     }
 
+
+    /**
+     * export to json file
+     * @param object data
+     * @return null
+     */
+    const exportToJSON = (data: object) => {
+      const filename: string = uuidv4() + '.json';
+      const blob = new Blob([JSON.stringify(data)], {
+        type: "application/json;charset=utf-8",
+      });
+      FileSaver.saveAs(blob, filename);
+    }
+
     return (
       <>
         <div className={style.item} title={data.title}>
@@ -226,6 +242,14 @@ const Forms = (props: Props) => {
                       }}
                     >
                       보관하기
+                    </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        exportToJSON(data);
+                      }}
+                    >
+                      내보내기
                     </div>
                   </div>
                 ) : (
