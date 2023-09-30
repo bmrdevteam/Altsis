@@ -29,10 +29,13 @@
  * @version 1.0
  *
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "contexts/authContext";
+import { useReactToPrint } from 'react-to-print';
 
 import style from "style/pages/courses/course.module.scss";
+
+import 'react-tooltip/dist/react-tooltip.css'
 
 // components
 import Divider from "components/divider/Divider";
@@ -44,11 +47,32 @@ import EditorParser from "editor/EditorParser";
 import _ from "lodash";
 import { useNavigate } from "react-router-dom";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import {Tooltip} from "react-tooltip";
+import Svg from "../../../assets/svg/Svg";
+
 type Props = {
   setPopupActive: any;
   course: string;
   hideStudentList?: boolean;
 };
+
+type PrintButtonProps = { onClick: () => void };
+
+const PrintButton = ({ onClick }: PrintButtonProps ) => {
+  return (
+    <>
+      <Tooltip id="timetable-tooltip" />
+      <button
+        data-tooltip-id="timetable-tooltip"
+        data-tooltip-content="강의계획서 인쇄"
+        className={style.printButton}
+        onClick={onClick}
+      >
+        <Svg type="print" width="20" height="20" />
+      </button>
+    </>
+  );
+}
 
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
@@ -64,6 +88,12 @@ const CourseView = (props: Props) => {
     useState<string>("notConfirmed");
 
   const [enrollments, setEnrollments] = useState<any[]>();
+
+  const classInfoRef = useRef(null);
+
+  const handlePrint = useReactToPrint({
+    content: () => classInfoRef.current,
+  });
 
   const categories = () => {
     return (
@@ -186,7 +216,13 @@ const CourseView = (props: Props) => {
             <div className={style.categories}>{categories()}</div>
           </div>
           <Divider />
-          <ClassInfo />
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <PrintButton onClick={handlePrint} />
+          </div>
+
+          <div ref={classInfoRef}>
+            <ClassInfo />
+          </div>
           <div style={{ height: "24px" }}></div>
           <Divider />
           {!props?.hideStudentList && (
