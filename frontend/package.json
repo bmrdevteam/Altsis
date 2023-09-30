@@ -12,6 +12,7 @@
         "@types/react": "^18.0.0",
         "@types/react-dom": "^18.0.0",
         "axios": "^0.27.2",
+        "file-saver": "^2.0.5",
         "lodash": "^4.17.21",
         "module-alias": "^2.2.2",
         "react": "^18.2.0",
@@ -23,6 +24,7 @@
         "socket.io-client": "^4.5.4",
         "typescript": "^4.4.2",
         "universal-cookie": "^4.0.4",
+        "uuid": "^9.0.1",
         "web-vitals": "^2.1.0",
         "xlsx": "^0.18.5",
         "zustand": "^4.1.1"
