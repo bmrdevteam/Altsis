@@ -8,7 +8,7 @@ Altsis(Alternative School Infomation System)는 학교에서 다루는 모든 �
 
 ## 역사
 - 2016 [별무리학교](http://bmrschool.net) 수강 신청을 위한 맞춤형 학습 관리 시스템 [BLMS](https://github.com/devgoodway/BLMS_OSV) 개발 @[devgoodway](https://github.com/devgoodway)
-- 2022 BLMS를 발전시킨 [ALTSIS](https://github.com/bmrdevteam/Altsis) 개발 @[devgoodway](https://github.com/devgoodway) @[jessie129j](https://github.com/jessie129j) @[seedlessapple](https://github.com/seedlessapple) and @[O-ye](https://github.com/O-ye)
+- 2022 BLMS를 발전시킨 [ALTSIS](https://github.com/bmrdevteam/Altsis) 개발 @[devgoodway](https://github.com/devgoodway) @[jessie129j](https://github.com/jessie129j) @[seedlessapple](https://github.com/seedlessapple) and @[Yeonwu](https://github.com/Yeonwu)
 - 2023 [ALTSIS](https://github.com/bmrdevteam/Altsis) 오픈 소스 프로젝트 시작 @[devgoodway](https://github.com/devgoodway)
 
 ## 주요특징
