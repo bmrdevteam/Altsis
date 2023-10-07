@@ -40,10 +40,34 @@
         height: 100px;
         padding: 6px;
 
+        @media (max-width: 768px) {
+            flex-direction: column;
+            width: 100%;
+
+            & .select {
+                width: 100%;
+            }
+
+            & .search {
+                flex-direction: row;
+            }
+        }
+
         .label {
             font-size: 14px;
             font-weight: 600;
+
+            @media (max-width: 768px) {
+                width: 100%;
+            }
         }
 
+    }
+}
+
+
+.selectGrade {
+    @media (max-width: 768px) {
+        max-width: 100% !important;
     }
 }

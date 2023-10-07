@@ -156,67 +156,71 @@ function Docs({}: Props) {
       <div className={style.section}>
         <div className={style.search}>
           <div className={style.label}>학생선택</div>
-          <Select
-            options={grades}
-            onChange={(val: string) => {
-              setSelectedGrade(val);
-            }}
-            style={{ borderRadius: "4px", maxWidth: "120px" }}
-          />
-
-          <Autofill
-            style={{ borderRadius: "4px" }}
-            options={[
-              { text: "", value: "" },
-              ...users
-                ?.filter((val) => val.grade === selectedGrade)
-                .map((val) => {
-                  return {
-                    value: JSON.stringify({
-                      rid: val._id,
-                      uid: val.user,
-                    }),
-                    text: `${val.userName} / ${val.userId}`,
-                  };
+          <div className={style.search}>
+            <Select
+              options={grades}
+              onChange={(val: string) => {
+                setSelectedGrade(val);
+              }}
+              className={style.selectGrade}
+              style={{ borderRadius: "4px", maxWidth: "120px" }}
+            />
+            <Autofill
+              style={{ borderRadius: "4px" }}
+              options={[
+                { text: "", value: "" },
+                ...users
+                  ?.filter((val) => val.grade === selectedGrade)
+                  .map((val) => {
+                    return {
+                      value: JSON.stringify({
+                        rid: val._id,
+                        uid: val.user,
+                      }),
+                      text: `${val.userName} / ${val.userId}`,
+                    };
+                  }),
+              ]}
+              onChange={(value: string | number) => {
+                if (value === "") return;
+                setLoading(true);
+                if (value !== "") {
+                  const { rid, uid } = JSON.parse(`${value}`);
+                  getDBData(rid, uid).then((res) => {
+                    setDBData(res);
+                    setLoading(false);
+                  });
+                }
+              }}
+              placeholder={"검색"}
+            />
+          </div>
+          <div className={style.search}>
+            <Select
+              style={{ borderRadius: "4px" }}
+              options={[
+                ...printForms.map((val: any) => {
+                  return { text: val.title, value: val._id };
                 }),
-            ]}
-            onChange={(value: string | number) => {
-              if (value === "") return;
-              setLoading(true);
-              if (value !== "") {
-                const { rid, uid } = JSON.parse(`${value}`);
-                getDBData(rid, uid).then((res) => {
-                  setDBData(res);
-                  setLoading(false);
-                });
-              }
-            }}
-            placeholder={"검색"}
-          />
-          <Select
-            style={{ borderRadius: "4px" }}
-            options={[
-              ...printForms.map((val: any) => {
-                return { text: val.title, value: val._id };
-              }),
-            ]}
-            onChange={(val: string) => {
-              FormAPI.RForm({ params: { _id: val } })
-                .then(({ form }) => {
-                  setFormData(form);
-                })
-                .catch((err) => {
-                  ALERT_ERROR(err);
-                });
-            }}
-          />
-          <div
-            className="btn"
-            onClick={() => {
-              window.print();
-            }}
-          >
-            <Svg type={"print"} />
+              ]}
+              onChange={(val: string) => {
+                FormAPI.RForm({ params: { _id: val } })
+                  .then(({ form }) => {
+                    setFormData(form);
+                  })
+                  .catch((err) => {
+                    ALERT_ERROR(err);
+                  });
+              }}
+            />
+            <div
+              className="btn"
+              onClick={() => {
+                window.print();
+              }}
+            >
+              <Svg type={"print"} />
+            </div>
           </div>
         </div>
         {!loading ? (
