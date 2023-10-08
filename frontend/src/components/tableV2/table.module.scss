@@ -34,6 +34,7 @@
   font-size: 14px;
   text-align: left;
   color: var(--accent-1);
+  table-layout: fixed;
 
   td,
   th {
@@ -182,8 +183,10 @@
   tbody {
     .item {
       height: 48px;
+      max-height: 300px;
       border-bottom: var(--border-default);
       border-top: var(--border-default);
+      overflow-y: auto;
 
       .icon {
         display: flex;
