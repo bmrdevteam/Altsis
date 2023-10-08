@@ -8,11 +8,21 @@ import ParagraphCell from "./ParagraphCell";
 import SelectCell from "./SelectCell";
 import TimeCell from "./TimeCell";
 import TimeRangeCell from "./TimeRangeCell";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 
 type Props = { index: number };
 
+const reorderBlock = (list: any, startIndex: number, endIndex: number) => {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+
+  result.splice(endIndex, 0, removed);
+
+  return result;
+}
+
 const TableBlock = (props: Props) => {
-  const { getBlock, setCurrentCell, setCurrentCellIndex } = useEditor();
+  const { getBlock, setCurrentCell, setCurrentCellIndex, changeBlockData } = useEditor();
   const block = getBlock(props.index);
 
   const SetColumn = () => {
@@ -76,6 +86,22 @@ const TableBlock = (props: Props) => {
     colEnd: number;
   }[] = [];
 
+  const handleDrag = (result: { destination: any, source: any, draggableId: string }) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) {
+      return;
+    }
+
+    block.data.table = reorderBlock(
+      block.data.table,
+      source.index,
+      destination.index
+    );
+
+    changeBlockData(props.index, block.data);
+  }
+
   return (
     <div
       className={style.block}
@@ -93,86 +119,100 @@ const TableBlock = (props: Props) => {
         }}
       >
         <SetColumn />
-        <tbody>
-          {block.data.table !== undefined &&
-            block.data?.table.map((value: any, index: number) => {
-              return (
-                <tr key={index}>
-                  {value.map((val: any, ind: number) => {
-                    const spanTrackCurr = spanTrack.filter((v) => {
-                      if (
-                        v.rowStart <= index &&
-                        v.rowEnd > index &&
-                        v.colStart <= ind &&
-                        v.colEnd > ind
-                      ) {
-                        return true;
-                      }
+        <DragDropContext onDragEnd={handleDrag}>
+          <Droppable droppableId="droppable">
+            {provided => (
+              <tbody
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+              >
+              {block.data.table !== undefined && block.data?.table.map((value: any, index: number) => {
+                console.log('value', value)
+                return (
+                  <Draggable
+                    draggableId={'item-'+String(index)}
+                    index={index}
+                  >
+                    {provided => (
+                      <tr key={index} ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                        {value.map((val: any, ind: number) => {
+                          const spanTrackCurr = spanTrack.filter((v) => {
+                            if (
+                              v.rowStart <= index &&
+                              v.rowEnd > index &&
+                              v.colStart <= ind &&
+                              v.colEnd > ind
+                            ) {
+                              return true;
+                            }
 
-                      return false;
-                    });
+                            return false;
+                          });
 
-                    if (spanTrackCurr.length > 0) {
-                      return;
-                    }
+                          if (spanTrackCurr.length > 0) {
+                            return;
+                          }
 
-                    spanTrack.push({
-                      rowStart: index,
-                      rowEnd:
-                        index +
-                        (isNaN(parseInt(val.rowSpan))
-                          ? 1
-                          : Math.abs(parseInt(val.rowSpan))),
-                      colStart: ind,
-                      colEnd:
-                        ind +
-                        (isNaN(parseInt(val.colSpan))
-                          ? 1
-                          : Math.abs(parseInt(val.colSpan))),
-                    });
+                          spanTrack.push({
+                            rowStart: index,
+                            rowEnd:
+                              index +
+                              (isNaN(parseInt(val.rowSpan))
+                                ? 1
+                                : Math.abs(parseInt(val.rowSpan))),
+                            colStart: ind,
+                            colEnd:
+                              ind +
+                              (isNaN(parseInt(val.colSpan))
+                                ? 1
+                                : Math.abs(parseInt(val.colSpan))),
+                          });
 
-                    return val.isHeader ? (
-                      <th
-                        key={ind}
-                        id={val.id}
-                        onClick={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        onSelect={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        colSpan={val?.colSpan}
-                        rowSpan={val?.rowSpan}
-                        style={{ fontSize: val?.fontSize }}
-                      >
-                        <Cell type={val.type} row={index} col={ind} />
-                      </th>
-                    ) : (
-                      <td
-                        key={ind}
-                        id={val.id}
-                        onClick={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        onSelect={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        colSpan={val?.colSpan}
-                        rowSpan={val?.rowSpan}
-                        style={{ fontSize: val?.fontSize }}
-                      >
-                        <Cell type={val.type} row={index} col={ind} />
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-        </tbody>
+                          return val.isHeader ? (
+                            <th
+                              key={ind}
+                              id={val.id}
+                              onClick={() => {
+                                setCurrentCell(val.id);
+                                setCurrentCellIndex(index, ind);
+                              }}
+                              onSelect={() => {
+                                setCurrentCell(val.id);
+                                setCurrentCellIndex(index, ind);
+                              }}
+                              colSpan={val?.colSpan}
+                              rowSpan={val?.rowSpan}
+                              style={{ fontSize: val?.fontSize }}
+                            >
+                              <Cell type={val.type} row={index} col={ind} />
+                            </th>
+                          ) : (
+                            <td
+                              key={ind}
+                              id={val.id}
+                              onClick={() => {
+                                setCurrentCell(val.id);
+                                setCurrentCellIndex(index, ind);
+                              }}
+                              onSelect={() => {
+                                setCurrentCell(val.id);
+                                setCurrentCellIndex(index, ind);
+                              }}
+                              colSpan={val?.colSpan}
+                              rowSpan={val?.rowSpan}
+                              style={{ fontSize: val?.fontSize }}
+                            >
+                              <Cell type={val.type} row={index} col={ind} />
+                            </td>
+                          )})}
+                      </tr>
+                    )}
+                  </Draggable>
+                )})}
+              {provided.placeholder}
+            </tbody>)}
+          </Droppable>
+        </DragDropContext>
       </table>
     </div>
   );
