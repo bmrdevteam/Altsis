@@ -53,5 +53,8 @@
             "last 1 firefox version",
             "last 1 safari version"
         ]
+    },
+    "devDependencies": {
+        "@types/react-beautiful-dnd": "^13.1.5"
     }
 }
