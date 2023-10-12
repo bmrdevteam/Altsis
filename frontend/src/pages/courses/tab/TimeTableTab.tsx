@@ -46,6 +46,23 @@ import 'react-tooltip/dist/react-tooltip.css'
 type Props = { courseList: any[] };
 type PrintButtonProps = { onClick: () => void };
 
+const pageStyle = `
+ 
+  @media print {
+    @page {
+      size: auto;
+      margin: 0mm;
+    }
+    body {
+      -webkit-print-color-adjust: exact;
+    }
+    th,
+    td {
+      border: 1px solid rgb(230, 230, 230); 
+    }
+  }
+`
+
 const PrintButton = ({ onClick }: PrintButtonProps ) => {
   return (
     <>
@@ -111,6 +128,7 @@ const Timetable = (props: Props) => {
   const timetableRef = useRef(null);
   const handlePrint = useReactToPrint({
     content: () => timetableRef.current,
+    pageStyle: pageStyle,
   });
   return (
     <div className={style.section}>
