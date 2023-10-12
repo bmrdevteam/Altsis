@@ -74,6 +74,23 @@ const PrintButton = ({ onClick }: PrintButtonProps ) => {
   );
 }
 
+const pageStyle = `
+ 
+  @media print {
+    @page {
+      size: auto;
+      margin: 0mm;
+    }
+    body {
+      -webkit-print-color-adjust: exact;
+    }
+    th,
+    td {
+      border: 1px solid rgb(230, 230, 230); 
+    }
+  }
+`
+
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +110,7 @@ const CourseView = (props: Props) => {
 
   const handlePrint = useReactToPrint({
     content: () => classInfoRef.current,
+    pageStyle: pageStyle,
   });
 
   const categories = () => {
