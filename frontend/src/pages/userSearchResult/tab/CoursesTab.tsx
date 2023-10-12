@@ -6,6 +6,7 @@ import _ from "lodash";
 import { useEffect, useState } from "react";
 import useAPIv2 from "hooks/useAPIv2";
 import CourseTable from "pages/courses/table/CourseTable";
+import {useNavigate} from "react-router-dom";
 
 type Props = {
   user: any;
@@ -104,6 +105,8 @@ const TimeTable = (props: {
 }) => {
   const { currentSeason } = useAuth();
 
+  const navigate = useNavigate();
+
   function syllabusToTime(s: any) {
     let result = {};
     if (s) {
@@ -121,6 +124,22 @@ const TimeTable = (props: {
     return result;
   }
 
+  function syllabusIdByTime(s: any) {
+    let result = {};
+    if (s) {
+      for (let i = 0; i < s.length; i++) {
+        const element = s[i];
+        for (let ii = 0; ii < element.time.length; ii++) {
+          Object.assign(result, {
+            [element.time[ii].label]: element._id,
+          });
+        }
+      }
+    }
+
+    return result;
+  }
+
   if (props.selected !== "timeTable") {
     return null;
   }
@@ -130,6 +149,10 @@ const TimeTable = (props: {
       type="timetable"
       auth="view"
       defaultTimetable={syllabusToTime(props.enrolledCourseList)}
+      idTimetable={syllabusIdByTime(props.enrolledCourseList)}
+      onClickCourse={(id: string) => {
+        navigate(`/courses/enrolled/${id}`);
+      }}
       data={currentSeason?.formTimetable}
     />
   );
