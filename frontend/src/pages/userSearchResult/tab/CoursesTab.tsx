@@ -151,7 +151,7 @@ const TimeTable = (props: {
       defaultTimetable={syllabusToTime(props.enrolledCourseList)}
       idTimetable={syllabusIdByTime(props.enrolledCourseList)}
       onClickCourse={(id: string) => {
-        navigate(`/courses/enrolled/${id}`);
+        navigate(`/courses/mentoring/${id}`);
       }}
       data={currentSeason?.formTimetable}
     />
