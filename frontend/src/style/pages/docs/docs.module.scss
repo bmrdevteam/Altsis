@@ -32,13 +32,19 @@
     }
 
 
+    & > .search {
+        min-height: 100px;
+    }
 
     .search {
         display: flex;
         gap: 12px;
         align-items: center;
-        height: 100px;
         padding: 6px;
+
+        @media (min-width: 769px) {
+            width: 100%;
+        }
 
         @media (max-width: 768px) {
             flex-direction: column;
@@ -56,6 +62,7 @@
         .label {
             font-size: 14px;
             font-weight: 600;
+            white-space: nowrap;
 
             @media (max-width: 768px) {
                 width: 100%;
