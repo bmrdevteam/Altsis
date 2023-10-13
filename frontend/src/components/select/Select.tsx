@@ -26,6 +26,8 @@ type Props = {
   appearence?: "flat";
 
   onEdit?: any;
+
+  className?: string;
 };
 
 /**
@@ -123,7 +125,7 @@ const Select = (props: Props) => {
   return (
     <div
       ref={selectRef}
-      className={`${style.select} ${props.appearence === "flat" && style.flat}`}
+      className={`${style.select} ${props.appearence === "flat" && style.flat} ${props.className ? props.className: ''}`}
       style={props.style}
     >
       {props.label && (
