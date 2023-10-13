@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { isArray } from "lodash";
 import style from "../../editor.module.scss";
 import { useEditor } from "../../functions/editorContext";
@@ -24,6 +25,7 @@ const reorderBlock = (list: any, startIndex: number, endIndex: number) => {
 const TableBlock = (props: Props) => {
   const { getBlock, setCurrentCell, setCurrentCellIndex, changeBlockData } = useEditor();
   const block = getBlock(props.index);
+  const [ isDragging, setIsDragging ] = useState<boolean>(false);
 
   const SetColumn = () => {
     const columns = block?.data?.columns;
@@ -86,8 +88,14 @@ const TableBlock = (props: Props) => {
     colEnd: number;
   }[] = [];
 
-  const handleDrag = (result: { destination: any, source: any, draggableId: string }) => {
+  const onDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleDrag = useCallback((result: { destination: any, source: any, draggableId: string }) => {
     const { destination, source, draggableId } = result;
+
+    setIsDragging(false);
 
     if (!destination) {
       return;
@@ -100,7 +108,7 @@ const TableBlock = (props: Props) => {
     );
 
     changeBlockData(props.index, block.data);
-  }
+  }, []);
 
   return (
     <div
@@ -119,23 +127,26 @@ const TableBlock = (props: Props) => {
         }}
       >
         <SetColumn />
-        <DragDropContext onDragEnd={handleDrag}>
+        <DragDropContext
+          onDragStart={onDragStart}
+          onDragEnd={handleDrag}>
           <Droppable droppableId="droppable">
             {provided => (
               <tbody
                 ref={provided.innerRef}
                 {...provided.droppableProps}
               >
-              {block.data.table !== undefined && block.data?.table.map((value: any, index: number) => {
-                console.log('value', value)
+              {block.data.table !== undefined && block.data?.table.map((blockValue: any, index: number) => {
                 return (
                   <Draggable
+                    key={index}
                     draggableId={'item-'+String(index)}
                     index={index}
                   >
-                    {provided => (
-                      <tr key={index} ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                        {value.map((val: any, ind: number) => {
+                    {(provided, snapshot) => {
+
+                      return <tr key={index} ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                        {blockValue.map((val: any, ind: number) => {
                           const spanTrackCurr = spanTrack.filter((v) => {
                             if (
                               v.rowStart <= index &&
@@ -149,7 +160,7 @@ const TableBlock = (props: Props) => {
                             return false;
                           });
 
-                          if (spanTrackCurr.length > 0) {
+                          if (spanTrackCurr.length > 0 && !isDragging && !snapshot.isDragging) {
                             return;
                           }
 
@@ -206,7 +217,7 @@ const TableBlock = (props: Props) => {
                             </td>
                           )})}
                       </tr>
-                    )}
+                    }}
                   </Draggable>
                 )})}
               {provided.placeholder}
