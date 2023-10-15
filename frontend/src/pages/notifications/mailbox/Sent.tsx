@@ -152,6 +152,28 @@ const Sent = (props: Props) => {
                 <Svg type="trash" width="20px" height="20px" />
               </div>
             </div>
+            {currentRegistration?.role !== "student" && (
+              <div
+                style={{
+                  flex: "auto",
+                  marginRight: "12px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  className={style.icon}
+                  onClick={() => {
+                    setSendPopupActive(true);
+                  }}
+                  style={{ display: "flex", gap: "4px" }}
+                >
+                  <Svg type="send" width="20px" height="20px" />
+                  알림 보내기
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ marginTop: "12px" }}></div>
