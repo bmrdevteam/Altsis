@@ -15,10 +15,20 @@ import View from "pages/notifications/popup/View";
 import audioURL from "assets/audio/notification-a.mp3";
 import { TNotificationReceived } from "types/notification";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import Send from "../../pages/notifications/popup/Send";
 
 const Notification = () => {
   const { currentUser } = useAuth();
   const { NotificationAPI } = useAPIv2();
+  const { currentUser, currentSchool, currentSeason, currentRegistration } = useAuth();
+  const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [receiverType, setReceiverType] = useState<string>("");
+  const [receiverList, setReceiverList] = useState<any[]>([]);
+
+  const { UserAPI, NotificationAPI } = useAPIv2();
+
   const navigate = useNavigate();
 
   const [socket, setSocket] = useState<Socket>();
@@ -39,6 +49,51 @@ const Notification = () => {
   const [notificationPopupActive, setNotificationPopupAcitve] = useState(false);
 
   const audio = new Audio(audioURL);
+
+  async function getSchoolUserList() {
+    const { users } = await UserAPI.RUsers({
+      query: { sid: currentSchool.school },
+    });
+
+    return users;
+  }
+
+  async function getUserList() {
+    const { users } = await UserAPI.RUsers({});
+
+    return users;
+  }
+
+  useEffect(() => {
+    if (isLoading) {
+      NotificationAPI.RNotifications({ query: { type: "sent" } })
+        .then(({ notifications }) => {
+        })
+        .then(() => {
+          //selectRef.current = [];
+          setIsLoading(false);
+        });
+
+      updateReceiverList();
+    }
+  }, [isLoading]);
+
+  async function updateReceiverList() {
+    if (currentRegistration && currentSeason) {
+      setReceiverType("season");
+      setReceiverList(currentSeason.registrations);
+    } else if (currentSchool) {
+      setReceiverType("school");
+      getSchoolUserList().then((res: any) => {
+        setReceiverList(res);
+      });
+    } else {
+      setReceiverType("academy");
+      getUserList().then((res: any) => {
+        setReceiverList(res);
+      });
+    }
+  }
 
   function handleMousedown(e: MouseEvent) {
     if (
@@ -188,6 +243,19 @@ const Notification = () => {
         <>
           <div className={style.contents}>
             <div className={style.title}>알림</div>
+            <div className={style.title}>
+              알림
+              {currentRegistration?.role !== "student" && (
+                <Button
+                  type="ghost"
+                  onClick={() => {
+                    setSendPopupActive(true);
+                  }}
+                  style={{ display: "flex", gap: "4px" }}
+                >
+                  <Svg type="send" width="20px" height="20px" />
+                </Button>)}
+            </div>
             <div className={style.item_box}>
               {!isNotificationContenLoading && notificationItems()}
             </div>
@@ -208,6 +276,14 @@ const Notification = () => {
               setState={setNotificationPopupAcitve}
               nid={notification._id}
               type={"received"}
+            />
+          )}
+          {sendPopupActive && (
+            <Send
+              setState={setSendPopupActive}
+              receiverList={receiverList}
+              receiverType={receiverType}
+              setIsLoading={setIsLoading}
             />
           )}
         </>
