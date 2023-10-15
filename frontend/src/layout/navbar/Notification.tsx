@@ -18,8 +18,6 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Send from "../../pages/notifications/popup/Send";
 
 const Notification = () => {
-  const { currentUser } = useAuth();
-  const { NotificationAPI } = useAPIv2();
   const { currentUser, currentSchool, currentSeason, currentRegistration } = useAuth();
   const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -242,7 +240,6 @@ const Notification = () => {
       {notificationContentActive && !isNotificationLoading && (
         <>
           <div className={style.contents}>
-            <div className={style.title}>알림</div>
             <div className={style.title}>
               알림
               {currentRegistration?.role !== "student" && (
