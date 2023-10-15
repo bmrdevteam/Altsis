@@ -1,4 +1,4 @@
-import React from "react";
+import React, {Dispatch, SetStateAction} from "react";
 import { useEditor } from "../functions/editorContext";
 import style from "../editor.module.scss";
 import ParagraphBlock from "./ParagraphBlock";
@@ -8,9 +8,12 @@ import DataTableBlock from "./dataTable/DataTableBlock";
 import TimeTableBlock from "./timeTable/TimeTableBlock";
 import DividerBlock from "./DividerBlock";
 
-type Props = { index: number };
+type Props = {
+  index: number,
+  callPageReload: Dispatch<SetStateAction<number>>,
+};
 
-const Block = (props: Props) => {
+const Block = React.forwardRef((props: Props, ref: React.ForwardedRef<HTMLDivElement>) => {
   const { getBlock, setCurrentBlock } = useEditor();
 
   const block = getBlock(props.index);
@@ -42,7 +45,7 @@ const Block = (props: Props) => {
     case "table":
       return (
         <Wrapper>
-          <TableBlock index={props.index} />
+          <TableBlock callPageReload={props.callPageReload} index={props.index} />
         </Wrapper>
       );
     case "divider":
@@ -70,6 +73,6 @@ const Block = (props: Props) => {
         </Wrapper>
       );
   }
-};
+});
 
 export default Block;

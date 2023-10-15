@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, {Dispatch, useState, useCallback, MouseEvent, SetStateAction} from "react";
 import { isArray } from "lodash";
 import style from "../../editor.module.scss";
 import { useEditor } from "../../functions/editorContext";
@@ -9,23 +9,21 @@ import ParagraphCell from "./ParagraphCell";
 import SelectCell from "./SelectCell";
 import TimeCell from "./TimeCell";
 import TimeRangeCell from "./TimeRangeCell";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+import Popover from "@mui/material/Popover";
+import Button from "../../../components/button/Button";
+import useReload from "../../functions/useReload";
 
-type Props = { index: number };
-
-const reorderBlock = (list: any, startIndex: number, endIndex: number) => {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-
-  result.splice(endIndex, 0, removed);
-
-  return result;
-}
+type Props = {
+  callPageReload: Dispatch<SetStateAction<number>>,
+  index: number
+};
 
 const TableBlock = (props: Props) => {
-  const { getBlock, setCurrentCell, setCurrentCellIndex, changeBlockData } = useEditor();
+  const { getBlock, setCurrentCell, setCurrentCellIndex, changeBlockData, addToCurrentRow } = useEditor();
+  const { callPageReload, _init } = useReload();
   const block = getBlock(props.index);
-  const [ isDragging, setIsDragging ] = useState<boolean>(false);
+  const [rowEl, setRowEl] = useState<HTMLTableRowElement | null>(null);
+  const toolbarOpen = Boolean(rowEl);
 
   const SetColumn = () => {
     const columns = block?.data?.columns;
@@ -88,26 +86,16 @@ const TableBlock = (props: Props) => {
     colEnd: number;
   }[] = [];
 
-  const onDragStart = useCallback(() => {
-    setIsDragging(true);
+  const handleFocus = useCallback((event: React.FocusEvent<HTMLTableRowElement>) => {
+    setRowEl(event.currentTarget);
   }, []);
 
-  const handleDrag = useCallback((result: { destination: any, source: any, draggableId: string }) => {
-    const { destination, source, draggableId } = result;
+  const handleMouseOver = useCallback((event: MouseEvent<HTMLTableRowElement>) => {
+    setRowEl(event.currentTarget);
+  }, []);
 
-    setIsDragging(false);
-
-    if (!destination) {
-      return;
-    }
-
-    block.data.table = reorderBlock(
-      block.data.table,
-      source.index,
-      destination.index
-    );
-
-    changeBlockData(props.index, block.data);
+  const handleMouseOut = useCallback((event: MouseEvent<HTMLTableRowElement>) => {
+    setRowEl(null);
   }, []);
 
   return (
@@ -127,26 +115,11 @@ const TableBlock = (props: Props) => {
         }}
       >
         <SetColumn />
-        <DragDropContext
-          onDragStart={onDragStart}
-          onDragEnd={handleDrag}>
-          <Droppable droppableId="droppable">
-            {provided => (
-              <tbody
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-              >
-              {block.data.table !== undefined && block.data?.table.map((blockValue: any, index: number) => {
-                return (
-                  <Draggable
-                    key={index}
-                    draggableId={'item-'+String(index)}
-                    index={index}
-                  >
-                    {(provided, snapshot) => {
-
-                      return <tr key={index} ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                        {blockValue.map((val: any, ind: number) => {
+        <tbody>
+        {block.data.table !== undefined && block.data?.table.map((blockValue: any, index: number) => {
+            return (
+                <tr key={index}>
+                  {blockValue.map((val: any, ind: number) => {
                           const spanTrackCurr = spanTrack.filter((v) => {
                             if (
                               v.rowStart <= index &&
@@ -160,7 +133,7 @@ const TableBlock = (props: Props) => {
                             return false;
                           });
 
-                          if (spanTrackCurr.length > 0 && !isDragging && !snapshot.isDragging) {
+                          if (spanTrackCurr.length > 0) {
                             return;
                           }
 
@@ -217,14 +190,36 @@ const TableBlock = (props: Props) => {
                             </td>
                           )})}
                       </tr>
-                    }}
-                  </Draggable>
-                )})}
-              {provided.placeholder}
-            </tbody>)}
-          </Droppable>
-        </DragDropContext>
+              )})}
+            </tbody>
       </table>
+      <Popover
+        id="toolbar"
+        open={toolbarOpen}
+        anchorEl={rowEl}
+        onClose={handleMouseOut}
+        anchorOrigin={{
+          vertical: "center",
+          horizontal: "left",
+        }}>
+        <Button
+          type="ghost"
+          style={{
+            flex: "1 1 0",
+            marginTop: "8px",
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={() => {
+            addToCurrentRow();
+            _init(props.callPageReload);
+            callPageReload();
+          }}
+        >
+          행 복사
+        </Button>
+      </Popover>
     </div>
   );
 };
