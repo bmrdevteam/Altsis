@@ -9,6 +9,8 @@
   }
 }
 .mailbox {
+  max-width: 100%;
+  overflow-x: auto;
   .table_header {
     display: flex;
 

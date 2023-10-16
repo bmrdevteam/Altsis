@@ -46,7 +46,7 @@ const Courses = (props: Props) => {
       <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
-          <div style={{ flex: "1 1 0" }}>
+          <div style={{ flex: "1 1 0", maxWidth: '100%' }}>
             <div className={style.title}>알림</div>
 
             <Tab
