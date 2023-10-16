@@ -400,6 +400,9 @@ const ParsedTableBlock = (props: Props) => {
                 cursor: "pointer",
               }}
               onClick={() => {
+                if (props.onClickCourse && props.idTimetable?.[data?.id]) {
+                  props.onClickCourse(props.idTimetable?.[data?.id]);
+                }
                 if (props.onClickCourse && props.idTimetable?.[data?.name]) {
                   props.onClickCourse(props.idTimetable?.[data?.name]);
                 }
