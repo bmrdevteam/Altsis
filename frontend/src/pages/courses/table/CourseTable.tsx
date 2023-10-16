@@ -179,6 +179,7 @@ const CourseTable = (props: Props) => {
 
     setHeaderList([
       ...(props.preHeaderList ?? []),
+      ...subjectLabelHeaderList,
       {
         text: "수업명",
         key: "classTitle",
@@ -199,7 +200,6 @@ const CourseTable = (props: Props) => {
             }
           },
       },
-      ...subjectLabelHeaderList,
       ...defaultHeaderList,
       ...postHeaderList,
     ]);
