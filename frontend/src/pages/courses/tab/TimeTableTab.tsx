@@ -94,7 +94,7 @@ const Timetable = (props: Props) => {
             defaultTimetable={syllabusLabelByTime(props.courseList)}
             idTimetable={syllabusIdByTime(props.courseList)}
             onClickCourse={(id: string) => {
-              window.open("/courses/enrolled/" + id, "_blank");
+              navigate("/courses/enrolled/" + id);
             }}
             data={currentSeason?.formTimetable}
           />
