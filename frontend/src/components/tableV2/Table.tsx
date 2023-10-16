@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import style from "./table.module.scss";
 import _, { add, isArray, isBoolean, isNumber } from "lodash";
 import Svg from "assets/svg/Svg";
@@ -45,6 +45,7 @@ export type TTableHeader = {
     | "700"
     | "800"
     | "900";
+  cursor?: string;
   status?: {
     [key: string]: {
       text?: string;
@@ -1216,9 +1217,11 @@ const Table = (props: Props) => {
                               textAlign: val.textAlign,
                               fontSize: val.fontSize,
                               fontWeight: val.fontWeight,
+                              cursor: val.cursor || 'default',
                             }}
                             className={style.item}
                             key={index}
+                            onClick={(_e) => { if(typeof(val.onClick) !== 'undefined') val.onClick(row) }}
                           >
                             {row[`${val.key}`]}
                             {val.byteCalc && (
