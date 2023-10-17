@@ -29,6 +29,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Tooltip } from "react-tooltip";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
@@ -48,8 +49,42 @@ import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
+import {useReactToPrint} from "react-to-print";
 
 type Props = {};
+type PrintButtonProps = { onClick: () => void };
+
+const PrintButton = ({ onClick }: PrintButtonProps ) => {
+  return (
+    <>
+      <Tooltip id="timetable-tooltip" />
+      <button
+        data-tooltip-id="timetable-tooltip"
+        data-tooltip-content="강의계획서 인쇄"
+        className={style.printButton}
+        onClick={onClick}
+      >
+        <Svg type="print" width="20" height="20" />
+      </button>
+    </>
+  );
+}
+
+const pageStyle = `
+  @media print {
+    @page {
+      size: auto;
+      margin: 0mm;
+    }
+    body {
+      -webkit-print-color-adjust: exact;
+    }
+    th,
+    td {
+      border: 1px solid rgb(230, 230, 230); 
+    }
+  }
+`
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
@@ -81,6 +116,13 @@ const CoursePid = (props: Props) => {
 
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [ratio, setRatio] = useState<number>(0);
+
+  const classInfoRef = useRef(null);
+
+  const handlePrint = useReactToPrint({
+    content: () => classInfoRef.current,
+    pageStyle: pageStyle,
+  });
 
   const categories = () => {
     return (
@@ -405,12 +447,17 @@ const CoursePid = (props: Props) => {
                 <div className={style.categories}>{categories()}</div>
               </div>
               <Divider />
-              <EditorParser
-                type="syllabus"
-                auth="view"
-                defaultValues={syllabus.info}
-                data={currentSeason?.formSyllabus}
-              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <PrintButton onClick={handlePrint} />
+              </div>
+              <div ref={classInfoRef}>
+                <EditorParser
+                  type="syllabus"
+                  auth="view"
+                  defaultValues={syllabus.info}
+                  data={currentSeason?.formSyllabus}
+                />
+              </div>
               <div style={{ height: "24px" }}></div>
               <Divider />
               {currentRegistration?.permissionSyllabusV2 && (
