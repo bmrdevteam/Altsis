@@ -251,8 +251,12 @@ const Forms = (props: Props) => {
                     </div>
                     <div
                       className={style.menu_item}
-                      onClick={() => {
-                        exportToJSON(data);
+                      onClick={async () => {
+                        const exportData: any = { ...data };
+                        const { form } = await FormAPI.RForm({ params: { _id: exportData._id } });
+                        exportData.form = form;
+
+                        exportToJSON(exportData);
                       }}
                     >
                       내보내기
