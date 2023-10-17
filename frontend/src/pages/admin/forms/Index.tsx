@@ -71,6 +71,8 @@ const Forms = (props: Props) => {
     "timetable" | "syllabus" | "print" | "other"
   >("timetable");
 
+  const fileUploadRef = React.useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     getForms();
   }, []);
@@ -359,11 +361,64 @@ const Forms = (props: Props) => {
     );
   };
 
+  /**
+   *
+   * @param {React.ChangeEvent<HTMLInputElement>} e
+   * @returns {void}
+   */
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if(!e.target.files) {
+      return;
+    }
+
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e: any) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        const { title, type, form } = data;
+
+        FormAPI.CForm({
+          data: {
+            title: title + ' (복사본)',
+            type: type,
+            data: form.data,
+          },
+        }).then(() => {
+          alert(SUCCESS_MESSAGE);
+          getForms();
+        }).catch((err) => {
+          ALERT_ERROR(err);
+        }).finally(() => {
+          e.target.value = '';
+        });
+      } catch(err) {
+        e.target.value = '';
+        alert('잘못된 양식 파일입니다.');
+        return;
+      }
+    }
+    reader.readAsText(file);
+  }
+
+
   return (
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>양식 관리</div>
+        <div className={style.title}>
+          양식 관리
+          <Button
+            type="ghost"
+            onClick={() => {
+              fileUploadRef.current?.click();
+            }}
+          >
+            양식 가져오기
+          </Button>
+          <input type="file" ref={fileUploadRef} style={{ display: "none" }} onChange={handleFileUpload} accept="application/json" />
+        </div>
         <div style={{ marginTop: "24px" }}>
           <Tab
             align={"flex-start"}
