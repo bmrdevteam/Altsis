@@ -20,7 +20,6 @@ import Send from "../../pages/notifications/popup/Send";
 const Notification = () => {
   const { currentUser, currentSchool, currentSeason, currentRegistration } = useAuth();
   const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [receiverType, setReceiverType] = useState<string>("");
   const [receiverList, setReceiverList] = useState<any[]>([]);
@@ -63,18 +62,10 @@ const Notification = () => {
   }
 
   useEffect(() => {
-    if (isLoading) {
-      NotificationAPI.RNotifications({ query: { type: "sent" } })
-        .then(({ notifications }) => {
-        })
-        .then(() => {
-          //selectRef.current = [];
-          setIsLoading(false);
-        });
-
+    if(sendPopupActive) {
       updateReceiverList();
     }
-  }, [isLoading]);
+  }, [sendPopupActive]);
 
   async function updateReceiverList() {
     if (currentRegistration && currentSeason) {
@@ -275,12 +266,11 @@ const Notification = () => {
               type={"received"}
             />
           )}
-          {sendPopupActive && (
+          {sendPopupActive && receiverType && (
             <Send
               setState={setSendPopupActive}
               receiverList={receiverList}
               receiverType={receiverType}
-              setIsLoading={setIsLoading}
             />
           )}
         </>
