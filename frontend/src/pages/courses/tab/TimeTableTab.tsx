@@ -130,6 +130,8 @@ const Timetable = (props: Props) => {
     content: () => timetableRef.current,
     pageStyle: pageStyle,
   });
+
+  console.log(currentSeason)
   return (
     <div className={style.section}>
       {currentSeason?.formTimetable && (
@@ -138,6 +140,7 @@ const Timetable = (props: Props) => {
             <PrintButton onClick={handlePrint} />
           </div>
           <div ref={timetableRef}>
+            <h2>{currentSeason?.year}학년 {currentSeason?.term}학기 {currentSeason?.formTimetable?.title}</h2>
             <EditorParser
               type={"timetable"}
               auth="view"
