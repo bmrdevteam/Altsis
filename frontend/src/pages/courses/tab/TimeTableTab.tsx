@@ -131,7 +131,6 @@ const Timetable = (props: Props) => {
     pageStyle: pageStyle,
   });
 
-  console.log(currentSeason)
   return (
     <div className={style.section}>
       {currentSeason?.formTimetable && (
