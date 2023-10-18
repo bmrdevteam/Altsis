@@ -66,7 +66,7 @@ export const SidebarData = (auth: string, role?: string): any => {
               {
                 title: "enrollStatus",
                 name: "수강 현황",
-                path: "/courses/enroll/status",
+                path: "/courses/status",
                 icon: <Svg type="school" />,
               },
             {
