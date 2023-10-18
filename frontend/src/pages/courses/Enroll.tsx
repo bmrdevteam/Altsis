@@ -61,7 +61,6 @@ const CourseEnroll = (props: Props) => {
 
   const [isLoadingEnrolledCourseList, setIsLoadingEnrolledCourseList] =
     useState<boolean>(true);
-  const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
 
   const [socket, setSocket] = useState<Socket>();
   const [taskIdx, setTaskIdx] = useState<number | undefined>();
@@ -136,15 +135,6 @@ const CourseEnroll = (props: Props) => {
       });
     }
   }, [isLoadingCourseList]);
-
-  useEffect(() => {
-    if (isLoadingEnrolledCourseList) {
-      getEnrolledCourseList().then((res: any) => {
-        setEnrolledCourseList(res);
-        setIsLoadingEnrolledCourseList(false);
-      });
-    }
-  }, [isLoadingEnrolledCourseList]);
 
   useEffect(() => {
     const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
@@ -263,43 +253,7 @@ const CourseEnroll = (props: Props) => {
       <div style={{ marginTop: "24px", marginBottom: "24px" }}>
         <Divider />
       </div>
-      <div className={style.section}>
-        <div className={style.title}>수강 현황</div>
-        {!isLoadingEnrolledCourseList ? (
-          <CourseTable
-            data={enrolledCourseList}
-            subjectLabels={currentSeason?.subjects?.label ?? []}
-            preHeaderList={[
-              {
-                text: "취소",
-                key: "cancel",
-                type: "button",
-                onClick: (e: any) => {
-                  EnrollmentAPI.DEnrollment({ params: { _id: e.enrollment } })
-                    .then(() => {
-                      alert(SUCCESS_MESSAGE);
-                      setIsLoadingCourseList(true);
-                      setIsLoadingEnrolledCourseList(true);
-                    })
-                    .catch((err) => {
-                      ALERT_ERROR(err);
-                    });
-                },
-                width: "72px",
-                textAlign: "center",
-                btnStyle: {
-                  border: true,
-                  color: "red",
-                  padding: "4px",
-                  round: true,
-                },
-              },
-            ]}
-          />
-        ) : (
-          <Loading height={"calc(100vh - 55px)"} />
-        )}
-      </div>
+
       {isActiveSendingPopup && !isActiveWaitingPopup && (
         <Popup setState={() => {}}>
           <div>
