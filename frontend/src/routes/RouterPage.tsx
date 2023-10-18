@@ -260,7 +260,7 @@ function RouterPage() {
                 }
               ></Route>
               <Route
-                path="enroll/status"
+                path="status"
                 element={
                   <RequireAuth>
                     <CourseEnrollStatus />
