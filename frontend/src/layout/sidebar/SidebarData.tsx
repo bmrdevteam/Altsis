@@ -139,7 +139,7 @@ export const SidebarData = (auth: string, role?: string): any => {
         },
         {
           title: "backup",
-          name: "아카데미 백업",
+          name: "아카데미 백업/복구",
           path: "/admin/backup",
           icon: <Svg type="download" />,
         },
@@ -166,7 +166,7 @@ export const SidebarData = (auth: string, role?: string): any => {
         },
         {
           title: "backup",
-          name: "아카데미 백업",
+          name: "아카데미 백업/복구",
           path: "/admin/backup",
           icon: <Svg type="download" />,
         },

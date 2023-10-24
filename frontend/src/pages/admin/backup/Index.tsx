@@ -145,7 +145,7 @@ ___________________
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>아카데미 백업</div>
+        <div className={style.title}>아카데미 백업/복구</div>
 
         <Button
           type="ghost"
