@@ -172,10 +172,12 @@ ___________________
             setRestorePopupActive(true);
           }}
           style={{
-          borderRadius: "4px",
-          height: "32px",
-          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-        }}>+ 복구</Button>
+            marginTop: "12px",
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+        >+ 복구</Button>
         <div style={{ marginTop: "24px" }} />
         <Table
           type="object-array"
