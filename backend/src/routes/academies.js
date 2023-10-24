@@ -21,7 +21,7 @@ router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
 
 /* backup */
-router.post("/:academyId/backup", isAdmin, academies.createBackup);
+router.post("/:academyId/backup", isAdManager, academies.createBackup);
 router.put("/:academyId/restore", isAdManager, academies.restoreBackup);
 router.get("/:academyId/backup", isAdManager, academies.findBackup);
 router.delete("/:academyId/backup", isAdManager, academies.removeBackup);
