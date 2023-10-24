@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import { isOwner, ownerToAdmin } from "../middleware/auth.js";
+import {isAdManager, isAdmin, isOwner, ownerToAdmin} from "../middleware/auth.js";
 import * as academies from "../controllers/academies.js";
 import * as users from "../controllers/users.js";
 import * as schools from "../controllers/schools.js";
@@ -11,7 +11,7 @@ import * as registrations from "../controllers/registrations.js";
 //             Academy
 //=================================
 
-router.post("/", isOwner, academies.create);
+router.post("/", isAdManager, academies.create);
 router.get("/", academies.find);
 
 router.put("/:academyId/activate", isOwner, academies.activate);
@@ -21,10 +21,10 @@ router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
 
 /* backup */
-router.post("/:academyId/backup", isOwner, academies.createBackup);
-router.put("/:academyId/restore", isOwner, academies.restoreBackup);
-router.get("/:academyId/backup", isOwner, academies.findBackup);
-router.delete("/:academyId/backup", isOwner, academies.removeBackup);
+router.post("/:academyId/backup", isAdmin, academies.createBackup);
+router.put("/:academyId/restore", isAdManager, academies.restoreBackup);
+router.get("/:academyId/backup", isAdManager, academies.findBackup);
+router.delete("/:academyId/backup", isAdManager, academies.removeBackup);
 
 router.delete("/:academyId", isOwner, academies.remove);
 

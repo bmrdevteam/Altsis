@@ -137,6 +137,12 @@ export const SidebarData = (auth: string, role?: string): any => {
           path: "/admin/forms",
           icon: <Svg type="file" />,
         },
+        {
+          title: "backup",
+          name: "아카데미 백업",
+          path: "/admin/backup",
+          icon: <Svg type="download" />,
+        },
       ],
     });
   } else if (auth === "admin") {
@@ -157,6 +163,12 @@ export const SidebarData = (auth: string, role?: string): any => {
           name: "사용자 관리",
           path: "/admin/users",
           icon: <Svg type="user" />,
+        },
+        {
+          title: "backup",
+          name: "아카데미 백업",
+          path: "/admin/backup",
+          icon: <Svg type="download" />,
         },
       ],
     });

@@ -52,6 +52,7 @@ import { useAuth } from "../contexts/authContext";
 import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
 import Form from "../pages/admin/forms/Pid";
+import Backup from "../pages/admin/backup/Index";
 import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
 import ArchiveField from "pages/archive/Pid";
@@ -218,6 +219,15 @@ function RouterPage() {
                   </RequireAuth>
                 }
               ></Route>
+
+              <Route
+                path="backup"
+                element={
+                <RequireAuth auth={["admin", "manager"]}>
+                  <Backup />
+                </RequireAuth>
+                }
+                ></Route>
 
               {/* ----------------------------------------------------- */}
 
