@@ -39,6 +39,7 @@ import EditorParser from "editor/EditorParser";
 import Divider from "components/divider/Divider";
 import Button from "components/button/Button";
 
+import MentoringTable from "pages/courses/table/MentoringTable";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
@@ -81,6 +82,32 @@ const CoursePid = (props: Props) => {
 
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [ratio, setRatio] = useState<number>(0);
+
+  const evaluationAction = (e: any) => {
+    console.log(e);
+    console.log("evaluationAction");
+      const evaluation: any = {};
+      for (let obj of fieldEvaluationList) {
+        evaluation[obj.text] = e[obj.key];
+      }
+      EnrollmentAPI.UEvaluation({
+        params: {
+          _id: e._id,
+        },
+        data: { evaluation },
+      })
+        .then(() => {
+          // alert(SUCCESS_MESSAGE); 메세지 출력 제거 24.02.04 devgoodway
+          if (enrollmentListRef.current.length !== 0) {
+            enrollmentListRef.current[e.tableRowIndex - 1].isModified =
+              false;
+            setEnrollmentList([...enrollmentListRef.current]);
+          }
+        })
+        .catch((err: any) => {
+          ALERT_ERROR(err);
+        });
+    }
 
   const categories = () => {
     return (
@@ -338,29 +365,7 @@ const CoursePid = (props: Props) => {
           true: {
             text: "저장",
             color: "red",
-            onClick: (e: any) => {
-              const evaluation: any = {};
-              for (let obj of fieldEvaluationList) {
-                evaluation[obj.text] = e[obj.key];
-              }
-              EnrollmentAPI.UEvaluation({
-                params: {
-                  _id: e._id,
-                },
-                data: { evaluation },
-              })
-                .then(() => {
-                  alert(SUCCESS_MESSAGE);
-                  if (enrollmentListRef.current.length !== 0) {
-                    enrollmentListRef.current[e.tableRowIndex - 1].isModified =
-                      false;
-                    setEnrollmentList([...enrollmentListRef.current]);
-                  }
-                })
-                .catch((err: any) => {
-                  ALERT_ERROR(err);
-                });
-            },
+            onClick: evaluationAction,
           },
         },
       });
@@ -545,11 +550,34 @@ const CoursePid = (props: Props) => {
                   )}
                 </div>
               </div>
-              <Table
+              
+              <MentoringTable
                 type="object-array"
                 data={!isEnrollmentsLoading ? enrollmentList : []}
+                onBlur={(e: any) => {
+                  // 평가 자동 저장 기능 추가 24.02.04 devgoodway
+                  const evaluation: any = {};
+                  for (let obj of fieldEvaluationList) {
+                    evaluation[obj.text] = e[0][obj.key];
+                  }
+                  EnrollmentAPI.UEvaluation({
+                    params: {
+                      _id: e[0]._id,
+                    },
+                    data: { evaluation },
+                  })
+                    .then(() => {
+                      if (enrollmentListRef.current.length !== 0) {
+                        enrollmentListRef.current[e[0].tableRowIndex - 1].isModified =
+                          false;
+                        setEnrollmentList([...enrollmentListRef.current]);
+                      }
+                    })
+                    .catch((err: any) => {
+                      ALERT_ERROR(err);
+                    });}
+                  }
                 onChange={(e: any) => {
-                  console.log(e);
                   setTimeout(() => {
                     enrollmentListRef.current = e;
                     setIsChecked(
@@ -573,7 +601,7 @@ const CoursePid = (props: Props) => {
           title="승인 상태"
           closeBtn
         >
-          <Table
+          <MentoringTable
             type="object-array"
             data={syllabus?.teachers}
             header={[
