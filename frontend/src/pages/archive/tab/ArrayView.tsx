@@ -284,9 +284,9 @@ const One = (props: Props) => {
           >
             엑셀 파일로 수정
           </Button>
-          <br></br>
         </>
       )}
+      <br></br>
       ※ 이름을 선택하지 않고 값을 입력하면 선택한 모든 사용자에게 같은 값을 일괄로 등록합니다.
       <div style={{ marginTop: "24px" }}>
         <Table
