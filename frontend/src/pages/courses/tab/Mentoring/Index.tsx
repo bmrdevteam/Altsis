@@ -84,8 +84,6 @@ const CoursePid = (props: Props) => {
   const [ratio, setRatio] = useState<number>(0);
 
   const evaluationAction = (e: any) => {
-    console.log(e);
-    console.log("evaluationAction");
       const evaluation: any = {};
       for (let obj of fieldEvaluationList) {
         evaluation[obj.text] = e[obj.key];
@@ -554,28 +552,32 @@ const CoursePid = (props: Props) => {
               <MentoringTable
                 type="object-array"
                 data={!isEnrollmentsLoading ? enrollmentList : []}
+                // 평가 자동 저장 기능 추가 24.02.04 devgoodway
                 onBlur={(e: any) => {
-                  // 평가 자동 저장 기능 추가 24.02.04 devgoodway
-                  const evaluation: any = {};
-                  for (let obj of fieldEvaluationList) {
-                    evaluation[obj.text] = e[0][obj.key];
-                  }
-                  EnrollmentAPI.UEvaluation({
-                    params: {
-                      _id: e[0]._id,
-                    },
-                    data: { evaluation },
-                  })
-                    .then(() => {
-                      if (enrollmentListRef.current.length !== 0) {
-                        enrollmentListRef.current[e[0].tableRowIndex - 1].isModified =
-                          false;
-                        setEnrollmentList([...enrollmentListRef.current]);
+                  for (let item of e) {
+                    if(item.isModified === true){                  
+                      const evaluation: any = {};
+                      for (let obj of fieldEvaluationList) {
+                        evaluation[obj.text] = item[obj.key];
                       }
-                    })
-                    .catch((err: any) => {
-                      ALERT_ERROR(err);
-                    });}
+                      EnrollmentAPI.UEvaluation({
+                        params: {
+                          _id: item._id,
+                        },
+                        data: { evaluation },
+                      })
+                        .then(() => {
+                          if (enrollmentListRef.current.length !== 0) {
+                            enrollmentListRef.current[item.tableRowIndex - 1].isModified =
+                              false;
+                            setEnrollmentList([...enrollmentListRef.current]);
+                          }
+                        })
+                        .catch((err: any) => {
+                          ALERT_ERROR(err);
+                        });}
+                      }
+                    }
                   }
                 onChange={(e: any) => {
                   setTimeout(() => {
