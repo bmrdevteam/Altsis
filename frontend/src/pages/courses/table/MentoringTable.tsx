@@ -12,6 +12,7 @@ import {
 import useOutsideClick from "hooks/useOutsideClick";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Button from "components/button/Button";
+import CoursePid from "pages/courses/tab/Mentoring/Index";
 
 type TTableItems =
   | "text"
@@ -71,6 +72,7 @@ type Props = {
   control?: boolean;
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
   onChange?: (value: any[]) => void;
+  onBlur?: (value: any[]) => void;
   menus?: { onClick: () => void; label: string }[];
 };
 
@@ -200,6 +202,15 @@ const Table = (props: Props) => {
         props.onChange([...data]);
       } else {
         props.onChange([...tableData.data]);
+      }
+    }
+  }
+  function callOnBlurFunc(data?: any) {
+    if (props.onBlur) {
+      if (data) {
+        props.onBlur([...data]);
+      } else {
+        props.onBlur([...tableData.data]);
       }
     }
   }
@@ -930,11 +941,6 @@ const Table = (props: Props) => {
                                         row
                                       );
                                     }
-
-                                    // val.status?.[row[`${val.key}`]].onClick &&
-                                    //   val.status[row[`${val.key}`]].onClick?.(
-                                    //     row
-                                    //   );
                                   }}
                                 >
                                   {val.status[`${row[val.key]}`].text}
@@ -960,15 +966,14 @@ const Table = (props: Props) => {
                               onFocus={(e) => {
                                 e.currentTarget.style.height =
                                   e.currentTarget.scrollHeight + "px";
+                                e.currentTarget.style.maxHeight = "250px";
                                 e.currentTarget.style.width = "100%"; // 최소 너비는 100%로 설정
-                                if (e.currentTarget.offsetWidth < 300) {
-                                  e.currentTarget.style.width = "300px"; // 최소 너비가 300px보다 작을 경우 300px로 조정
+                                if (e.currentTarget.offsetWidth < 250) {
+                                  e.currentTarget.style.width = "250px"; // 최소 너비가 300px보다 작을 경우 300px로 조정
                                 }
                               }}
                               onBlur={(e) => {
-                                e.currentTarget.style.height =
-                                  e.currentTarget.scrollHeight + "px";
-                                e.currentTarget.style.width = "100%"; // 최소 너비는 100%로 설정
+                                callOnBlurFunc();
                               }}
                               style={{
                                 whiteSpace: val.whiteSpace,
@@ -1013,6 +1018,10 @@ const Table = (props: Props) => {
                             <input
                               value={parseFloat(row[`${val.key}`]) || 0}
                               type="number"
+                              onBlur={(e)=>{
+                                callOnBlurFunc();
+                                }
+                            }
                               onChange={(e) => {
                                 const arr = [...tableData.data];
                                 const ii = tableData.data.findIndex(
@@ -1027,7 +1036,8 @@ const Table = (props: Props) => {
                                   data: arr,
                                 }));
                                 callOnChangeFunc();
-                              }}
+                              }
+                            }
                             />
                             {val.byteCalc && (
                               <div className={style.byte_calc}>
@@ -1052,6 +1062,10 @@ const Table = (props: Props) => {
                           >
                             <select
                               value={row[`${val.key}`]}
+                              onBlur={(e)=>{
+                                callOnBlurFunc();
+                                }
+                            }
                               onChange={(e) => {
                                 const arr = [...tableData.data];
                                 const ii = tableData.data.findIndex(

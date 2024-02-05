@@ -22,7 +22,7 @@ const colors = ["#ff595e", "#2c6e49", "#1982c4", "#6a4c93"];
 
 const One = (props: Props) => {
   const { ArchiveAPI } = useAPIv2();
-  const { currentSchool } = useAuth();
+  const { currentSchool, currentUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
@@ -266,24 +266,31 @@ const One = (props: Props) => {
         <>
           <Button
             type="ghost"
-            style={{ marginTop: "24px", borderColor: "red" }}
+            style={{ marginTop: "24px", borderColor: "gray" }}
             onClick={() => {
               setIsUpdating(true);
             }}
           >
-            저장
+            수정
           </Button>{" "}
+    {/* 관리자만 엑셀 파일로 수정 기능 사용 24.02.04 devgoodway */}
+      {currentUser.auth == "manager" &&(
+        <>
           <Button
             type="ghost"
-            style={{ marginTop: "24px", borderColor: "red" }}
+            style={{ marginTop: "24px", borderColor: "gray" }}
             onClick={() => {
               setIsExcelPopupActive(true);
             }}
           >
-            엑셀 파일로 수정
+          엑셀 파일로 수정
           </Button>
+          <br></br>
         </>
       )}
+      </>
+    )}
+      ※ 이름을 선택하지 않고 값을 입력하면 선택한 모든 사용자에게 같은 값을 일괄로 등록합니다.
       <div style={{ marginTop: "24px" }}>
         <Table
           defaultPageBy={10}

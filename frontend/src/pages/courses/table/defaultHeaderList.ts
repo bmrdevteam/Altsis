@@ -2,14 +2,6 @@ import { TTableHeader } from "components/tableV2/Table";
 
 export const defaultHeaderList: TTableHeader[] = [
   {
-    text: "수업명",
-    key: "classTitle",
-    type: "text",
-    textAlign: "center",
-    wordBreak: "keep-all",
-    width: "320px",
-  },
-  {
     text: "시간",
     key: "timeText",
     type: "text",

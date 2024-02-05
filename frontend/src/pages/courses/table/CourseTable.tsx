@@ -153,7 +153,7 @@ const CourseTable = (props: Props) => {
         },
       });
     }
-    postHeaderList.push({
+    /*postHeaderList.push({
       text: "자세히",
       key: "detail",
       type: "button",
@@ -175,11 +175,31 @@ const CourseTable = (props: Props) => {
         padding: "4px",
         round: true,
       },
-    });
+    });*/
 
     setHeaderList([
       ...(props.preHeaderList ?? []),
       ...subjectLabelHeaderList,
+      {
+        text: "수업명",
+        key: "classTitle",
+        type: "text",
+        textAlign: "center",
+        wordBreak: "keep-all",
+        width: "320px",
+        cursor: "pointer",
+        onClick: props.onClickDetail
+          ? props.onClickDetail
+          : (e: any) => {
+          console.log(e)
+            if(currentUser.auth === "manager"){
+              navigate(`/courses/mentoring/${e._id}`);
+            }else{
+              setCourseId(e._id);
+              setViewPopupActive(true);
+            }
+          },
+      },
       ...defaultHeaderList,
       ...postHeaderList,
     ]);
