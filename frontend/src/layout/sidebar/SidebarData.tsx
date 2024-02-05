@@ -52,7 +52,7 @@ export const SidebarData = (auth: string, role?: string): any => {
                   title: "design",
                   name: "수업 개설",
                   path: "/courses/design",
-                  icon: <Svg type="file" />,
+                  icon: <Svg type="write" />,
                 }
               : undefined,
             currentRegistration?.permissionEnrollmentV2
@@ -60,20 +60,22 @@ export const SidebarData = (auth: string, role?: string): any => {
                   title: "enroll",
                   name: "수강 신청",
                   path: "/courses/enroll",
-                  icon: <Svg type="school" />,
+                  icon: <Svg type="search" />,
                 }
               : undefined,
-              {
+              currentRegistration?.permissionEnrollmentV2
+              ? {
                 title: "enrollStatus",
                 name: "수강 현황",
                 path: "/courses/status",
-                icon: <Svg type="school" />,
-              },
+                icon: <Svg type="profileList" />,
+              }
+              : undefined,
             {
               title: "list",
-              name: "수업 목록",
+              name: "전체 목록",
               path: "/courses/list",
-              icon: <Svg type="file" />,
+              icon: <Svg type="list" />,
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
