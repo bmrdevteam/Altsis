@@ -1,8 +1,8 @@
 /**
- * @file Course Enroll Page
- * @page 수강 신청 페이지
+ * @file Course EnrollStatus Page
+ * @page 수강 현황 페이지
  *
- * @author jessie129j <jessie129j@gmail.com>
+ * @author mrgoodway <mrgoodway@bmrschool.org>
  *
  * -------------------------------------------------------
  *
@@ -137,12 +137,22 @@ const CourseEnroll = (props: Props) => {
   }, [isLoadingCourseList]);
 
   useEffect(() => {
+    if (isLoadingEnrolledCourseList) {
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(res);
+        setIsLoadingEnrolledCourseList(false);
+      });
+    }
+  }, [isLoadingEnrolledCourseList]);
+
+  useEffect(() => {
     const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
       path: "/io/enrollment",
       withCredentials: true,
     });
 
     socket.on("connect", () => {
+      //console.log("socket is connected: ", socket.id);
       setSocket(socket);
     });
 
@@ -156,6 +166,7 @@ const CourseEnroll = (props: Props) => {
         const waitingRatio =
           (data.waitingBehind + 1) /
           (data.waitingBehind + data.waitingOrder + 1);
+
         if (data.waitingOrder > 10 && waitingRatio < 1) {
           setWaitingOrder(data.waitingOrder);
           setWaitingBehind(data.waitingBehind);
@@ -185,6 +196,7 @@ const CourseEnroll = (props: Props) => {
   useEffect(() => {
     if (isLoadingWaitingOrder && socket && taskIdx) {
       setTimeout(() => {
+        // console.log("requestWaitingOrder");
         socket.emit("requestWaitingOrder", {
           taskIdx,
         });
@@ -198,25 +210,18 @@ const CourseEnroll = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>수강 신청</div>
-        {!isLoadingCourseList ? (
+        <div className={style.title}>수강 현황</div>
+        {!isLoadingEnrolledCourseList ? (
           <CourseTable
-            data={courseList}
+            data={enrolledCourseList}
             subjectLabels={currentSeason?.subjects?.label ?? []}
             preHeaderList={[
               {
-                text: "신청",
-                key: "enroll",
+                text: "취소",
+                key: "cancel",
                 type: "button",
                 onClick: (e: any) => {
-                  activateSendingPopup(true);
-                  EnrollmentAPI.CEnrollment({
-                    data: {
-                      syllabus: e._id,
-                      registration: currentRegistration?._id,
-                      socketId: socket?.id,
-                    },
-                  })
+                  EnrollmentAPI.DEnrollment({ params: { _id: e.enrollment } })
                     .then(() => {
                       alert(SUCCESS_MESSAGE);
                       setIsLoadingCourseList(true);
@@ -224,16 +229,13 @@ const CourseEnroll = (props: Props) => {
                     })
                     .catch((err) => {
                       ALERT_ERROR(err);
-                    })
-                    .finally(() => {
-                      activateSendingPopup(false);
                     });
                 },
                 width: "72px",
                 textAlign: "center",
                 btnStyle: {
                   border: true,
-                  color: "green",
+                  color: "red",
                   padding: "4px",
                   round: true,
                 },

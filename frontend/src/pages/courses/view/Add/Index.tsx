@@ -164,7 +164,7 @@ const CourseAdd = (props: Props) => {
     <>
       <div className={style.section}>
         <div className={style.design_form}>
-          <div className={style.title}>강의계획서 생성</div>
+          <div className={style.title}>수업 개설</div>
           <div
             style={{
               flex: "auto",

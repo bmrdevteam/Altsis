@@ -25,6 +25,7 @@ import Register from "../pages/Register";
 import Course from "pages/courses/Index";
 import CourseDesign from "../pages/courses/Design";
 import CourseEnroll from "../pages/courses/Enroll";
+import CourseEnrollStatus from "../pages/courses/EnrollStatus";
 import CourseList from "pages/courses/List";
 import CourseCreatedPid from "pages/courses/tab/Created/Index";
 import CourseMentoringPid from "pages/courses/tab/Mentoring/Index";
@@ -255,6 +256,14 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <CourseEnroll />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="status"
+                element={
+                  <RequireAuth>
+                    <CourseEnrollStatus />
                   </RequireAuth>
                 }
               ></Route>
