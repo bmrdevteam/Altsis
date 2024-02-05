@@ -262,31 +262,34 @@ const One = (props: Props) => {
 
   return !isLoading ? (
     <>
-    {/* 관리자만 엑셀 파일로 수정 기능 사용 24.02.04 devgoodway */}
-      {archiveList.length !== 0 && currentUser.auth == "manager" && (
+      {archiveList.length !== 0 && (
         <>
-        {/* 사용하지 않는 저장 버튼 주석 처리 24.02.04 devgoodway */}
-          {/* <Button
+          <Button
             type="ghost"
-            style={{ marginTop: "24px", borderColor: "red" }}
+            style={{ marginTop: "24px", borderColor: "gray" }}
             onClick={() => {
               setIsUpdating(true);
             }}
           >
-            저장
-          </Button>{" "} */}
+            수정
+          </Button>{" "}
+    {/* 관리자만 엑셀 파일로 수정 기능 사용 24.02.04 devgoodway */}
+      {currentUser.auth == "manager" &&(
+        <>
           <Button
             type="ghost"
-            style={{ marginTop: "24px", borderColor: "red" }}
+            style={{ marginTop: "24px", borderColor: "gray" }}
             onClick={() => {
               setIsExcelPopupActive(true);
             }}
           >
-            엑셀 파일로 수정
+          엑셀 파일로 수정
           </Button>
+          <br></br>
         </>
       )}
-      <br></br>
+      </>
+    )}
       ※ 이름을 선택하지 않고 값을 입력하면 선택한 모든 사용자에게 같은 값을 일괄로 등록합니다.
       <div style={{ marginTop: "24px" }}>
         <Table
