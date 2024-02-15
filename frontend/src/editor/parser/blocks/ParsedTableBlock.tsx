@@ -76,14 +76,14 @@ const ParsedTableBlock = (props: Props) => {
         // 조건에 따라 filter.cell 값을 cellName 배열에 추가합니다.
         if (
           filter.operator === "===" &&
-          item?.[filter.by] !== undefined &&
+          item?.[filter.by] &&
           item?.[filter.by] !== filter.value
         ) {
           cellName = [...cellName, filter.cell];
         }
         if (
           filter.operator === "!==" &&
-          item?.[filter.by] !== undefined &&
+          item?.[filter.by] &&
           item?.[filter.by] === filter.value
         ) {
           cellName = [...cellName, filter.cell];
@@ -113,14 +113,14 @@ const ParsedTableBlock = (props: Props) => {
       props.blockData.data.dataFilter?.map((filter: any, iasd: number) => {
         if (
           filter.operator === "===" &&
-          v?.[filter.by] !== undefined &&
+          v?.[filter.by] &&
           v?.[filter.by] !== filter.value
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
-          v?.[filter.by] !== undefined &&
+          v?.[filter.by] &&
           v?.[filter.by] === filter.value
         ) {
           boolCount += 1;
@@ -144,14 +144,14 @@ const ParsedTableBlock = (props: Props) => {
       props.blockData.data.dataOrFilter?.map((filter: any, iasd: number) => {
         if (
           filter.operator === "===" &&
-          v?.[filter.by] !== undefined &&
+          v?.[filter.by] &&
           v?.[filter.by] !== filter.value
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
-          v?.[filter.by] !== undefined &&
+          v?.[filter.by] &&
           v?.[filter.by] === filter.value
         ) {
           boolCount += 1;
