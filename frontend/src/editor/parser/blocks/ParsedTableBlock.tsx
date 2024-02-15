@@ -187,7 +187,12 @@ const ParsedTableBlock = (props: Props) => {
       if (e.runningTotal) {
         let track = 0;
         for (const ob of filteredRepeat) {
-          track += parseFloat(ob?.[e.label]);
+          // parseFloat(ob?.[e.label])의 값이 없는 경우 0을 대입한다.
+          if(parseFloat(ob?.[e.label])){
+            track += parseFloat(ob?.[e.label]);
+          }else{
+            track += 0;
+          }
           ob[`${e.label}[누계합산]`] = track;
         }
       }
@@ -195,7 +200,10 @@ const ParsedTableBlock = (props: Props) => {
         if (e.type === "input-number") {
           let track = 0;
           for (const ob of filteredRepeat) {
+            // parseFloat(ob?.[e.label])의 값이 0이 아닌 경우
+            if(parseFloat(ob?.[e.label])){
             track += parseFloat(ob?.[e.label]);
+            }
           }
           for (const ob of filteredRepeat) {
             ob[`${e.label}[합산]`] = track;
