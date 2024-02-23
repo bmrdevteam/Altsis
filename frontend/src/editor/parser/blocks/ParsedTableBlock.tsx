@@ -221,6 +221,13 @@ const ParsedTableBlock = (props: Props) => {
     }
   }
 
+  //evaluation total
+  for(const e of filteredRepeat){
+    for(const key of Object.keys(e)){
+      console.log(key);
+    }
+  }
+
   const Cell = ({
     data,
     dataRepeatIndex,
