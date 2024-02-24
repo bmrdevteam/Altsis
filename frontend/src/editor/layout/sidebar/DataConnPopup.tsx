@@ -336,6 +336,18 @@ const DataConnPopup = (props: Props) => {
                                           });
                                         }}
                                       />
+                                      <TreeItem
+                                        key={`${term}/단위수[합산]`}
+                                        text={`${term}/단위수[합산]`}
+                                        onClick={() => {
+                                          handleOnclick({
+                                            location: `${
+                                              school.schoolId
+                                            }//evaluation//${`${term}/단위수[합산]`}`,
+                                            label: `${term}/단위수[합산]`,
+                                          });
+                                        }}
+                                      />
                                       {evaluationData?.[
                                         school._id
                                       ]?.evaluationFieldsByTerm[term]?.map(
