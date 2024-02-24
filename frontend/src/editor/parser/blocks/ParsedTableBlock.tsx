@@ -181,7 +181,6 @@ const ParsedTableBlock = (props: Props) => {
       props.blockData.data?.dataRepeat?.by.split("//")[
         props.blockData.data?.dataRepeat?.by.split("//").length - 1
       ];
-
     for (const e of currentSchool?.formArchive.find((o: any) => o.label === z)
       ?.fields ?? []) {
       if (e.runningTotal) {
@@ -217,6 +216,27 @@ const ParsedTableBlock = (props: Props) => {
             ob[`${e.label}[합산]`] = track;
           }
         }
+      }
+    }
+  }
+
+  //evaluation total
+  let trackList : any = {};
+  for(const e of filteredRepeat){
+    for(const k of Object.keys(e)){
+      if(k.includes("단위수")){
+        if(trackList[`${k}[합산]`]){
+          trackList[`${k}[합산]`] += parseFloat(e[k]);
+        }else{
+          trackList[`${k}[합산]`] = parseFloat(e[k]);
+        }
+      }
+    }
+  }
+  for(const e of filteredRepeat){
+    for(const k of Object.keys(e)){
+      if(k.includes("단위수")){
+        e[`${k}[합산]`] = trackList[`${k}[합산]`];
       }
     }
   }
