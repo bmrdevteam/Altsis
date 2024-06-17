@@ -1,4 +1,4 @@
-name: dev-backend-pipeline
+name: backend-pipeline
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
       - name: Login to ghcr
         uses: docker/login-action@v2.0.0
         with:
-          registry: ghcr.io/devgoodway
+          registry: ghcr.io/bmrdevteam
           username: ${{ github.actor }}
           password: ${{ secrets[format('GHCR_TOKEN_{0}', github.actor)] }}
 
@@ -70,7 +70,7 @@ jobs:
           context: backend
           file: ./backend/Dockerfile
           push: true
-          tags: "ghcr.io/bmrdevteam/altsis_backend:latest"
+          tags: "ghcr.io/bmrdevteam/bsis-dev_backend:latest"
           # (3)
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
@@ -80,6 +80,17 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # 슬랙 알림
+      - name: Send Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          author_name: backend-CI
+          status: ${{ job.status }}
+          fields: workflow,job,author,message,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+        if: always() # Pick up events even if the job fails or is canceled.
 
   backend-CD:
     name: backend-CD
@@ -100,23 +111,35 @@ jobs:
       - name: Login to ghcr
         uses: docker/login-action@v2.0.0
         with:
-          registry: ghcr.io/devgoodway
+          registry: ghcr.io/bmrdevteam
           username: ${{ github.actor }}
           password: ${{ secrets[format('GHCR_TOKEN_{0}', github.actor)] }}
 
       # Pull images
       - name: Docker pull
         run: |
-          docker pull ghcr.io/bmrdevteam/altsis_backend:latest
+          docker pull ghcr.io/bmrdevteam/bsis-dev_backend:latest
 
       # Run containers
       - name: Docker run
         run: |
-          docker rm -f altsis_backend_1 &>/dev/null && echo 'Removed old container'
-          docker run --name altsis_backend_1  --restart on-failure -p 80:${{env.SERVER_PORT}} -d ghcr.io/devgoodway/altsis_backend:latest
+          docker rm -f bsis-dev_backend_1 &>/dev/null && echo 'Removed old container'
+          docker run --name bsis-dev_backend_1  --restart on-failure -p 80:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-dev_backend:latest
 
       # 이전 이미지 삭제
       - name: Prune images
         run: |
           docker image prune -f
           docker images
+
+      # 슬랙 알림
+      - name: Send Slack Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          author_name: backend-CD
+          status: ${{ job.status }}
+          fields: workflow,job,author,message,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
+          MATRIX_CONTEXT: ${{ toJson(matrix) }} # required
+        if: always() # Pick up events even if the job fails or is canceled.
