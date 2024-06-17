@@ -1,4 +1,4 @@
-name: frontend-pipeline
+name: dev-frontend-pipeline
 
 on:
   push:
@@ -61,14 +61,3 @@ jobs:
           --exclude "*.html" --exclude "*.json" \
           --delete \
           ./build ${{secrets.S3_BUCKET_CLIENT}} \
-
-      # 슬랙 알림
-      - name: Send Slack Notification
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          author_name: Github Action Chatbot - frontend-CI/CD
-          fields: repo,commit,message,author,action,took
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # required
-        if: always() # Pick up events even if the job fails or is canceled.
