@@ -65,7 +65,7 @@ const One = (props: Props) => {
     <>
       <div style={{ marginTop: "24px" }}>
         <Table
-          defaultPageBy={10}
+          defaultPageBy={200}
           control
           type="object-array"
           data={archiveData ?? []}
