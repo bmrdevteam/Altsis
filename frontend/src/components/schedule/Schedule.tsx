@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import style from "./schedule.module.scss";
-import create from "zustand";
+import { create } from "zustand";
 import useGenerateId from "hooks/useGenerateId";
 import Svg from "assets/svg/Svg";
 import { useAuth } from "contexts/authContext";

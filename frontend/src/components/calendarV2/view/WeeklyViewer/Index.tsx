@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import style from "./style.module.scss";
-import create from "zustand";
+import {create} from "zustand";
 
 import { EventItem } from "components/calendarV2/calendarData";
 import { generateRandomId } from "functions/functions";
