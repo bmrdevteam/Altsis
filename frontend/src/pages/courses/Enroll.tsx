@@ -244,9 +244,6 @@ const CourseEnroll = (props: Props) => {
           <Loading height={"calc(100vh - 55px)"} />
         )}
       </div>
-      <div style={{ marginTop: "24px", marginBottom: "24px" }}>
-        <Divider />
-      </div>
 
       {isActiveSendingPopup && !isActiveWaitingPopup && (
         <Popup setState={() => {}}>
