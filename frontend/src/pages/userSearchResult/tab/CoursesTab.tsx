@@ -191,7 +191,7 @@ console.log(props);
     }
   });
 
-  let evaluation = "평가 현황 | ";
+  let evaluation = "평가 현황";
   Object.keys(evaluationCount).forEach((key)=>{
     let emo = "";
     if(evaluationCount[key] >= props.enrolledCourseList.length){
@@ -199,7 +199,7 @@ console.log(props);
     }else{
       emo = "🟥";
     }
-    evaluation += evaluationKey[key] + "[" + evaluationCount[key] + "/" + props.enrolledCourseList.length + "]" + emo + " / ";
+    evaluation += " | " +  evaluationKey[key] + "[" + evaluationCount[key] + "/" + props.enrolledCourseList.length + "]" + emo;
   })
 
   console.log(props.enrolledCourseList);
