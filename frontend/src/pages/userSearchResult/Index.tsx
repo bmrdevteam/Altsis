@@ -37,9 +37,9 @@ import { useParams } from "react-router-dom";
 import Tab from "components/tab/Tab";
 import ScheduleTab from "./tab/ScheduleTab";
 import CoursesTab from "./tab/CoursesTab";
-import ArchiveTab from "./tab/ArchiveTab";
-import DocsTab from "./tab/DocsTab";
-import AppsTab from "./tab/AppsTab";
+// import ArchiveTab from "./tab/ArchiveTab";
+// import DocsTab from "./tab/DocsTab";
+// import AppsTab from "./tab/AppsTab";
 import UserInfo from "./UserInfo";
 
 import style from "style/pages/userSearchResult/userSearchResult.module.scss";
@@ -97,9 +97,9 @@ const UserSearchResult = (props: Props) => {
 
   let scheduleTab = <ScheduleTab user={user} />;
   let coursesTab = <CoursesTab user={user} />;
-  let archiveTab = <ArchiveTab user={user} />;
-  let docsTab = <DocsTab user={user} />;
-  let appsTab = <AppsTab user={user} />;
+  // let archiveTab = <ArchiveTab user={user} />;
+  // let docsTab = <DocsTab user={user} />;
+  // let appsTab = <AppsTab user={user} />;
 
   function getAllowedTab() {
     if (!currentRegistration?.role) return {};

@@ -1,6 +1,7 @@
 import Select from "components/select/Select";
 import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
+import style from "style/pages/enrollment.module.scss";
 
 import _ from "lodash";
 import { useEffect, useState } from "react";
@@ -168,11 +169,28 @@ const Enrollments = (props: {
     return null;
   }
 
+console.log(props.enrolledCourseList);
+
+  // 학점의 총합
+  let total = 0;
+  props.enrolledCourseList.forEach((item) => {
+    total += item.point; 
+  });
+
   return (
-    <CourseTable
-      data={props.enrolledCourseList}
-      subjectLabels={currentSeason?.subjects?.label ?? []}
-    />
+    <>
+      <div style={{
+        display:"inline-block",
+        marginTop:"10px",
+        marginBottom:"10px",
+        padding:"5px",
+        border:"1px solid inherit"
+        }}>통계 - {props.enrolledCourseList.length}개 수업 / {total}학점</div>
+      <CourseTable
+        data={props.enrolledCourseList}
+        subjectLabels={currentSeason?.subjects?.label ?? []}
+      />
+    </>
   );
 };
 
