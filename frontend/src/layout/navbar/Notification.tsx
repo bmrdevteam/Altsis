@@ -11,14 +11,30 @@ import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 import View from "pages/notifications/popup/View";
+import Send from "pages/notifications/popup/Send";
 
 import audioURL from "assets/audio/notification-a.mp3";
 import { TNotificationReceived } from "types/notification";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 const Notification = () => {
+  const { currentSeason, currentRegistration, currentSchool } = useAuth();
+  const { UserAPI, NotificationAPI } = useAPIv2();
+
+  const [notificationList, setNotificationList] = useState<any[]>([]);
+  const selectRef = useRef<string[]>([]);
+
+  const [notificatnionPopupActive, setNotificatnionPopupActive] =
+    useState<boolean>(false);
+
+  const [receiverType, setReceiverType] = useState<string>("");
+  const [receiverList, setReceiverList] = useState<any[]>([]);
+
+  const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { currentUser } = useAuth();
-  const { NotificationAPI } = useAPIv2();
+
   const navigate = useNavigate();
 
   const [socket, setSocket] = useState<Socket>();
@@ -61,6 +77,66 @@ const Notification = () => {
       }
     }
   };
+
+  
+  async function getSchoolUserList() {
+    const { users } = await UserAPI.RUsers({
+      query: { sid: currentSchool.school },
+    });
+
+    return users;
+  }
+
+  async function getUserList() {
+    const { users } = await UserAPI.RUsers({});
+
+    return users;
+  }
+
+  useEffect(() => {
+    if (isLoading) {
+      NotificationAPI.RNotifications({ query: { type: "sent" } })
+        .then(({ notifications }) => {
+          setNotificationList(
+            notifications.map((val: any) => {
+              return {
+                ...val,
+                toUser: `${val.toUserList[0].userName}(${
+                  val.toUserList[0].userId
+                })${
+                  val.toUserList.length > 1
+                    ? ` 외 ${val.toUserList.length - 1}명`
+                    : ``
+                }`,
+              };
+            })
+          );
+        })
+        .then(() => {
+          selectRef.current = [];
+          setIsLoading(false);
+        });
+
+      updateReceiverList();
+    }
+  }, [isLoading]);
+
+  async function updateReceiverList() {
+    if (currentRegistration && currentSeason) {
+      setReceiverType("season");
+      setReceiverList(currentSeason.registrations);
+    } else if (currentSchool) {
+      setReceiverType("school");
+      getSchoolUserList().then((res: any) => {
+        setReceiverList(res);
+      });
+    } else {
+      setReceiverType("academy");
+      getUserList().then((res: any) => {
+        setReceiverList(res);
+      });
+    }
+  }
 
   useEffect(() => {
     if (currentUser?._id) {
@@ -187,29 +263,56 @@ const Notification = () => {
       {notificationContentActive && !isNotificationLoading && (
         <>
           <div className={style.contents}>
-            <div className={style.title}>알림</div>
+            <div className={style.title} style={{ display: "flex", gap: "4px" }}>
+            <Svg type="notification" width="20px" height="20px" />알림
+              </div>
             <div className={style.item_box}>
               {!isNotificationContenLoading && notificationItems()}
             </div>
-            <div className={style.button}>
-              <Button
+            <div className={style.button} style={{ display: "flex", gap: "4px"}}>
+            <Button
                 type="ghost"
                 onClick={(e: any) => {
                   setNotificationContentActive(false);
                   navigate("/notifications");
                 }}
+                style={{flexGrow: "1"}}
               >
-                모두보기
-              </Button>
+                보관함
+              </Button> 
+            <Button
+                type="ghost"
+                    onClick={() => {
+                      setSendPopupActive(true);
+                    }}
+                style={{flexGrow: "1"}}
+              >
+                보내기
+              </Button>               
             </div>
           </div>
-          {notificationPopupActive && (
-            <View
-              setState={setNotificationPopupAcitve}
-              nid={notification._id}
-              type={"received"}
-            />
-          )}
+        {sendPopupActive && (
+          <Send
+            setState={setSendPopupActive}
+            receiverList={receiverList}
+            receiverType={receiverType}
+            setIsLoading={setIsLoading}
+          />
+        )}
+        {notificatnionPopupActive && notification && (
+          <View
+            setState={setNotificatnionPopupActive}
+            nid={notification._id}
+            type={"sent"}
+          />
+        )}
+        {notificationPopupActive && (
+          <View
+            setState={setNotificationPopupAcitve}
+            nid={notification._id}
+            type={"received"}
+          />
+        )}
         </>
       )}
     </div>
