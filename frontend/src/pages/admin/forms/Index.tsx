@@ -60,7 +60,7 @@ const Forms = (props: Props) => {
   const search = useSearch(formList);
   const { FormAPI } = useAPIv2();
 
-  const [view, setView] = useState<"list" | "grid">("grid");
+  const [view, setView] = useState<"list" | "grid">("list");
 
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
 
@@ -68,6 +68,7 @@ const Forms = (props: Props) => {
   const [selectFormType, setSelectFormType] = useState<
     "timetable" | "syllabus" | "print" | "other"
   >("timetable");
+  const navigate = useNavigate();
 
   useEffect(() => {
     getForms();
@@ -345,12 +346,73 @@ const Forms = (props: Props) => {
                         return value.type === "timetable" && !value.archived;
                       })}
                       header={[
-                        { type: "text", key: "title", text: "제목" },
                         {
+                          text: "No",
                           type: "text",
-                          key: "type",
-                          text: "종류",
-                          width: "240px",
+                          key: "tableRowIndex",
+                          width: "48px",
+                          textAlign: "center",
+                        },
+                        { 
+                          type: "text", 
+                          key: "title", 
+                          text: "제목", 
+                          onClick: (e: any) => {
+                            navigate(e._id);
+                          }},
+                        { 
+                          type: "text", 
+                          key: "userName", 
+                          text: "작성자",
+                          textAlign: "center",
+                        },
+                        {
+                          type: "button",
+                          key: "copy",
+                          text: "복사",
+                          onClick: (e: any) => {
+                            FormAPI.CCopyForm({
+                              params: { _id: e._id },
+                            })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "archive",
+                          text: "보관",
+                          onClick: (e: any) => {
+                            FormAPI.UArchiveForm({ params: { _id: e._id } })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
                         },
                       ]}
                     />
@@ -368,12 +430,73 @@ const Forms = (props: Props) => {
                         return value.type === "syllabus" && !value.archived;
                       })}
                       header={[
-                        { type: "text", key: "title", text: "제목" },
                         {
+                          text: "No",
                           type: "text",
-                          key: "type",
-                          text: "종류",
-                          width: "240px",
+                          key: "tableRowIndex",
+                          width: "48px",
+                          textAlign: "center",
+                        },
+                        { 
+                          type: "text", 
+                          key: "title", 
+                          text: "제목", 
+                          onClick: (e: any) => {
+                            navigate(e._id);
+                        }},
+                        { 
+                          type: "text", 
+                          key: "userName", 
+                          text: "작성자",
+                          textAlign: "center",
+                        },
+                        {
+                          type: "button",
+                          key: "copy",
+                          text: "복사",
+                          onClick: (e: any) => {
+                            FormAPI.CCopyForm({
+                              params: { _id: e._id },
+                            })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "archive",
+                          text: "보관",
+                          onClick: (e: any) => {
+                            FormAPI.UArchiveForm({ params: { _id: e._id } })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
                         },
                       ]}
                     />
@@ -395,12 +518,73 @@ const Forms = (props: Props) => {
                             value.type === "print" && !value.archived
                         )}
                       header={[
-                        { type: "text", key: "title", text: "제목" },
                         {
+                          text: "No",
                           type: "text",
-                          key: "type",
-                          text: "종류",
-                          width: "240px",
+                          key: "tableRowIndex",
+                          width: "48px",
+                          textAlign: "center",
+                        },
+                        { 
+                          type: "text", 
+                          key: "title", 
+                          text: "제목", 
+                          onClick: (e: any) => {
+                            navigate(e._id);
+                        }},
+                        { 
+                          type: "text", 
+                          key: "userName", 
+                          text: "작성자",
+                          textAlign: "center",
+                        },
+                        {
+                          type: "button",
+                          key: "copy",
+                          text: "복사",
+                          onClick: (e: any) => {
+                            FormAPI.CCopyForm({
+                              params: { _id: e._id },
+                            })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "archive",
+                          text: "보관",
+                          onClick: (e: any) => {
+                            FormAPI.UArchiveForm({ params: { _id: e._id } })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
                         },
                       ]}
                     />
@@ -418,12 +602,73 @@ const Forms = (props: Props) => {
                         return !value.archived;
                       })}
                       header={[
-                        { type: "text", key: "title", text: "제목" },
                         {
+                          text: "No",
                           type: "text",
-                          key: "type",
-                          text: "종류",
-                          width: "240px",
+                          key: "tableRowIndex",
+                          width: "48px",
+                          textAlign: "center",
+                        },
+                        { 
+                          type: "text", 
+                          key: "title", 
+                          text: "제목", 
+                          onClick: (e: any) => {
+                            navigate(e._id);
+                        }},
+                        { 
+                          type: "text", 
+                          key: "userName", 
+                          text: "작성자",
+                          textAlign: "center",
+                        },
+                        {
+                          type: "button",
+                          key: "copy",
+                          text: "복사",
+                          onClick: (e: any) => {
+                            FormAPI.CCopyForm({
+                              params: { _id: e._id },
+                            })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "archive",
+                          text: "보관",
+                          onClick: (e: any) => {
+                            FormAPI.UArchiveForm({ params: { _id: e._id } })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
                         },
                       ]}
                     />
@@ -441,12 +686,73 @@ const Forms = (props: Props) => {
                         return value.archived === true;
                       })}
                       header={[
-                        { type: "text", key: "title", text: "제목" },
                         {
+                          text: "No",
                           type: "text",
-                          key: "type",
-                          text: "종류",
-                          width: "240px",
+                          key: "tableRowIndex",
+                          width: "48px",
+                          textAlign: "center",
+                        },
+                        { 
+                          type: "text", 
+                          key: "title", 
+                          text: "제목", 
+                          onClick: (e: any) => {
+                            navigate(e._id);
+                        }},
+                        { 
+                          type: "text", 
+                          key: "userName", 
+                          text: "작성자",
+                          textAlign: "center",
+                        },
+                        {
+                          type: "button",
+                          key: "delete",
+                          text: "삭제",
+                          onClick: (e: any) => {
+                            FormAPI.DForm({ params: { _id: e._id } })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "archive",
+                          text: "복원",
+                          onClick: (e: any) => {
+                            FormAPI.URestoreForm({
+                              params: { _id: e._id },
+                            })
+                              .then(() => {
+                                alert(SUCCESS_MESSAGE);
+                                getForms();
+                              })
+                              .catch((err) => {
+                                ALERT_ERROR(err);
+                              });
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
                         },
                       ]}
                     />
