@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import style from "style/pages/login.module.scss";
 import { useCookies } from "react-cookie";
 import { useNavigate } from "react-router-dom";
+import Svg from "../../assets/svg/Svg";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -41,10 +42,8 @@ const ChooseAcademy = (props: Props) => {
   return !isLoading ? (
     <div className={style.section}>
       <div className={style.container}>
-        <div className={style.title}> 아카데미</div>
-        <div className={style.subtitle}>
-          입장하실 아카데미 아이디를 입력하세요.
-        </div>
+        <div className={style.title}>Altsis</div>
+        <div className={style.subtitle}>입장하실 아카데미 아이디를 입력하세요.</div>
         <Input
           appearence="flat"
           type="text"
@@ -72,6 +71,14 @@ const ChooseAcademy = (props: Props) => {
         >
           입장
         </Button>
+      </div>
+      <div className={style.container_logo}>
+        <div className={style.logo}
+          onClick={() => {
+            window.open("https://github.com/bmrdevteam/Altsis", "_blank");
+        }}>
+            <Svg type={"github"} width="40px" height="40px" text-align ="center" style={{textAlign : "center"}}/>
+        </div>
       </div>
     </div>
   ) : (
