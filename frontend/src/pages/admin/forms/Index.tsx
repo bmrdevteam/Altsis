@@ -26,7 +26,7 @@
  * @version 1.0
  *
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import style from "style/pages/admin/forms.module.scss";
 
@@ -40,6 +40,13 @@ import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import Tab from "components/tab/Tab";
 import Table from "components/tableV2/Table";
+import {
+  dateFormat,
+  flattenObject,
+  objectDownloadAsCSV,
+  objectDownloadAsJson,
+  unflattenObject,
+} from "functions/functions";
 
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
@@ -60,6 +67,9 @@ const Forms = (props: Props) => {
   const search = useSearch(formList);
   const { FormAPI } = useAPIv2();
 
+  const [jsonData, setJsonData] = useState(null);
+  const fileInput = useRef<HTMLInputElement | null>(null);
+
   const [view, setView] = useState<"list" | "grid">("list");
 
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
@@ -73,6 +83,61 @@ const Forms = (props: Props) => {
   useEffect(() => {
     getForms();
   }, []);
+
+
+  /**
+   * upload json data
+   * @returns upload json data & create form
+   */
+  
+  const handleProfileUploadButtonClick = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (fileInput.current) fileInput.current.click();
+  };
+
+  const handleFileChange = (e:any) => {
+    const file = e.target.files[0];
+    if (file) {
+      // 파일이 선택되었을 때 처리
+      const reader = new FileReader();
+
+      // 파일 읽기가 완료되었을 때
+      reader.onload = (e:any) => {
+        try {
+          // 파일 내용을 JSON으로 파싱
+          const data = JSON.parse(e.target.result);
+          setJsonData(data);
+          // 데이터 베이스에 저장하기
+            try {
+              FormAPI.CForm({
+                data: {
+                  title: data.title + "의 사본",
+                  type: data.type,
+                  data: data.data,
+                },
+              });
+              alert(SUCCESS_MESSAGE);
+              getForms();
+            } catch (err) {
+              ALERT_ERROR(err);
+            }
+        } catch (err) {
+          ALERT_ERROR(err);
+          setJsonData(null);
+        }
+      };
+
+      // 파일 읽기 오류 처리
+      reader.onerror = (err) => {
+        ALERT_ERROR(err);
+        setJsonData(null);
+      };
+
+      // 파일 읽기 시작
+      reader.readAsText(file);
+    }
+  };
 
   /**
    * fetches the form list from the database
@@ -94,7 +159,6 @@ const Forms = (props: Props) => {
    * @async
    * @return null
    */
-
   async function addForm() {
     try {
       if (selectFormType === "other") return;
@@ -414,6 +478,28 @@ const Forms = (props: Props) => {
                             round: true,
                           },
                         },
+                        {
+                          type: "button",
+                          key: "json",
+                          text: "다운로드",
+                          onClick: async(e: any) => {                              
+                              try {
+                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
+                                objectDownloadAsJson(form);
+                                alert(SUCCESS_MESSAGE);
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                          },
+                          width: "100px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
                       ]}
                     />
                   )}
@@ -490,6 +576,28 @@ const Forms = (props: Props) => {
                               });
                           },
                           width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "json",
+                          text: "다운로드",
+                          onClick: async(e: any) => {                              
+                              try {
+                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
+                                objectDownloadAsJson(form);
+                                alert(SUCCESS_MESSAGE);
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                          },
+                          width: "100px",
                           textAlign: "center",
                           btnStyle: {
                             border: true,
@@ -586,6 +694,28 @@ const Forms = (props: Props) => {
                             round: true,
                           },
                         },
+                        {
+                          type: "button",
+                          key: "json",
+                          text: "다운로드",
+                          onClick: async(e: any) => {                              
+                              try {
+                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
+                                objectDownloadAsJson(form);
+                                alert(SUCCESS_MESSAGE);
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                          },
+                          width: "100px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
                       ]}
                     />
                   )}
@@ -662,6 +792,28 @@ const Forms = (props: Props) => {
                               });
                           },
                           width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "json",
+                          text: "다운로드",
+                          onClick: async(e: any) => {                              
+                              try {
+                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
+                                objectDownloadAsJson(form);
+                                alert(SUCCESS_MESSAGE);
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                          },
+                          width: "100px",
                           textAlign: "center",
                           btnStyle: {
                             border: true,
@@ -796,6 +948,23 @@ const Forms = (props: Props) => {
                 >
                   <Svg type="list" width="26px" height="26px" />
                 </div>
+                <div
+                  className={style.btn}
+                  onClick={(e: any) => {
+                    handleProfileUploadButtonClick(e);
+                  }}
+                >
+                  <Svg type="upload" width="26px" height="26px" />
+                </div>
+                <input
+                  type="file"
+                  ref={fileInput}
+                  style={{ display: "none" }}
+                  onChange={(e: any) => {
+                    handleFileChange(e);
+                    e.target.value = "";
+                  }}
+          />
               </div>
             </div>
           </Tab>
