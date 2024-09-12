@@ -32,6 +32,7 @@ import style from "style/pages/login.module.scss";
 import Button from "components/button/Button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCookies } from "react-cookie";
+import Svg from "../../assets/svg/Svg";
 
 import axios from "axios";
 
@@ -228,20 +229,28 @@ const Login = () => {
               로그인
             </Button>
           </div>
-          <div style={{ height: "4px" }}></div>
+          <div style={{ height: "8px" }}></div>
 
           <Button
             type="ghost"
             onClick={() => {
               navigate("/login", { replace: false });
             }}
-            style={{ borderRadius: "8px" }}
+            style={{ borderRadius: "8px", height: "42px" }}
           >
             다른 아카데미 선택
           </Button>
-          <div style={{ height: "4px" }}></div>
+          <div style={{ height: "8px" }}></div>
           <GoogleLoginBtn academyId={academyId} />
         </div>
+      <div className={style.container_logo}>
+        <div className={style.logo}
+          onClick={() => {
+            window.open("https://github.com/bmrdevteam/Altsis", "_blank");
+        }}>
+            <Svg type={"github"} width="40px" height="40px" text-align ="center" style={{textAlign : "center"}}/>
+        </div>
+      </div>
       </div>
     </>
   ) : (
