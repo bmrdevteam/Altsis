@@ -28,6 +28,8 @@ const Sidebar = (props: Props) => {
     changeCurrentCell,
     setCurrentCellColumn,
     removeCurrentBlock,
+    upCurrentBlock,
+    downCurrentBlock,
     getCurrentCell,
     getCurrentCellColumn,
     addBlockAfterCurrentBlock,
@@ -131,11 +133,28 @@ const Sidebar = (props: Props) => {
               boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
             }}
             onClick={() => {
-              removeCurrentBlock();
+              upCurrentBlock();
             }}
           >
-            삭제
+            <Svg type={"arrowUp"} />
           </Button>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              downCurrentBlock();
+            }}
+          >
+            <Svg type={"arrowDown"} />
+          </Button>
+        </div>
+        <div  style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
             style={{
@@ -149,7 +168,22 @@ const Sidebar = (props: Props) => {
               copyBlockAfterCurrentBlock(getCurrentBlock().data);
             }}
           >
-            복사
+            <Svg type={"paste"} />
+          </Button>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              removeCurrentBlock();
+            }}
+          >
+            <Svg type={"trash"} />
           </Button>
         </div>
       </Menu>
@@ -198,11 +232,28 @@ const Sidebar = (props: Props) => {
               boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
             }}
             onClick={() => {
-              removeCurrentBlock();
+              upCurrentBlock();
             }}
           >
-            삭제
+            <Svg type={"arrowUp"} />
           </Button>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              downCurrentBlock();
+            }}
+          >
+            <Svg type={"arrowDown"} />
+          </Button>
+        </div>
+        <div  style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
             style={{
@@ -216,7 +267,22 @@ const Sidebar = (props: Props) => {
               copyBlockAfterCurrentBlock(getCurrentBlock().data);
             }}
           >
-            복사
+            <Svg type={"paste"} />
+          </Button>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              removeCurrentBlock();
+            }}
+          >
+            <Svg type={"trash"} />
           </Button>
         </div>
       </Menu>

@@ -40,6 +40,8 @@ export function useEditor(): {
   copyBlockAfterCurrentBlock: (data: any) => void;
   getCurrentBlock: () => any;
   removeCurrentBlock: () => void;
+  upCurrentBlock: () => void;
+  downCurrentBlock: () => void;
   changeCurrentBlockType: (type: string) => void;
   changeCurrentBlockData: (data: any) => void;
   addBlockAfterCurrentBlock: (blockType: string) => void;
@@ -432,6 +434,26 @@ export const EditorProvider = (props: {
     setReloadEditorData(true);
     saveMoves();
   }
+  function upCurrentBlock() {
+    if(getCurrentBlockIndex() != 0){
+      let id = getCurrentBlockIndex();
+      let item = editorData.current[id-1];
+      editorData.current[id-1] = editorData.current[id];
+      editorData.current[id] = item;
+      setReloadEditorData(true);
+      saveMoves();
+    }
+  }
+  function downCurrentBlock() {
+    if(editorData.current[getCurrentBlockIndex()+1] != undefined){
+      let id = getCurrentBlockIndex();
+      let item = editorData.current[id+1];
+      editorData.current[id+1] = editorData.current[id];
+      editorData.current[id] = item;
+      setReloadEditorData(true);
+      saveMoves();
+    }
+  }
   function changeCurrentBlockType(type: string) {
     if (type !== editorData.current[getCurrentBlockIndex()].type) {
       editorData.current[getCurrentBlockIndex()].type = type;
@@ -669,6 +691,8 @@ export const EditorProvider = (props: {
     setCurrentBlock,
     getCurrentBlock,
     removeCurrentBlock,
+    upCurrentBlock,
+    downCurrentBlock,
     changeCurrentBlockType,
     changeCurrentBlockData,
     addBlockAfterCurrentBlock,
