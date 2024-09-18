@@ -21,6 +21,7 @@ type Props = {
 const Sidebar = (props: Props) => {
   const {
     getCurrentBlock,
+    copyBlockAfterCurrentBlock,
     changeCurrentBlockType,
     changeCurrentBlockData,
     setReloadEditorData,
@@ -133,6 +134,20 @@ const Sidebar = (props: Props) => {
         >
           삭제
         </Button>
+        <Button
+          type="ghost"
+          style={{
+            marginTop: "8px",
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={() => {
+            copyBlockAfterCurrentBlock(getCurrentBlock().data);
+          }}
+        >
+          복사
+        </Button>
       </Menu>
     );
   };
@@ -181,6 +196,20 @@ const Sidebar = (props: Props) => {
           }}
         >
           삭제
+        </Button>
+        <Button
+          type="ghost"
+          style={{
+            marginTop: "8px",
+            borderRadius: "4px",
+            height: "32px",
+            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+          }}
+          onClick={() => {
+            copyBlockAfterCurrentBlock(getCurrentBlock().data);
+          }}
+        >
+          복사
         </Button>
       </Menu>
     );

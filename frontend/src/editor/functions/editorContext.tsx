@@ -37,6 +37,7 @@ export function useEditor(): {
   handleChangeEditorTitle: (e: any) => void;
   handleChangeEditorType: (e: any) => void;
   setCurrentBlock: (id: string) => void;
+  copyBlockAfterCurrentBlock: (data: any) => void;
   getCurrentBlock: () => any;
   removeCurrentBlock: () => void;
   changeCurrentBlockType: (type: string) => void;
@@ -311,7 +312,9 @@ export const EditorProvider = (props: {
       block = {
         id: `${props.id}-${blockId}`,
         type: "table",
-        data: {
+        data: blockData
+        ? blockData
+        : {
           columns: [1, 1, 1],
           table: [
             [
@@ -407,6 +410,14 @@ export const EditorProvider = (props: {
     if (currentBlockId.current !== id) {
       currentBlockId.current = id;
     }
+  }
+
+  function copyBlockAfterCurrentBlock(data: any) {
+    addBlock({
+      insertIndex: getCurrentBlockIndex() + 1,
+      blockType: editorData.current[getCurrentBlockIndex()].type,
+      blockData: editorData.current[getCurrentBlockIndex()].data,
+    });
   }
 
   function getCurrentBlockIndex() {
@@ -654,6 +665,7 @@ export const EditorProvider = (props: {
     handleChangeEditorTitle,
     handleChangeEditorType,
 
+    copyBlockAfterCurrentBlock,
     setCurrentBlock,
     getCurrentBlock,
     removeCurrentBlock,
