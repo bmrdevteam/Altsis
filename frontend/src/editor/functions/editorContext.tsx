@@ -37,8 +37,11 @@ export function useEditor(): {
   handleChangeEditorTitle: (e: any) => void;
   handleChangeEditorType: (e: any) => void;
   setCurrentBlock: (id: string) => void;
+  copyBlockAfterCurrentBlock: (data: any) => void;
   getCurrentBlock: () => any;
   removeCurrentBlock: () => void;
+  upCurrentBlock: () => void;
+  downCurrentBlock: () => void;
   changeCurrentBlockType: (type: string) => void;
   changeCurrentBlockData: (data: any) => void;
   addBlockAfterCurrentBlock: (blockType: string) => void;
@@ -311,7 +314,9 @@ export const EditorProvider = (props: {
       block = {
         id: `${props.id}-${blockId}`,
         type: "table",
-        data: {
+        data: blockData
+        ? blockData
+        : {
           columns: [1, 1, 1],
           table: [
             [
@@ -409,6 +414,14 @@ export const EditorProvider = (props: {
     }
   }
 
+  function copyBlockAfterCurrentBlock(data: any) {
+    addBlock({
+      insertIndex: getCurrentBlockIndex() + 1,
+      blockType: editorData.current[getCurrentBlockIndex()].type,
+      blockData: editorData.current[getCurrentBlockIndex()].data,
+    });
+  }
+
   function getCurrentBlockIndex() {
     return _.findIndex(editorData.current, { id: currentBlockId.current });
   }
@@ -420,6 +433,26 @@ export const EditorProvider = (props: {
     editorData.current.splice(getCurrentBlockIndex(), 1);
     setReloadEditorData(true);
     saveMoves();
+  }
+  function upCurrentBlock() {
+    if(getCurrentBlockIndex() != 0){
+      let id = getCurrentBlockIndex();
+      let item = editorData.current[id-1];
+      editorData.current[id-1] = editorData.current[id];
+      editorData.current[id] = item;
+      setReloadEditorData(true);
+      saveMoves();
+    }
+  }
+  function downCurrentBlock() {
+    if(editorData.current[getCurrentBlockIndex()+1] != undefined){
+      let id = getCurrentBlockIndex();
+      let item = editorData.current[id+1];
+      editorData.current[id+1] = editorData.current[id];
+      editorData.current[id] = item;
+      setReloadEditorData(true);
+      saveMoves();
+    }
   }
   function changeCurrentBlockType(type: string) {
     if (type !== editorData.current[getCurrentBlockIndex()].type) {
@@ -654,9 +687,12 @@ export const EditorProvider = (props: {
     handleChangeEditorTitle,
     handleChangeEditorType,
 
+    copyBlockAfterCurrentBlock,
     setCurrentBlock,
     getCurrentBlock,
     removeCurrentBlock,
+    upCurrentBlock,
+    downCurrentBlock,
     changeCurrentBlockType,
     changeCurrentBlockData,
     addBlockAfterCurrentBlock,
