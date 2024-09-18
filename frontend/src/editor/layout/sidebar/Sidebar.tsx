@@ -120,34 +120,38 @@ const Sidebar = (props: Props) => {
             </div>
           </div>
         </div>
-        <Button
-          type="ghost"
-          style={{
-            marginTop: "8px",
-            borderRadius: "4px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={() => {
-            removeCurrentBlock();
-          }}
-        >
-          삭제
-        </Button>
-        <Button
-          type="ghost"
-          style={{
-            marginTop: "8px",
-            borderRadius: "4px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={() => {
-            copyBlockAfterCurrentBlock(getCurrentBlock().data);
-          }}
-        >
-          복사
-        </Button>
+        <div  style={{ display: "flex", gap: "4px" }}>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              removeCurrentBlock();
+            }}
+          >
+            삭제
+          </Button>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              copyBlockAfterCurrentBlock(getCurrentBlock().data);
+            }}
+          >
+            복사
+          </Button>
+        </div>
       </Menu>
     );
   };
@@ -183,34 +187,38 @@ const Sidebar = (props: Props) => {
             defaultValue={getCurrentBlock().data.width ?? 100}
           />
         </div>
-        <Button
-          type="ghost"
-          style={{
-            marginTop: "8px",
-            borderRadius: "4px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={() => {
-            removeCurrentBlock();
-          }}
-        >
-          삭제
-        </Button>
-        <Button
-          type="ghost"
-          style={{
-            marginTop: "8px",
-            borderRadius: "4px",
-            height: "32px",
-            boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-          }}
-          onClick={() => {
-            copyBlockAfterCurrentBlock(getCurrentBlock().data);
-          }}
-        >
-          복사
-        </Button>
+        <div  style={{ display: "flex", gap: "4px" }}>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              removeCurrentBlock();
+            }}
+          >
+            삭제
+          </Button>
+          <Button
+            type="ghost"
+            style={{
+              flex: "1 1 0",
+              marginTop: "8px",
+              borderRadius: "4px",
+              height: "32px",
+              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+            }}
+            onClick={() => {
+              copyBlockAfterCurrentBlock(getCurrentBlock().data);
+            }}
+          >
+            복사
+          </Button>
+        </div>
       </Menu>
     );
   };
