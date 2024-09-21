@@ -169,7 +169,6 @@ const Enrollments = (props: {
     return null;
   }
 
-console.log(props);
   // 학점의 총합
   let total = 0;
 
@@ -201,8 +200,6 @@ console.log(props);
     }
     evaluation += " | " +  evaluationKey[key] + "[" + evaluationCount[key] + "/" + props.enrolledCourseList.length + "]" + emo;
   })
-
-  console.log(props.enrolledCourseList);
 
   return (
     <>
