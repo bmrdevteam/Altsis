@@ -38,6 +38,7 @@ import Input from "components/input/Input";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
+import Skeleton from "components/skeleton/Skeleton";
 import Tab from "components/tab/Tab";
 import Table from "components/tableV2/Table";
 import {
@@ -48,6 +49,7 @@ import {
   unflattenObject,
 } from "functions/functions";
 
+import { useAuth } from "contexts/authContext";
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
 import Navbar from "layout/navbar/Navbar";
@@ -66,6 +68,7 @@ const Forms = (props: Props) => {
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);
   const { FormAPI } = useAPIv2();
+  const { currentUser } = useAuth();
 
   const [jsonData, setJsonData] = useState(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -394,8 +397,18 @@ const Forms = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>양식 관리</div>
-        <div style={{ marginTop: "24px" }}>
+        <div style={{ display: "flex", gap: "24px" }}>
+          <div style={{ flex: "1 1 0" }}>
+            <div className={style.title}>양식</div>
+            <div className={style.description}>
+              {currentUser !== undefined ? (
+                `${currentUser.academyName} / ${currentUser.academyId}`
+              ) : (
+                <Skeleton height="22px" width="20%" />
+              )}
+            </div>
+          </div>
+        </div>
           <Tab
             align={"flex-start"}
             items={{
@@ -968,7 +981,6 @@ const Forms = (props: Props) => {
               </div>
             </div>
           </Tab>
-        </div>
       </div>
       {addFormPopupActive && (
         <Popup

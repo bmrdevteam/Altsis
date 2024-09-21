@@ -141,7 +141,7 @@ export const SidebarData = (auth: string, role?: string): any => {
       subLink: [
         {
           title: "forms",
-          name: "양식 관리",
+          name: "양식",
           path: "/admin/forms",
           icon: <Svg type="file" />,
         },
@@ -150,21 +150,27 @@ export const SidebarData = (auth: string, role?: string): any => {
   } else if (auth === "admin") {
     data.push({
       title: "admin",
-      name: "관리자",
+      name: "아카데미 관리자",
       path: "/admin/schools/list",
       icon: <Svg type="school" />,
       subLink: [
         {
           title: "forms",
-          name: "양식 관리",
+          name: "양식",
           path: "/admin/forms",
           icon: <Svg type="file" />,
         },
         {
           title: "users",
-          name: "사용자 관리",
+          name: "사용자",
           path: "/admin/users",
           icon: <Svg type="user" />,
+        },
+        {
+          title: "backup",
+          name: "백업 및 복구",
+          path: "/admin/backup",
+          icon: <Svg type="save" />,
         },
       ],
     });

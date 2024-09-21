@@ -39,6 +39,8 @@ import useAPIv2 from "hooks/useAPIv2";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
 import Button from "components/button/Button";
 import Table from "components/tableV2/Table";
+import { useAuth } from "contexts/authContext";
+import Skeleton from "components/skeleton/Skeleton";
 
 // popup/tab elements
 import EditPopup from "./popup/EditPopup/Index";
@@ -56,6 +58,7 @@ type Props = {};
 
 const Users = (props: Props) => {
   const { UserAPI } = useAPIv2();
+  const { currentUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -106,8 +109,14 @@ const Users = (props: Props) => {
     <>
       <Navbar />
       <div className={style.section}>
-        <div className={style.title}>아카데미 사용자 관리</div>
-
+        <div className={style.title}>사용자</div>
+        <div className={style.description}>
+              {currentUser !== undefined ? (
+                `${currentUser.academyName} / ${currentUser.academyId}`
+              ) : (
+                <Skeleton height="22px" width="20%" />
+              )}
+            </div>
         <div
           style={{
             display: "flex",

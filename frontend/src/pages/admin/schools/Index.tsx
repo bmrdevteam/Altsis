@@ -40,6 +40,7 @@ import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Loading from "components/loading/Loading";
 import Navbar from "layout/navbar/Navbar";
+import Skeleton from "components/skeleton/Skeleton";
 
 import { useAuth } from "contexts/authContext";
 import { validate } from "functions/functions";
@@ -164,8 +165,14 @@ const Schools = () => {
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
-            <div className={style.title}>학교 관리</div>
-            <div className={style.description}></div>
+            <div className={style.title}>아카데미</div>
+            <div className={style.description}>
+              {currentUser !== undefined ? (
+                `${currentUser.academyName} / ${currentUser.academyId}`
+              ) : (
+                <Skeleton height="22px" width="20%" />
+              )}
+            </div>
           </div>
         </div>
         <Divider />

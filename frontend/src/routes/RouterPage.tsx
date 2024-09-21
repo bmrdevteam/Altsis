@@ -11,6 +11,7 @@ import Admin from "../pages/admin/Index";
 import Users from "../pages/admin/users/Index";
 import Schools from "../pages/admin/schools/Index";
 import School from "../pages/admin/schools/Pid";
+import Backup from "../pages/admin/Backup";
 
 //dev pages
 import Test from "../pages/dev/Test";
@@ -163,6 +164,14 @@ function RouterPage() {
                 element={
                   <RequireAuth auth={["admin", "manager"]}>
                     <Admin />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="backup"
+                element={
+                  <RequireAuth auth={["admin"]}>
+                    <Backup />
                   </RequireAuth>
                 }
               ></Route>
