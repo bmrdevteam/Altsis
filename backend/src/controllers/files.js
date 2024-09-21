@@ -296,7 +296,7 @@ export const signDocument = async (req, res) => {
  * @param {string} req.query.key - file key
  * @param {string} req.query.fileName- fileName
  *
- * @param {Object} req.user - owner
+ * @param {Object} req.user - owner || admin
  *
  * @param {Object} res
  * @param {string} res.preSignedUrl - file preSignedUrl

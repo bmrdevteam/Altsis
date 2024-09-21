@@ -9,6 +9,18 @@
     margin-bottom: 12px;
 }
 
+.description {
+    font-size: 12px;
+    color: var(--accent-2);
+    font-weight: 600;
+    margin-bottom: 8px;
+  
+    .required {
+      padding-left: 1px;
+      color: var(--alert-c1);
+    }
+  }
+  
 .search {
     .btns {
         display: flex;

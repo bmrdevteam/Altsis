@@ -146,7 +146,7 @@ export const create = async (req, res) => {
  * @param {"GET"} req.method
  * @param {"/academies"} req.url
  *
- * @param {Object} req.user -"owner"|"guest"
+ * @param {Object} req.user -"owner"|"guest"|"admin"
  *
  * @param {Object} res
  * @param {TAcademy[]} res.academies - academy list
@@ -165,7 +165,7 @@ export const create = async (req, res) => {
  * @param {Object} req.query
  * @param {string} req.query.academyId
  *
- * @param {Object} req.user - "owner"|"guest"
+ * @param {Object} req.user - "owner"|"guest"|"admin"
  *
  * @param {Object} res
  * @param {TAcademy} res.academy
@@ -185,8 +185,8 @@ export const find = async (req, res) => {
       return res.status(200).send({ academy });
     }
 
-    /* if owner requested */
-    if (req.user.auth === "owner") {
+    /* if owner || admin requested */
+    if (req.user.auth === "owner" || req.user.auth === "admin") {
       if ("academyId" in req.query) {
         const academy = await Academy.findOne({
           academyId: req.query.academyId,
@@ -422,7 +422,7 @@ const Model = (title, academyId) => {
  * @param {Object} req.params
  * @param {string} req.params.academyId
  *
- * @param {Object} req.user - "owner"
+ * @param {Object} req.user - "owner" || "admin"
  *
  * @param {Object} req.body
  * @param {TModel[]} req.body.models
@@ -531,7 +531,7 @@ export const createBackup = async (req, res) => {
  * @param {Object} req.params
  * @param {string} req.params.academyId
  *
- * @param {Object} req.user - "owner"
+ * @param {Object} req.user - "owner" || "admin"
  *
  * @param {Object} req.body
  * @param {string} req.body.model - ex) "users", "schools", ...
@@ -603,7 +603,7 @@ export const restoreBackup = async (req, res) => {
  * @param {Object} req.params
  * @param {string} req.params.academyId
  *
- * @param {Object} req.user - "owner"
+ * @param {Object} req.user - "owner" || "admin"
  *
  * @param {Object} res
  * @param {TBackup[]} res.backupList
@@ -626,7 +626,7 @@ export const restoreBackup = async (req, res) => {
  * @param {Object} req.query
  * @param {string} req.query.title - backup title ex) "202312-232"
  *
- * @param {Object} req.user - "owner"
+ * @param {Object} req.user - "owner" || "admin"
  *
  * @param {Object} res
  * @param {TBackupData[]} res.backup
@@ -707,7 +707,7 @@ export const findBackup = async (req, res) => {
  * @param {Object} req.query
  * @param {string} req.query.title - backup title ex) "202312-232"
  *
- * @param {Object} req.user - "owner"
+ * @param {Object} req.user - "owner" || "admin"
  *
  * @param {Object} res
  *
@@ -759,7 +759,7 @@ export const removeBackup = async (req, res) => {
  *
  * @param {Object} req.query - 자유롭게 요청 가능
  *
- * @param {Object} req.user - "owner"
+ * @param {Object} req.user - "owner" || "admin"
  *
  * @param {Object[]} res.documents
  *
@@ -782,7 +782,7 @@ export const removeBackup = async (req, res) => {
  * @param {string} req.params.docType - ex) "schools", "seasons", etc.
  * @param {string} req.params.docId - objectId of document
  *
- * @param {Object} req.user - "owner"
+ * @param {Object} req.user - "owner" || "admin"
  *
  * @param {Object} res.document
  *

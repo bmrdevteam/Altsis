@@ -325,9 +325,9 @@ export const findUsers = async (req, res) => {
   try {
     let academyId = req.user.academyId;
 
-    /* if owner requested */
+    /* if owner || admin requested */
     if ("academyId" in req.query) {
-      if (req.user.auth !== "owner") {
+      if (req.user.auth !== "owner" && req.user.auth !== "admin") {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
       if (!conn[req.query.academyId]) {
@@ -415,7 +415,7 @@ export const findUser = async (req, res) => {
 
     /* if owner requested */
     if ("academyId" in req.query) {
-      if (req.user.auth !== "owner") {
+      if (req.user.auth !== "owner" && req.user.auth !== "admin") {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
       if (!conn[req.query.academyId]) {

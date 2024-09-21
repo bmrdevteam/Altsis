@@ -1,6 +1,6 @@
 import express from "express";
 const router = express.Router();
-import { isOwner, ownerToAdmin } from "../middleware/auth.js";
+import { isOwner, ownerToAdmin, isOwAdmin } from "../middleware/auth.js";
 import * as academies from "../controllers/academies.js";
 import * as users from "../controllers/users.js";
 import * as schools from "../controllers/schools.js";
@@ -21,14 +21,14 @@ router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
 
 /* backup */
-router.post("/:academyId/backup", isOwner, academies.createBackup);
-router.put("/:academyId/restore", isOwner, academies.restoreBackup);
-router.get("/:academyId/backup", isOwner, academies.findBackup);
-router.delete("/:academyId/backup", isOwner, academies.removeBackup);
+router.post("/:academyId/backup", isOwAdmin, academies.createBackup);
+router.put("/:academyId/restore", isOwAdmin, academies.restoreBackup);
+router.get("/:academyId/backup", isOwAdmin, academies.findBackup);
+router.delete("/:academyId/backup", isOwAdmin, academies.removeBackup);
 
 router.delete("/:academyId", isOwner, academies.remove);
 
 /* get/delete documents */
-router.get("/:academyId/:docType/:docId?", isOwner, academies.findDocuments);
+router.get("/:academyId/:docType/:docId?", isOwAdmin, academies.findDocuments);
 
 export { router };

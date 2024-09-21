@@ -86,6 +86,20 @@ export const isOwAdManager = (req, res, next) => {
   }
 };
 
+
+// isOwner || isAdmin
+export const isOwAdmin = (req, res, next) => {
+  if (
+    req.isAuthenticated() &&
+    (req.user.auth === "owner" ||
+      req.user.auth === "admin")
+  ) {
+    next();
+  } else {
+    res.status(403).send({ message: PERMISSION_DENIED });
+  }
+};
+
 export const isReceivedNotifications = (req, res, next) => {
   if (!req.query.updated) next();
   else {
