@@ -2,25 +2,30 @@
 <!-- ![icons8-alt-키-color-96](https://github.com/user-attachments/assets/c8b1abb9-b4d8-4fbf-ba78-6b798a435b05) -->
  <img width="100px" src="https://github.com/user-attachments/assets/c8b1abb9-b4d8-4fbf-ba78-6b798a435b05" align="center" alt="GitHub Readme Stats" />
  <h2 align="center">Altsis</h2>
- <p align="center">학교의 모든
- 정보!</p>
+ <p align="center">특별한 학교를 위한 대안적인 학교 정보 시스템</p>
 </p>
   <p align="center">
-    <a href="https://github.com/bmrdevteam/Altsis">
-      <img alt="created-at" src="https://img.shields.io/github/created-at/bmrdevteam/Altsis?style=&logo=github&logoColor=&color=green&label=created at"/>
-    </a>
     <a href="https://github.com/bmrdevteam/Altsis/blob/62cbf4be719fe13160df48a08d495215c9cac272/LICENSE">
       <img alt="Tests Passing" src="https://img.shields.io/badge/license-MIT-blue.svg?style=" />
     </a>
+    <a href="https://github.com/bmrdevteam/Altsis">
+      <img alt="created-at" src="https://img.shields.io/github/created-at/bmrdevteam/Altsis?style=&logo=&logoColor=&color=gold&label=created at"/>
+    </a>
+    <a href="https://github.com/bmrdevteam/Altsis">
+      <img alt="count" src="https://img.shields.io/github/languages/top/bmrdevteam/Altsis?color=gold"/>
+    </a>
+    <a href="https://github.com/bmrdevteam/Altsis">
+      <img alt="count" src="https://img.shields.io/github/languages/count/bmrdevteam/Altsis?color=gold"/>
+    </a>
     </a>
     <a href="https://github.com/bmrdevteam/Altsis/graphs/contributors">
-      <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/bmrdevteam/Altsis?color=orange" />
+      <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/bmrdevteam/Altsis?color=violet" />
     </a>
     <a href="https://github.com/bmrdevteam/Altsis/issues">
-      <img alt="Issues" src="https://img.shields.io/github/issues/bmrdevteam/Altsis?color=red" />
+      <img alt="Issues" src="https://img.shields.io/github/issues/bmrdevteam/Altsis?color=violet" />
     </a>
     <a href="https://github.com/bmrdevteam/Altsis/pulls">
-      <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/bmrdevteam/Altsis?color=red" />
+      <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/bmrdevteam/Altsis?color=violet" />
     </a>
     <a href="https://github.com/bmrdevteam/Altsis">
       <img alt="commit-activity" src="https://img.shields.io/github/commit-activity/t/bmrdevteam/Altsis?style=&logo=&logoColor=&color=0088ff&label=commits" />
@@ -29,67 +34,8 @@
       <img alt="commits-since" src="https://img.shields.io/github/commits-since/bmrdevteam/Altsis/latest?color=0088ff" />
     </a>
     <br />
-    <br />
-    <a href="https://vercel.com?utm\_source=github\_readme\_stats\_team\&utm\_campaign=oss">
-      <img src="./powered-by-vercel.svg"/>
-    </a>
-  </p>
-
-  <p align="center">
-    <a href="#all-demos">View Demo</a>
-    ·
-    <a href="https://github.com/anuraghazra/github-readme-stats/issues/new?assignees=&labels=bug&projects=&template=bug_report.yml">Report Bug</a>
-    ·
-    <a href="https://github.com/anuraghazra/github-readme-stats/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.yml">Request Feature</a>
-    ·
-    <a href="https://github.com/anuraghazra/github-readme-stats/discussions/1770">FAQ</a>
-    ·
-    <a href="https://github.com/anuraghazra/github-readme-stats/discussions/new?category=q-a">Ask Question</a>
-  </p>
-  <p align="center">
-    <a href="/docs/readme_fr.md">Français </a>
-    ·
-    <a href="/docs/readme_cn.md">简体中文</a>
-    ·
-    <a href="/docs/readme_es.md">Español</a>
-    ·
-    <a href="/docs/readme_de.md">Deutsch</a>
-    ·
-    <a href="/docs/readme_ja.md">日本語</a>
-    ·
-    <a href="/docs/readme_pt-BR.md">Português Brasileiro</a>
-    ·
-    <a href="/docs/readme_it.md">Italiano</a>
-    ·
-    <a href="/docs/readme_kr.md">한국어</a>
-    ·
-    <a href="/docs/readme_nl.md">Nederlands</a>
-    ·
-    <a href="/docs/readme_np.md">नेपाली</a>
-    ·
-    <a href="/docs/readme_tr.md">Türkçe</a>
-  </p>
-</p>
-
-<p align="center">Please note that documentation translations may be outdated; try to use English documentation if possible.</p>
-
-<p align="center">Love the project? Please consider <a href="https://www.paypal.me/anuraghazra">donating</a> to help it improve!</p>
-
-<a href="https://indiafightscorona.giveindia.org">
-  <img src="https://cfstatic.give.do/logo.png" alt="Give india logo" width="200" />
-</a>
-
-Are you considering supporting the project by donating to me? Please DO NOT!!!
-
-<img src="https://cfstatic.give.do/910ede2a-7892-43fe-8c8a-dea45e96d950.webp" alt="Picture of Coromandel Express train tragedy" width="35%">
-
-India has recently suffered one of the most devastating train accidents, and your help will be immensely valuable for the people who were affected by this tragedy.
-
-Please visit [this link](https://give.do/fundraisers/stand-beside-the-victims-of-the-coromandel-express-train-tragedy-in-odisha-donate-now) and make a small donation to help the people in need. A small donation goes a long way. :heart:
-
-</p>
-
-# Features <!-- omit in toc -->
+    
+# 특별한 정보 <!-- omit in toc -->
 
 - [GitHub Stats Card](#github-stats-card)
     - [Hiding individual stats](#hiding-individual-stats)
