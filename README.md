@@ -39,6 +39,7 @@
 - [안녕하세요!](#안녕하세요-)
     - [역사](#역사)
     - [특징](#특징)
+    - [설치](#설치)
 
 # 안녕하세요! <!-- omit in toc -->
 
@@ -81,7 +82,87 @@
 > + :arrow_backward: Backend는 express를 이용한 REST-ful API
 > + :arrow_forward: Frontend는 React를 이용한 Node.js 시스템
 
-### 
+## 환경 변수
+### backend
+`altsis>backend>.env`
+```.env
+# CORS 설정을 위한 Frontend URL : 예시
+URL='http://localhost:3030'
+
+# Backend 서버를 실행할 PORT : 예시
+SERVER_PORT=8080
+
+# MongoDB 클러스터 연결 URI
+DB_URL='mongodb+srv://*********:****************@******.*******.mongodb.net'
+
+# Redis 연결 URI
+REDIS_URL='redis://default:********************************@redis-*****.****.****************.ec2.cloud.redislabs.com:*****'
+
+# Session 저장에 사용할 암호키 (mongoose-encryption)
+session_key='********************************************'
+
+# Google Login에 사용되는 client ID (Google Cloud)
+GOOGLE_CLIENT_ID='*********************************************.apps.googleusercontent.com'
+
+# AWS S3 지역 정보 : 예시
+s3_region='ap-northeast-2'
+
+# S3에 프로필 사진을 저장하기 위한 환경 변수
+# AWS S3 버킷명 : 예시
+s3_bucket='altsis-profile'
+
+# AWS S3 업로드 권한을 가진 IAM의 keyId
+s3_accessKeyId='********************'
+
+# AWS S3 업로드 권한을 가진 IAM의 secretAccessKey
+s3_secretAccessKey='****************************************'
+
+# S3에 파일을 저장하기 위한 환경 변수
+# AWS S3 업로드 권한을 가진 IAM의 keyId : 예시
+s3_bucket2='altsis-files'
+
+# AWS S3 업로드 권한을 가진 IAM의 keyId
+s3_accessKeyId2='********************'
+
+# AWS S3 업로드 권한을 가진 IAM의 secretAccessKey
+s3_secretAccessKey2='****************************************'
+
+# 수강 정보의 평가 정보를 암호화하기 위한 환경 변수 (mongoose-encryption)
+# 공개키(32비트)
+ENCKEY_E=********************************************
+
+# 암호키(64비트)
+SIGKEY_E=****************************************************************************************
+
+# 학생 기록 정보를 암호화하기 위한 환경 변수 (mongoose-encryption)
+# 공개키(32비트)
+ENCKEY_A=********************************************
+
+# 암호키(64비트)
+SIGKEY_A=****************************************************************************************
+
+# 비밀번호 해싱을 위한 설정값 (passport) : 예시
+saltRounds=10
+```
+> [!TIP]
+> - URL은 REST-API를 호출하는 Frontend 서버의 URL이다.
+> - 환경 변수를 저장하기 위해 MongoDB, Redis, Google Cloud, AWS S3에 환경 설정 및 해당 값을 호출 할 준비를 한다!
+> - mongoose-encryption를 이용해 세션 및 암호키를 생성하도록 한다.
+
+### frontend
+`altsis>frontend>.env`
+```.env
+# Google Login에 사용되는 client ID (Google Cloud)
+REACT_APP_GOOGLE_CLIENT_ID='*********************************************.apps.googleusercontent.com'
+
+# Frontend 서버 URL : Backend PORT
+REACT_APP_SERVER_URL='http://localhost:8080'
+
+# Frontend 서버 PORT
+PORT=3030
+```
+> [!TIP]
+> - Google Cloud Client ID는 Backend 설정과 동일하다.
 
 > [!NOTE]
 > - **🏫 Multiple School** : 아카데미에서 여러 학교를 생성하여 동시에 운영
