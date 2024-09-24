@@ -38,6 +38,7 @@
 
 - [안녕하세요!](#안녕하세요-)
     - [역사](#역사)
+    - [특징](#특징)
 
 # 안녕하세요! <!-- omit in toc -->
 
@@ -56,12 +57,34 @@
 > 2016년 별무리학교 수강 신청 시스템을 위해 개발된 BLMS를 보완하고 발전시키위해 2022년 별무리학교 교사와 졸업생이 힘을 모아 개발한 Altsis입니다. 지금은 AEG를 운영하여 대안적인 학교 관리 시스템이 필요한 많은 학교들에게 보급하기 위해 힘쓰고 있습니다!
 
 > [!NOTE]
-> - 2016 [별무리학교](http://bmrschool.net) 수강 신청을 위한 맞춤형 학습 관리 시스템 [BLMS](https://github.com/devgoodway/BLMS_OSV) 개발 @[devgoodway](https://github.com/devgoodway)
-> - 2022 BLMS를 발전시킨 [ALTSIS](https://github.com/bmrdevteam/Altsis) 개발 @[devgoodway](https://github.com/devgoodway) @[jessie129j](https://github.com/jessie129j) @[seedlessapple](https://github.com/seedlessapple) and @[O-ye](https://github.com/Yeonwu)
-> - 2023 [ALTSIS](https://github.com/bmrdevteam/Altsis) 오픈 소스 프로젝트 시작 @[devgoodway](https://github.com/devgoodway)
-> - 2024 [AEG](https://github.com/bmrdevteam/Altsis) Altsis Educator Group 시작 @[devgoodway](https://github.com/devgoodway)
+> - 2016 [별무리학교](http://bmrschool.net) 수강 신청을 위한 맞춤형 학습 관리 시스템 [BLMS](https://github.com/devgoodway/BLMS_OSV) 개발 [@devgoodway](https://github.com/devgoodway)
+> - 2022 BLMS를 발전시킨 [ALTSIS](https://github.com/bmrdevteam/Altsis) 개발 [@devgoodway](https://github.com/devgoodway) [@jessie129j](https://github.com/jessie129j) [@seedlessapple](https://github.com/seedlessapple) and [@O-ye](https://github.com/Yeonwu)
+> - 2023 [ALTSIS](https://github.com/bmrdevteam/Altsis) 오픈 소스 프로젝트 시작 [@devgoodway](https://github.com/devgoodway)
+> - 2024 [AEG](https://github.com/bmrdevteam/Altsis) Altsis Educator Group 시작 [@devgoodway](https://github.com/devgoodway)
 
-# GitHub Stats Card
+## 특징
+
+> [!IMPORTANT]
+> 단 하나의 아카데미에서 여러 학교 교육 과정을 운영 할 수 있습니다! 시스템 설정과 에디터를 이용해 각 학교에 필요에 맞는 맞춤형 시스템 구성 할 수 있습니다. 학생이 수강 신청 및 현황을 조회 하는 것 뿐만 아니라 수업 개설 및 평가 등에도 참여 할 수 있는 학생 중심 시스템! 학생과 관련된 모든 정보를 하나의 시스템에서 운영합니다!
+
+> [!NOTE]
+> - **🏫 Multiple School** : 아카데미에서 여러 학교를 생성하여 동시에 운영
+> - **❌ No-code** : 코드 없이 맞춤형 시스템 구성
+> - **🎒 Student-centered** : 학생 중심 수업 개설 및 수강 신청 시스템
+> - **1️⃣ One-stop** : 학생의 수업, 평가, 기록, 출력을 하나의 시스템에서 관리
+
+## 기능
+
+> [!IMPORTANT]
+> 시스템을 운영하기 위한 관리자 기능과 데이터를 활용하는 사용자 기능이 있습니다.
+> - 관리자 : 시스템 관리자(owner), 아카데미 관리자(admin), 학교 관리자(manager)
+> - 사용자 : 교사(teacher), 학생(student)
+
+> [!NOTE]
+> - **🏫 Multiple School** : 아카데미에서 여러 학교를 생성하여 동시에 운영
+> - **❌ No-code** : 코드 없이 맞춤형 시스템 구성
+> - **🎒 Student-centered** : 학생 중심 수업 개설 및 수강 신청 시스템
+> - **1️⃣ One-stop** : 학생의 수업, 평가, 기록, 출력을 하나의 시스템에서 관리
 
 Copy and paste this into your markdown, and that's it. Simple!
 
