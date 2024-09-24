@@ -1,7 +1,7 @@
 <p align="center">
  <img width="100px" src="https://github.com/user-attachments/assets/5ca2ed76-8aca-400c-900e-97d065690102" align="center" alt="GitHub Readme Stats" />
  <h1 align="center">Altsis</h1>
- <p align="center">특별한 학교를 위한 대안적인 학교 정보 시스템</p>
+ <p align="center">모든 학교를 위한 대안적인 학교 정보 시스템</p>
 </p>
   <p align="center">
     <a href="https://github.com/bmrdevteam/Altsis/blob/62cbf4be719fe13160df48a08d495215c9cac272/LICENSE">
@@ -61,7 +61,7 @@
 
 > [!IMPORTANT]
 > 안녕하세요!
-> **Altsis(Alternative School Infomation System)는** 특별한 학교를 위한 대안적인 학교 정보 시스템입니다!
+> **Altsis(Alternative School Infomation System)는** 모든 학교를 위한 대안적인 학교 정보 시스템입니다!
 
 > [!TIP]
 > <img width="100px" src="https://github.com/user-attachments/assets/5ca2ed76-8aca-400c-900e-97d065690102" align="center" alt="GitHub Readme Stats" />
