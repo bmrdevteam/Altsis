@@ -82,9 +82,31 @@
 > + :arrow_backward: Backend는 express를 이용한 REST-ful API
 > + :arrow_forward: Frontend는 React를 이용한 Node.js 시스템
 
-## 환경 변수
-### backend
-`altsis>backend>.env`
+### Backend
+1. Altsis 프로젝트 Clone
+``` nodejs
+> git clone https://github.com/bmrdevteam/Altsis.git
+```
+
+2. `프로젝트 디렉토리 > backend`로 이동합니다.
+``` nodejs
+> cd Altsis\backend
+```
+
+3. 의존성 패키지를 설치합니다. 
+``` nodejs
+> yarn
+```
+
+4. cross-env, nodemon을 전역으로 설치합니다.
+``` nodejs
+> yarn global add cross-env
+> yarn global add nodemon
+```
+
+5. `.env` 파일을 생성하고, 필요한 환경 변수 값을 설정합니다.
+
+`Altsis>backend>.env`
 ```.env
 # CORS 설정을 위한 Frontend URL : 예시
 URL='http://localhost:3030'
@@ -148,6 +170,13 @@ saltRounds=10
 > - URL은 REST-API를 호출하는 Frontend 서버의 URL이다.
 > - 환경 변수를 저장하기 위해 MongoDB, Redis, Google Cloud, AWS S3에 환경 설정 및 해당 값을 호출 할 준비를 한다!
 > - mongoose-encryption를 이용해 세션 및 암호키를 생성하도록 한다.
+
+6. 서버를 실행합니다.
+``` nodejs
+> yarn dev
+```
+
+## 환경 변수
 
 ### frontend
 `altsis>frontend>.env`
