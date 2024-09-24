@@ -878,7 +878,7 @@ export { local2 };
 > [!NOTE]
 > 요청 시각, http, http 버전, ip 주소, user.academyId, user._id, method(POST, GET, ...), url, req.body, res.status, response time(ms), referrer, user agent
 
-# 더 많은 정보는 어디에 있나요?
+# 문서들은 어디에?
 > [!IMPORTANT]
 > Altsis와 관련된 문서는 [Github Page](https://github.com/bmrdevteam/Altsis)에서 확인 할 수 있습니다.
 
