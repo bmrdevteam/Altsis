@@ -1,6 +1,5 @@
 <p align="center">
-<!-- ![icons8-alt-키-color-96](https://github.com/user-attachments/assets/c8b1abb9-b4d8-4fbf-ba78-6b798a435b05) -->
- <img width="100px" src="https://github.com/user-attachments/assets/c8b1abb9-b4d8-4fbf-ba78-6b798a435b05" align="center" alt="GitHub Readme Stats" />
+ <img width="100px" src="https://github.com/user-attachments/assets/5ca2ed76-8aca-400c-900e-97d065690102" align="center" alt="GitHub Readme Stats" />
  <h2 align="center">Altsis</h2>
  <p align="center">특별한 학교를 위한 대안적인 학교 정보 시스템</p>
 </p>
@@ -35,53 +34,32 @@
     </a>
     <br />
     
-# 특별한 정보 <!-- omit in toc -->
+# 리스트 <!-- omit in toc -->
 
-- [GitHub Stats Card](#github-stats-card)
-    - [Hiding individual stats](#hiding-individual-stats)
-    - [Showing additional individual stats](#showing-additional-individual-stats)
-    - [Showing icons](#showing-icons)
-    - [Themes](#themes)
-    - [Customization](#customization)
-- [GitHub Extra Pins](#github-extra-pins)
-    - [Usage](#usage)
-    - [Demo](#demo)
-- [GitHub Gist Pins](#github-gist-pins)
-    - [Usage](#usage-1)
-    - [Demo](#demo-1)
-- [Top Languages Card](#top-languages-card)
-    - [Usage](#usage-2)
-    - [Language stats algorithm](#language-stats-algorithm)
-    - [Exclude individual repositories](#exclude-individual-repositories)
-    - [Hide individual languages](#hide-individual-languages)
-    - [Show more languages](#show-more-languages)
-    - [Compact Language Card Layout](#compact-language-card-layout)
-    - [Donut Chart Language Card Layout](#donut-chart-language-card-layout)
-    - [Donut Vertical Chart Language Card Layout](#donut-vertical-chart-language-card-layout)
-    - [Pie Chart Language Card Layout](#pie-chart-language-card-layout)
-    - [Hide Progress Bars](#hide-progress-bars)
-    - [Demo](#demo-2)
-- [WakaTime Stats Card](#wakatime-stats-card)
-    - [Demo](#demo-3)
-- [All Demos](#all-demos)
-  - [Quick Tip (Align The Cards)](#quick-tip-align-the-cards)
-- [Deploy on your own](#deploy-on-your-own)
-  - [On Vercel](#on-vercel)
-    - [:film\_projector: Check Out Step By Step Video Tutorial By @codeSTACKr](#film_projector-check-out-step-by-step-video-tutorial-by-codestackr)
-  - [On other platforms](#on-other-platforms)
-  - [Disable rate limit protections](#disable-rate-limit-protections)
-  - [Keep your fork up to date](#keep-your-fork-up-to-date)
-- [:sparkling\_heart: Support the project](#sparkling_heart-support-the-project)
+- [안녕하세요!](#안녕하세요-)
+    - [역사](#역사)
 
-# Important Notices <!-- omit in toc -->
+# 안녕하세요! <!-- omit in toc -->
 
 > [!IMPORTANT]\
-> Since the GitHub API only [allows 5k requests per hour per user account](https://docs.github.com/en/graphql/overview/resource-limitations), the public Vercel instance hosted on `https://github-readme-stats.vercel.app/api` could possibly hit the rate limiter (see [#1471](https://github.com/anuraghazra/github-readme-stats/issues/1471)). We use caching to prevent this from happening (see https://github.com/anuraghazra/github-readme-stats#common-options). You can turn off these rate limit protections by deploying [your own Vercel instance](#disable-rate-limit-protections).
+> 안녕하세요!
+> Altsis(Alternative School Infomation System)는 특별한 학교를 위한 대안적인 학교 관리 시스템입니다!
 
-<img alt="Uptime Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fgithub-readme-stats-git-monitoring-github-readme-stats-team.vercel.app%2Fapi%2Fstatus%2Fup%3Ftype%3Dshields">
+> [!NOTE]
+> - 대안학교에서 만든 대안교육을 위한 **대안적인 학교 정보 시스템**
+> - 다양한 학교와 교육과정에 적용 할 수 있는 **유연하고 독창적인 시스템**
+> - 미래 지향적인 교육철학을 실현하는 **교육적인 시스템**
+
+## 역사
 
 > [!IMPORTANT]\
-> We're a small team, and to prioritize, we rely on upvotes :+1:. We use the Top Issues dashboard for tracking community demand (see [#1935](https://github.com/anuraghazra/github-readme-stats/issues/1935)). Do not hesitate to upvote the issues and pull requests you are interested in. We will work on the most upvoted first.
+> 2016년 별무리학교 수강 신청 시스템을 위해 개발된 BLMS를 보완하고 발전시키위해 2022년 별무리학교 교사와 졸업생이 힘을 모아 개발한 Altsis입니다. 지금은 AEG를 운영하여 대안적인 학교 관리 시스템이 필요한 많은 학교들에게 보급하기 위해 힘쓰고 있습니다!
+
+> [!NOTE]
+> - 2016 [별무리학교](http://bmrschool.net) 수강 신청을 위한 맞춤형 학습 관리 시스템 [BLMS](https://github.com/devgoodway/BLMS_OSV) 개발 @[devgoodway](https://github.com/devgoodway)
+> - 2022 BLMS를 발전시킨 [ALTSIS](https://github.com/bmrdevteam/Altsis) 개발 @[devgoodway](https://github.com/devgoodway) @[jessie129j](https://github.com/jessie129j) @[seedlessapple](https://github.com/seedlessapple) and @[O-ye](https://github.com/Yeonwu)
+> - 2023 [ALTSIS](https://github.com/bmrdevteam/Altsis) 오픈 소스 프로젝트 시작 @[devgoodway](https://github.com/devgoodway)
+> - 2024 [AEG](https://github.com/bmrdevteam/Altsis) Altsis Educator Group 시작 @[devgoodway](https://github.com/devgoodway)
 
 # GitHub Stats Card
 
