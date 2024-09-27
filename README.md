@@ -209,10 +209,10 @@ yarn
 # Google Login에 사용되는 client ID (Google Cloud)
 REACT_APP_GOOGLE_CLIENT_ID='*********************************************.apps.googleusercontent.com'
 
-# Frontend 서버 URL : Backend PORT
+# Frontend 서버 URL : Backend PORT - 예시
 REACT_APP_SERVER_URL='http://localhost:8080'
 
-# Frontend 서버 PORT
+# Frontend 서버 PORT - 예시
 PORT=3030
 ```
 > [!TIP]
