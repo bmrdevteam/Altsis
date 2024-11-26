@@ -371,12 +371,16 @@ const EventEditor = ({ mode = "edit" }: { mode?: "edit" | "view" }) => {
 };
 const Event = ({ data }: { data: TEvent }) => {
   const { setEditor, setCurrentEvent } = useStore();
+
+  const startTime = data.startTime || "00:00";
+  const endTime = data.endTime || "00:00";
+
   const start =
-    parseInt(data.startTime.split(":")[0]) +
-    parseInt(data.startTime.split(":")[1]) / 60;
+    parseInt(startTime.split(":")[0]) +
+    parseInt(startTime.split(":")[1]) / 60;
   const end =
-    parseInt(data.endTime.split(":")[0]) +
-    parseInt(data.endTime.split(":")[1]) / 60;
+    parseInt(endTime.split(":")[0]) +
+    parseInt(endTime.split(":")[1]) / 60;
   const height = end - start;
 
   return (
@@ -387,7 +391,7 @@ const Event = ({ data }: { data: TEvent }) => {
         height: `${height * 80}px`,
       }}
       onClick={() => {
-        setCurrentEvent(data.id);
+        setCurrentEvent(data.id?.slice(0, 23));
         setEditor(true);
       }}
     >
