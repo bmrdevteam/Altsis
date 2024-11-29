@@ -6,7 +6,9 @@
    Altsis(Alternative School Infomation System)는 별무리학교에서 개발하여 운영 중인 대안적인 학교 정보 시스템이다. AEG(Altsis Educator Group)는 별무리학교에서 운영하는 Altsis 서버([https://altsis.org](https://altsis.org))를 임대하여 학교(또는 단체)에서 제공하는 역할을 한다.  
      
 2. **이용 규칙**
+   
 	서비스를 이용하고자 하는 학교(또는 단체)는 아래와 같은 방법으로 신청한다.
+
 * AEG 담당자에게 서비스 신청을 요청한다.  
 * 학교 내에 관리자로 AEG 관리자 연수를 이수한 자를 임명한다.  
   * AEG 관리자 연수를 이수한 자가 없을 시에는 관리자가 연수를 신청하여 이수하도록 한다.  
