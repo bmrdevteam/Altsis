@@ -54,6 +54,7 @@
     - [배포](#배포)
     - [API](#api)
     - [LOGGING](#logging)
+- [:open_hands: 직접 설치하기 어려운 경우](#직접-설치하기-어려운-경우)
 - [:books: 문서들은 어디에?](#문서들은-어디에)
 - [:heart: 기여하는 방법](#기여하는-방법)
 
@@ -878,6 +879,13 @@ export { local2 };
 > [!NOTE]
 > 요청 시각, http, http 버전, ip 주소, user.academyId, user._id, method(POST, GET, ...), url, req.body, res.status, response time(ms), referrer, user agent
 
+# 직접 설치하기 어려운 경우
+> [!IMPORTANT]
+> Altsis는 오픈 소스 프로젝트이기 때문에 사용자가 직접 서버에 설치하여 이용 할 수 있습니다. 하지만 직접 설치하기 어려운 경우 이미 서버를 이용하고 있는 관리자에게 요청하여 아카데미를 발급받아 이용 할 수도 있습니다. 아래는 아카데미 서버를 제공하는 단체의 안내입니다.
+
+> [!TIP]
+> - AEG(Altsis Educator Group)는 별무리학교에서 운영하는 Altsis 서버(https://altsis.org) 를 임대하여 학교(또는 단체)에서 제공하는 역할을 합니다. 자세한 사항은 [AEG](https://github.com/bmrdevteam/Altsis/blob/dev/AEG_README.md) 문서를 확안하세요.
+
 # 문서들은 어디에?
 > [!IMPORTANT]
 > Altsis와 관련된 문서는 [Github Page](https://github.com/bmrdevteam/Altsis)에서 확인 할 수 있습니다.
@@ -888,8 +896,9 @@ export { local2 };
 > * [WIKI](https://github.com/bmrdevteam/Altsis/wiki)
 > * [CONTRIBUTOR](https://github.com/bmrdevteam/Altsis/blob/document/CONTRIBUTOR.md)
 > * [CODE_OF_CONDUCT](https://github.com/bmrdevteam/Altsis/blob/document/CODE_OF_CONDUCT.md)
-> * [LICENSE](https://github.com/bmrdevteam/Altsis/blob/document/LISENCE)SECURITY.md
-> * [SECURITY](https://github.com/bmrdevteam/Altsis/blob/document/CODE_OF_CONDUCT.md)
+> * [AEG](https://github.com/bmrdevteam/Altsis/blob/dev/AEG_README.md)
+> * [LICENSE](https://github.com/bmrdevteam/Altsis/blob/document/LISENCE)
+> * [SECURITY](https://github.com/bmrdevteam/Altsis/blob/document/SECURITY.md)
 >   
 > 당신의 참여로 [Altsis](https://github.com/bmrdevteam/Altsis)의 시스템 문서를 발전 시킬 수 있습니다.
 
