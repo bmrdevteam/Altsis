@@ -77,21 +77,21 @@ const ParsedTableBlock = (props: Props) => {
         if (
           filter.operator === "===" &&
           item?.[filter.by] &&
-          item?.[filter.by] !== filter.value
+          String(item?.[filter.by]) !== String(filter.value)
         ) {
           cellName = [...cellName, filter.cell];
         }
         if (
           filter.operator === "!==" &&
           item?.[filter.by] &&
-          item?.[filter.by] === filter.value
+          String(item?.[filter.by]) === String(filter.value)
         ) {
           cellName = [...cellName, filter.cell];
         }
         if (
           filter.operator === "!==" &&
           !filter.value &&
-          !item?.[filter.by] === !filter.value
+          !String(item?.[filter.by]) === !String(filter.value)
         ) {
           cellName = [...cellName, filter.cell];
         }
@@ -114,21 +114,21 @@ const ParsedTableBlock = (props: Props) => {
         if (
           filter.operator === "===" &&
           v?.[filter.by] &&
-          v?.[filter.by] !== filter.value
+          String(v?.[filter.by]) !== String(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           v?.[filter.by] &&
-          v?.[filter.by] === filter.value
+          String(v?.[filter.by]) === String(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           !filter.value &&
-          !v?.[filter.by] === !filter.value
+          !String(v?.[filter.by]) === !String(filter.value)
         ) {
           boolCount += 1;
         }
@@ -145,21 +145,21 @@ const ParsedTableBlock = (props: Props) => {
         if (
           filter.operator === "===" &&
           v?.[filter.by] &&
-          v?.[filter.by] !== filter.value
+          String(v?.[filter.by]) !== String(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           v?.[filter.by] &&
-          v?.[filter.by] === filter.value
+          String(v?.[filter.by]) === String(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           !filter.value &&
-          !v?.[filter.by] === !filter.value
+          !String(v?.[filter.by]) === !String(filter.value)
         ) {
           boolCount += 1;
         }

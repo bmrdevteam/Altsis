@@ -536,7 +536,7 @@ const DataConnPopup = (props: Props) => {
                               placeholder="값"
                               onChange={(e) => {
                                 filtersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).value = e.target.value;
                               }}
                               defaultValue={value.value}
@@ -545,7 +545,7 @@ const DataConnPopup = (props: Props) => {
                               className={style.icon}
                               onClick={() => {
                                 filtersRef.current = filtersRef.current.filter(
-                                  (v) => v.key !== value.key
+                                  (v) => String(v.key) !== String(value.key)
                                 );
                                 setFilters(filtersRef.current.slice());
                               }}
@@ -586,7 +586,7 @@ const DataConnPopup = (props: Props) => {
                               defaultValue={value.by}
                               onChange={(e) => {
                                 orFiltersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).by = e.target.value;
                               }}
                             />
@@ -594,7 +594,7 @@ const DataConnPopup = (props: Props) => {
                               defaultValue={value.operator}
                               onChange={(e) => {
                                 orFiltersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).operator = e.target.value;
                               }}
                             >
@@ -606,7 +606,7 @@ const DataConnPopup = (props: Props) => {
                               placeholder="값"
                               onChange={(e) => {
                                 orFiltersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).value = e.target.value;
                               }}
                               defaultValue={value.value}
@@ -615,7 +615,7 @@ const DataConnPopup = (props: Props) => {
                               className={style.icon}
                               onClick={() => {
                                 orFiltersRef.current = orFiltersRef.current.filter(
-                                  (v) => v.key !== value.key
+                                  (v) => String(v.key) !== String(value.key)
                                 );
                                 setOrFilters(orFiltersRef.current.slice());
                               }}
@@ -656,7 +656,7 @@ const DataConnPopup = (props: Props) => {
                               defaultValue={value.by}
                               onChange={(e) => {
                                 cellFiltersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).by = e.target.value;
                               }}
                             />
@@ -664,7 +664,7 @@ const DataConnPopup = (props: Props) => {
                               defaultValue={value.operator}
                               onChange={(e) => {
                                 cellFiltersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).operator = e.target.value;
                               }}
                             >
@@ -676,7 +676,7 @@ const DataConnPopup = (props: Props) => {
                               placeholder="값"
                               onChange={(e) => {
                                 cellFiltersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).value = e.target.value;
                               }}
                               defaultValue={value.value}
@@ -686,7 +686,7 @@ const DataConnPopup = (props: Props) => {
                               placeholder="값"
                               onChange={(e) => {
                                 cellFiltersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).cell = e.target.value;
                               }}
                               defaultValue={value.cell}
@@ -695,7 +695,7 @@ const DataConnPopup = (props: Props) => {
                               className={style.icon}
                               onClick={() => {
                                 cellFiltersRef.current = cellFiltersRef.current.filter(
-                                  (v) => v.key !== value.key
+                                  (v) => String(v.key) !== String(value.key)
                                 );
                                 setCellFilters(cellFiltersRef.current.slice());
                               }}
@@ -737,7 +737,7 @@ const DataConnPopup = (props: Props) => {
                               defaultValue={value.by}
                               onChange={(e) => {
                                 ordersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).by = e.target.value;
                               }}
                             />
@@ -747,7 +747,7 @@ const DataConnPopup = (props: Props) => {
                               defaultValue={value.priority}
                               onChange={(e) => {
                                 ordersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).priority = e.target.value;
                               }}
                             />
@@ -755,7 +755,7 @@ const DataConnPopup = (props: Props) => {
                               defaultValue={value.order}
                               onChange={(e) => {
                                 ordersRef.current.find(
-                                  (v) => v.key === value.key
+                                  (v) => String(v.key) === String(value.key)
                                 ).order = e.target.value;
                               }}
                             >
@@ -766,7 +766,7 @@ const DataConnPopup = (props: Props) => {
                               className={style.icon}
                               onClick={() => {
                                 ordersRef.current = ordersRef.current.filter(
-                                  (v) => v.key !== value.key
+                                  (v) => String(v.key) !== String(value.key)
                                 );
                                 setOrders(ordersRef.current.slice());
                               }}
