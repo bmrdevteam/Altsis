@@ -140,7 +140,7 @@ const exec = async (req) => {
         throw err;
       }
     }
-    // 7-2. 멘토가 수강생을 초대하는 경우
+    // 7-2. 지도교사가 수강생을 초대하는 경우
     else if (_.find(syllabus.teachers, { _id: req.user._id }) || req.user.auth === "manager") {
       const teacherRegistration = await Registration(
         req.user.academyId

@@ -1,6 +1,6 @@
 /**
  * @file Mentoring teacher popup
- * @page 수업 개설/수정 뷰 - 강의계획서 멘토 수정
+ * @page 수업 개설/수정 뷰 - 강의계획서 지도교사 수정
  *
  *
  * @author jessie129j <jessie129j@gmail.com>
@@ -98,7 +98,7 @@ const Index = (props: Props) => {
   return (
     <Popup
       setState={props.setPopupActive}
-      title={"멘토 선택"}
+      title={"지도교사 선택"}
       closeBtn
       contentScroll
       style={{ width: "900px" }}

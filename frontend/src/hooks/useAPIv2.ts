@@ -1559,7 +1559,7 @@ export default function useAPIv2() {
 
   /**
    * UHideSyllabusFromCalendar API
-   * @description 캘린더(멘토링 수업)에서 숨김 설정 API
+   * @description 캘린더(개별 지도 수업)에서 숨김 설정 API
    * @version 2.0.0
    * @auth user
    */

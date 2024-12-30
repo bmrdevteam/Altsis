@@ -262,7 +262,7 @@ export class Calendar {
     if (!registration.period) return;
 
     const calendarTitle = `${registration.year} ${registration.term} ${
-      from === "enrollments" ? "수업" : "멘토링 수업"
+      from === "enrollments" ? "수업" : "개별 지도 수업"
     }`;
 
     const map = new Map<

@@ -221,7 +221,7 @@ const CourseAdd = (props: Props) => {
             <Input
               key={"mentor-" + JSON.stringify(courseMentorList)}
               appearence="flat"
-              label="멘토"
+              label="지도교사"
               required
               defaultValue={_.join(
                 courseMentorList.map(
@@ -326,7 +326,7 @@ const CourseAdd = (props: Props) => {
               } else if (!courseTitle || courseTitle === "") {
                 alert("제목을 입력해주세요.");
               } else if (courseMentorList.length === 0) {
-                alert("멘토를 선택해주세요.");
+                alert("지도교사를 선택해주세요.");
               } else if (courseTime.length === 0) {
                 alert("시간을 선택해주세요.");
               } else if (!isPositiveInteger(coursePoint)) {

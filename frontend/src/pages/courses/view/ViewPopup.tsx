@@ -88,7 +88,7 @@ const CourseView = (props: Props) => {
         <div className={style.category}>수강정원: {courseData.limit}</div>
         <div className={style.category}>개설자: {courseData.userName}</div>
         <div className={style.category}>
-          멘토:{" "}
+        지도교사:{" "}
           {_.join(
             courseData.teachers?.map((teacher: any) => teacher.userName),
             ", "
@@ -247,13 +247,13 @@ const CourseView = (props: Props) => {
                     textAlign: "center",
                   },
                   {
-                    text: "멘토 ID",
+                    text: "지도교사 ID",
                     key: "userId",
                     type: "text",
                     textAlign: "center",
                   },
                   {
-                    text: "멘토 이름",
+                    text: "지도교사 이름",
                     key: "userName",
                     type: "text",
                     textAlign: "center",

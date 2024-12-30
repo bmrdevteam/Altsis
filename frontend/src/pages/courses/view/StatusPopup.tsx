@@ -84,13 +84,13 @@ const StatusPopup = (props: Props) => {
             },
 
             {
-              text: "멘토 이름",
+              text: "지도교사 이름",
               key: "userName",
               type: "text",
               textAlign: "center",
             },
             {
-              text: "멘토 ID",
+              text: "지도교사 ID",
               key: "userId",
               type: "text",
               textAlign: "center",

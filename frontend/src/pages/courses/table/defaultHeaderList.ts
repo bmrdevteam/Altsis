@@ -43,7 +43,7 @@ export const defaultHeaderList: TTableHeader[] = [
     width: "80px",
   },
   {
-    text: "멘토",
+    text: "지도교사",
     key: "mentorText",
     type: "text",
     textAlign: "center",

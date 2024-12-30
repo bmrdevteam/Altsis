@@ -346,7 +346,7 @@ export const cancelConfirm = async (req, res) => {
 /**
  * @memberof APIs.SyllabusAPI
  * @function USyllabus API
- * @description 강의계획서 수정 API; 멘토가 이미 수강생이 있는 강의계획서를 수정하는 경우 시간, 강의실, 교과목은 변경되지 않는다. 교과목 변경은 USyllabusSubject API 별도 요청 필요.
+ * @description 강의계획서 수정 API; 지도교사가 이미 수강생이 있는 강의계획서를 수정하는 경우 시간, 강의실, 교과목은 변경되지 않는다. 교과목 변경은 USyllabusSubject API 별도 요청 필요.
  * @version 2.0.0
  *
  * @param {Object} req
@@ -429,7 +429,7 @@ export const updateV2 = async (req, res) => {
       limit: syllabus.limit !== req.body.limit,
     };
 
-    /* 1. user가 syllabus 작성자이고 멘토가 아닌 경우 */
+    /* 1. user가 syllabus 작성자이고 지도교사가 아닌 경우 */
     if (
       user._id.equals(syllabus.user) &&
       !_.find(syllabus.teachers, { _id: user._id }) && req.user.auth !== "manager"
@@ -470,7 +470,7 @@ export const updateV2 = async (req, res) => {
       return res.status(200).send({ syllabus });
     }
 
-    /* 2. user가 syllabus 멘토인 경우 */
+    /* 2. user가 syllabus 지도교사인 경우 */
     if (_.find(syllabus.teachers, { _id: user._id }) || req.user.auth === "manager") {
       /* 2-1. 수강생이 없는 경우 */
       if (syllabus.count === 0) {
@@ -592,7 +592,7 @@ export const updateSubject = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    // user가 syllabus 멘토인지 확인
+    // user가 syllabus 지도교사인지 확인
     if (!_.find(syllabus.teachers, { _id: user._id }) && req.user.auth !== "manager") {
       return res.status(403).send({
         message: PERMISSION_DENIED,
@@ -734,7 +734,7 @@ export const updateSubject = async (req, res) => {
 /**
  * @memberof APIs.SyllabusAPI
  * @function UHideSyllabusFromCalendar API
- * @description 캘린더(멘토링 수업)에서 숨김 설정 API
+ * @description 캘린더(개별 지도 수업)에서 숨김 설정 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -777,7 +777,7 @@ export const hideFromCalendar = async (req, res) => {
 /**
  * @memberof APIs.SyllabusAPI
  * @function UShowSyllabusOnCalendar API
- * @description 캘린더(멘토링 수업)에서 조회 설정 API
+ * @description 캘린더(개별 지도 수업)에서 조회 설정 API
  * @version 2.0.0
  *
  * @param {Object} req
@@ -861,7 +861,7 @@ export const remove = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    /* 1. user가 syllabus 작성자이고 멘토가 아닌 경우 */
+    /* 1. user가 syllabus 작성자이고 지도교사가 아닌 경우 */
     if (
       user._id.equals(syllabus.user) &&
       !_.find(syllabus.teachers, { _id: user._id }) && req.user.auth !== "manager"
@@ -877,7 +877,7 @@ export const remove = async (req, res) => {
       return res.status(200).send({});
     }
 
-    /* 2. user가 syllabus 멘토인 경우 */
+    /* 2. user가 syllabus 지도교사인 경우 */
     if (_.find(syllabus.teachers, { _id: user._id }) || req.user.auth === "manager") {
       await Enrollment(user.academyId).deleteMany({
         syllabus: syllabus._id,
