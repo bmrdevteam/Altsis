@@ -1,0 +1,258 @@
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-thumb {
+  outline: none;
+  border-radius: 10px;
+  border: 4px solid transparent;
+  box-shadow: inset 6px 6px 0 rgba(34, 34, 34, 0.15);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  border: 4px solid transparent;
+  box-shadow: inset 6px 6px 0 rgba(34, 34, 34, 0.3);
+}
+
+::-webkit-scrollbar-track {
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.table_container {
+  width: 100%;
+  overflow-x: overlay;
+  -ms-overflow-style: none;
+  scrollbar-width:none;
+  overflow-y: auto;
+}
+.table {
+  border: var(--border-default);
+  width: 100%;
+  position: static;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+  color: var(--accent-1);
+  overflow-y: auto; /* 수직 스크롤바를 허용합니다. */
+  max-height: 100px; /* .item의 최대 높이를 설정하고, 내용이 높이를 초과하면 스크롤바가 나타납니다. 필요에 따라 조절하세요. */
+
+  td,
+  th {
+    max-height: 48px;
+    min-width: 48px;
+    padding: 12px;
+  }
+
+  .header {
+    z-index: 2;
+    position: sticky;
+    top: 0;
+    background: var(--background-color);
+    border: var(--border-default);
+
+    .control {
+      z-index: 2;
+      user-select: none;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+
+      .search {
+        flex: 1 1 0;
+        padding: 6px;
+        border: none;
+        outline: none;
+      }
+
+      .pager {
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 600;
+
+        .arrow {
+          cursor: pointer;
+          display: flex;
+        }
+
+        .number {
+          text-align: right;
+          font-weight: 500;
+          font-size: 13px;
+          padding: 6px 4px;
+          border: none;
+          outline: none;
+          width: 28px;
+          align-items: center;
+          justify-content: center;
+          display: flex;
+        }
+
+        .page_by {
+          font-weight: 600;
+          font-size: 12px;
+          position: relative;
+          text-align: center;
+          padding: 0;
+          text-align: right;
+          padding: 6px;
+          border: none;
+          outline: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+        }
+      }
+
+      .more {
+        display: flex;
+        cursor: pointer;
+
+        .menu_container {
+          z-index: 3;
+          position: absolute;
+          top: 48px;
+          right: 12px;
+          padding: 4px;
+          border-radius: 4px;
+          background-color: var(--background-color);
+          box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          font-weight: 500;
+          font-size: 12px;
+
+          .menu_item {
+            display: flex;
+            align-items: center;
+            height: 30px;
+            padding: 4px 8px;
+            border-radius: 4px;
+          }
+
+          .menu_item:hover {
+            background-color: var(--background-hover-color);
+          }
+        }
+      }
+    }
+
+    .item_container {
+      vertical-align: middle;
+      background: var(--background-color);
+      padding: 0 12px;
+      height: 48px;
+      white-space: pre;
+
+      cursor: pointer;
+      position: relative;
+      border-bottom: var(--border-default);
+
+      .icon {
+        min-height: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .item {
+        display: flex;
+        flex-direction: column;
+
+        align-items: center;  
+      
+
+        svg {
+          align-self: center;
+        }
+      }
+    }
+
+    .item_container:not(:last-child):after {
+      content: "";
+      height: 30%;
+      width: 2px;
+      position: absolute;
+      top: 35%;
+      right: 0;
+      // background-color: var(--accent-5);
+      background-color: rgb(205, 205, 205);
+    }
+  }
+
+  tbody {
+    .item {
+      height: 48px;
+      border-bottom: var(--border-default);
+      border-top: var(--border-default);
+      max-height: 200px; /* 내용의 최대 높이를 설정합니다. */
+      overflow-y: auto; /* 내용이 최대 높이를 초과할 때 수직 스크롤바를 허용합니다. */
+      max-width: 300px;
+    
+      .icon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+
+    .item:hover {
+      background-color: var(--background-hover-color);
+    }
+
+    .item.checkbox {
+      cursor: pointer;
+      vertical-align: center;
+    }
+
+    .item.input:hover {
+      background-color: var(--background-color);
+    }
+
+    .item.input {
+      padding: 0;
+
+      textarea {
+        padding: 12px;
+        min-height: 150px;
+        min-width: 300px;
+        border: 2px solid #7a7a7a; /* 외곽선 색상 및 두께 설정 */
+        border-radius: 5px; /* 외곽선 모서리 둥글게 만들기 (선택사항) */
+        font-family: "Pretendard";
+        resize: none;
+        font-size: inherit;
+        text-align: inherit;
+        font-weight: inherit;
+      }
+
+      input {
+        border: none;
+        padding: 12px;
+        height: 100%;
+        width: 100%;
+        font-family: "Pretendard";
+        font-size: inherit;
+        text-align: inherit;
+        font-weight: inherit;
+      }
+
+      select {
+        border: none;
+        font-family: "Pretendard";
+        font-size: inherit;
+        text-align: inherit;
+        font-weight: inherit;
+        width: 100%;
+      }
+
+      .byte_calc {
+        font-size: 12px;
+        text-align: center;
+      }
+    }
+  }
+}

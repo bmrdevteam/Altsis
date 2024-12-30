@@ -79,6 +79,44 @@ export const SidebarData = (auth: string, role?: string): any => {
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
+        {
+          title: "resources",
+          name: "자원",
+          path: "/resources",
+          icon: <Svg type="resources" />,
+          subLink: [
+            currentRegistration?.permissionSyllabusV2
+              ? {
+                  title: "design",
+                  name: "신청서 작성",
+                  path: "/resources/design",
+                  icon: <Svg type="write" />,
+                }
+              : undefined,
+            currentRegistration?.permissionEnrollmentV2
+              ? {
+                  title: "enroll",
+                  name: "사용자 등록",
+                  path: "/resources/enroll",
+                  icon: <Svg type="search" />,
+                }
+              : undefined,
+              currentRegistration?.permissionEnrollmentV2
+              ? {
+                title: "enrollStatus",
+                name: "등록 현황",
+                path: "/resources/status",
+                icon: <Svg type="profileList" />,
+              }
+              : undefined,
+            {
+              title: "list",
+              name: "전체 목록",
+              path: "/resources/list",
+              icon: <Svg type="list" />,
+            },
+          ].filter((element: any, i: number) => element !== undefined),
+        },
       ]
     );
     if (currentRegistration.role === "teacher") {

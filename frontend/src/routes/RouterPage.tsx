@@ -33,6 +33,17 @@ import CourseMentoringPid from "pages/courses/tab/Mentoring/Index";
 import CourseEnrollmentPid from "pages/courses/tab/Enrolled/Index";
 import CourseEditPid from "pages/courses/view/Edit/Index";
 
+// resources pages
+import Resources from "pages/resources/Index";
+import ResourcesDesign from "../pages/resources/Design";
+import ResourcesEnroll from "../pages/resources/Enroll";
+import ResourcesEnrollStatus from "../pages/resources/EnrollStatus";
+import ResourcesList from "pages/resources/List";
+import ResourcesCreatedPid from "pages/resources/tab/Created/Index";
+import ResourcesMentoringPid from "pages/resources/tab/Mentoring/Index";
+import ResourcesEnrollmentPid from "pages/resources/tab/Enrolled/Index";
+import ResourcesEditPid from "pages/resources/view/Edit/Index";
+
 // apps pages
 import AppsIndex from "pages/apps/Index";
 import AppsField from "pages/apps/Pid";
@@ -334,6 +345,103 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <CourseEnrollmentPid />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              {/* error routes */}
+              <Route path="*" element={<Http404 />}></Route>
+
+              {/* ----------------------------------------------------- */}
+            </Route>
+
+            {/* ----------------------------------------------------- */}
+
+            {/* resources routes */}
+             <Route path="resources">
+              {/* [!make!] an hook to identify the number of */}
+              <Route
+                path=""
+                element={
+                  <RequireAuth>
+                    <Resources />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="enroll"
+                element={
+                  <RequireAuth>
+                    <ResourcesEnroll />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="status"
+                element={
+                  <RequireAuth>
+                    <ResourcesEnrollStatus />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path="design"
+                element={
+                  <RequireAuth>
+                    <ResourcesDesign />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="list"
+                element={
+                  <RequireAuth>
+                    <ResourcesList />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="enrolled/:pid"
+                element={
+                  <RequireAuth>
+                    <ResourcesEnrollmentPid />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="created/:pid"
+                element={
+                  <RequireAuth>
+                    <ResourcesCreatedPid />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="edit/:pid"
+                element={
+                  <RequireAuth>
+                    <ResourcesEditPid />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="mentoring/:pid"
+                element={
+                  <RequireAuth>
+                    <ResourcesMentoringPid />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path=":pid"
+                element={
+                  <RequireAuth>
+                    <ResourcesEnrollmentPid />
                   </RequireAuth>
                 }
               ></Route>
