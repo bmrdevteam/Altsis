@@ -47,6 +47,9 @@ import Subjects from "./tab/Subject";
 import Form from "./tab/Form";
 import useAPIv2 from "hooks/useAPIv2";
 
+// functions
+import { objectDownloadAsJson } from "functions/functions";
+
 type Props = {};
 
 const Season = (props: Props) => {
@@ -170,6 +173,24 @@ const Season = (props: Props) => {
             btnStyle: {
               border: true,
               color: "var(--accent-1)",
+              padding: "4px",
+              round: true,
+            },
+          },
+          {
+            type: "button",
+            key: "json",
+            text: "다운로드",
+            onClick: (e: any) => {
+              getDocument(e._id).then((res) => {
+                objectDownloadAsJson(res);
+              });
+            },
+            width: "100px",
+            textAlign: "center",
+            btnStyle: {
+              border: true,
+              color: "black",
               padding: "4px",
               round: true,
             },
