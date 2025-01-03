@@ -52,6 +52,53 @@ type Props = {
 
 const Season = (props: Props) => {
   const { SeasonAPI } = useAPIv2();
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const [jsonData, setJsonData] = useState(null);
+
+  /**
+   * upload json data
+   * @returns upload json data & create form
+   */
+  
+  const handleProfileUploadButtonClick = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (fileInput.current) fileInput.current.click();
+  };
+
+  const handleFileChange = (e:any) => {
+    const file = e.target.files[0];
+    if (file) {
+      // 파일이 선택되었을 때 처리
+      const reader = new FileReader();
+
+      // 파일 읽기가 완료되었을 때
+      reader.onload = (e:any) => {
+        try {
+          // 파일 내용을 JSON으로 파싱
+          const data = JSON.parse(e.target.result);
+          setJsonData(data);
+          // 데이터 베이스에 저장하기
+          setSelectedSeasonToCopy(data);
+          setIsLoadingSelectedSeasonToCopy(true);
+          setSelectSeasonToCopyPopupActive(false);
+          alert(SUCCESS_MESSAGE);
+        } catch (err) {
+          ALERT_ERROR(err);
+          setJsonData(null);
+        }
+      };
+
+      // 파일 읽기 오류 처리
+      reader.onerror = (err) => {
+        ALERT_ERROR(err);
+        setJsonData(null);
+      };
+
+      // 파일 읽기 시작
+      reader.readAsText(file);
+    }
+  };
 
   const inputRef = useRef<{
     year: string;
@@ -239,6 +286,33 @@ const Season = (props: Props) => {
             </Button>
           }
         >
+          
+        <button
+        style={{
+          cursor: "pointer",
+          boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",  
+          borderRadius: "4px",
+          border : "1px solid #CCCCCC",
+          height: "34px",
+          color: "var(--btn-text-color-3)",
+          backgroundColor: "var(--btn-color-3)",
+          marginBottom: "4px",
+          width: "100%",
+        }}
+          onClick={(e: any) => {
+            handleProfileUploadButtonClick(e);
+          }}>
+          파일 업로드
+        </button>
+        <input
+          type="file"
+          ref={fileInput}
+          style={{ display: "none" }}
+          onChange={(e: any) => {
+            handleFileChange(e);
+            e.target.value = "";
+          }}
+  />
           <Table
             type="object-array"
             data={props.seasonList}
