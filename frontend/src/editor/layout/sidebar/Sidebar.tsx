@@ -54,7 +54,6 @@ const Sidebar = (props: Props) => {
       editorPageRef.current.contains(e.target as Node)
     ) {
       forcefullyReloadSidebar();
-      // console.log(getCurrentBlock());
     }
   };
 
@@ -291,14 +290,103 @@ const Sidebar = (props: Props) => {
   const TableBlockMenu = () => {
     return (
       <Menu name="테이블">
+        <div className={style.item}>
+          <label>스타일</label>
+            <Select
+              onChange={(value: any) => {
+                changeCurrentBlockData({ borderStyle: value });
+                getCurrentBlock().data.table.forEach((row: any) => {
+                  row.forEach((cell: any) => {
+                    cell.borderStyle = value;
+                  });
+                });
+                props.callPageReload();
+                forcefullyReloadSidebar();
+              }}
+              style={{ fontSize: "12px" }}
+              selectedValue={getCurrentBlock().data.borderStyle}
+              appearence="flat"
+              options={[
+                { text: "solid", value: "solid" },
+                { text: "dotted", value: "dotted" },
+                { text: "dashed", value: "dashed" },
+                { text: "double", value: "double" },
+                { text: "groove", value: "groove" },
+                { text: "ridge", value: "ridge" },
+                { text: "inset", value: "inset" },
+                { text: "outset", value: "outset" },
+                { text: "none", value: "none" },
+                { text: "hidden", value: "hidden" },
+              ]}
+            />
+        </div>
         {/* <div className={style.item}>
-          <label>테두리</label>
-          <input type="text" defaultValue={1} />
+          <label>모서리</label>
+          <input
+            onChange={(e) => {
+              changeCurrentBlockData({ borderRadius: `${e.target.value}`});
+              props.callPageReload();
+            }}
+            type="number"
+            defaultValue={getCurrentBlock().data.borderRadius ?? 0}
+          />
+        </div> */}
+        <div className={style.item}>
+          <label>굵기</label>
+          <input
+            type="number"
+            onChange={(e) => {
+              if(e.target.value){
+              changeCurrentBlockData({ borderWidth: parseFloat(e.target.value) });
+                getCurrentBlock().data.table.forEach((row: any) => {
+                  row.forEach((cell: any) => {
+                    cell.borderWidth = parseFloat(e.target.value);
+                  });
+                });
+              }
+              props.callPageReload();
+            }}
+            defaultValue={getCurrentBlock().data.borderWidth ?? 1}
+          />
         </div>
         <div className={style.item}>
-          <label>테두리 색상</label>
-          <input type="color" defaultValue={1} />
-        </div> */}
+          <label>선 색상</label>
+          <input
+            onChange={(e) => {
+              if(e.target.value){
+              changeCurrentBlockData({ borderColor: `${e.target.value}`});
+                getCurrentBlock().data.table.forEach((row: any) => {
+                  row.forEach((cell: any) => {
+                    cell.borderColor = `${e.target.value}`;
+                  });
+                });
+              }
+              props.callPageReload();
+            }}
+            type="color"
+            defaultValue={
+              getCurrentBlock().data.borderColor ?? "#cccccc"
+            }
+          />
+        </div>
+        <div className={style.item}>
+          <label>배경 색상</label>
+          <input
+            onChange={(e) => {
+              if(e.target.value){
+              changeCurrentBlockData({ backgroundColor: `${e.target.value}`});
+                getCurrentBlock().data.table.forEach((row: any) => {
+                  row.forEach((cell: any) => {
+                    cell.backgroundColor = `${e.target.value}`;
+                  });
+                });
+              }
+              props.callPageReload();
+            }}
+            type="color"
+            defaultValue={getCurrentBlock().data.backgroundColor ?? "#cccccc"}
+          />
+        </div>
         <div className={style.item}>
           <label>너비 (%)</label>
           <input
@@ -748,8 +836,6 @@ const Sidebar = (props: Props) => {
                       },
                     ];
                   }
-
-                  // console.log(getCurrentCell()?.options);
                   props.callPageReload();
                   forcefullyReloadSidebar();
                 }}

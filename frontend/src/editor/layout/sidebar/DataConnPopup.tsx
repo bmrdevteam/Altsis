@@ -54,7 +54,6 @@ const DataConnPopup = (props: Props) => {
   const ordersRef = useRef<any[]>(getCurrentBlock()?.data?.dataOrder ?? []);
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
-    console.log(getCurrentBlock().data);
   useEffect(() => {
     SchoolAPI.RSchools().then(({ schools }) => {
       schools.map((school) => {
