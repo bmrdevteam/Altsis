@@ -130,7 +130,10 @@ export function objectDownloadAsJson(data: any) {
   )}`; // create a JSON string with the proper MIME type
   const link = document.createElement("a"); // create a link element
   link.href = jsonString; // set the link's href to the JSON string
-  link.download = data.title ? data.title + ".json" : "data.json"; // set the download file name
+  link.download = 
+  data.title ? data.title + ".json" 
+  : data.term ? data.schoolName + " " + data.year + " " + data.term + ".json" 
+  : "data.json"; // set the download file name
   link.click(); // trigger a click on the link to download the JSON file
 }
 

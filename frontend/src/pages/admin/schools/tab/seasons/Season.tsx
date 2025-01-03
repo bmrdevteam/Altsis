@@ -48,6 +48,9 @@ import AddSeasonPopup from "./AddPopup";
 import { TSeason, TSeasonWithRegistrations } from "types/seasons";
 import useAPIv2 from "hooks/useAPIv2";
 
+// functions
+import { objectDownloadAsJson } from "functions/functions";
+
 type Props = {
   school: string;
   seasonList: TSeason[];
@@ -163,12 +166,33 @@ const Season = (props: Props) => {
                     setEditPopupActive(true);
                   }
                 );
+                console.log(e);
               },
               width: "80px",
               textAlign: "center",
               btnStyle: {
                 border: true,
                 color: "var(--accent-1)",
+                padding: "4px",
+                round: true,
+              },
+            },
+            {
+              type: "button",
+              key: "json",
+              text: "다운로드",
+              onClick: (e: any) => {
+                SeasonAPI.RSeason({ params: { _id: e._id } }).then(
+                  ({ season }) => {
+                    objectDownloadAsJson(season);
+                  }
+                );
+              },
+              width: "100px",
+              textAlign: "center",
+              btnStyle: {
+                border: true,
+                color: "black",
                 padding: "4px",
                 round: true,
               },
