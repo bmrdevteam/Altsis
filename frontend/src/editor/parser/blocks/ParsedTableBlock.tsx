@@ -520,158 +520,193 @@ const ParsedTableBlock = (props: Props) => {
       style={{ width: `${props.blockData.data.width ?? 100}%` }}
     >
       <table
-        className={style.table}
-        style={{ fontSize: props.blockData.data?.fontSize }}
+      className={style.table}
+      style={{ 
+      fontSize: props.blockData.data?.fontSize,
+      borderWidth: props.blockData.data?.borderWidth,
+      borderColor: props.blockData.data?.borderColor,
+      borderStyle: props.blockData.data?.borderStyle, // Added borderStyle
+      borderRadius: props.blockData.data?.borderRadius, // Added borderRadius
+      backgroundColor: props.blockData.data?.backgroundColor // Added backgroundColor
+      }}
       >
-        <SetColumn />
-        <tbody>
-          {props.blockData.data.table.map((value: any[], index: number) => {
-            if (props.blockData.data.dataRepeat?.index === index) {
-              return (
-                filteredRepeat &&
-                filteredRepeat.map((v: any, i: number) => {
-                  return (
-                    <tr key={`${index}-${i}`}>
-                      {value.map((val, ind: number) => {
-                        const spanTrackCurr = spanTrack.filter((track) => {
-                          if (
-                            track.rowStart <= i + index &&
-                            track.rowEnd > i + index &&
-                            track.colStart <= ind &&
-                            track.colEnd > ind
-                          ) {
-                            return true;
-                          }
+      <SetColumn />
+      <tbody>
+      {props.blockData.data.table.map((value: any[], index: number) => {
+      if (props.blockData.data.dataRepeat?.index === index) {
+      return (
+      filteredRepeat &&
+      filteredRepeat.map((v: any, i: number) => {
+      return (
+      <tr key={`${index}-${i}`}>
+        {value.map((val, ind: number) => {
+      const spanTrackCurr = spanTrack.filter((track) => {
+        if (
+        track.rowStart <= i + index &&
+        track.rowEnd > i + index &&
+        track.colStart <= ind &&
+        track.colEnd > ind
+        ) {
+        return true;
+        }
 
-                          return false;
-                        });
+        return false;
+      });
 
-                        if (spanTrackCurr.length > 0) {
-                          return;
-                        }
+      if (spanTrackCurr.length > 0) {
+        return;
+      }
 
-                        spanTrack.push({
-                          rowStart: i,
-                          rowEnd:
-                            i +
-                            (isNaN(parseInt(val.rowSpan))
-                              ? 1
-                              : Math.abs(parseInt(val.rowSpan))),
-                          colStart: ind,
-                          colEnd:
-                            ind +
-                            (isNaN(parseInt(val.colSpan))
-                              ? 1
-                              : Math.abs(parseInt(val.colSpan))),
-                        });
-                        return val?.isHeader ? (
-                          <th
-                            key={`${i}-${ind}`}
-                            colSpan={val?.colSpan}
-                            rowSpan={val?.rowSpan}
-                            style={{ fontSize: val?.fontSize }}
-                          >
-                            <Cell
-                              data={val}
-                              dataRepeat={v}
-                              dataRepeatIndex={i}
-                              row={value}
-                              table={props.blockData.data.table}
-                              colIndex={ind}
-                            />
-                          </th>
-                        ) : (
-                          <td
-                            key={`${i}-${ind}`}
-                            colSpan={val?.colSpan}
-                            rowSpan={val?.rowSpan}
-                            style={{ fontSize: val?.fontSize }}
-                          >
-                            <Cell
-                              data={val}
-                              dataRepeat={v}
-                              dataRepeatIndex={i}
-                              row={value}
-                              table={props.blockData.data.table}
-                              colIndex={ind}
-                            />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })
-              );
-            } else {
-              return (
-                <tr key={index}>
-                  {value.map((val, ind: number) => {
-                    const spanTrackCurr = spanTrack.filter((v) => {
-                      if (
-                        v.rowStart <= index &&
-                        v.rowEnd > index &&
-                        v.colStart <= ind &&
-                        v.colEnd > ind
-                      ) {
-                        return true;
-                      }
+      spanTrack.push({
+        rowStart: i,
+        rowEnd:
+        i +
+        (isNaN(parseInt(val.rowSpan))
+        ? 1
+        : Math.abs(parseInt(val.rowSpan))),
+        colStart: ind,
+        colEnd:
+        ind +
+        (isNaN(parseInt(val.colSpan))
+        ? 1
+        : Math.abs(parseInt(val.colSpan))),
+      });
+      return val?.isHeader ? (
+        <th
+        key={`${i}-${ind}`}
+        colSpan={val?.colSpan}
+        rowSpan={val?.rowSpan}
+        style={{ 
+        fontSize: val?.fontSize,
+        borderWidth: val?.borderWidth,
+        borderColor: val?.borderColor,
+        borderStyle: val?.borderStyle, // Added borderStyle
+        borderRadius: val?.borderRadius, // Added borderRadius
+        backgroundColor: val?.backgroundColor // Added backgroundColor
+        }}
+        >
+        <Cell
+        data={val}
+        dataRepeat={v}
+        dataRepeatIndex={i}
+        row={value}
+        table={props.blockData.data.table}
+        colIndex={ind}
+        />
+        </th>
+      ) : (
+        <td
+        key={`${i}-${ind}`}
+        colSpan={val?.colSpan}
+        rowSpan={val?.rowSpan}
+        style={{ 
+        fontSize: val?.fontSize,
+        borderWidth: val?.borderWidth,
+        borderColor: val?.borderColor,
+        borderStyle: val?.borderStyle, // Added borderStyle
+        borderRadius: val?.borderRadius, // Added borderRadius
+        backgroundColor: val?.backgroundColor // Added backgroundColor
+        }}
+        >
+        <Cell
+        data={val}
+        dataRepeat={v}
+        dataRepeatIndex={i}
+        row={value}
+        table={props.blockData.data.table}
+        colIndex={ind}
+        />
+        </td>
+      );
+        })}
+      </tr>
+      );
+      })
+      );
+      } else {
+      return (
+      <tr key={index}>
+      {value.map((val, ind: number) => {
+      const spanTrackCurr = spanTrack.filter((v) => {
+        if (
+      v.rowStart <= index &&
+      v.rowEnd > index &&
+      v.colStart <= ind &&
+      v.colEnd > ind
+        ) {
+      return true;
+        }
 
-                      return false;
-                    });
+        return false;
+      });
 
-                    if (spanTrackCurr.length > 0) {
-                      return;
-                    }
+      if (spanTrackCurr.length > 0) {
+        return;
+      }
 
-                    spanTrack.push({
-                      rowStart: index,
-                      rowEnd:
-                        index +
-                        (isNaN(parseInt(val.rowSpan))
-                          ? 1
-                          : Math.abs(parseInt(val.rowSpan))),
-                      colStart: ind,
-                      colEnd:
-                        ind +
-                        (isNaN(parseInt(val.colSpan))
-                          ? 1
-                          : Math.abs(parseInt(val.colSpan))),
-                    });
-                    return val?.isHeader ? (
-                      <th
-                        key={ind}
-                        colSpan={val?.colSpan}
-                        rowSpan={val?.rowSpan}
-                        style={{ fontSize: val?.fontSize }}
-                      >
-                        <Cell
-                          data={val}
-                          row={value}
-                          table={props.blockData.data.table}
-                          colIndex={ind}
-                        />
-                      </th>
-                    ) : (
-                      <td
-                        key={ind}
-                        colSpan={val?.colSpan}
-                        rowSpan={val?.rowSpan}
-                        style={{ fontSize: val?.fontSize }}
-                      >
-                        <Cell
-                          data={val}
-                          row={value}
-                          table={props.blockData.data.table}
-                          colIndex={ind}
-                        />
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            }
-          })}
-        </tbody>
+      spanTrack.push({
+        rowStart: index,
+        rowEnd:
+      index +
+      (isNaN(parseInt(val.rowSpan))
+        ? 1
+        : Math.abs(parseInt(val.rowSpan))),
+        colStart: ind,
+        colEnd:
+      ind +
+      (isNaN(parseInt(val.colSpan))
+        ? 1
+        : Math.abs(parseInt(val.colSpan))),
+      });
+      return val?.isHeader ? (
+        <th
+      key={ind}
+      colSpan={val?.colSpan}
+      rowSpan={val?.rowSpan}
+      style={{ 
+        fontSize: val?.fontSize,
+        borderWidth: val?.borderWidth,
+        borderColor: val?.borderColor,
+        borderStyle: val?.borderStyle, // Added borderStyle
+        borderRadius: val?.borderRadius, // Added borderRadius
+        backgroundColor: val?.backgroundColor // Added backgroundColor
+      }}
+        >
+      <Cell
+        data={val}
+        row={value}
+        table={props.blockData.data.table}
+        colIndex={ind}
+      />
+        </th>
+      ) : (
+        <td
+      key={ind}
+      colSpan={val?.colSpan}
+      rowSpan={val?.rowSpan}
+      style={{ 
+        fontSize: val?.fontSize,
+        borderWidth: val?.borderWidth,
+        borderColor: val?.borderColor,
+        borderStyle: val?.borderStyle, // Added borderStyle
+        borderRadius: val?.borderRadius, // Added borderRadius
+        backgroundColor: val?.backgroundColor // Added backgroundColor
+      }}
+        >
+      <Cell
+        data={val}
+        row={value}
+        table={props.blockData.data.table}
+        colIndex={ind}
+      />
+        </td>
+      );
+      })}
+      </tr>
+      );
+      }
+      })}
+      </tbody>
       </table>
     </div>
   );

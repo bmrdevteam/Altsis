@@ -87,91 +87,109 @@ const TableBlock = (props: Props) => {
     >
       <table
         className={style.table}
-        style={{ fontSize: block.data.fontSize }}
-        onClick={() => {
-          // console.log(spanTrack);
+        style={{
+          fontSize: block.data.fontSize,
+          borderWidth: block.data.borderWidth,
+          borderColor: block.data.borderColor,
+          borderStyle: block.data.borderStyle,
+          borderRadius: block.data.borderRadius,
+          backgroundColor: block.data.backgroundColor,
         }}
       >
         <SetColumn />
         <tbody>
           {block.data.table !== undefined &&
-            block.data?.table.map((value: any, index: number) => {
-              return (
-                <tr key={index}>
-                  {value.map((val: any, ind: number) => {
-                    const spanTrackCurr = spanTrack.filter((v) => {
-                      if (
-                        v.rowStart <= index &&
-                        v.rowEnd > index &&
-                        v.colStart <= ind &&
-                        v.colEnd > ind
-                      ) {
-                        return true;
-                      }
+        block.data?.table.map((value: any, index: number) => {
+          return (
+        <tr key={index}>
+          {value.map((val: any, ind: number) => {
+        const spanTrackCurr = spanTrack.filter((v) => {
+          if (
+        v.rowStart <= index &&
+        v.rowEnd > index &&
+        v.colStart <= ind &&
+        v.colEnd > ind
+          ) {
+        return true;
+          }
 
-                      return false;
-                    });
+          return false;
+        });
 
-                    if (spanTrackCurr.length > 0) {
-                      return;
-                    }
+        if (spanTrackCurr.length > 0) {
+          return;
+        }
 
-                    spanTrack.push({
-                      rowStart: index,
-                      rowEnd:
-                        index +
-                        (isNaN(parseInt(val.rowSpan))
-                          ? 1
-                          : Math.abs(parseInt(val.rowSpan))),
-                      colStart: ind,
-                      colEnd:
-                        ind +
-                        (isNaN(parseInt(val.colSpan))
-                          ? 1
-                          : Math.abs(parseInt(val.colSpan))),
-                    });
+        spanTrack.push({
+          rowStart: index,
+          rowEnd:
+        index +
+        (isNaN(parseInt(val.rowSpan))
+          ? 1
+          : Math.abs(parseInt(val.rowSpan))),
+          colStart: ind,
+          colEnd:
+        ind +
+        (isNaN(parseInt(val.colSpan))
+          ? 1
+          : Math.abs(parseInt(val.colSpan))),
+        });
 
-                    return val.isHeader ? (
-                      <th
-                        key={ind}
-                        id={val.id}
-                        onClick={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        onSelect={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        colSpan={val?.colSpan}
-                        rowSpan={val?.rowSpan}
-                        style={{ fontSize: val?.fontSize }}
-                      >
-                        <Cell type={val.type} row={index} col={ind} />
-                      </th>
-                    ) : (
-                      <td
-                        key={ind}
-                        id={val.id}
-                        onClick={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        onSelect={() => {
-                          setCurrentCell(val.id);
-                          setCurrentCellIndex(index, ind);
-                        }}
-                        colSpan={val?.colSpan}
-                        rowSpan={val?.rowSpan}
-                        style={{ fontSize: val?.fontSize }}
-                      >
-                        <Cell type={val.type} row={index} col={ind} />
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
+        return val.isHeader ? (
+          <th
+        key={ind}
+        id={val.id}
+        onClick={() => {
+          setCurrentCell(val.id);
+          setCurrentCellIndex(index, ind);
+        }}
+        onSelect={() => {
+          setCurrentCell(val.id);
+          setCurrentCellIndex(index, ind);
+        }}
+        colSpan={val?.colSpan}
+        rowSpan={val?.rowSpan}
+        style={{
+          fontSize: val?.fontSize,
+          borderWidth: val?.borderWidth,
+          borderColor: val?.borderColor,
+          borderStyle: val?.borderStyle,
+          borderRadius: val?.borderRadius,
+          backgroundColor: val?.backgroundColor,
+        }}
+          >
+        <Cell type={val.type} row={index} col={ind} />
+          </th>
+        ) : (
+          <td
+        key={ind}
+        id={val.id}
+        onClick={() => {
+          setCurrentCell(val.id);
+          setCurrentCellIndex(index, ind);
+        }}
+        onSelect={() => {
+          setCurrentCell(val.id);
+          setCurrentCellIndex(index, ind);
+        }}
+        colSpan={val?.colSpan}
+        rowSpan={val?.rowSpan}
+        style={{
+          fontSize: val?.fontSize,
+          borderWidth: val?.borderWidth,
+          borderColor: val?.borderColor,
+          borderStyle: val?.borderStyle,
+          borderRadius: val?.borderRadius,
+          backgroundColor: val?.backgroundColor,
+        }}
+          >
+        <Cell type={val.type} row={index} col={ind} />
+          </td>
+        );
+          })}
+        </tr>
+          );
+        })}
         </tbody>
       </table>
     </div>
