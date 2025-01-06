@@ -56,7 +56,7 @@ function Basic(props: Props) {
       setState={props.setPopupActive}
       style={{ maxWidth: "680px", width: "100%" }}
       closeBtn
-      title="강의실 일괄 설정"
+      title="교과목 일괄 설정"
       contentScroll
     >
       <div className={style.popup}>
