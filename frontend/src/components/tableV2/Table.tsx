@@ -1089,6 +1089,10 @@ const Table = (props: Props) => {
                             className={style.item}
                             key={index}
                             onClick={() => {
+                              // 팝업 띄우는 메세지 추가 25.01.06 devgoodway
+                              if (!window.confirm("정말 삭제하시겠습니까?")) {
+                                return;
+                              }
                               setTableData((prev) => {
                                 callOnChangeFunc(
                                   prev.data.filter(
