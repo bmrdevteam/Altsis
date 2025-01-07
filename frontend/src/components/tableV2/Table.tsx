@@ -24,7 +24,8 @@ type TTableItems =
   | "input-number"
   | "select"
   | "date"
-  | "rowOrder";
+  | "rowOrder"
+  | "enrolled";
 export type TTableHeader = {
   text: string;
   type: TTableItems;
@@ -62,6 +63,7 @@ export type TTableHeader = {
     border?: boolean;
   };
   option?: string[];
+  enrolled?: string[];
   onClick?: (value: any) => void;
 };
 type Props = {
@@ -157,16 +159,13 @@ const Table = (props: Props) => {
     if (props.type === "object-array") {
       setTableData((prev) => ({
         ...prev,
-        data:
-          [
-            ...props.data.map((val, index) => {
-              return {
-                ...flattenObject(val),
-                // tableRowId: generateRandomId(8),
-                tableRowIndex: index + 1,
-              };
-            }),
-          ] ?? [],
+        data: props.data
+        ? props.data.map((val, index) => ({
+            ...flattenObject(val),
+            // tableRowId: generateRandomId(8),
+            tableRowIndex: index + 1,
+          }))
+        : [],
       }));
       setAddRowData(
         props.header
@@ -182,15 +181,12 @@ const Table = (props: Props) => {
     } else {
       setTableData((prev) => ({
         ...prev,
-        data:
-          [
-            ...props.data.map((val, index) => {
-              return {
-                ...[val],
-                tableRowIndex: index + 1,
-              };
-            }),
-          ] ?? [],
+        data: props.data
+        ? props.data.map((val, index) => ({
+            ...[val],
+            tableRowIndex: index + 1,
+          }))
+        : [],
       }));
     }
   }, [props.data]);
@@ -621,7 +617,6 @@ const Table = (props: Props) => {
                                 ...prev,
                                 [`${val.key}`]: e.target.value,
                               }));
-                              // console.log(addRowData[`${val.key}`]);
                             }}
                           >
                             <option value="" key={"none"}></option>

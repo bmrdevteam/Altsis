@@ -128,6 +128,15 @@ const CourseEnroll = (props: Props) => {
   }, [currentRegistration]);
 
   useEffect(() => {
+    if (isLoadingEnrolledCourseList) {
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(res);
+        setIsLoadingEnrolledCourseList(false);
+      });
+    }
+  }, [isLoadingEnrolledCourseList]);
+
+  useEffect(() => {
     if (isLoadingCourseList) {
       getCourseList().then((res: any) => {
         setCourseList(res);
@@ -194,6 +203,11 @@ const CourseEnroll = (props: Props) => {
     return () => {};
   }, [isLoadingWaitingOrder, socket, taskIdx]);
 
+  useEffect(() => {
+    console.log("courseList", courseList);
+    console.log("enrolledCourseList", enrolledCourseList);
+  }, [courseList, enrolledCourseList]);
+  
   return (
     <>
       <Navbar />
@@ -201,7 +215,9 @@ const CourseEnroll = (props: Props) => {
         <div className={style.title}>수강 신청</div>
         {!isLoadingCourseList ? (
           <CourseTable
+          key={enrolledCourseList.length} // key prop을 추가하여 enrolledCourseList가 변경될 때마다 다시 렌더링되도록 함
             data={courseList}
+            enrolledData={enrolledCourseList}
             subjectLabels={currentSeason?.subjects?.label ?? []}
             preHeaderList={[
               {
