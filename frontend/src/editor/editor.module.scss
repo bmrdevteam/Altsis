@@ -665,20 +665,29 @@
     cursor: text;
 }
 
-.block:hover {
+.block:hover,
+.block:focus,
+.block:active {
     transition: border 0s;
     border: var(--border-default);
     padding: 5px;
     border-radius: 4px;
 }
 
-.block:focus {
+.block:focus-within {
     transition: border 0s;
     border: var(--border-default);
     padding: 5px;
     border-radius: 4px;
-
+    background-color: var(--color-b6);
 }
+// .block:focus {
+//     transition: border 0s;
+//     border: var(--border-default);
+//     padding: 5px;
+//     border-radius: 4px;
+
+// }
 
 .block.line {
     min-height: 0;
@@ -723,6 +732,17 @@
 
     }
 
+    .cell:hover,
+    .cell:focus,
+    .cell:active {
+        transition: background-color 0s;
+        background-color: var(--color-b6);
+    }
+
+    .cell:focus-within {
+        transition: background-color 0s;
+        background-color: var(--color-b5);
+    }
     .cell.input:before {
         content: attr(placeholder);
         color: rgb(171, 171, 171);
