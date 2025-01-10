@@ -23,8 +23,6 @@ const EditorParser = (props: Props) => {
     <div
       className={style.editor_parser_container}
       onInput={() => {
-        // console.log(returnData.current);
-
         props.onChange && props.onChange(returnData.current);
       }}
     >

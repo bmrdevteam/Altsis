@@ -13,6 +13,7 @@ import useEditorStore from "../../functions/useEditorStore";
 import DataConnPopup from "./DataConnPopup";
 import DatatableMenu from "./DatatableMenu";
 import Menu from "./Menu";
+import Progress from "components/progress/Progress";
 
 type Props = {
   callPageReload: () => void;
@@ -289,7 +290,9 @@ const Sidebar = (props: Props) => {
   };
   const TableBlockMenu = () => {
     return (
-      <Menu name="테이블">
+      <Menu name="표 속성">
+      <div className={style.option}>
+      <label style={{ fontWeight:"bold", fontSize:"13px"}}>• 선</label>
         <div className={style.item}>
           <label>스타일</label>
             <Select
@@ -320,38 +323,64 @@ const Sidebar = (props: Props) => {
               ]}
             />
         </div>
-        {/* <div className={style.item}>
-          <label>모서리</label>
-          <input
-            onChange={(e) => {
-              changeCurrentBlockData({ borderRadius: `${e.target.value}`});
-              props.callPageReload();
-            }}
-            type="number"
-            defaultValue={getCurrentBlock().data.borderRadius ?? 0}
-          />
-        </div> */}
         <div className={style.item}>
           <label>굵기</label>
-          <input
-            type="number"
+            <input
+            type="range"
+            min="0"
+            max="10"
+            step="1"
+            defaultValue={getCurrentBlock().data.borderWidth ?? 1}
+            style={{ width: "50%" }}
             onChange={(e) => {
-              if(e.target.value){
-              changeCurrentBlockData({ borderWidth: parseFloat(e.target.value) });
+              const borderWidth = parseFloat(e.target.value);
+              changeCurrentBlockData({ borderWidth : borderWidth });
                 getCurrentBlock().data.table.forEach((row: any) => {
                   row.forEach((cell: any) => {
                     cell.borderWidth = parseFloat(e.target.value);
                   });
                 });
-              }
               props.callPageReload();
+              const borderWidthDisplay = document.getElementById("borderWidthDisplay");
+              if (borderWidthDisplay) {
+                borderWidthDisplay.innerText = e.target.value;
+              }
             }}
-            defaultValue={getCurrentBlock().data.borderWidth ?? 1}
-          />
+            />
+        <label id="borderWidthDisplay" >{getCurrentBlock().data.borderWidth ?? 1}</label>
         </div>
         <div className={style.item}>
-          <label>선 색상</label>
+          <label>색상</label>
+          <datalist id="list">
+            <option>#000000</option>
+            <option>#333333</option>
+            <option>#666666</option>
+            <option>#999999</option>
+            <option>#cccccc</option>
+            <option>#ffffff</option>
+            <option>#ff6464</option>
+            <option>#ff0000</option>
+            <option>#ff3333</option>
+            <option>#ff6666</option>
+            <option>#ff9999</option>
+            <option>#ffcccc</option>
+            <option>#ffe1e1</option>
+            <option>#00ff00</option>
+            <option>#33ff33</option>
+            <option>#66ff66</option>
+            <option>#99ff99</option>
+            <option>#ccffcc</option>
+            <option>#e1ffe1</option>
+            <option>#0000ff</option>
+            <option>#3333ff</option>
+            <option>#6666ff</option>
+            <option>#9999ff</option>
+            <option>#ccccff</option>
+            <option>#e1e1ff</option>
+          </datalist>
           <input
+            style={{ width: "50%" }}
+            list = "list"
             onChange={(e) => {
               if(e.target.value){
               changeCurrentBlockData({ borderColor: `${e.target.value}`});
@@ -362,16 +391,48 @@ const Sidebar = (props: Props) => {
                 });
               }
               props.callPageReload();
+              const borderColorDisplay = document.getElementById("borderColorDisplay");
+              if (borderColorDisplay) {
+                borderColorDisplay.innerText = e.target.value;
+              }
             }}
             type="color"
             defaultValue={
               getCurrentBlock().data.borderColor ?? "#cccccc"
             }
           />
+        <label id="borderColorDisplay" >{getCurrentBlock().data.borderColor}</label>
         </div>
+      </div>
+      <div className={style.option}>
+      <label style={{ fontWeight:"bold", fontSize:"13px"}}>• 셀</label>
         <div className={style.item}>
-          <label>배경 색상</label>
+          <label>너비 (%)</label>
           <input
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          defaultValue={getCurrentBlock().data.width ?? 100}
+          style={{ width: "50%" }}
+          onChange={(e) => {
+            const fontWidth = parseFloat(e.target.value);
+            changeCurrentBlockData({ width : fontWidth });
+            props.callPageReload();
+            const widthDisplay = document.getElementById("widthDisplay");
+            if (widthDisplay) {
+              widthDisplay.innerText = e.target.value;
+            }
+          }}
+          />
+        <label id="widthDisplay" >{getCurrentBlock().data.width ?? 100}</label>
+        </div>
+      </div>
+        <div className={style.item}>
+          <label>색상</label>
+          <input
+            style={{ width: "50%" }}
+            list = "list"
             onChange={(e) => {
               if(e.target.value){
               changeCurrentBlockData({ backgroundColor: `${e.target.value}`});
@@ -382,25 +443,91 @@ const Sidebar = (props: Props) => {
                 });
               }
               props.callPageReload();
+              const backgroundColorDisplay = document.getElementById("backgroundColorDisplay");
+              if (backgroundColorDisplay) {
+                backgroundColorDisplay.innerText = e.target.value;
+              }
             }}
             type="color"
             defaultValue={getCurrentBlock().data.backgroundColor ?? "#cccccc"}
           />
+        <label id="backgroundColorDisplay" >{getCurrentBlock().data.backgroundColor}</label>
+        </div>
+      <div className={style.option}>
+      <label style={{ fontWeight:"bold", fontSize:"13px"}}>• 글자</label>
+        <div className={style.item}>
+          <label>정렬</label>
+          <div className={style.align}>
+            <div className={style.align_options}>
+              <div
+                className={style.option}
+                onClick={() => {
+                  changeCurrentBlockData({ align: "left" });
+                  getCurrentBlock().data.table.forEach((row: any) => {
+                    row.forEach((cell: any) => {
+                      cell.align = "left";
+                    });
+                  });
+                  props.callPageReload();
+                  }}
+              >
+                <Svg type={"alignLeft"} />
+              </div>
+              <div
+                className={style.option}
+                onClick={() => {
+                  changeCurrentBlockData({ align: "center" });
+                  getCurrentBlock().data.table.forEach((row: any) => {
+                    row.forEach((cell: any) => {
+                      cell.align = "center";
+                    });
+                  });
+                  props.callPageReload();
+                }}
+              >
+                <Svg type={"alignCenter"} />
+              </div>
+              <div
+                className={style.option}
+                onClick={() => {
+                  changeCurrentBlockData({ align: "right" });
+                  getCurrentBlock().data.table.forEach((row: any) => {
+                    row.forEach((cell: any) => {
+                      cell.align = "right";
+                    });
+                  });
+                  props.callPageReload();
+                }}
+              >
+                <Svg type={"alignRight"} />
+              </div>
+            </div>
+          </div>
         </div>
         <div className={style.item}>
-          <label>너비 (%)</label>
-          <input
+          <label>굵기</label>
+            <input
+            type="range"
+            min="100"
+            max="900"
+            step="100"
+            defaultValue={getCurrentBlock().data.fontWeight ?? 400}
+            style={{ width: "50%" }}
             onChange={(e) => {
-              changeCurrentBlockData({ width: parseFloat(e.target.value) });
+              const fontWeight = e.target.value;
+              changeCurrentBlockData({ fontWeight });
               props.callPageReload();
+              const fontWeightDisplay = document.getElementById("fontWeightDisplay");
+              if (fontWeightDisplay) {
+              fontWeightDisplay.innerText = fontWeight;
+              }
             }}
-            type="number"
-            defaultValue={getCurrentBlock().data.width ?? 100}
-          />
+            />
+          <label id="fontWeightDisplay">{getCurrentBlock().data.fontWeight ?? 400}</label>
         </div>
         <div className={style.item}>
-          <label>텍스트 크기</label>
-          <input
+          <label>크기</label>
+          {/* <input
             type="number"
             placeholder=""
             defaultValue={parseInt(getCurrentBlock()?.data?.fontSize) || ""}
@@ -408,8 +535,29 @@ const Sidebar = (props: Props) => {
               changeCurrentBlockData({ fontSize: `${e.target.value}px` });
               props.callPageReload();
             }}
+          /> */}
+          <input
+          type="range"
+          min="0"
+          max="200"
+          step="1"
+          defaultValue={parseInt(getCurrentBlock()?.data?.fontSize) || "14px"}
+          style={{ width: "50%" }}
+          onChange={(e) => {
+            const fontSize = `${e.target.value}px`;
+            changeCurrentBlockData({ fontSize });
+            props.callPageReload();
+            const fontSizeDisplay = document.getElementById("fontSizeDisplay");
+            if (fontSizeDisplay) {
+              fontSizeDisplay.innerText = fontSize;
+            }
+          }}
           />
+        <label id="fontSizeDisplay" >{getCurrentBlock().data.fontSize ?? "14px"}</label>
         </div>
+      </div>
+      <div className={style.option}>
+        <label style={{ fontWeight:"bold", fontSize:"13px"}}>• 행렬</label>
         <div style={{ display: "flex", gap: "4px" }}>
           <Button
             type="ghost"
@@ -425,7 +573,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            {`열 추가`}
+            {<Svg type={"tableInsertRight"} />}
           </Button>
           <Button
             type="ghost"
@@ -441,7 +589,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            {`행 추가`}
+            {<Svg type={"tableInsertDown"} />}
           </Button>
         </div>
         <div style={{ display: "flex", gap: "4px" }}>
@@ -458,7 +606,7 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            {`열 삭제`}
+            {<Svg type={"tableDeleteColumn"} />}
           </Button>
           <Button
             type="ghost"
@@ -474,9 +622,10 @@ const Sidebar = (props: Props) => {
               props.callPageReload();
             }}
           >
-            {`행 삭제`}
+            {<Svg type={"tableDeleteRow"} />}
           </Button>
         </div>
+      </div>
       </Menu>
     );
   };
@@ -484,6 +633,108 @@ const Sidebar = (props: Props) => {
     return (
       <>
         <Menu name="셀">
+        <div className={style.item}>
+          <label>스타일</label>
+            <Select
+              onChange={(value: any) => {
+                changeCurrentCell({ borderStyle: value });
+                getCurrentCell().borderStyle = value;
+                props.callPageReload();
+                forcefullyReloadSidebar();
+              }}
+              style={{ fontSize: "12px" }}
+              selectedValue={getCurrentCell().borderStyle}
+              appearence="flat"
+              options={[
+                { text: "solid", value: "solid" },
+                { text: "dotted", value: "dotted" },
+                { text: "dashed", value: "dashed" },
+                { text: "double", value: "double" },
+                { text: "groove", value: "groove" },
+                { text: "ridge", value: "ridge" },
+                { text: "inset", value: "inset" },
+                { text: "outset", value: "outset" },
+                { text: "none", value: "none" },
+                { text: "hidden", value: "hidden" },
+              ]}
+            />
+        </div>
+        <div className={style.item}>
+          <label>선 굵기</label>
+          <input
+            type="number"
+            onChange={(e) => {
+              if(e.target.value){
+                changeCurrentCell({ borderWidth: parseFloat(e.target.value)});
+                getCurrentCell().borderWidth = parseFloat(e.target.value);
+              }
+              props.callPageReload();
+            }}
+            defaultValue={getCurrentBlock().data.borderWidth ?? 1}
+          />
+        </div>
+        <div className={style.item}>
+          <label>선 색상</label>
+          <input
+            onChange={(e) => {
+              if(e.target.value){
+                changeCurrentCell({ borderColor: `${e.target.value}`});
+                getCurrentCell().borderColor = `${e.target.value}`;
+                }
+              props.callPageReload();
+            }}
+            type="color"
+            defaultValue={getCurrentCell().borderColor ?? "#cccccc"}
+          />
+        </div>
+        <div className={style.item}>
+          <label>배경 색상</label>
+          <input
+            onChange={(e) => {
+              if(e.target.value){
+                changeCurrentCell({ backgroundColor: `${e.target.value}`});
+                getCurrentCell().backgroundColor = `${e.target.value}`;
+                }
+              props.callPageReload();
+            }}
+            type="color"
+            defaultValue={getCurrentCell().backgroundColor ?? "#cccccc"}
+          />
+        </div>
+          <div className={style.item}>
+            <label>셀 정렬</label>
+            <div className={style.align}>
+              <div className={style.align_options}>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "left" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignLeft"} />
+                </div>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "center" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignCenter"} />
+                </div>
+                <div
+                  className={style.option}
+                  onClick={() => {
+                    changeCurrentCell({ align: "right" });
+                    props.callPageReload();
+                  }}
+                >
+                  <Svg type={"alignRight"} />
+                </div>
+              </div>
+            </div>
+          </div>
           <div className={style.item}>
             <label>비율</label>
             <Select
@@ -549,41 +800,6 @@ const Sidebar = (props: Props) => {
                 props.callPageReload();
               }}
             />
-          </div>
-
-          <div className={style.item}>
-            <label>셀 정렬</label>
-            <div className={style.align}>
-              <div className={style.align_options}>
-                <div
-                  className={style.option}
-                  onClick={() => {
-                    changeCurrentCell({ align: "left" });
-                    props.callPageReload();
-                  }}
-                >
-                  <Svg type={"alignLeft"} />
-                </div>
-                <div
-                  className={style.option}
-                  onClick={() => {
-                    changeCurrentCell({ align: "center" });
-                    props.callPageReload();
-                  }}
-                >
-                  <Svg type={"alignCenter"} />
-                </div>
-                <div
-                  className={style.option}
-                  onClick={() => {
-                    changeCurrentCell({ align: "right" });
-                    props.callPageReload();
-                  }}
-                >
-                  <Svg type={"alignRight"} />
-                </div>
-              </div>
-            </div>
           </div>
           <div className={style.item}>
             <label>텍스트 크기</label>

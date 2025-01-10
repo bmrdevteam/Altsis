@@ -415,10 +415,11 @@ export const EditorProvider = (props: {
   }
 
   function copyBlockAfterCurrentBlock(data: any) {
+    console.log(editorData);
     addBlock({
       insertIndex: getCurrentBlockIndex() + 1,
       blockType: editorData.current[getCurrentBlockIndex()].type,
-      blockData: editorData.current[getCurrentBlockIndex()].data,
+      blockData: JSON.parse(JSON.stringify(editorData.current[getCurrentBlockIndex()].data)),
     });
   }
 
