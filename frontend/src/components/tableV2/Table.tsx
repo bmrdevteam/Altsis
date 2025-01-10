@@ -157,16 +157,14 @@ const Table = (props: Props) => {
     if (props.type === "object-array") {
       setTableData((prev) => ({
         ...prev,
-        data:
-          [
-            ...props.data.map((val, index) => {
-              return {
-                ...flattenObject(val),
-                // tableRowId: generateRandomId(8),
-                tableRowIndex: index + 1,
-              };
-            }),
-          ] ?? [],
+        data: 
+        Array.isArray(props.data)
+          ? props.data.map((val, index) => ({
+              ...flattenObject(val),
+              // tableRowId: generateRandomId(8),
+              tableRowIndex: index + 1,
+            }))
+          : [],
       }));
       setAddRowData(
         props.header
@@ -182,15 +180,13 @@ const Table = (props: Props) => {
     } else {
       setTableData((prev) => ({
         ...prev,
-        data:
-          [
-            ...props.data.map((val, index) => {
-              return {
-                ...[val],
-                tableRowIndex: index + 1,
-              };
-            }),
-          ] ?? [],
+        data: 
+        Array.isArray(props.data)
+          ? props.data.map((val, index) => ({
+              ...val, // 객체 형태로 펼침
+              tableRowIndex: index + 1,
+            }))
+          : [],
       }));
     }
   }, [props.data]);
