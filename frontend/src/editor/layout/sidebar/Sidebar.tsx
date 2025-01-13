@@ -55,11 +55,53 @@ const Sidebar = (props: Props) => {
   const [isTableCellMenuExpanded, setIsTableCellMenuExpanded] = useState(false);
   const [isTableCellTypeMenuExpanded, setIsTableCellTypeMenuExpanded] = useState(true);
 
+
+  // // 이전 선택된 블록과 셀을 저장할 상태
+  // const [previousSelection, setPreviousSelection] = useState<{
+  //   blockId: string | null;
+  //   cellId: string | null;
+  // }>({
+  //   blockId: null,
+  //   cellId: null,
+  // });
   document.onclick = (e) => {
     if (
       editorPageRef.current &&
       editorPageRef.current.contains(e.target as Node)
-    ) {
+    ) {      
+      // const currentBlock = getCurrentBlock();
+      // const currentCell = getCurrentCell();
+
+      // const currentBlockElement = document.getElementById(currentBlock?.id || "");
+      // const currentCellElement = document.getElementById(currentCell?.id || "");
+
+      // // 이전 선택된 요소 초기화
+      // if (previousSelection.blockId) {
+      //   const previousBlockElement = document.getElementById(previousSelection.blockId);
+      //   if (previousBlockElement) {
+      //     previousBlockElement.classList.remove("block-focus-within");
+      //   }
+      // }
+
+      // if (previousSelection.cellId) {
+      //   const previousCellElement = document.getElementById(previousSelection.cellId);
+      //   if (previousCellElement) {
+      //     previousCellElement.classList.remove("cell-focus-within");
+      //   }
+      // }
+
+      // // 현재 선택된 요소 스타일 적용
+      // if (currentBlockElement && currentCellElement) {
+      //   currentBlockElement.classList.add("block-focus-within");
+      //   currentCellElement.classList.add("cell-focus-within");
+      // }
+
+      // // 선택된 블록과 셀을 상태에 저장
+      // setPreviousSelection({
+      //   blockId: currentBlock?.id || null,
+      //   cellId: currentCell?.id || null,
+      // });
+
       forcefullyReloadSidebar();
     }
   };
@@ -1267,33 +1309,10 @@ const TableCellTypeMenu = () => {
   return (
     <div
       className={style.sidebar_container}
-//       onMouseEnter={() => {
-//         const CurrentBlockElement = document.getElementById(getCurrentBlock().id);
-//         const CurrentCellElement = document.getElementById(getCurrentCell().id);
-// console.log(getCurrentCell().id);
-//         if(CurrentBlockElement && CurrentCellElement){
-//           CurrentBlockElement.style.transition = "border 0s";
-//           CurrentBlockElement.style.borderRadius = "4px";
-//           CurrentBlockElement.style.border = "var(--border-default)";
-//           // CurrentBlockElement.style.padding = "5px";
-//           CurrentBlockElement.style.backgroundColor = "var(--color-b6)";
-//           CurrentCellElement.style.backgroundColor = "var(--color-b5)";
-//         }
-//       }}
-//       onMouseLeave={() => {
-//         const CurrentBlockElement = document.getElementById(getCurrentBlock().id);
-//         const CurrentCellElement = document.getElementById(getCurrentCell().id);
-//         console.log(getCurrentCell().id);
-
-//         if(CurrentBlockElement && CurrentCellElement){
-//           CurrentBlockElement.style.transition = "";
-//           CurrentBlockElement.style.borderRadius = "";
-//           CurrentBlockElement.style.border = "";
-//           // CurrentBlockElement.style.padding = "";
-//           CurrentBlockElement.style.backgroundColor = "";
-//           CurrentCellElement.style.backgroundColor = "";
-//         }
-//       }}
+      // onMouseEnter={() => {
+      // }}
+      // onMouseLeave={() => {
+      // }}
     >
       <div className={style.sidebar}>
         <BlockMenu />
