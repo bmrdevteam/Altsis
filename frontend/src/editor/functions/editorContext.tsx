@@ -415,11 +415,22 @@ export const EditorProvider = (props: {
   }
 
   function copyBlockAfterCurrentBlock(data: any) {
-    console.log(editorData);
+  // 현재 블록 데이터를 깊은 복사
+  const blockData = JSON.parse(
+    JSON.stringify(editorData.current[getCurrentBlockIndex()].data)
+  );
+
+  // `table` 내부의 id 값을 모두 새로 생성
+  blockData.table = blockData.table.map((row: any[]) =>
+    row.map((cell) => ({
+      ...cell,
+      id: `${cell.id.slice(0,12)}-${generateId(12)}`, // 새로운 ID 생성
+    }))
+  );
     addBlock({
       insertIndex: getCurrentBlockIndex() + 1,
       blockType: editorData.current[getCurrentBlockIndex()].type,
-      blockData: JSON.parse(JSON.stringify(editorData.current[getCurrentBlockIndex()].data)),
+      blockData: blockData,
     });
   }
 
