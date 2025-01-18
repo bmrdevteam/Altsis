@@ -33,19 +33,18 @@ import { useAuth } from "contexts/authContext";
 
 // components
 import Popup from "components/popup/Popup";
-
 import Button from "components/button/Button";
 import Select from "components/select/Select";
 import EditorParser from "editor/EditorParser";
 import _ from "lodash";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-
 import CourseView from "../ViewPopup";
 
 type Props = {
   syllabus?: string;
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
   classroom: string;
+  strictMode?: boolean;
   setClassroom: React.Dispatch<React.SetStateAction<string>>;
   time: {
     label: string;
@@ -76,6 +75,7 @@ const Index = (props: Props) => {
 
   const [coursePopupActive, setCoursePoupActive] = useState<boolean>(false);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [availableClassrooms, setAvailableClassrooms] = useState<any[]>([]);
 
   const updateSyllabusList = async () => {
     if (classroom === "") return setSyllabusList([]);
@@ -132,6 +132,30 @@ const Index = (props: Props) => {
     return result;
   }
 
+
+  function getAvailableClassrooms() {
+    Promise.all(
+      currentSeason?.classrooms.map(async (value) => {
+        const { syllabuses } = await SyllabusAPI.RSyllabuses({
+          query: {
+            season: currentSeason._id,
+            classroom: value,
+          },
+        });
+    
+        const isAvailable = Object.keys(timeRef.current).filter((label) =>
+          Object.keys(syllabusLabelByTime(syllabuses)).includes(label)
+        ).length === 0;
+    
+        return isAvailable ? value : null; // 조건에 맞으면 value를 반환, 아니면 null
+      })
+    ).then((results) => {
+      // 상태를 불변성을 유지하며 업데이트
+      setAvailableClassrooms(results.filter(Boolean));
+    });
+    setAvailableClassrooms(availableClassrooms);
+  }
+
   useEffect(() => {
     updateSyllabusList();
     return () => {};
@@ -141,6 +165,10 @@ const Index = (props: Props) => {
     timeRef.current = _.keyBy(props.time, "label");
     return () => {};
   }, [props.time]);
+
+  useEffect(() => {
+    getAvailableClassrooms();
+  }, [currentSeason, props.time]);
 
   return (
     <>
@@ -156,14 +184,30 @@ const Index = (props: Props) => {
             onClick={() => {
               props.setClassroom(classroom);
               props.setTime(Object.values(timeRef.current));
-
               props.setPopupActive(false);
             }}
           >
             선택
           </Button>
         }
-      >
+      >          
+      {props.strictMode ? (
+        <Select
+          appearence="flat"
+          options={[
+            { value: "", text: "" },
+            ...availableClassrooms.map((val: any) => {
+              return { value: val, text: val };
+            }),
+          ]}
+          onChange={(e: any) => {
+            setClassroom(e);
+          }}
+          defaultSelectedValue={props.classroom}
+          label="강의실 선택 (Strict Mode)"
+          required
+        />
+      ) : (
         <Select
           appearence="flat"
           options={[
@@ -178,8 +222,8 @@ const Index = (props: Props) => {
           }}
           defaultSelectedValue={props.classroom}
           label="강의실 선택"
-          required
         />
+      )}
         <div style={{ height: "24px" }}></div>
         <EditorParser
           type="timetable"
@@ -195,6 +239,7 @@ const Index = (props: Props) => {
           }}
           defaultValues={timeRef.current}
           data={currentSeason?.formTimetable}
+          strictMode={props.strictMode}
         />
       </Popup>
       {coursePopupActive && selectedCourseId !== "" && (

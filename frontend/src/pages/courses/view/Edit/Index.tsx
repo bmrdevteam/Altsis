@@ -38,6 +38,7 @@ import Button from "components/button/Button";
 import EditorParser from "editor/EditorParser";
 import Loading from "components/loading/Loading";
 import Callout from "components/callout/Callout";
+import Navbar from "layout/navbar/Navbar";
 
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
 import UpdatedEvaluationPopup from "pages/courses/view/_components/UpdatedEvaluationPopup";
@@ -154,6 +155,7 @@ const CoursePid = (props: Props) => {
 
   return !isLoading ? (
     <>
+      <Navbar />
       <div className={style.section}>
         <div className={style.design_form}>
           <div className={style.title}>강의계획서 수정</div>
@@ -168,7 +170,7 @@ const CoursePid = (props: Props) => {
                     <b>교과목</b>을 변경하면 평가 정보가 변경될 수 있습니다.
                   </li>
                   <li>
-                    <b>강의실 및 시간</b>을 변경할 수 없습니다.
+                    <b>시간</b>을 변경할 수 없습니다.
                   </li>
                   <li>
                     <b>수강 정원</b>을 수강생 수보다 작게 변경할 수 없습니다.
@@ -238,7 +240,7 @@ const CoursePid = (props: Props) => {
           <Button
             style={{ flex: "1 1 0 ", marginTop: "24px" }}
             type="ghost"
-            disabled={strictMode}
+            // disabled={strictMode}
             onClick={() => {
               setTimeSelectPopupActive(true);
             }}
@@ -374,6 +376,7 @@ const CoursePid = (props: Props) => {
           setClassroom={setCourseClassroom}
           time={courseTime}
           setTime={setCourseTime}
+          strictMode={strictMode}
         />
       )}
       {mentorSelectPopupActive && (
