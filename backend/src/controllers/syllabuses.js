@@ -346,7 +346,7 @@ export const cancelConfirm = async (req, res) => {
 /**
  * @memberof APIs.SyllabusAPI
  * @function USyllabus API
- * @description 강의계획서 수정 API; 멘토가 이미 수강생이 있는 강의계획서를 수정하는 경우 시간, 강의실, 교과목은 변경되지 않는다. 교과목 변경은 USyllabusSubject API 별도 요청 필요.
+ * @description 강의계획서 수정 API; 멘토가 이미 수강생이 있는 강의계획서를 수정하는 경우 시간은 변경되지 않는다. 교과목 변경은 USyllabusSubject API 별도 요청 필요.
  * @version 2.0.0
  *
  * @param {Object} req
@@ -497,8 +497,8 @@ export const updateV2 = async (req, res) => {
       }
 
       /* 2-2. 수강생이 있는 경우 */
-      /* 강의실&시간 변경 확인 */
-      if (isUpdated["time"] || isUpdated["classroom"]) {
+      /* 시간 변경 확인 */
+      if (isUpdated["time"]) {
         return res.status(409).send({ message: SYLLABUS_ENROLLED_ALREADY });
       }
 
@@ -514,7 +514,19 @@ export const updateV2 = async (req, res) => {
       const enrollments = await Enrollment(user.academyId).find({
         syllabus: syllabus._id,
       });
-
+      /* 강의실 중복 확인 */
+      if (
+        (isUpdated["time"] || isUpdated["classroom"]) &&
+        !(await isClassroomAvailable(
+          user.academyId,
+          syllabus.season,
+          req.body.classroom,
+          req.body.time,
+          syllabus
+        ))
+      ) {
+        return res.status(409).send({ message: CLASSROOM_IN_USE });
+      }
       /* 수정 (subject 제외) */
       for (let field of fields) {
         if (field === "subject") continue;

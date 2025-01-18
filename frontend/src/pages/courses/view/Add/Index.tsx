@@ -110,13 +110,10 @@ const CourseAdd = (props: Props) => {
     document
       .querySelectorAll("div[data-inputRequired=true]")
       .forEach((node) => {
-        // console.log(node.innerHTML);
-
         if (node.innerHTML === "" || node.innerHTML === undefined) {
           filled = false;
         }
       });
-    // console.log(filled);
     if (filled) {
       try {
         const { syllabus } = await SyllabusAPI.CSyllabus({

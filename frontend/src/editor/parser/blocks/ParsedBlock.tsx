@@ -10,6 +10,7 @@ type Props = {
   idTimetable?: any;
   onClickCourse?: any;
   dbData?: any;
+  strictMode?: boolean;
   type: "timetable" | "archive" | "syllabus";
 };
 
@@ -41,6 +42,7 @@ const ParsedBlock = (props: Props) => {
           idTimetable={props.idTimetable}
           onClickCourse={props.onClickCourse}
           dbData={props.dbData}
+          strictMode={props.strictMode}
         />
       );
     case "divider":

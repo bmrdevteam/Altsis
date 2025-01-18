@@ -14,6 +14,7 @@ type Props = {
   idTimetable?: any;
   onClickCourse?: any;
   dbData?: any;
+  strictMode?: boolean;
 };
 
 const ParsedTableBlock = (props: Props) => {
@@ -453,6 +454,7 @@ const ParsedTableBlock = (props: Props) => {
                   props.defaultValues?.[data?.id] === true ||
                   props.defaultValues?.[data?.name]
                 }
+                disabled={props.strictMode}
                 onChange={(e) => {
                   if (e.target.checked) {
                     if (data?.name === undefined) {
