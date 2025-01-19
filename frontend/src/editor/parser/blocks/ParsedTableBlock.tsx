@@ -14,6 +14,7 @@ type Props = {
   idTimetable?: any;
   onClickCourse?: any;
   dbData?: any;
+  strictMode?: boolean;
 };
 
 const ParsedTableBlock = (props: Props) => {
@@ -453,6 +454,7 @@ const ParsedTableBlock = (props: Props) => {
                   props.defaultValues?.[data?.id] === true ||
                   props.defaultValues?.[data?.name]
                 }
+                disabled={props.strictMode}
                 onChange={(e) => {
                   if (e.target.checked) {
                     if (data?.name === undefined) {
@@ -520,15 +522,16 @@ const ParsedTableBlock = (props: Props) => {
       style={{ width: `${props.blockData.data.width ?? 100}%` }}
     >
       <table
-      className={style.table}
-      style={{ 
-      fontSize: props.blockData.data?.fontSize,
-      borderWidth: props.blockData.data?.borderWidth,
-      borderColor: props.blockData.data?.borderColor,
-      borderStyle: props.blockData.data?.borderStyle, // Added borderStyle
-      borderRadius: props.blockData.data?.borderRadius, // Added borderRadius
-      backgroundColor: props.blockData.data?.backgroundColor // Added backgroundColor
-      }}
+        className={style.table}
+        style={{ 
+          fontSize: props.blockData.data?.fontSize,
+          fontWeight: props.blockData.data?.fontWeight,
+          borderWidth: props.blockData.data?.borderWidth,
+          borderColor: props.blockData.data?.borderColor,
+          borderStyle: props.blockData.data?.borderStyle, // Added borderStyle
+          borderRadius: props.blockData.data?.borderRadius, // Added borderRadius
+          backgroundColor: props.blockData.data?.backgroundColor // Added backgroundColor
+        }}
       >
       <SetColumn />
       <tbody>
@@ -578,6 +581,7 @@ const ParsedTableBlock = (props: Props) => {
         rowSpan={val?.rowSpan}
         style={{ 
         fontSize: val?.fontSize,
+        fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
         borderStyle: val?.borderStyle, // Added borderStyle
@@ -601,6 +605,7 @@ const ParsedTableBlock = (props: Props) => {
         rowSpan={val?.rowSpan}
         style={{ 
         fontSize: val?.fontSize,
+        fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
         borderStyle: val?.borderStyle, // Added borderStyle
@@ -665,6 +670,7 @@ const ParsedTableBlock = (props: Props) => {
       rowSpan={val?.rowSpan}
       style={{ 
         fontSize: val?.fontSize,
+        fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
         borderStyle: val?.borderStyle, // Added borderStyle
@@ -686,6 +692,7 @@ const ParsedTableBlock = (props: Props) => {
       rowSpan={val?.rowSpan}
       style={{ 
         fontSize: val?.fontSize,
+        fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
         borderStyle: val?.borderStyle, // Added borderStyle

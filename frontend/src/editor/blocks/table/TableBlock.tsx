@@ -89,6 +89,7 @@ const TableBlock = (props: Props) => {
         className={style.table}
         style={{
           fontSize: block.data.fontSize,
+          fontWeight: block.data.fontWeight,
           borderWidth: block.data.borderWidth,
           borderColor: block.data.borderColor,
           borderStyle: block.data.borderStyle,
@@ -151,6 +152,7 @@ const TableBlock = (props: Props) => {
         rowSpan={val?.rowSpan}
         style={{
           fontSize: val?.fontSize,
+          fontWeight: val?.fontWeight,
           borderWidth: val?.borderWidth,
           borderColor: val?.borderColor,
           borderStyle: val?.borderStyle,
@@ -176,6 +178,7 @@ const TableBlock = (props: Props) => {
         rowSpan={val?.rowSpan}
         style={{
           fontSize: val?.fontSize,
+          fontWeight: val?.fontWeight,
           borderWidth: val?.borderWidth,
           borderColor: val?.borderColor,
           borderStyle: val?.borderStyle,

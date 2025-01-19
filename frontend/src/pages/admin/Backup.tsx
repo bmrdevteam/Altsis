@@ -52,7 +52,8 @@ const Backup = (props: Props) => {
   const { AcademyAPI, FileAPI } = useAPIv2();
   const { currentUser } = useAuth();
   const { pid: tempId = "" } = useParams<"pid">();
-  const { pid : academyId = "" } = {pid : currentUser.academyId} ?? tempId;
+  // const { pid : academyId = "" } = {pid : currentUser.academyId} ?? tempId;
+  const academyId = currentUser.academyId || tempId;
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /* document list */

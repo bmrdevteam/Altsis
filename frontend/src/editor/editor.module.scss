@@ -665,7 +665,8 @@
     cursor: text;
 }
 
-.block:hover {
+.block:hover,
+.block:active {
     transition: border 0s;
     border: var(--border-default);
     padding: 5px;
@@ -677,7 +678,6 @@
     border: var(--border-default);
     padding: 5px;
     border-radius: 4px;
-
 }
 
 .block.line {
@@ -721,6 +721,17 @@
             border-radius: 4px;
         }
 
+    }
+
+    .cell:hover,
+    .cell:active {
+        transition: background-color 0s;
+        background-color: #fafaff;
+    }
+
+    .cell:focus {
+        transition: background-color 0s;
+        background-color: #f5f5ff;
     }
 
     .cell.input:before {

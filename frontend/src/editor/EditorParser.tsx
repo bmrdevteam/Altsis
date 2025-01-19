@@ -13,6 +13,7 @@ type Props = {
   idTimetable?: any;
   onClickCourse?: any;
   dbData?: any;
+  strictMode?: boolean;
 };
 
 const EditorParser = (props: Props) => {
@@ -23,8 +24,6 @@ const EditorParser = (props: Props) => {
     <div
       className={style.editor_parser_container}
       onInput={() => {
-        // console.log(returnData.current);
-
         props.onChange && props.onChange(returnData.current);
       }}
     >
@@ -42,6 +41,7 @@ const EditorParser = (props: Props) => {
               idTimetable={props.idTimetable}
               onClickCourse={props.onClickCourse}
               defaultValues={props.defaultValues}
+              strictMode={props.strictMode}
             />
           );
         })}
