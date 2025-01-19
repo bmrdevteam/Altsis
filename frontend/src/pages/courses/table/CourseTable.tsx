@@ -13,7 +13,6 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
   data: any[];
-  enrolledData?: any[];
   isMentor?: boolean;
   setIsLoading?: (val: boolean) => void;
   subjectLabels: string[];
@@ -34,7 +33,7 @@ const CourseTable = (props: Props) => {
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const structuring = (data: any[], enrolledData?: any[]) => {
+  const structuring = (data: any[]) => {
     return _.sortBy(
       data.map((syllabus: any) => {
         for (let idx = 0; idx < props.subjectLabels.length; idx++) {
@@ -44,16 +43,6 @@ const CourseTable = (props: Props) => {
           syllabus.time.map((timeBlock: any) => timeBlock.label),
           ", "
         );
-        if (enrolledData) {
-          const hasNoDuplicates = (arr1: any[], arr2: any[]): boolean => {
-            console.log(arr1, arr2);
-            return !arr1.some(value1 => arr2.some(value2 => value1 === value2.time));
-          };
-
-          syllabus.enrolled = hasNoDuplicates(syllabus.time, enrolledData);
-        } else {
-          syllabus.enrolled = true;
-        }
         syllabus.mentorText = _.join(
           syllabus.teachers.map((teacher: any) => teacher.userName),
           ", "
@@ -79,8 +68,7 @@ const CourseTable = (props: Props) => {
         if (!syllabus.count_limit) {
           syllabus.count_limit = `${syllabus?.count || 0}/${syllabus.limit}`;
         }
-        
-        console.log("syllabus, ", syllabus);
+
         return syllabus;
       }),
       ["subject", "classTitle"]
@@ -89,7 +77,7 @@ const CourseTable = (props: Props) => {
 
   useEffect(() => {
     /* set dataList */
-    setCourseList(structuring(props.data, props.enrolledData));
+    setCourseList(structuring(props.data));
 
     /* set headerList */
     const subjectLabelHeaderList: TTableHeader[] = props.subjectLabels.map(
