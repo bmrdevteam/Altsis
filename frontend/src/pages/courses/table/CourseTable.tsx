@@ -92,7 +92,7 @@ const CourseTable = (props: Props) => {
         };
       }
     );
-
+    
     const postHeaderList = props.postHeaderList ?? [];
     if (props.showStatus) {
       postHeaderList.push({

@@ -152,7 +152,6 @@ const CourseEnroll = (props: Props) => {
     });
 
     socket.on("connect", () => {
-      //console.log("socket is connected: ", socket.id);
       setSocket(socket);
     });
 
@@ -196,7 +195,6 @@ const CourseEnroll = (props: Props) => {
   useEffect(() => {
     if (isLoadingWaitingOrder && socket && taskIdx) {
       setTimeout(() => {
-        // console.log("requestWaitingOrder");
         socket.emit("requestWaitingOrder", {
           taskIdx,
         });

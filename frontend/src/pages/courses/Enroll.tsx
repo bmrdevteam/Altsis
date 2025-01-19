@@ -56,11 +56,12 @@ const CourseEnroll = (props: Props) => {
 
   const { currentSeason, currentUser, currentRegistration } = useAuth();
 
-  const [isLoadingCourseList, setIsLoadingCourseList] = useState<boolean>(true);
   const [courseList, setCourseList] = useState<any[]>([]);
+  const [isLoadingCourseList, setIsLoadingCourseList] = useState<boolean>(true);
   const [enrolledCourseList, setEnrolledCourseList] = useState<any[]>([]);
-  const [isLoadingEnrolledCourseList, setIsLoadingEnrolledCourseList] =
-    useState<boolean>(true);
+  const [isLoadingEnrolledCourseList, setIsLoadingEnrolledCourseList] = useState<boolean>(true);
+  const [updatedCourseList, setUpdatedCourseList] = useState<any[]>([]);
+  const [isLoadingUpdatedCourseList, setIsLoadingUpdatedCourseList] = useState<boolean>(true);
 
   const [socket, setSocket] = useState<Socket>();
   const [taskIdx, setTaskIdx] = useState<number | undefined>();
@@ -114,6 +115,58 @@ const CourseEnroll = (props: Props) => {
     return syllabuses;
   }
 
+  const getUpdatedCourseList = () => {
+    // 시간표 중복 확인
+    const timeLabelsEnrolledCourseList = enrolledCourseList.flatMap(item =>
+      item.time.map((t: any) => t.label)
+    );
+  
+    // 수강 중인 강의의 classId 목록
+    const classIdEnrolledCourseList = enrolledCourseList.map(item => item._id);
+  
+    // 수강 중인 강의의 classId와 enrollment 목록
+    const enrollmentIdEnrolledCourseList = enrolledCourseList.map(item => ({
+      classId: item._id,
+      enrollment: item.enrollment,
+    }));
+  
+    return courseList.map(item => {
+      // 시간표 중복 확인
+      const hasConflict = item.time.some((t: any) =>
+        timeLabelsEnrolledCourseList.includes(t.label)
+      );
+  
+      // 이미 수강 중인 강의인지 확인
+      const isEnrolled = classIdEnrolledCourseList.includes(item._id);
+  
+      // 정원이 다 찼는지 확인
+      const isFull = item.limit > 0 ? item.count >= item.limit : false;
+  
+      // 일치하는 enrollment 값 추가
+      const enrollmentMatch = enrollmentIdEnrolledCourseList.find(
+        enrolled => enrolled.classId === item._id
+      );
+  
+      let returnItem = isFull
+        ? { ...item, enrollType: "full" }
+        : { ...item, enrollType: "enroll" };
+  
+      returnItem = hasConflict
+        ? { ...item, enrollType: "duplication" }
+        : { ...item, enrollType: returnItem.enrollType };
+  
+      returnItem = isEnrolled
+        ? { ...item, enrollType: "enrolled" }
+        : { ...item, enrollType: returnItem.enrollType };
+  
+      if (enrollmentMatch) {
+        returnItem = { ...returnItem, enrollment: enrollmentMatch.enrollment };
+      }
+  
+      return returnItem;
+    });
+  };
+
   useEffect(() => {
     if (!currentRegistration) {
       alert("등록된 학기가 없습니다.");
@@ -134,7 +187,29 @@ const CourseEnroll = (props: Props) => {
         setIsLoadingCourseList(false);
       });
     }
-  }, [isLoadingCourseList]);
+  }, [isLoadingCourseList, currentSeason]);
+
+  useEffect(() => {
+    if (isLoadingEnrolledCourseList) {
+      getEnrolledCourseList().then((res: any) => {
+        setEnrolledCourseList(res);
+        setIsLoadingEnrolledCourseList(false);
+      });
+    }
+  } , [isLoadingEnrolledCourseList, currentSeason]);
+
+  useEffect(() => {
+    if (isLoadingUpdatedCourseList) {
+      setUpdatedCourseList(getUpdatedCourseList());
+      setIsLoadingUpdatedCourseList(false);
+    }
+  }, [isLoadingUpdatedCourseList, currentSeason, enrolledCourseList, courseList]);
+
+  useEffect(() => {
+    if (enrolledCourseList.length >= 0 && courseList.length > 0) {
+      setIsLoadingUpdatedCourseList(true);
+    }
+  }, [enrolledCourseList, courseList]);
 
   useEffect(() => {
     const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
@@ -201,43 +276,72 @@ const CourseEnroll = (props: Props) => {
         <div className={style.title}>수강 신청</div>
         {!isLoadingCourseList ? (
           <CourseTable
-            data={courseList}
+            data={updatedCourseList}
             subjectLabels={currentSeason?.subjects?.label ?? []}
             preHeaderList={[
               {
                 text: "신청",
-                key: "enroll",
-                type: "button",
-                onClick: (e: any) => {
-                  activateSendingPopup(true);
-                  EnrollmentAPI.CEnrollment({
-                    data: {
-                      syllabus: e._id,
-                      registration: currentRegistration?._id,
-                      socketId: socket?.id,
-                    },
-                  })
-                    .then(() => {
-                      alert(SUCCESS_MESSAGE);
-                      setIsLoadingCourseList(true);
-                      setIsLoadingEnrolledCourseList(true);
-                    })
-                    .catch((err) => {
-                      ALERT_ERROR(err);
-                    })
-                    .finally(() => {
-                      activateSendingPopup(false);
-                    });
-                },
+                key: "enrollType",
                 width: "72px",
                 textAlign: "center",
-                btnStyle: {
-                  border: true,
-                  color: "green",
-                  padding: "4px",
-                  round: true,
+                type: "status",
+                status: {
+                  enroll: {
+                    text: "신청",
+                    color: "green",
+                    onClick: (e: any) => {
+                      activateSendingPopup(true);
+                      EnrollmentAPI.CEnrollment({
+                        data: {
+                          syllabus: e._id,
+                          registration: currentRegistration?._id,
+                          socketId: socket?.id,
+                        },
+                      })
+                        .then(() => {
+                          alert(SUCCESS_MESSAGE);
+                          setIsLoadingCourseList(true);
+                          setIsLoadingEnrolledCourseList(true);
+                        })
+                        .catch((err) => {
+                          ALERT_ERROR(err);
+                        })
+                        .finally(() => {
+                          activateSendingPopup(false);
+                        });
+                    },
+                  },
+                  duplication: {
+                    text: "중복",
+                    color: "purple",
+                    onClick: (e: any) => {
+                      alert("중복된 시간표가 있습니다.");
+                    },
+                  },
+                  enrolled: {
+                    text: "취소",
+                    color: "red",
+                    onClick: (e: any) => {
+                      EnrollmentAPI.DEnrollment({ params: { _id: e.enrollment } })
+                        .then(() => {
+                          alert(SUCCESS_MESSAGE);
+                          setIsLoadingCourseList(true);
+                          setIsLoadingEnrolledCourseList(true);
+                        })
+                        .catch((err) => {
+                          ALERT_ERROR(err);
+                        });
+                    },
+                  },
+                  full: {
+                    text: "마감",
+                    color: "blue",
+                    onClick: (e: any) => {
+                      alert("정원이 다 찼습니다.");
+                    },
+                  },
                 },
-              },
+              }
             ]}
           />
         ) : (

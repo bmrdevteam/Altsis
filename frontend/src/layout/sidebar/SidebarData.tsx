@@ -63,14 +63,14 @@ export const SidebarData = (auth: string, role?: string): any => {
                   icon: <Svg type="search" />,
                 }
               : undefined,
-              currentRegistration?.permissionEnrollmentV2
-              ? {
-                title: "enrollStatus",
-                name: "수강 현황",
-                path: "/courses/status",
-                icon: <Svg type="profileList" />,
-              }
-              : undefined,
+              // currentRegistration?.permissionEnrollmentV2
+              // ? {
+              //   title: "enrollStatus",
+              //   name: "수강 현황",
+              //   path: "/courses/status",
+              //   icon: <Svg type="profileList" />,
+              // }
+              // : undefined,
             {
               title: "list",
               name: "전체 목록",
