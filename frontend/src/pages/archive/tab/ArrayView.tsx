@@ -271,7 +271,7 @@ const One = (props: Props) => {
               setIsUpdating(true);
             }}
           >
-            수정
+            제출
           </Button>{" "}
     {/* 관리자만 엑셀 파일로 수정 기능 사용 24.02.04 devgoodway */}
       {currentUser.auth == "manager" &&(
@@ -290,8 +290,8 @@ const One = (props: Props) => {
       )}
       </>
     )}
-      ※ 이름을 선택하지 않고 값을 입력하면 선택한 모든 사용자에게 같은 값을 일괄로 등록합니다.
-      <div style={{ marginTop: "24px" }}>
+    <div style={{ marginTop: "12px" }}>※ 이름을 선택하지 않고 입력한 값은 모든 사용자에게 일괄로 적용됩니다.</div>
+      <div style={{ marginTop: "12px" }}>
         <Table
           defaultPageBy={200}
           control

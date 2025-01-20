@@ -185,7 +185,7 @@ const Table = (props: Props) => {
         data: 
         Array.isArray(props.data)
           ? props.data.map((val, index) => ({
-              ...val, // 객체 형태로 펼침
+              ...[val], // 객체 형태로 펼침
               tableRowIndex: index + 1,
             }))
           : [],
