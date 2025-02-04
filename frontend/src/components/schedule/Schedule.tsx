@@ -391,7 +391,7 @@ const Event = ({ data }: { data: TEvent }) => {
         height: `${height * 80}px`,
       }}
       onClick={() => {
-        setCurrentEvent(data.id?.slice(0, 23));
+        setCurrentEvent(data.id);
         setEditor(true);
       }}
     >
