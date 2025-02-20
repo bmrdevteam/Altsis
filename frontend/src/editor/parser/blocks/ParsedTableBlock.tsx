@@ -108,6 +108,12 @@ const ParsedTableBlock = (props: Props) => {
   });
   
   let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
+      // 0을 제외한 falsy 값이 있는지 확인하는 변수
+    const normalizeValue = (value : any) => {
+      if (value === 0) return "0";  // 0은 유지
+      if (!value) return "";        // 나머지 falsy 값은 빈 문자열로 변환
+      return String(value);         // 그 외는 문자열 변환
+    };
      // AND 필터
     if (props.blockData.data.dataFilter?.length > 0) {
       let boolCount: number = 0;
@@ -115,21 +121,21 @@ const ParsedTableBlock = (props: Props) => {
         if (
           filter.operator === "===" &&
           v?.[filter.by] &&
-          String(v?.[filter.by]) !== String(filter.value)
+          normalizeValue(v?.[filter.by]) !== normalizeValue(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           v?.[filter.by] &&
-          String(v?.[filter.by]) === String(filter.value)
+          normalizeValue(v?.[filter.by]) === normalizeValue(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           !filter.value &&
-          !String(v?.[filter.by]) === !String(filter.value)
+          !normalizeValue(v?.[filter.by]) === !normalizeValue(filter.value)
         ) {
           boolCount += 1;
         }
@@ -146,21 +152,21 @@ const ParsedTableBlock = (props: Props) => {
         if (
           filter.operator === "===" &&
           v?.[filter.by] &&
-          String(v?.[filter.by]) !== String(filter.value)
+          normalizeValue(v?.[filter.by]) !== normalizeValue(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           v?.[filter.by] &&
-          String(v?.[filter.by]) === String(filter.value)
+          normalizeValue(v?.[filter.by]) === normalizeValue(filter.value)
         ) {
           boolCount += 1;
         }
         if (
           filter.operator === "!==" &&
           !filter.value &&
-          !String(v?.[filter.by]) === !String(filter.value)
+          !normalizeValue(v?.[filter.by]) === !normalizeValue(filter.value)
         ) {
           boolCount += 1;
         }
