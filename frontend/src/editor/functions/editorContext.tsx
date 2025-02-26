@@ -512,15 +512,20 @@ export const EditorProvider = (props: {
   }
 
   function getCurrentCell() {
-    if (currentCellCol.current === null && currentCellRow.current === null) {
+    if (currentCellCol.current == null || currentCellRow.current == null) {
       currentCellCol.current = 0;
       currentCellRow.current = 0;
-    } else {
-      return getCurrentBlock().data.table[parseInt(currentCellRow.current)][
-        parseInt(currentCellCol.current)
-      ];
     }
+  
+    const block = getCurrentBlock();
+    if (!block?.data?.table) return null; // block, data, table이 undefined면 null 반환
+  
+    const rowIndex = Number(currentCellRow.current);
+    const colIndex = Number(currentCellCol.current);
+  
+    return block.data.table[rowIndex]?.[colIndex] ?? null; // 값이 없으면 null 반환
   }
+  
   function setCurrentCellColumn(ratio: number) {
     const block = getCurrentBlock();
     block.data.columns.splice(currentCellCol.current, 1, ratio);
