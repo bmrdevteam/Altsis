@@ -17,18 +17,20 @@ const TableBlock = (props: Props) => {
 
   const SetColumn = () => {
     const columns = block?.data?.columns;
-    if (columns && isArray(columns)) {
-      const columnsSum = columns.reduce((a: number, b: number) => a + b, 0);
+    if (columns && Array.isArray(columns)) {
+      // 숫자로 변환 후 합산
+      const columnsSum = columns.reduce((a: number, b: any) => a + Number(b), 0);
       let result = [];
       for (let i = 0; i < columns.length; i++) {
         result.push(
-          <col width={`${(100 / columnsSum) * columns[i]}%`} key={i} />
+          <col width={`${(100 / columnsSum) * Number(columns[i])}%`} key={i} />
         );
       }
       return <colgroup>{result}</colgroup>;
     }
     return <colgroup></colgroup>;
   };
+  
   const Cell = ({
     type,
     col,

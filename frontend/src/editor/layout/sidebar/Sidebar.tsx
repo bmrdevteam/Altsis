@@ -710,13 +710,13 @@ const Sidebar = (props: Props) => {
           <label>비율</label>
           <input
           type="range"
-          min="0"
+          min="1"
           max="20"
           step="1"
           defaultValue={getCurrentCellColumn() ?? 1}
           style={{ width: "50%" }}
           onChange={(e : any) => {
-            const cellColumn = e.target.value;
+            const cellColumn = parseInt(e.target.value);
             setCurrentCellColumn(cellColumn);
             props.callPageReload();
             const cellColumnDisplay = document.getElementById("cellColumnDisplay");
