@@ -174,29 +174,28 @@ const exec = async (req) => {
 
     // 9. evaluation 동기화
     enrollment.evaluation = {};
-    if (exEnrollments.length === 0) {
-      const eYear = await _Enrollment.findOne({
-        school: enrollment.school,
-        year: enrollment.year,
-        student: enrollment.student,
-        subject: enrollment.subject,
-      });
-      if (eYear) {
-        for (let obj of registration.formEvaluation) {
-          if (obj.combineBy === "year") {
-            enrollment.evaluation[obj.label] =
-              eYear.evaluation[obj.label] || "";
-          }
+    // 다른 시즌에 같은 수업이 있는 경우
+    const eYear = await _Enrollment.findOne({
+      school: enrollment.school,
+      year: enrollment.year,
+      student: enrollment.student,
+      subject: enrollment.subject,
+    });
+    if (eYear) {
+      for (let obj of registration.formEvaluation) {
+        if (obj.combineBy === "year") {
+          enrollment.evaluation[obj.label] =
+            eYear.evaluation[obj.label] || "";
         }
       }
-    } else {
-      const eTerm = _.find(exEnrollments, (e) =>
-        _.isEqual(enrollment.subject, e.subject)
-      );
-      if (eTerm) {
-        for (let obj of registration.formEvaluation) {
-          enrollment.evaluation[obj.label] = eTerm.evaluation[obj.label] || "";
-        }
+    }
+    // 같은 시즌에 같은 수업이 있는 경우
+    const eTerm = _.find(exEnrollments, (e) =>
+      _.isEqual(enrollment.subject, e.subject)
+    );
+    if (eTerm) {
+      for (let obj of registration.formEvaluation) {
+        enrollment.evaluation[obj.label] = eTerm.evaluation[obj.label] || "";
       }
     }
     await enrollment.save();
