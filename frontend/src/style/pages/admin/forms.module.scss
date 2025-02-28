@@ -64,7 +64,7 @@
         .item {
             width: 100%;
             min-width: 140px;
-            min-height: 160px;
+            // min-height: 160px;
             max-width: 160px;
             border: var(--border-default);
             border-radius: 4px;
@@ -76,8 +76,8 @@
 
             .icon {
                 width: 100%;
-                background-color: var(--background-color);
-                min-height: 120px;
+                // background-color: var(--background-color);
+                // min-height: 120px;
                 position: relative;
                 display: flex;
                 border-radius: 4px;
@@ -106,11 +106,11 @@
                 .title {
 
                     font-family: 'Pretendard';
-                    font-size: 14px;
+                    font-size: 12px;
                     font-weight: 500;
-                    padding: 12px;
+                    padding: 8px;
                     margin: 0;
-                    white-space: nowrap;
+                    // white-space: nowrap;
                     overflow: hidden;
                     word-break: keep-all;
                     text-overflow: ellipsis;
@@ -120,7 +120,7 @@
 
                 .more {
                     height: auto;
-                    flex: 0 1 24px;
+                    flex: 0 1 18px;
                     fill: var(--accent-1);
 
                     .menu {
