@@ -257,6 +257,7 @@ const Forms = (props: Props) => {
               onClick={() => {
                 outsideclick.setActive(true);
               }}
+              style={{zIndex: "2"}}
             >
               <Svg type={"verticalDots"} />
               {outsideclick.active &&
@@ -294,6 +295,20 @@ const Forms = (props: Props) => {
                     >
                       보관하기
                     </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={async() =>{                             
+                          try {
+                            const { form } = await FormAPI.RForm({ params: { _id: data._id } });
+                            objectDownloadAsJson(form);
+                            alert(SUCCESS_MESSAGE);
+                          } catch (err) {
+                            ALERT_ERROR(err);
+                          }}
+                      }
+                    >
+                      다운로드
+                    </div>
                   </div>
                 ) : (
                   <div className={style.menu}>
@@ -329,6 +344,20 @@ const Forms = (props: Props) => {
                     >
                       복원
                     </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={async() =>{                             
+                          try {
+                            const { form } = await FormAPI.RForm({ params: { _id: data._id } });
+                            objectDownloadAsJson(form);
+                            alert(SUCCESS_MESSAGE);
+                          } catch (err) {
+                            ALERT_ERROR(err);
+                          }}
+                      }
+                    >
+                      다운로드
+                    </div>
                   </div>
                 ))}
             </span>
@@ -359,14 +388,12 @@ const Forms = (props: Props) => {
                     ? "timetable"
                     : decodeURI(location.hash).replace("#", "") === "강의계획서"
                     ? "syllabus"
-                    : // : decodeURI(location.hash).replace("#", "") === "평가"
-                    // ? "evaluation"
-                    decodeURI(location.hash).replace("#", "") === "출력"
+                    : decodeURI(location.hash).replace("#", "") === "출력"
                     ? "print"
                     : "other"
                 );
               }}
-              style={{ height: "160px" }}
+              // style={{ height: "160px" }}
             >
               <div className={style.icon} style={{ height: "100%" }}>
                 <Svg type="plus" width="32px" height="32px" />
@@ -910,6 +937,28 @@ const Forms = (props: Props) => {
                               });
                           },
                           width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
+                        },
+                        {
+                          type: "button",
+                          key: "json",
+                          text: "다운로드",
+                          onClick: async(e: any) => {                              
+                              try {
+                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
+                                objectDownloadAsJson(form);
+                                alert(SUCCESS_MESSAGE);
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                          },
+                          width: "100px",
                           textAlign: "center",
                           btnStyle: {
                             border: true,
