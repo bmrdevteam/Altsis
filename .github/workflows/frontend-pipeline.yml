@@ -19,7 +19,7 @@ jobs:
 
       # 캐시 받아오기
       - name: Cache node modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: node_modules
           key: ${{ runner.OS }}-master-build-${{ hashFiles('**/yarn.lock') }}
