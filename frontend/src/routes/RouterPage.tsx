@@ -33,9 +33,6 @@ import CourseMentoringPid from "pages/courses/tab/Mentoring/Index";
 import CourseEnrollmentPid from "pages/courses/tab/Enrolled/Index";
 import CourseEditPid from "pages/courses/view/Edit/Index";
 
-// apps pages
-import AppsIndex from "pages/apps/Index";
-import AppsField from "pages/apps/Pid";
 // notification pages
 import Notifications from "pages/notifications/Index";
 
@@ -407,26 +404,6 @@ function RouterPage() {
                 </RequireAuth>
               }
             ></Route>
-
-            {/* ----------------------------------------------------- */}
-            {/* apps routes */}
-            <Route
-              path="apps"
-              element={
-                <RequireAuth>
-                  <AppsIndex />
-                </RequireAuth>
-              }
-            ></Route>
-            <Route
-              path="apps/:pid"
-              element={
-                <RequireAuth>
-                  <AppsField />
-                </RequireAuth>
-              }
-            ></Route>
-
             {/* ----------------------------------------------------- */}
 
             {/* school routes */}
