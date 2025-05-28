@@ -35,6 +35,7 @@ const DataConnPopup = (props: Props) => {
   const repeat = useRef<any>({
     by: getCurrentBlock()?.data?.dataRepeat?.by ?? "",
     index: getCurrentBlock()?.data?.dataRepeat?.index ?? "",
+    max: getCurrentBlock()?.data?.dataRepeat?.max ?? "",
   });
   const [filters, setFilters] = useState<any[]>(
     getCurrentBlock()?.data?.dataFilter ?? []
@@ -501,6 +502,27 @@ const DataConnPopup = (props: Props) => {
                           }
                         )}
                       </select>
+                    </div>
+                    <div className={style.item}>
+                      <label>테이블 최대 행 갯수</label>
+                      <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      defaultValue={ repeat.current.max || 0}
+                      style={{ width: "60%" }}
+                      onChange={(e) => {
+                          repeat.current.max = parseInt(e.target.value);
+                          props.callPageReload();
+                          const TableMaxDisplay = document.getElementById("TableMaxDisplay");
+                          if (TableMaxDisplay) {
+                            TableMaxDisplay.innerText = repeat.current.max;
+                          }
+                      }}
+                      />
+                      <label id="TableMaxDisplay" >{repeat.current.max ?? ""}</label>
+
                     </div>
                     <div className={style.filters}>
                       <label>
