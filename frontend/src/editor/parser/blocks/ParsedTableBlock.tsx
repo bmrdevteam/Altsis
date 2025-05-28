@@ -248,6 +248,17 @@ const ParsedTableBlock = (props: Props) => {
     }
   }
 
+  // max
+  if (
+    props.blockData.data.dataRepeat?.max !== undefined && // max 속성이 정의되어 있는지 확인
+    isNumber(props.blockData.data.dataRepeat.max) && // max가 숫자인지 확인
+    props.blockData.data.dataRepeat.max > 0 // max가 음수가 아닌지 확인 (선택 사항)
+  ) {
+    filteredRepeat = filteredRepeat.slice(
+      0,
+      props.blockData.data.dataRepeat.max
+    );
+  }
   const Cell = ({
     data,
     dataRepeatIndex,
@@ -282,22 +293,13 @@ const ParsedTableBlock = (props: Props) => {
             className={style.cell}
             style={{ textAlign: data.align, fontSize: data.fontSize }}
           >
-            {data?.dataText?.map((dataTextElement: any, index: number) => {
+            {
+            data?.dataText?.map((dataTextElement: any, index: number) => {
               if (typeof dataTextElement === "object") {
                 if (dataTextElement.tag === "DATA") {
                   const locationArr = dataTextElement.location.split("//");
-                  if (
-                    // isArray(_.get(props.dbData, locationArr.slice(0, -1), ""))
-                    !dataRepeat
-                  ) {
-                    // return (
-                    //   isNumber(dataRepeatIndex) &&
-                    //   _.get(props?.dbData, locationArr.slice(0, -1), "")[
-                    //     dataRepeatIndex
-                    //   ][locationArr[locationArr.length - 1]]
-                    // );
+                  if (!dataRepeat) {
                     const result = _.get(props.dbData, locationArr, "");
-
                     // if data is image
                     if (
                       isObject(result) &&
