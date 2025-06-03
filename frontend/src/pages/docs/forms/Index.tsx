@@ -1,7 +1,7 @@
 /**
  * @file Form Index Page
  *
- * @author devgoodway <mrgoodway@gmail.com>
+ * @author seedlessapple <luminousseedlessapple@gmail.com>
  *
  * -------------------------------------------------------
  *
@@ -31,17 +31,20 @@ import { useLocation, useNavigate } from "react-router-dom";
 import style from "style/pages/admin/forms.module.scss";
 
 // hooks
+import Autofill from "components/input/Autofill";
 import useSearch from "hooks/useSearch";
-
+import EditorParser from "editor/EditorParser";
+import _ from "lodash";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
+import { zipSeasonsFormEvaluation } from "functions/docs";
+import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import Skeleton from "components/skeleton/Skeleton";
 import Tab from "components/tab/Tab";
 import Table from "components/tableV2/Table";
-import EditorParser from "editor/EditorParser";
 import {
   dateFormat,
   flattenObject,
@@ -65,8 +68,6 @@ type Props = {};
  */
 
 const Forms = (props: Props) => {
-  const [DBData, setDBData] = useState<any>();
-  const [formData, setFormData] = useState<any>();
   const location = useLocation();
   const [formList, setFormList] = useState([]);
   const search = useSearch(formList);
@@ -84,9 +85,139 @@ const Forms = (props: Props) => {
   const [selectFormType, setSelectFormType] = useState<
     "timetable" | "syllabus" | "print" | "other"
   >("timetable");
-  const navigate = useNavigate();
+  const navigate = useNavigate();  const { ArchiveAPI, EnrollmentAPI, SeasonAPI } = useAPIv2();
+    const { currentSchool, currentSeason } = useAuth();
+    const [loading, setLoading] = useState<boolean>(true);
+    const [formData, setFormData] = useState<any>();
+    const [printForms, setPrintForms] = useState<any>([]);
+    const [DBData, setDBData] = useState<any>();
+    /* not users but registrations */
+    const [users, setUsers] = useState<any[]>([]);
+    const [grades, setGrades] = useState<any[]>([]);
+    const [selectedGrade, setSelectedGrade] = useState<string>();
+    const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
+  
+    const [evaluationData, setEvaluationData] = useState<any>();
+  
+    async function getDBData(rid: string, uid: string) {
+      const { archive } = await ArchiveAPI.RArchiveByRegistration({
+        query: { registration: rid },
+      });
+  
+      let processedEvaluationByYear: any = [];
+  
+      const { enrollments: _enrollments } =
+        await EnrollmentAPI.REnrollmentsWithEvaluation({
+          query: { student: uid, school: currentSchool.school },
+        });
+      const enrollments = _enrollments as any[];
+  
+      for (const enrollment of enrollments) {
+        const IdByYear = `${enrollment.year}${_.join(enrollment.subject)}`;
+  
+        enrollment._subject = {};
+        for (
+          let idx = 0;
+          idx < evaluationData?.subjectLabelsBySeason[enrollment?.season]?.length;
+          idx++
+        ) {
+          enrollment._subject[
+            evaluationData?.subjectLabelsBySeason[enrollment?.season][idx]
+          ] = enrollment?.subject[idx];
+        }
+  
+        enrollment._evaluation = {};
+        for (const evLabel in enrollment?.evaluation) {
+          enrollment._evaluation[`${enrollment.term}/${evLabel}`] =
+            enrollment?.evaluation[evLabel];
+        }
+  
+        const idx = _.findIndex(processedEvaluationByYear, ["id", IdByYear]);
+        if (idx === -1) {
+          for (const evLabel in enrollment?.evaluation) {
+            enrollment._evaluation[`${"연도별"}/${evLabel}`] =
+              enrollment?.evaluation[evLabel];
+          }
+  
+          processedEvaluationByYear.push({
+            id: IdByYear,
+            학년도: enrollment.year,
+            학년: enrollment.studentGrade,
+            ...enrollment._subject,
+            ...enrollment._evaluation,
+            [`${enrollment.term}/단위수`]: enrollment?.point || 0,
+          });
+        } else {
+          Object.assign(processedEvaluationByYear[idx], {
+            [`${enrollment.term}/단위수`]:
+              (processedEvaluationByYear[idx][`${enrollment.term}/단위수`] || 0) +
+              (enrollment?.point || 0),
+            ...enrollment?._evaluation,
+          });
+        }
+      }
+  
+      return {
+        [currentSchool.schoolId]: {
+          archive: archive.data,
+          evaluation: _.sortBy(processedEvaluationByYear, ["학년도","교과","과목"]),
+        },
+      };
+    }
+
+  const RData = async (school: string) => {
+    const registrations = currentSeason?.registrations.filter(
+      (reg) => reg.role === "student"
+    );
+    const [{ forms }, { seasons }] = await Promise.all([
+      FormAPI.RForms({ query: { type: "print", archived: false } }),
+      SeasonAPI.RSeasons({ query: { school: currentSchool?.school } }),
+    ]);
+
+    let form: object | undefined = undefined;
+    if (forms.length > 0) {
+      const { form: _form } = await FormAPI.RForm({
+        params: { _id: forms[0]._id },
+      });
+      form = _form;
+    }
+
+    return {
+      registrations,
+      forms,
+      form,
+      documentData: zipSeasonsFormEvaluation(seasons),
+    };
+  };
 
   useEffect(() => {
+      RData(currentSchool?.school)
+        .then(
+          (res: {
+            registrations: any[];
+            forms: any[];
+            form?: any;
+            documentData: {};
+          }) => {
+            // registrations
+            const g: any = _.uniqBy(res.registrations, "grade");
+            setGrades(
+              g.map((val: any) => {
+                return { text: val.grade, value: val.grade };
+              })
+            );
+            setSelectedGrade(g[0]?.grade);
+            setUsers(_.sortBy(res.registrations, ["userName"]));
+  
+            // forms, form, documentData
+            setPrintForms(res.forms);
+            setFormData(res.form);
+            setEvaluationData(res.documentData);
+          }
+        )
+        .then(() => {
+          setLoading(false);
+        });
     getForms();
   }, []);
 
@@ -428,7 +559,7 @@ const Forms = (props: Props) => {
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
-            <div className={style.title}>양식</div>
+            <div className={style.title}>문서</div>
             <div className={style.description}>
               {currentUser !== undefined ? (
                 `${currentUser.academyName} / ${currentUser.academyId}`
@@ -441,219 +572,6 @@ const Forms = (props: Props) => {
           <Tab
             align={"flex-start"}
             items={{
-              시간표: (
-                <div style={{ marginTop: "24px" }}>
-                  {view === "grid" ? (
-                    <FormItems type={"timetable"} />
-                  ) : (
-                    <Table
-                      type="object-array"
-                      data={search.result().filter((value: any) => {
-                        return value.type === "timetable" && !value.archived;
-                      })}
-                      header={[
-                        {
-                          text: "No",
-                          type: "text",
-                          key: "tableRowIndex",
-                          width: "48px",
-                          textAlign: "center",
-                        },
-                        { 
-                          type: "text", 
-                          key: "title", 
-                          text: "제목", 
-                          onClick: (e: any) => {
-                            navigate(e._id);
-                          }},
-                        { 
-                          type: "text", 
-                          key: "userName", 
-                          text: "작성자",
-                          textAlign: "center",
-                        },
-                        {
-                          type: "button",
-                          key: "copy",
-                          text: "복사",
-                          onClick: (e: any) => {
-                            FormAPI.CCopyForm({
-                              params: { _id: e._id },
-                            })
-                              .then(() => {
-                                alert(SUCCESS_MESSAGE);
-                                getForms();
-                              })
-                              .catch((err) => {
-                                ALERT_ERROR(err);
-                              });
-                          },
-                          width: "80px",
-                          textAlign: "center",
-                          btnStyle: {
-                            border: true,
-                            color: "black",
-                            padding: "4px",
-                            round: true,
-                          },
-                        },
-                        {
-                          type: "button",
-                          key: "archive",
-                          text: "보관",
-                          onClick: (e: any) => {
-                            FormAPI.UArchiveForm({ params: { _id: e._id } })
-                              .then(() => {
-                                alert(SUCCESS_MESSAGE);
-                                getForms();
-                              })
-                              .catch((err) => {
-                                ALERT_ERROR(err);
-                              });
-                          },
-                          width: "80px",
-                          textAlign: "center",
-                          btnStyle: {
-                            border: true,
-                            color: "black",
-                            padding: "4px",
-                            round: true,
-                          },
-                        },
-                        {
-                          type: "button",
-                          key: "json",
-                          text: "다운로드",
-                          onClick: async(e: any) => {                              
-                              try {
-                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
-                                objectDownloadAsJson(form);
-                                alert(SUCCESS_MESSAGE);
-                              } catch (err) {
-                                ALERT_ERROR(err);
-                              }
-                          },
-                          width: "100px",
-                          textAlign: "center",
-                          btnStyle: {
-                            border: true,
-                            color: "black",
-                            padding: "4px",
-                            round: true,
-                          },
-                        },
-                      ]}
-                    />
-                  )}
-                </div>
-              ),
-              강의계획서: (
-                <div style={{ marginTop: "24px" }}>
-                  {view === "grid" ? (
-                    <FormItems type={"syllabus"} />
-                  ) : (
-                    <Table
-                      type="object-array"
-                      data={search.result().filter((value: any) => {
-                        return value.type === "syllabus" && !value.archived;
-                      })}
-                      header={[
-                        {
-                          text: "No",
-                          type: "text",
-                          key: "tableRowIndex",
-                          width: "48px",
-                          textAlign: "center",
-                        },
-                        { 
-                          type: "text", 
-                          key: "title", 
-                          text: "제목", 
-                          onClick: (e: any) => {
-                            navigate(e._id);
-                        }},
-                        { 
-                          type: "text", 
-                          key: "userName", 
-                          text: "작성자",
-                          textAlign: "center",
-                        },
-                        {
-                          type: "button",
-                          key: "copy",
-                          text: "복사",
-                          onClick: (e: any) => {
-                            FormAPI.CCopyForm({
-                              params: { _id: e._id },
-                            })
-                              .then(() => {
-                                alert(SUCCESS_MESSAGE);
-                                getForms();
-                              })
-                              .catch((err) => {
-                                ALERT_ERROR(err);
-                              });
-                          },
-                          width: "80px",
-                          textAlign: "center",
-                          btnStyle: {
-                            border: true,
-                            color: "black",
-                            padding: "4px",
-                            round: true,
-                          },
-                        },
-                        {
-                          type: "button",
-                          key: "archive",
-                          text: "보관",
-                          onClick: (e: any) => {
-                            FormAPI.UArchiveForm({ params: { _id: e._id } })
-                              .then(() => {
-                                alert(SUCCESS_MESSAGE);
-                                getForms();
-                              })
-                              .catch((err) => {
-                                ALERT_ERROR(err);
-                              });
-                          },
-                          width: "80px",
-                          textAlign: "center",
-                          btnStyle: {
-                            border: true,
-                            color: "black",
-                            padding: "4px",
-                            round: true,
-                          },
-                        },
-                        {
-                          type: "button",
-                          key: "json",
-                          text: "다운로드",
-                          onClick: async(e: any) => {                              
-                              try {
-                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
-                                objectDownloadAsJson(form);
-                                alert(SUCCESS_MESSAGE);
-                              } catch (err) {
-                                ALERT_ERROR(err);
-                              }
-                          },
-                          width: "100px",
-                          textAlign: "center",
-                          btnStyle: {
-                            border: true,
-                            color: "black",
-                            padding: "4px",
-                            round: true,
-                          },
-                        },
-                      ]}
-                    />
-                  )}
-                </div>
-              ),
-
               출력: (
                 <div style={{ marginTop: "24px" }}>
                   {view === "grid" ? (
@@ -679,9 +597,16 @@ const Forms = (props: Props) => {
                           type: "text", 
                           key: "title", 
                           text: "제목", 
-                          onClick: (e: any) => {
-                            navigate(e._id);
-                        }},
+                          onClick: async(e: any) => {                              
+                              try {
+                                const { form } = await FormAPI.RForm({ params: { _id: e._id } });
+                                console.log(e);
+                                setFormData(form);
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                          },
+                        },
                         { 
                           type: "text", 
                           key: "userName", 
@@ -1099,6 +1024,86 @@ const Forms = (props: Props) => {
           </div>
         </Popup>
       )}
+        <div className={style.search}>
+          <div className={style.label}>학생선택</div>
+          <div className={style.search}>
+            <Select
+              options={grades}
+              onChange={(val: string) => {
+                setSelectedGrade(val);
+              }}
+              className={style.selectGrade}
+              style={{ borderRadius: "4px", maxWidth: "120px" }}
+            />
+            <Autofill
+              style={{ borderRadius: "4px" }}
+              options={[
+                { text: "", value: "" },
+                ...users
+                  ?.filter((val) => val.grade === selectedGrade)
+                  .map((val) => {
+                    return {
+                      value: JSON.stringify({
+                        rid: val._id,
+                        uid: val.user,
+                      }),
+                      text: `${val.userName} / ${val.userId}`,
+                    };
+                  }),
+              ]}
+              onChange={(value: string | number) => {
+                if (value === "") return;
+                setLoading(true);
+                if (value !== "") {
+                  const { rid, uid } = JSON.parse(`${value}`);
+                  getDBData(rid, uid).then((res) => {
+                    console.log(value);
+                    setDBData(res);
+                    setLoading(false);
+                  });
+                }
+              }}
+              placeholder={"검색"}
+            />
+          </div>
+          <div className={style.search}>
+            <Select
+              style={{ borderRadius: "4px" }}
+              options={[
+                ...printForms.map((val: any) => {
+                  return { text: val.title, value: val._id };
+                }),
+              ]}
+              onChange={(val: string) => {
+                FormAPI.RForm({ params: { _id: val } })
+                  .then(({ form }) => {
+                    setFormData(form);
+                  })
+                  .catch((err) => {
+                    ALERT_ERROR(err);
+                  });
+              }}
+            />
+            <div
+              className="btn"
+              onClick={() => {
+                window.print();
+              }}
+            >
+              <Svg type={"print"} />
+            </div>
+          </div>
+        </div>
+        {!loading ? (
+          <EditorParser
+            auth="edit"
+            data={formData}
+            dbData={DBData}
+            type="archive"
+          />
+        ) : (
+          <Loading height={"calc(100vh - 55px)"} />
+        )}
     </>
   );
 };

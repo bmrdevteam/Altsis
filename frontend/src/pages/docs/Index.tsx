@@ -40,7 +40,6 @@ function Docs({}: Props) {
         query: { student: uid, school: currentSchool.school },
       });
     const enrollments = _enrollments as any[];
-    // console.log(enrollments);
 
     for (const enrollment of enrollments) {
       const IdByYear = `${enrollment.year}${_.join(enrollment.subject)}`;
@@ -187,6 +186,7 @@ function Docs({}: Props) {
                 if (value !== "") {
                   const { rid, uid } = JSON.parse(`${value}`);
                   getDBData(rid, uid).then((res) => {
+                    console.log(value);
                     setDBData(res);
                     setLoading(false);
                   });

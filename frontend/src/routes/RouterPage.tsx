@@ -50,6 +50,7 @@ import { useAuth } from "../contexts/authContext";
 
 import Settings from "../pages/settings/Index";
 import Forms from "../pages/admin/forms/Index";
+import DocsForms from "../pages/docs/forms/Index";
 import Form from "../pages/admin/forms/Pid";
 import Myaccount from "pages/myaccount/Index";
 import Archive from "pages/archive/Index";
@@ -388,7 +389,7 @@ function RouterPage() {
               path="docs/forms"
               element={
                 <RequireAuth>
-                  <Forms />
+                  <DocsForms />
                 </RequireAuth>
               }
             ></Route>
