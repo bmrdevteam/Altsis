@@ -384,14 +384,6 @@ function RouterPage() {
                 </RequireAuth>
               }
             ></Route>
-            <Route
-              path="docs/forms"
-              element={
-                <RequireAuth>
-                  <Forms />
-                </RequireAuth>
-              }
-            ></Route>
 
             {/* ----------------------------------------------------- */}
 
