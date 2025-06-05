@@ -4,6 +4,7 @@ import ParsedBlock from "./parser/blocks/ParsedBlock";
 import style from "./editor.module.scss";
 
 type Props = {
+  id: string;
   data: any;
   onChange?: (data: any) => void;
   auth: "edit" | "view";
