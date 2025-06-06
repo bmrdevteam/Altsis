@@ -233,6 +233,13 @@ const One = (props: Props) => {
           key: val.label,
           type: "input-number",
         });
+      } else if (val.type === "date") {
+        arr.push({
+          text: val.label,
+          whiteSpace: "pre",
+          key: val.label,
+          type: "date",
+        });
       } else {
         arr.push({
           byteCalc: true,

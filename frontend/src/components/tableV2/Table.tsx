@@ -666,6 +666,40 @@ const Table = (props: Props) => {
                         )}
                       </td>
                     );
+                  case "date":
+                    return (
+                      <td
+                        style={{
+                          whiteSpace: val.whiteSpace,
+                          wordBreak: val.wordBreak,
+                          textAlign: val.textAlign,
+                          fontSize: val.fontSize,
+                          fontWeight: val.fontWeight,
+                        }}
+                        className={`${style.item} ${style.input}`}
+                        key={index}
+                      >
+                        <input
+                          value={addRowData[`${val.key}`]}
+                          type="date"
+                          onChange={(e) => {
+                            setAddRowData((prev: any) => ({
+                              ...prev,
+                              [`${val.key}`]: e.target.value,
+                            }));
+                          }}
+                        />
+                        {val.byteCalc && (
+                          <div className={style.byte_calc}>
+                            {
+                              encodeURIComponent(addRowData[`${val.key}`])
+                                .length
+                            }{" "}
+                            bytes
+                          </div>
+                        )}
+                      </td>
+                    );
                   case "select":
                     return (
                       <td

@@ -1,7 +1,8 @@
 export type TSchoolFormArchiveField = {
   label: string;
-  type: "input" | "input-number" | "select" | "file" | "file-image";
+  type: "input" | "input-number" | "select" | "date" | "file" | "file-image";
   options?: string[];
+  duplicationCheck?: boolean;
   runningTotal?: boolean;
   total?: boolean;
 };
@@ -11,7 +12,7 @@ export type TAuthTeacher =
   | "viewAndEditStudents"
   | "viewAndEditMyStudents";
 
-export type TAuthStudent = "undefined" | "view";
+export type TAuthStudent = "undefined" | "view" | "viewAndEditSelf";
 
 export type TSchoolFormArchiveItem = {
   label: string;
@@ -39,8 +40,8 @@ export type TSchool = {
 
 export const authTeacherTextMap: Map<TAuthTeacher, string> = new Map([
   ["undefined", "미설정"],
-  ["viewAndEditStudents", "모든 학생 조회 및 수정"],
-  ["viewAndEditMyStudents", "담당 학생 조회 및 수정"],
+  ["viewAndEditStudents", "모든 학생 조회 및 작성"],
+  ["viewAndEditMyStudents", "담당 학생 조회 및 작성"],
 ]);
 
 export const getAuthTeacherText = (text: TAuthTeacher) => {
@@ -58,6 +59,7 @@ export const getAuthTeacher = (text: string) => {
 export const authStudentTextMap: Map<TAuthStudent, string> = new Map([
   ["undefined", "미설정"],
   ["view", "조회"],
+  ["viewAndEditSelf", "조회 및 작성"],
 ]);
 export const getAuthStudentText = (text: TAuthStudent) => {
   return authStudentTextMap.get(text) ?? "미설정";

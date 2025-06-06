@@ -127,6 +127,10 @@ function Index(props: Props) {
                         text: "텍스트",
                         color: "#B33F00",
                       },
+                      date: {
+                        text: "날짜",
+                        color: "#B33F00",
+                      },
                       select: {
                         text: "선택 +",
                         color: "#8657ff",
@@ -148,6 +152,13 @@ function Index(props: Props) {
                     },
                     width: "80px",
                     textAlign: "center",
+                  },
+                  {
+                    text: "중복검사",
+                    key: "duplicateCheck",
+                    textAlign: "center",
+                    width: "80px",
+                    type: "toggle",
                   },
                   {
                     text: "합산",
