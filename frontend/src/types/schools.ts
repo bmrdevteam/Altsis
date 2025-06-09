@@ -2,6 +2,7 @@ export type TSchoolFormArchiveField = {
   label: string;
   type: "input" | "input-number" | "select" | "date" | "file" | "file-image";
   options?: string[];
+  date? : object;
   duplicationCheck?: boolean;
   runningTotal?: boolean;
   total?: boolean;
@@ -71,7 +72,6 @@ const textAuthStudentMap: Map<string, string> = new Map(
 authStudentTextMap.forEach((value, key) => textAuthStudentMap.set(value, key));
 
 export const getAuthStudent = (text: string) => {
-  console.log({ text });
   if (text === "") return undefined;
   return (textAuthStudentMap.get(text) ?? "undefined") as TAuthStudent;
 };

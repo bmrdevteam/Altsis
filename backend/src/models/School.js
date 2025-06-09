@@ -45,10 +45,11 @@ const formArchiveFieldSchema = mongoose.Schema(
     label: String,
     type: {
       type: String,
-      enum: ["select", "input", "input-number", "file", "file-image"],
+      enum: ["select", "date", "input", "input-number", "file", "file-image"],
       default: "input",
     },
     options: [String],
+    date: Object,
     runningTotal: {
       type: Boolean,
       default: false,
