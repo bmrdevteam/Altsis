@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
@@ -30,10 +31,11 @@ function Index(props: Props) {
     useState<boolean>(false);
   const [dateFieldsPopupActive, setDateFieldsPopupActive] =
     useState<boolean>(false);
-  const [period, setPeriod] = useState<{ start: string; end: string; day: string[] }>({
+  const [period, setPeriod] = useState<{ start: string; end: string; day: string[]; batch: boolean }>({
     start: "",
     end: "",
     day: [],
+    batch: false,
   });
   const [fieldIdx, setFieldIdx] = useState<number>(0);
 
@@ -129,6 +131,14 @@ function Index(props: Props) {
       }
     });
   };
+
+  // '일괄 등록' 토글 스위치 변경 핸들러
+const handleBatchRegistrationChange = (checked: boolean) => {
+  setPeriod((prevPeriod) => ({
+    ...prevPeriod,
+    batch: checked,
+  }));
+};
 
   useEffect(() => {
     if (isLoading) {
@@ -372,67 +382,66 @@ function Index(props: Props) {
             setPeriod({ ...period, end: e.target.value });
           }}
         />
-        <div style={{ fontSize: 12, marginTop: 5, fontWeight: 500 }}>요일</div>
-        <div style={{ fontSize: 12, marginTop: 5, fontWeight: 500 }}>
-          {/* 일괄 등록 체크박스는 다른 요일들과 로직이 다를 수 있으므로 별도 처리 */}
-          <input
-            type="checkbox"
-            value="일괄 등록"
-            checked={period.day.includes("일괄 등록")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>일괄 등록 </span>
+        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>요일</div>
+        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>
           <input
             type="checkbox"
             value="월"
             checked={period.day.includes("월")}
             onChange={handleDayChange}
           />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>월 </span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 월 </span>
           <input
             type="checkbox"
             value="화"
             checked={period.day.includes("화")}
             onChange={handleDayChange}
           />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>화 </span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 화 </span>
           <input
             type="checkbox"
             value="수"
             checked={period.day.includes("수")}
             onChange={handleDayChange}
           />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>수 </span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 수 </span>
           <input
             type="checkbox"
             value="목"
             checked={period.day.includes("목")}
             onChange={handleDayChange}
           />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>목 </span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 목 </span>
           <input
             type="checkbox"
             value="금"
             checked={period.day.includes("금")}
             onChange={handleDayChange}
           />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>금 </span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 금 </span>
           <input
             type="checkbox"
             value="토"
             checked={period.day.includes("토")}
             onChange={handleDayChange}
           />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>토 </span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 토 </span>
           <input
             type="checkbox"
             value="일"
             checked={period.day.includes("일")}
             onChange={handleDayChange}
           />
-          <span style={{ fontSize: 15, fontWeight: 500 }}>일 </span>
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 일 </span>
         </div>
-
+        <div style={{ marginTop: 10}}>
+          <label style={{ fontSize: 12, fontWeight: 500 }}>일괄 등록 </label>
+            <ToggleSwitch
+              defaultChecked={period.batch}
+              value="일괄 등록"
+              onChange={handleBatchRegistrationChange}
+            />
+        </div>
         <Button
           type={"ghost"}
           style={{
