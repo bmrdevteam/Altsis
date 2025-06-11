@@ -31,9 +31,10 @@ function Index(props: Props) {
     useState<boolean>(false);
   const [dateFieldsPopupActive, setDateFieldsPopupActive] =
     useState<boolean>(false);
-  const [period, setPeriod] = useState<{ start: string; end: string; day: string[]; batch: boolean }>({
+  const [period, setPeriod] = useState<{ start: string; end: string; day: string[]; batch: boolean; openTime: string }>({
     start: "",
     end: "",
+    openTime: "",
     day: [],
     batch: false,
   });
@@ -173,7 +174,7 @@ const handleBatchRegistrationChange = (checked: boolean) => {
                   {
                     text: "필드명",
                     key: "label",
-                    type: "text",
+                    type: "input",
                   },
                   {
                     text: "유형",
@@ -187,7 +188,7 @@ const handleBatchRegistrationChange = (checked: boolean) => {
                         color: "#B33F00",
                       },
                       date: {
-                        text: "날짜 +",
+                        text: "예약 +",
                         color: "#B33F00",
                         onClick: (row) => {
                           const idx = _.findIndex(
@@ -202,7 +203,9 @@ const handleBatchRegistrationChange = (checked: boolean) => {
                               formArchiveItemFields[idx].date || {
                                 start: "",
                                 end: "",
+                                openTime: "",
                                 day: [],
+                                batch: false,
                               }
                             );
                           }
@@ -380,6 +383,17 @@ const handleBatchRegistrationChange = (checked: boolean) => {
           defaultValue={period.end}
           onChange={(e:any) => {
             setPeriod({ ...period, end: e.target.value });
+          }}
+        />
+        <Input
+          style={{ maxHeight: "30px" }}
+          type="input-number"
+          appearence="flat"
+          label="오픈 시간"
+          placeholder="예: 0시 기준 4시간 30분 전 => -4.5"
+          defaultValue={period.openTime}
+          onChange={(e:any) => {
+            setPeriod({ ...period, openTime: e.target.value });
           }}
         />
         <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>요일</div>
