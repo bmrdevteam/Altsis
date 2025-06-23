@@ -31,10 +31,10 @@ function Index(props: Props) {
     useState<boolean>(false);
   const [dateFieldsPopupActive, setDateFieldsPopupActive] =
     useState<boolean>(false);
-  const [period, setPeriod] = useState<{ start: string; end: string; day: string[]; batch: boolean; openTime: string }>({
+  const [period, setPeriod] = useState<{ start: string; end: string; day: string[]; batch: boolean; openTime: string[] }>({
     start: "",
     end: "",
-    openTime: "",
+    openTime: [],
     day: [],
     batch: false,
   });
@@ -385,17 +385,7 @@ const handleBatchRegistrationChange = (checked: boolean) => {
             setPeriod({ ...period, end: e.target.value });
           }}
         />
-        <Input
-          style={{ maxHeight: "30px" }}
-          type="input-number"
-          appearence="flat"
-          label="오픈 시간"
-          placeholder="예: 0시 기준 4시간 30분 전 => -4.5"
-          defaultValue={period.openTime}
-          onChange={(e:any) => {
-            setPeriod({ ...period, openTime: e.target.value });
-          }}
-        />
+        </div>
         <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>요일</div>
         <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>
           <input
@@ -447,6 +437,50 @@ const handleBatchRegistrationChange = (checked: boolean) => {
             onChange={handleDayChange}
           />
           <span style={{ fontSize: 15, fontWeight: 500 }}> 일 </span>
+        </div>
+        <div style={{ marginTop: 10}}>
+        
+        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>예약 시간</div>
+        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>
+          <input
+            style={{ maxWidth: "30px", outline: "none", border: "none", borderRadius: "8px", backgroundColor: "var(--component-color)", alignItems: "center" }}
+            type="number"
+            min={0}
+            max={31}
+            value={period.openTime[0]}
+            onChange={(e:any) => {
+              const newOpenTime = [...period.openTime];
+              newOpenTime[0] = e.target.value;
+              setPeriod({ ...period, openTime: newOpenTime });
+            }}
+          />
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 일 </span>
+          <input
+            style={{ maxWidth: "30px", outline: "none", border: "none", borderRadius: "8px", backgroundColor: "var(--component-color)", alignItems: "center" }}
+            type="number"
+            min={0}
+            max={23}
+            value={period.openTime[1]}
+            onChange={(e:any) => {
+              const newOpenTime = [...period.openTime];
+              newOpenTime[1] = e.target.value;
+              setPeriod({ ...period, openTime: newOpenTime });
+            }}
+          />
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 시 </span>
+          <input
+            style={{ maxWidth: "30px", outline: "none", border: "none", borderRadius: "8px", backgroundColor: "var(--component-color)", alignItems: "center" }}
+            type="number"
+            min={0}
+            max={59}
+            value={period.openTime[2]}
+            onChange={(e:any) => {
+              const newOpenTime = [...period.openTime];
+              newOpenTime[2] = e.target.value;
+              setPeriod({ ...period, openTime: newOpenTime });
+            }}
+          />
+          <span style={{ fontSize: 15, fontWeight: 500 }}> 분 전</span>
         </div>
         <div style={{ marginTop: 10}}>
           <label style={{ fontSize: 12, fontWeight: 500 }}>일괄 등록 </label>
