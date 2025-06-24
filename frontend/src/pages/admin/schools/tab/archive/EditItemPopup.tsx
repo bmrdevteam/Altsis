@@ -440,7 +440,7 @@ const handleBatchRegistrationChange = (checked: boolean) => {
         </div>
         <div style={{ marginTop: 10}}>
         
-        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>예약 시간</div>
+        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>공개 시간</div>
         <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>
           <input
             style={{ maxWidth: "30px", outline: "none", border: "none", borderRadius: "8px", backgroundColor: "var(--component-color)", alignItems: "center" }}

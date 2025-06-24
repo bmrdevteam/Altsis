@@ -62,6 +62,13 @@ export type TTableHeader = {
     border?: boolean;
   };
   option?: string[];
+  date?: {
+    start?: string;
+    end?: string;
+    openTime?: string[];
+    day?: string[];
+    batch?: boolean;
+  };
   onClick?: (value: any) => void;
 };
 type Props = {
@@ -666,40 +673,73 @@ const Table = (props: Props) => {
                         )}
                       </td>
                     );
-                  case "date":
-                    return (
-                      <td
-                        style={{
-                          whiteSpace: val.whiteSpace,
-                          wordBreak: val.wordBreak,
-                          textAlign: val.textAlign,
-                          fontSize: val.fontSize,
-                          fontWeight: val.fontWeight,
-                        }}
-                        className={`${style.item} ${style.input}`}
-                        key={index}
-                      >
-                        <input
-                          value={addRowData[`${val.key}`]}
-                          type="date"
-                          onChange={(e) => {
-                            setAddRowData((prev: any) => ({
-                              ...prev,
-                              [`${val.key}`]: e.target.value,
-                            }));
+                    case "date":
+                      // 현재 날짜를 YYYY-MM-DD 형식으로 가져옵니다.
+                      const today = new Date();
+                      const year = today.getFullYear();
+                      const month = String(today.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 1을 더해줍니다.
+                      const day = String(today.getDate()).padStart(2, '0');
+                      const minDate = `${year}-${month}-${day}`;
+
+                      // max 날짜를 계산합니다.
+                      let maxDate = '';
+                      if (val.date?.openTime) {
+                        const openTime = val.date.openTime; // openTime은 배열 [일, 시, 분] 형태
+                        const futureDate = new Date(today); // 현재 날짜를 복사하여 사용합니다.
+
+                        // openTime 값에 따라 날짜를 더합니다.
+                        if (openTime[0]) { // 일(day)이 있다면
+                          futureDate.setDate(futureDate.getDate() + Number(openTime[0]));
+                        }
+                        if (openTime[1]) { // 시(hour)가 있다면
+                          futureDate.setHours(futureDate.getHours() + Number(openTime[1]));
+                        }
+                        if (openTime[2]) { // 분(minute)이 있다면
+                          futureDate.setMinutes(futureDate.getMinutes() + Number(openTime[2]));
+                        }
+
+                        const futureYear = futureDate.getFullYear();
+                        const futureMonth = String(futureDate.getMonth() + 1).padStart(2, '0');
+                        const futureDay = String(futureDate.getDate()).padStart(2, '0');
+                        maxDate = `${futureYear}-${futureMonth}-${futureDay}`;
+                      }
+
+
+                      return (
+                        <td
+                          style={{
+                            whiteSpace: val.whiteSpace,
+                            wordBreak: val.wordBreak,
+                            textAlign: val.textAlign,
+                            fontSize: val.fontSize,
+                            fontWeight: val.fontWeight,
                           }}
-                        />
-                        {val.byteCalc && (
-                          <div className={style.byte_calc}>
-                            {
-                              encodeURIComponent(addRowData[`${val.key}`])
-                                .length
-                            }{" "}
-                            bytes
-                          </div>
-                        )}
-                      </td>
-                    );
+                          className={`${style.item} ${style.input}`}
+                          key={index}
+                        >
+                          <input
+                            value={addRowData[`${val.key}`]}
+                            type="date"
+                            min={minDate}
+                            max={maxDate}
+                            onChange={(e) => {
+                              setAddRowData((prev: any) => ({
+                                ...prev,
+                                [`${val.key}`]: e.target.value,
+                              }));
+                            }}
+                          />
+                          {val.byteCalc && (
+                            <div className={style.byte_calc}>
+                              {
+                                encodeURIComponent(addRowData[`${val.key}`])
+                                  .length
+                              }{" "}
+                              bytes
+                            </div>
+                          )}
+                        </td>
+                      );
                   case "select":
                     return (
                       <td

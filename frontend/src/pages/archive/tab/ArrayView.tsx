@@ -239,6 +239,7 @@ const One = (props: Props) => {
           whiteSpace: "pre",
           key: val.label,
           type: "date",
+          date: val.date,
         });
       } else {
         arr.push({
