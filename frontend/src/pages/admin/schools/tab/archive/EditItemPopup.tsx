@@ -27,11 +27,19 @@ function Index(props: Props) {
   const [formArchiveItemFields, setFormArchiveItemFields] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [editFieldsPopupActive, setEditFieldsPopupActive] =
-    useState<boolean>(false);
-  const [dateFieldsPopupActive, setDateFieldsPopupActive] =
-    useState<boolean>(false);
-  const [period, setPeriod] = useState<{ start: string; end: string; day: string[]; batch: boolean; openTime: string[] }>({
+  const [editFieldsPopupActive, setEditFieldsPopupActive] = useState<boolean>(false);
+  const [dateFieldsPopupActive, setDateFieldsPopupActive] = useState<boolean>(false);
+  const [calendar, setCalendar] = useState<{ 
+    openTimeActive : boolean;
+    dateCalendarActive: boolean;
+    start: string; 
+    end: string; 
+    day: string[]; 
+    batch: boolean; 
+    openTime: string[] 
+  }>({
+    openTimeActive : false,
+    dateCalendarActive: false,
     start: "",
     end: "",
     openTime: [],
@@ -54,6 +62,7 @@ function Index(props: Props) {
         .map((field: any) => {
           if (field.type === "") field.type = undefined;
           if (field.total === "") field.total = false;
+          if (field.duplicateCheck === "") field.duplicateCheck = false;
           if (field.runningTotal === "") field.runningTotal = false;
           return field;
         });
@@ -118,29 +127,6 @@ function Index(props: Props) {
     }
   };
 
-  // 체크박스 변경 핸들러
-  const handleDayChange = (e:any) => {
-    const { value, checked } = e.target;
-    setPeriod((prevPeriod) => {
-      if (checked) {
-        // 체크박스가 체크되면 해당 요일을 배열에 추가 (중복 방지)
-        // Set을 Array.from()을 사용하여 배열로 변환합니다.
-        return { ...prevPeriod, day: Array.from(new Set([...prevPeriod.day, value])) };
-      } else {
-        // 체크박스가 체크 해제되면 해당 요일을 배열에서 제거
-        return { ...prevPeriod, day: prevPeriod.day.filter((day) => day !== value) };
-      }
-    });
-  };
-
-  // '일괄 등록' 토글 스위치 변경 핸들러
-const handleBatchRegistrationChange = (checked: boolean) => {
-  setPeriod((prevPeriod) => ({
-    ...prevPeriod,
-    batch: checked,
-  }));
-};
-
   useEffect(() => {
     if (isLoading) {
       setFormArchiveItemFields(props.formArchive[props.itemIdx].fields);
@@ -188,7 +174,7 @@ const handleBatchRegistrationChange = (checked: boolean) => {
                         color: "#B33F00",
                       },
                       date: {
-                        text: "예약 +",
+                        text: "날짜 +",
                         color: "#B33F00",
                         onClick: (row) => {
                           const idx = _.findIndex(
@@ -198,8 +184,8 @@ const handleBatchRegistrationChange = (checked: boolean) => {
                           if (idx !== -1) {
                             setFieldIdx(idx);
                             setDateFieldsPopupActive(true);
-                            // 날짜 필드의 기존 값으로 period 상태 초기화
-                            setPeriod(
+                            // 날짜 필드의 기존 값으로 calendar 상태 초기화
+                            setCalendar(
                               formArchiveItemFields[idx].date || {
                                 start: "",
                                 end: "",
@@ -364,15 +350,21 @@ const handleBatchRegistrationChange = (checked: boolean) => {
       setState={setDateFieldsPopupActive}
       title={`${formArchiveItemFields[fieldIdx].label}`}
     >
-      <div>
+      <label style={{ fontSize: 12, fontWeight: 500 }}>기간 </label>
+        <ToggleSwitch
+          defaultChecked={calendar.dateCalendarActive}
+          value="기간"
+          onChange={() => calendar.dateCalendarActive ? setCalendar({ ...calendar, batch : false, dateCalendarActive: false }) : setCalendar({ ...calendar, dateCalendarActive: true })}
+        />
+      <div style={{ display: calendar.dateCalendarActive ? 'block' : 'none', marginTop: 10 }}>
         <Input
           style={{ maxHeight: "30px" }}
           type="date"
           label="시작"
           appearence="flat"
-          defaultValue={period.start}
+          defaultValue={calendar.start}
           onChange={(e:any) => {
-            setPeriod({ ...period, start: e.target.value });
+            setCalendar({ ...calendar, start: e.target.value });
           }}
         />
         <Input
@@ -380,79 +372,41 @@ const handleBatchRegistrationChange = (checked: boolean) => {
           type="date"
           appearence="flat"
           label="끝"
-          defaultValue={period.end}
+          defaultValue={calendar.end}
           onChange={(e:any) => {
-            setPeriod({ ...period, end: e.target.value });
+            setCalendar({ ...calendar, end: e.target.value });
           }}
         />
-        </div>
-        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>요일</div>
-        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>
-          <input
-            type="checkbox"
-            value="월"
-            checked={period.day.includes("월")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}> 월 </span>
-          <input
-            type="checkbox"
-            value="화"
-            checked={period.day.includes("화")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}> 화 </span>
-          <input
-            type="checkbox"
-            value="수"
-            checked={period.day.includes("수")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}> 수 </span>
-          <input
-            type="checkbox"
-            value="목"
-            checked={period.day.includes("목")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}> 목 </span>
-          <input
-            type="checkbox"
-            value="금"
-            checked={period.day.includes("금")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}> 금 </span>
-          <input
-            type="checkbox"
-            value="토"
-            checked={period.day.includes("토")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}> 토 </span>
-          <input
-            type="checkbox"
-            value="일"
-            checked={period.day.includes("일")}
-            onChange={handleDayChange}
-          />
-          <span style={{ fontSize: 15, fontWeight: 500 }}> 일 </span>
-        </div>
         <div style={{ marginTop: 10}}>
-        
-        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>공개 시간</div>
-        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500 }}>
+          <label style={{ fontSize: 12, fontWeight: 500 }}>매주 반복 </label>
+            <ToggleSwitch
+              defaultChecked={calendar.batch}
+              value="매주 반복"
+              onChange={() => calendar.batch ? setCalendar({ ...calendar, batch: false }) : setCalendar({ ...calendar, batch: true })}
+            />
+        </div>
+        </div>
+        <hr style={{ marginTop: 10, borderStyle : "dashed", borderColor : "gray" }} />
+        <div style={{ marginTop: 10}}>
+          <label style={{ fontSize: 12, fontWeight: 500 }}>공개 시간 </label>
+            <ToggleSwitch
+              defaultChecked={calendar.openTimeActive}
+              value="공개 시간"
+              onChange={() => calendar.openTimeActive ? setCalendar({ ...calendar, openTimeActive: false }) : setCalendar({ ...calendar, openTimeActive: true })}
+            />
+        <div style={{ fontSize: 12, marginTop: 10, fontWeight: 500, display: calendar.openTimeActive ? 'block' : 'none' }}>
           <input
             style={{ maxWidth: "30px", outline: "none", border: "none", borderRadius: "8px", backgroundColor: "var(--component-color)", alignItems: "center" }}
             type="number"
             min={0}
             max={31}
-            value={period.openTime[0]}
+            value={calendar.openTime[0]}
             onChange={(e:any) => {
-              const newOpenTime = [...period.openTime];
+              const newOpenTime = [...calendar.openTime];
               newOpenTime[0] = e.target.value;
-              setPeriod({ ...period, openTime: newOpenTime });
+              setCalendar({ ...calendar, openTime: newOpenTime });
             }}
+            disabled={!calendar.openTimeActive}
           />
           <span style={{ fontSize: 15, fontWeight: 500 }}> 일 </span>
           <input
@@ -460,12 +414,13 @@ const handleBatchRegistrationChange = (checked: boolean) => {
             type="number"
             min={0}
             max={23}
-            value={period.openTime[1]}
+            value={calendar.openTime[1]}
             onChange={(e:any) => {
-              const newOpenTime = [...period.openTime];
+              const newOpenTime = [...calendar.openTime];
               newOpenTime[1] = e.target.value;
-              setPeriod({ ...period, openTime: newOpenTime });
+              setCalendar({ ...calendar, openTime: newOpenTime });
             }}
+            disabled={!calendar.openTimeActive}
           />
           <span style={{ fontSize: 15, fontWeight: 500 }}> 시 </span>
           <input
@@ -473,22 +428,15 @@ const handleBatchRegistrationChange = (checked: boolean) => {
             type="number"
             min={0}
             max={59}
-            value={period.openTime[2]}
+            value={calendar.openTime[2]}
             onChange={(e:any) => {
-              const newOpenTime = [...period.openTime];
+              const newOpenTime = [...calendar.openTime];
               newOpenTime[2] = e.target.value;
-              setPeriod({ ...period, openTime: newOpenTime });
+              setCalendar({ ...calendar, openTime: newOpenTime });
             }}
+            disabled={!calendar.openTimeActive}
           />
           <span style={{ fontSize: 15, fontWeight: 500 }}> 분 전</span>
-        </div>
-        <div style={{ marginTop: 10}}>
-          <label style={{ fontSize: 12, fontWeight: 500 }}>일괄 등록 </label>
-            <ToggleSwitch
-              defaultChecked={period.batch}
-              value="일괄 등록"
-              onChange={handleBatchRegistrationChange}
-            />
         </div>
         <Button
           type={"ghost"}
@@ -498,8 +446,8 @@ const handleBatchRegistrationChange = (checked: boolean) => {
             marginTop: "24px",
           }}
           onClick={() => {
-            updateItemFieldDate(period);
-            console.log(period);
+            updateItemFieldDate(calendar);
+            console.log(calendar);
           }}
         >
           수정
