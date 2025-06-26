@@ -233,12 +233,12 @@ const One = (props: Props) => {
           key: val.label,
           type: "input-number",
         });
-      } else if (val.type === "date") {
+      } else if (val.type === "calendar") {
         arr.push({
           text: val.label,
           whiteSpace: "pre",
           key: val.label,
-          type: "date",
+          type: "calendar",
           date: val.date,
         });
       } else {

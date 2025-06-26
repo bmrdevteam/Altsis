@@ -1,6 +1,6 @@
 export type TSchoolFormArchiveField = {
   label: string;
-  type: "input" | "input-number" | "select" | "date" | "file" | "file-image";
+  type: "input" | "input-number" | "select" | "calendar" | "file" | "file-image";
   options?: string[];
   date? : object;
   duplicationCheck?: boolean;
