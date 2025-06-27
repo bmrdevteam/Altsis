@@ -360,14 +360,14 @@ function RouterPage() {
                 </RequireAuth>
               }
             ></Route>
-            <Route
+            {/* <Route
               path="myArchive"
               element={
                 <RequireAuth>
                   <ArchiveViewer />
                 </RequireAuth>
               }
-            ></Route>
+            ></Route> */}
             <Route
               path="myArchive/:pid"
               element={

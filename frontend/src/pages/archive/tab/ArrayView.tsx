@@ -22,7 +22,7 @@ const colors = ["#ff595e", "#2c6e49", "#1982c4", "#6a4c93"];
 
 const One = (props: Props) => {
   const { ArchiveAPI } = useAPIv2();
-  const { currentSchool, currentUser } = useAuth();
+  const { currentSchool, currentUser, currentRegistration } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
@@ -205,67 +205,86 @@ const One = (props: Props) => {
   }, [isUpdating]);
 
   function archiveHeader() {
-    let arr: any = [
-      {
-        text: "이름",
-        whiteSpace: "pre",
-        key: "_id",
-        type: "status",
-        width: "124px",
+    if(formArchive().authStudent !== "view") {
+      let arr: any = [
+        {
+          text: "이름",
+          whiteSpace: "pre",
+          key: "_id",
+          type: "status",
+          width: "124px",
+          textAlign: "center",
+          status: userNameStatus,
+          fontWeight: "600",
+        },
+      ];
+      formArchive().fields?.map((val: any) => {
+        if (val.type === "select") {
+          arr.push({
+            text: val.label,
+            whiteSpace: "pre",
+            key: val.label,
+            type: "select",
+            option: val.options,
+          });
+        } else if (val.type === "input-number") {
+          arr.push({
+            text: val.label,
+            whiteSpace: "pre",
+            key: val.label,
+            type: "input-number",
+          });
+        } else if (val.type === "calendar") {
+          arr.push({
+            text: val.label,
+            whiteSpace: "pre",
+            key: val.label,
+            type: "calendar",
+            date: val.date,
+          });
+        } else {
+          arr.push({
+            byteCalc: true,
+            text: val.label,
+            key: val.label,
+            type: val.type,
+          });
+        }
+      });
+      arr.push({
+        text: "수정",
+        type: "rowEdit",
+        width: "72px",
         textAlign: "center",
-        status: userNameStatus,
+        fontSize: "12px",
+        btnStyle: {
+          round: true,
+          border: true,
+          padding: "4px",
+          color: "red",
+          background: "#FFF1F1",
+        },
         fontWeight: "600",
-      },
-    ];
-    formArchive().fields?.map((val: any) => {
-      if (val.type === "select") {
+      });
+      return arr;
+    }else{
+      let arr: any = [
+        {
+          text: "No",
+          type: "text",
+          key: "tableRowIndex",
+          width: "48px",
+          textAlign: "center",
+        },
+      ];
+      formArchive().fields?.map((val: any) => {
         arr.push({
           text: val.label,
-          whiteSpace: "pre",
           key: val.label,
-          type: "select",
-          option: val.options,
         });
-      } else if (val.type === "input-number") {
-        arr.push({
-          text: val.label,
-          whiteSpace: "pre",
-          key: val.label,
-          type: "input-number",
-        });
-      } else if (val.type === "calendar") {
-        arr.push({
-          text: val.label,
-          whiteSpace: "pre",
-          key: val.label,
-          type: "calendar",
-          date: val.date,
-        });
-      } else {
-        arr.push({
-          byteCalc: true,
-          text: val.label,
-          key: val.label,
-          type: val.type,
-        });
-      }
-    });
-    arr.push({
-      text: "수정",
-      type: "rowEdit",
-      width: "72px",
-      textAlign: "center",
-      fontSize: "12px",
-      btnStyle: {
-        round: true,
-        border: true,
-        padding: "4px",
-        color: "red",
-        background: "#FFF1F1",
-      },
-      fontWeight: "600",
-    });
-    return arr;
+      });
+      return arr;
+    }
   }
 
   return !isLoading ? (

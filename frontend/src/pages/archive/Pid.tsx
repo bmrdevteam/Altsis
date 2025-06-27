@@ -38,14 +38,18 @@ const ArchiveField = (props: Props) => {
   useEffect(() => {
     if (!isLoading && currentRegistration?.role && currentSeason?._id && _pid) {
       setIsLoading(true);
+    } else if (formArchive().authStudent === "view"){
+      setIsLoading(false);
     }
   }, [currentRegistration, currentSeason, _pid]);
 
   useEffect(() => {
     if (isLoading) {
       if (
-        currentRegistration?.role !== "teacher" ||
+        !currentRegistration ||
+        !formArchive().authStudent ||
         !formArchive().authTeacher ||
+        formArchive().authStudent === "undefined" || 
         formArchive().authTeacher === "undefined"
       ) {
         alert("접근 권한이 없습니다.");
@@ -56,7 +60,6 @@ const ArchiveField = (props: Props) => {
         tableRowChecked?: boolean;
       })[] = [];
       let newSelectedRegistrationList: TSeasonRegistration[] = [];
-
       if (formArchive().authTeacher === "viewAndEditStudents") {
         /* 1. 모든 선생님이 수정할 수 있는 양식인 경우 */
         newRegistrationList = currentSeason.registrations.filter(
@@ -70,11 +73,15 @@ const ArchiveField = (props: Props) => {
             (reg?.teacher === currentUser._id ||
               reg?.subTeacher === currentUser._id)
         );
+      } else if (formArchive().authTeacher === "viewAndEditSelf") {
+        /* 3. 학생과 선생님이 본인만 수정할 수 있는 양식인 경우 */
+        newRegistrationList = currentSeason.registrations.filter(
+          (reg) => reg.user === currentUser._id
+        );
       } else {
         alert("잘못된 양식입니다.");
         return navigate("/");
       }
-
       for (let reg of newRegistrationList) {
         if (_.find(selectedRegistrationList, { _id: reg._id })) {
           reg.tableRowChecked = true;
