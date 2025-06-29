@@ -35,7 +35,7 @@ const LinkSchema = mongoose.Schema(
  * @typedef TFormArchiveField
  *
  * @prop {string} label
- * @prop {"select"|"input"|"input-number"|"file"|"file-image"} type="input"
+ * @prop {"select"|"date"|"input"|"input-number"|"file"|"file-image"} type="input"
  * @prop {string[]} options - ex) ["1학년","2학년"]
  * @prop {boolean} runningTotal=false
  * @prop {boolean} total=false
@@ -69,8 +69,8 @@ const formArchiveFieldSchema = mongoose.Schema(
  * @prop {string} label
  * @prop {"array"|"object"} type="array"
  * @prop {TFormArchiveField[]} fields
- * @prop {"undefined"|"viewAndEditStudents"|"viewAndEditMyStudents"} authTeacher="undefined"
- * @prop {"undefined"|"view"} authStudent="undefined"
+ * @prop {"undefined"|"viewAndEditStudents"|"viewAndEditMyStudents"|"viewAndEditSelf"} authTeacher="undefined"
+ * @prop {"undefined"|"view"|"viewAndEditSelf"} authStudent="undefined"
  *
  */
 const formArchiveItemSchema = mongoose.Schema(
@@ -80,12 +80,12 @@ const formArchiveItemSchema = mongoose.Schema(
     fields: [formArchiveFieldSchema],
     authTeacher: {
       type: String,
-      enum: ["undefined", "viewAndEditStudents", "viewAndEditMyStudents"],
+      enum: ["undefined", "viewAndEditStudents", "viewAndEditMyStudents", "viewAndEditSelf"],
       default: "undefined",
     },
     authStudent: {
       type: String,
-      eunum: ["undefined", "view"],
+      eunum: ["undefined", "view", "viewAndEditSelf"],
       default: "undefined",
     },
   },

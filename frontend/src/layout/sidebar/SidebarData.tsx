@@ -76,8 +76,8 @@ export const SidebarData = (auth: string, role?: string): any => {
     if (currentSchool?.formArchive) {
       const formArchive = currentSchool.formArchive?.filter(
         (form: any) => 
-          currentRegistration.role == "student" && form.authStudent && form.authStudent !== "undefined" 
-        || currentRegistration.role == "teacher" && form.authTeacher && form.authTeacher !== "undefined" 
+          (currentRegistration.role === "student" && form.authStudent && form.authStudent !== "undefined")
+        || (currentRegistration.role === "teacher" && form.authTeacher && form.authTeacher !== "undefined")
       );
       if (formArchive?.length > 0) {
         data.push({

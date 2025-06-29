@@ -95,7 +95,7 @@ export const findByRegistration = async (req, res) => {
 
       /* if it is student */
       if (studentRegistration.user.equals(req.user._id)) {
-        if (formArchiveItem?.authStudent !== "view") {
+        if (formArchiveItem?.authStudent !== "view" && formArchiveItem?.authStudent !== "viewAndEditSelf") {
           return res
             .status(403)
             .send({ message: PERMISSION_DENIED, description: "view" });
@@ -254,40 +254,58 @@ export const updateByRegistration = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("formArchive_Item") });
     }
 
-    if (formArchiveItem.authTeacher === "viewAndEditStudents") {
-      const studentRegistration = await Registration(user.academyId).findById(
-        req.body.registration
-      );
+    const studentRegistration = await Registration(user.academyId).findById(
+      req.body.registration
+    );
 
-      if (!studentRegistration) {
-        return res.status(403).send({ message: PERMISSION_DENIED });
-      }
+    const teacherRegistration = await Registration(user.academyId).findOne({
+      season: studentRegistration.season,
+      user: user._id,
+      role: "teacher",
+    });
 
-      const teacherRegistration = await Registration(user.academyId).findOne({
-        season: studentRegistration.season,
-        user: user._id,
-        role: "teacher",
-      });
-      if (!teacherRegistration) {
-        return res.status(403).send({ message: PERMISSION_DENIED });
+    if (teacherRegistration) {
+      if (formArchiveItem.authTeacher === "viewAndEditStudents") {
+        if (!studentRegistration) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+        if (!teacherRegistration) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      } else if (formArchiveItem.authTeacher === "viewAndEditMyStudents") {
+        if (!studentRegistration) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+        if (
+          !studentRegistration.teacher?.equals(user._id) &&
+          !studentRegistration.subTeacher?.equals(user._id)
+        ) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      } else if (formArchiveItem.authTeacher === "viewAndEditSelf") {
+        if (!studentRegistration) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+        if (!teacherRegistration) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+        if (!studentRegistration.user?.equals(user._id)) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      } else {
+        return res.status(400).send({});
       }
-    } else if (formArchiveItem.authTeacher === "viewAndEditMyStudents") {
-      const studentRegistration = await Registration(user.academyId).findById(
-        req.body.registration
-      );
-
-      if (!studentRegistration) {
-        return res.status(403).send({ message: PERMISSION_DENIED });
+    }else{
+      if (formArchiveItem.authStudent === "viewAndEditSelf") {
+        if (!studentRegistration) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+        if (!studentRegistration.user?.equals(user._id)) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      } else {
+        return res.status(400).send({});
       }
-
-      if (
-        !studentRegistration.teacher?.equals(user._id) &&
-        !studentRegistration.subTeacher?.equals(user._id)
-      ) {
-        return res.status(403).send({ message: PERMISSION_DENIED });
-      }
-    } else {
-      return res.status(400).send({});
     }
 
     archive.data = {
