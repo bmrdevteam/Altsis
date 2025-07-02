@@ -257,18 +257,6 @@ const DataConnPopup = (props: Props) => {
                                 }}
                               />,
                               <TreeItem
-                                key={"학기"}
-                                text={"학기"}
-                                onClick={() => {
-                                  handleOnclick({
-                                    location: `${
-                                      school.schoolId
-                                    }//evaluation//${"학기"}`,
-                                    label: "학기",
-                                  });
-                                }}
-                              />,
-                              <TreeItem
                                 key={"학년"}
                                 text={"학년"}
                                 onClick={() => {
