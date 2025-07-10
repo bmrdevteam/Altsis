@@ -8,9 +8,6 @@
       <img alt="Tests Passing" src="https://img.shields.io/badge/license-MIT-blue.svg?style=" />
     </a>
     <a href="https://github.com/bmrdevteam/Altsis">
-      <img alt="created-at" src="https://img.shields.io/github/created-at/bmrdevteam/Altsis?style=&logo=&logoColor=&color=gold&label=created at"/>
-    </a>
-    <a href="https://github.com/bmrdevteam/Altsis">
       <img alt="count" src="https://img.shields.io/github/languages/top/bmrdevteam/Altsis?color=gold"/>
     </a>
     <a href="https://github.com/bmrdevteam/Altsis">
