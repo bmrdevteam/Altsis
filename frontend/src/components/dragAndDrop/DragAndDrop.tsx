@@ -30,7 +30,7 @@
 
 import React from "react";
 
-const DragAndDrop = (props: { children: JSX.Element | JSX.Element[] }) => {
+const DragAndDrop = (props: { children: React.ReactNode }) => {
   return <div>{props.children}</div>;
 };
 

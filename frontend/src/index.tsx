@@ -16,12 +16,12 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   // <React.StrictMode>
-  <AuthProvider>
-    <ThemeProvider>
-      <CookiesProvider>
+  <CookiesProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <RouterPage />
-      </CookiesProvider>
-    </ThemeProvider>
-  </AuthProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  </CookiesProvider>
   // </React.StrictMode>
 );

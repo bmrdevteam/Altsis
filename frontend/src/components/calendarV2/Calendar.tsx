@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./calendar.module.scss";
 
@@ -46,7 +46,7 @@ const Calender = (props: Props) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isMounted, setIsMounted] = useState(true);
 
-  const today = new DateItem({ date: new Date() });
+  const today = useMemo(() => new DateItem({ date: new Date() }), []);
   const [dateItem, setDateItem] = useState<DateItem>(today);
 
   const [isEventPopupActive, setIsEventPopupActive] = useState<boolean>(false);
@@ -205,7 +205,6 @@ const Calender = (props: Props) => {
     }
 
     updateCalendar(dateItem.yyyy);
-    return () => {};
   }, [dateItem.yyyy, updateCalendar]);
 
   useEffect(() => {
@@ -222,8 +221,6 @@ const Calender = (props: Props) => {
         })
       );
     }
-
-    return () => {};
   }, [dateItem.mm, mode, today]);
 
   return (

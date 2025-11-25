@@ -61,6 +61,7 @@ import ChooseAcademy from "pages/login/ChooseAcademy";
 import Dev from "pages/dev/Index";
 import Schedule from "pages/dev/Schedule";
 import Classrooms from "pages/dev/Classrooms";
+import React from "react";
 
 function RouterPage() {
   const { currentUser } = useAuth();
@@ -82,7 +83,11 @@ function RouterPage() {
       return <Navigate to="/" />;
     }
 
-    return currentUser ? children : <Navigate to="/0/login" />;
+    if (!currentUser) {
+      return <Navigate to="/login" />;
+    }
+
+    return children;
   };
 
   return (

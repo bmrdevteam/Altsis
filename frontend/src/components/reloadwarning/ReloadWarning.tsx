@@ -26,7 +26,7 @@
  *
  */
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 
 /**
  * compoent that throws a warning when the user tries to reload the page
@@ -47,7 +47,7 @@ import { useEffect } from "react";
 const ReloadWarning = ({
   children,
 }: {
-  children?: JSX.Element | JSX.Element[];
+  children?: React.ReactNode;
 }) => {
   useEffect(() => {
     const unloadCallback = (event: any) => {

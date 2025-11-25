@@ -12,7 +12,7 @@ const Nav = ({
   children,
   open,
 }: {
-  children?: JSX.Element[] | JSX.Element;
+  children?: React.ReactNode;
   open: boolean;
 }) => {
   return (
@@ -89,7 +89,7 @@ const Search = ({ setSearchRef }: { setSearchRef?: ReactElement }) => {
   );
 };
 
-const NavLinks = ({ children }: { children?: JSX.Element[] | JSX.Element }) => {
+const NavLinks = ({ children }: { children?: React.ReactNode }) => {
   return <div className={style.nav_links}>{children}</div>;
 };
 
@@ -103,9 +103,9 @@ const NavLink = ({
   type,
 }: {
   children?: string;
-  icon?: JSX.Element;
+  icon?: React.ReactNode;
   active?: boolean;
-  subLink?: JSX.Element[] | JSX.Element;
+  subLink?: React.ReactNode;
 
   path?: string;
   type?: "default" | "link";
@@ -141,7 +141,7 @@ const NavLink = ({
     </div>
   );
 };
-const SubLinks = ({ children }: { children: JSX.Element[] | JSX.Element }) => {
+const SubLinks = ({ children }: { children: React.ReactNode }) => {
   return <div className={`${style.sub_links}`}>{children}</div>;
 };
 
@@ -153,7 +153,7 @@ const SubLink = ({
   active,
 }: {
   children?: string;
-  icon?: JSX.Element;
+  icon?: React.ReactNode;
   handleClick?: any;
   path?: string;
   active?: boolean;

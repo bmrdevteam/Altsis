@@ -119,7 +119,7 @@ const Home = () => {
       <Navbar />
       <div className={style.section}>
         <Schedule
-          dayArray={["월", "화", "수", "목", "금"]}
+          dayArray={["일", "월", "화", "수", "목", "금", "토"]}
           defaultEvents={[
             ...(enrollmentsToEvents(enrollments) || []),
             ...(memosToEvents(currentRegistration?.memos) || []),

@@ -93,7 +93,7 @@ const School = (props: Props) => {
   useEffect(() => {
     if (isLoading && pid) {
       if (currentUser.auth === "manager" && currentSchool._id !== pid) {
-        return navigate("/admin/schools/" + currentSchool._id);
+        navigate("/admin/schools/" + currentSchool._id);
       }
       SchoolAPI.RSchool({ params: { _id: pid } })
         .then(({ school }) => {

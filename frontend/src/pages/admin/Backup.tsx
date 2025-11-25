@@ -39,7 +39,7 @@ import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
 import Select from "components/select/Select";
 import Textarea from "components/textarea/Textarea";
-import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR, SUCCESS_MESSAGE } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -67,7 +67,7 @@ const Backup = (props: Props) => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [editPopupActive, setEditPopupActive] = useState(false);
 
-  const fileInput = React.useRef<any>();
+  const fileInput = React.useRef<any>(null);
   const [selectedFile, setSelectedFile] = useState<any>();
   const [dataToRestore, setDataToRestore] = useState<any[]>([]);
   const handleProfileUploadButtonClick = (

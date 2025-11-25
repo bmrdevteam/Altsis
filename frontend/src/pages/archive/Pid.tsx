@@ -50,6 +50,7 @@ const ArchiveField = (props: Props) => {
       ) {
         alert("접근 권한이 없습니다.");
         navigate("/");
+        return;
       }
 
       let newRegistrationList: (TSeasonRegistration & {
@@ -72,7 +73,8 @@ const ArchiveField = (props: Props) => {
         );
       } else {
         alert("잘못된 양식입니다.");
-        return navigate("/");
+        navigate("/");
+        return;
       }
 
       for (let reg of newRegistrationList) {

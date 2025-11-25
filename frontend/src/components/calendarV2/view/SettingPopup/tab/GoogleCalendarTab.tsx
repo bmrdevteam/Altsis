@@ -18,13 +18,14 @@ const description = `1. [구글 캘린더 - 내 캘린더의 설정 - 일정의 
 3. 등록
 `;
 const placeholder = "캘린더 ID";
+const SUCCESS_MESSAGE = "성공적으로 저장되었습니다.";
 
 const Index = (props: Props) => {
   const { currentUser, setCurrentUser } = useAuth();
   const { UserAPI } = useAPIv2();
   const { CalendarAPI } = useGoogleAPI();
 
-  const calendarRef = useRef<string | undefined>();
+  const calendarRef = useRef<string | undefined>(undefined);
   const [refresh, setRefresh] = useState<boolean>(false);
 
   const updateSchoolCalendar = async () => {

@@ -1,11 +1,12 @@
 import Svg from "../../assets/svg/Svg";
 import { useAuth } from "contexts/authContext";
+import React from "react";
 
 export interface INavLink {
   title: string;
   name: string;
   path?: string;
-  icon: JSX.Element;
+  icon: React.ReactNode;
   subLink?: INavSubLink[];
   type?: "default" | "link";
 }
@@ -14,7 +15,7 @@ interface INavSubLink {
   title: string;
   name: string;
   path: string;
-  icon: JSX.Element;
+  icon: React.ReactNode;
 }
 export const SidebarData = (auth: string, role?: string): any => {
   const { currentRegistration, currentSchool } = useAuth();

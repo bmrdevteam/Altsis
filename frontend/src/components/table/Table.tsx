@@ -72,7 +72,7 @@ type Props = {
 /**
  * returns a filterItem component for the filter component
  *
- * @returns {JSX.Element}
+ * @returns {React.ReactNode}
  *
  * @example <TableFilterItem/>
  *
@@ -133,7 +133,7 @@ const TableFilterItem = () => {
 /**
  * returns a control component for the table component
  *
- * @returns {JSX.Element} controls component
+ * @returns {React.ReactNode} controls component
  *
  * @example
  * <TableControls/>
@@ -227,7 +227,7 @@ const TableControls = (props: { selectedItems: any[]; data: any }) => {
 /**
  * table search component
  *
- * @returns {JSX.Element}
+ * @returns {React.ReactNode}
  *
  * @version 1.0
  */
@@ -283,7 +283,7 @@ const TableSearch = ({
  *
  * @param {Props}
  *
- * @returns {JSX.Element}
+ * @returns {React.ReactNode}
  * 
  * @example 
  <Table
@@ -370,7 +370,7 @@ const Table = (props: Props) => {
   /**
    * filter component
    *
-   * @returns {JSX.Element}
+   * @returns {React.ReactNode}
    *
    * @version 1.0 design
    */
@@ -392,7 +392,7 @@ const Table = (props: Props) => {
   /**
    * table header component
    *
-   * @returns {JSX.Element}
+   * @returns {React.ReactNode}
    *
    * @version 1.0
    */
@@ -470,7 +470,7 @@ const Table = (props: Props) => {
   /**
    * table header component
    *
-   * @returns {JSX.Element}
+   * @returns {React.ReactNode}
    *
    * @version 1.0
    */

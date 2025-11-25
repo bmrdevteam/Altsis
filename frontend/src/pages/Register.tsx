@@ -37,10 +37,10 @@ import Button from "../components/button/Button";
 type Props = {};
 
 const Register = (props: Props) => {
-  const usernameRef = useRef<{ value: any }>();
-  const emailRef = useRef<{ value: any }>();
-  const passwordRef = useRef<{ value: any }>();
-  const passwordCheckRef = useRef<{ value: any }>();
+  const usernameRef = useRef<{ value: any }>(null);
+  const emailRef = useRef<{ value: any }>(null);
+  const passwordRef = useRef<{ value: any }>(null);
+  const passwordCheckRef = useRef<{ value: any }>(null);
 
   const [errorMessage, setErrorMessage] = useState<string>("");
   // const status = useGoogleLogin();

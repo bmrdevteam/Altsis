@@ -1,10 +1,10 @@
 import style from "./tree.module.scss";
 import Svg from "assets/svg/Svg";
-import { useState } from "react";
+import React, { useState } from "react";
 
 type Props = {
   text: string;
-  subItem?: JSX.Element[];
+  subItem?: React.ReactNode[];
   onClick?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 };
 
@@ -44,7 +44,7 @@ const TreeItem = (props: Props) => {
   );
 };
 
-const Tree = ({ children }: { children: JSX.Element | JSX.Element[] }) => {
+const Tree = ({ children }: { children: React.ReactNode }) => {
   return <div className={style.tree}>{children}</div>;
 };
 

@@ -59,7 +59,7 @@ const Backup = (props: Props) => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [editPopupActive, setEditPopupActive] = useState(false);
 
-  const fileInput = React.useRef<any>();
+  const fileInput = React.useRef<any>(null);
   const [selectedFile, setSelectedFile] = useState<any>();
   const [dataToRestore, setDataToRestore] = useState<any[]>([]);
   const handleProfileUploadButtonClick = (
@@ -80,21 +80,7 @@ const Backup = (props: Props) => {
         const data = JSON.parse(e.target.result);
         if (!Array.isArray(data)) {
           alert(
-            `JSON 배열 형식으로 업로드해주세요.
-
-___________________
-example.json
-___________________
-[
-    {
-        _id: "asdfasdfds",
-        userId: "user01",
-    },
-    {
-        _id: "qwerqwer",
-        userId: "user02",
-    })
-]`
+            `JSON 배열 형식으로 업로드해주세요.\n\n___________________\nexample.json\n___________________\n[\n    {\n        _id: "asdfasdfds",\n        userId: "user01",\n    },\n    {\n        _id: "qwerqwer",\n        userId: "user02",\n    })\n]`
           );
           setSelectedFile(undefined);
         } else {
@@ -229,7 +215,7 @@ ___________________
                     query: { title: e.title },
                   })
                     .then(() => {
-                      alert(SUCCESS_MESSAGE);
+                      alert("작업이 성공적으로 완료되었습니다.");
                       setIsLoading(true);
                     })
                     .catch((err) => {
@@ -273,7 +259,7 @@ ___________________
                   });
                   setIsCreatingBackup(false);
                   setAddPopupActive(false);
-                  alert(SUCCESS_MESSAGE);
+                  alert("작업이 성공적으로 완료되었습니다.");
                   setIsLoading(true);
                 } catch (err: any) {
                   ALERT_ERROR(err);
@@ -371,7 +357,7 @@ ___________________
                     });
                     setIsRestoring(false);
                     setRestorePopupActive(false);
-                    alert(SUCCESS_MESSAGE);
+                    alert("작업이 성공적으로 완료되었습니다.");
                   } catch (err) {
                     ALERT_ERROR(err);
                     setIsRestoring(false);

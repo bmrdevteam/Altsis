@@ -25,7 +25,7 @@
  * NOTES
  *
  */
-import { useState } from "react";
+import React, { useState } from "react";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import style from "./tab.module.scss";
@@ -67,7 +67,7 @@ import style from "./tab.module.scss";
  *
  */
 const Tab = (props: {
-  children?: JSX.Element[] | JSX.Element;
+  children?: React.ReactNode;
   items: object;
   align?: "flex-start" | "center" | "flex-end";
   dontUsePaths?: boolean;

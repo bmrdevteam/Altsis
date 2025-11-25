@@ -27,13 +27,13 @@
  *
  */
 
-import { CSSProperties } from "react";
+import React, { CSSProperties } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./popup.module.scss";
 
 type Props = {
-  children: JSX.Element | JSX.Element[];
-  footer?: JSX.Element | JSX.Element[];
+  children: React.ReactNode;
+  footer?: React.ReactNode;
   setState: any;
   title?: string;
   style?: CSSProperties;
