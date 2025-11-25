@@ -1,9 +1,9 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./calendar.module.scss";
 
 import Select from "components/select/Select";
-import useGoogleAPI from "hooks/useGoogleAPI";
+import useGoogleCalendarAPI from "hooks/useGoogleAPI";
 import { useAuth } from "contexts/authContext";
 
 import {
@@ -21,101 +21,24 @@ import MonthlyView from "./view/MonthlyViwer/Index";
 import Loading from "components/loading/Loading";
 import EventPopup from "./view/EventPopup/Index";
 import SettingPopup from "./view/SettingPopup/Index";
-
-/**
- * calendar component
- *
- * @param props
- *
- * @returns carlendar component
- *
- * @example <Calendar/>
- *
- * @version 2.0 second version
- */
-
-type Props = {
-  rawCalendars: TRawCalendar[];
-};
-
-type Mode = "day" | "week" | "month";
-
-const getLabel = ({ dateItem, mode }: { dateItem: DateItem; mode: Mode }) => {
-  switch (mode) {
-    case "day":
-      return `${dateItem.formatText(4)}`;
-    case "week":
-      return `${dateItem.formatText(3)} ~ ${dateItem
-        .getDateItemAfter(6)
-        .formatText(3)}`;
-    case "month":
-      return `${dateItem.formatText(2)}`;
-  }
-  return "";
-};
-
-const Viewer = memo(
-  ({
-    mode,
-    calendar,
-    dateItem,
-    isMounted,
-    setEvent,
-    setIsEventPopupActive,
-  }: {
-    mode: Mode;
-    calendar: Calendar;
-    dateItem: DateItem;
-    isMounted: boolean;
-    setEvent: React.Dispatch<React.SetStateAction<EventItem | undefined>>;
-    setIsEventPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
-  }) => {
-    const onClickEventHandler = (event: EventItem) => {
-      setEvent(event);
-      setIsEventPopupActive(true);
-    };
-
-    if (mode === "day") {
-      return (
-        <WeeklyView
-          eventMap={calendar?.getEventMap(dateItem, dateItem)}
-          isMounted={isMounted}
-          dayList={[dateItem.getDayString()]}
-          onClickEvent={onClickEventHandler}
-        />
-      );
-    }
-
-    if (mode === "week") {
-      return (
-        <WeeklyView
-          eventMap={calendar?.getEventMap(
-            dateItem,
-            dateItem.getDateItemAfter(6)
-          )}
-          isMounted={isMounted}
-          dayList={["일", "월", "화", "수", "목", "금", "토"]}
-          onClickEvent={onClickEventHandler}
-        />
-      );
-    }
-    if (mode === "month") {
-      return (
-        <MonthlyView
-          year={dateItem.yyyy}
-          month={dateItem.mm}
-          eventMap={calendar?.getFullMonthlyEventMap(dateItem)}
-          onClickEvent={onClickEventHandler}
-        />
-      );
-    }
-    return <></>;
-  }
-);
+import useAPIv2 from "hooks/useAPIv2";
 
 const Calender = (props: Props) => {
   const { currentRegistration } = useAuth();
-  const { CalendarAPI } = useGoogleAPI();
+  const { CalendarAPI: googleAPI } = useGoogleCalendarAPI();
+  const { UserAPI } = useAPIv2();
+
+  const calendarRef = useRef<string | null>(null);
+  const [refresh, setRefresh] = useState<boolean>(false);
+
+  const updateSchoolCalendar = async () => {
+    if (currentRegistration?.googleCalendar) {
+      await UserAPI.UUserCalendar({
+        data: { calendar: calendarRef.current ?? undefined },
+      });
+    }
+    setRefresh((r) => !r);
+  };
 
   const [mode, setMode] = useState<Mode>("week");
 
@@ -132,7 +55,7 @@ const Calender = (props: Props) => {
   const [isSettingPopupActive, setIsSettingPopupActive] =
     useState<boolean>(false);
 
-  const updateCalendar = async (year: number) => {
+  const updateCalendar = useCallback(async (year: number) => {
     setIsLoading(true);
 
     const calendar = new Calendar({ year });
@@ -153,7 +76,7 @@ const Calender = (props: Props) => {
               rawCalendar.from === "myCalendar")
         )
         .map(async (_rawGoogleCalendar) => {
-          const googleCalendar = (await CalendarAPI.RPublicEvents({
+          const googleCalendar = (await googleAPI.RPublicEvents({
             calendarId: _rawGoogleCalendar.calendarId as string,
             queries,
           })) as GoogleCalendarData;
@@ -195,7 +118,7 @@ const Calender = (props: Props) => {
 
     setCalendar(calendar);
     setIsLoading(false);
-  };
+  }, [props.rawCalendars, googleAPI, currentRegistration]);
 
   const onClickNavHandler = (props: {
     cmd: "left" | "right" | "center";
@@ -283,11 +206,11 @@ const Calender = (props: Props) => {
 
     updateCalendar(dateItem.yyyy);
     return () => {};
-  }, []);
+  }, [dateItem.yyyy, updateCalendar]);
 
   useEffect(() => {
     if (mode === "day") {
-      if (dateItem.mm === today.mm) {
+      if (dateItem.mm !== today.mm) {
         setDateItem(today);
       }
     } else if (mode === "week") {
@@ -301,7 +224,7 @@ const Calender = (props: Props) => {
     }
 
     return () => {};
-  }, [mode]);
+  }, [dateItem.mm, mode, today]);
 
   return (
     <>
@@ -387,10 +310,89 @@ const Calender = (props: Props) => {
         <EventPopup setPopupActive={setIsEventPopupActive} event={event} />
       )}
       {isSettingPopupActive && (
-        <SettingPopup setPopupActive={setIsSettingPopupActive} />
+        <SettingPopup setPopupActive={setIsEventPopupActive} />
       )}
     </>
   );
 };
+
+type Props = {
+  rawCalendars: TRawCalendar[];
+};
+
+type Mode = "day" | "week" | "month";
+
+const getLabel = ({ dateItem, mode }: { dateItem: DateItem; mode: Mode }) => {
+  switch (mode) {
+    case "day":
+      return `${dateItem.formatText(4)}`;
+    case "week":
+      return `${dateItem.formatText(3)} ~ ${dateItem
+        .getDateItemAfter(6)
+        .formatText(3)}`;
+    case "month":
+      return `${dateItem.formatText(2)}`;
+  }
+  return "";
+};
+
+const Viewer = memo(
+  ({
+    mode,
+    calendar,
+    dateItem,
+    isMounted,
+    setEvent,
+    setIsEventPopupActive,
+  }: {
+    mode: Mode;
+    calendar: Calendar;
+    dateItem: DateItem;
+    isMounted: boolean;
+    setEvent: React.Dispatch<React.SetStateAction<EventItem | undefined>>;
+    setIsEventPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
+  }) => {
+    const onClickEventHandler = (event: EventItem) => {
+      setEvent(event);
+      setIsEventPopupActive(true);
+    };
+
+    if (mode === "day") {
+      return (
+        <WeeklyView
+          eventMap={calendar?.getEventMap(dateItem, dateItem)}
+          isMounted={isMounted}
+          dayList={[dateItem.getDayString()]}
+          onClickEvent={onClickEventHandler}
+        />
+      );
+    }
+
+    if (mode === "week") {
+      return (
+        <WeeklyView
+          eventMap={calendar?.getEventMap(
+            dateItem,
+            dateItem.getDateItemAfter(6)
+          )}
+          isMounted={isMounted}
+          dayList={["일", "월", "화", "수", "목", "금", "토"]}
+          onClickEvent={onClickEventHandler}
+        />
+      );
+    }
+    if (mode === "month") {
+      return (
+        <MonthlyView
+          year={dateItem.yyyy}
+          month={dateItem.mm}
+          eventMap={calendar?.getFullMonthlyEventMap(dateItem)}
+          onClickEvent={onClickEventHandler}
+        />
+      );
+    }
+    return <></>;
+  }
+);
 
 export default Calender;

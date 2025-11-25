@@ -27,11 +27,11 @@
  */
 
 import Svg from "assets/svg/Svg";
-import { CSSProperties, useState } from "react";
+import React, { CSSProperties, useState } from "react";
 import btnStyle from "./button.module.scss";
 
 type Props = {
-  children?: string | JSX.Element;
+  children?: React.ReactNode;
   onClick?: any;
   type?: "ghost" | "solid" | "hover";
   round?: boolean;
@@ -52,7 +52,7 @@ type Props = {
  * @param {boolean} disableOnclick - if true, the button will only be allowed to be pressed once
  * @param {object} styles - {} a style object to gain more control
  * 
- * @returns {JSX.Element} Button component
+ * @returns {React.ReactNode} Button component
  * 
  * @example
  <Button

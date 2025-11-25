@@ -345,12 +345,11 @@ const ParsedTableBlock = (props: Props) => {
       case "input":
         return props.auth === "edit" ? (
           <div
-            className={`${style.cell} ${style.input}`}
+            className={`${style.cell} ${style.input} ${!props.returnData[data?.name] && !props.returnData[data?.id] ? style.empty : ''}`}
             style={{ textAlign: data.align }}
-            placeholder={data.placeholder ?? "입력"}
+            data-placeholder={data.placeholder ?? "입력"}
             contentEditable
             onClick={() => {}}
-            defaultValue={props.returnData[data?.name]}
             data-inputrequired={data.required}
             suppressContentEditableWarning
             onInput={(e) => {
@@ -374,7 +373,7 @@ const ParsedTableBlock = (props: Props) => {
         return props.auth === "edit" ? (
           <div
             className={`${style.cell} ${style.select}`}
-            placeholder={data.placeholder ?? "입력"}
+            data-placeholder={data.placeholder ?? "입력"}
           >
             <select
               style={{ textAlign: data.align, fontSize: data.fontSize }}
@@ -399,7 +398,7 @@ const ParsedTableBlock = (props: Props) => {
         ) : (
           <div
             className={`${style.cell} ${style.select}`}
-            placeholder={data.placeholder ?? "입력"}
+            data-placeholder={data.placeholder ?? "입력"}
           >
             <select
               style={{ textAlign: data.align, fontSize: data.fontSize }}
