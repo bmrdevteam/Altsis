@@ -27,7 +27,7 @@
  * @version 1.0
  *
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import style from "style/pages/enrollment.module.scss";
 
@@ -46,13 +46,16 @@ const CoursesMentoring = (props: Props) => {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
+  const handleUpdate = useCallback(() => {
     if (isLoading) {
       props.updateCourses();
       setIsLoading(false);
     }
-    return () => {};
-  }, [isLoading]);
+  }, [isLoading, props]);
+
+  useEffect(() => {
+    handleUpdate();
+  }, [handleUpdate]);
 
   return (
     <>

@@ -1,6 +1,6 @@
 import Select from "components/select/Select";
 import _ from "lodash";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 type Props = {
   subjectLabelList: string[];
@@ -9,7 +9,12 @@ type Props = {
   setSubject: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
-const SubjectSelect = (props: Props) => {
+const SubjectSelect = ({
+  subjectLabelList,
+  subjectDataList,
+  defaultSubject,
+  setSubject,
+}: Props) => {
   const [data, setData] = useState<{
     [key: string]: {
       selectedValue: string;
@@ -18,127 +23,124 @@ const SubjectSelect = (props: Props) => {
   }>({});
 
   useEffect(() => {
-    if (
-      props.subjectLabelList.length === 0 ||
-      props.subjectDataList.length === 0
-    )
-      return;
+    if (subjectLabelList.length === 0 || subjectDataList.length === 0) return;
 
-    for (let label of props.subjectLabelList) {
-      data[label] = {
+    const newData: typeof data = {};
+
+    for (const label of subjectLabelList) {
+      newData[label] = {
         selectedValue: "",
         options: [{ text: "", value: "" }],
       };
     }
 
-    data[props.subjectLabelList[0]].options = [
+    newData[subjectLabelList[0]].options = [
       {
         text: "",
         value: "",
       },
-      ...Array.from(new Set(props.subjectDataList.map((data) => data[0]))).map(
-        (data) => {
-          return {
-            text: data,
-            value: data,
-          };
-        }
+      ...Array.from(new Set(subjectDataList.map((data) => data[0]))).map(
+        (data) => ({
+          text: data,
+          value: data,
+        })
       ),
     ];
 
     if (
-      props.defaultSubject &&
-      _.find(props.subjectDataList, (rawData) =>
-        _.isEqual(rawData, props.defaultSubject)
-      )
+      defaultSubject &&
+      _.find(subjectDataList, (rawData) => _.isEqual(rawData, defaultSubject))
     ) {
-      for (let i = 0; i < props.subjectLabelList.length; i++) {
-        data[props.subjectLabelList[i]].selectedValue = props.defaultSubject[i];
+      for (let i = 0; i < subjectLabelList.length; i++) {
+        newData[subjectLabelList[i]].selectedValue = defaultSubject[i];
       }
-      for (let i = 1; i < props.subjectLabelList.length; i++) {
-        data[props.subjectLabelList[i]].options = [
+      for (let i = 1; i < subjectLabelList.length; i++) {
+        newData[subjectLabelList[i]].options = [
           { text: "", value: "" },
           ...Array.from(
             new Set(
-              _.filter(props.subjectDataList, (rawData) => {
+              _.filter(subjectDataList, (rawData) => {
                 for (let j = 0; j < i; j++) {
                   if (
-                    rawData[j] !== data[props.subjectLabelList[j]].selectedValue
+                    rawData[j] !== newData[subjectLabelList[j]].selectedValue
                   )
                     return false;
                 }
                 return true;
               }).map((rawData) => rawData[i])
             )
-          ).map((label) => {
-            return {
-              text: label,
-              value: label,
-            };
-          }),
+          ).map((label) => ({
+            text: label,
+            value: label,
+          })),
         ];
       }
     }
 
-    setData({ ...data });
-    return () => {};
-  }, []);
+    setData(newData);
+  }, [subjectLabelList, subjectDataList, defaultSubject]);
 
   useEffect(() => {
-    const subject = props.subjectLabelList.map(
+    const subject = subjectLabelList.map(
       (label) => data[label]?.selectedValue ?? ""
     );
-    props.setSubject(subject);
-    return () => {};
-  }, [data]);
+    setSubject(subject);
+  }, [data, subjectLabelList, setSubject]);
+
+  const handleSelectChange = useCallback((label: string, idx: number, value: string) => {
+    setData((prevData) => {
+      const newData = _.cloneDeep(prevData);
+      if (!newData[label]) return prevData;
+
+      newData[label].selectedValue = value;
+
+      if (idx + 1 < subjectLabelList.length) {
+        newData[subjectLabelList[idx + 1]] = {
+          selectedValue: "",
+          options: [
+            { text: "", value: "" },
+            ...Array.from(
+              new Set(
+                _.filter(subjectDataList, (rawData) => {
+                  for (let i = 0; i <= idx; i++) {
+                    if (
+                      rawData[i] !==
+                      newData[subjectLabelList[i]].selectedValue
+                    )
+                      return false;
+                  }
+                  return true;
+                }).map((rawData) => rawData[idx + 1])
+              )
+            ).map((label) => ({
+              text: label,
+              value: label,
+            })),
+          ],
+        };
+      }
+
+      for (let i = idx + 2; i < subjectLabelList.length; i++) {
+        newData[subjectLabelList[i]] = {
+          selectedValue: "",
+          options: [{ text: "", value: "" }],
+        };
+      }
+      return newData;
+    });
+  }, [subjectLabelList, subjectDataList]);
+
 
   return (
     <div style={{ display: "flex", gap: "24px" }} key="subject-select">
-      {props.subjectLabelList.map((label: string, idx: number) => {
+      {subjectLabelList.map((label: string, idx: number) => {
         return (
           <Select
             key={label + data[label]?.selectedValue}
             appearence="flat"
             label={label}
             required
-            onChange={(e: string) => {
-              if (!data[label]) return;
-              data[label].selectedValue = e;
-              if (idx + 1 < props.subjectLabelList.length) {
-                data[props.subjectLabelList[idx + 1]] = {
-                  selectedValue: "",
-                  options: [
-                    { text: "", value: "" },
-                    ...Array.from(
-                      new Set(
-                        _.filter(props.subjectDataList, (rawData) => {
-                          for (let i = 0; i <= idx; i++) {
-                            if (
-                              rawData[i] !==
-                              data[props.subjectLabelList[i]].selectedValue
-                            )
-                              return false;
-                          }
-                          return true;
-                        }).map((rawData) => rawData[idx + 1])
-                      )
-                    ).map((label) => {
-                      return {
-                        text: label,
-                        value: label,
-                      };
-                    }),
-                  ],
-                };
-              }
-              for (let i = idx + 2; i < props.subjectLabelList.length; i++) {
-                data[props.subjectLabelList[i]] = {
-                  selectedValue: "",
-                  options: [{ text: "", value: "" }],
-                };
-              }
-              setData({ ...data });
-            }}
+            onChange={(e: string) => handleSelectChange(label, idx, e)}
             options={data[label]?.options ?? []}
             defaultSelectedValue={data[label]?.selectedValue ?? ""}
           />

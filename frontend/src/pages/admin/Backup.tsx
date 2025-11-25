@@ -39,7 +39,7 @@ import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
 import Select from "components/select/Select";
 import Textarea from "components/textarea/Textarea";
-import useAPIv2, { ALERT_ERROR, SUCCESS_MESSAGE } from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -249,7 +249,7 @@ ___________________
                     query: { title: e.title },
                   })
                     .then(() => {
-                      alert(SUCCESS_MESSAGE);
+                      alert("삭제되었습니다.");
                       setIsLoading(true);
                     })
                     .catch((err) => {
@@ -292,7 +292,7 @@ ___________________
                   });
                   setIsCreatingBackup(false);
                   setAddPopupActive(false);
-                  alert(SUCCESS_MESSAGE);
+                  alert("백업이 생성되었습니다.");
                   setIsLoading(true);
                 } catch (err: any) {
                   ALERT_ERROR(err);
@@ -390,7 +390,7 @@ ___________________
                     });
                     setIsRestoring(false);
                     setRestorePopupActive(false);
-                    alert(SUCCESS_MESSAGE);
+                    alert("데이터를 복구했습니다.");
                   } catch (err) {
                     ALERT_ERROR(err);
                     setIsRestoring(false);
@@ -465,8 +465,8 @@ ___________________
                 defaultValue={
                   selectedFile
                     ? dataToRestore.length <= 10000
-                      ? JSON.stringify(dataToRestore, null, "\t")
-                      : JSON.stringify(dataToRestore[0], null, "\t") + "....."
+                      ? JSON.stringify(dataToRestore, null, "	")
+                      : JSON.stringify(dataToRestore[0], null, "	") + "....."
                     : ""
                 }
                 rows={15}

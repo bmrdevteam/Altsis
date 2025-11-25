@@ -27,7 +27,7 @@
  *
  */
 import Table from "components/tableV2/Table";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useState } from "react";
 
 import _ from "lodash";
@@ -106,19 +106,21 @@ const Index = (props: Props) => {
     }
   };
 
-  useEffect(() => {
+  const handleUpdate = useCallback(() => {
     if (isLoading) {
       props.updateSeasonDataRegistrations().then(() => {
         setIsLoading(false);
       });
     }
-    return () => {};
-  }, [isLoading]);
+  }, [isLoading, props]);
+
+  useEffect(() => {
+    handleUpdate();
+  }, [handleUpdate]);
 
   useEffect(() => {
     setRegistrationList(props.seasonData.registrations);
     selectedRegistrations.current = [];
-    return () => {};
   }, [props.seasonData.registrations]);
 
   return (

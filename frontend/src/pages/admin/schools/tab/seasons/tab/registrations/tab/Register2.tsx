@@ -27,7 +27,7 @@
  *
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import _ from "lodash";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -69,6 +69,8 @@ type TUser = {
   userId: string;
   userName: string;
 };
+
+const SUCCESS_MESSAGE = 'SUCCESS';
 
 function Basic(props: Props) {
   const { UserAPI, RegistrationAPI } = useAPIv2();
@@ -145,7 +147,7 @@ function Basic(props: Props) {
     props.setIsLoading(true);
   };
 
-  useEffect(() => {
+  const fetchUsers = useCallback(() => {
     UserAPI.RUsers({ query: { sid: props.seasonData.school } }).then(
       ({ users }) => {
         setUserList(
@@ -153,7 +155,11 @@ function Basic(props: Props) {
         );
       }
     );
-  }, []);
+  }, [UserAPI, props.seasonData.registrations, props.seasonData.school]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   return (
     <>

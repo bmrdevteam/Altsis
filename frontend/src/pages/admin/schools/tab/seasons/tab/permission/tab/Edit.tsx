@@ -27,7 +27,7 @@
  *
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
 import style from "style/pages/admin/schools.module.scss";
 
@@ -49,6 +49,8 @@ type Props = {
   setIsLoading: any;
 };
 
+const SUCCESS_MESSAGE = "SUCCESS";
+
 function Basic(props: Props) {
   const { SeasonAPI } = useAPIv2();
 
@@ -69,11 +71,11 @@ function Basic(props: Props) {
     isAllowed: true,
   });
 
-  const updatePermission = (permission: TPermission) => {
+  const updatePermission = useCallback((permission: TPermission) => {
     setTeacher(permission.teacher);
     setStudent(permission.student);
     setExceptions(permission.exceptions);
-  };
+  }, []);
 
   useEffect(() => {
     if (isLoading) {
@@ -101,7 +103,7 @@ function Basic(props: Props) {
           setIsLoading(false);
         });
     }
-  }, [isLoading]);
+  }, [isLoading, SeasonAPI, props, updatePermission]);
 
   return (
     <Popup
@@ -297,7 +299,10 @@ function Basic(props: Props) {
                 key: "delete",
                 type: "button",
                 onClick: (e: any) => {
-                  exceptions.splice(e.tableRowIndex - 1, 1);
+                  const newExceptions = exceptions.filter(
+                    (_, index) => index !== e.tableRowIndex - 1
+                  );
+                  setExceptions(newExceptions);
                   SeasonAPI.DSeasonPermissionException({
                     params: { _id: props._id, type: props.type },
                     query: { registration: e.registration },
