@@ -150,10 +150,15 @@ const DatatableMenu = (props: Props) => {
                       key={index}
                     >
                       <div
-                        className={style.item}
-                        placeholder="입력"
+                        className={`${style.item} ${!headers[index] ? style.empty : ''}`}
+                        data-placeholder="입력"
                         contentEditable
                         suppressContentEditableWarning
+                        onInput={(e) => {
+                          const newHeaders = [...headers];
+                          newHeaders[index] = e.currentTarget.textContent || "";
+                          setHeaders(newHeaders);
+                        }}
                       >
                         {headers[index]}
                       </div>

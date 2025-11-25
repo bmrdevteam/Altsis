@@ -843,3 +843,15 @@ parsed block
         background-color: var(--component-color);
     }
 }
+.block.empty::before {
+  content: attr(data-placeholder);
+  color: #adb5bd;
+}
+.text.empty::before {
+  content: attr(data-placeholder);
+  color: #adb5bd;
+}
+.item.empty::before {
+  content: attr(data-placeholder);
+  color: #adb5bd;
+}

@@ -27,8 +27,8 @@ const ParagraphBlock = (props: Props) => {
           update: false,
         });
       }}
-      placeholder="입력"
-      className={style.block}
+      data-placeholder="입력"
+      className={`${style.block} ${!block.data?.text ? style.empty : ""}`}
       contentEditable
       suppressContentEditableWarning
     >

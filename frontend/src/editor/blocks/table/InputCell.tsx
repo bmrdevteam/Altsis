@@ -15,7 +15,7 @@ const InputCell = (props: Props) => {
     <div
       className={`${style.cell} ${style.input}`}
       style={{ textAlign: cell?.align }}
-      placeholder={
+      data-placeholder={
         cell?.placeholder || cell?.placeholder === " "
           ? cell?.placeholder
           : "입력"

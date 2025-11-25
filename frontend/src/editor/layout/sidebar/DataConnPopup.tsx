@@ -385,8 +385,8 @@ const DataConnPopup = (props: Props) => {
                     contentEditable
                     ref={textareaRef}
                     suppressContentEditableWarning
-                    placeholder="데이터 입력"
-                    className={style.text}
+                    data-placeholder="데이터 입력"
+                    className={`${style.text} ${!getCurrentCell()?.dataText ? style.empty : ''}`}
                     onKeyDown={(e) => {
                       if (e.key === "Backspace") {
                         if (
