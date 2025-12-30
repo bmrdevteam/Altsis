@@ -294,7 +294,7 @@ const Sidebar = (props: Props) => {
           min="0"
           max="100"
           step="1"
-          defaultValue={parseInt(getCurrentBlock()?.data?.fontSize) || "14px"}
+          defaultValue={parseInt(getCurrentBlock()?.data?.fontSize) || "14"}
           style={{ width: "50%" }}
           onChange={(e) => {
             const fontSize = `${e.target.value}px`;
@@ -311,7 +311,7 @@ const Sidebar = (props: Props) => {
             }
           }}
           />
-        <label id="fontSizeDisplay" >{getCurrentBlock().data.fontSize ?? "14px"}</label>
+        <label id="fontSizeDisplay" >{getCurrentBlock().data.fontSize ?? "14"}</label>
         </div>
       </div>
       <div className={style.option}>
@@ -569,7 +569,7 @@ const Sidebar = (props: Props) => {
             min="0"
             max="100"
             step="1"
-            defaultValue={parseInt(getCurrentCell()?.data?.fontSize) || parseInt(getCurrentBlock()?.data?.fontSize) || "14px"}
+            defaultValue={parseInt(getCurrentCell()?.data?.fontSize) || parseInt(getCurrentBlock()?.data?.fontSize) || "14"}
             style={{ width: "50%" }}
             onChange={(e) => {
               const fontSize = `${e.target.value}px`;
@@ -581,7 +581,7 @@ const Sidebar = (props: Props) => {
               }
             }}
             />
-            <label id="fontSizeCellDisplay" >{getCurrentCell().fontSize ?? getCurrentBlock()?.data?.fontSize ?? "14px"}</label>
+            <label id="fontSizeCellDisplay" >{getCurrentCell().fontSize ?? getCurrentBlock()?.data?.fontSize ?? "14"}</label>
           </div>
           <div className={style.item}>
             <label>헤더</label>
