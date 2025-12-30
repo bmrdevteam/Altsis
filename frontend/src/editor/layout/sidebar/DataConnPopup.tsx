@@ -163,6 +163,7 @@ const DataConnPopup = (props: Props) => {
                 });
 
                 props.callPageReload();
+                alert(SUCCESS_MESSAGE);
               }}
               type="ghost"
             >
