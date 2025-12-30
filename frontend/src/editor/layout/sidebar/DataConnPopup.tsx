@@ -90,29 +90,75 @@ const DataConnPopup = (props: Props) => {
     location: string;
     label: string;
   }) {
-    const textarea = document.getElementById("textarea");
     const data = document.createElement("data");
     data.contentEditable = "false";
     data.innerText = label;
     data.className = style.data;
-    // data.setAttribute("name", "DBData");
     data.setAttribute("data-location", location);
+    
     try {
-      const selection = window.getSelection()?.getRangeAt(0);
-
-      if (
-        selection?.commonAncestorContainer.parentElement?.id ===
-        "textareaContainer"
-      ) {
-        selection?.insertNode(document.createTextNode(" "));
-        selection?.insertNode(data);
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        // 선택 영역이 없으면 textarea 끝에 추가
+        if (textareaRef.current) {
+          textareaRef.current.appendChild(document.createTextNode(" "));
+          textareaRef.current.appendChild(data);
+          textareaRef.current.appendChild(document.createTextNode(" "));
+        }
+        return;
       }
-    } catch {}
 
+      const range = selection.getRangeAt(0);
+      const container = range.commonAncestorContainer;
+      
+      // textarea 내부인지 확인
+      if (
+        textareaRef.current &&
+        (textareaRef.current.contains(container) ||
+          textareaRef.current === container)
+      ) {
+        // 현재 커서 위치에 삽입
+        range.deleteContents();
+        
+        // 앞 공백 추가 (커서가 텍스트 중간에 있을 경우)
+        const precedingText = range.startContainer.textContent?.substring(0, range.startOffset);
+        if (precedingText && precedingText.length > 0 && !precedingText.endsWith(" ")) {
+          range.insertNode(document.createTextNode(" "));
+        }
+        
+        // data 태그 삽입
+        range.insertNode(data);
+        
+        // 뒤 공백 추가
+        const spaceAfter = document.createTextNode(" ");
+        data.parentNode?.insertBefore(spaceAfter, data.nextSibling);
+        
+        // 커서를 data 태그 뒤로 이동
+        range.setStartAfter(spaceAfter);
+        range.setEndAfter(spaceAfter);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } else {
+        // textarea 외부에서 클릭한 경우, textarea 끝에 추가
+        if (textareaRef.current) {
+          textareaRef.current.appendChild(document.createTextNode(" "));
+          textareaRef.current.appendChild(data);
+          textareaRef.current.appendChild(document.createTextNode(" "));
+        }
+      }
+    } catch (error) {
+      // 에러 발생 시 textarea 끝에 추가
+      if (textareaRef.current) {
+        textareaRef.current.appendChild(document.createTextNode(" "));
+        textareaRef.current.appendChild(data);
+        textareaRef.current.appendChild(document.createTextNode(" "));
+      }
+    }
+
+    // textarea에 포커스 유지
     setTimeout(() => {
-      textareaRef.current?.blur();
-      window.getSelection()?.empty();
-    });
+      textareaRef.current?.focus();
+    }, 0);
   }
 
   return (
@@ -137,20 +183,43 @@ const DataConnPopup = (props: Props) => {
             <Button
               onClick={() => {
                 let result: any[] = [];
-                textareaRef.current?.childNodes.forEach((Element: any) => {
-                  if (Element.nodeType === 3 && Element.textContent !== "") {
-                    result.push(Element.textContent);
-                  }
-                  if (Element.nodeType === 1 && Element.nodeName === "DATA") {
-                    result.push({
-                      tag: "DATA",
-                      location: Element.dataset.location,
-                    });
-                  }
-                  if (Element.nodeType === 1 && Element.nodeName === "BR") {
-                    result.push({ tag: "BR" });
-                  }
-                });
+                
+                // contentEditable div의 내용을 파싱
+                const parseNodes = (nodes: NodeList) => {
+                  nodes.forEach((node: any) => {
+                    if (node.nodeType === 3) { // Text node
+                      const text = node.textContent;
+                      if (text && text !== "") {
+                        result.push(text);
+                      }
+                    } else if (node.nodeType === 1) { // Element node
+                      if (node.nodeName === "DATA") {
+                        result.push({
+                          tag: "DATA",
+                          location: node.dataset.location,
+                        });
+                      } else if (node.nodeName === "BR") {
+                        result.push({ tag: "BR" });
+                      } else if (node.nodeName === "SPAN" && node.innerHTML === "&nbsp;") {
+                        // &nbsp; 처리
+                        result.push(" ");
+                      } else if (node.childNodes.length > 0) {
+                        // 중첩된 노드가 있으면 재귀적으로 처리
+                        parseNodes(node.childNodes);
+                      }
+                    }
+                  });
+                };
+
+                if (textareaRef.current) {
+                  parseNodes(textareaRef.current.childNodes);
+                }
+
+                // 빈 배열이면 초기화
+                if (result.length === 0) {
+                  result = [];
+                }
+
                 changeCurrentCell({
                   dataText: result,
                 });
@@ -163,7 +232,7 @@ const DataConnPopup = (props: Props) => {
                 });
 
                 props.callPageReload();
-                alert(SUCCESS_MESSAGE);
+                setTableBlockMenuPopup(false);
               }}
               type="ghost"
             >
@@ -389,13 +458,84 @@ const DataConnPopup = (props: Props) => {
                     placeholder="데이터 입력"
                     className={style.text}
                     onKeyDown={(e) => {
+                      const selection = window.getSelection();
+                      
                       if (e.key === "Backspace") {
+                        // 빈 BR만 남은 경우 초기화
                         if (
                           textareaRef.current?.childNodes.length === 1 &&
                           textareaRef.current?.childNodes[0].nodeName === "BR"
                         ) {
                           textareaRef.current.innerHTML = "";
+                          return;
                         }
+
+                        // data 태그 앞에서 backspace를 누르면 data 태그 삭제
+                        if (selection && selection.rangeCount > 0) {
+                          const range = selection.getRangeAt(0);
+                          const node = range.startContainer;
+                          
+                          // 커서가 data 태그 바로 앞에 있는 경우
+                          if (node.nodeType === 3 && range.startOffset === node.textContent?.length) {
+                            const nextSibling = node.nextSibling;
+                            if (nextSibling && nextSibling.nodeName === "DATA") {
+                              e.preventDefault();
+                              nextSibling.remove();
+                              return;
+                            }
+                          }
+                          
+                          // 커서가 data 태그 직후에 있는 경우
+                          if (node.nodeType === 3 && range.startOffset === 0) {
+                            const prevSibling = node.previousSibling;
+                            if (prevSibling && prevSibling.nodeName === "DATA") {
+                              e.preventDefault();
+                              prevSibling.remove();
+                              return;
+                            }
+                          }
+                        }
+                      }
+
+                      if (e.key === "Delete") {
+                        // data 태그 뒤에서 delete를 누르면 data 태그 삭제
+                        if (selection && selection.rangeCount > 0) {
+                          const range = selection.getRangeAt(0);
+                          const node = range.startContainer;
+                          
+                          if (node.nodeType === 3 && range.startOffset === 0) {
+                            const prevSibling = node.previousSibling;
+                            if (prevSibling && prevSibling.nodeName === "DATA") {
+                              e.preventDefault();
+                              prevSibling.remove();
+                              return;
+                            }
+                          }
+                        }
+                      }
+                    }}
+                    onClick={(e) => {
+                      // data 태그 클릭 시 포커스 유지
+                      if ((e.target as HTMLElement).nodeName === "DATA") {
+                        e.preventDefault();
+                        // data 태그 뒤에 커서 위치
+                        const range = document.createRange();
+                        const selection = window.getSelection();
+                        const dataElement = e.target as HTMLElement;
+                        
+                        if (dataElement.nextSibling) {
+                          range.setStart(dataElement.nextSibling, 0);
+                          range.setEnd(dataElement.nextSibling, 0);
+                        } else {
+                          // 다음 형제가 없으면 새 텍스트 노드 생성
+                          const textNode = document.createTextNode(" ");
+                          dataElement.parentNode?.appendChild(textNode);
+                          range.setStart(textNode, 1);
+                          range.setEnd(textNode, 1);
+                        }
+                        
+                        selection?.removeAllRanges();
+                        selection?.addRange(range);
                       }
                     }}
                   >
