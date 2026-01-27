@@ -63,6 +63,7 @@ export type TTableHeader = {
   };
   option?: string[];
   onClick?: (value: any) => void;
+  onBlur?: (value: any) => void;
 };
 type Props = {
   type: "object-array" | "string-array";
@@ -965,12 +966,15 @@ const Table = (props: Props) => {
                                 e.currentTarget.style.height =
                                   e.currentTarget.scrollHeight + "px";
                                 e.currentTarget.style.width = "100%"; // 최소 너비는 100%로 설정
+                                if (val.onBlur && row.isModified) {
+                                  val.onBlur(row);
+                                }
                               }}
                               style={{
                                 whiteSpace: val.whiteSpace,
                                 wordBreak: val.wordBreak,
                               }}
-                              value={row[`${val.key}`]}
+                              value={row[`${val.key}`] ?? ""}
                               onChange={(e) => {
                                 const arr = [...tableData.data];
                                 const ii = tableData.data.findIndex(

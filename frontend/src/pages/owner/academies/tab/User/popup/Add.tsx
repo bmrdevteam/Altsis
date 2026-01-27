@@ -1,14 +1,14 @@
 /**
- * @file User Page Tab Item - Basic
+ * @file Owner User Add Popup
  *
- * @author jessie129j <jessie129j@gmail.com>
+ * @author devgoodway
  *
  * -------------------------------------------------------
  *
  * IN PRODUCTION
  *
  * -------------------------------------------------------
-
+ *
  * IN MAINTENANCE
  *
  * -------------------------------------------------------
@@ -39,16 +39,14 @@ import Popup from "components/popup/Popup";
 
 import _ from "lodash";
 import Table from "components/tableV2/Table";
-import Textarea from "components/textarea/Textarea";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { validate } from "functions/functions";
 
 type Props = {
-  setPopupAcitve: any;
+  academyId: string;
+  setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
   addUserList: (users: any[]) => void;
-  setUser: React.Dispatch<any>;
-  setEditPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 type TSchool = {
@@ -209,14 +207,13 @@ function Add(props: Props) {
           birthday,
           address,
           gender,
+          academyId: props.academyId,
         },
       });
 
       alert(SUCCESS_MESSAGE);
       props.addUserList([user]);
-      props.setUser(user);
-      props.setPopupAcitve(false);
-      props.setEditPopupActive(true);
+      props.setPopupActive(false);
     } catch (err: any) {
       ALERT_ERROR(err);
     }
@@ -224,21 +221,21 @@ function Add(props: Props) {
 
   useEffect(() => {
     if (isLoadingSchools) {
-      SchoolAPI.RSchools()
+      SchoolAPI.RSchools({ query: { academyId: props.academyId } })
         .then(({ schools }) => {
           setSchoolList(schools);
         })
         .then(() => setIsLoadingSchools(false))
-        .catch((err: any) => alert(err.response.data.message));
+        .catch((err: any) => alert(err.response?.data?.message || "Failed to load schools"));
     }
   }, [isLoadingSchools]);
 
   return (
     <Popup
-      setState={props.setPopupAcitve}
+      setState={props.setPopupActive}
       style={{ maxWidth: "480px", width: "100%" }}
       closeBtn
-      title="사용자 단일 생성"
+      title="사용자 생성"
       contentScroll
     >
       <div className={style.popup}>

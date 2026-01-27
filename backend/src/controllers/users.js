@@ -217,7 +217,7 @@ export const create = async (req, res) => {
     if (!("auth" in req.body)) {
       return res.status(400).send({ message: FIELD_REQUIRED("auth") });
     }
-    if (req.body.auth !== "member" && req.body.auth !== "manager") {
+    if (req.body.auth !== "member" && req.body.auth !== "manager" && req.body.auth !== "admin") {
       return res.status(400).send({ message: FIELD_INVALID("auth") });
     }
     for (let field of ["userId", "userName", "password"]) {
@@ -241,11 +241,21 @@ export const create = async (req, res) => {
       return res.status(400).send({ message: FIELD_INVALID("snsId") });
     }
 
-    const admin = req.user;
+    let academyId = req.user.academyId;
+    let academyName = req.user.academyName;
+
+    /* if owner requested, use academyId from body */
+    if (req.user.auth === "owner" && "academyId" in req.body) {
+      if (!conn[req.body.academyId]) {
+        return res.status(404).send({ message: __NOT_FOUND("academy") });
+      }
+      academyId = req.body.academyId;
+      academyName = req.body.academyId; // Owner doesn't have academyName, use academyId
+    }
 
     /* check duplication */
     if (
-      await User(admin.academyId).findOne({
+      await User(academyId).findOne({
         userId: req.body.userId,
       })
     ) {
@@ -257,7 +267,7 @@ export const create = async (req, res) => {
     if (
       "snsId" in req.body &&
       "google" in req.body.snsId &&
-      (await User(admin.academyId).findOne({
+      (await User(academyId).findOne({
         "snsId.google": req.body.snsId.google,
       }))
     ) {
@@ -267,7 +277,7 @@ export const create = async (req, res) => {
     /* find schools */
     const schools = [];
     for (let _school of req.body.schools) {
-      const schoolData = await School(admin.academyId).findById(_school.school);
+      const schoolData = await School(academyId).findById(_school.school);
       if (!schoolData) {
         return res.status(404).send({ message: __NOT_FOUND("school") });
       }
@@ -279,7 +289,7 @@ export const create = async (req, res) => {
     }
 
     /* create user */
-    const user = await User(admin.academyId).create({
+    const user = await User(academyId).create({
       schools,
       auth: req.body.auth,
       userId: req.body.userId,
@@ -288,8 +298,11 @@ export const create = async (req, res) => {
       tel: req.body.tel,
       email: req.body.email,
       snsId: req.body.snsId ?? {},
-      academyId: admin.academyId,
-      academyName: admin.academyName,
+      academyId: academyId,
+      academyName: academyName,
+      birthday: req.body.birthday ? new Date(req.body.birthday) : undefined,
+      address: req.body.address,
+      gender: req.body.gender,
     });
 
     return res.status(200).send({ user });
@@ -680,8 +693,171 @@ export const updateTel = async (req, res) => {
 
 /**
  * @memberof APIs.UserAPI
+ * @function UUserName API
+ * @description 이름 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/:_id/userName"} req.url
+ *
+ * @param {Object} req.user - "admin"|"user"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.userName
+ *
+ * @param {Object} res
+ * @param {string} res.userName - updated userName
+ *
+ */
+export const updateUserName = async (req, res) => {
+  if (!("userName" in req.body)) {
+    return res.status(400).send({ message: FIELD_REQUIRED("userName") });
+  }
+  if (!validate("userName", req.body.userName)) {
+    return res.status(400).send({ message: FIELD_INVALID("userName") });
+  }
+
+  if (req.user._id.toString() !== req.params._id) {
+    if (req.user.auth !== "admin") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+  }
+
+  const user = await User(req.user.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.userName = req.body.userName;
+  await user.save();
+
+  return res.status(200).send({ userName: user.userName });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UUserBirthday API
+ * @description 생년월일 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/:_id/birthday"} req.url
+ *
+ * @param {Object} req.user - "admin"|"user"
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.birthday
+ *
+ * @param {Object} res
+ * @param {string} res.birthday - updated birthday
+ *
+ */
+export const updateBirthday = async (req, res) => {
+  if (req.user._id.toString() !== req.params._id) {
+    if (req.user.auth !== "admin") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+  }
+
+  const user = await User(req.user.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.birthday = req.body.birthday ? new Date(req.body.birthday) : undefined;
+  await user.save();
+
+  return res.status(200).send({ birthday: user.birthday });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UUserAddress API
+ * @description 주소 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/:_id/address"} req.url
+ *
+ * @param {Object} req.user - "admin"|"user"
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.address
+ *
+ * @param {Object} res
+ * @param {string} res.address - updated address
+ *
+ */
+export const updateAddress = async (req, res) => {
+  if (req.user._id.toString() !== req.params._id) {
+    if (req.user.auth !== "admin") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+  }
+
+  const user = await User(req.user.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.address = req.body.address;
+  await user.save();
+
+  return res.status(200).send({ address: user.address });
+};
+
+/**
+ * @memberof APIs.UserAPI
+ * @function UUserGender API
+ * @description 성별 변경 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/users/:_id/gender"} req.url
+ *
+ * @param {Object} req.user - "admin"|"user"
+ *
+ * @param {Object} req.body
+ * @param {"male"|"female"?} req.body.gender
+ *
+ * @param {Object} res
+ * @param {string} res.gender - updated gender
+ *
+ */
+export const updateGender = async (req, res) => {
+  if ("gender" in req.body && req.body.gender !== "male" && req.body.gender !== "female" && req.body.gender !== undefined) {
+    return res.status(400).send({ message: FIELD_INVALID("gender") });
+  }
+
+  if (req.user._id.toString() !== req.params._id) {
+    if (req.user.auth !== "admin") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+  }
+
+  const user = await User(req.user.academyId).findById(req.params._id);
+  if (!user) {
+    return res.status(404).send({ message: __NOT_FOUND("user") });
+  }
+
+  user.gender = req.body.gender;
+  await user.save();
+
+  return res.status(200).send({ gender: user.gender });
+};
+
+/**
+ * @memberof APIs.UserAPI
  * @function UUserAuth API
- * @description 등급 변경 API; admin이 사용자 등급을 manager 또는 member로 수정할 수 있다.
+ * @description 등급 변경 API; admin/owner가 사용자 등급을 admin, manager 또는 member로 수정할 수 있다.
  * @version 2.0.0
  *
  * @param {Object} req
@@ -689,20 +865,20 @@ export const updateTel = async (req, res) => {
  * @param {"PUT"} req.method
  * @param {"/users/:_id/auth"} req.url
  *
- * @param {Object} req.user - "admin"
+ * @param {Object} req.user - "admin"|"owner"
  *
  * @param {Object} req.body
- * @param {"manager"|"member"} req.body.auth
+ * @param {"admin"|"manager"|"member"} req.body.auth
  *
  * @param {Object} res
- * @param {"manager"|"member"} res.auth - updated auth
+ * @param {"admin"|"manager"|"member"} res.auth - updated auth
  *
  */
 export const updateAuth = async (req, res) => {
   if (!("auth" in req.body)) {
     return res.status(400).send({ message: FIELD_REQUIRED("auth") });
   }
-  if (req.body.auth !== "manager" && req.body.auth !== "member") {
+  if (req.body.auth !== "admin" && req.body.auth !== "manager" && req.body.auth !== "member") {
     return res.status(400).send({ message: FIELD_INVALID("auth") });
   }
 

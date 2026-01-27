@@ -33,7 +33,7 @@ import { useEffect, useState, useRef } from "react";
 import style from "style/pages/admin/schools.module.scss";
 
 // hooks
-import useAPIv2 from "hooks/useAPIv2";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 // components
 import NavigationLinks from "components/navigationLinks/NavigationLinks";
@@ -80,6 +80,48 @@ const Users = (props: Props) => {
 
   const addUserList = (users: any[]) => {
     setUserList([...userList, ...users]);
+  };
+
+  const handleInlineUpdate = async (row: any, field: "userName" | "email" | "tel") => {
+    try {
+      const userId = row._id;
+      const value = row[field] ?? "";
+      const originalUser = userList.find((u) => u._id === userId);
+
+      if (!originalUser || originalUser[field] === value) {
+        return;
+      }
+
+      if (field === "userName") {
+        await UserAPI.UUserName({
+          params: { uid: userId },
+          data: { userName: value },
+        });
+      } else if (field === "email") {
+        await UserAPI.UUserEmail({
+          params: { uid: userId },
+          data: { email: value !== "" ? value : undefined },
+        });
+      } else if (field === "tel") {
+        await UserAPI.UUserTel({
+          params: { uid: userId },
+          data: { tel: value !== "" ? value : undefined },
+        });
+      }
+
+      // Update local state
+      const updatedList = userList.map((u) => {
+        if (u._id === userId) {
+          return { ...u, [field]: value };
+        }
+        return u;
+      });
+      setUserList(updatedList);
+      alert(SUCCESS_MESSAGE);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+      setIsLoading(true); // Reload to get correct data
+    }
   };
 
   const popUserList = (_ids: any[]) => {
@@ -212,14 +254,29 @@ const Users = (props: Props) => {
               {
                 text: "이름",
                 key: "userName",
-                type: "text",
+                type: "input",
                 textAlign: "center",
+                onBlur: (row: any) => handleInlineUpdate(row, "userName"),
               },
               {
                 text: "ID",
                 key: "userId",
                 type: "text",
                 textAlign: "center",
+              },
+              {
+                text: "이메일",
+                key: "email",
+                type: "input",
+                textAlign: "center",
+                onBlur: (row: any) => handleInlineUpdate(row, "email"),
+              },
+              {
+                text: "전화번호",
+                key: "tel",
+                type: "input",
+                textAlign: "center",
+                onBlur: (row: any) => handleInlineUpdate(row, "tel"),
               },
               {
                 text: "학교",

@@ -481,14 +481,14 @@ export default function useAPIv2() {
    * UUserAuth API
    * @description 등급 변경 API
    * @version 2.0.0
-   * @auth admin
+   * @auth admin|owner
    */
   async function UUserAuth(props: {
     params: {
       uid: string;
     };
     data: {
-      auth: "manager" | "member";
+      auth: "admin" | "manager" | "member";
     };
   }) {
     const { auth } = await database.U({
@@ -496,7 +496,7 @@ export default function useAPIv2() {
       data: props.data,
     });
 
-    return { auth: auth as "member" | "manager" };
+    return { auth: auth as "admin" | "member" | "manager" };
   }
 
   /**
@@ -541,6 +541,94 @@ export default function useAPIv2() {
     });
 
     return { tel: tel as string | undefined };
+  }
+
+  /**
+   * UUserName API
+   * @description 이름 변경 API
+   * @version 2.0.0
+   * @auth admin|user
+   */
+  async function UUserName(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      userName: string;
+    };
+  }) {
+    const { userName } = await database.U({
+      location: `users/${props.params.uid}/userName`,
+      data: props.data,
+    });
+
+    return { userName: userName as string };
+  }
+
+  /**
+   * UUserBirthday API
+   * @description 생년월일 변경 API
+   * @version 2.0.0
+   * @auth admin|user
+   */
+  async function UUserBirthday(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      birthday?: string;
+    };
+  }) {
+    const { birthday } = await database.U({
+      location: `users/${props.params.uid}/birthday`,
+      data: props.data,
+    });
+
+    return { birthday: birthday as string | undefined };
+  }
+
+  /**
+   * UUserAddress API
+   * @description 주소 변경 API
+   * @version 2.0.0
+   * @auth admin|user
+   */
+  async function UUserAddress(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      address?: string;
+    };
+  }) {
+    const { address } = await database.U({
+      location: `users/${props.params.uid}/address`,
+      data: props.data,
+    });
+
+    return { address: address as string | undefined };
+  }
+
+  /**
+   * UUserGender API
+   * @description 성별 변경 API
+   * @version 2.0.0
+   * @auth admin|user
+   */
+  async function UUserGender(props: {
+    params: {
+      uid: string;
+    };
+    data: {
+      gender?: "male" | "female";
+    };
+  }) {
+    const { gender } = await database.U({
+      location: `users/${props.params.uid}/gender`,
+      data: props.data,
+    });
+
+    return { gender: gender as "male" | "female" | undefined };
   }
 
   /**
@@ -655,12 +743,12 @@ export default function useAPIv2() {
    * CUser API
    * @description 사용자 생성 API
    * @version 2.0.0
-   * @auth admin
+   * @auth admin|owner
    */
   async function CUser(props: {
     data: {
       schools: { school: string }[];
-      auth: "member" | "manager";
+      auth: "admin" | "member" | "manager";
       userId: string;
       userName: string;
       password: string;
@@ -669,6 +757,10 @@ export default function useAPIv2() {
       snsId?: {
         google?: string;
       };
+      birthday?: string;
+      address?: string;
+      gender?: "male" | "female";
+      academyId?: string;
     };
   }) {
     const { user } = await database.C({
@@ -806,11 +898,15 @@ export default function useAPIv2() {
    * RSchools API
    * @description 학교 목록 조회 API
    * @version 2.0.0
-   * @auth user
+   * @auth user|owner
    */
-  async function RSchools() {
+  async function RSchools(props?: {
+    query?: {
+      academyId?: string; // required for owner
+    };
+  }) {
     const { schools } = await database.R({
-      location: "schools",
+      location: "schools" + QUERY_BUILDER(props?.query),
     });
     return {
       schools: schools as TSchool[],
@@ -2209,6 +2305,10 @@ export default function useAPIv2() {
       UUserPassword,
       UUserEmail,
       UUserTel,
+      UUserName,
+      UUserBirthday,
+      UUserAddress,
+      UUserGender,
       UUserAuth,
       CGoogleAuth,
       DGoogleAuth,
