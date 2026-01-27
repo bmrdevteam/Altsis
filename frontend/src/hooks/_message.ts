@@ -43,4 +43,6 @@ export const MESSAGE = new Map<string, string>([
   ["SYLLABUS_NOT_CONFIRMED", "승인되지 않은 수업입니다."],
   ["PERMISSION_DENIED", "권한이 없습니다."],
   ["TITLE_IN_USE", "제목이 중복됩니다."],
+  ["CHAT_NOT_ENABLED", "이 아카데미에서 채팅 기능이 비활성화되어 있습니다."],
+  ["ROOM_NOT_FOUND", "채팅방을 찾을 수 없습니다."],
 ]);
