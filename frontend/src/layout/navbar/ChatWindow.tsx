@@ -307,17 +307,18 @@ const ChatWindow = ({ room: initialRoom, socket, onClose, onRoomUpdated }: Props
               </div>
             ) : (
               messages.map((msg, index) => (
-                <div key={msg._id}>
+                <div
+                  key={msg._id}
+                  className={`${style.message_wrapper} ${
+                    msg.sender === currentUser?._id ? style.own : ""
+                  }`}
+                >
                   {shouldShowDate(index) && (
                     <div className={style.date_divider}>
                       {formatMessageDate(msg.createdAt)}
                     </div>
                   )}
-                  <div
-                    className={`${style.message} ${
-                      msg.sender === currentUser?._id ? style.own : ""
-                    }`}
-                  >
+                  <div className={style.message}>
                     {msg.sender !== currentUser?._id && (
                       <div className={style.sender}>{msg.senderName}</div>
                     )}
