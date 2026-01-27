@@ -212,8 +212,10 @@ const Chat = () => {
                     className={style.item}
                     style={{
                       cursor: "pointer",
-                      padding: "10px 12px",
-                      borderBottom: "1px solid var(--border-color)",
+                      padding: "12px",
+                      marginBottom: "8px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-color)",
                       display: "flex",
                       gap: "10px",
                       alignItems: "center",
