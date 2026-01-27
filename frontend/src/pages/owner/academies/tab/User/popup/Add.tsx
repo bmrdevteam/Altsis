@@ -71,9 +71,6 @@ type TInput = {
   snsId: {
     google: string;
   };
-  birthday: string;
-  address: string;
-  gender: "male" | "female" | "";
 };
 
 function Add(props: Props) {
@@ -96,9 +93,6 @@ function Add(props: Props) {
     snsId: {
       google: "",
     },
-    birthday: "",
-    address: "",
-    gender: "",
   });
 
   const addUserSchoolHandler = () => {
@@ -139,18 +133,6 @@ function Add(props: Props) {
           ? inputRef.current.snsId.google.trim()
           : undefined,
     };
-    const birthday =
-      inputRef.current.birthday.trim() !== ""
-        ? inputRef.current.birthday.trim()
-        : undefined;
-    const address =
-      inputRef.current.address.trim() !== ""
-        ? inputRef.current.address.trim()
-        : undefined;
-    const gender =
-      inputRef.current.gender !== ""
-        ? inputRef.current.gender
-        : undefined;
 
     /* validate */
 
@@ -204,9 +186,6 @@ function Add(props: Props) {
           tel,
           email,
           snsId,
-          birthday,
-          address,
-          gender,
           academyId: props.academyId,
         },
       });
@@ -382,32 +361,6 @@ function Add(props: Props) {
             onChange={(e: any) => {
               inputRef.current.tel = e.target.value;
             }}
-          />
-          <Input
-            appearence="flat"
-            label="생년월일"
-            type="date"
-            onChange={(e: any) => {
-              inputRef.current.birthday = e.target.value;
-            }}
-          />
-          <Input
-            appearence="flat"
-            label="주소"
-            onChange={(e: any) => {
-              inputRef.current.address = e.target.value;
-            }}
-          />
-          <Select
-            style={{ minHeight: "30px" }}
-            label="성별"
-            options={[
-              { text: "", value: "" },
-              { text: "남성", value: "male" },
-              { text: "여성", value: "female" },
-            ]}
-            setValue={(e: "male" | "female" | "") => (inputRef.current.gender = e)}
-            appearence={"flat"}
           />
         </div>
 
