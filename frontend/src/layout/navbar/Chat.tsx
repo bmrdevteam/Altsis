@@ -203,7 +203,7 @@ const Chat = () => {
                     className={style.item}
                     style={{
                       cursor: "pointer",
-                      padding: "12px",
+                      padding: "10px 12px",
                       borderBottom: "1px solid var(--border-color)",
                     }}
                     onClick={() => handleRoomSelect(room)}
@@ -213,20 +213,56 @@ const Chat = () => {
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
+                        gap: "8px",
                       }}
                     >
                       <div
                         style={{
                           fontWeight: hasUnread ? "bold" : "normal",
                           fontSize: "14px",
+                          flex: 1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {getRoomDisplayName(room)}
+                        {room.type === "group" && (
+                          <span style={{
+                            fontSize: "11px",
+                            color: "var(--accent-3)",
+                            fontWeight: "normal",
+                            marginLeft: "4px"
+                          }}>
+                            ({room.participants.length})
+                          </span>
+                        )}
                       </div>
-                      <div
-                        style={{ fontSize: "11px", color: "var(--accent-3)" }}
-                      >
-                        {formatTime(room.lastMessage?.sentAt)}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        {hasUnread && (
+                          <div
+                            style={{
+                              backgroundColor: "var(--color-r3)",
+                              color: "#fff",
+                              borderRadius: "10px",
+                              padding: "2px 6px",
+                              fontSize: "10px",
+                              fontWeight: "600",
+                              minWidth: "8px",
+                              height: "16px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            N
+                          </div>
+                        )}
+                        <div
+                          style={{ fontSize: "11px", color: "var(--accent-3)", whiteSpace: "nowrap" }}
+                        >
+                          {formatTime(room.lastMessage?.sentAt)}
+                        </div>
                       </div>
                     </div>
                     {room.lastMessage && (
@@ -270,6 +306,10 @@ const Chat = () => {
           onClose={() => {
             setChatWindowActive(false);
             setSelectedRoom(null);
+            loadRooms();
+          }}
+          onRoomUpdated={(updatedRoom) => {
+            setSelectedRoom(updatedRoom);
             loadRooms();
           }}
         />

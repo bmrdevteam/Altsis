@@ -44,7 +44,6 @@ import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
 
-import Navbar from "layout/navbar/Navbar";
 import Loading from "components/loading/Loading";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -238,7 +237,6 @@ const CourseEnrollment = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div
           style={{

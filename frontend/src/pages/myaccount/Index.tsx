@@ -37,12 +37,10 @@ import Course from "./tab/Course";
 import List from "./tab/List";
 import Point from "./tab/Point";
 import Nav from "layout/sidebar/sidebar.components";
-import Navbar from "layout/navbar/Navbar";
 
 const Myaccount = () => {
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>

@@ -1,5 +1,4 @@
 import { useAuth } from "contexts/authContext";
-import Navbar from "layout/navbar/Navbar";
 import { useNavigate, useParams } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
 import { useEffect, useRef, useState } from "react";
@@ -49,7 +48,6 @@ const ArchiveField = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.title}>{pid}</div>
 

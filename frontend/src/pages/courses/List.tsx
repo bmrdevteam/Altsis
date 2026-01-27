@@ -33,9 +33,6 @@ import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/enrollment.module.scss";
 
-// navigation bar
-import Navbar from "layout/navbar/Navbar";
-
 import _ from "lodash";
 import Loading from "components/loading/Loading";
 
@@ -82,7 +79,6 @@ const Courses = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.title}>전체 목록</div>
         {!isLoading ? (

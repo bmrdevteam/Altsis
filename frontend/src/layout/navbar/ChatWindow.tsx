@@ -5,18 +5,23 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TChatRoom, TChatMessage } from "types/chat";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
+import Svg from "assets/svg/Svg";
+import InviteUsers from "./InviteUsers";
+import RoomSettings from "./RoomSettings";
 import style from "./chat.module.scss";
 
 type Props = {
   room: TChatRoom;
   socket?: Socket;
   onClose: () => void;
+  onRoomUpdated?: (room: TChatRoom) => void;
 };
 
-const ChatWindow = ({ room, socket, onClose }: Props) => {
+const ChatWindow = ({ room: initialRoom, socket, onClose, onRoomUpdated }: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
 
+  const [room, setRoom] = useState<TChatRoom>(initialRoom);
   const [messages, setMessages] = useState<TChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState<{
@@ -25,10 +30,18 @@ const ChatWindow = ({ room, socket, onClose }: Props) => {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isCreator = room.creator === currentUser?._id;
+  const canInvite = isCreator || room.settings?.allowInvites !== false;
+  const canChat = isCreator || room.settings?.allowChat !== false;
+  const isGroupChat = room.type === "group";
 
   const loadMessages = async () => {
     try {
@@ -84,15 +97,40 @@ const ChatWindow = ({ room, socket, onClose }: Props) => {
       }
     };
 
+    const handleParticipantsAdded = (data: {
+      room: string;
+      newParticipants: any[];
+      addedBy: string;
+    }) => {
+      if (data.room === room._id) {
+        // Reload room data
+        loadRoomData();
+      }
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
+    socket.on("participants_added", handleParticipantsAdded);
 
     return () => {
       socket.emit("leave_room", { roomId: room._id });
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
+      socket.off("participants_added", handleParticipantsAdded);
     };
   }, [socket, room._id, currentUser?.userId]);
+
+  const loadRoomData = async () => {
+    try {
+      const { room: updatedRoom } = await ChatAPI.RChatRoom({
+        params: { roomId: room._id },
+      });
+      setRoom(updatedRoom);
+      onRoomUpdated?.(updatedRoom);
+    } catch (err) {
+      console.error("Failed to reload room data", err);
+    }
+  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -101,7 +139,7 @@ const ChatWindow = ({ room, socket, onClose }: Props) => {
   };
 
   const handleSend = async () => {
-    if (!newMessage.trim() || isSending) return;
+    if (!newMessage.trim() || isSending || !canChat) return;
 
     setIsSending(true);
     try {
@@ -145,6 +183,28 @@ const ChatWindow = ({ room, socket, onClose }: Props) => {
     }
   };
 
+  const handleLeaveRoom = async () => {
+    if (!window.confirm("정말 채팅방을 나가시겠습니까?")) return;
+
+    try {
+      await ChatAPI.DChatRoom({ params: { roomId: room._id } });
+      onClose();
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleInviteComplete = () => {
+    setShowInvite(false);
+    loadRoomData();
+  };
+
+  const handleSettingsUpdate = (updatedRoom: TChatRoom) => {
+    setRoom(updatedRoom);
+    setShowSettings(false);
+    onRoomUpdated?.(updatedRoom);
+  };
+
   const getRoomDisplayName = () => {
     if (room.type === "group") return room.name || "그룹 채팅";
     const otherParticipant = room.participants.find(
@@ -179,75 +239,152 @@ const ChatWindow = ({ room, socket, onClose }: Props) => {
   };
 
   return (
-    <Popup
-      setState={onClose}
-      title={getRoomDisplayName()}
-      closeBtn
-      style={{ maxWidth: "450px", width: "100%", height: "600px" }}
-    >
-      <div className={style.chat_window}>
-        <div className={style.messages_container}>
-          {isLoading ? (
-            <div className={style.loading}>메시지를 불러오는 중...</div>
-          ) : messages.length === 0 ? (
-            <div className={style.empty}>
-              아직 메시지가 없습니다. 첫 메시지를 보내보세요!
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <div key={msg._id}>
-                {shouldShowDate(index) && (
-                  <div className={style.date_divider}>
-                    {formatMessageDate(msg.createdAt)}
+    <>
+      <Popup
+        setState={onClose}
+        title={getRoomDisplayName()}
+        closeBtn
+        style={{ maxWidth: "450px", width: "100%", height: "600px" }}
+      >
+        <div className={style.chat_window}>
+          {/* Group Chat Header Actions */}
+          {isGroupChat && (
+            <div className={style.room_header}>
+              <div className={style.room_title}>
+                {room.participants.length}명 참여 중
+              </div>
+              <div className={style.room_actions}>
+                <button
+                  className={style.menu_button}
+                  onClick={() => setShowMenu(!showMenu)}
+                >
+                  <Svg type="option" width="18px" height="18px" />
+                </button>
+                {showMenu && (
+                  <div className={style.menu_dropdown}>
+                    {canInvite && (
+                      <div
+                        className={style.menu_item}
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowInvite(true);
+                        }}
+                      >
+                        사용자 초대
+                      </div>
+                    )}
+                    {isCreator && (
+                      <div
+                        className={style.menu_item}
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowSettings(true);
+                        }}
+                      >
+                        채팅방 설정
+                      </div>
+                    )}
+                    <div
+                      className={`${style.menu_item} ${style.danger}`}
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleLeaveRoom();
+                      }}
+                    >
+                      채팅방 나가기
+                    </div>
                   </div>
                 )}
-                <div
-                  className={`${style.message} ${
-                    msg.sender === currentUser?._id ? style.own : ""
-                  }`}
-                >
-                  {msg.sender !== currentUser?._id && (
-                    <div className={style.sender}>{msg.senderName}</div>
+              </div>
+            </div>
+          )}
+          <div className={style.messages_container}>
+            {isLoading ? (
+              <div className={style.loading}>메시지를 불러오는 중...</div>
+            ) : messages.length === 0 ? (
+              <div className={style.empty}>
+                아직 메시지가 없습니다. 첫 메시지를 보내보세요!
+              </div>
+            ) : (
+              messages.map((msg, index) => (
+                <div key={msg._id}>
+                  {shouldShowDate(index) && (
+                    <div className={style.date_divider}>
+                      {formatMessageDate(msg.createdAt)}
+                    </div>
                   )}
-                  <div className={style.content}>{msg.content}</div>
-                  <div className={style.time}>
-                    {formatMessageTime(msg.createdAt)}
+                  <div
+                    className={`${style.message} ${
+                      msg.sender === currentUser?._id ? style.own : ""
+                    }`}
+                  >
+                    {msg.sender !== currentUser?._id && (
+                      <div className={style.sender}>{msg.senderName}</div>
+                    )}
+                    <div className={style.content}>{msg.content}</div>
+                    <div className={style.time}>
+                      {formatMessageTime(msg.createdAt)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-          {isTyping && (
-            <div className={style.typing}>{isTyping.userName}님이 입력 중...</div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+              ))
+            )}
+            {isTyping && (
+              <div className={style.typing}>{isTyping.userName}님이 입력 중...</div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-        <div className={style.input_container}>
-          <textarea
-            ref={inputRef}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            onKeyUp={handleTyping}
-            placeholder="메시지를 입력하세요..."
-            rows={2}
-          />
-          <Button
-            type="ghost"
-            onClick={handleSend}
-            disabled={isSending || !newMessage.trim()}
-          >
-            전송
-          </Button>
+          <div className={style.input_container}>
+            {canChat ? (
+              <>
+                <textarea
+                  ref={inputRef}
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  onKeyUp={handleTyping}
+                  placeholder="메시지를 입력하세요..."
+                  rows={2}
+                />
+                <Button
+                  type="ghost"
+                  onClick={handleSend}
+                  disabled={isSending || !newMessage.trim()}
+                >
+                  전송
+                </Button>
+              </>
+            ) : (
+              <div className={style.chat_disabled}>
+                채팅이 비활성화되었습니다.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </Popup>
+      </Popup>
+
+      {showInvite && (
+        <InviteUsers
+          room={room}
+          onClose={() => setShowInvite(false)}
+          onInvited={handleInviteComplete}
+        />
+      )}
+
+      {showSettings && (
+        <RoomSettings
+          room={room}
+          onClose={() => setShowSettings(false)}
+          onUpdated={handleSettingsUpdate}
+        />
+      )}
+    </>
   );
 };
 

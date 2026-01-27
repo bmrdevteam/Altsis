@@ -23,7 +23,7 @@ import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
 import { TNotification } from "types/notification";
-import { TChatRoom, TChatMessage, TChatUser } from "types/chat";
+import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings } from "types/chat";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -2286,13 +2286,13 @@ export default function useAPIv2() {
 
   /**
    * UChatRoom API
-   * @description 채팅방 수정 API (그룹 이름 변경)
+   * @description 채팅방 수정 API (그룹 이름/설정 변경)
    * @version 1.0.0
    * @auth user
    */
   async function UChatRoom(props: {
     params: { roomId: string };
-    data: { name?: string };
+    data: { name?: string; settings?: TChatRoomSettings };
   }) {
     const { room } = await database.U({
       location: `chats/rooms/${props.params.roomId}`,
@@ -2311,6 +2311,30 @@ export default function useAPIv2() {
     return await database.D({
       location: `chats/rooms/${props.params.roomId}`,
     });
+  }
+
+  /**
+   * CChatRoomParticipants API
+   * @description 채팅방 참가자 추가 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CChatRoomParticipants(props: {
+    params: { roomId: string };
+    data: {
+      participants: {
+        user: string;
+        userId: string;
+        userName: string;
+        profile?: string;
+      }[];
+    };
+  }) {
+    const { room } = await database.C({
+      location: `chats/rooms/${props.params.roomId}/participants`,
+      data: props.data,
+    });
+    return { room: room as TChatRoom };
   }
 
   /**
@@ -2505,6 +2529,7 @@ export default function useAPIv2() {
       CChatRoom,
       UChatRoom,
       DChatRoom,
+      CChatRoomParticipants,
       RChatMessages,
       CChatMessage,
       UChatRoomRead,

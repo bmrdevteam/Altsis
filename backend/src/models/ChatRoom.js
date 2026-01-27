@@ -57,6 +57,21 @@ const lastMessageSchema = mongoose.Schema(
 
 /**
  * @memberof Models.ChatRoom
+ * @typedef TChatRoomSettings
+ *
+ * @prop {boolean} allowInvites=true - whether non-creators can invite users
+ * @prop {boolean} allowChat=true - whether non-creators can send messages
+ */
+const chatRoomSettingsSchema = mongoose.Schema(
+  {
+    allowInvites: { type: Boolean, default: true },
+    allowChat: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.ChatRoom
  * @typedef TChatRoom
  *
  * @prop {ObjectId} _id
@@ -68,6 +83,7 @@ const lastMessageSchema = mongoose.Schema(
  * @prop {TChatParticipant[]} participants - room participants
  * @prop {TLastMessage?} lastMessage - last message preview
  * @prop {boolean} isActive=true - whether room is active
+ * @prop {TChatRoomSettings?} settings - room permission settings
  */
 const chatRoomSchema = mongoose.Schema(
   {
@@ -83,6 +99,7 @@ const chatRoomSchema = mongoose.Schema(
     participants: [chatParticipantSchema],
     lastMessage: lastMessageSchema,
     isActive: { type: Boolean, default: true },
+    settings: chatRoomSettingsSchema,
   },
   { timestamps: true }
 );

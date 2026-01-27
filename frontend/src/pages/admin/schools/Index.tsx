@@ -39,7 +39,6 @@ import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Loading from "components/loading/Loading";
-import Navbar from "layout/navbar/Navbar";
 import Skeleton from "components/skeleton/Skeleton";
 
 import { useAuth } from "contexts/authContext";
@@ -161,7 +160,6 @@ const Schools = () => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>

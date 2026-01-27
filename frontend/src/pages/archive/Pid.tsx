@@ -2,7 +2,6 @@ import Tab from "components/tab/Tab";
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
 
-import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -140,7 +139,6 @@ const ArchiveField = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.title}>{pid}</div>
 

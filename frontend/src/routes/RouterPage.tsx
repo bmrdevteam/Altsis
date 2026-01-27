@@ -44,6 +44,7 @@ import UserSearchResult from "pages/userSearchResult/Index";
 
 //components
 import Sidebar from "../layout/sidebar/Sidebar";
+import Navbar from "layout/navbar/Navbar";
 
 //hooks
 import { useAuth } from "../contexts/authContext";
@@ -94,6 +95,7 @@ function RouterPage() {
           id="content"
           // style={{ maxWidth: `calc(100vw - ${sidebarClose ? 56 : 240}px)` }}
         >
+          {currentUser && <Navbar />}
           <Routes>
             {/* ----------------------------------------------------- */}
 

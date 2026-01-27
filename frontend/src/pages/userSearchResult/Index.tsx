@@ -30,7 +30,6 @@
 
 import { useAuth } from "contexts/authContext";
 import useApi from "hooks/useApi";
-import Navbar from "layout/navbar/Navbar";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -136,7 +135,6 @@ const UserSearchResult = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.container}>
           {!user ? (

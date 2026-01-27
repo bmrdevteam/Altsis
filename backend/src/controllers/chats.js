@@ -179,7 +179,7 @@ export const findRoom = async (req, res) => {
 /**
  * @memberof APIs.ChatAPI
  * @function UChatRoom API
- * @description 채팅방 수정 API (그룹 채팅 이름 변경)
+ * @description 채팅방 수정 API (그룹 채팅 이름/설정 변경)
  * @version 1.0.0
  *
  * @param {Object} req
@@ -192,6 +192,9 @@ export const findRoom = async (req, res) => {
  *
  * @param {Object} req.body
  * @param {string?} req.body.name - new room name (for group chats)
+ * @param {Object?} req.body.settings - room settings (creator only)
+ * @param {boolean?} req.body.settings.allowInvites
+ * @param {boolean?} req.body.settings.allowChat
  *
  * @param {Object} req.user - logged in user
  *
@@ -214,9 +217,123 @@ export const updateRoom = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    if (room.type === "group" && req.body.name) {
-      room.name = req.body.name;
+    const isCreator = room.creator?.toString() === req.user._id.toString();
+
+    if (room.type === "group") {
+      // Name can be changed by any participant
+      if (req.body.name !== undefined) {
+        room.name = req.body.name;
+      }
+
+      // Settings can only be changed by creator
+      if (req.body.settings && isCreator) {
+        if (!room.settings) {
+          room.settings = {};
+        }
+        if (req.body.settings.allowInvites !== undefined) {
+          room.settings.allowInvites = req.body.settings.allowInvites;
+        }
+        if (req.body.settings.allowChat !== undefined) {
+          room.settings.allowChat = req.body.settings.allowChat;
+        }
+      }
+
       await room.save();
+    }
+
+    return res.status(200).send({ room });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function CAddParticipants API
+ * @description 그룹 채팅방에 참가자 추가 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ * @param {"POST"} req.method
+ * @param {"/chats/rooms/:roomId/participants"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.roomId
+ *
+ * @param {Object} req.body
+ * @param {Object[]} req.body.participants - array of participant objects
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ * @param {Object} res.room
+ */
+export const addParticipants = async (req, res) => {
+  try {
+    const { participants } = req.body;
+
+    if (!participants || !Array.isArray(participants) || participants.length === 0) {
+      return res.status(400).send({ message: FIELD_REQUIRED("participants") });
+    }
+
+    const room = await ChatRoom(req.user.academyId).findById(req.params.roomId);
+
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    // Only group chats can have participants added
+    if (room.type !== "group") {
+      return res.status(400).send({
+        message: FIELD_INVALID("room.type"),
+        detail: "Cannot add participants to direct chat",
+      });
+    }
+
+    // Check if user is participant
+    const isParticipant = room.participants.some(
+      (p) => p.user.toString() === req.user._id.toString()
+    );
+    if (!isParticipant) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // Check invite permission
+    const isCreator = room.creator?.toString() === req.user._id.toString();
+    if (!isCreator && room.settings?.allowInvites === false) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // Add new participants (avoid duplicates)
+    const existingUserIds = room.participants.map((p) => p.user.toString());
+    const newParticipants = participants
+      .filter((p) => !existingUserIds.includes(p.user.toString()))
+      .map((p) => ({
+        user: p.user,
+        userId: p.userId,
+        userName: p.userName,
+        profile: p.profile,
+        joinedAt: new Date(),
+      }));
+
+    if (newParticipants.length > 0) {
+      room.participants.push(...newParticipants);
+      await room.save();
+
+      // Emit socket event to notify existing participants
+      const ioChat = getIoChat();
+      if (ioChat) {
+        room.participants.forEach((participant) => {
+          ioChat
+            .to(`chat:${req.user.academyId}:${participant.userId}`)
+            .emit("participants_added", {
+              room: room._id,
+              newParticipants,
+              addedBy: req.user.userName,
+            });
+        });
+      }
     }
 
     return res.status(200).send({ room });
@@ -324,6 +441,14 @@ export const sendMessage = async (req, res) => {
     );
     if (!isParticipant) {
       return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // Check chat permission for group chats
+    if (room.type === "group") {
+      const isCreator = room.creator?.toString() === req.user._id.toString();
+      if (!isCreator && room.settings?.allowChat === false) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
     }
 
     const message = await ChatMessage(req.user.academyId).create({

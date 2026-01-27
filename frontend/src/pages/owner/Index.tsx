@@ -27,7 +27,6 @@
  *
  */
 
-import Navbar from "layout/navbar/Navbar";
 import style from "style/pages/owner/academy.module.scss";
 
 type Props = {};
@@ -35,7 +34,6 @@ type Props = {};
 const Academies = (props: Props) => {
   return (
     <>
-      <Navbar />
       <div className={style.section}></div>
     </>
   );

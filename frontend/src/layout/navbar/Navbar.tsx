@@ -132,8 +132,8 @@ const Navbar = (props: Props) => {
         />
       </div>
       <div className={style.controls}>
-        <Chat />
         <Notification />
+        <Chat />
       </div>
     </div>
   );

@@ -38,7 +38,6 @@ import Button from "components/button/Button";
 import EditorParser from "editor/EditorParser";
 import Loading from "components/loading/Loading";
 import Callout from "components/callout/Callout";
-import Navbar from "layout/navbar/Navbar";
 
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
 import UpdatedEvaluationPopup from "pages/courses/view/_components/UpdatedEvaluationPopup";
@@ -155,7 +154,6 @@ const CoursePid = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.design_form}>
           <div className={style.title}>강의계획서 수정</div>
@@ -398,5 +396,7 @@ const CoursePid = (props: Props) => {
     <Loading height={"calc(100vh - 55px)"} />
   );
 };
+
+const SUCCESS_MESSAGE = "수정되었습니다.";
 
 export default CoursePid;
