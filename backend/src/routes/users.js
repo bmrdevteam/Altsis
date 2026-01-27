@@ -6,6 +6,7 @@ import {
   isOwAdManager,
   forceNotLoggedIn,
   isAdmin,
+  isOwAdmin,
 } from "../middleware/auth.js";
 
 //=================================
@@ -18,7 +19,7 @@ router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
 router.get("/logout", isLoggedIn, users.logout);
 
 // ___________ Create _____________
-router.post("/", isAdmin, users.create);
+router.post("/", isOwAdmin, users.create);
 
 // ___________ Find _____________
 router.get("/", isLoggedIn, users.findUsers);
@@ -36,10 +37,14 @@ router.put("/calendar", isLoggedIn, users.updateCalendar);
 router.put("/:_id/password", isLoggedIn, users.updatePassword);
 router.put("/:_id/email", isLoggedIn, users.updateEmail);
 router.put("/:_id/tel", isLoggedIn, users.updateTel);
+router.put("/:_id/userName", isLoggedIn, users.updateUserName);
+router.put("/:_id/birthday", isLoggedIn, users.updateBirthday);
+router.put("/:_id/address", isLoggedIn, users.updateAddress);
+router.put("/:_id/gender", isLoggedIn, users.updateGender);
 
-// ___________ Update (by admin) _____________
+// ___________ Update (by admin/owner) _____________
 
-router.put("/:_id/auth", isAdmin, users.updateAuth);
+router.put("/:_id/auth", isOwAdmin, users.updateAuth);
 
 router.put("/:_id/google", isAdmin, users.connectGoogleAuth);
 router.delete("/:_id/google", isAdmin, users.disconnectGoogleAuth);

@@ -36,9 +36,12 @@ import { copyClipBoard } from "functions/functions";
 import Table from "components/tableV2/Table";
 import Tab from "components/tab/Tab";
 import Popup from "components/popup/Popup";
+import Button from "components/button/Button";
+import Svg from "assets/svg/Svg";
 
 // popup/tab elements
 import Basic from "./tab/Basic";
+import Add from "./popup/Add";
 
 import useAPIv2 from "hooks/useAPIv2";
 
@@ -56,6 +59,11 @@ const User = (props: Props) => {
 
   /* popup activation */
   const [editPopupActive, setEditPopupActive] = useState(false);
+  const [addPopupActive, setAddPopupActive] = useState(false);
+
+  const addUserList = (users: any[]) => {
+    setDocumentList([...(documentList || []), ...users]);
+  };
 
   async function getDocumentList() {
     const { users } = await UserAPI.RUsers({
@@ -92,7 +100,17 @@ const User = (props: Props) => {
 
   return (
     <>
-      <div style={{ marginTop: "24px" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "24px" }}>
+        <Button
+          type="ghost"
+          onClick={() => {
+            setAddPopupActive(true);
+          }}
+        >
+          <Svg type={"userPlus"} width="28px" height="28px" />
+        </Button>
+      </div>
+      <div style={{ marginTop: "12px" }}>
         <Table
           type="object-array"
           control
@@ -187,6 +205,13 @@ const User = (props: Props) => {
             align={"flex-start"}
           />
         </Popup>
+      )}
+      {addPopupActive && (
+        <Add
+          academyId={academyId}
+          setPopupActive={setAddPopupActive}
+          addUserList={addUserList}
+        />
       )}
     </>
   );

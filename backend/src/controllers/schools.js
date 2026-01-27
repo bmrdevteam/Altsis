@@ -141,8 +141,14 @@ export const create = async (req, res) => {
  */
 export const find = async (req, res) => {
   try {
+    /* if owner requested, use academyId from query */
+    let academyId = req.user.academyId;
+    if (req.user.auth === "owner" && req.query.academyId) {
+      academyId = req.query.academyId;
+    }
+
     if (req.params._id) {
-      const school = await School(req.user.academyId).findById(req.params._id);
+      const school = await School(academyId).findById(req.params._id);
       if (!school) {
         return res.status(404).send({ message: __NOT_FOUND("school") });
       }
@@ -152,7 +158,7 @@ export const find = async (req, res) => {
       });
     }
 
-    const schools = await School(req.user.academyId).find({}).lean();
+    const schools = await School(academyId).find({}).lean();
     return res.status(200).send({ schools });
   } catch (err) {
     logger.error(err.message);
