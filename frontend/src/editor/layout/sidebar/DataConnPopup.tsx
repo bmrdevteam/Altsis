@@ -32,9 +32,21 @@ const DataConnPopup = (props: Props) => {
 
   const textareaRef = useRef<HTMLDivElement>(null);
 
+  const existingIndex = getCurrentBlock()?.data?.dataRepeat?.index;
+  const currentRow = getCurrentCellIndex()?.row;
+  const tableRowCount = getCurrentBlock()?.data?.table?.length ?? 1;
+  const getValidIndex = () => {
+    if (typeof existingIndex === "number" && existingIndex < tableRowCount) {
+      return existingIndex;
+    }
+    if (typeof currentRow === "number" && currentRow < tableRowCount) {
+      return currentRow;
+    }
+    return 0;
+  };
   const repeat = useRef<any>({
     by: getCurrentBlock()?.data?.dataRepeat?.by ?? "",
-    index: getCurrentBlock()?.data?.dataRepeat?.index ?? "",
+    index: getValidIndex(),
     max: getCurrentBlock()?.data?.dataRepeat?.max ?? "",
   });
   const [filters, setFilters] = useState<any[]>(

@@ -544,7 +544,8 @@ const ParsedTableBlock = (props: Props) => {
       <SetColumn />
       <tbody>
       {props.blockData.data.table.map((value: any[], index: number) => {
-      if (props.blockData.data.dataRepeat?.index === index) {
+      const repeatIndex = props.blockData.data.dataRepeat?.index;
+      if (typeof repeatIndex === "number" && repeatIndex === index) {
       return (
       filteredRepeat &&
       filteredRepeat.map((v: any, i: number) => {
