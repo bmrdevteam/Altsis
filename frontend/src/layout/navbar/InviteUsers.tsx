@@ -7,20 +7,23 @@ import Button from "components/button/Button";
 import style from "./chat.module.scss";
 
 type Props = {
+  room: TChatRoom;
   onClose: () => void;
-  onChatCreated: (room: TChatRoom) => void;
+  onInvited: () => void;
 };
 
-const NewChat = ({ onClose, onChatCreated }: Props) => {
+const InviteUsers = ({ room, onClose, onInvited }: Props) => {
   const { currentSchool } = useAuth();
   const { ChatAPI } = useAPIv2();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<TChatUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<TChatUser[]>([]);
-  const [groupName, setGroupName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
+
+  // Existing participant IDs to exclude from search results
+  const existingUserIds = room.participants.map((p) => p.user);
 
   const searchUsers = async (query: string) => {
     setIsLoading(true);
@@ -31,7 +34,11 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
           sid: currentSchool?.school || undefined,
         },
       });
-      setUsers(users);
+      // Filter out existing participants
+      const filteredUsers = users.filter(
+        (u) => !existingUserIds.includes(u._id)
+      );
+      setUsers(filteredUsers);
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -67,37 +74,33 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
     return selectedUsers.some((u) => u._id === userId);
   };
 
-  const handleCreateChat = async () => {
+  const handleInvite = async () => {
     if (selectedUsers.length === 0) return;
 
-    setIsCreating(true);
+    setIsInviting(true);
     try {
-      const isGroup = selectedUsers.length > 1;
-      const { room } = await ChatAPI.CChatRoom({
+      await ChatAPI.CChatRoomParticipants({
+        params: { roomId: room._id },
         data: {
-          type: isGroup ? "group" : "direct",
           participants: selectedUsers.map((user) => ({
             user: user._id,
             userId: user.userId,
             userName: user.userName,
             profile: user.profile,
           })),
-          name: isGroup ? groupName || undefined : undefined,
         },
       });
-      onChatCreated(room);
+      onInvited();
     } catch (err) {
       ALERT_ERROR(err);
-      setIsCreating(false);
+      setIsInviting(false);
     }
   };
-
-  const isGroupMode = selectedUsers.length > 1;
 
   return (
     <Popup
       setState={onClose}
-      title="새 채팅"
+      title="사용자 초대"
       closeBtn
       style={{ maxWidth: "400px", width: "100%" }}
     >
@@ -119,18 +122,6 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
           </div>
         )}
 
-        {/* Group Name Input (shown when 2+ users selected) */}
-        {isGroupMode && (
-          <div className={style.group_name_container}>
-            <input
-              type="text"
-              placeholder="그룹 채팅방 이름 (선택)"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-            />
-          </div>
-        )}
-
         {/* Search Input */}
         <div className={style.search_container}>
           <input
@@ -148,7 +139,9 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
             <div className={style.loading}>검색 중...</div>
           ) : users.length === 0 ? (
             <div className={style.empty}>
-              {searchQuery ? "검색 결과가 없습니다" : "사용자가 없습니다"}
+              {searchQuery
+                ? "검색 결과가 없습니다"
+                : "초대할 수 있는 사용자가 없습니다"}
             </div>
           ) : (
             users.map((user) => (
@@ -175,18 +168,16 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
           )}
         </div>
 
-        {/* Create Button */}
+        {/* Invite Button */}
         <div className={style.action_buttons}>
           <Button
             type="solid"
-            disabled={selectedUsers.length === 0 || isCreating}
-            onClick={handleCreateChat}
+            disabled={selectedUsers.length === 0 || isInviting}
+            onClick={handleInvite}
           >
-            {isCreating
-              ? "생성 중..."
-              : isGroupMode
-              ? "그룹 채팅 시작"
-              : "채팅 시작"}
+            {isInviting
+              ? "초대 중..."
+              : `${selectedUsers.length}명 초대하기`}
           </Button>
         </div>
       </div>
@@ -194,4 +185,4 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
   );
 };
 
-export default NewChat;
+export default InviteUsers;

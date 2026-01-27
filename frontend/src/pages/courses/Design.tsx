@@ -32,9 +32,6 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 
-// Navigation Bar
-import Navbar from "layout/navbar/Navbar";
-
 // tab pages
 import Add from "./view/Add/Index";
 
@@ -57,7 +54,6 @@ const CourseDesign = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <Add />
     </>
   );

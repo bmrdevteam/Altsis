@@ -20,6 +20,8 @@ import {
   Enrollment,
   Syllabus,
   Archive,
+  ChatRoom,
+  ChatMessage,
 } from "../models/index.js";
 
 import _ from "lodash";
@@ -443,6 +445,10 @@ const Model = (title, academyId) => {
       return Form(academyId);
     case "notifications":
       return Notification(academyId);
+    case "chatRooms":
+      return ChatRoom(academyId);
+    case "chatMessages":
+      return ChatMessage(academyId);
     default:
       return undefined;
   }

@@ -38,7 +38,6 @@ import EditorParser from "editor/EditorParser";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import CourseView from "pages/courses/view/ViewPopup";
-import Navbar from "layout/navbar/Navbar";
 
 import style from "style/pages/admin/schools.module.scss";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
@@ -104,7 +103,6 @@ const Index = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.title}>강의실 현황</div>
         <div style={{ height: "12px" }}></div>
@@ -127,7 +125,7 @@ const Index = (props: Props) => {
         <EditorParser
           type="timetable"
           auth="view"
-          defaultTimetable={syllabusLabelByTime(syllabusList)}
+          defaultTimetable={syllabusLabelByTime( syllabusList)}
           idTimetable={syllabusIdByTime(syllabusList)}
           onClickCourse={(id: string) => {
             setSelectedCourseId(id);

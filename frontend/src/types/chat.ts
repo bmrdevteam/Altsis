@@ -14,6 +14,11 @@ export type TLastMessage = {
   sentAt: string;
 };
 
+export type TChatRoomSettings = {
+  allowInvites?: boolean;
+  allowChat?: boolean;
+};
+
 export type TChatRoom = {
   _id: string;
   type: "direct" | "group";
@@ -24,6 +29,7 @@ export type TChatRoom = {
   participants: TChatParticipant[];
   lastMessage?: TLastMessage;
   isActive: boolean;
+  settings?: TChatRoomSettings;
   createdAt: string;
   updatedAt: string;
 };

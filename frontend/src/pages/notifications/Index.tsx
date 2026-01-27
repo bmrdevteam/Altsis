@@ -29,9 +29,6 @@
 
 import style from "style/pages/enrollment.module.scss";
 
-// navigation bar
-import Navbar from "layout/navbar/Navbar";
-
 // tab
 import Inbox from "./mailbox/Inbox";
 import Sent from "./mailbox/Sent";
@@ -43,7 +40,6 @@ type Props = {};
 const Courses = (props: Props) => {
   return (
     <>
-      <Navbar />
       <div className={style.section}>
             <Tab
               items={{

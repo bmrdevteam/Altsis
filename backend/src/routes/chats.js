@@ -15,6 +15,12 @@ router.put("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.updateRoom);
 router.delete("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.deleteRoom);
 
 //=================================
+//             Participants
+//=================================
+
+router.post("/rooms/:roomId/participants", isLoggedIn, isChatEnabled, chats.addParticipants);
+
+//=================================
 //             Messages
 //=================================
 

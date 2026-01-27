@@ -44,7 +44,6 @@ import Calendars from "./tab/Calendars";
 import Remove from "./tab/Remove";
 
 import { useAuth } from "contexts/authContext";
-import Navbar from "layout/navbar/Navbar";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
 import Loading from "components/loading/Loading";
@@ -117,7 +116,6 @@ const School = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div
           style={{

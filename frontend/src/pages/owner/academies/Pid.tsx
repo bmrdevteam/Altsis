@@ -46,7 +46,6 @@ import ChatSettings from "./tab/ChatSettings/Index";
 
 // import Setting from "./tab/Setting";
 import Skeleton from "components/skeleton/Skeleton";
-import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
@@ -106,8 +105,6 @@ const Academy = (props: Props) => {
 
   return (
     <>
-      <Navbar />
-
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>

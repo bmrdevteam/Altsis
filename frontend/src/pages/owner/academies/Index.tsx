@@ -37,7 +37,6 @@ import style from "style/pages/owner/academy.module.scss";
 import Button from "components/button/Button";
 import Divider from "components/divider/Divider";
 import Table from "components/tableV2/Table";
-import Navbar from "layout/navbar/Navbar";
 
 import AddPopup from "./AddPopup";
 import Loading from "components/loading/Loading";
@@ -71,7 +70,6 @@ const Academies = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
