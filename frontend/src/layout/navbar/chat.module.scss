@@ -89,18 +89,32 @@
       color: var(--accent-3);
       padding: 8px 0;
       margin: 8px 0;
-      align-self: center;
       width: 100%;
+      flex-basis: 100%;
     }
 
     .message_wrapper {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
+      flex-wrap: wrap;
       align-items: flex-start;
       width: 100%;
+      gap: 8px;
+
+      .sender_avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
 
       &.own {
-        align-items: flex-end;
+        justify-content: flex-end;
+
+        .sender_avatar {
+          display: none;
+        }
 
         .message {
           background-color: var(--color-b4, #4a90d9);

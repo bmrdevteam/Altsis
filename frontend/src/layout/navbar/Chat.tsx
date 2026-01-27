@@ -9,6 +9,7 @@ import useAPIv2 from "hooks/useAPIv2";
 import { TChatRoom } from "types/chat";
 import ChatWindow from "./ChatWindow";
 import NewChat from "./NewChat";
+import defaultProfilePic from "assets/img/default_profile.png";
 
 const Chat = () => {
   const { currentUser } = useAuth();
@@ -115,6 +116,14 @@ const Chat = () => {
     return otherParticipant?.userName || "알 수 없음";
   };
 
+  const getRoomDisplayImage = (room: TChatRoom) => {
+    if (room.type === "group") return defaultProfilePic;
+    const otherParticipant = room.participants.find(
+      (p) => p.userId !== currentUser?.userId
+    );
+    return otherParticipant?.profile || defaultProfilePic;
+  };
+
   const formatTime = (dateString?: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -205,28 +214,43 @@ const Chat = () => {
                       cursor: "pointer",
                       padding: "10px 12px",
                       borderBottom: "1px solid var(--border-color)",
+                      display: "flex",
+                      gap: "10px",
+                      alignItems: "center",
                     }}
                     onClick={() => handleRoomSelect(room)}
                   >
-                    <div
+                    <img
+                      src={getRoomDisplayImage(room)}
+                      alt={getRoomDisplayName(room)}
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "8px",
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        flexShrink: 0,
                       }}
-                    >
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontWeight: hasUnread ? "bold" : "normal",
-                          fontSize: "14px",
-                          flex: 1,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "8px",
                         }}
                       >
-                        {getRoomDisplayName(room)}
+                        <div
+                          style={{
+                            fontWeight: hasUnread ? "bold" : "normal",
+                            fontSize: "14px",
+                            flex: 1,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {getRoomDisplayName(room)}
                         {room.type === "group" && (
                           <span style={{
                             fontSize: "11px",
@@ -265,20 +289,21 @@ const Chat = () => {
                         </div>
                       </div>
                     </div>
-                    {room.lastMessage && (
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--accent-3)",
-                          marginTop: "4px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {room.lastMessage.content}
-                      </div>
-                    )}
+                      {room.lastMessage && (
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--accent-3)",
+                            marginTop: "4px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {room.lastMessage.content}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })
