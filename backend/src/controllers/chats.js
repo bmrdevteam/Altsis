@@ -345,6 +345,100 @@ export const addParticipants = async (req, res) => {
 
 /**
  * @memberof APIs.ChatAPI
+ * @function DRemoveParticipant API
+ * @description 그룹 채팅방에서 참가자 제거 API (방장 전용)
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ * @param {"DELETE"} req.method
+ * @param {"/chats/rooms/:roomId/participants/:participantId"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.roomId
+ * @param {string} req.params.participantId - participant user ObjectId to remove
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ * @param {Object} res.room
+ */
+export const removeParticipant = async (req, res) => {
+  try {
+    const { roomId, participantId } = req.params;
+
+    const room = await ChatRoom(req.user.academyId).findById(roomId);
+
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    // Only group chats allow participant removal
+    if (room.type !== "group") {
+      return res.status(400).send({
+        message: FIELD_INVALID("room.type"),
+        detail: "Cannot remove participants from direct chat",
+      });
+    }
+
+    // Only creator can remove participants
+    const isCreator = room.creator?.toString() === req.user._id.toString();
+    if (!isCreator) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // Cannot remove yourself (use deleteRoom instead)
+    if (participantId === req.user._id.toString()) {
+      return res.status(400).send({
+        message: FIELD_INVALID("participantId"),
+        detail: "Cannot remove yourself. Use leave room instead.",
+      });
+    }
+
+    // Find and remove participant
+    const participantIndex = room.participants.findIndex(
+      (p) => p.user.toString() === participantId
+    );
+    if (participantIndex === -1) {
+      return res.status(404).send({ message: __NOT_FOUND("participant") });
+    }
+
+    const removedParticipant = room.participants[participantIndex];
+    room.participants.splice(participantIndex, 1);
+    await room.save();
+
+    // Emit socket event to notify all participants including the removed one
+    const ioChat = getIoChat();
+    if (ioChat) {
+      // Notify the removed user
+      ioChat
+        .to(`chat:${req.user.academyId}:${removedParticipant.userId}`)
+        .emit("participant_removed", {
+          room: room._id,
+          removedUserId: removedParticipant.userId,
+          removedBy: req.user.userName,
+        });
+
+      // Notify remaining participants
+      room.participants.forEach((participant) => {
+        ioChat
+          .to(`chat:${req.user.academyId}:${participant.userId}`)
+          .emit("participant_removed", {
+            room: room._id,
+            removedUserId: removedParticipant.userId,
+            removedBy: req.user.userName,
+          });
+      });
+    }
+
+    return res.status(200).send({ room });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
  * @function DChatRoom API
  * @description 채팅방 나가기/삭제 API
  * @version 1.0.0

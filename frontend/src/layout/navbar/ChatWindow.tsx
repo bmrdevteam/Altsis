@@ -110,15 +110,34 @@ const ChatWindow = ({ room: initialRoom, socket, onClose, onRoomUpdated }: Props
       }
     };
 
+    const handleParticipantRemoved = (data: {
+      room: string;
+      removedUserId: string;
+      removedBy: string;
+    }) => {
+      if (data.room === room._id) {
+        // If current user was removed, close the chat window
+        if (data.removedUserId === currentUser?.userId) {
+          alert("채팅방에서 내보내졌습니다.");
+          onClose();
+        } else {
+          // Otherwise, reload room data
+          loadRoomData();
+        }
+      }
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
     socket.on("participants_added", handleParticipantsAdded);
+    socket.on("participant_removed", handleParticipantRemoved);
 
     return () => {
       socket.emit("leave_room", { roomId: room._id });
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
       socket.off("participants_added", handleParticipantsAdded);
+      socket.off("participant_removed", handleParticipantRemoved);
     };
   }, [socket, room._id, currentUser?.userId]);
 
