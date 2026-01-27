@@ -50,10 +50,6 @@ function Basic(props: Props) {
   const userNameRef = useRef<string>(props.user.userName ?? "");
   const emailRef = useRef<string>(props.user.email ?? "");
   const telRef = useRef<string>(props.user.tel ?? "");
-  const birthdayRef = useRef<string>(
-    props.user.birthday ? new Date(props.user.birthday).toISOString().split("T")[0] : ""
-  );
-  const addressRef = useRef<string>(props.user.address ?? "");
 
   const onUpdateAuthHandler = async (value: "admin" | "member" | "manager") => {
     try {
@@ -143,64 +139,6 @@ function Basic(props: Props) {
     }
   };
 
-  const onUpdateBirthdayHandler = async () => {
-    try {
-      const currentBirthday = props.user.birthday
-        ? new Date(props.user.birthday).toISOString().split("T")[0]
-        : "";
-      if (currentBirthday === birthdayRef.current) return;
-      const { birthday } = await UserAPI.UUserBirthday({
-        params: { uid: props.user._id },
-        data: {
-          birthday: birthdayRef.current !== "" ? birthdayRef.current : undefined,
-        },
-      });
-      alert(SUCCESS_MESSAGE);
-      props.user.birthday = birthday;
-      props.setUser(props.user);
-      setRefresh(true);
-    } catch (err: any) {
-      ALERT_ERROR(err);
-    }
-  };
-
-  const onUpdateAddressHandler = async () => {
-    try {
-      if (props.user.address === addressRef.current) return;
-      const { address } = await UserAPI.UUserAddress({
-        params: { uid: props.user._id },
-        data: {
-          address: addressRef.current !== "" ? addressRef.current : undefined,
-        },
-      });
-      alert(SUCCESS_MESSAGE);
-      props.user.address = address;
-      props.setUser(props.user);
-      setRefresh(true);
-    } catch (err: any) {
-      ALERT_ERROR(err);
-    }
-  };
-
-  const onUpdateGenderHandler = async (value: "male" | "female" | "") => {
-    try {
-      const currentGender = props.user.gender ?? "";
-      if (currentGender === value) return;
-      const { gender } = await UserAPI.UUserGender({
-        params: { uid: props.user._id },
-        data: {
-          gender: value !== "" ? value : undefined,
-        },
-      });
-      alert(SUCCESS_MESSAGE);
-      props.user.gender = gender;
-      props.setUser(props.user);
-      setRefresh(true);
-    } catch (err: any) {
-      ALERT_ERROR(err);
-    }
-  };
-
   useEffect(() => {
     if (refresh) {
       setRefresh(false);
@@ -282,64 +220,6 @@ function Basic(props: Props) {
         <Button type="ghost" onClick={onUpdateTelHandler}>
           수정
         </Button>
-      </div>
-      <div
-        style={{
-          marginTop: "24px",
-          display: "flex",
-          alignItems: "end",
-          gap: "12px",
-        }}
-      >
-        <Input
-          appearence="flat"
-          label="생년월일"
-          type="date"
-          defaultValue={
-            props.user.birthday
-              ? new Date(props.user.birthday).toISOString().split("T")[0]
-              : ""
-          }
-          onChange={(e: any) => {
-            birthdayRef.current = e.target.value;
-          }}
-        />
-        <Button type="ghost" onClick={onUpdateBirthdayHandler}>
-          수정
-        </Button>
-      </div>
-      <div
-        style={{
-          marginTop: "24px",
-          display: "flex",
-          alignItems: "end",
-          gap: "12px",
-        }}
-      >
-        <Input
-          appearence="flat"
-          label="주소"
-          defaultValue={props.user.address ?? ""}
-          onChange={(e: any) => {
-            addressRef.current = e.target.value;
-          }}
-        />
-        <Button type="ghost" onClick={onUpdateAddressHandler}>
-          수정
-        </Button>
-      </div>
-      <div style={{ marginTop: "24px" }}>
-        <Select
-          appearence="flat"
-          label="성별"
-          options={[
-            { text: "", value: "" },
-            { text: "남성", value: "male" },
-            { text: "여성", value: "female" },
-          ]}
-          defaultSelectedValue={props.user.gender ?? ""}
-          onChange={onUpdateGenderHandler}
-        />
       </div>
     </div>
   ) : (

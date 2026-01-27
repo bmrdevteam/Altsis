@@ -300,9 +300,6 @@ export const create = async (req, res) => {
       snsId: req.body.snsId ?? {},
       academyId: academyId,
       academyName: academyName,
-      birthday: req.body.birthday ? new Date(req.body.birthday) : undefined,
-      address: req.body.address,
-      gender: req.body.gender,
     });
 
     return res.status(200).send({ user });
@@ -734,124 +731,6 @@ export const updateUserName = async (req, res) => {
   await user.save();
 
   return res.status(200).send({ userName: user.userName });
-};
-
-/**
- * @memberof APIs.UserAPI
- * @function UUserBirthday API
- * @description 생년월일 변경 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"PUT"} req.method
- * @param {"/users/:_id/birthday"} req.url
- *
- * @param {Object} req.user - "admin"|"user"
- *
- * @param {Object} req.body
- * @param {string?} req.body.birthday
- *
- * @param {Object} res
- * @param {string} res.birthday - updated birthday
- *
- */
-export const updateBirthday = async (req, res) => {
-  if (req.user._id.toString() !== req.params._id) {
-    if (req.user.auth !== "admin") {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
-  }
-
-  const user = await User(req.user.academyId).findById(req.params._id);
-  if (!user) {
-    return res.status(404).send({ message: __NOT_FOUND("user") });
-  }
-
-  user.birthday = req.body.birthday ? new Date(req.body.birthday) : undefined;
-  await user.save();
-
-  return res.status(200).send({ birthday: user.birthday });
-};
-
-/**
- * @memberof APIs.UserAPI
- * @function UUserAddress API
- * @description 주소 변경 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"PUT"} req.method
- * @param {"/users/:_id/address"} req.url
- *
- * @param {Object} req.user - "admin"|"user"
- *
- * @param {Object} req.body
- * @param {string?} req.body.address
- *
- * @param {Object} res
- * @param {string} res.address - updated address
- *
- */
-export const updateAddress = async (req, res) => {
-  if (req.user._id.toString() !== req.params._id) {
-    if (req.user.auth !== "admin") {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
-  }
-
-  const user = await User(req.user.academyId).findById(req.params._id);
-  if (!user) {
-    return res.status(404).send({ message: __NOT_FOUND("user") });
-  }
-
-  user.address = req.body.address;
-  await user.save();
-
-  return res.status(200).send({ address: user.address });
-};
-
-/**
- * @memberof APIs.UserAPI
- * @function UUserGender API
- * @description 성별 변경 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"PUT"} req.method
- * @param {"/users/:_id/gender"} req.url
- *
- * @param {Object} req.user - "admin"|"user"
- *
- * @param {Object} req.body
- * @param {"male"|"female"?} req.body.gender
- *
- * @param {Object} res
- * @param {string} res.gender - updated gender
- *
- */
-export const updateGender = async (req, res) => {
-  if ("gender" in req.body && req.body.gender !== "male" && req.body.gender !== "female" && req.body.gender !== undefined) {
-    return res.status(400).send({ message: FIELD_INVALID("gender") });
-  }
-
-  if (req.user._id.toString() !== req.params._id) {
-    if (req.user.auth !== "admin") {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
-  }
-
-  const user = await User(req.user.academyId).findById(req.params._id);
-  if (!user) {
-    return res.status(404).send({ message: __NOT_FOUND("user") });
-  }
-
-  user.gender = req.body.gender;
-  await user.save();
-
-  return res.status(200).send({ gender: user.gender });
 };
 
 /**

@@ -38,9 +38,6 @@ router.put("/:_id/password", isLoggedIn, users.updatePassword);
 router.put("/:_id/email", isLoggedIn, users.updateEmail);
 router.put("/:_id/tel", isLoggedIn, users.updateTel);
 router.put("/:_id/userName", isLoggedIn, users.updateUserName);
-router.put("/:_id/birthday", isLoggedIn, users.updateBirthday);
-router.put("/:_id/address", isLoggedIn, users.updateAddress);
-router.put("/:_id/gender", isLoggedIn, users.updateGender);
 
 // ___________ Update (by admin/owner) _____________
 

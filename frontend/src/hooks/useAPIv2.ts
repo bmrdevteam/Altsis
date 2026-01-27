@@ -566,72 +566,6 @@ export default function useAPIv2() {
   }
 
   /**
-   * UUserBirthday API
-   * @description 생년월일 변경 API
-   * @version 2.0.0
-   * @auth admin|user
-   */
-  async function UUserBirthday(props: {
-    params: {
-      uid: string;
-    };
-    data: {
-      birthday?: string;
-    };
-  }) {
-    const { birthday } = await database.U({
-      location: `users/${props.params.uid}/birthday`,
-      data: props.data,
-    });
-
-    return { birthday: birthday as string | undefined };
-  }
-
-  /**
-   * UUserAddress API
-   * @description 주소 변경 API
-   * @version 2.0.0
-   * @auth admin|user
-   */
-  async function UUserAddress(props: {
-    params: {
-      uid: string;
-    };
-    data: {
-      address?: string;
-    };
-  }) {
-    const { address } = await database.U({
-      location: `users/${props.params.uid}/address`,
-      data: props.data,
-    });
-
-    return { address: address as string | undefined };
-  }
-
-  /**
-   * UUserGender API
-   * @description 성별 변경 API
-   * @version 2.0.0
-   * @auth admin|user
-   */
-  async function UUserGender(props: {
-    params: {
-      uid: string;
-    };
-    data: {
-      gender?: "male" | "female";
-    };
-  }) {
-    const { gender } = await database.U({
-      location: `users/${props.params.uid}/gender`,
-      data: props.data,
-    });
-
-    return { gender: gender as "male" | "female" | undefined };
-  }
-
-  /**
    * UUserProfile API
    * @description 프로필 사진 변경 API
    * @version 2.0.0
@@ -757,9 +691,6 @@ export default function useAPIv2() {
       snsId?: {
         google?: string;
       };
-      birthday?: string;
-      address?: string;
-      gender?: "male" | "female";
       academyId?: string;
     };
   }) {
@@ -2306,9 +2237,6 @@ export default function useAPIv2() {
       UUserEmail,
       UUserTel,
       UUserName,
-      UUserBirthday,
-      UUserAddress,
-      UUserGender,
       UUserAuth,
       CGoogleAuth,
       DGoogleAuth,

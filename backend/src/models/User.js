@@ -49,9 +49,6 @@ import { validate } from "../utils/validate.js";
  * @prop {string} academyId
  * @prop {string} academyName
  * @prop {string?} calendar - 개인 캘린더 공유 ID
- * @prop {Date?} birthday - 생년월일
- * @prop {string?} address - 주소
- * @prop {"male"|"female"?} gender - 성별
  *
  */
 const userSchema = mongoose.Schema(
@@ -98,9 +95,6 @@ const userSchema = mongoose.Schema(
     academyId: String,
     academyName: String,
     calendar: String,
-    birthday: { type: Date },
-    address: { type: String },
-    gender: { type: String, enum: ["male", "female"] },
 
     // deprecated
     workspace: {
