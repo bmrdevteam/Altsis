@@ -2338,6 +2338,21 @@ export default function useAPIv2() {
   }
 
   /**
+   * DChatRoomParticipant API
+   * @description 채팅방 참가자 제거 API (방장 전용)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DChatRoomParticipant(props: {
+    params: { roomId: string; participantId: string };
+  }) {
+    const { room } = await database.D({
+      location: `chats/rooms/${props.params.roomId}/participants/${props.params.participantId}`,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
    * RChatMessages API
    * @description 채팅 메시지 목록 조회 API
    * @version 1.0.0
@@ -2530,6 +2545,7 @@ export default function useAPIv2() {
       UChatRoom,
       DChatRoom,
       CChatRoomParticipants,
+      DChatRoomParticipant,
       RChatMessages,
       CChatMessage,
       UChatRoomRead,

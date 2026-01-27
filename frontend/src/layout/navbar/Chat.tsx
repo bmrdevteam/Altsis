@@ -81,6 +81,14 @@ const Chat = () => {
       loadRooms();
     });
 
+    newSocket.on("participants_added", () => {
+      loadRooms();
+    });
+
+    newSocket.on("participant_removed", () => {
+      loadRooms();
+    });
+
     setSocket(newSocket);
 
     return () => {

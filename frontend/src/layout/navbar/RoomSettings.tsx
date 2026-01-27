@@ -4,6 +4,7 @@ import { TChatRoom } from "types/chat";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import style from "./chat.module.scss";
+import defaultProfilePic from "assets/img/default_profile.png";
 
 type Props = {
   room: TChatRoom;
@@ -22,6 +23,7 @@ const RoomSettings = ({ room, onClose, onUpdated }: Props) => {
     room.settings?.allowChat !== false
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -41,6 +43,21 @@ const RoomSettings = ({ room, onClose, onUpdated }: Props) => {
       ALERT_ERROR(err);
       setIsSaving(false);
     }
+  };
+
+  const handleRemoveParticipant = async (participantId: string, userName: string) => {
+    if (!window.confirm(`${userName}님을 채팅방에서 내보내시겠습니까?`)) return;
+
+    setRemovingUserId(participantId);
+    try {
+      const { room: updatedRoom } = await ChatAPI.DChatRoomParticipant({
+        params: { roomId: room._id, participantId },
+      });
+      onUpdated(updatedRoom);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+    setRemovingUserId(null);
   };
 
   return (
@@ -63,11 +80,42 @@ const RoomSettings = ({ room, onClose, onUpdated }: Props) => {
           />
         </div>
 
-        {/* Participants Info */}
+        {/* Participants */}
         <div className={style.setting_item}>
-          <div className={style.setting_label}>참여자</div>
-          <div className={style.setting_description}>
-            {room.participants.map((p) => p.userName).join(", ")}
+          <div className={style.setting_left}>
+            <div className={style.setting_label}>
+              참여자 ({room.participants.length}명)
+            </div>
+            <div className={style.participants_manage_list}>
+              {room.participants.map((participant) => {
+                const isCreator = participant.user === room.creator;
+                const isRemoving = removingUserId === participant.user;
+
+                return (
+                  <div key={participant.user} className={style.participant_manage_item}>
+                    <img
+                      src={participant.profile || defaultProfilePic}
+                      alt={participant.userName}
+                      className={style.participant_avatar}
+                    />
+                    <span className={style.participant_name}>
+                      {participant.userName}
+                    </span>
+                    {isCreator ? (
+                      <span className={style.creator_badge}>방장</span>
+                    ) : (
+                      <button
+                        className={style.remove_participant_btn}
+                        onClick={() => handleRemoveParticipant(participant.user, participant.userName)}
+                        disabled={isRemoving}
+                      >
+                        {isRemoving ? "..." : "내보내기"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
