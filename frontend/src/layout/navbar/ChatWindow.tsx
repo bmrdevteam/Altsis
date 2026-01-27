@@ -9,6 +9,7 @@ import Svg from "assets/svg/Svg";
 import InviteUsers from "./InviteUsers";
 import RoomSettings from "./RoomSettings";
 import style from "./chat.module.scss";
+import defaultProfilePic from "assets/img/default_profile.png";
 
 type Props = {
   room: TChatRoom;
@@ -238,6 +239,11 @@ const ChatWindow = ({ room: initialRoom, socket, onClose, onRoomUpdated }: Props
     return currentDate !== prevDate;
   };
 
+  const getSenderProfile = (senderId: string) => {
+    const participant = room.participants.find((p) => p.user === senderId);
+    return participant?.profile || defaultProfilePic;
+  };
+
   return (
     <>
       <Popup
@@ -317,6 +323,13 @@ const ChatWindow = ({ room: initialRoom, socket, onClose, onRoomUpdated }: Props
                     <div className={style.date_divider}>
                       {formatMessageDate(msg.createdAt)}
                     </div>
+                  )}
+                  {msg.sender !== currentUser?._id && (
+                    <img
+                      src={msg.senderProfile || getSenderProfile(msg.sender)}
+                      alt={msg.senderName}
+                      className={style.sender_avatar}
+                    />
                   )}
                   <div className={style.message}>
                     {msg.sender !== currentUser?._id && (

@@ -40,6 +40,7 @@ export type TChatMessage = {
   sender: string;
   senderId: string;
   senderName: string;
+  senderProfile?: string;
   content: string;
   messageType: "text" | "image" | "file" | "system";
   attachment?: {
