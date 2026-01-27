@@ -34,6 +34,7 @@ const ChatWindow = ({ room: initialRoom, socket, onClose, onRoomUpdated }: Props
   const [showMenu, setShowMenu] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -256,52 +257,79 @@ const ChatWindow = ({ room: initialRoom, socket, onClose, onRoomUpdated }: Props
           {/* Group Chat Header Actions */}
           {isGroupChat && (
             <div className={style.room_header}>
-              <div className={style.room_title}>
-                {room.participants.length}명 참여 중
-              </div>
-              <div className={style.room_actions}>
-                <button
-                  className={style.menu_button}
-                  onClick={() => setShowMenu(!showMenu)}
+              <div className={style.room_header_top}>
+                <div
+                  className={style.room_title}
+                  onClick={() => setShowParticipants(!showParticipants)}
                 >
-                  <Svg type="option" width="18px" height="18px" />
-                </button>
-                {showMenu && (
-                  <div className={style.menu_dropdown}>
-                    {canInvite && (
+                  {room.participants.length}명 참여 중
+                  <span className={`${style.expand_icon} ${showParticipants ? style.expanded : ""}`}>
+                    ▼
+                  </span>
+                </div>
+                <div className={style.room_actions}>
+                  <button
+                    className={style.menu_button}
+                    onClick={() => setShowMenu(!showMenu)}
+                  >
+                    <Svg type="option" width="18px" height="18px" />
+                  </button>
+                  {showMenu && (
+                    <div className={style.menu_dropdown}>
+                      {canInvite && (
+                        <div
+                          className={style.menu_item}
+                          onClick={() => {
+                            setShowMenu(false);
+                            setShowInvite(true);
+                          }}
+                        >
+                          사용자 초대
+                        </div>
+                      )}
+                      {isCreator && (
+                        <div
+                          className={style.menu_item}
+                          onClick={() => {
+                            setShowMenu(false);
+                            setShowSettings(true);
+                          }}
+                        >
+                          채팅방 설정
+                        </div>
+                      )}
                       <div
-                        className={style.menu_item}
+                        className={`${style.menu_item} ${style.danger}`}
                         onClick={() => {
                           setShowMenu(false);
-                          setShowInvite(true);
+                          handleLeaveRoom();
                         }}
                       >
-                        사용자 초대
+                        채팅방 나가기
                       </div>
-                    )}
-                    {isCreator && (
-                      <div
-                        className={style.menu_item}
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowSettings(true);
-                        }}
-                      >
-                        채팅방 설정
-                      </div>
-                    )}
-                    <div
-                      className={`${style.menu_item} ${style.danger}`}
-                      onClick={() => {
-                        setShowMenu(false);
-                        handleLeaveRoom();
-                      }}
-                    >
-                      채팅방 나가기
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
+              {showParticipants && (
+                <div className={style.participants_list}>
+                  {room.participants.map((participant) => (
+                    <div key={participant.userId} className={style.participant_item}>
+                      <img
+                        src={participant.profile || defaultProfilePic}
+                        alt={participant.userName}
+                        className={style.participant_avatar}
+                      />
+                      <span className={style.participant_name}>
+                        {participant.userName}
+                      </span>
+                      {participant.user === room.creator && (
+                        <span className={style.creator_badge}>방장</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           <div className={style.messages_container}>
