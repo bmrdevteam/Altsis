@@ -72,17 +72,16 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
 
     setIsCreating(true);
     try {
-      const isGroup = selectedUsers.length > 1;
       const { room } = await ChatAPI.CChatRoom({
         data: {
-          type: isGroup ? "group" : "direct",
+          type: "group",
           participants: selectedUsers.map((user) => ({
             user: user._id,
             userId: user.userId,
             userName: user.userName,
             profile: user.profile,
           })),
-          name: isGroup ? groupName || undefined : undefined,
+          name: groupName || undefined,
         },
       });
       onChatCreated(room);
@@ -91,8 +90,6 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
       setIsCreating(false);
     }
   };
-
-  const isGroupMode = selectedUsers.length > 1;
 
   return (
     <Popup
@@ -119,17 +116,15 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
           </div>
         )}
 
-        {/* Group Name Input (shown when 2+ users selected) */}
-        {isGroupMode && (
-          <div className={style.group_name_container}>
-            <input
-              type="text"
-              placeholder="그룹 채팅방 이름 (선택)"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-            />
-          </div>
-        )}
+        {/* Group Name Input */}
+        <div className={style.group_name_container}>
+          <input
+            type="text"
+            placeholder="채팅방 이름 (선택)"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+          />
+        </div>
 
         {/* Search Input */}
         <div className={style.search_container}>
@@ -182,11 +177,7 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
             disabled={selectedUsers.length === 0 || isCreating}
             onClick={handleCreateChat}
           >
-            {isCreating
-              ? "생성 중..."
-              : isGroupMode
-              ? "그룹 채팅 시작"
-              : "채팅 시작"}
+            {isCreating ? "생성 중..." : "채팅 시작"}
           </Button>
         </div>
       </div>
