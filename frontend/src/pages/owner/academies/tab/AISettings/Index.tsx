@@ -36,19 +36,29 @@ type Props = {
   setAcademyData: React.Dispatch<any>;
 };
 
+type TModelInfo = {
+  name: string;
+  displayName: string;
+};
+
 const AISettings = (props: Props) => {
   const { AcademyAPI, AIAPI } = useAPIv2();
   const [apiKey, setApiKey] = useState<string>("");
+  const [aiModel, setAiModel] = useState<string>("gemini-2.5-flash");
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [availableModels, setAvailableModels] = useState<TModelInfo[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
+  const [useCustomModel, setUseCustomModel] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if API key exists
     AcademyAPI.RAcademyAiApiKey({
       params: { academyId: props.academyData.academyId },
     })
-      .then(({ hasApiKey }) => {
+      .then(({ hasApiKey, aiModel: model }) => {
         setHasApiKey(hasApiKey);
+        if (model) setAiModel(model);
       })
       .catch((err) => {
         console.error(err);
@@ -88,6 +98,7 @@ const AISettings = (props: Props) => {
         },
         data: {
           apiKey: apiKey.trim(),
+          aiModel,
         },
       });
       alert(SUCCESS_MESSAGE);
@@ -107,7 +118,7 @@ const AISettings = (props: Props) => {
     setIsTesting(true);
     try {
       const { valid, error } = await AIAPI.TestAiApiKey({
-        data: { apiKey: apiKey.trim() },
+        data: { apiKey: apiKey.trim(), aiModel },
       });
       if (valid) {
         alert("API 키가 유효합니다.");
@@ -118,6 +129,35 @@ const AISettings = (props: Props) => {
       ALERT_ERROR(err);
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const onClickLoadModelsHandler = async () => {
+    if (!apiKey.trim()) {
+      alert("먼저 API 키를 입력해주세요.");
+      return;
+    }
+
+    setIsLoadingModels(true);
+    try {
+      const { models, error } = await AIAPI.ListAiModels({
+        data: { apiKey: apiKey.trim() },
+      });
+      if (error) {
+        alert(error);
+        return;
+      }
+      setAvailableModels(models || []);
+      if (models && models.length > 0) {
+        const currentExists = models.some((m) => m.name === aiModel);
+        if (!currentExists) {
+          setAiModel(models[0].name);
+        }
+      }
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsLoadingModels(false);
     }
   };
 
@@ -229,6 +269,103 @@ const AISettings = (props: Props) => {
                 저장
               </Button>
             </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style={{ marginBottom: "12px" }}>AI 모델</h3>
+          <p style={{ color: "var(--accent-3)", marginBottom: "24px" }}>
+            사용할 AI 모델을 선택하거나 직접 입력하세요. API 키를 입력한 후
+            "모델 탐색" 버튼을 클릭하면 사용 가능한 모델 목록을 조회할 수
+            있습니다.
+          </p>
+
+          <div
+            style={{
+              padding: "16px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ fontWeight: 500 }}>현재 모델</div>
+              <div
+                style={{
+                  marginTop: "4px",
+                  color: "var(--accent-1)",
+                }}
+              >
+                {aiModel}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                marginBottom: "16px",
+                alignItems: "center",
+              }}
+            >
+              <Button
+                type="ghost"
+                onClick={onClickLoadModelsHandler}
+                disabled={isLoadingModels || !apiKey.trim()}
+              >
+                {isLoadingModels ? "조회 중..." : "모델 탐색"}
+              </Button>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={useCustomModel}
+                  onChange={(e) => setUseCustomModel(e.target.checked)}
+                />
+                직접 입력
+              </label>
+            </div>
+
+            {useCustomModel ? (
+              <Input
+                appearence="flat"
+                label="모델명"
+                placeholder="예: gemini-2.5-flash"
+                value={aiModel}
+                onChange={(e: any) => setAiModel(e.target.value)}
+              />
+            ) : (
+              <select
+                value={aiModel}
+                onChange={(e) => setAiModel(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid var(--border-color)",
+                  backgroundColor: "var(--background-color)",
+                  color: "var(--text-color)",
+                  fontSize: "14px",
+                  width: "100%",
+                  maxWidth: "400px",
+                }}
+              >
+                {availableModels.length > 0 ? (
+                  availableModels.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      {m.displayName} ({m.name})
+                    </option>
+                  ))
+                ) : (
+                  <option value={aiModel}>{aiModel}</option>
+                )}
+              </select>
+            )}
           </div>
         </div>
       </div>

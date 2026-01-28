@@ -67,6 +67,7 @@ const academySchema = mongoose.Schema(
     chatEnabled: { type: Boolean, default: false },
     aiEnabled: { type: Boolean, default: false },
     aiApiKey: { type: String, select: false },
+    aiModel: { type: String, default: "gemini-2.5-flash" },
   },
   { timestamps: true }
 );

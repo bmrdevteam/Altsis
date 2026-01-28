@@ -502,8 +502,11 @@ export const updateAiApiKey = async (req, res) => {
     if (!academy)
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    /* set apiKey */
+    /* set apiKey and model */
     academy.aiApiKey = req.body.apiKey;
+    if (req.body.aiModel) {
+      academy.aiModel = req.body.aiModel;
+    }
     await academy.save();
 
     return res.status(200).send({ success: true });
@@ -542,7 +545,10 @@ export const checkAiApiKey = async (req, res) => {
     if (!academy)
       return res.status(404).send({ message: __NOT_FOUND("academy") });
 
-    return res.status(200).send({ hasApiKey: !!academy.aiApiKey });
+    return res.status(200).send({
+      hasApiKey: !!academy.aiApiKey,
+      aiModel: academy.aiModel || "gemini-2.5-flash",
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

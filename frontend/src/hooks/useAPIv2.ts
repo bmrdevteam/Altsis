@@ -435,6 +435,7 @@ export default function useAPIv2() {
     };
     data: {
       apiKey: string;
+      aiModel?: string;
     };
   }) {
     const { success } = await database.U({
@@ -455,10 +456,10 @@ export default function useAPIv2() {
       academyId: string;
     };
   }) {
-    const { hasApiKey } = await database.R({
+    const { hasApiKey, aiModel } = await database.R({
       location: `academies/${props.params.academyId}/ai/apikey`,
     });
-    return { hasApiKey: hasApiKey as boolean };
+    return { hasApiKey: hasApiKey as boolean, aiModel: aiModel as string };
   }
 
   /**
@@ -2667,6 +2668,7 @@ export default function useAPIv2() {
   async function TestAiApiKey(props: {
     data: {
       apiKey: string;
+      aiModel?: string;
     };
   }) {
     const { valid, error } = await database.C({
@@ -2674,6 +2676,27 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { valid: valid as boolean, error: error as string | undefined };
+  }
+
+  /**
+   * ListAiModels API
+   * @description 사용 가능한 AI 모델 목록 조회
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function ListAiModels(props: {
+    data: {
+      apiKey: string;
+    };
+  }) {
+    const { models, error } = await database.C({
+      location: `ai/models`,
+      data: props.data,
+    });
+    return {
+      models: models as { name: string; displayName: string }[],
+      error: error as string | undefined,
+    };
   }
 
   return {
@@ -2828,6 +2851,7 @@ export default function useAPIv2() {
     AIAPI: {
       GenerateSyllabusContent,
       TestAiApiKey,
+      ListAiModels,
     },
   };
 }

@@ -191,7 +191,7 @@ export const generateSyllabusContent = async (req, res) => {
     // 1. Check Academy AI enabled and get API key
     const academy = await Academy.findOne(
       { academyId: req.user.academyId },
-      "+aiApiKey"
+      "+aiApiKey aiModel"
     );
     if (!academy) {
       sendEvent("error", { message: __NOT_FOUND("academy") });
@@ -279,7 +279,8 @@ export const generateSyllabusContent = async (req, res) => {
 
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(academy.aiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const modelName = academy.aiModel || "gemini-2.5-flash";
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     const prompt = buildPrompt(context, season.aiSettings, enrollments, syllabi);
     const result = await model.generateContentStream(prompt);
@@ -339,7 +340,7 @@ export const generateSyllabusContent = async (req, res) => {
  */
 export const testApiKey = async (req, res) => {
   try {
-    const { apiKey } = req.body;
+    const { apiKey, aiModel } = req.body;
 
     if (!apiKey) {
       return res.status(400).send({ message: FIELD_REQUIRED("apiKey") });
@@ -347,7 +348,8 @@ export const testApiKey = async (req, res) => {
 
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const modelName = aiModel || "gemini-2.5-flash";
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     // Simple test prompt
     await model.generateContent("Say hello");
@@ -366,9 +368,46 @@ export const testApiKey = async (req, res) => {
       return res.status(200).send({
         valid: false,
         error:
-          "AI 모델을 찾을 수 없습니다. @google/generative-ai SDK를 최신 버전으로 업데이트해주세요.",
+          "AI 모델을 찾을 수 없습니다. 모델명을 확인해주세요.",
       });
     }
     return res.status(200).send({ valid: false, error: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AIAPI
+ * @function ListAiModels API
+ * @description API 키로 사용 가능한 AI 모델 목록 조회
+ * @version 1.0.0
+ */
+export const listModels = async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+
+    if (!apiKey) {
+      return res.status(400).send({ message: FIELD_REQUIRED("apiKey") });
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
+    );
+
+    if (!response.ok) {
+      return res.status(200).send({ models: [], error: "API 키가 유효하지 않습니다." });
+    }
+
+    const data = await response.json();
+    const models = (data.models || [])
+      .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m) => ({
+        name: m.name.replace("models/", ""),
+        displayName: m.displayName,
+      }));
+
+    return res.status(200).send({ models });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
   }
 };

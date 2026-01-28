@@ -13,4 +13,7 @@ router.post("/syllabus/generate", isLoggedIn, ai.generateSyllabusContent);
 // Test API key (owner only)
 router.post("/test", isOwner, ai.testApiKey);
 
+// List available models (owner only)
+router.post("/models", isOwner, ai.listModels);
+
 export { router };
