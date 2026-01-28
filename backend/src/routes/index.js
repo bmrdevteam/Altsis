@@ -1,4 +1,5 @@
 import { router as academies } from "./academies.js";
+import { router as ai } from "./ai.js";
 import { router as archives } from "./archives.js";
 import { router as chats } from "./chats.js";
 import { router as enrollments } from "./enrollments.js";
@@ -17,6 +18,7 @@ import { router as test } from "./test.js";
 
 export const routers = [
   { label: "academies", routes: academies },
+  { label: "ai", routes: ai },
   { label: "archives", routes: archives },
   { label: "chats", routes: chats },
   { label: "enrollments", routes: enrollments },

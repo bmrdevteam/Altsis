@@ -187,6 +187,62 @@ const formSyllabusSchema = mongoose.Schema(
 
 /**
  * @memberof Models.Season
+ * @typedef TAiReference
+ *
+ * @prop {string} title - 참고 자료 제목
+ * @prop {string} content - 참고 자료 내용
+ */
+const aiReferenceSchema = mongoose.Schema(
+  {
+    title: String,
+    content: String,
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Season
+ * @typedef TAiPermission
+ *
+ * @prop {boolean} teacher - 교사 AI 사용 권한
+ * @prop {boolean} student - 학생 AI 사용 권한
+ */
+const aiPermissionSchema = mongoose.Schema(
+  {
+    teacher: { type: Boolean, default: false },
+    student: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Season
+ * @typedef TAiSettings
+ *
+ * @prop {boolean} enabled - AI 기능 활성화 상태
+ * @prop {TAiPermission} permission - AI 사용 권한
+ * @prop {string} guidelines - AI 생성 시 기본 지침
+ * @prop {TAiReference[]} references - AI 생성 시 참고 자료
+ */
+const aiSettingsSchema = mongoose.Schema(
+  {
+    enabled: { type: Boolean, default: false },
+    permission: { type: aiPermissionSchema, default: { teacher: false, student: false } },
+    guidelines: { type: String, default: "" },
+    references: { type: [aiReferenceSchema], default: [] },
+  },
+  { _id: false }
+);
+
+const aiSettingsDefault = {
+  enabled: false,
+  permission: { teacher: false, student: false },
+  guidelines: "",
+  references: [],
+};
+
+/**
+ * @memberof Models.Season
  * @typedef TSeason
  *
  * @prop {ObjectId} _id
@@ -204,6 +260,7 @@ const formSyllabusSchema = mongoose.Schema(
  * @prop {TFormTimetable} formTimetable - 시간표 양식
  * @prop {TFormSyllabus} formSyllabus - 강의계획서 양식
  * @prop {TFormEvaluationItem[]} formEvaluation - 평가 양식
+ * @prop {TAiSettings} aiSettings - AI 설정
  * @prop {boolean} isActivated=false - 학기 활성화 상태
  * @prop {boolean} isActivated=false - 학기 최초 활성화 여부
  *
@@ -255,6 +312,10 @@ const seasonSchema = mongoose.Schema(
     formSyllabus: formSyllabusSchema,
     formEvaluation: {
       type: [formEvaluationItemSchema],
+    },
+    aiSettings: {
+      type: aiSettingsSchema,
+      default: aiSettingsDefault,
     },
     temp: Object,
     isActivated: {

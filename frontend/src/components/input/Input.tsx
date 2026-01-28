@@ -2,6 +2,7 @@ import React, { CSSProperties } from "react";
 import style from "./input.module.scss";
 type Props = {
   defaultValue?: string;
+  value?: string;
   placeholder?: string;
   label?: string;
   type?: string;
@@ -33,6 +34,7 @@ const Input = (props: Props) => {
         type={props.type ? props.type : "text"}
         className={`${style.input} ${props.invalid && style.invalid}`}
         defaultValue={props.defaultValue}
+        value={props.value}
         placeholder={props.placeholder}
         onChange={props.onChange}
         required={props.required}

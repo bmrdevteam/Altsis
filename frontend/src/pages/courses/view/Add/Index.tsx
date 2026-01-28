@@ -47,6 +47,7 @@ import PastePopup from "pages/courses/view/_components/PastePopup";
 import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeacherPopup";
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
+import AIGeneratePopup from "pages/courses/view/_components/AIGeneratePopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
@@ -78,6 +79,13 @@ const CourseAdd = (props: Props) => {
     useState<boolean>(false);
 
   const [pastePopupActive, setPastePopupActive] = useState<boolean>(false);
+  const [aiPopupActive, setAIPopupActive] = useState<boolean>(false);
+
+  // AI enabled check
+  const aiEnabled = currentSeason?.aiSettings?.enabled &&
+    (currentRegistration?.role === "teacher"
+      ? currentSeason?.aiSettings?.permission?.teacher
+      : currentSeason?.aiSettings?.permission?.student);
 
   const pasteSyllabus = (syllabus: string) => {
     SyllabusAPI.RSyllabus({ params: { _id: syllabus } })
@@ -181,6 +189,18 @@ const CourseAdd = (props: Props) => {
             >
               <Svg type="paste" width="20px" height="20px" />
             </div>
+            {aiEnabled && (
+              <div
+                className={style.icon}
+                onClick={() => {
+                  setAIPopupActive(true);
+                }}
+                title={"AI로 내용 생성"}
+                style={{ display: "flex", gap: "4px", cursor: "pointer" }}
+              >
+                <Svg type="ai" width="20px" height="20px" />
+              </div>
+            )}
           </div>
           <div key="subject-select-wrapper">
             <SubjectSelect
@@ -368,6 +388,15 @@ const CourseAdd = (props: Props) => {
         <PastePopup
           setPopupActive={setPastePopupActive}
           pasteFunc={pasteSyllabus}
+        />
+      )}
+      {aiPopupActive && (
+        <AIGeneratePopup
+          setPopupActive={setAIPopupActive}
+          courseSubject={courseSubject}
+          courseTitle={courseTitle}
+          courseMoreInfo={courseMoreInfo}
+          setIsLoading={setIsLoading}
         />
       )}
     </>

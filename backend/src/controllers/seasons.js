@@ -918,3 +918,76 @@ export const remove = async (req, res) => {
     return res.status(500).send({ err: err.message });
   }
 };
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function USeasonAiSettings API
+ * @description 학기 AI 설정 업데이트 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/ai"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params._id - season objectId
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} req.body
+ * @param {boolean?} req.body.enabled - AI 기능 활성화 여부
+ * @param {Object?} req.body.permission - 권한 설정
+ * @param {boolean?} req.body.permission.teacher - 교사 AI 사용 권한
+ * @param {boolean?} req.body.permission.student - 학생 AI 사용 권한
+ * @param {string?} req.body.guidelines - AI 생성 시 기본 지침
+ * @param {Object[]?} req.body.references - AI 생성 시 참고 자료
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updateAiSettings = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    // Initialize aiSettings if not exists
+    if (!season.aiSettings) {
+      season.aiSettings = {
+        enabled: false,
+        permission: { teacher: false, student: false },
+        guidelines: "",
+        references: [],
+      };
+    }
+
+    // Update fields if provided
+    if ("enabled" in req.body) {
+      season.aiSettings.enabled = req.body.enabled;
+    }
+    if ("permission" in req.body) {
+      if ("teacher" in req.body.permission) {
+        season.aiSettings.permission.teacher = req.body.permission.teacher;
+      }
+      if ("student" in req.body.permission) {
+        season.aiSettings.permission.student = req.body.permission.student;
+      }
+    }
+    if ("guidelines" in req.body) {
+      season.aiSettings.guidelines = req.body.guidelines;
+    }
+    if ("references" in req.body) {
+      season.aiSettings.references = req.body.references;
+    }
+
+    season.markModified("aiSettings");
+    await season.save();
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};

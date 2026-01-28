@@ -425,6 +425,130 @@ export const updateChatEnabled = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyAiEnabled API
+ * @description 아카데미 AI 기능 활성화/비활성화 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/ai"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {boolean} req.body.aiEnabled
+ *
+ * @param {Object} res
+ * @param {TAcademy} res.academy - updated academy
+ */
+export const updateAiEnabled = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    /* toggle or set aiEnabled */
+    if (typeof req.body.aiEnabled === "boolean") {
+      academy.aiEnabled = req.body.aiEnabled;
+    } else {
+      academy.aiEnabled = !academy.aiEnabled;
+    }
+    await academy.save();
+
+    return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyAiApiKey API
+ * @description 아카데미 AI API 키 설정 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/ai/apikey"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.apiKey
+ *
+ * @param {Object} res
+ * @param {boolean} res.success
+ */
+export const updateAiApiKey = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    /* set apiKey */
+    academy.aiApiKey = req.body.apiKey;
+    await academy.save();
+
+    return res.status(200).send({ success: true });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
+ * @function RAcademyAiApiKey API
+ * @description 아카데미 AI API 키 존재 여부 확인 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/academies/:academyId/ai/apikey"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} res
+ * @param {boolean} res.hasApiKey - API 키 존재 여부
+ */
+export const checkAiApiKey = async (req, res) => {
+  try {
+    /* find document with apiKey */
+    const academy = await Academy.findOne(
+      { academyId: req.params.academyId },
+      "+aiApiKey"
+    );
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    return res.status(200).send({ hasApiKey: !!academy.aiApiKey });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 const Model = (title, academyId) => {
   switch (title) {
     case "schools":

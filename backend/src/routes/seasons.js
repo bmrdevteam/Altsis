@@ -22,6 +22,8 @@ router.put("/:_id/form/timetable", isAdManager, seasons.updateFormTimetable);
 router.put("/:_id/form/syllabus", isAdManager, seasons.updateFormSyllabus);
 router.put("/:_id/form/evaluation", isAdManager, seasons.updateFormEvaluation);
 
+router.put("/:_id/ai", isAdManager, seasons.updateAiSettings);
+
 router.put("/:_id/permission/:type", isAdManager, seasons.updatePermission);
 
 router.post(

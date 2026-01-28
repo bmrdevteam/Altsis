@@ -403,6 +403,65 @@ export default function useAPIv2() {
   }
 
   /**
+   * UAcademyAiEnabled API
+   * @description 아카데미 AI 기능 활성화/비활성화 API
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function UAcademyAiEnabled(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      aiEnabled: boolean;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/ai`,
+      data: props.data,
+    });
+    return { academy: academy as TAcademy };
+  }
+
+  /**
+   * UAcademyAiApiKey API
+   * @description 아카데미 AI API 키 설정 API
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function UAcademyAiApiKey(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      apiKey: string;
+    };
+  }) {
+    const { success } = await database.U({
+      location: `academies/${props.params.academyId}/ai/apikey`,
+      data: props.data,
+    });
+    return { success: success as boolean };
+  }
+
+  /**
+   * RAcademyAiApiKey API
+   * @description 아카데미 AI API 키 존재 여부 확인 API
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function RAcademyAiApiKey(props: {
+    params: {
+      academyId: string;
+    };
+  }) {
+    const { hasApiKey } = await database.R({
+      location: `academies/${props.params.academyId}/ai/apikey`,
+    });
+    return { hasApiKey: hasApiKey as boolean };
+  }
+
+  /**
    * ##########################################################################
    * User API
    * ##########################################################################
@@ -1283,6 +1342,33 @@ export default function useAPIv2() {
   }) {
     const { season } = await database.U({
       location: `seasons/${props.params._id}/form/evaluation`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonAiSettings API
+   * @description 학기 AI 설정 수정 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function USeasonAiSettings(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      enabled?: boolean;
+      permission?: {
+        teacher?: boolean;
+        student?: boolean;
+      };
+      guidelines?: string;
+      references?: { title: string; content: string }[];
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/ai`,
       data: props.data,
     });
     return { season: season as TSeason };
@@ -2488,6 +2574,61 @@ export default function useAPIv2() {
     return { preSignedUrl: preSignedUrl as string, expiryDate: expiryDate as string };
   }
 
+  /**
+   * ##########################################################################
+   * AI API
+   * ##########################################################################
+   */
+
+  /**
+   * GenerateSyllabusContent API
+   * @description AI를 사용하여 강의계획서 내용 생성
+   * @version 1.0.0
+   * @auth user
+   */
+  async function GenerateSyllabusContent(props: {
+    data: {
+      season: string;
+      context: {
+        subject?: string[];
+        classTitle?: string;
+        point?: number;
+        limit?: number;
+        currentInfo?: any;
+        formSyllabus?: any;
+      };
+      enrollments?: {
+        role: "teacher" | "student" | undefined;
+        userId: string;
+        userName: string;
+      }[];
+    };
+  }) {
+    const { content } = await database.C({
+      location: `ai/syllabus/generate`,
+      data: props.data,
+    });
+    return { content: content as any };
+  }
+
+  /**
+   * TestAiApiKey API
+   * @description AI API 키 테스트
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function TestAiApiKey(props: {
+    data: {
+      apiKey: string;
+    };
+  }) {
+    const { valid, error } = await database.C({
+      location: `ai/test`,
+      data: props.data,
+    });
+    return { valid: valid as boolean, error: error as string | undefined };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -2496,6 +2637,9 @@ export default function useAPIv2() {
       UAcademyEmail,
       UAcademyTel,
       UAcademyChatEnabled,
+      UAcademyAiEnabled,
+      UAcademyAiApiKey,
+      RAcademyAiApiKey,
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyBackup,
@@ -2550,6 +2694,7 @@ export default function useAPIv2() {
       USeasonFormTimetable,
       USeasonFormSyllabus,
       USeasonFormEvaluation,
+      USeasonAiSettings,
       USeasonPermission,
       CSeasonPermissionException,
       DSeasonPermissionException,
@@ -2629,6 +2774,10 @@ export default function useAPIv2() {
       RChatFiles,
       DChatFile,
       RChatFileSignedUrl,
+    },
+    AIAPI: {
+      GenerateSyllabusContent,
+      TestAiApiKey,
     },
   };
 }

@@ -38,6 +38,24 @@ export type TFormTimetable = {
   title: string;
   data: any[];
 };
+
+export type TAiReference = {
+  title: string;
+  content: string;
+};
+
+export type TAiPermission = {
+  teacher: boolean;
+  student: boolean;
+};
+
+export type TAiSettings = {
+  enabled: boolean;
+  permission: TAiPermission;
+  guidelines: string;
+  references: TAiReference[];
+};
+
 export type TSeason = {
   _id: string;
   school: string;
@@ -58,6 +76,7 @@ export type TSeason = {
   formTimetable: TFormTimetable;
   formSyllabus: any;
   formEvaluation: TFormEvaluation;
+  aiSettings?: TAiSettings;
   isActivated: boolean;
   isActivatedFirst: boolean;
 };

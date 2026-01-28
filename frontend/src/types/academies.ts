@@ -6,4 +6,7 @@ export type TAcademy = {
   adminName: string;
   email?: string;
   tel?: string;
+  isActivated?: boolean;
+  chatEnabled?: boolean;
+  aiEnabled?: boolean;
 };
