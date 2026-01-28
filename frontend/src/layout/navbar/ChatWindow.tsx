@@ -1,22 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, DragEvent, ClipboardEvent } from "react";
 import { Socket } from "socket.io-client";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TChatRoom, TChatMessage } from "types/chat";
-import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 import InviteUsers from "./InviteUsers";
 import RoomSettings from "./RoomSettings";
 import NewChat from "./NewChat";
+import ChatMessageContent from "./ChatMessageContent";
+import ImageLightbox from "./ImageLightbox";
+import ChatFileStorage from "./ChatFileStorage";
 import style from "./chat.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
-const PanelIcon = ({ fill = "#212121" }: { fill?: string }) => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6.82097 10.5L7.81949 11.3737C8.0273 11.5556 8.04836 11.8714 7.86652 12.0793C7.68468 12.2871 7.3688 12.3081 7.16098 12.1263L5.16098 10.3763C5.05247 10.2814 4.99023 10.1442 4.99023 10C4.99023 9.85583 5.05247 9.71866 5.16098 9.62372L7.16098 7.87372C7.3688 7.69188 7.68468 7.71294 7.86652 7.92075C8.04836 8.12857 8.0273 8.44445 7.81949 8.6263L6.82095 9.50001L10.5 9.50001C10.7761 9.50001 11 9.72387 11 10C11 10.2762 10.7761 10.5 10.5 10.5L6.82097 10.5ZM18 14C18 15.1046 17.1046 16 16 16L4 16C2.89543 16 2 15.1046 2 14V6C2 4.89543 2.89543 4 4 4H16C17.1046 4 18 4.89543 18 6V14ZM12 15L12 5L4 5C3.44772 5 3 5.44771 3 6L3 14C3 14.5523 3.44772 15 4 15L12 15Z" fill={fill}/>
-  </svg>
-);
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+};
 
 type Props = {
   room: TChatRoom | null;
@@ -26,11 +28,10 @@ type Props = {
   onRoomSelect: (room: TChatRoom) => void;
   onRoomUpdated?: (room: TChatRoom) => void;
   onNewChatCreated: (room: TChatRoom) => void;
-  mode?: "popup" | "panel";
-  onModeChange?: (mode: "popup" | "panel") => void;
+  onRoomLeft: () => void;
 };
 
-const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, onRoomUpdated, onNewChatCreated, mode = "popup", onModeChange }: Props) => {
+const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, onRoomUpdated, onNewChatCreated, onRoomLeft }: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
 
@@ -49,9 +50,21 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
   const [showParticipants, setShowParticipants] = useState(false);
   const [showChatList, setShowChatList] = useState(!initialRoom);
   const [showNewChat, setShowNewChat] = useState(false);
+  const [showStorage, setShowStorage] = useState(false);
+
+  // File upload states
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewFile, setPreviewFile] = useState<{
+    file: File;
+    preview: string;
+    type: "image" | "file";
+  } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isCreator = room?.creator === currentUser?._id;
@@ -63,6 +76,8 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     setRoom(initialRoom);
     if (initialRoom) {
       setShowChatList(false);
+    } else {
+      setShowChatList(true);
     }
   }, [initialRoom]);
 
@@ -230,13 +245,118 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     }
   };
 
+  // File handling functions
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleFileSelect(file);
+          break;
+        }
+      }
+    }
+  };
+
+  const handleFileSelect = (file: File) => {
+    const isImage = file.type.startsWith("image/");
+    const maxSize = isImage ? 10 * 1024 * 1024 : 20 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      alert(`파일 크기는 ${isImage ? "10MB" : "20MB"}를 초과할 수 없습니다.`);
+      return;
+    }
+
+    const preview = isImage ? URL.createObjectURL(file) : "";
+    setPreviewFile({
+      file,
+      preview,
+      type: isImage ? "image" : "file",
+    });
+  };
+
+  const handleFileUpload = async () => {
+    if (!previewFile || !room || isUploading) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", previewFile.file);
+
+      const { attachment } = await ChatAPI.CChatFileUpload({
+        params: { roomId: room._id },
+        data: formData,
+      });
+
+      const { message } = await ChatAPI.CChatMessage({
+        params: { roomId: room._id },
+        data: {
+          content: previewFile.file.name,
+          messageType: previewFile.type,
+          attachment,
+        },
+      });
+
+      setMessages((prev) => [...prev, message]);
+      setPreviewFile(null);
+      scrollToBottom();
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const cancelFilePreview = () => {
+    if (previewFile?.preview) {
+      URL.revokeObjectURL(previewFile.preview);
+    }
+    setPreviewFile(null);
+  };
+
+  const handleFileDownload = async (msg: TChatMessage) => {
+    if (!msg.attachment?.url) return;
+    window.open(msg.attachment.url, "_blank");
+  };
+
   const handleLeaveRoom = async () => {
     if (!room || !window.confirm("정말 채팅방을 나가시겠습니까?")) return;
 
     try {
       await ChatAPI.DChatRoom({ params: { roomId: room._id } });
-      setRoom(null);
-      setShowChatList(true);
+      onRoomLeft();
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -402,15 +522,6 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
             </span>
           </div>
           <div className={style.room_actions}>
-            {mode === "popup" && onModeChange && (
-              <button
-                className={style.menu_button}
-                onClick={() => onModeChange("panel")}
-                title="패널로 전환"
-              >
-                <PanelIcon fill="var(--accent-1, #333)" />
-              </button>
-            )}
             <button
               className={style.menu_button}
               onClick={() => setShowMenu(!showMenu)}
@@ -441,17 +552,15 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                     채팅방 설정
                   </div>
                 )}
-                {onModeChange && (
-                  <div
-                    className={style.menu_item}
-                    onClick={() => {
-                      setShowMenu(false);
-                      onModeChange(mode === "popup" ? "panel" : "popup");
-                    }}
-                  >
-                    {mode === "popup" ? "패널 사용" : "팝업 사용"}
-                  </div>
-                )}
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    setShowMenu(false);
+                    setShowStorage(true);
+                  }}
+                >
+                  내 파일
+                </div>
                 <div
                   className={`${style.menu_item} ${style.danger}`}
                   onClick={() => {
@@ -516,7 +625,13 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                 {msg.sender !== currentUser?._id && (
                   <div className={style.sender}>{msg.senderName}</div>
                 )}
-                <div className={style.content}>{msg.content}</div>
+                <div className={style.content}>
+                  <ChatMessageContent
+                    message={msg}
+                    onImageClick={(url) => setLightboxImage(url)}
+                    onFileDownload={handleFileDownload}
+                  />
+                </div>
                 <div className={style.time}>
                   {formatMessageTime(msg.createdAt)}
                 </div>
@@ -530,9 +645,67 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
         <div ref={messagesEndRef} />
       </div>
 
-      <div className={style.input_container}>
+      <div
+        className={`${style.input_container} ${isDragging ? style.dragging : ""}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* File Preview Modal */}
+        {previewFile && (
+          <div className={style.file_preview_modal}>
+            {previewFile.type === "image" ? (
+              <img src={previewFile.preview} alt="Preview" className={style.preview_image} />
+            ) : (
+              <div className={style.file_info}>
+                <Svg type="file" width="32px" height="32px" />
+                <div className={style.file_details}>
+                  <span className={style.file_name}>{previewFile.file.name}</span>
+                  <span className={style.file_size}>{formatFileSize(previewFile.file.size)}</span>
+                </div>
+              </div>
+            )}
+            <div className={style.preview_actions}>
+              <Button type="ghost" onClick={cancelFilePreview} disabled={isUploading}>
+                취소
+              </Button>
+              <Button type="ghost" onClick={handleFileUpload} disabled={isUploading}>
+                {isUploading ? "업로드 중..." : "전송"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Drag Overlay */}
+        {isDragging && (
+          <div className={style.drag_overlay}>
+            <Svg type="upload" width="32px" height="32px" />
+            <span>파일을 여기에 놓으세요</span>
+          </div>
+        )}
+
         {canChat ? (
           <>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              accept="image/*,.pdf,.hwp,.docx,.xlsx,.zip,.txt"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleFileSelect(e.target.files[0]);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <button
+              className={style.attach_button}
+              onClick={() => fileInputRef.current?.click()}
+              title="파일 첨부"
+            >
+              <Svg type="paperclip" width="20px" height="20px" />
+            </button>
             <textarea
               ref={inputRef}
               value={newMessage}
@@ -544,6 +717,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                 }
               }}
               onKeyUp={handleTyping}
+              onPaste={handlePaste}
               placeholder="메시지를 입력하세요..."
               rows={2}
             />
@@ -565,7 +739,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
   ) : null;
 
   const chatContent = (
-    <div className={`${style.chat_window} ${mode === "panel" ? style.panel_mode : ""}`}>
+    <div className={`${style.chat_window} ${style.panel_mode}`}>
       {showChatList || !room ? chatListContent : chatConversationContent}
     </div>
   );
@@ -574,60 +748,26 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
 
   return (
     <>
-      {mode === "panel" ? (
-        <div className={style.chat_panel_container}>
-          <div className={style.chat_panel_header}>
-            <div className={style.chat_panel_title_area}>
-              <button
-                className={style.chat_panel_btn}
-                onClick={() => setShowChatList(!showChatList)}
-                title="채팅 목록"
-              >
-                <Svg type="chat" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-              </button>
-              <span className={style.chat_panel_title}>{headerTitle}</span>
-            </div>
-            <div className={style.chat_panel_actions}>
-              {onModeChange && (
-                <button
-                  className={style.chat_panel_btn}
-                  onClick={() => onModeChange("popup")}
-                  title="팝업으로 전환"
-                >
-                  <Svg type="linkExternal" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-                </button>
-              )}
-              <button className={style.chat_panel_btn} onClick={onClose} title="닫기">
-                <Svg type="x" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-              </button>
-            </div>
+      <div className={style.chat_panel_container}>
+        <div className={style.chat_panel_header}>
+          <div className={style.chat_panel_title_area}>
+            <button
+              className={style.chat_panel_btn}
+              onClick={() => setShowChatList(!showChatList)}
+              title="채팅 목록"
+            >
+              <Svg type="chat" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
+            </button>
+            <span className={style.chat_panel_title}>{headerTitle}</span>
           </div>
-          {chatContent}
+          <div className={style.chat_panel_actions}>
+            <button className={style.chat_panel_btn} onClick={onClose} title="닫기">
+              <Svg type="x" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
+            </button>
+          </div>
         </div>
-      ) : (
-        <Popup
-          setState={onClose}
-          closeBtn
-          style={{ maxWidth: "450px", width: "100%", height: "600px" }}
-          title={headerTitle}
-          footer={
-            room ? (
-              <button
-                className={style.chat_list_toggle_btn}
-                onClick={() => setShowChatList(!showChatList)}
-                title={showChatList ? "현재 채팅으로" : "채팅 목록"}
-              >
-                <Svg type="chat" width="18px" height="18px" style={{ fill: "var(--accent-1, #333)" }} />
-                <span style={{ marginLeft: "6px", fontSize: "13px" }}>
-                  {showChatList ? "현재 채팅으로" : "채팅 목록"}
-                </span>
-              </button>
-            ) : undefined
-          }
-        >
-          {chatContent}
-        </Popup>
-      )}
+        {chatContent}
+      </div>
 
       {showInvite && room && (
         <InviteUsers
@@ -649,6 +789,17 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
         <NewChat
           onClose={() => setShowNewChat(false)}
           onChatCreated={handleNewChatComplete}
+        />
+      )}
+
+      {showStorage && (
+        <ChatFileStorage onClose={() => setShowStorage(false)} />
+      )}
+
+      {lightboxImage && (
+        <ImageLightbox
+          imageUrl={lightboxImage}
+          onClose={() => setLightboxImage(null)}
         />
       )}
     </>

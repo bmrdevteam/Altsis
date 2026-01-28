@@ -6,13 +6,17 @@
  */
 
 import { logger } from "../log/logger.js";
-import { ChatRoom, ChatMessage, User } from "../models/index.js";
+import { ChatRoom, ChatMessage, ChatFile, User } from "../models/index.js";
 import { getIoChat } from "../utils/webSocket.js";
+import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
+import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
 import {
   FIELD_REQUIRED,
   FIELD_INVALID,
   PERMISSION_DENIED,
   __NOT_FOUND,
+  LIMIT_FILE_SIZE,
+  INVALID_FILE_TYPE,
 } from "../messages/index.js";
 
 /**
@@ -495,6 +499,61 @@ export const deleteRoom = async (req, res) => {
 
 /**
  * @memberof APIs.ChatAPI
+ * @function DChatRoomByCreator API
+ * @description 채팅방 삭제 API (방장 전용)
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/chats/rooms/:roomId/creator"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.roomId
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ */
+export const deleteRoomByCreator = async (req, res) => {
+  try {
+    const room = await ChatRoom(req.user.academyId).findById(req.params.roomId);
+
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    // Check if user is creator
+    if (room.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // Soft delete the room
+    room.isActive = false;
+    await room.save();
+
+    // maybe emit a socket event to notify participants?
+    const ioChat = getIoChat();
+    if (ioChat) {
+      room.participants.forEach((participant) => {
+        ioChat
+          .to(`chat:${req.user.academyId}:${participant.userId}`)
+          .emit("room_deleted", {
+            room: room._id,
+            deletedBy: req.user.userName,
+          });
+      });
+    }
+
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
  * @function CChatMessage API
  * @description 메시지 전송 API
  * @version 1.0.0
@@ -510,6 +569,7 @@ export const deleteRoom = async (req, res) => {
  * @param {Object} req.body
  * @param {string} req.body.content
  * @param {string?} req.body.messageType - "text"|"image"|"file"|"system"
+ * @param {Object?} req.body.attachment - { url, fileName, fileSize, mimeType, key }
  *
  * @param {Object} req.user - logged in user
  *
@@ -518,10 +578,15 @@ export const deleteRoom = async (req, res) => {
  */
 export const sendMessage = async (req, res) => {
   try {
-    const { content, messageType } = req.body;
+    const { content, messageType, attachment } = req.body;
 
     if (!content) {
       return res.status(400).send({ message: FIELD_REQUIRED("content") });
+    }
+
+    // Validate attachment for image/file messages
+    if ((messageType === "image" || messageType === "file") && !attachment) {
+      return res.status(400).send({ message: FIELD_REQUIRED("attachment") });
     }
 
     const room = await ChatRoom(req.user.academyId).findById(req.params.roomId);
@@ -545,24 +610,59 @@ export const sendMessage = async (req, res) => {
       }
     }
 
-    const message = await ChatMessage(req.user.academyId).create({
+    const messageData = {
       room: room._id,
       sender: req.user._id,
       senderId: req.user.userId,
       senderName: req.user.userName,
+      senderProfile: req.user.profile,
       content,
       messageType: messageType || "text",
       readBy: [{ user: req.user._id, readAt: new Date() }],
-    });
+    };
+
+    // Add attachment if provided (store key for signing later)
+    if (attachment) {
+      messageData.attachment = {
+        url: attachment.url,
+        fileName: attachment.fileName,
+        fileSize: attachment.fileSize,
+        mimeType: attachment.mimeType,
+        key: attachment.key, // Store key for signed URL generation
+      };
+    }
+
+    const message = await ChatMessage(req.user.academyId).create(messageData);
+
+    // Update ChatFile with message reference if it's a file/image message
+    if (attachment?.key) {
+      await ChatFile(req.user.academyId).findOneAndUpdate(
+        { key: attachment.key, user: req.user._id },
+        { message: message._id }
+      );
+    }
 
     // Update room's last message
+    let lastMessageContent = content.substring(0, 100);
+    if (messageType === "image") {
+      lastMessageContent = "[이미지]";
+    } else if (messageType === "file") {
+      lastMessageContent = `[파일] ${attachment?.fileName || ""}`;
+    }
+
     room.lastMessage = {
-      content: content.substring(0, 100),
+      content: lastMessageContent,
       sender: req.user._id,
       senderName: req.user.userName,
       sentAt: new Date(),
     };
     await room.save();
+
+    // Prepare message with signed URL for response
+    const messageObj = message.toObject();
+    if (messageObj.attachment?.key) {
+      messageObj.attachment.url = signUrlForView(messageObj.attachment.key, 3600);
+    }
 
     // Emit via Socket.io to all participants
     const ioChat = getIoChat();
@@ -574,13 +674,13 @@ export const sendMessage = async (req, res) => {
             .emit("new_message", {
               room: room._id,
               roomType: room.type,
-              message,
+              message: messageObj,
             });
         }
       });
     }
 
-    return res.status(200).send({ message });
+    return res.status(200).send({ message: messageObj });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
@@ -641,8 +741,17 @@ export const findMessages = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit));
 
+    // Sign attachment URLs for image/file messages
+    const messagesWithSignedUrls = messages.map((msg) => {
+      const msgObj = msg.toObject();
+      if (msgObj.attachment?.key) {
+        msgObj.attachment.url = signUrlForView(msgObj.attachment.key, 3600); // 1 hour expiry
+      }
+      return msgObj;
+    });
+
     // Return messages in chronological order
-    return res.status(200).send({ messages: messages.reverse() });
+    return res.status(200).send({ messages: messagesWithSignedUrls.reverse() });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
@@ -738,6 +847,262 @@ export const searchUsers = async (req, res) => {
     );
 
     return res.status(200).send({ users: filteredUsers });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+//=================================
+//         File Upload
+//=================================
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function CChatFileUpload API
+ * @description 채팅 파일 업로드 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"POST"} req.method
+ * @param {"/chats/rooms/:roomId/upload"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.roomId
+ *
+ * @param {FormData} req.body - file
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ * @param {Object} res.attachment - { url, fileName, fileSize, mimeType, key }
+ */
+export const uploadChatFile = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    // Check if room exists and user is participant
+    const room = await ChatRoom(req.user.academyId).findById(roomId);
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    const isParticipant = room.participants.some(
+      (p) => p.user.toString() === req.user._id.toString()
+    );
+    if (!isParticipant) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // Check chat permission for group chats
+    if (room.type === "group") {
+      const isCreator = room.creator?.toString() === req.user._id.toString();
+      if (!isCreator && room.settings?.allowChat === false) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    }
+
+    // Upload file using chatMulter
+    chatMulter(roomId).single("file")(req, {}, async (err) => {
+      if (err) {
+        switch (err.code) {
+          case "LIMIT_FILE_SIZE":
+            return res.status(409).send({ message: LIMIT_FILE_SIZE });
+          case "INVALID_FILE_TYPE":
+            return res.status(409).send({ message: INVALID_FILE_TYPE });
+          default:
+            logger.error(err.message);
+            return res.status(500).send({ message: err.message });
+        }
+      }
+
+      if (!req.file) {
+        return res.status(400).send({ message: FIELD_REQUIRED("file") });
+      }
+
+      try {
+        const fileType = isImageFile(req.file.mimetype) ? "image" : "file";
+
+        // Save to ChatFile collection for storage management
+        await ChatFile(req.user.academyId).create({
+          user: req.user._id,
+          userId: req.user.userId,
+          room: roomId,
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          key: req.tmp.key,
+          url: req.file.location,
+          fileType,
+        });
+
+        return res.status(200).send({
+          attachment: {
+            url: req.file.location,
+            fileName: req.file.originalname,
+            fileSize: req.file.size,
+            mimeType: req.file.mimetype,
+            key: req.tmp.key,
+          },
+        });
+      } catch (err) {
+        logger.error(err.message);
+        return res.status(500).send({ message: err.message });
+      }
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+//=================================
+//         File Storage
+//=================================
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function RChatFiles API
+ * @description 내 채팅 파일 목록 조회 API (개인 저장소)
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/chats/files"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string?} req.query.fileType - "image" | "file"
+ * @param {number?} req.query.limit - default 20
+ * @param {string?} req.query.before - ISO date string for cursor pagination
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ * @param {Object[]} res.files
+ */
+export const findMyFiles = async (req, res) => {
+  try {
+    const { fileType, limit = 20, before } = req.query;
+
+    const query = {
+      user: req.user._id,
+      isDeleted: false,
+    };
+
+    if (fileType) {
+      query.fileType = fileType;
+    }
+
+    if (before) {
+      query.createdAt = { $lt: new Date(before) };
+    }
+
+    const files = await ChatFile(req.user.academyId)
+      .find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    // Sign URLs for viewing
+    const filesWithSignedUrls = files.map((file) => {
+      const fileObj = file.toObject();
+      if (fileObj.key) {
+        fileObj.url = signUrlForView(fileObj.key, 3600); // 1 hour expiry
+      }
+      return fileObj;
+    });
+
+    return res.status(200).send({ files: filesWithSignedUrls });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function DChatFile API
+ * @description 채팅 파일 삭제 API (소프트 삭제)
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/chats/files/:fileId"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.fileId
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ */
+export const deleteFile = async (req, res) => {
+  try {
+    const file = await ChatFile(req.user.academyId).findById(req.params.fileId);
+
+    if (!file) {
+      return res.status(404).send({ message: __NOT_FOUND("file") });
+    }
+
+    // Only owner can delete
+    if (file.user.toString() !== req.user._id.toString()) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    file.isDeleted = true;
+    await file.save();
+
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function RChatFileSignedUrl API
+ * @description 채팅 파일 다운로드용 Signed URL 조회 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/chats/files/:fileId/signed"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.fileId
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ * @param {string} res.preSignedUrl
+ * @param {string} res.expiryDate
+ */
+export const signChatFile = async (req, res) => {
+  try {
+    const file = await ChatFile(req.user.academyId).findById(req.params.fileId);
+
+    if (!file || file.isDeleted) {
+      return res.status(404).send({ message: __NOT_FOUND("file") });
+    }
+
+    // Check permission: owner or room participant
+    const room = await ChatRoom(req.user.academyId).findById(file.room);
+    const isOwner = file.user.toString() === req.user._id.toString();
+    const isParticipant = room?.participants.some(
+      (p) => p.user.toString() === req.user._id.toString()
+    );
+
+    if (!isOwner && !isParticipant) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const { preSignedUrl, expiryDate } = signUrl(file.key, file.fileName, 300);
+
+    return res.status(200).send({ preSignedUrl, expiryDate });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

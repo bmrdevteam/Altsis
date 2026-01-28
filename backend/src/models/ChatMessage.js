@@ -33,10 +33,11 @@ const readBySchema = mongoose.Schema(
  * @memberof Models.ChatMessage
  * @typedef TAttachment
  *
- * @prop {string} url - file URL
+ * @prop {string} url - file URL (signed URL)
  * @prop {string} fileName
  * @prop {number} fileSize - size in bytes
  * @prop {string} mimeType
+ * @prop {string} key - S3 key for signed URL generation
  */
 const attachmentSchema = mongoose.Schema(
   {
@@ -44,6 +45,7 @@ const attachmentSchema = mongoose.Schema(
     fileName: String,
     fileSize: Number,
     mimeType: String,
+    key: String,
   },
   { _id: false }
 );
