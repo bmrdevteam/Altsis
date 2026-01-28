@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import style from "style/pages/archive.module.scss";
 
 import { useAuth } from "contexts/authContext";
-import Navbar from "layout/navbar/Navbar";
 import useApi from "hooks/useApi";
 import Loading from "components/loading/Loading";
 
@@ -34,7 +33,6 @@ const Archive = (props: Props) => {
 
   return !isLoading ? (
     <>
-      <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>

@@ -52,7 +52,6 @@ import {
 import { useAuth } from "contexts/authContext";
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
-import Navbar from "layout/navbar/Navbar";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
@@ -421,7 +420,6 @@ const Forms = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>
@@ -435,9 +433,64 @@ const Forms = (props: Props) => {
             </div>
           </div>
         </div>
-          <Tab
-            align={"flex-start"}
-            items={{
+        {/* 에디터 상단바 - 검색 및 뷰 컨트롤 */}
+        <div
+          className={style.search}
+          style={{ margin: "24px 0", display: "flex" }}
+        >
+          <Input
+            placeholder={"제목으로 검색"}
+            defaultValue={
+              search.filters.filter((val) => val.id === "search")[0]?.value
+            }
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              search.addFilterItem({
+                id: "search",
+                key: "title",
+                operator: "=",
+                value: e.target.value,
+              });
+            }}
+          />
+          <div className={style.btns}>
+            <div
+              className={`${style.btn} ${view === "grid" && style.active}`}
+              onClick={() => {
+                setView("grid");
+              }}
+            >
+              <Svg type="grid" width="20px" height="20px" />
+            </div>
+            <div
+              className={`${style.btn} ${view === "list" && style.active}`}
+              onClick={() => {
+                setView("list");
+              }}
+            >
+              <Svg type="list" width="26px" height="26px" />
+            </div>
+            <div
+              className={style.btn}
+              onClick={(e: any) => {
+                handleProfileUploadButtonClick(e);
+              }}
+            >
+              <Svg type="upload" width="26px" height="26px" />
+            </div>
+            <input
+              type="file"
+              ref={fileInput}
+              style={{ display: "none" }}
+              onChange={(e: any) => {
+                handleFileChange(e);
+                e.target.value = "";
+              }}
+            />
+          </div>
+        </div>
+        <Tab
+          align={"flex-start"}
+          items={{
               시간표: (
                 <div style={{ marginTop: "24px" }}>
                   {view === "grid" ? (
@@ -973,62 +1026,7 @@ const Forms = (props: Props) => {
                 </div>
               ),
             }}
-          >
-            <div
-              className={style.search}
-              style={{ margin: "24px 0", display: "flex" }}
-            >
-              <Input
-                placeholder={"제목으로 검색"}
-                defaultValue={
-                  search.filters.filter((val) => val.id === "search")[0]?.value
-                }
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  search.addFilterItem({
-                    id: "search",
-                    key: "title",
-                    operator: "=",
-                    value: e.target.value,
-                  });
-                }}
-              />
-              <div className={style.btns}>
-                <div
-                  className={`${style.btn} ${view === "grid" && style.active}`}
-                  onClick={() => {
-                    setView("grid");
-                  }}
-                >
-                  <Svg type="grid" width="20px" height="20px" />
-                </div>
-                <div
-                  className={`${style.btn} ${view === "list" && style.active}`}
-                  onClick={() => {
-                    setView("list");
-                  }}
-                >
-                  <Svg type="list" width="26px" height="26px" />
-                </div>
-                <div
-                  className={style.btn}
-                  onClick={(e: any) => {
-                    handleProfileUploadButtonClick(e);
-                  }}
-                >
-                  <Svg type="upload" width="26px" height="26px" />
-                </div>
-                <input
-                  type="file"
-                  ref={fileInput}
-                  style={{ display: "none" }}
-                  onChange={(e: any) => {
-                    handleFileChange(e);
-                    e.target.value = "";
-                  }}
           />
-              </div>
-            </div>
-          </Tab>
       </div>
       {addFormPopupActive && (
         <Popup

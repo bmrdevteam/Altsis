@@ -5,6 +5,9 @@
 
 import { Academy } from "../models/Academy.js";
 import { Archive } from "../models/Archive.js";
+import { ChatFile } from "../models/ChatFile.js";
+import { ChatMessage } from "../models/ChatMessage.js";
+import { ChatRoom } from "../models/ChatRoom.js";
 import { Enrollment } from "../models/Enrollment.js";
 import { Form } from "../models/Form.js";
 import { Notification } from "../models/Notification.js";
@@ -17,6 +20,9 @@ import { User } from "../models/User.js";
 export {
   Academy,
   Archive,
+  ChatFile,
+  ChatMessage,
+  ChatRoom,
   Enrollment,
   Form,
   Notification,

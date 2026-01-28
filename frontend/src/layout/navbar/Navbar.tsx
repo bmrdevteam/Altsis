@@ -16,6 +16,7 @@ import style from "./navbar.module.scss";
 import useOutsideClick from "hooks/useOutsideClick";
 
 import Notification from "./Notification";
+import Chat from "./Chat";
 
 type Props = { title?: string };
 
@@ -132,6 +133,7 @@ const Navbar = (props: Props) => {
       </div>
       <div className={style.controls}>
         <Notification />
+        <Chat />
       </div>
     </div>
   );

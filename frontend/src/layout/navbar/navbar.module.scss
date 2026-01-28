@@ -68,6 +68,9 @@
 
   .controls {
     margin-left: 24px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
 
     .notification {
       position: relative;
@@ -98,7 +101,7 @@
     }
 
     .contents {
-      z-index: 100;
+      z-index: 1100;
       box-shadow: var(--component-box-shadow);
       right: -16px;
       top: 46px;

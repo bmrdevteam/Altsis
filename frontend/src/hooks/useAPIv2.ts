@@ -23,6 +23,7 @@ import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
 import { TNotification } from "types/notification";
+import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -378,6 +379,27 @@ export default function useAPIv2() {
       location: `academies/${props.params.academyId}`,
     });
     return {};
+  }
+
+  /**
+   * UAcademyChatEnabled API
+   * @description 아카데미 채팅 기능 활성화/비활성화 API
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function UAcademyChatEnabled(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      chatEnabled: boolean;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/chat`,
+      data: props.data,
+    });
+    return { academy: academy as TAcademy };
   }
 
   /**
@@ -2204,6 +2226,268 @@ export default function useAPIv2() {
     });
   }
 
+  /**
+   * ##########################################################################
+   * Chat API
+   * ##########################################################################
+   */
+
+  /**
+   * RChatRooms API
+   * @description 채팅방 목록 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatRooms() {
+    const { rooms } = await database.R({ location: "chats/rooms" });
+    return { rooms: rooms as TChatRoom[] };
+  }
+
+  /**
+   * RChatRoom API
+   * @description 채팅방 상세 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatRoom(props: { params: { roomId: string } }) {
+    const { room } = await database.R({
+      location: `chats/rooms/${props.params.roomId}`,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * CChatRoom API
+   * @description 채팅방 생성 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CChatRoom(props: {
+    data: {
+      type: "direct" | "group";
+      participants: {
+        user: string;
+        userId: string;
+        userName: string;
+        profile?: string;
+      }[];
+      name?: string;
+    };
+  }) {
+    const { room, existing } = await database.C({
+      location: "chats/rooms",
+      data: props.data,
+    });
+    return {
+      room: room as TChatRoom,
+      existing: existing as boolean | undefined,
+    };
+  }
+
+  /**
+   * UChatRoom API
+   * @description 채팅방 수정 API (그룹 이름/설정 변경)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UChatRoom(props: {
+    params: { roomId: string };
+    data: { name?: string; settings?: TChatRoomSettings };
+  }) {
+    const { room } = await database.U({
+      location: `chats/rooms/${props.params.roomId}`,
+      data: props.data,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * DChatRoom API
+   * @description 채팅방 나가기/삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DChatRoom(props: { params: { roomId: string } }) {
+    return await database.D({
+      location: `chats/rooms/${props.params.roomId}`,
+    });
+  }
+
+  /**
+   * CChatRoomParticipants API
+   * @description 채팅방 참가자 추가 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CChatRoomParticipants(props: {
+    params: { roomId: string };
+    data: {
+      participants: {
+        user: string;
+        userId: string;
+        userName: string;
+        profile?: string;
+      }[];
+    };
+  }) {
+    const { room } = await database.C({
+      location: `chats/rooms/${props.params.roomId}/participants`,
+      data: props.data,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * DChatRoomParticipant API
+   * @description 채팅방 참가자 제거 API (방장 전용)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DChatRoomParticipant(props: {
+    params: { roomId: string; participantId: string };
+  }) {
+    const { room } = await database.D({
+      location: `chats/rooms/${props.params.roomId}/participants/${props.params.participantId}`,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * RChatMessages API
+   * @description 채팅 메시지 목록 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatMessages(props: {
+    params: { roomId: string };
+    query?: { limit?: number; before?: string };
+  }) {
+    const { messages } = await database.R({
+      location:
+        `chats/rooms/${props.params.roomId}/messages` +
+        QUERY_BUILDER(props.query),
+    });
+    return { messages: messages as TChatMessage[] };
+  }
+
+  /**
+   * CChatMessage API
+   * @description 채팅 메시지 전송 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CChatMessage(props: {
+    params: { roomId: string };
+    data: {
+      content: string;
+      messageType?: string;
+      attachment?: {
+        url: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        key?: string;
+      };
+    };
+  }) {
+    const { message } = await database.C({
+      location: `chats/rooms/${props.params.roomId}/messages`,
+      data: props.data,
+    });
+    return { message: message as TChatMessage };
+  }
+
+  /**
+   * UChatRoomRead API
+   * @description 채팅방 읽음 처리 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UChatRoomRead(props: { params: { roomId: string } }) {
+    return await database.U({
+      location: `chats/rooms/${props.params.roomId}/read`,
+      data: {},
+    });
+  }
+
+  /**
+   * RChatUsers API
+   * @description 채팅 가능한 사용자 검색 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatUsers(props: { query?: { q?: string; sid?: string } }) {
+    const { users } = await database.R({
+      location: "chats/users" + QUERY_BUILDER(props.query),
+    });
+    return { users: users as TChatUser[] };
+  }
+
+  /**
+   * CChatFileUpload API
+   * @description 채팅 파일 업로드 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CChatFileUpload(props: {
+    params: { roomId: string };
+    data: FormData;
+  }) {
+    const { attachment } = await database.C({
+      location: `chats/rooms/${props.params.roomId}/upload`,
+      data: props.data,
+    });
+    return {
+      attachment: attachment as {
+        url: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        key: string;
+      },
+    };
+  }
+
+  /**
+   * RChatFiles API
+   * @description 내 채팅 파일 목록 조회 API (개인 저장소)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatFiles(props: {
+    query?: { fileType?: string; limit?: number; before?: string };
+  }) {
+    const { files } = await database.R({
+      location: "chats/files" + QUERY_BUILDER(props.query),
+    });
+    return { files: files as TChatFile[] };
+  }
+
+  /**
+   * DChatFile API
+   * @description 채팅 파일 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DChatFile(props: { params: { fileId: string } }) {
+    return await database.D({
+      location: `chats/files/${props.params.fileId}`,
+    });
+  }
+
+  /**
+   * RChatFileSignedUrl API
+   * @description 채팅 파일 다운로드용 Signed URL 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatFileSignedUrl(props: { params: { fileId: string } }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: `chats/files/${props.params.fileId}/signed`,
+    });
+    return { preSignedUrl: preSignedUrl as string, expiryDate: expiryDate as string };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -2211,6 +2495,7 @@ export default function useAPIv2() {
       RAcademies,
       UAcademyEmail,
       UAcademyTel,
+      UAcademyChatEnabled,
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyBackup,
@@ -2327,6 +2612,23 @@ export default function useAPIv2() {
       RNotification,
       UCheckNotification,
       DNotification,
+    },
+    ChatAPI: {
+      RChatRooms,
+      RChatRoom,
+      CChatRoom,
+      UChatRoom,
+      DChatRoom,
+      CChatRoomParticipants,
+      DChatRoomParticipant,
+      RChatMessages,
+      CChatMessage,
+      UChatRoomRead,
+      RChatUsers,
+      CChatFileUpload,
+      RChatFiles,
+      DChatFile,
+      RChatFileSignedUrl,
     },
   };
 }

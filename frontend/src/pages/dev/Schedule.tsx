@@ -2,7 +2,6 @@ import Calendar from "components/calendarV2/Calendar";
 import { TRawCalendar } from "components/calendarV2/calendarData";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import { useEffect, useState } from "react";
 
@@ -116,7 +115,6 @@ export default function Example() {
 
   return (
     <div>
-      <Navbar />
       <div className={style.section} style={{ backgroundColor: "white" }}>
         {!isLoading && <Calendar rawCalendars={rawCalendars} />}
       </div>

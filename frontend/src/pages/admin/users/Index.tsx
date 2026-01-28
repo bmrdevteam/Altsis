@@ -50,7 +50,6 @@ import SchoolBulkPopup from "./popup/SchoolBulkPopup/Index";
 import RemoveBulkPopup from "./popup/RemoveBulkPopup/Index";
 
 import _ from "lodash";
-import Navbar from "layout/navbar/Navbar";
 import Svg from "assets/svg/Svg";
 import Popup from "components/popup/Popup";
 
@@ -149,7 +148,6 @@ const Users = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.title}>사용자</div>
         <div className={style.description}>

@@ -10,7 +10,6 @@ import Divider from "components/divider/Divider";
 import Table from "components/table/Table";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
-import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
@@ -24,7 +23,6 @@ const Lists = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.title}>리스트</div>
         <div className={style.description}>

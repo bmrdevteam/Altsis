@@ -20,6 +20,8 @@ import {
   Enrollment,
   Syllabus,
   Archive,
+  ChatRoom,
+  ChatMessage,
 } from "../models/index.js";
 
 import _ from "lodash";
@@ -377,6 +379,52 @@ export const updateTel = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyChatEnabled API
+ * @description 아카데미 채팅 기능 활성화/비활성화 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/chat"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {boolean} req.body.chatEnabled
+ *
+ * @param {Object} res
+ * @param {TAcademy} res.academy - updated academy
+ */
+export const updateChatEnabled = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    /* toggle or set chatEnabled */
+    if (typeof req.body.chatEnabled === "boolean") {
+      academy.chatEnabled = req.body.chatEnabled;
+    } else {
+      academy.chatEnabled = !academy.chatEnabled;
+    }
+    await academy.save();
+
+    return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 const Model = (title, academyId) => {
   switch (title) {
     case "schools":
@@ -397,6 +445,10 @@ const Model = (title, academyId) => {
       return Form(academyId);
     case "notifications":
       return Notification(academyId);
+    case "chatRooms":
+      return ChatRoom(academyId);
+    case "chatMessages":
+      return ChatMessage(academyId);
     default:
       return undefined;
   }

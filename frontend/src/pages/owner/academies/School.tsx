@@ -31,7 +31,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import style from "style/pages/admin/schools.module.scss";
 // components
-import Navbar from "layout/navbar/Navbar";
 import Tab from "components/tab/Tab";
 import Season from "./tab/Season/Index";
 import User from "./tab/User/Index";
@@ -76,8 +75,6 @@ const School = (props: Props) => {
 
   return (
     <>
-      <Navbar />
-
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>

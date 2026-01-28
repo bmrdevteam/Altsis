@@ -32,8 +32,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
-import Navbar from "layout/navbar/Navbar";
-
 import _ from "lodash";
 import EditorParser from "editor/EditorParser";
 import Divider from "components/divider/Divider";
@@ -374,7 +372,6 @@ const CoursePid = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         {!isLoadingSyllabus && syllabus?._id ? (
           <div className={"syllabus-enrollments-wrapper"}>

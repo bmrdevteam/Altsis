@@ -7,7 +7,6 @@ import { useAuth } from "contexts/authContext";
 import EditorParser from "editor/EditorParser";
 import { zipSeasonsFormEvaluation } from "functions/docs";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import Navbar from "layout/navbar/Navbar";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import style from "style/pages/docs/docs.module.scss";
@@ -152,7 +151,6 @@ function Docs({}: Props) {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.search}>
           <div className={style.label}>학생선택</div>

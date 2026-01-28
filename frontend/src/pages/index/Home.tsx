@@ -30,7 +30,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import style from "../../style/pages/home.module.scss";
 // import QuickSearch from "../../components/quickSearch/QuickSearch";
-import Navbar from "../../layout/navbar/Navbar";
 import Schedule from "components/schedule/Schedule";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
@@ -116,7 +115,6 @@ const Home = () => {
   return (
     <>
       {/* <QuickSearch /> */}
-      <Navbar />
       <div className={style.section}>
         <Schedule
           dayArray={["월", "화", "수", "목", "금"]}

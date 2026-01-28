@@ -44,7 +44,6 @@ import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/admin/schools.module.scss";
 import Skeleton from "components/skeleton/Skeleton";
-import Navbar from "layout/navbar/Navbar";
 
 type Props = {};
 
@@ -146,7 +145,6 @@ ___________________
 
   return (
     <>
-    <Navbar />
       <div className={style.section}>
         <div style={{ display: "flex", gap: "24px" }}>
           <div style={{ flex: "1 1 0" }}>

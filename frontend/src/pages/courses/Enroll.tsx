@@ -33,9 +33,6 @@ import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/enrollment.module.scss";
 
-// Navigation Bar
-import Navbar from "layout/navbar/Navbar";
-
 // components
 import Divider from "components/divider/Divider";
 
@@ -271,7 +268,6 @@ const CourseEnroll = (props: Props) => {
 
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         <div className={style.title}>수강 신청</div>
         {!isLoadingCourseList ? (

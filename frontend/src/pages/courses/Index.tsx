@@ -35,7 +35,6 @@ import { useAuth } from "contexts/authContext";
 import style from "style/pages/enrollment.module.scss";
 
 // navigation bar
-import Navbar from "layout/navbar/Navbar";
 
 import _ from "lodash";
 import Tab from "components/tab/Tab";
@@ -125,7 +124,6 @@ const Course = (props: Props) => {
   };
   return (
     <>
-      <Navbar />
       <div className={style.section}>
         {currentSeason?.formTimetable ? <Tab items={items()} /> : <></>}
       </div>
