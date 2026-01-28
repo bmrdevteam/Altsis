@@ -32,6 +32,8 @@ import Table from "components/tableV2/Table";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TAiSettings, TAiReference } from "types/seasons";
 
+const SUCCESS_MESSAGE = "저장되었습니다.";
+
 type Props = {
   _id: string;
 };
@@ -51,6 +53,8 @@ const AISettings = (props: Props) => {
 
   const [newRefTitle, setNewRefTitle] = useState<string>("");
   const [newRefContent, setNewRefContent] = useState<string>("");
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isLoading) {
@@ -121,8 +125,59 @@ const AISettings = (props: Props) => {
   const handleRemoveReference = async (index: number) => {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
-    const newRefs = aiSettings.references.filter((_, i) => i !== index);
-    await updateAiSettings({ references: newRefs });
+    try {
+      const { season } = await SeasonAPI.DSeasonAiReference({
+        params: { _id: props._id, index },
+      });
+      if (season?.aiSettings) {
+        setAiSettings(season.aiSettings);
+      }
+      alert(SUCCESS_MESSAGE);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (newRefTitle.trim()) {
+        formData.append("title", newRefTitle.trim());
+      }
+
+      const { season } = await SeasonAPI.CSeasonAiReferenceUpload({
+        params: { _id: props._id },
+        data: formData,
+      });
+      if (season?.aiSettings) {
+        setAiSettings(season.aiSettings);
+      }
+      setNewRefTitle("");
+      alert(SUCCESS_MESSAGE);
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleDownloadReference = async (index: number) => {
+    try {
+      const { url } = await SeasonAPI.RSeasonAiReferenceDownload({
+        params: { _id: props._id, index },
+      });
+      window.open(url, "_blank");
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   };
 
   return (
@@ -247,6 +302,8 @@ const AISettings = (props: Props) => {
               data={aiSettings.references.map((ref, index) => ({
                 ...ref,
                 index,
+                sourceType: ref.fileName ? "파일" : "직접 입력",
+                download: ref.fileKey ? ref.fileName : "-",
               }))}
               header={[
                 {
@@ -255,9 +312,27 @@ const AISettings = (props: Props) => {
                   type: "text",
                 },
                 {
-                  text: "내용",
-                  key: "content",
+                  text: "유형",
+                  key: "sourceType",
                   type: "text",
+                  width: "100px",
+                  textAlign: "center",
+                },
+                {
+                  text: "다운로드",
+                  key: "download",
+                  type: "button",
+                  onClick: (e: any) => {
+                    if (e.fileKey) handleDownloadReference(e.index);
+                  },
+                  width: "100px",
+                  textAlign: "center",
+                  btnStyle: {
+                    border: true,
+                    color: "blue",
+                    padding: "4px",
+                    round: true,
+                  },
                 },
                 {
                   text: "삭제",
@@ -321,7 +396,27 @@ const AISettings = (props: Props) => {
               }}
             />
           </div>
-          <div style={{ textAlign: "right" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.txt,.hwp"
+                onChange={handleFileUpload}
+                style={{ display: "none" }}
+              />
+              <Button
+                type="ghost"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                style={{ marginRight: "8px" }}
+              >
+                {isUploading ? "업로드 중..." : "파일 업로드"}
+              </Button>
+              <span style={{ fontSize: "12px", color: "var(--accent-3)" }}>
+                PDF, DOCX, TXT, HWP (최대 10MB)
+              </span>
+            </div>
             <Button type="ghost" onClick={handleAddReference}>
               추가
             </Button>

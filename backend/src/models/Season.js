@@ -196,6 +196,10 @@ const aiReferenceSchema = mongoose.Schema(
   {
     title: String,
     content: String,
+    fileName: String,
+    fileKey: String,
+    fileSize: Number,
+    mimeType: String,
   },
   { _id: false }
 );

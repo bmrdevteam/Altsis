@@ -42,6 +42,10 @@ export type TFormTimetable = {
 export type TAiReference = {
   title: string;
   content: string;
+  fileName?: string;
+  fileKey?: string;
+  fileSize?: number;
+  mimeType?: string;
 };
 
 export type TAiPermission = {

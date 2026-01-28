@@ -1375,6 +1375,53 @@ export default function useAPIv2() {
   }
 
   /**
+   * CSeasonAiReferenceUpload API
+   * @description AI 참고 자료 파일 업로드 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function CSeasonAiReferenceUpload(props: {
+    params: { _id: string };
+    data: FormData;
+  }) {
+    const { season } = await database.C({
+      location: `seasons/${props.params._id}/ai/reference/upload`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * RSeasonAiReferenceDownload API
+   * @description AI 참고 자료 파일 다운로드 URL 조회 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function RSeasonAiReferenceDownload(props: {
+    params: { _id: string; index: number };
+  }) {
+    const { url } = await database.R({
+      location: `seasons/${props.params._id}/ai/reference/${props.params.index}/download`,
+    });
+    return { url: url as string };
+  }
+
+  /**
+   * DSeasonAiReference API
+   * @description AI 참고 자료 삭제 API (S3 파일 포함)
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function DSeasonAiReference(props: {
+    params: { _id: string; index: number };
+  }) {
+    const { season } = await database.D({
+      location: `seasons/${props.params._id}/ai/reference/${props.params.index}`,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
    * DSeason API
    * @description 학기 삭제 API
    * @version 2.0.0
@@ -2695,6 +2742,9 @@ export default function useAPIv2() {
       USeasonFormSyllabus,
       USeasonFormEvaluation,
       USeasonAiSettings,
+      CSeasonAiReferenceUpload,
+      RSeasonAiReferenceDownload,
+      DSeasonAiReference,
       USeasonPermission,
       CSeasonPermissionException,
       DSeasonPermissionException,

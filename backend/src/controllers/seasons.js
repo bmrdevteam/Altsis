@@ -30,6 +30,9 @@ import {
   RegistrationService,
   updateRegistrationPermission,
 } from "../services/registrations.js";
+import { aiRefMulter } from "../_s3/aiRefMulter.js";
+import { extractText } from "../utils/textExtractor.js";
+import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
 
 /**
  * @memberof APIs.SeasonAPI
@@ -983,6 +986,157 @@ export const updateAiSettings = async (req, res) => {
       season.aiSettings.references = req.body.references;
     }
 
+    season.markModified("aiSettings");
+    await season.save();
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function UploadAiReference API
+ * @description AI 참고 자료 파일 업로드
+ *
+ * @param {Object} req
+ * @param {"POST"} req.method
+ * @param {"/seasons/:_id/ai/reference/upload"} req.url
+ */
+export const uploadAiReference = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    if (!season.aiSettings) {
+      season.aiSettings = {
+        enabled: false,
+        permission: { teacher: false, student: false },
+        guidelines: "",
+        references: [],
+      };
+    }
+
+    aiRefMulter(req.params._id).single("file")(req, res, async (err) => {
+      try {
+        if (err) {
+          if (err.code === "LIMIT_FILE_SIZE") {
+            return res
+              .status(400)
+              .send({ message: "파일 크기는 10MB를 초과할 수 없습니다." });
+          }
+          if (err.code === "INVALID_FILE_TYPE") {
+            return res.status(400).send({
+              message:
+                "지원하지 않는 파일 형식입니다. PDF, DOCX, TXT, HWP 파일만 업로드할 수 있습니다.",
+            });
+          }
+          return res.status(500).send({ message: err.message });
+        }
+
+        if (!req.file) {
+          return res.status(400).send({ message: FIELD_REQUIRED("file") });
+        }
+
+        // Download from S3 to extract text
+        const s3Object = await fileS3
+          .getObject({ Bucket: fileBucket, Key: req.tmp.key })
+          .promise();
+
+        const content = await extractText(s3Object.Body, req.file.mimetype);
+
+        const newRef = {
+          title: req.body.title || req.file.originalname,
+          content,
+          fileName: req.file.originalname,
+          fileKey: req.tmp.key,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+        };
+
+        season.aiSettings.references.push(newRef);
+        season.markModified("aiSettings");
+        await season.save();
+
+        return res.status(200).send({ season });
+      } catch (innerErr) {
+        logger.error(innerErr.message);
+        return res
+          .status(500)
+          .send({ message: innerErr.message });
+      }
+    });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function DownloadAiReference API
+ * @description AI 참고 자료 파일 다운로드 URL 생성
+ *
+ * @param {Object} req
+ * @param {"GET"} req.method
+ * @param {"/seasons/:_id/ai/reference/:index/download"} req.url
+ */
+export const downloadAiReference = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    const index = parseInt(req.params.index);
+    const ref = season.aiSettings?.references?.[index];
+    if (!ref || !ref.fileKey) {
+      return res.status(404).send({ message: __NOT_FOUND("reference file") });
+    }
+
+    const { preSignedUrl } = signUrl(ref.fileKey, ref.fileName, 300);
+    return res.status(200).send({ url: preSignedUrl });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
+ * @function DeleteAiReference API
+ * @description AI 참고 자료 삭제 (S3 파일 포함)
+ *
+ * @param {Object} req
+ * @param {"DELETE"} req.method
+ * @param {"/seasons/:_id/ai/reference/:index"} req.url
+ */
+export const deleteAiReference = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    const index = parseInt(req.params.index);
+    const ref = season.aiSettings?.references?.[index];
+    if (!ref) {
+      return res.status(404).send({ message: __NOT_FOUND("reference") });
+    }
+
+    // Delete S3 file if exists
+    if (ref.fileKey) {
+      try {
+        await fileS3
+          .deleteObject({ Bucket: fileBucket, Key: ref.fileKey })
+          .promise();
+      } catch (s3Err) {
+        logger.error("Failed to delete S3 file: " + s3Err.message);
+      }
+    }
+
+    season.aiSettings.references.splice(index, 1);
     season.markModified("aiSettings");
     await season.save();
 
