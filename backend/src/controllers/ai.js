@@ -10,7 +10,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
-import { Season, Registration, Enrollment } from "../models/index.js";
+import { Season, Registration, Enrollment, Syllabus } from "../models/index.js";
 
 /**
  * Extract input field names from formSyllabus editor data
@@ -47,7 +47,7 @@ const extractFieldNames = (formSyllabus) => {
  * @param {Object[]} enrollments - User's enrollment history
  * @returns {string} Prompt for AI
  */
-const buildPrompt = (context, aiSettings, enrollments) => {
+const buildPrompt = (context, aiSettings, enrollments, syllabi) => {
   let prompt = `당신은 학교 강의계획서 작성을 도와주는 AI 어시스턴트입니다.
 
 ## 지침
@@ -76,6 +76,16 @@ ${aiSettings?.guidelines || "강의계획서의 각 항목을 체계적이고 �
   }
   if (context.limit) {
     prompt += `- 수강정원: ${context.limit}\n`;
+  }
+
+  // Add user's teaching history (higher weight)
+  if (syllabi && syllabi.length > 0) {
+    prompt += `\n## 사용자 수업 개설 이력 (높은 가중치 - 직접 개설한 수업)\n`;
+    prompt += `아래는 사용자가 직접 개설한 수업입니다. 수강 이력보다 우선적으로 참고하여 작성 스타일과 내용 수준을 맞춰주세요.\n`;
+    for (const syllabus of syllabi.slice(0, 5)) {
+      const subjectStr = syllabus.subject?.length > 0 ? ` (${syllabus.subject.join(" > ")})` : "";
+      prompt += `- ${syllabus.classTitle}${subjectStr}\n`;
+    }
   }
 
   // Add user's enrollment history for context
@@ -227,8 +237,22 @@ export const generateSyllabusContent = async (req, res) => {
       return res.end();
     }
 
-    // 4. Get user's enrollment history for context
-    sendEvent("step", { message: "수강 이력 분석 중..." });
+    // 4. Get user's teaching and enrollment history for context
+    sendEvent("step", { message: "수업 개설 및 수강 이력 분석 중..." });
+
+    const syllabi = await Syllabus(req.user.academyId)
+      .find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select("classTitle subject")
+      .lean();
+
+    if (syllabi.length > 0) {
+      sendEvent("step", {
+        message: `수업 개설 이력 ${syllabi.length}건 확인 완료`,
+      });
+    }
+
     const enrollments = await Enrollment(req.user.academyId)
       .find({ user: req.user._id })
       .sort({ createdAt: -1 })
@@ -257,7 +281,7 @@ export const generateSyllabusContent = async (req, res) => {
     const genAI = new GoogleGenerativeAI(academy.aiApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    const prompt = buildPrompt(context, season.aiSettings, enrollments);
+    const prompt = buildPrompt(context, season.aiSettings, enrollments, syllabi);
     const result = await model.generateContentStream(prompt);
 
     let fullText = "";
