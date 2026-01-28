@@ -158,12 +158,25 @@ JSON 형식으로 응답해주세요:
  *
  */
 export const generateSyllabusContent = async (req, res) => {
+  // SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const sendEvent = (event, data) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
   try {
     const { season: seasonId, context } = req.body;
 
     if (!seasonId) {
-      return res.status(400).send({ message: FIELD_REQUIRED("season") });
+      sendEvent("error", { message: FIELD_REQUIRED("season") });
+      return res.end();
     }
+
+    sendEvent("step", { message: "설정 확인 중..." });
 
     // 1. Check Academy AI enabled and get API key
     const academy = await Academy.findOne(
@@ -171,22 +184,27 @@ export const generateSyllabusContent = async (req, res) => {
       "+aiApiKey"
     );
     if (!academy) {
-      return res.status(404).send({ message: __NOT_FOUND("academy") });
+      sendEvent("error", { message: __NOT_FOUND("academy") });
+      return res.end();
     }
     if (!academy.aiEnabled) {
-      return res.status(403).send({ message: "AI_NOT_ENABLED" });
+      sendEvent("error", { message: "AI_NOT_ENABLED" });
+      return res.end();
     }
     if (!academy.aiApiKey) {
-      return res.status(403).send({ message: "AI_API_KEY_NOT_SET" });
+      sendEvent("error", { message: "AI_API_KEY_NOT_SET" });
+      return res.end();
     }
 
     // 2. Check Season AI settings
     const season = await Season(req.user.academyId).findById(seasonId);
     if (!season) {
-      return res.status(404).send({ message: __NOT_FOUND("season") });
+      sendEvent("error", { message: __NOT_FOUND("season") });
+      return res.end();
     }
     if (!season.aiSettings?.enabled) {
-      return res.status(403).send({ message: "AI_NOT_ENABLED_FOR_SEASON" });
+      sendEvent("error", { message: "AI_NOT_ENABLED_FOR_SEASON" });
+      return res.end();
     }
 
     // 3. Check user permission
@@ -195,7 +213,8 @@ export const generateSyllabusContent = async (req, res) => {
       user: req.user._id,
     });
     if (!registration) {
-      return res.status(404).send({ message: __NOT_FOUND("registration") });
+      sendEvent("error", { message: __NOT_FOUND("registration") });
+      return res.end();
     }
 
     const hasPermission =
@@ -204,48 +223,75 @@ export const generateSyllabusContent = async (req, res) => {
         : season.aiSettings.permission?.student;
 
     if (!hasPermission) {
-      return res.status(403).send({ message: PERMISSION_DENIED });
+      sendEvent("error", { message: PERMISSION_DENIED });
+      return res.end();
     }
 
     // 4. Get user's enrollment history for context
+    sendEvent("step", { message: "수강 이력 분석 중..." });
     const enrollments = await Enrollment(req.user.academyId)
       .find({ user: req.user._id })
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();
 
-    // 5. Call Gemini API
+    if (enrollments.length > 0) {
+      sendEvent("step", {
+        message: `수강 이력 ${enrollments.length}건 확인 완료`,
+      });
+    }
+
+    // 5. Check reference materials
+    const references = season.aiSettings?.references || [];
+    if (references.length > 0) {
+      sendEvent("step", {
+        message: `참고 자료 ${references.length}건 확인 완료`,
+        detail: references.map((r) => r.title).join(", "),
+      });
+    }
+
+    // 6. Call Gemini API with streaming
+    sendEvent("step", { message: "AI가 강의계획서를 작성하고 있습니다..." });
+
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(academy.aiApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = buildPrompt(context, season.aiSettings, enrollments);
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const result = await model.generateContentStream(prompt);
 
-    // 6. Parse JSON response
-    let content;
-    try {
-      // Extract JSON from response (handle markdown code blocks)
-      const jsonMatch = responseText.match(/```json\n?([\s\S]*?)\n?```/) ||
-        responseText.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : responseText;
-      content = JSON.parse(jsonStr);
-    } catch (parseError) {
-      // If parsing fails, return raw text
-      content = { raw: responseText };
+    let fullText = "";
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      fullText += chunkText;
+      sendEvent("generating", { text: chunkText });
     }
 
-    return res.status(200).send({ content });
+    // 7. Parse JSON response
+    let content;
+    try {
+      const jsonMatch =
+        fullText.match(/```json\n?([\s\S]*?)\n?```/) ||
+        fullText.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : fullText;
+      content = JSON.parse(jsonStr);
+    } catch (parseError) {
+      content = { raw: fullText };
+    }
+
+    sendEvent("done", { content });
+    return res.end();
   } catch (err) {
     logger.error(err.message);
     if (err.message.includes("404") && err.message.includes("models/")) {
-      return res.status(500).send({
+      sendEvent("error", {
         message:
           "AI 모델을 찾을 수 없습니다. @google/generative-ai SDK를 최신 버전으로 업데이트해주세요.",
       });
+    } else {
+      sendEvent("error", { message: err.message });
     }
-    return res.status(500).send({ message: err.message });
+    return res.end();
   }
 };
 

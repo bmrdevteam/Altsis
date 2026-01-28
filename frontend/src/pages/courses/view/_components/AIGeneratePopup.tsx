@@ -24,10 +24,10 @@
  *
  * NOTES
  *
- * @version 1.0
+ * @version 1.1 - SSE streaming with progress steps
  *
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/courses/course.module.scss";
@@ -35,10 +35,15 @@ import style from "style/pages/courses/course.module.scss";
 // components
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
-import Loading from "components/loading/Loading";
 
 import _ from "lodash";
-import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { ALERT_ERROR } from "hooks/useAPIv2";
+
+type StepInfo = {
+  message: string;
+  detail?: string;
+  completed: boolean;
+};
 
 type Props = {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
@@ -50,15 +55,23 @@ type Props = {
 
 const Index = (props: Props) => {
   const { currentSeason, currentRegistration } = useAuth();
-  const { AIAPI } = useAPIv2();
 
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedContent, setGeneratedContent] = useState<any>(null);
   const [error, setError] = useState<string>("");
+  const [steps, setSteps] = useState<StepInfo[]>([]);
+  const [streamingText, setStreamingText] = useState<string>("");
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const generateContent = async () => {
     setIsGenerating(true);
     setError("");
+    setGeneratedContent(null);
+    setSteps([]);
+    setStreamingText("");
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     try {
       const context = {
@@ -78,18 +91,56 @@ const Index = (props: Props) => {
           ]
         : [];
 
-      const { content } = await AIAPI.GenerateSyllabusContent({
-        data: {
-          season: currentSeason?._id,
-          context,
-          enrollments,
-        },
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_SERVER_URL}/api/ai/syllabus/generate`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          signal: abortController.signal,
+          body: JSON.stringify({
+            season: currentSeason?._id,
+            context,
+            enrollments,
+          }),
+        }
+      );
 
-      setGeneratedContent(content);
+      if (!response.ok || !response.body) {
+        throw new Error("AI 내용 생성에 실패했습니다.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        let eventType = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            eventType = line.slice(7);
+          } else if (line.startsWith("data: ") && eventType) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              handleSSEEvent(eventType, data);
+            } catch {
+              // ignore parse errors
+            }
+            eventType = "";
+          }
+        }
+      }
     } catch (err: any) {
+      if (err.name === "AbortError") return;
       ALERT_ERROR(err);
-      const message = err.response?.data?.message;
+      const message = err.response?.data?.message || err.message;
       if (message === "AI_NOT_ENABLED") {
         setError("AI 기능이 활성화되지 않았습니다.");
       } else if (message === "AI_NOT_ENABLED_FOR_SEASON") {
@@ -101,7 +152,53 @@ const Index = (props: Props) => {
       }
     } finally {
       setIsGenerating(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleSSEEvent = (event: string, data: any) => {
+    switch (event) {
+      case "step":
+        setSteps((prev) => {
+          // Mark previous steps as completed
+          const updated = prev.map((s) => ({ ...s, completed: true }));
+          return [
+            ...updated,
+            {
+              message: data.message,
+              detail: data.detail,
+              completed: false,
+            },
+          ];
+        });
+        break;
+      case "generating":
+        setStreamingText((prev) => prev + data.text);
+        break;
+      case "done":
+        setSteps((prev) => prev.map((s) => ({ ...s, completed: true })));
+        setGeneratedContent(data.content);
+        setStreamingText("");
+        break;
+      case "error": {
+        const message = data.message;
+        if (message === "AI_NOT_ENABLED") {
+          setError("AI 기능이 활성화되지 않았습니다.");
+        } else if (message === "AI_NOT_ENABLED_FOR_SEASON") {
+          setError("이 학기에서 AI 기능이 활성화되지 않았습니다.");
+        } else {
+          setError(message || "AI 내용 생성에 실패했습니다.");
+        }
+        break;
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    props.setPopupActive(false);
   };
 
   const applyContent = () => {
@@ -161,8 +258,69 @@ const Index = (props: Props) => {
         )}
 
         {isGenerating && (
-          <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
-            <Loading height="100px" />
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+              생성 진행 상황
+            </div>
+            <div
+              style={{
+                padding: "12px",
+                backgroundColor: "var(--background-secondary)",
+                borderRadius: "8px",
+                fontSize: "14px",
+              }}
+            >
+              {steps.map((step, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "8px",
+                    marginBottom: "6px",
+                    color: step.completed
+                      ? "var(--text-secondary)"
+                      : "var(--text-primary)",
+                  }}
+                >
+                  <span style={{ flexShrink: 0, width: "16px" }}>
+                    {step.completed ? "\u2714" : "\u25CB"}
+                  </span>
+                  <div>
+                    <div>{step.message}</div>
+                    {step.detail && (
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-secondary)",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {step.detail}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {streamingText && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "8px",
+                    backgroundColor: "var(--background-tertiary)",
+                    borderRadius: "4px",
+                    whiteSpace: "pre-wrap",
+                    fontSize: "13px",
+                    maxHeight: "200px",
+                    overflow: "auto",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  {streamingText}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -217,10 +375,7 @@ const Index = (props: Props) => {
               </Button>
             </>
           )}
-          <Button
-            type="ghost"
-            onClick={() => props.setPopupActive(false)}
-          >
+          <Button type="ghost" onClick={handleCancel}>
             취소
           </Button>
         </div>
