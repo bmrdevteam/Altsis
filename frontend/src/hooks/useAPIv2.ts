@@ -23,7 +23,7 @@ import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
 import { TNotification } from "types/notification";
-import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings } from "types/chat";
+import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -2378,7 +2378,17 @@ export default function useAPIv2() {
    */
   async function CChatMessage(props: {
     params: { roomId: string };
-    data: { content: string; messageType?: string };
+    data: {
+      content: string;
+      messageType?: string;
+      attachment?: {
+        url: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        key?: string;
+      };
+    };
   }) {
     const { message } = await database.C({
       location: `chats/rooms/${props.params.roomId}/messages`,
@@ -2411,6 +2421,71 @@ export default function useAPIv2() {
       location: "chats/users" + QUERY_BUILDER(props.query),
     });
     return { users: users as TChatUser[] };
+  }
+
+  /**
+   * CChatFileUpload API
+   * @description 채팅 파일 업로드 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CChatFileUpload(props: {
+    params: { roomId: string };
+    data: FormData;
+  }) {
+    const { attachment } = await database.C({
+      location: `chats/rooms/${props.params.roomId}/upload`,
+      data: props.data,
+    });
+    return {
+      attachment: attachment as {
+        url: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        key: string;
+      },
+    };
+  }
+
+  /**
+   * RChatFiles API
+   * @description 내 채팅 파일 목록 조회 API (개인 저장소)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatFiles(props: {
+    query?: { fileType?: string; limit?: number; before?: string };
+  }) {
+    const { files } = await database.R({
+      location: "chats/files" + QUERY_BUILDER(props.query),
+    });
+    return { files: files as TChatFile[] };
+  }
+
+  /**
+   * DChatFile API
+   * @description 채팅 파일 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DChatFile(props: { params: { fileId: string } }) {
+    return await database.D({
+      location: `chats/files/${props.params.fileId}`,
+    });
+  }
+
+  /**
+   * RChatFileSignedUrl API
+   * @description 채팅 파일 다운로드용 Signed URL 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RChatFileSignedUrl(props: { params: { fileId: string } }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: `chats/files/${props.params.fileId}/signed`,
+    });
+    return { preSignedUrl: preSignedUrl as string, expiryDate: expiryDate as string };
   }
 
   return {
@@ -2550,6 +2625,10 @@ export default function useAPIv2() {
       CChatMessage,
       UChatRoomRead,
       RChatUsers,
+      CChatFileUpload,
+      RChatFiles,
+      DChatFile,
+      RChatFileSignedUrl,
     },
   };
 }

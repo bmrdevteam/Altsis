@@ -12,13 +12,14 @@ type Props = {
 };
 
 const NewChat = ({ onClose, onChatCreated }: Props) => {
-  const { currentSchool } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   const { ChatAPI } = useAPIv2();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<TChatUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<TChatUser[]>([]);
   const [groupName, setGroupName] = useState("");
+  const [groupNameTouched, setGroupNameTouched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -48,6 +49,20 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
     }, 300);
     return () => clearTimeout(debounce);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!groupNameTouched && currentUser) {
+      if (selectedUsers.length > 0) {
+        const participantNames = selectedUsers.map((u) => u.userName);
+        const allNames = [currentUser.userName, ...participantNames].join(
+          ", "
+        );
+        setGroupName(allNames);
+      } else {
+        setGroupName("");
+      }
+    }
+  }, [selectedUsers, groupNameTouched, currentUser]);
 
   const toggleUserSelection = (user: TChatUser) => {
     setSelectedUsers((prev) => {
@@ -122,7 +137,10 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
             type="text"
             placeholder="채팅방 이름 (선택)"
             value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
+            onChange={(e) => {
+              setGroupName(e.target.value);
+              setGroupNameTouched(true);
+            }}
           />
         </div>
 

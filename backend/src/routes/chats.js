@@ -13,6 +13,7 @@ router.get("/rooms", isLoggedIn, isChatEnabled, chats.findRooms);
 router.get("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.findRoom);
 router.put("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.updateRoom);
 router.delete("/rooms/:roomId", isLoggedIn, isChatEnabled, chats.deleteRoom);
+router.delete("/rooms/:roomId/creator", isLoggedIn, isChatEnabled, chats.deleteRoomByCreator);
 
 //=================================
 //             Participants
@@ -28,6 +29,20 @@ router.delete("/rooms/:roomId/participants/:participantId", isLoggedIn, isChatEn
 router.post("/rooms/:roomId/messages", isLoggedIn, isChatEnabled, chats.sendMessage);
 router.get("/rooms/:roomId/messages", isLoggedIn, isChatEnabled, chats.findMessages);
 router.put("/rooms/:roomId/read", isLoggedIn, isChatEnabled, chats.markAsRead);
+
+//=================================
+//             File Upload
+//=================================
+
+router.post("/rooms/:roomId/upload", isLoggedIn, isChatEnabled, chats.uploadChatFile);
+
+//=================================
+//             File Storage
+//=================================
+
+router.get("/files", isLoggedIn, isChatEnabled, chats.findMyFiles);
+router.delete("/files/:fileId", isLoggedIn, isChatEnabled, chats.deleteFile);
+router.get("/files/:fileId/signed", isLoggedIn, isChatEnabled, chats.signChatFile);
 
 //=================================
 //             Users (for chat)

@@ -48,6 +48,7 @@ export type TChatMessage = {
     fileName: string;
     fileSize: number;
     mimeType: string;
+    key?: string;
   };
   readBy: { user: string; readAt: string }[];
   isDeleted: boolean;
@@ -61,4 +62,29 @@ export type TChatUser = {
   userName: string;
   profile?: string;
   schools?: { school: string; schoolId: string; schoolName: string }[];
+};
+
+export type TChatFile = {
+  _id: string;
+  user: string;
+  userId: string;
+  room: string;
+  message?: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  key: string;
+  url: string;
+  fileType: "image" | "file";
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TChatAttachment = {
+  url: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  key?: string;
 };

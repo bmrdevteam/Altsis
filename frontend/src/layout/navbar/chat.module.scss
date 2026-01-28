@@ -65,22 +65,6 @@
   }
 }
 
-// Chat list toggle button for popup
-.chat_list_toggle_btn {
-  display: flex;
-  align-items: center;
-  background: none;
-  border: 1px solid var(--border-color, #e0e0e0);
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 6px;
-  color: var(--accent-1);
-
-  &:hover {
-    background-color: var(--background-secondary, #f5f5f5);
-  }
-}
-
 // Chat list container styles
 .chat_list_container {
   display: flex;
@@ -443,6 +427,7 @@
 
   .input_container {
     display: flex;
+    align-items: center;
     gap: 8px;
     padding: 12px;
     border-top: var(--border-default, 1px solid #e0e0e0);
@@ -469,7 +454,6 @@
     }
 
     button {
-      align-self: flex-end;
     }
   }
 }
@@ -854,5 +838,397 @@
     padding: 16px 0 0 0;
     display: flex;
     justify-content: flex-end;
+  }
+}
+
+// ===================================
+// File Upload & Sharing Styles
+// ===================================
+
+// Input container drag state
+.input_container {
+  position: relative;
+
+  &.dragging {
+    border-color: var(--color-b4, #4a90d9);
+    background-color: var(--color-b5, #e3f2fd);
+  }
+
+  .attach_button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--accent-2);
+
+    &:hover {
+      background-color: var(--background-secondary, #f5f5f5);
+      color: var(--accent-1);
+    }
+  }
+}
+
+// Drag overlay
+.drag_overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: rgba(74, 144, 217, 0.9);
+  color: #ffffff;
+  border-radius: 8px;
+  z-index: 10;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+// File preview modal
+.file_preview_modal {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 12px;
+  right: 12px;
+  background: var(--component-color, #ffffff);
+  border: var(--border-default, 1px solid #e0e0e0);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 20;
+
+  .preview_image {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .file_info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--background-secondary, #f5f5f5);
+    border-radius: 8px;
+
+    .file_details {
+      flex: 1;
+      min-width: 0;
+
+      .file_name {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--accent-1);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .file_size {
+        display: block;
+        font-size: 12px;
+        color: var(--accent-3);
+        margin-top: 2px;
+      }
+    }
+  }
+
+  .preview_actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+}
+
+// Message content types
+.message_link {
+  color: var(--color-b4, #4a90d9);
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--color-b3, #2196f3);
+  }
+}
+
+// Image message
+.image_message {
+  img {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: block;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+}
+
+// File message
+.file_message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--background-secondary, #f5f5f5);
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 180px;
+  max-width: 280px;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--background-tertiary, #ebebeb);
+  }
+
+  .file_icon {
+    flex-shrink: 0;
+    color: var(--accent-2);
+  }
+
+  .file_info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .file_name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent-1);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file_size {
+      font-size: 11px;
+      color: var(--accent-3);
+    }
+  }
+
+  .download_icon {
+    flex-shrink: 0;
+    color: var(--accent-3);
+  }
+}
+
+// System message
+.system_message {
+  font-size: 12px;
+  color: var(--accent-3);
+  font-style: italic;
+}
+
+// ===================================
+// Image Lightbox Styles
+// ===================================
+.lightbox_overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .lightbox_close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  .lightbox_image {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+}
+
+// ===================================
+// File Storage Styles
+// ===================================
+.storage_container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.storage_tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  margin-bottom: 12px;
+
+  .storage_tab {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    color: var(--accent-2);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+
+    &:hover {
+      background-color: var(--background-secondary, #f5f5f5);
+    }
+
+    &.active {
+      background-color: var(--color-b5, #e3f2fd);
+      color: var(--color-b3, #2196f3);
+      font-weight: 500;
+    }
+  }
+}
+
+.storage_content {
+  flex: 1;
+  overflow-y: auto;
+
+  .storage_loading,
+  .storage_empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--accent-3);
+    font-size: 14px;
+  }
+}
+
+.storage_grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.storage_item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  background: var(--background-secondary, #f5f5f5);
+  border-radius: 8px;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--background-tertiary, #ebebeb);
+  }
+
+  .storage_image {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .storage_file_icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--component-color, #ffffff);
+    border-radius: 6px;
+    flex-shrink: 0;
+    color: var(--accent-2);
+  }
+
+  .storage_item_info {
+    flex: 1;
+    min-width: 0;
+
+    .storage_item_name {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent-1);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .storage_item_meta {
+      display: block;
+      font-size: 11px;
+      color: var(--accent-3);
+      margin-top: 2px;
+    }
+  }
+
+  .storage_item_actions {
+    display: flex;
+    gap: 4px;
+
+    .storage_action_btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-2);
+      transition: all 0.15s;
+
+      &:hover {
+        background-color: var(--component-color, #ffffff);
+        color: var(--accent-1);
+      }
+
+      &.danger:hover {
+        background-color: var(--color-r5, #ffebee);
+        color: var(--color-r3, #f44336);
+      }
+    }
   }
 }

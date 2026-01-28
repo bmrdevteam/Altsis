@@ -18,7 +18,6 @@ const Chat = () => {
   const [selectedRoom, setSelectedRoom] = useState<TChatRoom | null>(null);
   const [chatWindowActive, setChatWindowActive] = useState(false);
   const [chatEnabled, setChatEnabled] = useState<boolean | null>(null);
-  const [chatMode, setChatMode] = useState<"popup" | "panel">("popup");
 
   const chatDivRef = useRef<HTMLDivElement>(null);
 
@@ -141,8 +140,10 @@ const Chat = () => {
             loadRooms();
           }}
           onNewChatCreated={handleNewChatCreated}
-          mode={chatMode}
-          onModeChange={setChatMode}
+          onRoomLeft={() => {
+            setSelectedRoom(null);
+            loadRooms();
+          }}
         />
       )}
     </div>
