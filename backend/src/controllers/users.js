@@ -523,37 +523,6 @@ export const updateProfile = async (req, res) => {
   });
 };
 
-/**
- * @memberof APIs.UserAPI
- * @function UUserCalendar API
- * @description 캘린더 변경 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"PUT"} req.method
- * @param {"/users/calendar"} req.url
- *
- * @param {Object} req.user
- *
- * @param {Object} req.body
- * @param {string?} req.body.calendar
- *
- * @param {Object} res
- * @param {string} res.calendar - updated calendar
- *
- */
-export const updateCalendar = async (req, res) => {
-  try {
-    const user = req.user;
-    user.calendar = req.body.calendar;
-    await user.save();
-    return res.status(200).send({ calendar: user.calendar });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: err.message });
-  }
-};
 
 /**
  * @memberof APIs.UserAPI

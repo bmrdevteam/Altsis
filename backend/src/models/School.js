@@ -100,8 +100,6 @@ const formArchiveItemSchema = mongoose.Schema(
  * @prop {string} schoolName - 학교 이름; validate
  * @prop {TFormArchiveItem[]} formArchive - 기록 양식
  * @prop {TLink[]} links - 링크 목록
- * @prop {string?} calendar - 학사 일정 캘린더 ID
- * @prop {string?} calendarTimetable - 시간표 캘린더 ID
  *
  */
 const schoolSchema = mongoose.Schema(
@@ -117,8 +115,6 @@ const schoolSchema = mongoose.Schema(
     },
     formArchive: { type: [formArchiveItemSchema] },
     links: { type: [LinkSchema] },
-    calendar: String,
-    calendarTimetable: String,
   },
   { timestamps: true }
 );

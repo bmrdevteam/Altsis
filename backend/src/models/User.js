@@ -94,8 +94,6 @@ const userSchema = mongoose.Schema(
     profile: String,
     academyId: String,
     academyName: String,
-    calendar: String,
-
     // deprecated
     workspace: {
       type: mongoose.Schema(

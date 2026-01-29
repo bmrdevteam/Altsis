@@ -3,17 +3,13 @@ import Svg from "../../assets/svg/Svg";
 import style from "./calendar.module.scss";
 
 import Select from "components/select/Select";
-import useGoogleAPI from "hooks/useGoogleAPI";
 import { useAuth } from "contexts/authContext";
+import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import {
   Calendar,
   DateItem,
   EventItem,
-  GoogleCalendarData,
-  TRawCalendar,
-  TRawCourseCalendar,
-  TRawGoogleCalendar,
 } from "./calendarData";
 
 import WeeklyView from "./view/WeeklyViewer/Index";
@@ -21,6 +17,9 @@ import MonthlyView from "./view/MonthlyViwer/Index";
 import Loading from "components/loading/Loading";
 import EventPopup from "./view/EventPopup/Index";
 import SettingPopup from "./view/SettingPopup/Index";
+import EventFormPopup, {
+  EventFormData,
+} from "./view/EventFormPopup/Index";
 
 /**
  * calendar component
@@ -31,12 +30,10 @@ import SettingPopup from "./view/SettingPopup/Index";
  *
  * @example <Calendar/>
  *
- * @version 2.0 second version
+ * @version 3.0 self-hosted calendar
  */
 
-type Props = {
-  rawCalendars: TRawCalendar[];
-};
+type Props = {};
 
 type Mode = "day" | "week" | "month";
 
@@ -114,8 +111,9 @@ const Viewer = memo(
 );
 
 const Calender = (props: Props) => {
-  const { currentRegistration } = useAuth();
-  const { CalendarAPI } = useGoogleAPI();
+  const { currentRegistration, currentSchool, currentUser } = useAuth();
+  const { CalendarEventAPI } = useAPIv2();
+  const [hasSynced, setHasSynced] = useState(false);
 
   const [mode, setMode] = useState<Mode>("week");
 
@@ -132,69 +130,100 @@ const Calender = (props: Props) => {
   const [isSettingPopupActive, setIsSettingPopupActive] =
     useState<boolean>(false);
 
+  const [isEventFormPopupActive, setIsEventFormPopupActive] =
+    useState<boolean>(false);
+
   const updateCalendar = async (year: number) => {
     setIsLoading(true);
 
-    const calendar = new Calendar({ year });
-    const queries = {
-      timeMin: new Date(year, 0, 1).toISOString(),
-      timeMax: new Date(year, 11, 31).toISOString(),
-    };
-
-    // get Google calendars data
-    const rawGoogleCalendars = await Promise.all(
-      props.rawCalendars
-        .filter(
-          (rawCalendar) =>
-            rawCalendar.type === "google" &&
-            rawCalendar.calendarId &&
-            (rawCalendar.from === "schoolCalendar" ||
-              rawCalendar.from === "schoolCalendarTimetable" ||
-              rawCalendar.from === "myCalendar")
-        )
-        .map(async (_rawGoogleCalendar) => {
-          const googleCalendar = (await CalendarAPI.RPublicEvents({
-            calendarId: _rawGoogleCalendar.calendarId as string,
-            queries,
-          })) as GoogleCalendarData;
-          const rawGoogleCalendar = {
-            from: _rawGoogleCalendar.from,
-            calendarData: googleCalendar,
-          } as TRawGoogleCalendar;
-          return rawGoogleCalendar;
-        })
-    );
-
-    // get course calendars data
-    const rawCourseCalendars = props.rawCalendars
-      .filter(
-        (rawCalendar) =>
-          rawCalendar.type === "course" &&
-          rawCalendar.courses &&
-          (rawCalendar.from === "enrollments" ||
-            rawCalendar.from === "mentorings")
-      )
-      .map((_rawCourseCalendar) => _rawCourseCalendar as TRawCourseCalendar);
-
-    // set Google calendars data
-    for (let rawGoogleCalendar of rawGoogleCalendars) {
-      calendar.addGoogleEvents(
-        rawGoogleCalendar.calendarData,
-        rawGoogleCalendar.from
-      );
+    // sync enrollment/syllabus events on first load
+    if (!hasSynced && currentRegistration?.season) {
+      try {
+        await CalendarEventAPI.SyncCalendarEvents({
+          data: { season: currentRegistration.season },
+        });
+        setHasSynced(true);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
     }
 
-    // set course calendars data
-    for (let rawCalendar of rawCourseCalendars) {
-      calendar.addCourseEvents(
-        rawCalendar.from,
-        currentRegistration,
-        rawCalendar.courses
+    const calendar = new Calendar({ year });
+    const startDate = new Date(year, 0, 1).toISOString();
+    const endDate = new Date(year, 11, 31).toISOString();
+
+    // get all calendar events from API (includes synced enrollment events)
+    try {
+      const { calendarEvents } = await CalendarEventAPI.RCalendarEvents({
+        query: { startDate, endDate },
+      });
+
+      const schoolEvents = calendarEvents.filter(
+        (e: any) => e.scope === "school"
       );
+      const personalEvents = calendarEvents.filter(
+        (e: any) => e.scope === "personal"
+      );
+
+      if (schoolEvents.length > 0) {
+        calendar.addCustomEvents(schoolEvents, "schoolCalendar");
+      }
+      if (personalEvents.length > 0) {
+        calendar.addCustomEvents(personalEvents, "personalCalendar");
+      }
+    } catch (err) {
+      ALERT_ERROR(err);
     }
 
     setCalendar(calendar);
     setIsLoading(false);
+  };
+
+  const handleEventFormSave = async (formData: EventFormData) => {
+    try {
+      const startDateTime = formData.isAllDay
+        ? new Date(formData.startDate).toISOString()
+        : new Date(`${formData.startDate}T${formData.startTime}`).toISOString();
+      const endDateTime = formData.isAllDay
+        ? new Date(formData.endDate).toISOString()
+        : new Date(`${formData.endDate}T${formData.endTime}`).toISOString();
+
+      await CalendarEventAPI.CCalendarEvent({
+        data: {
+          title: formData.title,
+          description: formData.description,
+          start: startDateTime,
+          end: endDateTime,
+          isAllDay: formData.isAllDay,
+          scope: formData.scope,
+          school:
+            formData.scope === "school" ? currentSchool?._id : undefined,
+          recurrence: {
+            type: formData.recurrenceType,
+            endDate:
+              formData.recurrenceType !== "none" && formData.recurrenceEndDate
+                ? new Date(formData.recurrenceEndDate).toISOString()
+                : undefined,
+          },
+          color: formData.color,
+        },
+      });
+
+      setIsEventFormPopupActive(false);
+      updateCalendar(dateItem.yyyy);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleEventDelete = async (eventId: string) => {
+    try {
+      await CalendarEventAPI.DCalendarEvent({ params: { _id: eventId } });
+      setIsEventPopupActive(false);
+      updateCalendar(dateItem.yyyy);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   };
 
   const onClickNavHandler = (props: {
@@ -316,6 +345,13 @@ const Calender = (props: Props) => {
               <div className={style.subTitle}></div>
             </div>
             <div className={style.controls}>
+              <div
+                className={style.svgBtn}
+                onClick={() => setIsEventFormPopupActive(true)}
+                title="일정추가"
+              >
+                <Svg type="plus" width="20px" height="20px" />
+              </div>
               <div className={style.btn}>
                 <div
                   className={style.subBtn}
@@ -384,10 +420,25 @@ const Calender = (props: Props) => {
         </div>
       </div>
       {isEventPopupActive && event && (
-        <EventPopup setPopupActive={setIsEventPopupActive} event={event} />
+        <EventPopup
+          setPopupActive={setIsEventPopupActive}
+          event={event}
+          onDelete={handleEventDelete}
+          onEdit={() => {
+            setIsEventPopupActive(false);
+            // TODO: open edit form with event data
+          }}
+        />
       )}
       {isSettingPopupActive && (
         <SettingPopup setPopupActive={setIsSettingPopupActive} />
+      )}
+      {isEventFormPopupActive && (
+        <EventFormPopup
+          setPopupActive={setIsEventFormPopupActive}
+          onSave={handleEventFormSave}
+          mode="create"
+        />
       )}
     </>
   );

@@ -33,8 +33,6 @@ export type TSchool = {
     url: string;
     title: string;
   }[];
-  calendar?: string;
-  calendarTimetable?: string;
 };
 
 export const authTeacherTextMap: Map<TAuthTeacher, string> = new Map([

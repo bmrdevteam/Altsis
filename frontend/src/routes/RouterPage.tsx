@@ -60,7 +60,6 @@ import ArchiveViwerField from "pages/archiveViewer/Pid";
 import Docs from "pages/docs/Index";
 import ChooseAcademy from "pages/login/ChooseAcademy";
 import Dev from "pages/dev/Index";
-import Schedule from "pages/dev/Schedule";
 import Classrooms from "pages/dev/Classrooms";
 
 function RouterPage() {
@@ -443,14 +442,6 @@ function RouterPage() {
               ></Route>
               <Route path="test" element={<Test />}></Route>
               <Route path="e" element={<E />}></Route>
-              <Route
-                path="schedule"
-                element={
-                  <RequireAuth>
-                    <Schedule />
-                  </RequireAuth>
-                }
-              ></Route>
               <Route
                 path="classrooms"
                 element={

@@ -1,5 +1,6 @@
 import { router as academies } from "./academies.js";
 import { router as archives } from "./archives.js";
+import { router as calendarEvents } from "./calendarEvents.js";
 import { router as chats } from "./chats.js";
 import { router as enrollments } from "./enrollments.js";
 import { router as forms } from "./forms.js";
@@ -18,6 +19,7 @@ import { router as test } from "./test.js";
 export const routers = [
   { label: "academies", routes: academies },
   { label: "archives", routes: archives },
+  { label: "calendar-events", routes: calendarEvents },
   { label: "chats", routes: chats },
   { label: "enrollments", routes: enrollments },
   { label: "forms", routes: forms },

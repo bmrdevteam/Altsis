@@ -5,6 +5,7 @@
 
 import { Academy } from "../models/Academy.js";
 import { Archive } from "../models/Archive.js";
+import { CalendarEvent } from "../models/CalendarEvent.js";
 import { ChatFile } from "../models/ChatFile.js";
 import { ChatMessage } from "../models/ChatMessage.js";
 import { ChatRoom } from "../models/ChatRoom.js";
@@ -20,6 +21,7 @@ import { User } from "../models/User.js";
 export {
   Academy,
   Archive,
+  CalendarEvent,
   ChatFile,
   ChatMessage,
   ChatRoom,

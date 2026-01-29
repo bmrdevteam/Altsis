@@ -30,7 +30,6 @@ router.get("/:_id/profile", isLoggedIn, users.findProfile);
 // ___________ Update (by user) _____________
 
 router.put("/profile", isLoggedIn, users.updateProfile);
-router.put("/calendar", isLoggedIn, users.updateCalendar);
 
 // ___________ Update (by user & admin) _____________
 

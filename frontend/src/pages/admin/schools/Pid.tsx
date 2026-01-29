@@ -40,7 +40,6 @@ import Season from "./tab/seasons/Season";
 import Archive from "./tab/archive/Index";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
-import Calendars from "./tab/Calendars";
 import Remove from "./tab/Remove";
 
 import { useAuth } from "contexts/authContext";
@@ -168,12 +167,6 @@ const School = (props: Props) => {
                         setSchoolData={setSchoolData}
                       />
                     ),
-                    일정: (
-                      <Calendars
-                        schoolData={schoolData}
-                        setSchoolData={setSchoolData}
-                      />
-                    ),
                     삭제: <Remove schoolData={schoolData} />,
                   }
                 : {
@@ -188,12 +181,6 @@ const School = (props: Props) => {
                     사용자: <User schoolData={schoolData} />,
                     "사이드바 링크": (
                       <Links
-                        schoolData={schoolData}
-                        setSchoolData={setSchoolData}
-                      />
-                    ),
-                    일정: (
-                      <Calendars
                         schoolData={schoolData}
                         setSchoolData={setSchoolData}
                       />

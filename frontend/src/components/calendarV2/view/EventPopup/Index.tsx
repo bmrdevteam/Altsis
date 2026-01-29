@@ -10,31 +10,22 @@ import Textarea from "components/textarea/Textarea";
 import style from "./style.module.scss";
 import Divider from "components/divider/Divider";
 import Svg from "assets/svg/Svg";
+import Button from "components/button/Button";
+import { useAuth } from "contexts/authContext";
 
 type Props = {
   setPopupActive: any;
   event: EventItem;
+  onDelete?: (eventId: string) => void;
+  onEdit?: (event: EventItem) => void;
 };
 
 const Description = ({ event }: { event: EventItem }) => {
   switch (event.from) {
-    case "myCalendar":
-      return (
-        <div className={style.description}>
-          {"내 캘린더에서 가져온 일정입니다. "}
-          <a target="_blank" rel="noreferrer" href={event.htmlLink}>
-            <div className={style.svg}>
-              <Svg type={"edit"} style={{ width: "12px", height: "12px" }} />
-            </div>
-          </a>
-        </div>
-      );
+    case "personalCalendar":
+      return <div className={style.description}>{"개인 캘린더 일정입니다."}</div>;
     case "schoolCalendar":
-      return <div className={style.description}>{"학사 일정입니다."}</div>;
-    case "schoolCalendarTimetable":
-      return (
-        <div className={style.description}>{"기본 시간표 일정입니다."}</div>
-      );
+      return <div className={style.description}>{"학교 캘린더 일정입니다."}</div>;
     case "enrollments":
       return (
         <div className={style.description}>
@@ -68,9 +59,17 @@ const Description = ({ event }: { event: EventItem }) => {
   return <></>;
 };
 
-const GoogleEvent = (props: {}) => {};
-
 const Index = (props: Props) => {
+  const { currentUser } = useAuth();
+  const isManager =
+    currentUser?.auth === "admin" || currentUser?.auth === "manager";
+  const isOwner =
+    props.event.userId && String(props.event.userId) === String(currentUser?._id);
+
+  const canModify =
+    props.event.type === "custom" &&
+    (isOwner || (props.event.scope === "school" && isManager));
+
   return (
     <Popup
       setState={props.setPopupActive}
@@ -85,7 +84,7 @@ const Index = (props: Props) => {
     >
       <div className={style.section}>
         <div className={style.content}>
-          {props.event.type === "google" ? (
+          {props.event.type === "custom" ? (
             <div
               className={style.row}
               style={{
@@ -158,7 +157,7 @@ const Index = (props: Props) => {
               }}
             >
               <Input
-                label={props.event.type === "google" ? "장소" : "강의실"}
+                label={props.event.type === "custom" ? "장소" : "강의실"}
                 type="text"
                 appearence="flat"
                 defaultValue={props.event.location}
@@ -180,6 +179,33 @@ const Index = (props: Props) => {
         </div>
         <Divider />
         <Description event={props.event} />
+
+        {canModify && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "8px",
+              marginTop: "4px",
+            }}
+          >
+            <Button
+              type="ghost"
+              onClick={() => {
+                if (
+                  props.event.eventId &&
+                  props.onDelete &&
+                  window.confirm("이 일정을 삭제하시겠습니까?")
+                ) {
+                  props.onDelete(props.event.eventId);
+                }
+              }}
+              style={{ color: "#ea4335" }}
+            >
+              삭제
+            </Button>
+          </div>
+        )}
       </div>
     </Popup>
   );

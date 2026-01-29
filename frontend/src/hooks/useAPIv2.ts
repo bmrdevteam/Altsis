@@ -603,25 +603,6 @@ export default function useAPIv2() {
   }
 
   /**
-   * UUserCalendar API
-   * @description 캘린더 변경 API
-   * @version 2.0.0
-   * @auth user
-   */
-  async function UUserCalendar(props: {
-    data: {
-      calendar?: string;
-    };
-  }) {
-    const { calendar } = await database.U({
-      location: `users/calendar`,
-      data: props.data,
-    });
-
-    return { calendar: calendar as string | undefined };
-  }
-
-  /**
    * UUserPassword API
    * @description 비밀번호 변경 API
    * @version 2.0.0
@@ -932,31 +913,6 @@ export default function useAPIv2() {
   }
 
   /**
-   * USchoolCalendars API
-   * @description 학교 캘린더 수정 API
-   * @version 2.0.0
-   * @auth admin|manager
-   */
-  async function USchoolCalendars(props: {
-    params: {
-      _id: string;
-    };
-    data: {
-      calendar?: string;
-      calendarTimetable?: string;
-    };
-  }) {
-    const { calendar, calendarTimetable } = await database.U({
-      location: `schools/${props.params._id}/calendars`,
-      data: props.data,
-    });
-    return {
-      calendar: calendar as string | undefined,
-      calendarTimetable: calendarTimetable as string | undefined,
-    };
-  }
-
-  /**
    * DSchool API
    * @description 학교 삭제 API
    * @version 2.0.0
@@ -970,6 +926,117 @@ export default function useAPIv2() {
     return await database.D({
       location: "schools/" + props.params._id,
     });
+  }
+
+  /**
+   * ##########################################################################
+   * CalendarEvent API
+   * ##########################################################################
+   */
+
+  /**
+   * CCalendarEvent API
+   * @description 캘린더 일정 생성 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CCalendarEvent(props: {
+    data: {
+      title: string;
+      description?: string;
+      start: string;
+      end: string;
+      isAllDay?: boolean;
+      scope: "school" | "personal";
+      school?: string;
+      recurrence?: {
+        type: "none" | "daily" | "weekly" | "monthly";
+        endDate?: string;
+      };
+      color?: string;
+    };
+  }) {
+    const { calendarEvent } = await database.C({
+      location: "calendar-events",
+      data: props.data,
+    });
+    return { calendarEvent };
+  }
+
+  /**
+   * RCalendarEvents API
+   * @description 캘린더 일정 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RCalendarEvents(props: {
+    query: {
+      startDate: string;
+      endDate: string;
+      scope?: string;
+      school?: string;
+    };
+  }) {
+    const { calendarEvents } = await database.R({
+      location: "calendar-events" + QUERY_BUILDER(props.query),
+    });
+    return { calendarEvents: calendarEvents as any[] };
+  }
+
+  /**
+   * UCalendarEvent API
+   * @description 캘린더 일정 수정 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UCalendarEvent(props: {
+    params: { _id: string };
+    data: {
+      title?: string;
+      description?: string;
+      start?: string;
+      end?: string;
+      isAllDay?: boolean;
+      recurrence?: {
+        type: "none" | "daily" | "weekly" | "monthly";
+        endDate?: string;
+      };
+      color?: string;
+    };
+  }) {
+    const { calendarEvent } = await database.U({
+      location: `calendar-events/${props.params._id}`,
+      data: props.data,
+    });
+    return { calendarEvent };
+  }
+
+  /**
+   * DCalendarEvent API
+   * @description 캘린더 일정 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DCalendarEvent(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `calendar-events/${props.params._id}`,
+    });
+  }
+
+  /**
+   * SyncCalendarEvents API
+   * @description 수강/멘토링 일정을 캘린더 일정으로 동기화
+   * @version 1.0.0
+   * @auth user
+   */
+  async function SyncCalendarEvents(props: {
+    data: { season: string };
+  }) {
+    const result = await database.C({
+      location: "calendar-events/sync",
+      data: props.data,
+    });
+    return result as { synced: number; total: number };
   }
 
   /**
@@ -2517,7 +2584,6 @@ export default function useAPIv2() {
       RMySelf,
       RUserProfile,
       UUserProfile,
-      UUserCalendar,
       UUserPassword,
       UUserEmail,
       UUserTel,
@@ -2535,8 +2601,14 @@ export default function useAPIv2() {
       RSchool,
       USchoolFormArchive,
       USchoolLinks,
-      USchoolCalendars,
       DSchool,
+    },
+    CalendarEventAPI: {
+      CCalendarEvent,
+      RCalendarEvents,
+      UCalendarEvent,
+      DCalendarEvent,
+      SyncCalendarEvents,
     },
     SeasonAPI: {
       CSeason,

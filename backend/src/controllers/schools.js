@@ -283,47 +283,6 @@ export const updateLinks = async (req, res) => {
   }
 };
 
-/**
- * @memberof APIs.SchoolAPI
- * @function USchoolCalendars API
- * @description 학교 캘린더 수정 API
- * @version 2.0.0
- *
- * @param {Object} req
- *
- * @param {"PUT"} req.method
- * @param {"/schools/:_id/links"} req.url
- *
- * @param {Object} req.user - "admin"|"manager"
- *
- * @param {Object} req.body
- * @param {string?} req.body.calendar - 학사 일정 캘린더
- * @param {string?} req.body.calendarTimetable - 시간표 캘린더
- *
- * @param {Object} res
- * @param {string?} res.calendar - updated calendar
- * @param {string?} res.calendarTimetable - updated calendarTimetable
- *
- */
-export const updateCalendars = async (req, res) => {
-  try {
-    const school = await School(req.user.academyId).findById(req.params._id);
-    if (!school) {
-      return res.status(404).send({ message: __NOT_FOUND("school") });
-    }
-
-    school["calendar"] = req.body.calendar;
-    school["calendarTimetable"] = req.body.calendarTimetable;
-    await school.save();
-
-    return res.status(200).send({
-      calendar: school.calendar,
-      calendarTimetable: school.calendarTimetable,
-    });
-  } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
-  }
-};
 
 /**
  * @memberof APIs.SchoolAPI

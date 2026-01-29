@@ -202,12 +202,6 @@ export const SidebarData = (auth: string, role?: string): any => {
         path: "/dev/classrooms",
         icon: <Svg type="door-open" />,
       },
-      {
-        title: "일정",
-        name: "일정",
-        path: "/dev/schedule",
-        icon: <Svg type="calender" />,
-      },
     ],
   });
 

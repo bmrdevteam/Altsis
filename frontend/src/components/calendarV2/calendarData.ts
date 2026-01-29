@@ -1,35 +1,31 @@
 export type TDay = "일" | "월" | "화" | "수" | "목" | "금" | "토";
 export const DayList: TDay[] = ["일", "월", "화", "수", "목", "금", "토"];
 
-export type Type = "google" | "course";
-export type FromGoogle =
-  | "schoolCalendar"
-  | "schoolCalendarTimetable"
-  | "myCalendar";
+export type Type = "custom" | "course";
+export type FromCustom = "schoolCalendar" | "personalCalendar";
 export type FromCourse = "enrollments" | "mentorings";
 
-export type From = FromGoogle | FromCourse;
+export type From = FromCustom | FromCourse;
 
 export type TRawCalendar = {
   type: Type;
   from: From;
   courses?: any[];
-  calendarId?: string;
+  events?: any[];
 };
 
-export type TRawGoogleCalendar = TRawCalendar & {
-  type: "google";
-  from: FromGoogle;
-  calendarId: string;
-  calendarData: GoogleCalendarData;
+export type TRawCustomCalendar = TRawCalendar & {
+  type: "custom";
+  from: FromCustom;
+  events: any[];
 };
 
 export type TRawCourseCalendar = TRawCalendar & {
   type: "course";
   from: FromCourse;
-  calendarId: string;
   courses: any[];
 };
+
 export class DateItem {
   public _date: Date;
   public yyyy: number;
@@ -125,13 +121,17 @@ export class DateItem {
   }
 }
 
-const getHHMM = (dateTime?: string) => {
-  return dateTime?.substring(11, 16) ?? "";
+const getHHMM = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
 };
+
 export class EventItem {
-  type: "google" | "course" = "google";
+  type: "custom" | "course" = "custom";
   from: From = "schoolCalendar";
-  calendarId?: string;
+  eventId?: string; // CalendarEvent._id for CRUD
   calendarTitle: string = "";
   id: string = ""; // course -> enrollment._id or syllabus._id
   title: string = "";
@@ -141,10 +141,14 @@ export class EventItem {
   duration?: number = 1;
   sequence: number = 1;
 
-  // google
+  // custom event fields
   description?: string;
   location?: string;
-  htmlLink?: string;
+  color?: string;
+  scope?: "school" | "personal";
+  userId?: string;
+  isRecurrenceInstance?: boolean;
+  recurrenceParentId?: string;
 }
 
 export class Calendar {
@@ -162,87 +166,119 @@ export class Calendar {
     }
   }
 
-  addGoogleEvents(googleCalendar: GoogleCalendarData, from: FromGoogle) {
-    const type = "google";
-    const calendarId = googleCalendar.id;
-    const calendarTitle = googleCalendar.summary ?? "";
+  addCustomEvents(events: any[], from: FromCustom) {
+    const type = "custom";
+    const calendarTitle =
+      from === "schoolCalendar" ? "학교 캘린더" : "개인 캘린더";
 
-    const push = (
-      dateItem: DateItem,
-      item: GoogleCalendarItem,
-      opts: {
-        isAllday: boolean;
-        startTimeText: string;
-        endTimeText: string;
-        sequence: number;
-        duration: number;
-      }
-    ) => {
-      this._eventMap.get(dateItem.text)?.push({
-        ...item,
-        type,
-        from,
-        calendarId,
-        calendarTitle,
-        title:
-          item.summary +
-          (opts.duration > 1 ? `(${opts.sequence}/${opts.duration})` : ""),
-        ...opts,
-      });
-    };
+    for (const event of events) {
+      const startDate = new Date(event.start);
+      const endDate = new Date(event.end);
 
-    for (let _item of googleCalendar.items) {
-      //allday event
-      if ("date" in _item.start) {
-        const startDateItem = new DateItem({ text: _item.start.date });
-        const endDateItem = new DateItem({ text: _item.end.date });
+      if (event.isAllDay) {
+        const startDateItem = new DateItem({ date: startDate });
+        const endDateItem = new DateItem({ date: endDate });
         const dateItems = startDateItem.getDateItemsBetween(endDateItem);
-        for (let i = 0; i < dateItems.length - 1; i++) {
-          push(dateItems[i], _item, {
+
+        for (let i = 0; i < dateItems.length; i++) {
+          this._eventMap.get(dateItems[i].text)?.push({
+            type,
+            from,
+            eventId: event._id,
+            calendarTitle,
+            id: event._id,
+            title:
+              event.title +
+              (dateItems.length > 1
+                ? `(${i + 1}/${dateItems.length})`
+                : ""),
             isAllday: true,
             startTimeText: dateItems[i].text,
-            endTimeText: dateItems[i + 1].text,
+            endTimeText:
+              i < dateItems.length - 1
+                ? dateItems[i + 1].text
+                : dateItems[i].text,
             sequence: i + 1,
-            duration: dateItems.length - 1,
+            duration: dateItems.length,
+            description: event.description,
+            color: event.color,
+            scope: event.scope,
+            userId: event.user,
+            isRecurrenceInstance: event.isRecurrenceInstance,
+            recurrenceParentId: event.recurrenceParentId
+              ? String(event.recurrenceParentId)
+              : undefined,
           });
         }
-      } else if ("dateTime" in _item.start) {
-        const startDateItem = new DateItem({ text: _item.start.dateTime });
-        const endDateItem = new DateItem({ text: _item.end.dateTime });
+      } else {
+        const startDateItem = new DateItem({ date: startDate });
+        const endDateItem = new DateItem({ date: endDate });
         const dateItems = startDateItem.getDateItemsBetween(endDateItem);
+
         if (dateItems.length === 1) {
-          push(startDateItem, _item, {
+          this._eventMap.get(startDateItem.text)?.push({
+            type,
+            from,
+            eventId: event._id,
+            calendarTitle,
+            id: event._id,
+            title: event.title,
             isAllday: false,
             startTimeText:
-              startDateItem.text + " " + getHHMM(_item.start.dateTime),
-            endTimeText: startDateItem.text + " " + getHHMM(_item.end.dateTime),
+              startDateItem.text + " " + getHHMM(event.start),
+            endTimeText:
+              startDateItem.text + " " + getHHMM(event.end),
             sequence: 1,
             duration: 1,
+            description: event.description,
+            color: event.color,
+            scope: event.scope,
+            userId: event.user,
+            isRecurrenceInstance: event.isRecurrenceInstance,
+            recurrenceParentId: event.recurrenceParentId
+              ? String(event.recurrenceParentId)
+              : undefined,
           });
-        }
-        // isAllday
-        else {
+        } else {
           for (let i = 0; i < dateItems.length; i++) {
             let startTimeText = "";
             let endTimeText = "";
             if (i === 0) {
               startTimeText =
-                startDateItem.text + " " + getHHMM(_item.start.dateTime);
+                startDateItem.text + " " + getHHMM(event.start);
               endTimeText = dateItems[i + 1].text;
             } else if (i === dateItems.length - 1) {
               startTimeText = dateItems[i].text;
               endTimeText =
-                dateItems[i].text + " " + getHHMM(_item.end.dateTime);
+                dateItems[i].text + " " + getHHMM(event.end);
             } else {
               startTimeText = dateItems[i].text;
               endTimeText = dateItems[i + 1].text;
             }
-            push(dateItems[i], _item, {
+            this._eventMap.get(dateItems[i].text)?.push({
+              type,
+              from,
+              eventId: event._id,
+              calendarTitle,
+              id: event._id,
+              title:
+                event.title +
+                (dateItems.length > 1
+                  ? `(${i + 1}/${dateItems.length})`
+                  : ""),
               isAllday: true,
               startTimeText,
               endTimeText,
               sequence: i + 1,
               duration: dateItems.length,
+              description: event.description,
+              color: event.color,
+              scope: event.scope,
+              userId: event.user,
+              isRecurrenceInstance: event.isRecurrenceInstance,
+              recurrenceParentId: event.recurrenceParentId
+                ? String(event.recurrenceParentId)
+                : undefined,
             });
           }
         }
@@ -362,34 +398,7 @@ export class Calendar {
     );
 
     return this.getEventMap(startDateItem, endDateItem, {
-      from: ["schoolCalendar", "myCalendar"],
+      from: ["schoolCalendar", "personalCalendar"],
     });
   };
 }
-
-export type GoogleCalendarItem = {
-  id: string;
-  htmlLink: string;
-  summary: string;
-  description: string;
-  location?: string;
-  colorId: string;
-  start: {
-    date?: string;
-    dateTime?: string;
-  };
-  end: {
-    date?: string;
-    dateTime?: string;
-  };
-  sequence: number;
-};
-
-export type GoogleCalendarData = {
-  id: string;
-  summary: string;
-  description?: string;
-  items: GoogleCalendarItem[];
-  backgroundColor: string;
-  foregroundColor: string;
-};

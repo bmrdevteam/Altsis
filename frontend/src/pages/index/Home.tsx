@@ -23,109 +23,19 @@
  *
  * NOTES
  *
- * @version 1.0
+ * @version 2.0
  *
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import style from "../../style/pages/home.module.scss";
-// import QuickSearch from "../../components/quickSearch/QuickSearch";
-import Schedule from "components/schedule/Schedule";
-import { useAuth } from "contexts/authContext";
-import useAPIv2 from "hooks/useAPIv2";
+import Calendar from "components/calendarV2/Calendar";
 
 const Home = () => {
-  const { EnrollmentAPI } = useAPIv2();
-
-  const { currentUser, currentRegistration } = useAuth();
-  const [enrollments, setEnrollments] = useState<any>();
-
-  function enrollmentsToEvents(data: any[]) {
-    if (data) {
-      let result: any[] = [];
-      for (let i = 0; i < data.length; i++) {
-        const element = data[i];
-
-        if (element?.time.length <= 1) {
-          result.push({
-            id: element._id + JSON.stringify(element?.time[0]),
-            type: "course",
-            classroom: element.classroom,
-            title: element.classTitle,
-            startTime: element?.time[0].start,
-            endTime: element?.time[0].end,
-            day: element?.time[0].day,
-            _id: element._id,
-            memo: element?.memo,
-          });
-        } else {
-          for (let ii = 0; ii < element?.time.length; ii++) {
-            const time = element?.time[ii];
-            result.push({
-              id: element._id + JSON.stringify(time),
-              title: element.classTitle,
-              type: "course",
-              classroom: element.classroom,
-              startTime: time.start,
-              endTime: time.end,
-              day: time.day,
-              _id: element._id,
-              memo: element?.memo,
-            });
-          }
-        }
-      }
-      return result;
-    }
-  }
-
-  function memosToEvents(data: any[]) {
-    if (data) {
-      let result: any[] = [];
-      for (let i = 0; i < data.length; i++) {
-        const element = data[i];
-        result.push({
-          id: element._id,
-          type: "memo",
-          classroom: element.classroom,
-          title: element.title,
-          startTime: element.start,
-          endTime: element.end,
-          day: element.day,
-          _id: element._id,
-          memo: element.memo,
-        });
-      }
-      return result;
-    }
-  }
-
-  useEffect(() => {
-    if (currentRegistration?._id) {
-      EnrollmentAPI.REnrollments({
-        query: { season: currentRegistration.season, student: currentUser._id },
-      })
-        .then(({ enrollments }) => {
-          setEnrollments(enrollments);
-        })
-        .catch(() => {});
-    }
-  }, [currentRegistration]);
-
   return (
     <>
-      {/* <QuickSearch /> */}
-      <div className={style.section}>
-        <Schedule
-          dayArray={["월", "화", "수", "목", "금"]}
-          defaultEvents={[
-            ...(enrollmentsToEvents(enrollments) || []),
-            ...(memosToEvents(currentRegistration?.memos) || []),
-          ]}
-          title={`${currentRegistration?.year ?? ""} ${
-            currentRegistration?.term ?? ""
-          } 일정`}
-        />
+      <div className={style.section} style={{ backgroundColor: "white" }}>
+        <Calendar />
       </div>
     </>
   );

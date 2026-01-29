@@ -3,7 +3,6 @@ import Tab from "components/tab/Tab";
 
 import EnrolledCourseTab from "./tab/EnrolledCourseTab";
 import MentoringCourseTab from "./tab/MentoringCourseTab";
-import GoogleCalendarTab from "./tab/GoogleCalendarTab";
 import { useState } from "react";
 import { useAuth } from "contexts/authContext";
 
@@ -35,13 +34,7 @@ const Index = (props: Props) => {
         dontUsePaths
         items={
           !currentRegistration?._id
-            ? {
-                "구글 캘린더 연동": (
-                  <GoogleCalendarTab
-                    setIsReloadRequired={setIsReloadRequired}
-                  />
-                ),
-              }
+            ? {}
             : currentRegistration?.role === "teacher"
             ? {
                 "담당 수업": (
@@ -54,20 +47,10 @@ const Index = (props: Props) => {
                     setIsReloadRequired={setIsReloadRequired}
                   />
                 ),
-                "구글 캘린더 연동": (
-                  <GoogleCalendarTab
-                    setIsReloadRequired={setIsReloadRequired}
-                  />
-                ),
               }
             : {
                 "수강 중인 수업": (
                   <EnrolledCourseTab
-                    setIsReloadRequired={setIsReloadRequired}
-                  />
-                ),
-                "구글 캘린더 연동": (
-                  <GoogleCalendarTab
                     setIsReloadRequired={setIsReloadRequired}
                   />
                 ),
