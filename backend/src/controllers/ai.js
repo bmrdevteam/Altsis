@@ -191,7 +191,7 @@ export const generateSyllabusContent = async (req, res) => {
     // 1. Check Academy AI enabled and get API key
     const academy = await Academy.findOne(
       { academyId: req.user.academyId },
-      "+aiApiKey aiModel"
+      "+aiApiKey"
     );
     if (!academy) {
       sendEvent("error", { message: __NOT_FOUND("academy") });
@@ -383,10 +383,19 @@ export const testApiKey = async (req, res) => {
  */
 export const listModels = async (req, res) => {
   try {
-    const { apiKey } = req.body;
+    let { apiKey } = req.body;
+    const { academyId } = req.body;
+
+    // Use saved API key if not provided
+    if (!apiKey && academyId) {
+      const academy = await Academy.findOne({ academyId }, "+aiApiKey");
+      if (academy?.aiApiKey) {
+        apiKey = academy.aiApiKey;
+      }
+    }
 
     if (!apiKey) {
-      return res.status(400).send({ message: FIELD_REQUIRED("apiKey") });
+      return res.status(400).send({ message: "API 키를 입력하거나 먼저 저장해주세요." });
     }
 
     const response = await fetch(

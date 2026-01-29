@@ -535,6 +535,34 @@ export const updateAiApiKey = async (req, res) => {
  * @param {Object} res
  * @param {boolean} res.hasApiKey - API 키 존재 여부
  */
+/**
+ * @memberof APIs.AcademyAPI
+ * @function UAcademyAiModel API
+ * @description 아카데미 AI 모델 설정 API
+ * @version 1.0.0
+ */
+export const updateAiModel = async (req, res) => {
+  try {
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    if (!req.body.aiModel) {
+      return res.status(400).send({ message: FIELD_REQUIRED("aiModel") });
+    }
+
+    academy.aiModel = req.body.aiModel;
+    await academy.save();
+
+    return res.status(200).send({ success: true });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
 export const checkAiApiKey = async (req, res) => {
   try {
     /* find document with apiKey */

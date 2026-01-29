@@ -132,16 +132,40 @@ const AISettings = (props: Props) => {
     }
   };
 
+  const onClickSaveModelHandler = async () => {
+    if (!aiModel.trim()) {
+      alert("모델명을 입력해주세요.");
+      return;
+    }
+
+    try {
+      await AcademyAPI.UAcademyAiModel({
+        params: {
+          academyId: props.academyData.academyId,
+        },
+        data: {
+          aiModel: aiModel.trim(),
+        },
+      });
+      alert(SUCCESS_MESSAGE);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const onClickLoadModelsHandler = async () => {
-    if (!apiKey.trim()) {
-      alert("먼저 API 키를 입력해주세요.");
+    if (!apiKey.trim() && !hasApiKey) {
+      alert("먼저 API 키를 입력하고 저장해주세요.");
       return;
     }
 
     setIsLoadingModels(true);
     try {
       const { models, error } = await AIAPI.ListAiModels({
-        data: { apiKey: apiKey.trim() },
+        data: {
+          apiKey: apiKey.trim() || undefined,
+          academyId: props.academyData.academyId,
+        },
       });
       if (error) {
         alert(error);
@@ -310,7 +334,7 @@ const AISettings = (props: Props) => {
               <Button
                 type="ghost"
                 onClick={onClickLoadModelsHandler}
-                disabled={isLoadingModels || !apiKey.trim()}
+                disabled={isLoadingModels || (!apiKey.trim() && !hasApiKey)}
               >
                 {isLoadingModels ? "조회 중..." : "모델 탐색"}
               </Button>
@@ -366,6 +390,12 @@ const AISettings = (props: Props) => {
                 )}
               </select>
             )}
+
+            <div style={{ marginTop: "16px" }}>
+              <Button type="ghost" onClick={onClickSaveModelHandler}>
+                모델 저장
+              </Button>
+            </div>
           </div>
         </div>
       </div>

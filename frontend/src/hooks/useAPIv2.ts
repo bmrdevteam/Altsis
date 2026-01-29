@@ -463,6 +463,27 @@ export default function useAPIv2() {
   }
 
   /**
+   * UAcademyAiModel API
+   * @description 아카데미 AI 모델 설정 API
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function UAcademyAiModel(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      aiModel: string;
+    };
+  }) {
+    const { success } = await database.U({
+      location: `academies/${props.params.academyId}/ai/model`,
+      data: props.data,
+    });
+    return { success: success as boolean };
+  }
+
+  /**
    * ##########################################################################
    * User API
    * ##########################################################################
@@ -2686,7 +2707,8 @@ export default function useAPIv2() {
    */
   async function ListAiModels(props: {
     data: {
-      apiKey: string;
+      apiKey?: string;
+      academyId?: string;
     };
   }) {
     const { models, error } = await database.C({
@@ -2710,6 +2732,7 @@ export default function useAPIv2() {
       UAcademyAiEnabled,
       UAcademyAiApiKey,
       RAcademyAiApiKey,
+      UAcademyAiModel,
       UActivateAcademy,
       UInactivateAcademy,
       CAcademyBackup,

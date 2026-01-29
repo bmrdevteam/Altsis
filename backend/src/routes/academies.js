@@ -25,6 +25,7 @@ router.put("/:academyId/chat", isOwner, academies.updateChatEnabled);
 router.put("/:academyId/ai", isOwner, academies.updateAiEnabled);
 router.put("/:academyId/ai/apikey", isOwner, academies.updateAiApiKey);
 router.get("/:academyId/ai/apikey", isOwner, academies.checkAiApiKey);
+router.put("/:academyId/ai/model", isOwner, academies.updateAiModel);
 
 /* backup */
 router.post("/:academyId/backup", isOwAdmin, academies.createBackup);
