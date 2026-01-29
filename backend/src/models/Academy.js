@@ -27,6 +27,9 @@ import { validate } from "../utils/validate.js";
  * @prop {string} adminName - validate
  * @prop {string} dbName - 아카데미 DB명; 아카데미 생성 시 자동 설정되며 API를 통해 조회할 수 없다
  * @prop {boolean} isActivated=true - 아카데미 활성화 상태; false인 경우 해당 아카데미에 로그인할 수 없다
+ * @prop {boolean} chatEnabled=false - 채팅 기능 활성화 상태
+ * @prop {boolean} aiEnabled=false - AI 기능 활성화 상태
+ * @prop {string} aiApiKey - AI API 키; API를 통해 조회할 수 없다
  *
  */
 const academySchema = mongoose.Schema(
@@ -62,6 +65,9 @@ const academySchema = mongoose.Schema(
     },
     isActivated: { type: Boolean, default: true },
     chatEnabled: { type: Boolean, default: false },
+    aiEnabled: { type: Boolean, default: false },
+    aiApiKey: { type: String, select: false },
+    aiModel: { type: String, default: "gemini-2.5-flash" },
   },
   { timestamps: true }
 );

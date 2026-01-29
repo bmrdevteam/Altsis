@@ -21,6 +21,12 @@ router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
 router.put("/:academyId/chat", isOwner, academies.updateChatEnabled);
 
+/* AI settings */
+router.put("/:academyId/ai", isOwner, academies.updateAiEnabled);
+router.put("/:academyId/ai/apikey", isOwner, academies.updateAiApiKey);
+router.get("/:academyId/ai/apikey", isOwner, academies.checkAiApiKey);
+router.put("/:academyId/ai/model", isOwner, academies.updateAiModel);
+
 /* backup */
 router.post("/:academyId/backup", isOwAdmin, academies.createBackup);
 router.put("/:academyId/restore", isOwAdmin, academies.restoreBackup);

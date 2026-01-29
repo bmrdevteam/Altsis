@@ -42,6 +42,7 @@ import Permission from "./tab/permission/PermissionV2";
 import Subject from "./tab/subjects/Subject";
 import Registrations from "./tab/registrations/Registration";
 import Remove from "./tab/Remove";
+import AISettings from "./tab/AISettings";
 
 // popup
 import AddSeasonPopup from "./AddPopup";
@@ -245,6 +246,7 @@ const Season = (props: Props) => {
               강의실: <Classroom _id={seasonToEdit._id} />,
               양식: <Form _id={seasonToEdit._id} />,
               권한: <Permission _id={seasonToEdit._id} />,
+              "AI 설정": <AISettings _id={seasonToEdit._id} />,
               삭제: (
                 <Remove
                   _id={seasonToEdit._id}
