@@ -13,7 +13,7 @@ import {
 } from "./calendarData";
 
 import WeeklyView from "./view/WeeklyViewer/Index";
-import MonthlyView from "./view/MonthlyViwer/Index";
+import MonthlyView from "./view/MonthlyViewer/Index";
 import Loading from "components/loading/Loading";
 import EventPopup from "./view/EventPopup/Index";
 import SettingPopup from "./view/SettingPopup/Index";
