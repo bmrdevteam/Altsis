@@ -30,6 +30,24 @@ const userSchema = mongoose.Schema(
 
 /**
  * @memberof Models.Notification
+ * @typedef TRelatedEntity
+ *
+ * @prop {string} type - 관련 엔티티 타입 ("enrollment"|"syllabus"|"calendarEvent"|"post")
+ * @prop {ObjectId} id - 관련 엔티티 ID
+ */
+const relatedEntitySchema = mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["enrollment", "syllabus", "calendarEvent", "post"],
+    },
+    id: mongoose.Types.ObjectId,
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Notification
  * @typedef TNotification
  *
  * @prop {ObjectId} _id
@@ -47,6 +65,9 @@ const userSchema = mongoose.Schema(
  * @prop {string} title
  * @prop {string} description
  * @prop {Date} date
+ * @prop {string} notificationType - 알림 유형 (direct|classInvitation|classCancellation|classApproval|classApprovalCancel|scheduleStart|newPost)
+ * @prop {TRelatedEntity} relatedEntity - 관련 엔티티 정보
+ * @prop {boolean} autoDeleteOnCheck - 확인 시 자동 삭제 여부
  *
  */
 const notificationSchema = mongoose.Schema(
@@ -81,6 +102,28 @@ const notificationSchema = mongoose.Schema(
     },
     description: String,
     date: Date,
+
+    // 알림 유형 (자동 알림용)
+    notificationType: {
+      type: String,
+      enum: [
+        "direct",
+        "classInvitation",
+        "classCancellation",
+        "classApproval",
+        "classApprovalCancel",
+        "scheduleStart",
+        "newPost",
+      ],
+      default: "direct",
+    },
+    // 관련 엔티티 정보 (자동 알림용)
+    relatedEntity: relatedEntitySchema,
+    // 확인 시 자동 삭제 여부 (휘발성 알림)
+    autoDeleteOnCheck: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

@@ -1,3 +1,17 @@
+export type TNotificationType =
+  | "direct"
+  | "classInvitation"
+  | "classCancellation"
+  | "classApproval"
+  | "classApprovalCancel"
+  | "scheduleStart"
+  | "newPost";
+
+export type TRelatedEntity = {
+  type: "enrollment" | "syllabus" | "calendarEvent" | "post";
+  id: string;
+};
+
 export type TNotification = {
   type: "sent" | "received";
   _id: string;
@@ -13,6 +27,9 @@ export type TNotification = {
   title: string;
   description?: string;
   date: Date;
+  notificationType?: TNotificationType;
+  relatedEntity?: TRelatedEntity;
+  autoDeleteOnCheck?: boolean;
 };
 
 export type TNotificationSent = TNotification & {
@@ -26,4 +43,15 @@ export type TNotificationReceived = TNotification & {
   fromUserId: string;
   fromUserName: string;
   checked: boolean;
+};
+
+export type TNotificationSettings = {
+  classInvitation: boolean;
+  classCancellation: boolean;
+  classApproval: boolean;
+  classApprovalCancel: boolean;
+  scheduleStart: boolean;
+  newPost: boolean;
+  directMessage: boolean;
+  soundEnabled: boolean;
 };

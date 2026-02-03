@@ -8,32 +8,15 @@ import _ from "lodash";
 import { useAuth } from "contexts/authContext";
 
 // components
-import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
-import View from "pages/notifications/popup/View";
-import Send from "pages/notifications/popup/Send";
 
 import audioURL from "assets/audio/notification-a.mp3";
 import { TNotificationReceived } from "types/notification";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 const Notification = () => {
-  const { currentSeason, currentRegistration, currentSchool } = useAuth();
-  const { UserAPI, NotificationAPI } = useAPIv2();
-
-  const [notificationList, setNotificationList] = useState<any[]>([]);
-  const selectRef = useRef<string[]>([]);
-
-  const [notificatnionPopupActive, setNotificatnionPopupActive] =
-    useState<boolean>(false);
-
-  const [receiverType, setReceiverType] = useState<string>("");
-  const [receiverList, setReceiverList] = useState<any[]>([]);
-
-  const [sendPopupActive, setSendPopupActive] = useState<boolean>(false);
-
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { currentUser } = useAuth();
+  const { NotificationAPI, PostAPI, EnrollmentAPI } = useAPIv2();
 
   const navigate = useNavigate();
 
@@ -46,13 +29,13 @@ const Notification = () => {
   const [isNotificationLoading, setIsNotifiationLoading] = useState(false);
   const [isNotificationContenLoading, setIsNotifiationContenLoading] =
     useState(false);
-  const [notification, setNotification] = useState<any>();
 
   const notificationDivRef = useRef<HTMLDivElement>(null);
 
   const [notificationContentActive, setNotificationContentActive] =
     useState(false);
-  const [notificationPopupActive, setNotificationPopupAcitve] = useState(false);
+
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const audio = new Audio(audioURL);
 
@@ -78,109 +61,63 @@ const Notification = () => {
     }
   };
 
-  
-  async function getSchoolUserList() {
-    const { users } = await UserAPI.RUsers({
-      query: { sid: currentSchool.school },
-    });
-
-    return users;
-  }
-
-  async function getUserList() {
-    const { users } = await UserAPI.RUsers({});
-
-    return users;
-  }
-
-  useEffect(() => {
-    if (isLoading) {
-      NotificationAPI.RNotifications({ query: { type: "sent" } })
-        .then(({ notifications }) => {
-          setNotificationList(
-            notifications.map((val: any) => {
-              return {
-                ...val,
-                toUser: `${val.toUserList[0].userName}(${
-                  val.toUserList[0].userId
-                })${
-                  val.toUserList.length > 1
-                    ? ` 외 ${val.toUserList.length - 1}명`
-                    : ``
-                }`,
-              };
-            })
-          );
-        })
-        .then(() => {
-          selectRef.current = [];
-          setIsLoading(false);
-        });
-
-      updateReceiverList();
-    }
-  }, [isLoading]);
-
-  async function updateReceiverList() {
-    if (currentRegistration && currentSeason) {
-      setReceiverType("season");
-      setReceiverList(currentSeason.registrations);
-    } else if (currentSchool) {
-      setReceiverType("school");
-      getSchoolUserList().then((res: any) => {
-        setReceiverList(res);
-      });
-    } else {
-      setReceiverType("academy");
-      getUserList().then((res: any) => {
-        setReceiverList(res);
-      });
-    }
-  }
-
   useEffect(() => {
     if (currentUser?._id) {
       updateNotifications();
+      // 알림 설정 조회
+      NotificationAPI.RNotificationSettings()
+        .then(({ settings }) => {
+          setSoundEnabled(settings.soundEnabled ?? true);
+        })
+        .catch(() => {
+          // 설정 조회 실패 시 기본값 사용
+        });
     }
   }, [currentUser]);
 
   useEffect(() => {
+    // currentUser가 로드되지 않았으면 소켓 연결하지 않음
+    if (!currentUser?.academyId || !currentUser?.userId) {
+      return;
+    }
+
     //* setup socket */
-    const socket = io(`${process.env.REACT_APP_SERVER_URL}`, {
+    const newSocket = io(`${process.env.REACT_APP_SERVER_URL}`, {
       path: "/io/notification",
       withCredentials: true,
     });
 
-    socket.on("connect", () => {
-      setSocket(socket);
-      socket.emit("listening", {
+    newSocket.on("connect", () => {
+      newSocket.emit("listening", {
         academyId: currentUser.academyId,
         userId: currentUser.userId,
       });
     });
 
-    socket.on("listen", () => {
+    newSocket.on("listen", () => {
       setIsNotifiationLoading(true);
     });
 
-    setSocket(socket);
+    setSocket(newSocket);
 
     return () => {
-      socket.close();
+      newSocket.close();
     };
-  }, []);
+  }, [currentUser?.academyId, currentUser?.userId]);
 
   useEffect(() => {
     if (isNotificationLoading) {
       updateNotifications().then(() => {
-        // audio.play().catch((e: any) => {
-        //   // console.log(e);
-        // });
+        if (soundEnabled) {
+          audio.play().catch(() => {
+            // 자동 재생 정책에 의해 재생이 차단될 수 있음
+          });
+        }
         setIsNotifiationLoading(false);
       });
     }
     return () => {};
-  }, [isNotificationLoading]);
+  }, [isNotificationLoading, soundEnabled]);
 
   useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
@@ -196,53 +133,117 @@ const Notification = () => {
     return () => {};
   }, [isNotificationContenLoading]);
 
+  const handleNotificationClick = async (notification: TNotificationReceived) => {
+    // 알림을 확인 처리
+    try {
+      await NotificationAPI.UCheckNotification({
+        params: { _id: notification._id },
+      });
+      setNotifications((prev) =>
+        prev.filter((n) => n._id !== notification._id)
+      );
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+
+    // 관련 게시글이 있으면 해당 게시글로 이동
+    if (notification.relatedEntity?.type === "post") {
+      try {
+        const { post } = await PostAPI.RPost({
+          params: { _id: notification.relatedEntity.id },
+        });
+        setNotificationContentActive(false);
+        navigate(`/boards/${post.board}/post/${post._id}`);
+      } catch (err) {
+        // 게시글을 찾을 수 없으면 게시판 목록으로 이동
+        setNotificationContentActive(false);
+        navigate("/boards");
+      }
+    }
+    // 수업 관련 알림 (수업 초대)
+    else if (notification.relatedEntity?.type === "enrollment") {
+      try {
+        const { enrollment } = await EnrollmentAPI.REnrollment({
+          params: { _id: notification.relatedEntity.id },
+        });
+        setNotificationContentActive(false);
+        navigate(`/courses/enrolled/${enrollment.syllabus}`);
+      } catch (err) {
+        // 수강 정보를 찾을 수 없으면 수업 목록으로 이동
+        setNotificationContentActive(false);
+        navigate("/courses");
+      }
+    }
+    // 수업 관련 알림 (수업 취소, 승인, 승인 취소)
+    else if (notification.relatedEntity?.type === "syllabus") {
+      setNotificationContentActive(false);
+      // 수업 취소 알림은 학생이 받으므로 enrolled 경로로
+      if (notification.notificationType === "classCancellation") {
+        navigate("/courses");
+      }
+      // 승인/승인취소 알림은 교사가 받으므로 created 경로로
+      else if (notification.notificationType === "classApproval" || notification.notificationType === "classApprovalCancel") {
+        navigate(`/courses/created/${notification.relatedEntity.id}`);
+      } else {
+        navigate(`/courses/${notification.relatedEntity.id}`);
+      }
+    }
+    // 일정 시작 알림
+    else if (notification.relatedEntity?.type === "calendarEvent") {
+      setNotificationContentActive(false);
+      navigate("/");
+    }
+    else {
+      setNotificationContentActive(false);
+      navigate("/boards");
+    }
+  };
+
+  const handleCheckNotification = async (
+    e: React.MouseEvent,
+    notification: TNotificationReceived
+  ) => {
+    e.stopPropagation();
+    try {
+      await NotificationAPI.UCheckNotification({
+        params: { _id: notification._id },
+      });
+      setNotifications((prev) =>
+        prev.filter((n) => n._id !== notification._id)
+      );
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const notificationItems = () => {
-    return notifications.map((notification: any, idx: number) => {
+    return notifications.map((notification: TNotificationReceived, idx: number) => {
       return (
         <div
           key={`notificationItem-${idx}`}
           className={style.item}
-          style={{ marginBottom: "12px" }}
+          style={{ marginBottom: "12px", cursor: "pointer" }}
+          onClick={() => handleNotificationClick(notification)}
         >
-          <div
-            className={style.description}
-            onClick={() => {
-              setNotification(notification);
-              setNotificationPopupAcitve(true);
-            }}
-          >
+          <div className={style.description}>
             {notification.category && (
               <span className={style.type}>[{notification.category}]</span>
             )}
             {notification.title}
           </div>
-          <Button
-            type="ghost"
-            onClick={(e: any) => {
-              NotificationAPI.UCheckNotification({
-                params: { _id: notification._id },
-              })
-                .then(() => {
-                  notifications.splice(
-                    _.findIndex(
-                      notifications,
-                      (x: any) => x._id === notification._id
-                    ),
-                    1
-                  );
-                  setNotifications([...notifications]);
-                })
-                .catch((err) => {
-                  ALERT_ERROR(err);
-                });
-            }}
+          <div
+            onClick={(e) => handleCheckNotification(e, notification)}
             style={{
-              border: 0,
+              display: "flex",
+              alignItems: "center",
+              padding: "4px",
+              cursor: "pointer",
               color: "gray",
             }}
+            title="확인"
           >
-            x
-          </Button>
+            <Svg type="check" width="16px" height="16px" />
+          </div>
         </div>
       );
     });
@@ -261,59 +262,66 @@ const Notification = () => {
       </div>
 
       {notificationContentActive && !isNotificationLoading && (
-        <>
-          <div className={style.contents}>
-            <div className={style.title} style={{ display: "flex", gap: "4px" }}>
-            <Svg type="notification" width="20px" height="20px" />알림
-              </div>
-            <div className={style.item_box}>
-              {!isNotificationContenLoading && notificationItems()}
+        <div className={style.contents}>
+          <div
+            className={style.title}
+            style={{
+              display: "flex",
+              gap: "4px",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              <Svg type="notification" width="20px" height="20px" />
+              알림
             </div>
-            <div className={style.button} style={{ display: "flex", gap: "4px"}}>
-            <Button
-                type="ghost"
-                onClick={(e: any) => {
-                  setNotificationContentActive(false);
-                  navigate("/notifications");
+            {notifications.length > 0 && (
+              <div
+                onClick={async () => {
+                  try {
+                    await NotificationAPI.UBulkCheckNotifications();
+                    setNotifications([]);
+                  } catch (err) {
+                    ALERT_ERROR(err);
+                  }
                 }}
-                style={{flexGrow: "1"}}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  padding: "4px",
+                  color: "var(--accent-1)",
+                }}
+                title="일괄 확인"
               >
-                보관함
-              </Button> 
-            <Button
-                type="ghost"
-                    onClick={() => {
-                      setSendPopupActive(true);
-                    }}
-                style={{flexGrow: "1"}}
-              >
-                보내기
-              </Button>               
+                <Svg type="check" width="20px" height="20px" />
+              </div>
+            )}
+          </div>
+          <div className={style.item_box}>
+            {!isNotificationContenLoading && notificationItems()}
+          </div>
+          <div
+            className={style.button}
+            style={{ display: "flex", justifyContent: "center" }}
+          >
+            <div
+              onClick={() => {
+                setNotificationContentActive(false);
+                navigate("/boards");
+              }}
+              style={{
+                cursor: "pointer",
+                padding: "8px 16px",
+                color: "var(--accent-1)",
+                fontSize: "14px",
+              }}
+            >
+              전체 알림 보기
             </div>
           </div>
-        {sendPopupActive && (
-          <Send
-            setState={setSendPopupActive}
-            receiverList={receiverList}
-            receiverType={receiverType}
-            setIsLoading={setIsLoading}
-          />
-        )}
-        {notificatnionPopupActive && notification && (
-          <View
-            setState={setNotificatnionPopupActive}
-            nid={notification._id}
-            type={"sent"}
-          />
-        )}
-        {notificationPopupActive && (
-          <View
-            setState={setNotificationPopupAcitve}
-            nid={notification._id}
-            type={"received"}
-          />
-        )}
-        </>
+        </div>
       )}
     </div>
   );

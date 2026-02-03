@@ -43,6 +43,8 @@ import Table from "components/tableV2/Table";
 import style from "./mail.module.scss";
 import Svg from "assets/svg/Svg";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAuth } from "contexts/authContext";
+import { TBoard } from "types/board";
 
 type Props = {
   setState: any;
@@ -55,7 +57,8 @@ type Props = {
 };
 
 const NotificationSend = (props: Props) => {
-  const { NotificationAPI } = useAPIv2();
+  const { PostAPI, BoardAPI } = useAPIv2();
+  const { currentSchool } = useAuth();
   const [receiverList, setReceiverList] = useState<any[]>();
   const [receiverSelectedList, setReceiverSelectedList] = useState<any[]>(
     props.receiverSelectedList || []
@@ -68,8 +71,32 @@ const NotificationSend = (props: Props) => {
   const selectRef = useRef<any[]>([]);
 
   const [title, setTitle] = useState<string>(props.title || "");
-  const [category, setCategory] = useState<string>(props.category || "");
-  const [description, setDescription] = useState<string>("");
+  const [content, setContent] = useState<string>("");
+
+  // Board selection state
+  const [boards, setBoards] = useState<TBoard[]>([]);
+  const [selectedBoardId, setSelectedBoardId] = useState<string>("");
+  const [isBoardsLoading, setIsBoardsLoading] = useState<boolean>(true);
+
+  // Fetch boards for the current school
+  useEffect(() => {
+    if (currentSchool?._id) {
+      BoardAPI.RBoards({ query: { school: currentSchool._id } })
+        .then(({ boards }) => {
+          setBoards(boards);
+          if (boards.length > 0) {
+            setSelectedBoardId(boards[0]._id);
+          }
+          setIsBoardsLoading(false);
+        })
+        .catch((err) => {
+          ALERT_ERROR(err);
+          setIsBoardsLoading(false);
+        });
+    } else {
+      setIsBoardsLoading(false);
+    }
+  }, [currentSchool]);
 
   useEffect(() => {
     if (props.receiverType === "academy") {
@@ -253,7 +280,7 @@ const NotificationSend = (props: Props) => {
 
   return (
     <>
-      {isReceiverListLoaded && (
+      {isReceiverListLoaded && !isBoardsLoading && (
         <Popup
           setState={props.setState}
           title="알림 보내기"
@@ -355,20 +382,47 @@ const NotificationSend = (props: Props) => {
               })}
             </div>
 
+            {/* Board Selection */}
             <div
               style={{
-                display: "flex",
-                gap: "24px",
                 marginTop: "12px",
               }}
             >
-              <Input
-                label="구분"
-                onChange={(e: any) => {
-                  setCategory(e.target.value);
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "14px",
+                  fontWeight: 500,
                 }}
-                defaultValue={category}
-              />
+              >
+                알림 선택<span style={{ color: "red" }}>*</span>
+              </label>
+              {boards.length > 0 && (
+                <Select
+                  key={selectedBoardId}
+                  options={boards.map((board) => ({
+                    text: board.name,
+                    value: board._id,
+                  }))}
+                  defaultSelectedValue={selectedBoardId}
+                  appearence="flat"
+                  onChange={(value: string) => {
+                    setSelectedBoardId(value);
+                  }}
+                />
+              )}
+              {boards.length === 0 && !isBoardsLoading && (
+                <p
+                  style={{
+                    marginTop: "4px",
+                    fontSize: "12px",
+                    color: "var(--red)",
+                  }}
+                >
+                  등록된 알림이 없습니다. 관리자에게 문의하세요.
+                </p>
+              )}
             </div>
 
             <div
@@ -396,9 +450,9 @@ const NotificationSend = (props: Props) => {
               }}
             >
               <Textarea
-                label="본문"
+                label="내용"
                 onChange={(e: any) => {
-                  setDescription(e.target.value);
+                  setContent(e.target.value);
                 }}
               />
             </div>
@@ -407,24 +461,26 @@ const NotificationSend = (props: Props) => {
               style={{ marginTop: "24px" }}
               type="ghost"
               onClick={() => {
-                if (_.isEmpty(receiverSelectedList)) {
+                if (!selectedBoardId) {
+                  alert("알림을 선택해주세요.");
+                } else if (_.isEmpty(receiverSelectedList)) {
                   alert("받는사람을 한 명 이상 지정해야 합니다.");
                 } else if (title === "") {
-                  alert("제목 없이 메일을 보낼 수 없습니다.");
+                  alert("제목을 입력해주세요.");
                 } else {
-                  // console.log(receiverSelectedList);
-                  NotificationAPI.CNotification({
+                  PostAPI.CPost({
                     data: {
-                      toUserList: receiverSelectedList.map((receiver: any) => {
-                        return {
+                      board: selectedBoardId,
+                      title,
+                      content,
+                      targetAudience: {
+                        type: "custom",
+                        users: receiverSelectedList.map((receiver: any) => ({
                           user: receiver.user,
                           userId: receiver.userId,
                           userName: receiver.userName,
-                        };
-                      }),
-                      category,
-                      title,
-                      description,
+                        })),
+                      },
                     },
                   })
                     .then(() => {
