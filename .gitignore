@@ -8,3 +8,4 @@ seedlessapple-workspace.code-workspace
 working.md
 backend/.DS_Store
 asd.code-workspace
+frontend/package-lock.json
