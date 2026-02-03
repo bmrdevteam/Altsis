@@ -1,11 +1,14 @@
 import { router as academies } from "./academies.js";
 import { router as ai } from "./ai.js";
 import { router as archives } from "./archives.js";
+import { router as boards } from "./boards.js";
 import { router as calendarEvents } from "./calendarEvents.js";
+import { router as comments } from "./comments.js";
 import { router as chats } from "./chats.js";
 import { router as enrollments } from "./enrollments.js";
 import { router as forms } from "./forms.js";
 import { router as notifications } from "./notifications.js";
+import { router as posts } from "./posts.js";
 import { router as registrations } from "./registrations.js";
 import { router as schools } from "./schools.js";
 import { router as seasons } from "./seasons.js";
@@ -21,11 +24,14 @@ export const routers = [
   { label: "academies", routes: academies },
   { label: "ai", routes: ai },
   { label: "archives", routes: archives },
+  { label: "boards", routes: boards },
   { label: "calendar-events", routes: calendarEvents },
   { label: "chats", routes: chats },
+  { label: "comments", routes: comments },
   { label: "enrollments", routes: enrollments },
   { label: "forms", routes: forms },
   { label: "notifications", routes: notifications },
+  { label: "posts", routes: posts },
   { label: "registrations", routes: registrations },
   { label: "schools", routes: schools },
   { label: "seasons", routes: seasons },

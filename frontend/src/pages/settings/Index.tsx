@@ -28,6 +28,7 @@
  */
 import style from "style/pages/settings/settings.module.scss";
 import NavbarSettings from "./tab/NavbarSettings";
+import NotificationSettings from "./tab/NotificationSettings";
 import ResetSettings from "./tab/ResetSettings";
 import SchoolSettings from "./tab/SchoolSettings";
 import SecuritySettings from "./tab/SecuritySettings";
@@ -40,14 +41,11 @@ type Props = {};
 const Settings = (props: Props) => {
   return (
     <>
-      <div className={style.search_container}>
-        <div className={style.title}>사용자 설정</div>
-        <input className={style.search} type="text" placeholder="검색" />
-      </div>
       <div className={style.section}>
         <UserSettings />
         <SocialLoginSettings />
         <SecuritySettings />
+        <NotificationSettings />
         <SchoolSettings />
         <ThemeSettings />
         {/* <NavbarSettings/> */}

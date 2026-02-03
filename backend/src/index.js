@@ -1,5 +1,6 @@
 import { app, ready } from "./app.js";
 import { initializeWebSocket } from "./utils/webSocket.js";
+import { initializeScheduler } from "./services/scheduler.js";
 
 let server = undefined;
 
@@ -9,6 +10,7 @@ const startServer = async () => {
     console.log(`✅ Express server listening on port ${server.address().port}`);
   });
   initializeWebSocket(server);
+  initializeScheduler();
 };
 
 startServer();

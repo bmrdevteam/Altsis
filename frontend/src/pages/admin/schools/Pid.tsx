@@ -41,6 +41,7 @@ import Archive from "./tab/archive/Index";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
 import Remove from "./tab/Remove";
+import Notifications from "./tab/Notifications";
 
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
@@ -161,6 +162,7 @@ const School = (props: Props) => {
                     ),
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
+                    알림: <Notifications schoolData={schoolData} />,
                     "사이드바 링크": (
                       <Links
                         schoolData={schoolData}
@@ -179,6 +181,7 @@ const School = (props: Props) => {
                     ),
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
+                    알림: <Notifications schoolData={schoolData} />,
                     "사이드바 링크": (
                       <Links
                         schoolData={schoolData}

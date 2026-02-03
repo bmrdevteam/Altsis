@@ -36,6 +36,12 @@ import CourseEditPid from "pages/courses/view/Edit/Index";
 // notification pages
 import Notifications from "pages/notifications/Index";
 
+// board pages
+import Boards from "pages/boards/Index";
+import BoardPid from "pages/boards/BoardPid";
+import PostPid from "pages/boards/PostPid";
+import PostCreate from "pages/boards/PostCreate";
+
 //error pages
 import Http404 from "../pages/error/404";
 
@@ -396,6 +402,50 @@ function RouterPage() {
                 </RequireAuth>
               }
             ></Route>
+
+            {/* boards routes */}
+            <Route path="boards">
+              <Route
+                path=""
+                element={
+                  <RequireAuth>
+                    <Boards />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path=":boardId"
+                element={
+                  <RequireAuth>
+                    <BoardPid />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path=":boardId/post/:postId"
+                element={
+                  <RequireAuth>
+                    <PostPid />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path=":boardId/create"
+                element={
+                  <RequireAuth>
+                    <PostCreate />
+                  </RequireAuth>
+                }
+              ></Route>
+              <Route
+                path=":boardId/edit/:postId"
+                element={
+                  <RequireAuth>
+                    <PostCreate />
+                  </RequireAuth>
+                }
+              ></Route>
+            </Route>
 
             <Route
               path="settings"

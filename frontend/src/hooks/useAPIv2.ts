@@ -22,8 +22,10 @@ import {
 import { TRegistration } from "types/registrations";
 import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
-import { TNotification } from "types/notification";
+import { TNotification, TNotificationSettings } from "types/notification";
 import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
+import { TBoard } from "types/board";
+import { TPost, TPostAttachment, TPostTargetAudience } from "types/post";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -2449,6 +2451,389 @@ export default function useAPIv2() {
   }
 
   /**
+   * RNotificationSettings API
+   * @description 알림 설정 조회 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function RNotificationSettings() {
+    const { settings } = await database.R({
+      location: "notifications/settings",
+    });
+    return { settings: settings as TNotificationSettings };
+  }
+
+  /**
+   * UNotificationSettings API
+   * @description 알림 설정 수정 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UNotificationSettings(props: {
+    data: Partial<TNotificationSettings>;
+  }) {
+    const { settings } = await database.U({
+      location: "notifications/settings",
+      data: props.data,
+    });
+    return { settings: settings as TNotificationSettings };
+  }
+
+  /**
+   * UBulkCheckNotifications API
+   * @description 알림 일괄 확인 API
+   * @version 2.0.0
+   * @auth user
+   */
+  async function UBulkCheckNotifications() {
+    const { deletedCount, checkedCount } = await database.U({
+      location: "notifications/bulk-check",
+      data: {},
+    });
+    return {
+      deletedCount: deletedCount as number,
+      checkedCount: checkedCount as number,
+    };
+  }
+
+  /**
+   * ##########################################################################
+   * Board API
+   * ##########################################################################
+   */
+
+  /**
+   * CBoard API
+   * @description 게시판 생성 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function CBoard(props: {
+    data: {
+      school: string;
+      name: string;
+      description?: string;
+      permissionWrite?: {
+        manager?: boolean;
+        teacher?: boolean;
+        student?: boolean;
+      };
+      permissionRead?: {
+        manager?: boolean;
+        teacher?: boolean;
+        student?: boolean;
+      };
+    };
+  }) {
+    const { board } = await database.C({
+      location: "boards",
+      data: props.data,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * RBoards API
+   * @description 게시판 목록 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RBoards(props: { query: { school: string } }) {
+    const { boards } = await database.R({
+      location: "boards" + QUERY_BUILDER(props.query),
+    });
+    return { boards: boards as TBoard[] };
+  }
+
+  /**
+   * RBoard API
+   * @description 게시판 상세 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RBoard(props: { params: { _id: string } }) {
+    const { board } = await database.R({
+      location: `boards/${props.params._id}`,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * UBoard API
+   * @description 게시판 수정 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function UBoard(props: {
+    params: { _id: string };
+    data: {
+      name?: string;
+      description?: string;
+      order?: number;
+    };
+  }) {
+    const { board } = await database.U({
+      location: `boards/${props.params._id}`,
+      data: props.data,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * UBoardPermission API
+   * @description 게시판 권한 수정 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function UBoardPermission(props: {
+    params: { _id: string; type: "read" | "write" | "comment" };
+    data: {
+      manager?: boolean;
+      teacher?: boolean;
+      student?: boolean;
+    };
+  }) {
+    const { board } = await database.U({
+      location: `boards/${props.params._id}/permission/${props.params.type}`,
+      data: props.data,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * CBoardPermissionException API
+   * @description 게시판 권한 예외 추가 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function CBoardPermissionException(props: {
+    params: { _id: string; type: "read" | "write" };
+    data: {
+      user: string;
+      userId: string;
+      userName: string;
+      isAllowed: boolean;
+    };
+  }) {
+    const { board } = await database.C({
+      location: `boards/${props.params._id}/permission/${props.params.type}/exceptions`,
+      data: props.data,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * DBoardPermissionException API
+   * @description 게시판 권한 예외 삭제 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function DBoardPermissionException(props: {
+    params: { _id: string; type: "read" | "write" };
+    query: { userId: string };
+  }) {
+    const { board } = await database.D({
+      location:
+        `boards/${props.params._id}/permission/${props.params.type}/exceptions` +
+        QUERY_BUILDER(props.query),
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * DBoard API
+   * @description 게시판 삭제 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function DBoard(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `boards/${props.params._id}`,
+    });
+  }
+
+  /**
+   * ##########################################################################
+   * Post API
+   * ##########################################################################
+   */
+
+  /**
+   * CPost API
+   * @description 게시글 생성 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CPost(props: {
+    data: {
+      board: string;
+      title: string;
+      content: string;
+      category?: string;
+      attachments?: TPostAttachment[];
+      targetAudience?: TPostTargetAudience;
+    };
+  }) {
+    const { post } = await database.C({
+      location: "posts",
+      data: props.data,
+    });
+    return { post: post as TPost };
+  }
+
+  /**
+   * RPosts API
+   * @description 게시글 목록 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RPosts(props: {
+    query: {
+      board: string;
+      limit?: number;
+      before?: string;
+    };
+  }) {
+    const { posts, board } = await database.R({
+      location: "posts" + QUERY_BUILDER(props.query),
+    });
+    return { posts: posts as TPost[], board: board as TBoard };
+  }
+
+  /**
+   * RPost API
+   * @description 게시글 상세 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RPost(props: { params: { _id: string } }) {
+    const { post, board } = await database.R({
+      location: `posts/${props.params._id}`,
+    });
+    return { post: post as TPost, board: board as TBoard };
+  }
+
+  /**
+   * UPost API
+   * @description 게시글 수정 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UPost(props: {
+    params: { _id: string };
+    data: {
+      title?: string;
+      content?: string;
+      category?: string;
+      attachments?: TPostAttachment[];
+      targetAudience?: TPostTargetAudience;
+    };
+  }) {
+    const { post } = await database.U({
+      location: `posts/${props.params._id}`,
+      data: props.data,
+    });
+    return { post: post as TPost };
+  }
+
+  /**
+   * UPostPin API
+   * @description 게시글 고정/해제 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function UPostPin(props: {
+    params: { _id: string };
+    data: { isPinned: boolean };
+  }) {
+    const { post } = await database.U({
+      location: `posts/${props.params._id}/pin`,
+      data: props.data,
+    });
+    return { post: post as TPost };
+  }
+
+  /**
+   * DPost API
+   * @description 게시글 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DPost(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `posts/${props.params._id}`,
+    });
+  }
+
+  /**
+   * ##########################################################################
+   * Comment API
+   * ##########################################################################
+   */
+
+  /**
+   * CComment API
+   * @description 댓글 생성 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CComment(props: {
+    data: {
+      post: string;
+      content: string;
+      parentComment?: string;
+    };
+  }) {
+    const { comment } = await database.C({
+      location: "comments",
+      data: props.data,
+    });
+    return { comment };
+  }
+
+  /**
+   * RComments API
+   * @description 댓글 목록 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RComments(props: { query: { post: string } }) {
+    const { comments } = await database.R({
+      location: "comments" + QUERY_BUILDER(props.query),
+    });
+    return { comments };
+  }
+
+  /**
+   * UComment API
+   * @description 댓글 수정 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UComment(props: {
+    params: { _id: string };
+    data: { content: string };
+  }) {
+    const { comment } = await database.U({
+      location: `comments/${props.params._id}`,
+      data: props.data,
+    });
+    return { comment };
+  }
+
+  /**
+   * DComment API
+   * @description 댓글 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DComment(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `comments/${props.params._id}`,
+    });
+  }
+
+  /**
    * ##########################################################################
    * Chat API
    * ##########################################################################
@@ -2925,6 +3310,33 @@ export default function useAPIv2() {
       RNotification,
       UCheckNotification,
       DNotification,
+      RNotificationSettings,
+      UNotificationSettings,
+      UBulkCheckNotifications,
+    },
+    BoardAPI: {
+      CBoard,
+      RBoards,
+      RBoard,
+      UBoard,
+      UBoardPermission,
+      CBoardPermissionException,
+      DBoardPermissionException,
+      DBoard,
+    },
+    PostAPI: {
+      CPost,
+      RPosts,
+      RPost,
+      UPost,
+      UPostPin,
+      DPost,
+    },
+    CommentAPI: {
+      CComment,
+      RComments,
+      UComment,
+      DComment,
     },
     ChatAPI: {
       RChatRooms,
