@@ -7,6 +7,7 @@
 import { Enrollment, Syllabus, Registration } from "../models/index.js";
 import { getIoEnrollment } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
+import { sendAutoNotification } from "../services/notifications.js";
 import PQueue from "p-queue";
 import _ from "lodash";
 import {
@@ -131,6 +132,7 @@ const exec = async (req) => {
     }
 
     // 7. 권한 검사
+    let isMentorInvitation = false;
 
     // 7-1. 사용자가 수강신청을 직접 하는 경우
     if (req.user._id.equals(registration.user)) {
@@ -155,6 +157,7 @@ const exec = async (req) => {
         err.status = 403;
         throw err;
       }
+      isMentorInvitation = true;
     }
     // 7-3. 모두 아닌 경우
     else {
@@ -201,6 +204,33 @@ const exec = async (req) => {
     await enrollment.save();
     syllabus.count = syllabus.count + 1;
     await syllabus.save();
+
+    // 10. 멘토 초대인 경우 알림 발송
+    if (isMentorInvitation) {
+      try {
+        await sendAutoNotification({
+          academyId: req.user.academyId,
+          toUserList: [
+            {
+              user: registration.user,
+              userId: registration.userId,
+              userName: registration.userName,
+            },
+          ],
+          notificationType: "classInvitation",
+          category: "수업 초대",
+          title: `${syllabus.classTitle} 수업에 초대되었습니다`,
+          description: `${req.user.userName}님이 ${syllabus.classTitle} 수업에 초대하였습니다.`,
+          relatedEntity: {
+            type: "enrollment",
+            id: enrollment._id,
+          },
+          fromUser: req.user,
+        });
+      } catch (notifErr) {
+        logger.warn(`Failed to send class invitation notification: ${notifErr.message}`);
+      }
+    }
   } catch (err) {
     throw err;
   }
@@ -717,6 +747,10 @@ export const remove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("enrollment") });
     }
 
+    const isMentorCancellation =
+      !enrollment.student.equals(req.user._id) &&
+      (_.find(enrollment.teachers, { _id: req.user._id }) || req.user.auth === "manager");
+
     if (
       !enrollment.student.equals(req.user._id) &&
       !_.find(enrollment.teachers, { _id: req.user._id }) && req.user.auth !== "manager") {
@@ -734,10 +768,39 @@ export const remove = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
+    // 삭제 전 수업 정보 저장 (알림용)
+    const classTitle = enrollment.classTitle;
+    const studentInfo = {
+      user: enrollment.student,
+      userId: enrollment.studentId,
+      userName: enrollment.studentName,
+    };
+
     await enrollment.remove();
     await Syllabus(req.user.academyId).findByIdAndUpdate(enrollment.syllabus, {
       $inc: { count: -1 },
     });
+
+    // 멘토가 취소한 경우 학생에게 알림 발송
+    if (isMentorCancellation) {
+      try {
+        await sendAutoNotification({
+          academyId: req.user.academyId,
+          toUserList: [studentInfo],
+          notificationType: "classCancellation",
+          category: "수업 취소",
+          title: `${classTitle} 수업 초대가 취소되었습니다`,
+          description: `${req.user.userName}님이 ${classTitle} 수업 초대를 취소하였습니다.`,
+          relatedEntity: {
+            type: "syllabus",
+            id: enrollment.syllabus,
+          },
+          fromUser: req.user,
+        });
+      } catch (notifErr) {
+        logger.warn(`Failed to send class cancellation notification: ${notifErr.message}`);
+      }
+    }
 
     return res.status(200).send();
   } catch (err) {

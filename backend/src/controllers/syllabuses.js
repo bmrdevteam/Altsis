@@ -14,6 +14,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { Registration, Syllabus, Enrollment } from "../models/index.js";
+import { sendAutoNotification } from "../services/notifications.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -288,6 +289,65 @@ export const confirm = async (req, res) => {
       if (syllabus.teachers[i]._id.equals(req.user._id)) {
         syllabus.teachers[i].confirmed = true;
         await syllabus.save();
+
+        // 알림 수신자 목록 생성
+        const notificationRecipients = [];
+
+        // 다른 교사들 추가
+        const otherTeachers = syllabus.teachers.filter(
+          (t) => !t._id.equals(req.user._id)
+        );
+        notificationRecipients.push(
+          ...otherTeachers.map((t) => ({
+            user: t._id,
+            userId: t.userId,
+            userName: t.userName,
+          }))
+        );
+
+        // 수업 작성자가 교사 목록에 없고 승인자가 아닌 경우 추가
+        const isCreatorTeacher = syllabus.teachers.some((t) =>
+          t._id.equals(syllabus.user)
+        );
+        const isCreatorConfirmer = syllabus.user.equals(req.user._id);
+        if (!isCreatorTeacher && !isCreatorConfirmer) {
+          // 수업 작성자 정보 조회
+          const creatorRegistration = await Registration(
+            req.user.academyId
+          ).findOne({
+            season: syllabus.season,
+            user: syllabus.user,
+          });
+          if (creatorRegistration) {
+            notificationRecipients.push({
+              user: creatorRegistration.user,
+              userId: creatorRegistration.userId,
+              userName: creatorRegistration.userName,
+            });
+          }
+        }
+
+        // 알림 발송
+        if (notificationRecipients.length > 0) {
+          try {
+            await sendAutoNotification({
+              academyId: req.user.academyId,
+              toUserList: notificationRecipients,
+              notificationType: "classApproval",
+              category: "수업 승인",
+              title: `${syllabus.classTitle} 수업이 승인되었습니다`,
+              description: `${req.user.userName}님이 ${syllabus.classTitle} 수업을 승인하였습니다.`,
+              relatedEntity: {
+                type: "syllabus",
+                id: syllabus._id,
+              },
+              fromUser: req.user,
+            });
+          } catch (notifErr) {
+            logger.warn(`Failed to send class approval notification: ${notifErr.message}`);
+          }
+        }
+
         return res.status(200).send({ syllabus });
       }
     }
@@ -334,6 +394,65 @@ export const cancelConfirm = async (req, res) => {
         }
         syllabus.teachers[i].confirmed = false;
         await syllabus.save();
+
+        // 알림 수신자 목록 생성
+        const notificationRecipients = [];
+
+        // 다른 교사들 추가
+        const otherTeachers = syllabus.teachers.filter(
+          (t) => !t._id.equals(req.user._id)
+        );
+        notificationRecipients.push(
+          ...otherTeachers.map((t) => ({
+            user: t._id,
+            userId: t.userId,
+            userName: t.userName,
+          }))
+        );
+
+        // 수업 작성자가 교사 목록에 없고 취소자가 아닌 경우 추가
+        const isCreatorTeacher = syllabus.teachers.some((t) =>
+          t._id.equals(syllabus.user)
+        );
+        const isCreatorCanceller = syllabus.user.equals(req.user._id);
+        if (!isCreatorTeacher && !isCreatorCanceller) {
+          // 수업 작성자 정보 조회
+          const creatorRegistration = await Registration(
+            req.user.academyId
+          ).findOne({
+            season: syllabus.season,
+            user: syllabus.user,
+          });
+          if (creatorRegistration) {
+            notificationRecipients.push({
+              user: creatorRegistration.user,
+              userId: creatorRegistration.userId,
+              userName: creatorRegistration.userName,
+            });
+          }
+        }
+
+        // 알림 발송
+        if (notificationRecipients.length > 0) {
+          try {
+            await sendAutoNotification({
+              academyId: req.user.academyId,
+              toUserList: notificationRecipients,
+              notificationType: "classApprovalCancel",
+              category: "수업 승인 취소",
+              title: `${syllabus.classTitle} 수업 승인이 취소되었습니다`,
+              description: `${req.user.userName}님이 ${syllabus.classTitle} 수업 승인을 취소하였습니다.`,
+              relatedEntity: {
+                type: "syllabus",
+                id: syllabus._id,
+              },
+              fromUser: req.user,
+            });
+          } catch (notifErr) {
+            logger.warn(`Failed to send class approval cancel notification: ${notifErr.message}`);
+          }
+        }
+
         return res.status(200).send({ syllabus });
       }
     }
