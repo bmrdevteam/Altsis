@@ -64,6 +64,7 @@ export type TTableHeader = {
   option?: string[];
   onClick?: (value: any) => void;
   onBlur?: (value: any) => void;
+  render?: (value: any, row: any) => React.ReactNode;
 };
 type Props = {
   type: "object-array" | "string-array";
@@ -472,7 +473,7 @@ const Table = (props: Props) => {
                         minWidth: val.width,
                         maxWidth: val.width,
                       }}
-                      className={style.item_container}
+                      className={`${style.item_container} ${style.checkbox}`}
                       key={index}
                       onClick={() => {
                         if (allEmpty) {
@@ -1227,7 +1228,7 @@ const Table = (props: Props) => {
                             key={index}
                             onClick={(_e) => { if(typeof(val.onClick) !== 'undefined') val.onClick(row) }}
                           >
-                            {row[`${val.key}`]}
+                            {val.render ? val.render(row[`${val.key}`], row) : row[`${val.key}`]}
                             {val.byteCalc && (
                               <div className={style.byte_calc}>
                                 {encodeURIComponent(row[`${val.key}`]).length}{" "}

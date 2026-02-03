@@ -143,8 +143,12 @@ const Calender = (props: Props) => {
           data: { season: currentRegistration.season },
         });
         setHasSynced(true);
-      } catch (err) {
-        ALERT_ERROR(err);
+      } catch (err: any) {
+        // 등록된 수업이 없는 경우 (REGISTRATION_NOT_FOUND) 에러 메시지 표시하지 않음
+        if (err?.response?.data?.message !== "REGISTRATION_NOT_FOUND") {
+          ALERT_ERROR(err);
+        }
+        setHasSynced(true);
       }
     }
 

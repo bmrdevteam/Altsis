@@ -39,6 +39,12 @@
   th {
     min-width: 48px;
     padding: 12px;
+
+    &.checkbox {
+      min-width: 20px;
+      width: 20px;
+      padding: 12px 8px;
+    }
   }
 
   .header {
@@ -147,6 +153,7 @@
       cursor: pointer;
       position: relative;
       border-bottom: var(--border-default);
+
 
       .icon {
         min-height: 16px;
