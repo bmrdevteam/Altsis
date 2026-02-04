@@ -14,6 +14,24 @@ import audioURL from "assets/audio/notification-a.mp3";
 import { TNotificationReceived } from "types/notification";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
+function formatNotificationTime(date: Date | string): string {
+  const now = new Date();
+  const d = new Date(date);
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHour = Math.floor(diffMs / 3600000);
+  const diffDay = Math.floor(diffMs / 86400000);
+
+  if (diffMin < 1) return "방금";
+  if (diffMin < 60) return `${diffMin}분 전`;
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  if (diffDay < 7) return `${diffDay}일 전`;
+
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${month}/${day}`;
+}
+
 const Notification = () => {
   const { currentUser } = useAuth();
   const { NotificationAPI, PostAPI, EnrollmentAPI } = useAPIv2();
@@ -222,7 +240,6 @@ const Notification = () => {
         <div
           key={`notificationItem-${idx}`}
           className={style.item}
-          style={{ marginBottom: "12px", cursor: "pointer" }}
           onClick={() => handleNotificationClick(notification)}
         >
           <div className={style.description}>
@@ -231,18 +248,22 @@ const Notification = () => {
             )}
             {notification.title}
           </div>
+          <div className={style.time}>
+            {formatNotificationTime(notification.date)}
+          </div>
           <div
             onClick={(e) => handleCheckNotification(e, notification)}
             style={{
               display: "flex",
-              alignItems: "center",
-              padding: "4px",
+              alignItems: "flex-start",
+              padding: "2px",
               cursor: "pointer",
               color: "gray",
+              flexShrink: 0,
             }}
             title="확인"
           >
-            <Svg type="check" width="16px" height="16px" />
+            <Svg type="check" width="14px" height="14px" />
           </div>
         </div>
       );
