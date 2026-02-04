@@ -13,6 +13,7 @@
 import { useEffect, useState } from "react";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
+import Tab from "components/tab/Tab";
 import Table from "components/tableV2/Table";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
@@ -29,51 +30,78 @@ type Props = {
   schoolData: TSchool;
 };
 
-// 알림 설정 항목 정의
-const notificationSettingItems: {
+// 알림 설정 항목을 카테고리별로 정의
+type NotificationSettingItem = {
   key: keyof TNotificationSettings;
   label: string;
   description: string;
-}[] = [
+};
+
+type NotificationSettingGroup = {
+  category: string;
+  items: NotificationSettingItem[];
+};
+
+const notificationSettingGroups: NotificationSettingGroup[] = [
   {
-    key: "soundEnabled",
-    label: "알림음",
-    description: "알림이 도착했을 때 소리로 알려줍니다",
+    category: "일반",
+    items: [
+      {
+        key: "soundEnabled",
+        label: "알림음",
+        description: "알림이 도착했을 때 소리로 알려줍니다",
+      },
+    ],
   },
   {
-    key: "classInvitation",
-    label: "수업 초대 알림",
-    description: "수업에 초대되었을 때 알림을 받습니다",
+    category: "수업",
+    items: [
+      {
+        key: "classInvitation",
+        label: "수업 초대 알림",
+        description: "수업에 초대되었을 때 알림을 받습니다",
+      },
+      {
+        key: "classCancellation",
+        label: "수업 초대 취소 알림",
+        description: "수업 초대가 취소되었을 때 알림을 받습니다",
+      },
+      {
+        key: "classApproval",
+        label: "수업 승인 알림",
+        description: "수업이 승인되었을 때 알림을 받습니다",
+      },
+      {
+        key: "classApprovalCancel",
+        label: "수업 승인 취소 알림",
+        description: "수업 승인이 취소되었을 때 알림을 받습니다",
+      },
+    ],
   },
   {
-    key: "classCancellation",
-    label: "수업 초대 취소 알림",
-    description: "수업 초대가 취소되었을 때 알림을 받습니다",
+    category: "일정 및 게시글",
+    items: [
+      {
+        key: "scheduleStart",
+        label: "일정 시작 알림",
+        description: "일정이 시작될 때 알림을 받습니다",
+      },
+      {
+        key: "newPost",
+        label: "새 게시글 알림",
+        description: "새 게시글이 등록되었을 때 알림을 받습니다",
+      },
+    ],
   },
   {
-    key: "classApproval",
-    label: "수업 승인 알림",
-    description: "수업이 승인되었을 때 알림을 받습니다",
-  },
-  {
-    key: "classApprovalCancel",
-    label: "수업 승인 취소 알림",
-    description: "수업 승인이 취소되었을 때 알림을 받습니다",
-  },
-  {
-    key: "scheduleStart",
-    label: "일정 시작 알림",
-    description: "일정이 시작될 때 알림을 받습니다",
-  },
-  {
-    key: "newPost",
-    label: "새 게시글 알림",
-    description: "새 게시글이 등록되었을 때 알림을 받습니다",
-  },
-  {
-    key: "directMessage",
-    label: "직접 메시지 알림",
-    description: "다른 사용자로부터 직접 메시지를 받았을 때 알림을 받습니다",
+    category: "메시지",
+    items: [
+      {
+        key: "directMessage",
+        label: "직접 메시지 알림",
+        description: "다른 사용자로부터 직접 메시지를 받았을 때 알림을 받습니다",
+      },
+    ],
   },
 ];
 
@@ -138,74 +166,73 @@ const NotificationSettingsSection = () => {
 
   if (isLoading) {
     return (
-      <div style={{ marginBottom: "24px" }}>
-        <h4
-          style={{
-            fontSize: "14px",
-            fontWeight: 600,
-            marginBottom: "12px",
-            color: "var(--accent-2)",
-          }}
-        >
-          알림 설정
-        </h4>
-        <div style={{ padding: "20px", textAlign: "center", color: "var(--accent-4)" }}>
-          로딩 중...
-        </div>
+      <div style={{ padding: "20px", textAlign: "center", color: "var(--accent-4)" }}>
+        로딩 중...
       </div>
     );
   }
 
+  const groupContainerStyle: React.CSSProperties = {
+    border: "1px solid var(--border-color)",
+    borderRadius: "8px",
+    overflow: "hidden",
+  };
+
+  const groupHeaderStyle: React.CSSProperties = {
+    padding: "12px 16px",
+    fontWeight: 600,
+    fontSize: "13px",
+    color: "var(--accent-2)",
+    backgroundColor: "var(--component-color)",
+    borderBottom: "1px solid var(--border-color)",
+  };
+
   return (
-    <div style={{ marginBottom: "24px" }}>
-      <h4
-        style={{
-          fontSize: "14px",
-          fontWeight: 600,
-          marginBottom: "12px",
-          color: "var(--accent-2)",
-        }}
-      >
-        알림 설정
-      </h4>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={headerCellStyle}>알림 유형</th>
-            <th style={{ ...headerCellStyle, width: "80px", textAlign: "center" }}>
-              사용
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {notificationSettingItems.map((item) => (
-            <tr key={item.key}>
-              <td style={cellStyle}>
-                <div style={{ fontSize: "13px", fontWeight: 500 }}>
-                  {item.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--accent-4)",
-                    marginTop: "2px",
-                  }}
-                >
-                  {item.description}
-                </div>
-              </td>
-              <td style={{ ...cellStyle, textAlign: "center" }}>
-                <ToggleSwitch
-                  checked={settings[item.key]}
-                  onChange={(checked: boolean) => {
-                    updateSetting(item.key, checked);
-                  }}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "24px" }}>
+      {notificationSettingGroups.map((group) => (
+        <div key={group.category} style={groupContainerStyle}>
+          <div style={groupHeaderStyle}>{group.category}</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <tbody>
+              {group.items.map((item, itemIndex) => (
+                <tr key={item.key}>
+                  <td
+                    style={{
+                      ...cellStyle,
+                      borderBottom:
+                        itemIndex < group.items.length - 1
+                          ? "1px solid var(--border-color)"
+                          : "none",
+                    }}
+                  >
+                    <div style={{ fontSize: "14px", fontWeight: 500 }}>
+                      {item.label}
+                    </div>
+                  </td>
+                  <td
+                    style={{
+                      ...cellStyle,
+                      width: "80px",
+                      textAlign: "center",
+                      borderBottom:
+                        itemIndex < group.items.length - 1
+                          ? "1px solid var(--border-color)"
+                          : "none",
+                    }}
+                  >
+                    <ToggleSwitch
+                      checked={settings[item.key]}
+                      onChange={(checked: boolean) => {
+                        updateSetting(item.key, checked);
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 };
@@ -243,14 +270,9 @@ const Notifications = ({ schoolData }: Props) => {
     }
   };
 
-  return (
-    <div>
-      {/* 알림 설정 섹션 */}
-      <div style={{ marginTop: "24px" }}>
-        <NotificationSettingsSection />
-      </div>
-
-      {/* 게시판 관리 섹션 */}
+  // 게시판 관리 탭 콘텐츠
+  const BoardManagementContent = (
+    <div style={{ marginTop: "24px" }}>
       <div
         style={{
           display: "flex",
@@ -261,7 +283,7 @@ const Notifications = ({ schoolData }: Props) => {
         <Button type="ghost" onClick={() => setShowCreatePopup(true)}>
           <>
             <Svg type="plus" width="16px" height="16px" />
-            알림 추가
+            게시판 추가
           </>
         </Button>
       </div>
@@ -333,6 +355,19 @@ const Notifications = ({ schoolData }: Props) => {
             },
           },
         ]}
+      />
+    </div>
+  );
+
+  return (
+    <div style={{ marginTop: "24px" }}>
+      <Tab
+        items={{
+          "알림 설정": <NotificationSettingsSection />,
+          "게시판 관리": BoardManagementContent,
+        }}
+        align="flex-start"
+        dontUsePaths
       />
 
       {showCreatePopup && (
