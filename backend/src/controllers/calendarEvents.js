@@ -362,6 +362,8 @@ export const syncEnrollments = async (req, res) => {
 
     // Upsert: skip events that already exist (by sourceId)
     let created = 0;
+    const currentSourceIds = new Set(eventsToCreate.map((e) => e.sourceId));
+
     for (const eventData of eventsToCreate) {
       const existing = await CalendarEvent(req.user.academyId).findOne({
         user: req.user._id,
@@ -374,7 +376,21 @@ export const syncEnrollments = async (req, res) => {
       }
     }
 
-    return res.status(200).send({ synced: created, total: eventsToCreate.length });
+    // 삭제된 enrollment/syllabus의 고아 이벤트 정리
+    const existingEvents = await CalendarEvent(req.user.academyId).find({
+      user: req.user._id,
+      sourceType: { $in: ["enrollment", "syllabus"] },
+    });
+
+    let removed = 0;
+    for (const event of existingEvents) {
+      if (!currentSourceIds.has(event.sourceId)) {
+        await event.remove();
+        removed++;
+      }
+    }
+
+    return res.status(200).send({ synced: created, removed, total: eventsToCreate.length });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });

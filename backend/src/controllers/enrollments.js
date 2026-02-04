@@ -4,7 +4,7 @@
  * @see TEnrollment in {@link Models.Enrollment}
  */
 
-import { Enrollment, Syllabus, Registration } from "../models/index.js";
+import { Enrollment, Syllabus, Registration, CalendarEvent } from "../models/index.js";
 import { getIoEnrollment } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
 import { sendAutoNotification } from "../services/notifications.js";
@@ -779,6 +779,13 @@ export const remove = async (req, res) => {
     await enrollment.remove();
     await Syllabus(req.user.academyId).findByIdAndUpdate(enrollment.syllabus, {
       $inc: { count: -1 },
+    });
+
+    // 관련 캘린더 이벤트 삭제
+    await CalendarEvent(req.user.academyId).deleteMany({
+      user: enrollment.student,
+      sourceType: "enrollment",
+      sourceId: { $regex: `^enrollment_${enrollment._id}_` },
     });
 
     // 멘토가 취소한 경우 학생에게 알림 발송
