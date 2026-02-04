@@ -98,6 +98,16 @@ svg {
   }
 }
 
+// 스크롤바 숨김 유틸리티 클래스
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .btn {
   user-select: none;
   border: var(--border-default);

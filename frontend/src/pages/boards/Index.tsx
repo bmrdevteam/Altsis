@@ -255,6 +255,7 @@ const Boards = () => {
         {/* 게시판 탭 */}
         {boards.length > 0 && (
           <div
+            className="hide-scrollbar"
             style={{
               display: "flex",
               gap: "4px",
