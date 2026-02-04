@@ -248,7 +248,7 @@ const Boards = () => {
           }}
         >
           <div className={style.title} style={{ margin: 0 }}>
-            알림
+            게시판
           </div>
         </div>
 
@@ -470,7 +470,7 @@ const Boards = () => {
               color: "var(--text-color-2)",
             }}
           >
-            알림이 없습니다.
+            게시판이 없습니다.
           </div>
         )}
       </div>

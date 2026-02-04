@@ -318,7 +318,7 @@ const Notification = () => {
                 fontSize: "14px",
               }}
             >
-              전체 알림 보기
+              게시판 보기
             </div>
           </div>
         </div>
