@@ -10,11 +10,30 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import _ from "lodash";
 import React, { useEffect, useState } from "react";
 import style from "style/pages/docs/docs.module.scss";
+import DocFormSelector from "./DocFormSelector";
+
+const getStorageKey = (schoolId: string) => `docsSelectedForms_${schoolId}`;
+
+const getSelectedFormIds = (schoolId: string): string[] => {
+  try {
+    const stored = window.localStorage.getItem(getStorageKey(schoolId));
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch {}
+  return [];
+};
+
+const saveSelectedFormIds = (schoolId: string, ids: string[]) => {
+  window.localStorage.setItem(getStorageKey(schoolId), JSON.stringify(ids));
+};
+
 type Props = {};
 
 function Docs({}: Props) {
   const { ArchiveAPI, EnrollmentAPI, SeasonAPI, FormAPI } = useAPIv2();
-  const { currentSchool, currentSeason } = useAuth();
+  const { currentSchool, currentSeason, currentRegistration } = useAuth();
+  const isStudent = currentRegistration?.role === "student";
   const [loading, setLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<any>();
   const [printForms, setPrintForms] = useState<any>([]);
@@ -24,22 +43,35 @@ function Docs({}: Props) {
   const [grades, setGrades] = useState<any[]>([]);
   const [selectedGrade, setSelectedGrade] = useState<string>();
   const [choosePopupActive, setChoosePopupActive] = useState<boolean>(false);
+  const [selectorPopupActive, setSelectorPopupActive] = useState<boolean>(false);
+  const [selectedFormIds, setSelectedFormIds] = useState<string[]>([]);
 
   const [evaluationData, setEvaluationData] = useState<any>();
 
-  async function getDBData(rid: string, uid: string) {
-    const { archive } = await ArchiveAPI.RArchiveByRegistration({
-      query: { registration: rid },
-    });
+  async function getDBData(rid: string, uid: string, evalDataOverride?: any) {
+    const evalData = evalDataOverride || evaluationData;
+    let archiveData: any = {};
+    try {
+      const { archive } = await ArchiveAPI.RArchiveByRegistration({
+        query: { registration: rid },
+      });
+      archiveData = archive?.data || {};
+    } catch {
+      archiveData = {};
+    }
 
     let processedEvaluationByYear: any = [];
 
-    const { enrollments: _enrollments } =
-      await EnrollmentAPI.REnrollmentsWithEvaluation({
-        query: { student: uid, school: currentSchool.school },
-      });
-    const enrollments = _enrollments as any[];
-    // console.log(enrollments);
+    let enrollments: any[] = [];
+    try {
+      const { enrollments: _enrollments } =
+        await EnrollmentAPI.REnrollmentsWithEvaluation({
+          query: { student: uid, school: currentSchool.school },
+        });
+      enrollments = _enrollments as any[];
+    } catch {
+      enrollments = [];
+    }
 
     for (const enrollment of enrollments) {
       const IdByYear = `${enrollment.year}${_.join(enrollment.subject)}`;
@@ -47,11 +79,11 @@ function Docs({}: Props) {
       enrollment._subject = {};
       for (
         let idx = 0;
-        idx < evaluationData?.subjectLabelsBySeason[enrollment?.season]?.length;
+        idx < evalData?.subjectLabelsBySeason[enrollment?.season]?.length;
         idx++
       ) {
         enrollment._subject[
-          evaluationData?.subjectLabelsBySeason[enrollment?.season][idx]
+          evalData?.subjectLabelsBySeason[enrollment?.season][idx]
         ] = enrollment?.subject[idx];
       }
 
@@ -88,16 +120,18 @@ function Docs({}: Props) {
 
     return {
       [currentSchool.schoolId]: {
-        archive: archive.data,
+        archive: archiveData,
         evaluation: _.sortBy(processedEvaluationByYear, ["학년도","교과","과목"]),
       },
     };
   }
 
   const RData = async (school: string) => {
-    const registrations = currentSeason?.registrations.filter(
-      (reg) => reg.role === "student"
-    );
+    const registrations = isStudent
+      ? []
+      : currentSeason?.registrations.filter(
+          (reg) => reg.role === "student"
+        );
     const [{ forms }, { seasons }] = await Promise.all([
       FormAPI.RForms({ query: { type: "print", archived: false } }),
       SeasonAPI.RSeasons({ query: { school: currentSchool?.school } }),
@@ -105,8 +139,14 @@ function Docs({}: Props) {
 
     let form: object | undefined = undefined;
     if (forms.length > 0) {
+      const storedIds = getSelectedFormIds(currentSchool.schoolId);
+      const validStoredIds = storedIds.filter((id: string) =>
+        forms.some((f: any) => f._id === id)
+      );
+      const firstFormId =
+        validStoredIds.length > 0 ? validStoredIds[0] : forms[0]._id;
       const { form: _form } = await FormAPI.RForm({
-        params: { _id: forms[0]._id },
+        params: { _id: firstFormId },
       });
       form = _form;
     }
@@ -122,82 +162,138 @@ function Docs({}: Props) {
   useEffect(() => {
     RData(currentSchool?.school)
       .then(
-        (res: {
+        async (res: {
           registrations: any[];
           forms: any[];
           form?: any;
           documentData: {};
         }) => {
-          // registrations
-          const g: any = _.uniqBy(res.registrations, "grade");
-          setGrades(
-            g.map((val: any) => {
-              return { text: val.grade, value: val.grade };
-            })
-          );
-          setSelectedGrade(g[0]?.grade);
-          setUsers(_.sortBy(res.registrations, ["userName"]));
+          // registrations (teacher only)
+          if (!isStudent) {
+            const g: any = _.uniqBy(res.registrations, "grade");
+            setGrades(
+              g.map((val: any) => {
+                return { text: val.grade, value: val.grade };
+              })
+            );
+            setSelectedGrade(g[0]?.grade);
+            setUsers(_.sortBy(res.registrations, ["userName"]));
+          }
 
           // forms, form, documentData
           setPrintForms(res.forms);
           setFormData(res.form);
           setEvaluationData(res.documentData);
+
+          // Load user's form selection from localStorage
+          const storedIds = getSelectedFormIds(currentSchool.schoolId);
+          const validIds = storedIds.filter((id: string) =>
+            res.forms.some((f: any) => f._id === id)
+          );
+          setSelectedFormIds(validIds);
+          if (validIds.length !== storedIds.length) {
+            saveSelectedFormIds(currentSchool.schoolId, validIds);
+          }
+
+          // Student: auto-load own data
+          if (isStudent && currentRegistration && res.forms.length > 0) {
+            const dbData = await getDBData(
+              currentRegistration._id,
+              currentRegistration.user,
+              res.documentData
+            );
+            setDBData(dbData);
+          }
         }
       )
       .then(() => {
         setLoading(false);
+      })
+      .catch((err) => {
+        ALERT_ERROR(err);
+        setLoading(false);
       });
   }, []);
+
+  const displayForms =
+    selectedFormIds.length > 0
+      ? printForms.filter((f: any) => selectedFormIds.includes(f._id))
+      : printForms;
+
+  const handleSelectionChange = (ids: string[]) => {
+    setSelectedFormIds(ids);
+    saveSelectedFormIds(currentSchool.schoolId, ids);
+
+    if (ids.length > 0 && formData?._id && !ids.includes(formData._id)) {
+      const firstSelectedForm = printForms.find((f: any) =>
+        ids.includes(f._id)
+      );
+      if (firstSelectedForm) {
+        FormAPI.RForm({ params: { _id: firstSelectedForm._id } })
+          .then(({ form }) => {
+            setFormData(form);
+          })
+          .catch((err) => ALERT_ERROR(err));
+      }
+    }
+  };
 
   return (
     <>
       <div className={style.section}>
         <div className={style.search}>
-          <div className={style.label}>학생선택</div>
-          <div className={style.search}>
-            <Select
-              options={grades}
-              onChange={(val: string) => {
-                setSelectedGrade(val);
-              }}
-              className={style.selectGrade}
-              style={{ borderRadius: "4px", maxWidth: "120px" }}
-            />
-            <Autofill
-              style={{ borderRadius: "4px" }}
-              options={[
-                { text: "", value: "" },
-                ...users
-                  ?.filter((val) => val.grade === selectedGrade)
-                  .map((val) => {
-                    return {
-                      value: JSON.stringify({
-                        rid: val._id,
-                        uid: val.user,
+          {!isStudent ? (
+            <>
+              <div className={style.label}>학생선택</div>
+              <div className={style.search}>
+                <Select
+                  options={grades}
+                  onChange={(val: string) => {
+                    setSelectedGrade(val);
+                  }}
+                  className={style.selectGrade}
+                  style={{ borderRadius: "4px", maxWidth: "120px" }}
+                />
+                <Autofill
+                  style={{ borderRadius: "4px" }}
+                  options={[
+                    { text: "", value: "" },
+                    ...users
+                      ?.filter((val) => val.grade === selectedGrade)
+                      .map((val) => {
+                        return {
+                          value: JSON.stringify({
+                            rid: val._id,
+                            uid: val.user,
+                          }),
+                          text: `${val.userName} / ${val.userId}`,
+                        };
                       }),
-                      text: `${val.userName} / ${val.userId}`,
-                    };
-                  }),
-              ]}
-              onChange={(value: string | number) => {
-                if (value === "") return;
-                setLoading(true);
-                if (value !== "") {
-                  const { rid, uid } = JSON.parse(`${value}`);
-                  getDBData(rid, uid).then((res) => {
-                    setDBData(res);
-                    setLoading(false);
-                  });
-                }
-              }}
-              placeholder={"검색"}
-            />
-          </div>
+                  ]}
+                  onChange={(value: string | number) => {
+                    if (value === "") return;
+                    setLoading(true);
+                    if (value !== "") {
+                      const { rid, uid } = JSON.parse(`${value}`);
+                      getDBData(rid, uid).then((res) => {
+                        setDBData(res);
+                        setLoading(false);
+                      });
+                    }
+                  }}
+                  placeholder={"검색"}
+                />
+              </div>
+            </>
+          ) : (
+            <div className={style.label}>문서</div>
+          )}
           <div className={style.search}>
             <Select
               style={{ borderRadius: "4px" }}
+              selectedValue={formData?._id}
               options={[
-                ...printForms.map((val: any) => {
+                ...displayForms.map((val: any) => {
                   return { text: val.title, value: val._id };
                 }),
               ]}
@@ -219,15 +315,30 @@ function Docs({}: Props) {
             >
               <Svg type={"print"} />
             </div>
+            <div
+              className="btn"
+              onClick={() => {
+                setSelectorPopupActive(true);
+              }}
+              title="문서 관리"
+            >
+              <Svg type={"settings"} />
+            </div>
           </div>
         </div>
         {!loading ? (
-          <EditorParser
-            auth="edit"
-            data={formData}
-            dbData={DBData}
-            type="archive"
-          />
+          printForms.length > 0 ? (
+            <EditorParser
+              auth={isStudent ? "view" : "edit"}
+              data={formData}
+              dbData={DBData}
+              type="archive"
+            />
+          ) : (
+            <div style={{ padding: "24px", color: "var(--accent-3)" }}>
+              조회 가능한 문서가 없습니다.
+            </div>
+          )
         ) : (
           <Loading height={"calc(100vh - 55px)"} />
         )}
@@ -237,6 +348,15 @@ function Docs({}: Props) {
         <Popup setState={setChoosePopupActive} title="a" closeBtn>
           <div></div>
         </Popup>
+      )}
+
+      {selectorPopupActive && (
+        <DocFormSelector
+          forms={printForms}
+          selectedIds={selectedFormIds}
+          onSelectionChange={handleSelectionChange}
+          setState={setSelectorPopupActive}
+        />
       )}
     </>
   );

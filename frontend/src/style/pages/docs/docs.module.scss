@@ -33,7 +33,7 @@
 
 
     & > .search {
-        min-height: 100px;
+        min-height: 48px;
     }
 
     .search {
@@ -77,4 +77,107 @@
     @media (max-width: 768px) {
         max-width: 100% !important;
     }
+}
+
+.selectorSearch {
+    margin-bottom: 12px;
+}
+
+.selectorInput {
+    width: 100%;
+    padding: 8.5px 14px;
+    font-size: 14px;
+    background-color: var(--background-color);
+    color: var(--accent-1);
+    height: 30px;
+    outline: none;
+    border: var(--border-default);
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.selectorHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0 4px;
+}
+
+.selectorCount {
+    font-size: 13px;
+    color: var(--accent-3);
+    font-weight: 500;
+}
+
+.selectorActions {
+    display: flex;
+    gap: 12px;
+}
+
+.selectorActionBtn {
+    font-size: 12px;
+    color: var(--accent-3);
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+        color: var(--accent-1);
+        text-decoration: underline;
+    }
+}
+
+.selectorList {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 400px;
+    overflow-y: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.selectorItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.1s ease;
+
+    &:hover {
+        background-color: var(--component-hover-color);
+    }
+}
+
+.selectorItemSelected {
+}
+
+.selectorCheckbox {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease;
+}
+
+.selectorItemTitle {
+    font-size: 14px;
+    color: var(--accent-1);
+    flex: 1;
+}
+
+.selectorEmpty {
+    font-size: 13px;
+    color: var(--accent-4);
+    padding: 16px 4px;
+    text-align: center;
 }
