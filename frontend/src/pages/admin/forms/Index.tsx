@@ -53,6 +53,7 @@ import { useAuth } from "contexts/authContext";
 import Svg from "assets/svg/Svg";
 import useOutsideClick from "hooks/useOutsideClick";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import FormPermissionPopup from "./FormPermissionPopup";
 
 type Props = {};
 
@@ -75,6 +76,8 @@ const Forms = (props: Props) => {
   const [view, setView] = useState<"list" | "grid">("list");
 
   const [addFormPopupActive, setAddFormPopupActive] = useState<boolean>(false);
+  const [permissionPopupActive, setPermissionPopupActive] = useState<boolean>(false);
+  const [permissionForm, setPermissionForm] = useState<any>(null);
 
   const [inputFormTitle, setInputFormTitle] = useState<string>("");
   const [selectFormType, setSelectFormType] = useState<
@@ -296,7 +299,7 @@ const Forms = (props: Props) => {
                     </div>
                     <div
                       className={style.menu_item}
-                      onClick={async() =>{                             
+                      onClick={async() =>{
                           try {
                             const { form } = await FormAPI.RForm({ params: { _id: data._id } });
                             objectDownloadAsJson(form);
@@ -308,6 +311,17 @@ const Forms = (props: Props) => {
                     >
                       다운로드
                     </div>
+                    {data.type === "print" && (
+                      <div
+                        className={style.menu_item}
+                        onClick={() => {
+                          setPermissionForm(data);
+                          setPermissionPopupActive(true);
+                        }}
+                      >
+                        권한 설정
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className={style.menu}>
@@ -476,6 +490,24 @@ const Forms = (props: Props) => {
               }}
             >
               <Svg type="upload" width="26px" height="26px" />
+            </div>
+            <div
+              className={style.btn}
+              onClick={() => {
+                setAddFormPopupActive(true);
+                setInputFormTitle("");
+                setSelectFormType(
+                  decodeURI(location.hash).replace("#", "") === "시간표"
+                    ? "timetable"
+                    : decodeURI(location.hash).replace("#", "") === "강의계획서"
+                    ? "syllabus"
+                    : decodeURI(location.hash).replace("#", "") === "출력"
+                    ? "print"
+                    : "other"
+                );
+              }}
+            >
+              <Svg type="plus" width="20px" height="20px" />
             </div>
             <input
               type="file"
@@ -725,18 +757,35 @@ const Forms = (props: Props) => {
                           width: "48px",
                           textAlign: "center",
                         },
-                        { 
-                          type: "text", 
-                          key: "title", 
-                          text: "제목", 
+                        {
+                          type: "text",
+                          key: "title",
+                          text: "제목",
                           onClick: (e: any) => {
                             navigate(e._id);
                         }},
-                        { 
-                          type: "text", 
-                          key: "userName", 
+                        {
+                          type: "text",
+                          key: "userName",
                           text: "작성자",
                           textAlign: "center",
+                        },
+                        {
+                          type: "button",
+                          key: "permission",
+                          text: "권한",
+                          onClick: (e: any) => {
+                            setPermissionForm(e);
+                            setPermissionPopupActive(true);
+                          },
+                          width: "80px",
+                          textAlign: "center",
+                          btnStyle: {
+                            border: true,
+                            color: "black",
+                            padding: "4px",
+                            round: true,
+                          },
                         },
                         {
                           type: "button",
@@ -790,7 +839,7 @@ const Forms = (props: Props) => {
                           type: "button",
                           key: "json",
                           text: "다운로드",
-                          onClick: async(e: any) => {                              
+                          onClick: async(e: any) => {
                               try {
                                 const { form } = await FormAPI.RForm({ params: { _id: e._id } });
                                 objectDownloadAsJson(form);
@@ -1093,6 +1142,13 @@ const Forms = (props: Props) => {
             </div>
           </div>
         </Popup>
+      )}
+      {permissionPopupActive && permissionForm && (
+        <FormPermissionPopup
+          form={permissionForm}
+          setState={setPermissionPopupActive}
+          onUpdate={() => getForms()}
+        />
       )}
     </>
   );

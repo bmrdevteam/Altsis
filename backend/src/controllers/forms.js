@@ -7,9 +7,10 @@ import { logger } from "../log/logger.js";
 import {
   FIELD_IN_USE,
   FIELD_REQUIRED,
+  PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
-import { Form } from "../models/index.js";
+import { Form, Registration } from "../models/index.js";
 
 /**
  * @memberof APIs.FormAPI
@@ -170,6 +171,50 @@ export const copy = async (req, res) => {
  *
  *
  */
+/**
+ * 사용자의 양식 열람 권한 확인
+ * @param {Object} form - 양식 문서
+ * @param {Object} user - req.user
+ * @param {string|null} role - "student" | "teacher" | null
+ * @returns {boolean}
+ */
+const hasFormViewPermission = (form, user, role) => {
+  if (user.auth === "admin" || user.auth === "manager") {
+    return true;
+  }
+
+  const permission = form.permissionView;
+  if (!permission) {
+    return role === "teacher";
+  }
+
+  for (let exception of permission.exceptions) {
+    if (exception.userId === user.userId) {
+      return exception.isAllowed;
+    }
+  }
+
+  if (role && permission[role]) {
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * 사용자의 역할 조회 (아카데미 내 활성 등록 기준)
+ * @param {string} academyId
+ * @param {Object} user - req.user
+ * @returns {Promise<string|null>} "student" | "teacher" | null
+ */
+const getUserRole = async (academyId, user) => {
+  const registration = await Registration(academyId).findOne({
+    user: user._id,
+    isActivated: true,
+  });
+  return registration?.role || null;
+};
+
 export const find = async (req, res) => {
   try {
     /* RForm */
@@ -178,6 +223,14 @@ export const find = async (req, res) => {
       if (!form) {
         return res.status(404).send({ message: __NOT_FOUND("form") });
       }
+
+      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+        const role = await getUserRole(req.user.academyId, req.user);
+        if (!hasFormViewPermission(form, req.user, role)) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      }
+
       return res.status(200).send({ form });
     }
 
@@ -191,6 +244,15 @@ export const find = async (req, res) => {
     }
 
     const forms = await Form(req.user.academyId).find(query).select("-data");
+
+    if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+      const role = await getUserRole(req.user.academyId, req.user);
+      const filteredForms = forms.filter((form) =>
+        hasFormViewPermission(form, req.user, role)
+      );
+      return res.status(200).send({ forms: filteredForms });
+    }
+
     return res.status(200).send({ forms });
   } catch (err) {
     logger.error(err.message);
@@ -340,6 +402,181 @@ export const remove = async (req, res) => {
     }
     await form.remove();
     return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.FormAPI
+ * @function UFormPermission API
+ * @description 양식 열람 권한 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ * @param {"PUT"} req.method
+ * @param {"/forms/:_id/permission"} req.url
+ *
+ * @param {Object} req.body
+ * @param {boolean?} req.body.teacher - 교사 권한
+ * @param {boolean?} req.body.student - 학생 권한
+ *
+ * @param {Object} res
+ * @param {Object} res.form - 수정된 양식
+ */
+export const updatePermission = async (req, res) => {
+  try {
+    const form = await Form(req.user.academyId).findById(req.params._id);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const current = form.permissionView || {
+      teacher: true,
+      student: false,
+      exceptions: [],
+    };
+    const updatedPermission = {
+      teacher:
+        "teacher" in req.body ? req.body.teacher : current.teacher ?? true,
+      student:
+        "student" in req.body ? req.body.student : current.student ?? false,
+      exceptions: current.exceptions || [],
+    };
+
+    const updatedForm = await Form(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { $set: { permissionView: updatedPermission } },
+      { new: true }
+    );
+
+    return res.status(200).send({ form: updatedForm });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.FormAPI
+ * @function CFormPermissionException API
+ * @description 양식 열람 권한 예외 추가 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ * @param {"POST"} req.method
+ * @param {"/forms/:_id/permission/exceptions"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string} req.body.user - user._id
+ * @param {string} req.body.userId
+ * @param {string} req.body.userName
+ * @param {boolean} req.body.isAllowed
+ *
+ * @param {Object} res
+ * @param {Object} res.form - 수정된 양식
+ */
+export const addPermissionException = async (req, res) => {
+  try {
+    const form = await Form(req.user.academyId).findById(req.params._id);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    for (let field of ["user", "userId", "userName", "isAllowed"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    const current = form.permissionView || {
+      teacher: true,
+      student: false,
+      exceptions: [],
+    };
+    const exceptions = (current.exceptions || []).filter(
+      (e) => e.userId !== req.body.userId
+    );
+    exceptions.push({
+      user: req.body.user,
+      userId: req.body.userId,
+      userName: req.body.userName,
+      isAllowed: req.body.isAllowed,
+    });
+
+    const updatedForm = await Form(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      {
+        $set: {
+          permissionView: {
+            teacher: current.teacher ?? true,
+            student: current.student ?? false,
+            exceptions,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    return res.status(200).send({ form: updatedForm });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.FormAPI
+ * @function DFormPermissionException API
+ * @description 양식 열람 권한 예외 삭제 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ * @param {"DELETE"} req.method
+ * @param {"/forms/:_id/permission/exceptions"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.userId - 삭제할 사용자의 userId
+ *
+ * @param {Object} res
+ * @param {Object} res.form - 수정된 양식
+ */
+export const removePermissionException = async (req, res) => {
+  try {
+    if (!req.query.userId) {
+      return res.status(400).send({ message: FIELD_REQUIRED("userId") });
+    }
+
+    const form = await Form(req.user.academyId).findById(req.params._id);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const current = form.permissionView || {
+      teacher: true,
+      student: false,
+      exceptions: [],
+    };
+    const exceptions = (current.exceptions || []).filter(
+      (e) => e.userId !== req.query.userId
+    );
+
+    const updatedForm = await Form(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      {
+        $set: {
+          permissionView: {
+            teacher: current.teacher ?? true,
+            student: current.student ?? false,
+            exceptions,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    return res.status(200).send({ form: updatedForm });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: err.message });
