@@ -1,70 +1,66 @@
-/**
- * @file Editor Component
- *
- * 2022 9/26 - started developing a new editor component due to scalability and more reliable code
- *
- * GOAL
- *  - design the rendering process tobe more simnple
- *  - style the blocks only
- *  - develop with auth states : edit & view
- *  - preview mode for editor
- *
- *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
- *
- * -------------------------------------------------------
- *
- * IN PRODUCTION
- *
- * -------------------------------------------------------
- *
- * IN MAINTENANCE
- *
- * -------------------------------------------------------
- *
- * IN DEVELOPMENT
- * - Editor Component
- *
- * -------------------------------------------------------
- *
- * DEPRECATED
- *
- * -------------------------------------------------------
- *
- * NOTES
- *
- */
-
-import { useState } from "react";
+import { useEffect } from "react";
 
 import style from "./editor.module.scss";
-import { EditorProvider } from "./functions/editorContext";
-import useEditorStore from "./functions/useEditorStore";
-import useReload from "./functions/useReload";
+import useEditorStore from "./store/useEditorStore";
+import useAPIv2 from "hooks/useAPIv2";
+import Loading from "../components/loading/Loading";
 import Content from "./layout/Content";
 import Header from "./layout/Header";
 import Sidebar from "./layout/sidebar/Sidebar";
+import InlineToolbar from "./layout/InlineToolbar";
 
 type Props = { id: string };
 
-/**
- *
- * @param id the form id
- *
- * @returns
- */
 function Editor(props: Props) {
-  const { callPageReload, _init } = useReload();
-  const { preview } = useEditorStore();
+  const { FormAPI } = useAPIv2();
+  const mode = useEditorStore((s) => s.mode);
+  const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
+  const isLoading = useEditorStore((s) => s.isLoading);
+  const loadForm = useEditorStore((s) => s.loadForm);
+
+  useEffect(() => {
+    loadForm(props.id, FormAPI);
+  }, [props.id]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const store = useEditorStore.getState();
+
+      if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        e.preventDefault();
+        store.redo();
+      } else if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        store.undo();
+      } else if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        store.saveForm(FormAPI);
+      } else if (e.key === "\\" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        store.toggleSidebar();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [FormAPI]);
+
+  if (isLoading) {
+    return (
+      <div className={style.editor}>
+        <Loading />
+      </div>
+    );
+  }
 
   return (
-    <EditorProvider id={props.id}>
-      <div className={style.editor}>
-        <Header/>
-        {!preview && <Sidebar callPageReload={callPageReload} />}
-        <Content reloadHook={_init} />
-      </div>
-    </EditorProvider>
+    <div className={style.editor}>
+      <Header />
+      {mode === "edit" && sidebarOpen && <Sidebar />}
+      <Content />
+      {mode === "edit" && <InlineToolbar />}
+    </div>
   );
 }
 

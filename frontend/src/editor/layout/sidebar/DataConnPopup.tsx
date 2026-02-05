@@ -3,7 +3,7 @@ import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Select from "components/select/Select";
 import Tree, { TreeItem } from "components/tree/Tree";
-import { useEditor } from "editor/functions/editorContext";
+import { useEditorCompat } from "editor/functions/useEditorCompat";
 import React, { useEffect, useRef, useState } from "react";
 import style from "../../editor.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
@@ -11,9 +11,7 @@ import { TSchool } from "types/schools";
 import { zipSeasonsFormEvaluation } from "functions/docs";
 import _ from "lodash";
 
-type Props = {
-  callPageReload: () => void;
-};
+type Props = {};
 
 const DataConnPopup = (props: Props) => {
   const { SchoolAPI, SeasonAPI } = useAPIv2();
@@ -24,7 +22,7 @@ const DataConnPopup = (props: Props) => {
     changeCurrentBlockData,
     getCurrentBlock,
     getCurrentCellIndex,
-  } = useEditor();
+  } = useEditorCompat();
 
   const [schools, setSchools] = useState<TSchool[]>([]);
   const [archiveData, setArchiveData] = useState<any>();
@@ -243,7 +241,7 @@ const DataConnPopup = (props: Props) => {
                   dataCellFilter: cellFiltersRef.current,
                 });
 
-                props.callPageReload();
+                // Zustand auto-updates - no manual reload needed
                 setTableBlockMenuPopup(false);
               }}
               type="ghost"
@@ -655,7 +653,7 @@ const DataConnPopup = (props: Props) => {
                       style={{ width: "60%" }}
                       onChange={(e) => {
                           repeat.current.max = parseInt(e.target.value);
-                          props.callPageReload();
+                          // Zustand auto-updates - no manual reload needed
                           const TableMaxDisplay = document.getElementById("TableMaxDisplay");
                           if (TableMaxDisplay) {
                             TableMaxDisplay.innerText = repeat.current.max;

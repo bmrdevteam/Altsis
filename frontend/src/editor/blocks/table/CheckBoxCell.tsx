@@ -1,17 +1,34 @@
-import { useEditor } from "editor/functions/editorContext";
 import React from "react";
-
 import style from "../../editor.module.scss";
+import useEditorStore from "../../store/useEditorStore";
+import { TableBlockData } from "../../types";
 
 type Props = {
+  blockId: string;
   blockIndex: number;
   column: number;
   row: number;
 };
 
 const CheckBoxCell = (props: Props) => {
-  const { saveCell, getCell } = useEditor();
-  const cell = getCell(props.blockIndex, props.row, props.column);
+  const cell = useEditorStore(
+    (s) =>
+      (s.blocks[props.blockIndex]?.data as TableBlockData)?.table?.[props.row]?.[
+        props.column
+      ]
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    useEditorStore.setState((state) => {
+      const tableData = state.blocks[props.blockIndex]?.data as TableBlockData;
+      const c = tableData?.table?.[props.row]?.[props.column];
+      if (c) {
+        c.checked = e.target.checked;
+      }
+    });
+    useEditorStore.getState().saveSnapshot();
+  };
+
   return (
     <div
       style={{ display: "flex", justifyContent: cell?.align }}
@@ -20,14 +37,10 @@ const CheckBoxCell = (props: Props) => {
       <input
         type="checkbox"
         defaultChecked={cell?.checked}
-        onChange={(e) => {
-          saveCell(props.blockIndex, props.row, props.column, {
-            checked: e.target.checked,
-          });
-        }}
+        onChange={handleChange}
       />
     </div>
   );
 };
 
-export default CheckBoxCell;
+export default React.memo(CheckBoxCell);

@@ -1,29 +1,42 @@
-import { useEditor } from "editor/functions/editorContext";
 import React from "react";
 import style from "../../editor.module.scss";
+import useEditorStore from "../../store/useEditorStore";
+import { TableBlockData } from "../../types";
 
 type Props = {
+  blockId: string;
   blockIndex: number;
   column: number;
   row: number;
 };
 
 const InputCell = (props: Props) => {
-  const { getCell } = useEditor();
-  const cell = getCell(props.blockIndex, props.row, props.column);
+  const cell = useEditorStore(
+    (s) =>
+      (s.blocks[props.blockIndex]?.data as TableBlockData)?.table?.[props.row]?.[
+        props.column
+      ]
+  );
+
+  // In editor mode, InputCell shows the placeholder text as a preview.
+  // Actual input functionality is in the parsed form (ParsedTableBlock).
+  const placeholderText =
+    cell?.placeholder && cell.placeholder !== " "
+      ? cell.placeholder
+      : "입력";
+
   return (
     <div
       className={`${style.cell} ${style.input}`}
-      style={{ textAlign: cell?.align }}
-      placeholder={
-        cell?.placeholder || cell?.placeholder === " "
-          ? cell?.placeholder
-          : "입력"
-      }
+      style={{
+        textAlign: cell?.align,
+        color: "var(--accent-4)",
+        fontSize: cell?.fontSize,
+      }}
     >
-      {/* {cell.data?.text} */}
+      {placeholderText}
     </div>
   );
 };
 
-export default InputCell;
+export default React.memo(InputCell);

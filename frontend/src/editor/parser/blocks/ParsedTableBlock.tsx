@@ -319,9 +319,11 @@ const ParsedTableBlock = (props: Props) => {
                                   key,
                                   fileName: originalName,
                                 },
-                              }).then(({ preSignedUrl }) => {
-                                setUrl(preSignedUrl);
-                              });
+                              })
+                                .then(({ preSignedUrl }) => {
+                                  setUrl(preSignedUrl);
+                                })
+                                .catch(() => {});
                             }}
                             alt="undefined"
                           />

@@ -3,7 +3,7 @@ import Button from "../../../components/button/Button";
 import Popup from "../../../components/popup/Popup";
 import Menu from "./Menu";
 import style from "../../editor.module.scss";
-import { useEditor } from "../../functions/editorContext";
+import { useEditorCompat } from "../../functions/useEditorCompat";
 import { isArray } from "lodash";
 import Select from "../../../components/select/Select";
 import useDatabase from "../../../hooks/useDatabase";
@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 type Props = {};
 
 const DatatableMenu = (props: Props) => {
-  const { getCurrentBlock, changeCurrentBlockData } = useEditor();
+  const { getCurrentBlock, changeCurrentBlockData } = useEditorCompat();
   const [dataTableMenuOpen, setDataTableMenuOpen] = useState<boolean>(false);
   const [columns, setColumns] = useState<number[]>([1, 1]);
   const [headers, setHeaders] = useState<any[]>([]);
@@ -28,8 +28,8 @@ const DatatableMenu = (props: Props) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isArray(getCurrentBlock().data?.dataTableHeader)) {
-      setHeaders(getCurrentBlock().data?.dataTableHeader);
+    if (isArray(getCurrentBlock()?.data?.dataTableHeader)) {
+      setHeaders(getCurrentBlock()?.data?.dataTableHeader);
     } else {
       setHeaders(["", ""]);
     }

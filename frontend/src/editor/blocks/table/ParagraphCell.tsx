@@ -1,31 +1,54 @@
-import React from "react";
+import React, { useCallback } from "react";
 import style from "../../editor.module.scss";
-import { useEditor } from "../../functions/editorContext";
+import useEditorStore from "../../store/useEditorStore";
+import { TableBlockData } from "../../types";
+
 type Props = {
+  blockId: string;
   blockIndex: number;
   column: number;
   row: number;
 };
 
 const ParagraphCell = (props: Props) => {
-  const { saveCell, getCell } = useEditor();
-  const cell = getCell(props.blockIndex, props.row, props.column);
+  const cell = useEditorStore(
+    (s) =>
+      (s.blocks[props.blockIndex]?.data as TableBlockData)?.table?.[props.row]?.[
+        props.column
+      ]
+  );
+  const mode = useEditorStore((s) => s.mode);
+
+  const handleInput = useCallback(
+    (e: React.FormEvent<HTMLDivElement>) => {
+      const html = e.currentTarget.innerHTML;
+      useEditorStore.setState((state) => {
+        const tableData = state.blocks[props.blockIndex]?.data as TableBlockData;
+        const c = tableData?.table?.[props.row]?.[props.column];
+        if (c) {
+          if (!c.data) c.data = {};
+          c.data.text = html;
+        }
+      });
+    },
+    [props.blockIndex, props.row, props.column]
+  );
+
+  const handleBlur = useCallback(() => {
+    useEditorStore.getState().saveSnapshot();
+  }, []);
+
   return (
     <div
-      contentEditable
+      contentEditable={mode === "edit"}
       suppressContentEditableWarning
       className={style.cell}
       style={{ textAlign: cell?.align }}
-      onInput={(e) => {
-        saveCell(props.blockIndex, props.row, props.column, {
-          data: { text: e.currentTarget.textContent },
-        });
-      }}
-     
-    >
-      {cell.data?.text}
-    </div>
+      onInput={handleInput}
+      onBlur={handleBlur}
+      dangerouslySetInnerHTML={{ __html: cell?.data?.text || "" }}
+    />
   );
 };
 
-export default ParagraphCell;
+export default React.memo(ParagraphCell);

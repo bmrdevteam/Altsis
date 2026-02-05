@@ -1,15 +1,23 @@
 import React from "react";
 import style from "../../editor.module.scss";
-import { useEditor } from "../../functions/editorContext";
+import useEditorStore from "../../store/useEditorStore";
+import { TableBlockData } from "../../types";
+
 type Props = {
+  blockId: string;
   blockIndex: number;
   column: number;
   row: number;
 };
 
 const DataCell = (props: Props) => {
-  const { getCell } = useEditor();
-  const cell = getCell(props.blockIndex, props.row, props.column);
+  const cell = useEditorStore(
+    (s) =>
+      (s.blocks[props.blockIndex]?.data as TableBlockData)?.table?.[props.row]?.[
+        props.column
+      ]
+  );
+
   return (
     <div className={style.cell} style={{ textAlign: cell?.align }}>
       {cell?.dataText?.map((dataTextElement: any, index: number) => {
@@ -29,12 +37,11 @@ const DataCell = (props: Props) => {
           if (dataTextElement.tag === "BR") {
             return <br key={index} />;
           }
-        } else {
-          return dataTextElement;
         }
+        return <React.Fragment key={index}>{dataTextElement}</React.Fragment>;
       })}
     </div>
   );
 };
 
-export default DataCell;
+export default React.memo(DataCell);

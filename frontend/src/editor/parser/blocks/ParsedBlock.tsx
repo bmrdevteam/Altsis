@@ -21,14 +21,15 @@ const ParsedBlock = (props: Props) => {
         <div
           className={style.parsed_block}
           style={{
-            width: `${props.blockData.data.width ?? 100}%`,
-            fontSize: props.blockData.data.fontSize,
-            fontWeight: props.blockData.data.fontWeight,
-            textAlign: props.blockData.data.textAlign,
+            width: `${props.blockData.data?.width ?? 100}%`,
+            fontSize: props.blockData.data?.fontSize,
+            fontWeight: props.blockData.data?.fontWeight,
+            textAlign: props.blockData.data?.textAlign,
           }}
-        >
-          {props.blockData.data.text}
-        </div>
+          dangerouslySetInnerHTML={{
+            __html: props.blockData.data?.text ?? "",
+          }}
+        />
       );
     case "table":
       return (
@@ -49,18 +50,41 @@ const ParsedBlock = (props: Props) => {
       return (
         <div
           className={`${style.parsed_block} ${style.line}`}
-          style={{ width: `${props.blockData.data.width ?? 100}%` }}
+          style={{ width: `${props.blockData.data?.width ?? 100}%` }}
         >
           <div className={style.line}></div>
         </div>
       );
+    case "image":
+      return props.blockData.data?.src ? (
+        <div
+          className={style.parsed_block}
+          style={{
+            width: `${props.blockData.data?.width ?? 100}%`,
+            textAlign: props.blockData.data?.alignment ?? "center",
+          }}
+        >
+          <img
+            src={props.blockData.data.src}
+            alt={props.blockData.data?.alt ?? ""}
+            style={{ maxWidth: "100%" }}
+          />
+          {props.blockData.data?.caption && (
+            <div style={{ fontSize: "12px", color: "var(--accent-3)", marginTop: "4px" }}>
+              {props.blockData.data.caption}
+            </div>
+          )}
+        </div>
+      ) : null;
+    case "input":
+      return null;
     default:
       return (
         <div
           className={style.parsed_block}
-          style={{ width: `${props.blockData.data.width ?? 100}%` }}
+          style={{ width: `${props.blockData.data?.width ?? 100}%` }}
         >
-          {props.blockData.data.text}
+          {props.blockData.data?.text ?? ""}
         </div>
       );
   }

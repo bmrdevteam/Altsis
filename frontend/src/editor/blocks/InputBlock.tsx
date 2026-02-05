@@ -1,29 +1,31 @@
 import React from "react";
 import Input from "../../components/input/Input";
 import style from "../editor.module.scss";
-import { useEditor } from "../functions/editorContext";
+import useEditorStore from "../store/useEditorStore";
+import { InputBlockData } from "../types";
 
-type Props = { index: number };
+type Props = { blockId: string; index: number };
 
 const InputBlock = (props: Props) => {
-  const { getBlock } = useEditor();
+  const block = useEditorStore((s) => s.blocks[props.index]);
 
-  const block = getBlock(props.index);
+  if (!block) return null;
+
+  const data = block.data as InputBlockData;
 
   return (
     <div className={style.block}>
       <Input
         style={{
-          fontSize: block.data?.fontSize,
-          // textAlign: block.data?.textAlign,
-          fontWeight: block.data?.fontWeight,
+          fontSize: data?.fontSize,
+          fontWeight: data?.fontWeight,
         }}
-        label={block.data.label}
-        required={block.data.required}
-        placeholder={block.data.placeholder}
+        label={data?.label}
+        required={data?.required}
+        placeholder={data?.placeholder}
       />
     </div>
   );
 };
 
-export default InputBlock;
+export default React.memo(InputBlock);
