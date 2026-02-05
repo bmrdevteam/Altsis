@@ -1,15 +1,15 @@
 .viewer {
   .days {
     font-weight: 500;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
     font-size: 12px;
-    background-color: white;
+    background-color: var(--background-color);
     z-index: 12;
     position: sticky;
     top: 0;
 
     .day {
-      flex: 1 1 0;
       text-align: center;
       padding: 6px 0px;
       border-right: var(--border-default);
@@ -23,67 +23,106 @@
     }
   }
 
-  .cells {
+  .weeks {
     font-size: 12px;
-    aspect-ratio: 1.5;
 
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    align-items: center;
-    justify-items: center;
+    .weekRow {
+      position: relative;
 
-    .cell {
-      width: 100%;
-      height: 100%;
-      border: var(--border-default);
-      border-top: none;
-      border-left: none;
+      .weekGrid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
 
-      .date {
-        transition: background-color 0.1s ease;
+        .cell {
+          width: 100%;
+          min-width: 0;
+          min-height: 80px;
+          border-bottom: var(--border-default);
+          border-right: var(--border-default);
+          padding: 4px;
+          cursor: pointer;
+          color: var(--accent-4);
+          overflow: hidden;
+
+          .date {
+            transition: background-color 0.1s ease;
+            display: flex;
+            align-items: center;
+            height: 24px;
+            width: 24px;
+            justify-content: center;
+            border-radius: 24px;
+            margin-bottom: 2px;
+          }
+
+          .date:hover {
+            background-color: var(--component-hover-color);
+          }
+
+          .date.today {
+            background-color: #007affe0;
+            color: white;
+          }
+
+          .spanSpacer {
+            // empty spacer for spanning events
+          }
+
+          .itemList {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            .item {
+              border-radius: 3px;
+              padding: 1px 2px;
+              font-size: 11px;
+              cursor: pointer;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              color: var(--accent-1);
+            }
+
+            .item:hover {
+              background-color: var(--component-hover-color);
+            }
+          }
+        }
+
+        .cell:hover {
+          background-color: var(--background-hover-color);
+        }
+
+        .current {
+          background-color: var(--background-color);
+          color: var(--accent-1);
+        }
+
+        .cell:nth-child(7n) {
+          border-right: none;
+        }
+      }
+
+      .spanningEvent {
+        position: absolute;
+        height: 18px;
+        font-size: 11px;
+        line-height: 18px;
+        padding: 0 4px;
         cursor: pointer;
-        display: flex;
-        align-items: center;
-        height: 24px;
-        width: 24px;
-        justify-content: center;
-        border-radius: 24px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        z-index: 2;
       }
 
-      .date:hover {
-        background-color: var(--component-hover-color);
-      }
-
-      .date.today {
-        background-color: #007affe0;
-        color: var(--accent-6);
-      }
-
-      .itemList {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: 0px 2px;
-
-        .item {
-          border-radius: 4px;
-          padding: 2px;
-        }
-
-        .item:hover {
-          background-color: var(--component-hover-color);
-        }
+      .spanningEvent:hover {
+        opacity: 0.8;
       }
     }
-    .current {
-      background-color: white;
-    }
 
-    .cell:nth-child(7n) {
-      border-right: none;
-    }
-
-    .cell:nth-last-child(-n + 7) {
+    .weekRow:last-child .weekGrid .cell {
       border-bottom: none;
     }
   }

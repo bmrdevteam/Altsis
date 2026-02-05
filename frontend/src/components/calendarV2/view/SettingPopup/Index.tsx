@@ -3,16 +3,35 @@ import Tab from "components/tab/Tab";
 
 import EnrolledCourseTab from "./tab/EnrolledCourseTab";
 import MentoringCourseTab from "./tab/MentoringCourseTab";
+import CalendarTab from "./tab/CalendarTab";
 import { useState } from "react";
 import { useAuth } from "contexts/authContext";
 
 type Props = {
   setPopupActive: any;
+  onVisibilityChange?: () => void;
 };
 
 const Index = (props: Props) => {
   const { currentRegistration } = useAuth();
   const [isReloadRequired, setIsReloadRequired] = useState<boolean>(false);
+
+  const courseItems: Record<string, JSX.Element> = {};
+
+  if (currentRegistration?._id) {
+    if (currentRegistration?.role === "teacher") {
+      courseItems["담당 수업"] = (
+        <MentoringCourseTab setIsReloadRequired={setIsReloadRequired} />
+      );
+      courseItems["수강 현황"] = (
+        <EnrolledCourseTab setIsReloadRequired={setIsReloadRequired} />
+      );
+    } else {
+      courseItems["수강 중인 수업"] = (
+        <EnrolledCourseTab setIsReloadRequired={setIsReloadRequired} />
+      );
+    }
+  }
 
   return (
     <Popup
@@ -25,6 +44,7 @@ const Index = (props: Props) => {
       style={{
         display: "flex",
         flexDirection: "column",
+        minWidth: "520px",
       }}
       closeBtn
       title={"캘린더 설정"}
@@ -32,30 +52,14 @@ const Index = (props: Props) => {
     >
       <Tab
         dontUsePaths
-        items={
-          !currentRegistration?._id
-            ? {}
-            : currentRegistration?.role === "teacher"
-            ? {
-                "담당 수업": (
-                  <MentoringCourseTab
-                    setIsReloadRequired={setIsReloadRequired}
-                  />
-                ),
-                "수강 현황": (
-                  <EnrolledCourseTab
-                    setIsReloadRequired={setIsReloadRequired}
-                  />
-                ),
-              }
-            : {
-                "수강 중인 수업": (
-                  <EnrolledCourseTab
-                    setIsReloadRequired={setIsReloadRequired}
-                  />
-                ),
-              }
-        }
+        items={{
+          캘린더: (
+            <CalendarTab
+              onVisibilityChange={props.onVisibilityChange}
+            />
+          ),
+          ...courseItems,
+        }}
         align={"flex-start"}
       />
     </Popup>

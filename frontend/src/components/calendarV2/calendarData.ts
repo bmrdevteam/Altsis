@@ -128,6 +128,18 @@ const getHHMM = (dateStr: string) => {
   return `${hh}:${mm}`;
 };
 
+export const DEFAULT_CATEGORY_COLORS: Record<string, string> = {
+  schoolCalendar: "#b7c6dd",
+  personalCalendar: "#4285f4",
+  enrollments: "#84b1ed",
+  mentorings: "#34a853",
+  memos: "#ff9800",
+};
+
+export function resolveEventColor(event: EventItem): string {
+  return event.color || DEFAULT_CATEGORY_COLORS[event.from] || "#4285f4";
+}
+
 export class EventItem {
   type: "custom" | "course" = "custom";
   from: From = "schoolCalendar";
@@ -149,6 +161,74 @@ export class EventItem {
   userId?: string;
   isRecurrenceInstance?: boolean;
   recurrenceParentId?: string;
+
+  // source tracking for synced events
+  sourceType?: "manual" | "enrollment" | "syllabus" | "memo";
+  sourceId?: string;
+  syllabusId?: string;
+  calendarId?: string;
+
+  // recurrence metadata (for edit flow)
+  recurrenceType?: "none" | "daily" | "weekly" | "monthly";
+  recurrenceEndDate?: string;
+  recurrenceDays?: number[];
+}
+
+export interface SpanningEvent {
+  event: EventItem;
+  startCol: number;
+  endCol: number;
+  lane: number;
+}
+
+export function computeSpanningEvents(
+  dateKeys: string[],
+  eventMap: Map<string, EventItem[]>,
+  filterFn?: (event: EventItem) => boolean
+): { spans: SpanningEvent[]; maxLanes: number } {
+  const spans: SpanningEvent[] = [];
+
+  for (let col = 0; col < dateKeys.length; col++) {
+    const dateText = dateKeys[col];
+    const events = eventMap.get(dateText) ?? [];
+
+    for (const event of events) {
+      if (filterFn && !filterFn(event)) continue;
+      if (!event.duration || event.duration <= 1) continue;
+      if (event.sequence !== 1) continue; // only process span starts
+
+      const remainingDays = event.duration - event.sequence + 1;
+      const endCol = Math.min(col + remainingDays - 1, dateKeys.length - 1);
+
+      spans.push({ event, startCol: col, endCol, lane: 0 });
+    }
+  }
+
+  // Sort: longer events first, then by startCol
+  spans.sort(
+    (a, b) =>
+      b.endCol - b.startCol - (a.endCol - a.startCol) ||
+      a.startCol - b.startCol
+  );
+
+  const laneEnds: number[] = [];
+  for (const span of spans) {
+    let assigned = false;
+    for (let lane = 0; lane < laneEnds.length; lane++) {
+      if (laneEnds[lane] < span.startCol) {
+        span.lane = lane;
+        laneEnds[lane] = span.endCol;
+        assigned = true;
+        break;
+      }
+    }
+    if (!assigned) {
+      span.lane = laneEnds.length;
+      laneEnds.push(span.endCol);
+    }
+  }
+
+  return { spans, maxLanes: laneEnds.length };
 }
 
 export class Calendar {
@@ -166,12 +246,45 @@ export class Calendar {
     }
   }
 
-  addCustomEvents(events: any[], from: FromCustom) {
+  addCustomEvents(events: any[], defaultFrom: FromCustom) {
     const type = "custom";
-    const calendarTitle =
-      from === "schoolCalendar" ? "학교 캘린더" : "개인 캘린더";
 
     for (const event of events) {
+      // Determine the actual 'from' based on sourceType
+      let from: From = defaultFrom;
+      let calendarTitle =
+        defaultFrom === "schoolCalendar" ? "학교 캘린더" : "개인 캘린더";
+
+      if (event.sourceType === "enrollment") {
+        from = "enrollments";
+        calendarTitle = "수강 수업";
+      } else if (event.sourceType === "syllabus") {
+        from = "mentorings";
+        calendarTitle = "담당 수업";
+      } else if (event.sourceType === "memo") {
+        from = "personalCalendar";
+        calendarTitle = "메모";
+      }
+
+      const commonFields = {
+        color: event.color,
+        scope: event.scope,
+        userId: event.user,
+        isRecurrenceInstance: event.isRecurrenceInstance,
+        recurrenceParentId: event.recurrenceParentId
+          ? String(event.recurrenceParentId)
+          : undefined,
+        sourceType: event.sourceType || "manual",
+        sourceId: event.sourceId,
+        syllabusId: event.syllabusId ? String(event.syllabusId) : undefined,
+        calendarId: event.calendarId,
+        recurrenceType: event.recurrence?.type || "none",
+        recurrenceEndDate: event.recurrence?.endDate
+          ? new Date(event.recurrence.endDate).toISOString().split("T")[0]
+          : undefined,
+        recurrenceDays: event.recurrence?.days || [],
+      };
+
       const startDate = new Date(event.start);
       const endDate = new Date(event.end);
 
@@ -187,11 +300,7 @@ export class Calendar {
             eventId: event._id,
             calendarTitle,
             id: event._id,
-            title:
-              event.title +
-              (dateItems.length > 1
-                ? `(${i + 1}/${dateItems.length})`
-                : ""),
+            title: event.title,
             isAllday: true,
             startTimeText: dateItems[i].text,
             endTimeText:
@@ -201,13 +310,7 @@ export class Calendar {
             sequence: i + 1,
             duration: dateItems.length,
             description: event.description,
-            color: event.color,
-            scope: event.scope,
-            userId: event.user,
-            isRecurrenceInstance: event.isRecurrenceInstance,
-            recurrenceParentId: event.recurrenceParentId
-              ? String(event.recurrenceParentId)
-              : undefined,
+            ...commonFields,
           });
         }
       } else {
@@ -231,13 +334,10 @@ export class Calendar {
             sequence: 1,
             duration: 1,
             description: event.description,
-            color: event.color,
-            scope: event.scope,
-            userId: event.user,
-            isRecurrenceInstance: event.isRecurrenceInstance,
-            recurrenceParentId: event.recurrenceParentId
-              ? String(event.recurrenceParentId)
+            location: event.sourceType === "enrollment" || event.sourceType === "syllabus"
+              ? event.description?.replace("강의실: ", "")
               : undefined,
+            ...commonFields,
           });
         } else {
           for (let i = 0; i < dateItems.length; i++) {
@@ -261,26 +361,73 @@ export class Calendar {
               eventId: event._id,
               calendarTitle,
               id: event._id,
-              title:
-                event.title +
-                (dateItems.length > 1
-                  ? `(${i + 1}/${dateItems.length})`
-                  : ""),
+              title: event.title,
               isAllday: true,
               startTimeText,
               endTimeText,
               sequence: i + 1,
               duration: dateItems.length,
               description: event.description,
-              color: event.color,
-              scope: event.scope,
-              userId: event.user,
-              isRecurrenceInstance: event.isRecurrenceInstance,
-              recurrenceParentId: event.recurrenceParentId
-                ? String(event.recurrenceParentId)
-                : undefined,
+              ...commonFields,
             });
           }
+        }
+      }
+    }
+  }
+
+  /**
+   * Merge consecutive recurrence instances into spanning events.
+   * Sets duration/sequence so computeSpanningEvents renders them as bars.
+   */
+  mergeConsecutiveRecurrenceInstances() {
+    const groups = new Map<
+      string,
+      { date: string; event: EventItem }[]
+    >();
+
+    for (const [dateText, events] of Array.from(this._eventMap)) {
+      for (const event of events) {
+        if (event.isRecurrenceInstance && event.recurrenceParentId) {
+          if (!groups.has(event.recurrenceParentId)) {
+            groups.set(event.recurrenceParentId, []);
+          }
+          groups.get(event.recurrenceParentId)!.push({ date: dateText, event });
+        }
+      }
+    }
+
+    for (const [, entries] of Array.from(groups)) {
+      entries.sort(
+        (a: { date: string; event: EventItem }, b: { date: string; event: EventItem }) =>
+          a.date.localeCompare(b.date)
+      );
+
+      const sequences: (typeof entries)[] = [];
+      let currentSeq: typeof entries = [entries[0]];
+
+      for (let i = 1; i < entries.length; i++) {
+        const prevDate = new Date(entries[i - 1].date);
+        const currDate = new Date(entries[i].date);
+        const diffDays = Math.round(
+          (currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (diffDays === 1) {
+          currentSeq.push(entries[i]);
+        } else {
+          sequences.push(currentSeq);
+          currentSeq = [entries[i]];
+        }
+      }
+      sequences.push(currentSeq);
+
+      for (const seq of sequences) {
+        if (seq.length <= 1) continue;
+        const totalDuration = seq.length;
+        for (let i = 0; i < seq.length; i++) {
+          seq[i].event.duration = totalDuration;
+          seq[i].event.sequence = i + 1;
         }
       }
     }
@@ -397,8 +544,6 @@ export class Calendar {
       6 - _endDateItem.getDay()
     );
 
-    return this.getEventMap(startDateItem, endDateItem, {
-      from: ["schoolCalendar", "personalCalendar"],
-    });
+    return this.getEventMap(startDateItem, endDateItem);
   };
 }

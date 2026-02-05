@@ -4,14 +4,17 @@ import Input from "components/input/Input";
 import Textarea from "components/textarea/Textarea";
 import Button from "components/button/Button";
 import Select from "components/select/Select";
+import ColorPicker from "components/colorPicker/ColorPicker";
 import style from "./style.module.scss";
 import { useAuth } from "contexts/authContext";
+import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   setPopupActive: (active: boolean) => void;
   onSave: (data: EventFormData) => void;
   defaultValues?: EventFormData;
   mode?: "create" | "edit";
+  seasonPeriodEnd?: string;
 };
 
 export type EventFormData = {
@@ -26,21 +29,14 @@ export type EventFormData = {
   recurrenceType: "none" | "daily" | "weekly" | "monthly";
   recurrenceEndDate: string;
   color: string;
+  calendarId?: string;
+  daysOfWeek?: number[];
 };
 
-const colorOptions = [
-  { text: "파랑", value: "#4285f4" },
-  { text: "빨강", value: "#ea4335" },
-  { text: "초록", value: "#34a853" },
-  { text: "노랑", value: "#fbbc04" },
-  { text: "보라", value: "#a142f4" },
-  { text: "주황", value: "#fa7b17" },
-  { text: "분홍", value: "#f538a0" },
-  { text: "회색", value: "#9e9e9e" },
-];
 
 const Index = (props: Props) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
+  const { UserCalendarAPI } = useAPIv2();
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
 
@@ -80,21 +76,128 @@ const Index = (props: Props) => {
   const [color, setColor] = useState(
     props.defaultValues?.color ?? "#4285f4"
   );
+  const [calendarId, setCalendarId] = useState(
+    props.defaultValues?.calendarId ?? ""
+  );
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>(
+    props.defaultValues?.daysOfWeek ?? []
+  );
+
+  const [userCalendars, setUserCalendars] = useState<any[]>([]);
+
+  useEffect(() => {
+    UserCalendarAPI.RUserCalendars({
+      query: { school: currentSchool?._id },
+    })
+      .then(({ userCalendars }) => {
+        setUserCalendars(userCalendars);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Auto-select start date's day when switching to weekly with no days selected
+  useEffect(() => {
+    if (recurrenceType === "weekly" && daysOfWeek.length === 0) {
+      const dayOfWeek = new Date(startDate).getDay();
+      setDaysOfWeek([dayOfWeek]);
+    }
+  }, [recurrenceType]);
+
+  // Sync endDate with startDate for daily recurrence
+  useEffect(() => {
+    if (recurrenceType === "daily") {
+      setEndDate(startDate);
+    }
+  }, [recurrenceType, startDate]);
+
+  // Default recurrence end date to semester end (only if it's after start date)
+  useEffect(() => {
+    if (recurrenceType !== "none" && !recurrenceEndDate && props.seasonPeriodEnd) {
+      if (props.seasonPeriodEnd >= startDate) {
+        setRecurrenceEndDate(props.seasonPeriodEnd);
+      }
+    }
+  }, [recurrenceType]);
+
+  const calendarOptions = () => {
+    const options: { text: string; value: string }[] = [
+      { text: "개인 캘린더", value: "__personal" },
+    ];
+    if (isManager) {
+      options.push({ text: "학교 캘린더", value: "__school" });
+    }
+    for (const cal of userCalendars) {
+      options.push({ text: cal.name, value: cal._id });
+    }
+    return options;
+  };
+
+  const selectedCalendar = calendarId || (scope === "school" ? "__school" : "__personal");
+
+  const handleCalendarChange = (val: string) => {
+    if (val === "__personal") {
+      setScope("personal");
+      setCalendarId("");
+    } else if (val === "__school") {
+      setScope("school");
+      setCalendarId("");
+    } else {
+      const cal = userCalendars.find((c) => c._id === val);
+      if (cal) {
+        setScope(cal.scope);
+        setCalendarId(cal._id);
+        setColor(cal.color);
+      }
+    }
+  };
+
+  const isRecurrenceEndDateInvalid =
+    recurrenceType !== "none" &&
+    !!recurrenceEndDate &&
+    recurrenceEndDate < startDate;
 
   const handleSave = () => {
     if (!title.trim()) return;
+    if (recurrenceType === "weekly" && daysOfWeek.length === 0) return;
+    if (isRecurrenceEndDateInvalid) return;
+
+    let effectiveStartDate = startDate;
+    let effectiveEndDate = endDate;
+
+    if (recurrenceType === "weekly") {
+      // Use the earliest selected day from today as the start date
+      const today = new Date();
+      const currentDay = today.getDay();
+      const firstDay = daysOfWeek.sort((a, b) => a - b)[0];
+      const diff = (firstDay - currentDay + 7) % 7;
+      const firstOccurrence = new Date(today);
+      firstOccurrence.setDate(firstOccurrence.getDate() + diff);
+      const dateStr = `${firstOccurrence.getFullYear()}-${String(
+        firstOccurrence.getMonth() + 1
+      ).padStart(2, "0")}-${String(firstOccurrence.getDate()).padStart(
+        2,
+        "0"
+      )}`;
+      effectiveStartDate = dateStr;
+      effectiveEndDate = dateStr;
+    } else if (recurrenceType === "daily") {
+      effectiveEndDate = effectiveStartDate;
+    }
+
     props.onSave({
       title,
       description,
-      startDate,
+      startDate: effectiveStartDate,
       startTime,
-      endDate,
+      endDate: effectiveEndDate,
       endTime,
       isAllDay,
       scope,
       recurrenceType,
       recurrenceEndDate,
       color,
+      calendarId: calendarId || undefined,
+      daysOfWeek: recurrenceType === "weekly" ? daysOfWeek : undefined,
     });
   };
 
@@ -108,130 +211,7 @@ const Index = (props: Props) => {
       }}
       closeBtn
       title={props.mode === "edit" ? "일정 수정" : "일정 추가"}
-      contentScroll
-    >
-      <div className={style.section}>
-        <div className={style.content}>
-          <div className={style.row}>
-            <Input
-              label="제목"
-              type="text"
-              required
-              defaultValue={title}
-              onChange={(e: any) => setTitle(e.target.value)}
-              placeholder="일정 제목을 입력하세요"
-            />
-          </div>
-
-          {isManager && (
-            <div className={style.row}>
-              <Select
-                label="범위"
-                options={[
-                  { text: "개인 캘린더", value: "personal" },
-                  { text: "학교 캘린더", value: "school" },
-                ]}
-                defaultSelectedValue={scope}
-                onChange={(e: any) => setScope(e as "school" | "personal")}
-              />
-            </div>
-          )}
-
-          <div className={style.row}>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
-              <input
-                type="checkbox"
-                checked={isAllDay}
-                onChange={(e) => setIsAllDay(e.target.checked)}
-              />
-              종일
-            </label>
-          </div>
-
-          <div
-            className={style.row}
-            style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}
-          >
-            <Input
-              label="시작일"
-              type="date"
-              defaultValue={startDate}
-              onChange={(e: any) => setStartDate(e.target.value)}
-            />
-            {!isAllDay && (
-              <Input
-                type="time"
-                defaultValue={startTime}
-                onChange={(e: any) => setStartTime(e.target.value)}
-              />
-            )}
-          </div>
-
-          <div
-            className={style.row}
-            style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}
-          >
-            <Input
-              label="종료일"
-              type="date"
-              defaultValue={endDate}
-              onChange={(e: any) => setEndDate(e.target.value)}
-            />
-            {!isAllDay && (
-              <Input
-                type="time"
-                defaultValue={endTime}
-                onChange={(e: any) => setEndTime(e.target.value)}
-              />
-            )}
-          </div>
-
-          <div className={style.row}>
-            <Select
-              label="반복"
-              options={[
-                { text: "반복 없음", value: "none" },
-                { text: "매일", value: "daily" },
-                { text: "매주", value: "weekly" },
-                { text: "매월", value: "monthly" },
-              ]}
-              defaultSelectedValue={recurrenceType}
-              onChange={(e: any) => setRecurrenceType(e)}
-            />
-          </div>
-
-          {recurrenceType !== "none" && (
-            <div className={style.row}>
-              <Input
-                label="반복 종료일"
-                type="date"
-                defaultValue={recurrenceEndDate}
-                onChange={(e: any) => setRecurrenceEndDate(e.target.value)}
-                placeholder="미설정 시 무한 반복"
-              />
-            </div>
-          )}
-
-          <div className={style.row}>
-            <Select
-              label="색상"
-              options={colorOptions}
-              defaultSelectedValue={color}
-              onChange={(e: any) => setColor(e)}
-            />
-          </div>
-
-          <div className={style.row}>
-            <Textarea
-              label="설명"
-              rows={3}
-              defaultValue={description}
-              onChange={(e: any) => setDescription(e.target.value)}
-              placeholder="일정 설명 (선택)"
-            />
-          </div>
-        </div>
-
+      footer={
         <div className={style.footer}>
           <Button
             type="ghost"
@@ -240,12 +220,204 @@ const Index = (props: Props) => {
             취소
           </Button>
           <Button
-            type="solid"
+            type="ghost"
             onClick={handleSave}
-            disabled={!title.trim()}
+            disabled={
+              !title.trim() ||
+              (recurrenceType === "weekly" && daysOfWeek.length === 0) ||
+              isRecurrenceEndDateInvalid
+            }
           >
             {props.mode === "edit" ? "수정" : "저장"}
           </Button>
+        </div>
+      }
+    >
+      <div className={style.content}>
+        <div className={style.row}>
+          <Input
+            label="제목"
+            type="text"
+            required
+            defaultValue={title}
+            onChange={(e: any) => setTitle(e.target.value)}
+            placeholder="일정 제목을 입력하세요"
+          />
+        </div>
+
+        <div className={style.rowInline}>
+          <div style={{ flex: 1 }}>
+            <Select
+              label="캘린더"
+              options={calendarOptions()}
+              defaultSelectedValue={selectedCalendar}
+              onChange={(e: any) => handleCalendarChange(e)}
+            />
+          </div>
+          <ColorPicker value={color} onChange={setColor} />
+          <label className={style.checkbox}>
+            <input
+              type="checkbox"
+              checked={isAllDay}
+              onChange={(e) => setIsAllDay(e.target.checked)}
+            />
+            종일
+          </label>
+        </div>
+
+        <div className={style.row}>
+          <Select
+            label="반복"
+            options={[
+              { text: "반복 없음", value: "none" },
+              { text: "매일", value: "daily" },
+              { text: "매주", value: "weekly" },
+              { text: "매월", value: "monthly" },
+            ]}
+            defaultSelectedValue={recurrenceType}
+            onChange={(e: any) => setRecurrenceType(e)}
+          />
+        </div>
+
+        {recurrenceType === "weekly" ? (
+          <div className={style.dateGroup}>
+            <div className={style.dateRow}>
+              <span className={style.dateLabel}>요일</span>
+              <div className={style.dayOfWeekSelector}>
+                {["일", "월", "화", "수", "목", "금", "토"].map(
+                  (dayLabel, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={`${style.dayChip} ${
+                        daysOfWeek.includes(idx) ? style.dayChipSelected : ""
+                      }`}
+                      onClick={() =>
+                        setDaysOfWeek((prev) =>
+                          prev.includes(idx)
+                            ? prev.filter((d) => d !== idx)
+                            : [...prev, idx].sort()
+                        )
+                      }
+                    >
+                      {dayLabel}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+            {!isAllDay && (
+              <>
+                <div className={style.dateRow}>
+                  <span className={style.dateLabel}>시작</span>
+                  <Input
+                    type="time"
+                    defaultValue={startTime}
+                    onChange={(e: any) => setStartTime(e.target.value)}
+                  />
+                </div>
+                <div className={style.dateRow}>
+                  <span className={style.dateLabel}>종료</span>
+                  <Input
+                    type="time"
+                    defaultValue={endTime}
+                    onChange={(e: any) => setEndTime(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        ) : recurrenceType === "daily" ? (
+          <div className={style.dateGroup}>
+            <div className={style.dateRow}>
+              <span className={style.dateLabel}>시작</span>
+              <Input
+                type="date"
+                defaultValue={startDate}
+                onChange={(e: any) => {
+                  setStartDate(e.target.value);
+                  setEndDate(e.target.value);
+                }}
+              />
+              {!isAllDay && (
+                <Input
+                  type="time"
+                  defaultValue={startTime}
+                  onChange={(e: any) => setStartTime(e.target.value)}
+                />
+              )}
+            </div>
+            <div className={style.dateRow}>
+              <span className={style.dateLabel}>종료</span>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={() => {}}
+                disabled
+              />
+              {!isAllDay && (
+                <Input
+                  type="time"
+                  defaultValue={endTime}
+                  onChange={(e: any) => setEndTime(e.target.value)}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className={style.dateGroup}>
+            <div className={style.dateRow}>
+              <span className={style.dateLabel}>시작</span>
+              <Input
+                type="date"
+                defaultValue={startDate}
+                onChange={(e: any) => setStartDate(e.target.value)}
+              />
+              {!isAllDay && (
+                <Input
+                  type="time"
+                  defaultValue={startTime}
+                  onChange={(e: any) => setStartTime(e.target.value)}
+                />
+              )}
+            </div>
+            <div className={style.dateRow}>
+              <span className={style.dateLabel}>종료</span>
+              <Input
+                type="date"
+                defaultValue={endDate}
+                onChange={(e: any) => setEndDate(e.target.value)}
+              />
+              {!isAllDay && (
+                <Input
+                  type="time"
+                  defaultValue={endTime}
+                  onChange={(e: any) => setEndTime(e.target.value)}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {recurrenceType !== "none" && (
+          <div className={style.row}>
+            <Input
+              label="반복 종료일"
+              type="date"
+              value={recurrenceEndDate}
+              onChange={(e: any) => setRecurrenceEndDate(e.target.value)}
+            />
+          </div>
+        )}
+
+        <div className={style.row}>
+          <Textarea
+            label="설명"
+            rows={2}
+            defaultValue={description}
+            onChange={(e: any) => setDescription(e.target.value)}
+            placeholder="일정 설명 (선택)"
+          />
         </div>
       </div>
     </Popup>

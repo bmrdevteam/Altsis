@@ -3,6 +3,7 @@ import {
   EventItem,
   From,
   Type,
+  resolveEventColor,
 } from "components/calendarV2/calendarData";
 import Input from "components/input/Input";
 import Popup from "components/popup/Popup";
@@ -18,44 +19,92 @@ type Props = {
   event: EventItem;
   onDelete?: (eventId: string) => void;
   onEdit?: (event: EventItem) => void;
+  readOnly?: boolean;
 };
 
-const Description = ({ event }: { event: EventItem }) => {
-  switch (event.from) {
-    case "personalCalendar":
-      return <div className={style.description}>{"개인 캘린더 일정입니다."}</div>;
-    case "schoolCalendar":
-      return <div className={style.description}>{"학교 캘린더 일정입니다."}</div>;
-    case "enrollments":
-      return (
-        <div className={style.description}>
-          {"수강 중인 수업입니다."}
-          <div
-            className={style.svg}
-            onClick={() => {
-              window.open("/courses/enrolled/" + event.id, "_blank");
-            }}
-          >
-            <Svg type={"bookOpen"} style={{ width: "12px", height: "12px" }} />
-          </div>
-        </div>
-      );
-
-    case "mentorings":
-      return (
-        <div className={style.description}>
-          {"담당 수업입니다."}
-          <div
-            className={style.svg}
-            onClick={() => {
-              window.open("/courses/mentoring/" + event.id, "_blank");
-            }}
-          >
-            <Svg type={"bookOpen"} style={{ width: "12px", height: "12px" }} />
-          </div>
-        </div>
-      );
+const getSourceLink = (
+  event: EventItem,
+  readOnly?: boolean
+): { label: string; url: string } | null => {
+  if (event.sourceType === "enrollment" && event.sourceId) {
+    if (readOnly && event.syllabusId) {
+      return {
+        label: "학습계획서 보기",
+        url: `/courses/mentoring/${event.syllabusId}`,
+      };
+    }
+    const parts = event.sourceId.split("_");
+    const enrollmentId = parts[1];
+    return { label: "수강 수업 보기", url: `/courses/enrolled/${enrollmentId}` };
   }
+  if (event.sourceType === "syllabus" && event.sourceId) {
+    const parts = event.sourceId.split("_");
+    const syllabusId = parts[1];
+    return { label: "담당 수업 보기", url: `/courses/mentoring/${syllabusId}` };
+  }
+  // Legacy support via `from` field
+  if (event.from === "enrollments" && event.id) {
+    return { label: "수강 수업 보기", url: `/courses/enrolled/${event.id}` };
+  }
+  if (event.from === "mentorings" && event.id) {
+    return { label: "담당 수업 보기", url: `/courses/mentoring/${event.id}` };
+  }
+  return null;
+};
+
+const Description = ({
+  event,
+  readOnly,
+}: {
+  event: EventItem;
+  readOnly?: boolean;
+}) => {
+  const sourceLink = getSourceLink(event, readOnly);
+
+  if (event.sourceType === "enrollment" || event.from === "enrollments") {
+    return (
+      <div className={style.description}>
+        {"수강 중인 수업입니다."}
+        {sourceLink && (
+          <div
+            className={style.svg}
+            onClick={() => window.open(sourceLink.url, "_blank")}
+          >
+            <Svg type={"bookOpen"} style={{ width: "12px", height: "12px" }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (event.sourceType === "syllabus" || event.from === "mentorings") {
+    return (
+      <div className={style.description}>
+        {"담당 수업입니다."}
+        {sourceLink && (
+          <div
+            className={style.svg}
+            onClick={() => window.open(sourceLink.url, "_blank")}
+          >
+            <Svg type={"bookOpen"} style={{ width: "12px", height: "12px" }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (event.sourceType === "memo") {
+    return <div className={style.description}>{"메모 일정입니다."}</div>;
+  }
+
+  if (event.from === "schoolCalendar") {
+    return <div className={style.description}>{"학교 캘린더 일정입니다."}</div>;
+  }
+
+  if (event.from === "personalCalendar") {
+    return <div className={style.description}>{"개인 캘린더 일정입니다."}</div>;
+  }
+
   return <></>;
 };
 
@@ -66,9 +115,16 @@ const Index = (props: Props) => {
   const isOwner =
     props.event.userId && String(props.event.userId) === String(currentUser?._id);
 
+  const isSyncedEvent =
+    props.event.sourceType === "enrollment" ||
+    props.event.sourceType === "syllabus";
+
   const canModify =
     props.event.type === "custom" &&
+    !isSyncedEvent &&
     (isOwner || (props.event.scope === "school" && isManager));
+
+  const eventColor = resolveEventColor(props.event);
 
   return (
     <Popup
@@ -83,6 +139,15 @@ const Index = (props: Props) => {
       contentScroll
     >
       <div className={style.section}>
+        <div
+          style={{
+            width: "100%",
+            height: "4px",
+            backgroundColor: eventColor,
+            borderRadius: "2px",
+            marginBottom: "12px",
+          }}
+        />
         <div className={style.content}>
           {props.event.type === "custom" ? (
             <div
@@ -178,7 +243,7 @@ const Index = (props: Props) => {
           )}
         </div>
         <Divider />
-        <Description event={props.event} />
+        <Description event={props.event} readOnly={props.readOnly} />
 
         {canModify && (
           <div
@@ -189,6 +254,16 @@ const Index = (props: Props) => {
               marginTop: "4px",
             }}
           >
+            <Button
+              type="ghost"
+              onClick={() => {
+                if (props.onEdit) {
+                  props.onEdit(props.event);
+                }
+              }}
+            >
+              수정
+            </Button>
             <Button
               type="ghost"
               onClick={() => {
