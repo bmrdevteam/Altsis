@@ -11,7 +11,7 @@ export type TAuthTeacher =
   | "viewAndEditStudents"
   | "viewAndEditMyStudents";
 
-export type TAuthStudent = "undefined" | "view";
+export type TAuthStudent = "undefined" | "view" | "viewAndEdit";
 
 export type TSchoolFormArchiveItem = {
   label: string;
@@ -56,6 +56,7 @@ export const getAuthTeacher = (text: string) => {
 export const authStudentTextMap: Map<TAuthStudent, string> = new Map([
   ["undefined", "미설정"],
   ["view", "조회"],
+  ["viewAndEdit", "조회 및 수정"],
 ]);
 export const getAuthStudentText = (text: TAuthStudent) => {
   return authStudentTextMap.get(text) ?? "미설정";

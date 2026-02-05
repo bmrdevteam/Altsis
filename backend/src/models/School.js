@@ -69,7 +69,7 @@ const formArchiveFieldSchema = mongoose.Schema(
  * @prop {"array"|"object"} type="array"
  * @prop {TFormArchiveField[]} fields
  * @prop {"undefined"|"viewAndEditStudents"|"viewAndEditMyStudents"} authTeacher="undefined"
- * @prop {"undefined"|"view"} authStudent="undefined"
+ * @prop {"undefined"|"view"|"viewAndEdit"} authStudent="undefined"
  *
  */
 const formArchiveItemSchema = mongoose.Schema(
@@ -84,7 +84,7 @@ const formArchiveItemSchema = mongoose.Schema(
     },
     authStudent: {
       type: String,
-      eunum: ["undefined", "view"],
+      enum: ["undefined", "view", "viewAndEdit"],
       default: "undefined",
     },
   },

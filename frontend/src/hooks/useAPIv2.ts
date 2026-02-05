@@ -1035,8 +1035,10 @@ export default function useAPIv2() {
       recurrence?: {
         type: "none" | "daily" | "weekly" | "monthly";
         endDate?: string;
+        days?: number[];
       };
       color?: string;
+      calendarId?: string;
     };
   }) {
     const { calendarEvent } = await database.C({
@@ -1058,6 +1060,7 @@ export default function useAPIv2() {
       endDate: string;
       scope?: string;
       school?: string;
+      user?: string;
     };
   }) {
     const { calendarEvents } = await database.R({
@@ -1083,8 +1086,10 @@ export default function useAPIv2() {
       recurrence?: {
         type: "none" | "daily" | "weekly" | "monthly";
         endDate?: string;
+        days?: number[];
       };
       color?: string;
+      calendarId?: string;
     };
   }) {
     const { calendarEvent } = await database.U({
@@ -1113,13 +1118,76 @@ export default function useAPIv2() {
    * @auth user
    */
   async function SyncCalendarEvents(props: {
-    data: { season: string };
+    data: { season: string; targetUser?: string };
   }) {
     const result = await database.C({
       location: "calendar-events/sync",
       data: props.data,
     });
     return result as { synced: number; total: number };
+  }
+
+  /**
+   * ##########################################################################
+   * UserCalendar API
+   * ##########################################################################
+   */
+
+  /**
+   * CUserCalendar API
+   * @description 사용자 캘린더 생성 API
+   */
+  async function CUserCalendar(props: {
+    data: {
+      name: string;
+      color?: string;
+      scope?: "school" | "personal";
+      school?: string;
+    };
+  }) {
+    const { userCalendar } = await database.C({
+      location: "user-calendars",
+      data: props.data,
+    });
+    return { userCalendar };
+  }
+
+  /**
+   * RUserCalendars API
+   * @description 사용자 캘린더 목록 조회 API
+   */
+  async function RUserCalendars(props?: {
+    query?: { school?: string };
+  }) {
+    const { userCalendars } = await database.R({
+      location: "user-calendars" + QUERY_BUILDER(props?.query),
+    });
+    return { userCalendars: userCalendars as any[] };
+  }
+
+  /**
+   * UUserCalendar API
+   * @description 사용자 캘린더 수정 API
+   */
+  async function UUserCalendar(props: {
+    params: { _id: string };
+    data: { name?: string; color?: string };
+  }) {
+    const { userCalendar } = await database.U({
+      location: `user-calendars/${props.params._id}`,
+      data: props.data,
+    });
+    return { userCalendar };
+  }
+
+  /**
+   * DUserCalendar API
+   * @description 사용자 캘린더 삭제 API
+   */
+  async function DUserCalendar(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `user-calendars/${props.params._id}`,
+    });
   }
 
   /**
@@ -1144,6 +1212,8 @@ export default function useAPIv2() {
         end?: string;
       };
       copyFrom?: string;
+      copyRecurringEvents?: boolean;
+      copySchoolCalendar?: boolean;
     };
   }) {
     const { season } = await database.C({
@@ -2260,6 +2330,63 @@ export default function useAPIv2() {
   }
 
   /**
+   * UFormPermission API
+   * @description 양식 열람 권한 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function UFormPermission(props: {
+    params: { _id: string };
+    data: { teacher?: boolean; student?: boolean };
+  }) {
+    const { form } = await database.U({
+      location: `forms/${props.params._id}/permission`,
+      data: props.data,
+    });
+    return { form };
+  }
+
+  /**
+   * CFormPermissionException API
+   * @description 양식 열람 권한 예외 추가 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CFormPermissionException(props: {
+    params: { _id: string };
+    data: {
+      user: string;
+      userId: string;
+      userName: string;
+      isAllowed: boolean;
+    };
+  }) {
+    const { form } = await database.C({
+      location: `forms/${props.params._id}/permission/exceptions`,
+      data: props.data,
+    });
+    return { form };
+  }
+
+  /**
+   * DFormPermissionException API
+   * @description 양식 열람 권한 예외 삭제 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DFormPermissionException(props: {
+    params: { _id: string };
+    query: { userId: string };
+  }) {
+    const { form } = await database.D({
+      location:
+        `forms/${props.params._id}/permission/exceptions` +
+        QUERY_BUILDER(props.query),
+    });
+    return { form };
+  }
+
+  /**
    * ##########################################################################
    * File API
    * ##########################################################################
@@ -3232,6 +3359,12 @@ export default function useAPIv2() {
       DCalendarEvent,
       SyncCalendarEvents,
     },
+    UserCalendarAPI: {
+      CUserCalendar,
+      RUserCalendars,
+      UUserCalendar,
+      DUserCalendar,
+    },
     SeasonAPI: {
       CSeason,
       RSeasons,
@@ -3297,6 +3430,9 @@ export default function useAPIv2() {
       UArchiveForm,
       URestoreForm,
       DForm,
+      UFormPermission,
+      CFormPermissionException,
+      DFormPermissionException,
     },
     FileAPI: {
       CUploadFileArchive,

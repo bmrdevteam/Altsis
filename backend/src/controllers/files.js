@@ -256,15 +256,6 @@ export const signDocument = async (req, res) => {
       }
     }
 
-    if (
-      !(await Registration(req.user.academyId).findOne({
-        user: req.user._id,
-        role: "teacher",
-      }))
-    ) {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
-
     const { preSignedUrl, expiryDate } = signUrl(
       req.query.key,
       req.query.fileName,
