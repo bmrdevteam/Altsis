@@ -5,7 +5,7 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { Notification, NotificationSetting } from "../models/index.js";
+import { Notification, NotificationSetting, Registration } from "../models/index.js";
 import { getOrCreateNotificationSetting } from "../services/notifications.js";
 import { client } from "../_database/redis/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
@@ -59,6 +59,18 @@ import {
  */
 export const send = async (req, res) => {
   try {
+    // 권한 체크: admin/manager는 허용, 그 외는 teacher만 허용
+    if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+      const teacherReg = await Registration(req.user.academyId).findOne({
+        user: req.user._id,
+        role: "teacher",
+        isActivated: true,
+      });
+      if (!teacherReg) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    }
+
     for (let field of ["toUserList", "title", "description"]) {
       if (!(field in req.body)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });

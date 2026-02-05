@@ -5,7 +5,7 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { Board, Post, Notification } from "../models/index.js";
+import { Board, Post, Notification, User, Registration } from "../models/index.js";
 import {
   hasBoardPermission,
   getUserRoleInSeason,
@@ -19,6 +19,42 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+
+/**
+ * targetAudience 기반으로 현재 사용자가 게시글을 볼 수 있는지 확인
+ * @param {Object} post - 게시글 (targetAudience 포함)
+ * @param {Object} user - 현재 사용자
+ * @param {string|null} role - 현재 시즌에서의 역할 ("student" | "teacher" | null)
+ * @returns {boolean}
+ */
+const canUserSeePost = (post, user, role) => {
+  // admin은 항상 볼 수 있음
+  if (user.auth === "admin") return true;
+
+  // 작성자 본인은 항상 볼 수 있음
+  if (
+    post.author?.equals?.(user._id) ||
+    post.authorId === user.userId
+  ) {
+    return true;
+  }
+
+  const ta = post.targetAudience;
+  if (!ta || ta.type === "all") return true;
+
+  if (ta.type === "custom") {
+    return ta.users?.some(
+      (u) => u.userId === user.userId || u.user?.equals?.(user._id)
+    );
+  }
+
+  if (ta.type === "manager") {
+    return user.auth === "manager";
+  }
+
+  // teacher / student
+  return role === ta.type;
+};
 
 /**
  * @memberof APIs.PostAPI
@@ -210,6 +246,11 @@ export const find = async (req, res) => {
             return res.status(403).send({ message: PERMISSION_DENIED });
           }
 
+          // targetAudience 기반 권한 확인
+          if (!canUserSeePost(post, req.user, role)) {
+            return res.status(403).send({ message: PERMISSION_DENIED });
+          }
+
           return res.status(200).send({ post, board: defaultBoard });
         }
 
@@ -228,6 +269,11 @@ export const find = async (req, res) => {
         req.user
       );
       if (!hasBoardPermission(board, "read", req.user, role)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+
+      // targetAudience 기반 권한 확인
+      if (!canUserSeePost(post, req.user, role)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
 
@@ -272,8 +318,13 @@ export const find = async (req, res) => {
       .sort({ isPinned: -1, createdAt: -1 })
       .limit(limit);
 
+    // targetAudience 기반 필터링
+    const filteredPosts = posts.filter((post) =>
+      canUserSeePost(post, req.user, role)
+    );
+
     // 기본 게시판(공지사항)인 경우 기존 알림(Notification)도 포함
-    let combinedPosts = posts;
+    let combinedPosts = filteredPosts;
     if (board.isDefault) {
       const notificationQuery = { type: "sent" };
       if (req.query.before) {
@@ -305,8 +356,51 @@ export const find = async (req, res) => {
           : { type: "all" },
       }));
 
+      // 작성자의 게시판 쓰기 권한 확인 (권한 없는 사용자의 알림 제외)
+      const authorIds = [
+        ...new Set(
+          oldNotifications.map((n) => n.user?.toString()).filter(Boolean)
+        ),
+      ];
+      const [authorUsers, authorRegs] = await Promise.all([
+        User(req.user.academyId)
+          .find({ _id: { $in: authorIds } })
+          .select("_id auth"),
+        Registration(req.user.academyId)
+          .find({
+            user: { $in: authorIds },
+            schoolId: board.schoolId,
+            isActivated: true,
+          })
+          .select("user role"),
+      ]);
+      const authMap = new Map(
+        authorUsers.map((u) => [u._id.toString(), u.auth])
+      );
+      const roleMap = new Map(
+        authorRegs.map((r) => [r.user.toString(), r.role])
+      );
+
+      const writePermittedNotifications = notificationAsPosts.filter((n) => {
+        const aid = n.author?.toString();
+        const auth = authMap.get(aid);
+        if (auth === "admin") return true;
+        if (auth === "manager" && board.permissionWrite.manager) return true;
+        const authorRole = roleMap.get(aid);
+        if (authorRole === "teacher" && board.permissionWrite.teacher)
+          return true;
+        if (authorRole === "student" && board.permissionWrite.student)
+          return true;
+        return false;
+      });
+
+      // targetAudience 기반 필터링 (레거시 알림)
+      const filteredNotifications = writePermittedNotifications.filter((post) =>
+        canUserSeePost(post, req.user, role)
+      );
+
       // 게시글과 알림을 합쳐서 날짜순 정렬
-      combinedPosts = [...posts, ...notificationAsPosts]
+      combinedPosts = [...filteredPosts, ...filteredNotifications]
         .sort((a, b) => {
           // 고정 게시글 우선
           if (a.isPinned && !b.isPinned) return -1;
