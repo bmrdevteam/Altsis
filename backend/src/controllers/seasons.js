@@ -12,6 +12,7 @@ import {
   Enrollment,
   Registration,
   Form,
+  CalendarEvent,
 } from "../models/index.js";
 import {
   FIELD_INVALID,
@@ -68,6 +69,8 @@ import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
  * @param {string} req.body.period.start - "YYYY-MM-DD"
  * @param {string} req.body.period.end - "YYYY-MM-DD"
  * @param {string?} req.body.copyFrom - ObjectId of season to copy from
+ * @param {boolean?} req.body.copyRecurringEvents - copy recurring calendar events
+ * @param {boolean?} req.body.copySchoolCalendar - copy school-scoped calendar events
  *
  * @param {Object} res
  * @param {Object} res.season - created season
@@ -79,6 +82,83 @@ import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
  *
  *
  */
+
+function adjustRecurringEventDates(
+  event,
+  sourcePeriodStart,
+  newPeriodStart,
+  newPeriodEnd
+) {
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+  const duration = eventEnd.getTime() - eventStart.getTime();
+
+  let newStart;
+
+  switch (event.recurrence.type) {
+    case "weekly": {
+      const targetDay = eventStart.getDay();
+      newStart = new Date(newPeriodStart);
+      const diff = (targetDay - newStart.getDay() + 7) % 7;
+      newStart.setDate(newStart.getDate() + diff);
+      newStart.setHours(
+        eventStart.getHours(),
+        eventStart.getMinutes(),
+        eventStart.getSeconds(),
+        eventStart.getMilliseconds()
+      );
+      break;
+    }
+    case "daily": {
+      newStart = new Date(newPeriodStart);
+      newStart.setHours(
+        eventStart.getHours(),
+        eventStart.getMinutes(),
+        eventStart.getSeconds(),
+        eventStart.getMilliseconds()
+      );
+      break;
+    }
+    case "monthly": {
+      const dayOfMonth = eventStart.getDate();
+      newStart = new Date(newPeriodStart);
+      newStart.setDate(dayOfMonth);
+      if (newStart < newPeriodStart) {
+        newStart.setMonth(newStart.getMonth() + 1);
+        newStart.setDate(dayOfMonth);
+      }
+      if (newStart.getDate() !== dayOfMonth) {
+        newStart.setDate(0);
+      }
+      newStart.setHours(
+        eventStart.getHours(),
+        eventStart.getMinutes(),
+        eventStart.getSeconds(),
+        eventStart.getMilliseconds()
+      );
+      break;
+    }
+    default:
+      return null;
+  }
+
+  if (newStart > newPeriodEnd) {
+    return null;
+  }
+
+  const newEnd = new Date(newStart.getTime() + duration);
+
+  return {
+    ...event,
+    _id: undefined,
+    start: newStart,
+    end: newEnd,
+    recurrence: {
+      type: event.recurrence.type,
+      endDate: newPeriodEnd,
+    },
+  };
+}
 
 export const create = async (req, res) => {
   try {
@@ -155,6 +235,135 @@ export const create = async (req, res) => {
         };
       });
       await Registration(admin.academyId).insertMany(registrations);
+
+      /* copy recurring calendar events */
+      if (
+        req.body.copyRecurringEvents &&
+        seasonToCopy.period?.start &&
+        seasonToCopy.period?.end &&
+        req.body.period?.start &&
+        req.body.period?.end
+      ) {
+        const sourcePeriodStart = new Date(seasonToCopy.period.start);
+        const sourcePeriodEnd = new Date(seasonToCopy.period.end);
+        const newPeriodStart = new Date(req.body.period.start);
+        const newPeriodEnd = new Date(req.body.period.end);
+
+        const recurringEventQuery = {
+          sourceType: "manual",
+          "recurrence.type": { $ne: "none" },
+          start: { $lte: sourcePeriodEnd },
+          $or: [
+            { "recurrence.endDate": { $gte: sourcePeriodStart } },
+            { "recurrence.endDate": { $exists: false } },
+            { "recurrence.endDate": null },
+          ],
+        };
+
+        // school-scoped recurring events
+        const schoolEvents = await CalendarEvent(admin.academyId)
+          .find({
+            ...recurringEventQuery,
+            school: req.body.school,
+            scope: "school",
+          })
+          .lean();
+
+        const newSchoolEvents = schoolEvents
+          .map((ev) =>
+            adjustRecurringEventDates(
+              ev,
+              sourcePeriodStart,
+              newPeriodStart,
+              newPeriodEnd
+            )
+          )
+          .filter(Boolean);
+
+        if (newSchoolEvents.length > 0) {
+          await CalendarEvent(admin.academyId).insertMany(newSchoolEvents);
+        }
+
+        // personal-scoped recurring events for registered users
+        const userIds = [
+          ...new Set(registrationsToCopy.map((reg) => reg.user.toString())),
+        ];
+
+        if (userIds.length > 0) {
+          const personalEvents = await CalendarEvent(admin.academyId)
+            .find({
+              ...recurringEventQuery,
+              user: { $in: userIds },
+              scope: "personal",
+            })
+            .lean();
+
+          const newPersonalEvents = personalEvents
+            .map((ev) =>
+              adjustRecurringEventDates(
+                ev,
+                sourcePeriodStart,
+                newPeriodStart,
+                newPeriodEnd
+              )
+            )
+            .filter(Boolean);
+
+          if (newPersonalEvents.length > 0) {
+            await CalendarEvent(admin.academyId).insertMany(newPersonalEvents);
+          }
+        }
+      }
+
+      /* copy school-scoped calendar events (non-recurring) */
+      if (
+        req.body.copySchoolCalendar &&
+        seasonToCopy.period?.start &&
+        seasonToCopy.period?.end &&
+        req.body.period?.start &&
+        req.body.period?.end
+      ) {
+        const sourcePeriodStart = new Date(seasonToCopy.period.start);
+        const sourcePeriodEnd = new Date(seasonToCopy.period.end);
+        const newPeriodStart = new Date(req.body.period.start);
+        const newPeriodEnd = new Date(req.body.period.end);
+        const dayOffset =
+          (newPeriodStart.getTime() - sourcePeriodStart.getTime()) /
+          (1000 * 60 * 60 * 24);
+
+        const schoolCalendarEvents = await CalendarEvent(admin.academyId)
+          .find({
+            school: req.body.school,
+            scope: "school",
+            sourceType: "manual",
+            "recurrence.type": "none",
+            start: { $gte: sourcePeriodStart, $lte: sourcePeriodEnd },
+          })
+          .lean();
+
+        const newSchoolCalendarEvents = schoolCalendarEvents.map((ev) => {
+          const evStart = new Date(ev.start);
+          const evEnd = new Date(ev.end);
+          const newStart = new Date(
+            evStart.getTime() + dayOffset * 24 * 60 * 60 * 1000
+          );
+          const newEnd = new Date(
+            evEnd.getTime() + dayOffset * 24 * 60 * 60 * 1000
+          );
+          return {
+            ...ev,
+            _id: undefined,
+            start: newStart,
+            end: newEnd,
+          };
+        });
+
+        if (newSchoolCalendarEvents.length > 0) {
+          await CalendarEvent(admin.academyId).insertMany(
+            newSchoolCalendarEvents
+          );
+        }
+      }
 
       return res.status(200).send({ season });
     }

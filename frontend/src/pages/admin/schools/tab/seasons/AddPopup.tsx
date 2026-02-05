@@ -119,6 +119,10 @@ const Season = (props: Props) => {
 
   const [selectSeasonToCopyPopupActive, setSelectSeasonToCopyPopupActive] =
     useState<boolean>(false);
+  const [copyRecurringEvents, setCopyRecurringEvents] =
+    useState<boolean>(false);
+  const [copySchoolCalendar, setCopySchoolCalendar] =
+    useState<boolean>(false);
 
   const onClickAddHandler = async () => {
     if (inputRef.current.year === "") {
@@ -136,6 +140,12 @@ const Season = (props: Props) => {
           term: inputRef.current.term,
           period: inputRef.current.period,
           copyFrom: selectedSeasonToCopy?._id,
+          copyRecurringEvents: selectedSeasonToCopy?._id
+            ? copyRecurringEvents
+            : undefined,
+          copySchoolCalendar: selectedSeasonToCopy?._id
+            ? copySchoolCalendar
+            : undefined,
         },
       });
       alert(SUCCESS_MESSAGE);
@@ -247,6 +257,42 @@ const Season = (props: Props) => {
                 학기 선택
               </Button>
             </div>
+            {selectedSeasonToCopy?._id && (
+              <div style={{ display: "flex", gap: "24px", marginTop: "12px" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={copyRecurringEvents}
+                    onChange={(e) => setCopyRecurringEvents(e.target.checked)}
+                  />
+                  반복 일정도 복사
+                </label>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={copySchoolCalendar}
+                    onChange={(e) => setCopySchoolCalendar(e.target.checked)}
+                  />
+                  학교 캘린더도 복사
+                </label>
+              </div>
+            )}
           </div>
           <Button
             type={"ghost"}
