@@ -31,8 +31,12 @@ const ArchiveField = (props: Props) => {
       ) {
         alert("접근 권한이 없습니다.");
         navigate("/");
+        return;
       }
-      if (formArchive().authStudent === "view") {
+      if (
+        formArchive().authStudent === "view" ||
+        formArchive().authStudent === "viewAndEdit"
+      ) {
         setIsLoading(false);
       }
     }
@@ -51,7 +55,11 @@ const ArchiveField = (props: Props) => {
       <div className={style.section}>
         <div className={style.title}>{pid}</div>
 
-        {formArchive().dataType === "object" ? <ObjectView /> : <ArrayView />}
+        {formArchive().dataType === "object" ? (
+          <ObjectView editable={formArchive().authStudent === "viewAndEdit"} />
+        ) : (
+          <ArrayView editable={formArchive().authStudent === "viewAndEdit"} />
+        )}
       </div>
     </>
   ) : (

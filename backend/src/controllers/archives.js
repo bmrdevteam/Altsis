@@ -95,7 +95,10 @@ export const findByRegistration = async (req, res) => {
 
       /* if it is student */
       if (studentRegistration.user.equals(req.user._id)) {
-        if (formArchiveItem?.authStudent !== "view") {
+        if (
+          formArchiveItem?.authStudent !== "view" &&
+          formArchiveItem?.authStudent !== "viewAndEdit"
+        ) {
           return res
             .status(403)
             .send({ message: PERMISSION_DENIED, description: "view" });
@@ -153,7 +156,7 @@ export const findByRegistration = async (req, res) => {
       });
     }
 
-    /* teacher request for archive for docs */
+    /* teacher or student(self) request for archive for docs */
     if (!ObjectId.isValid(rid)) return res.status(400).send();
 
     const studentRegistration = await Registration(req.user.academyId).findById(
@@ -165,15 +168,20 @@ export const findByRegistration = async (req, res) => {
         .send({ message: __NOT_FOUND("registration(student)") });
     }
 
-    const teacherRegistration = await Registration(req.user.academyId).findOne({
-      season: studentRegistration.season,
-      user: req.user._id,
-      role: "teacher",
-    });
-    if (!teacherRegistration) {
-      return res
-        .status(404)
-        .send({ message: __NOT_FOUND("registration(teacher)") });
+    const isOwnData = studentRegistration.user.equals(req.user._id);
+    if (!isOwnData) {
+      const teacherRegistration = await Registration(
+        req.user.academyId
+      ).findOne({
+        season: studentRegistration.season,
+        user: req.user._id,
+        role: "teacher",
+      });
+      if (!teacherRegistration) {
+        return res
+          .status(404)
+          .send({ message: __NOT_FOUND("registration(teacher)") });
+      }
     }
 
     let archive = await _Archive.findOne({
@@ -254,7 +262,13 @@ export const updateByRegistration = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("formArchive_Item") });
     }
 
-    if (formArchiveItem.authTeacher === "viewAndEditStudents") {
+    /* check if student is editing their own archive */
+    if (
+      formArchiveItem.authStudent === "viewAndEdit" &&
+      archive.user.equals(user._id)
+    ) {
+      /* student self-edit: allowed */
+    } else if (formArchiveItem.authTeacher === "viewAndEditStudents") {
       const studentRegistration = await Registration(user.academyId).findById(
         req.body.registration
       );
