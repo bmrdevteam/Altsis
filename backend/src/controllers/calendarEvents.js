@@ -49,6 +49,7 @@ export const create = async (req, res) => {
       scope: req.body.scope,
       user: req.user._id,
       color: req.body.color || "#4285f4",
+      calendarId: req.body.calendarId || undefined,
     };
 
     if (req.body.scope === "school") {
@@ -64,6 +65,7 @@ export const create = async (req, res) => {
         endDate: req.body.recurrence.endDate
           ? new Date(req.body.recurrence.endDate)
           : undefined,
+        days: req.body.recurrence.days || [],
       };
     }
 
@@ -125,11 +127,12 @@ export const find = async (req, res) => {
 
     // For personal scope, show only user's own events + school events
     if (!scope) {
+      const targetUser = userId || req.user._id;
       query.$and = [
         {
           $or: [
             { scope: "school" },
-            { scope: "personal", user: req.user._id },
+            { scope: "personal", user: targetUser },
           ],
         },
       ];
@@ -189,6 +192,7 @@ export const update = async (req, res) => {
       "isAllDay",
       "recurrence",
       "color",
+      "calendarId",
     ];
     for (const field of allowedFields) {
       if (field in req.body) {
@@ -200,6 +204,7 @@ export const update = async (req, res) => {
             endDate: req.body.recurrence.endDate
               ? new Date(req.body.recurrence.endDate)
               : undefined,
+            days: req.body.recurrence.days || [],
           };
         } else {
           event[field] = req.body[field];
@@ -255,14 +260,23 @@ export const remove = async (req, res) => {
  */
 export const syncEnrollments = async (req, res) => {
   try {
-    const { season } = req.body;
+    const { season, targetUser } = req.body;
     if (!season) {
       return res.status(400).send({ message: FIELD_REQUIRED("season") });
     }
 
+    // Allow admin/teacher/manager to sync for another user
+    let syncUserId = req.user._id;
+    if (targetUser && String(targetUser) !== String(req.user._id)) {
+      if (!["admin", "manager", "teacher"].includes(req.user.auth)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+      syncUserId = targetUser;
+    }
+
     const registration = await Registration(req.user.academyId).findOne({
       season,
-      user: req.user._id,
+      user: syncUserId,
     });
     if (!registration || !registration.period) {
       return res.status(404).send({ message: __NOT_FOUND("registration") });
@@ -275,7 +289,7 @@ export const syncEnrollments = async (req, res) => {
 
     // 1. Student enrollments
     const enrollments = await Enrollment(req.user.academyId)
-      .find({ season, student: req.user._id })
+      .find({ season, student: syncUserId })
       .select("-evaluation")
       .lean();
 
@@ -301,13 +315,14 @@ export const syncEnrollments = async (req, res) => {
         eventsToCreate.push({
           sourceType: "enrollment",
           sourceId,
+          syllabusId: enrollment.syllabus,
           title: enrollment.classTitle,
           description: enrollment.classroom ? `강의실: ${enrollment.classroom}` : "",
           start,
           end,
           isAllDay: false,
           scope: "personal",
-          user: req.user._id,
+          user: syncUserId,
           recurrence: { type: "weekly", endDate: periodEnd },
           color: "#4285f4",
         });
@@ -322,7 +337,7 @@ export const syncEnrollments = async (req, res) => {
 
       for (const syllabus of syllabuses) {
         const teacherEntry = syllabus.teachers?.find(
-          (t) => String(t._id) === String(req.user._id)
+          (t) => String(t._id) === String(syncUserId)
         );
         if (!teacherEntry) continue;
         if (teacherEntry.isHiddenFromCalendar) continue;
@@ -352,11 +367,44 @@ export const syncEnrollments = async (req, res) => {
             end,
             isAllDay: false,
             scope: "personal",
-            user: req.user._id,
+            user: syncUserId,
             recurrence: { type: "weekly", endDate: periodEnd },
             color: "#34a853",
           });
         }
+      }
+    }
+
+    // 3. Memos
+    if (registration.memos && registration.memos.length > 0) {
+      for (const memo of registration.memos) {
+        if (!memo.day || !memo.start || !memo.end) continue;
+
+        const sourceId = `memo_${registration._id}_${memo._id}`;
+        const firstDate = getFirstOccurrence(periodStart, DAY_MAP[memo.day]);
+        if (!firstDate || firstDate > periodEnd) continue;
+
+        const [startH, startM] = memo.start.split(":").map(Number);
+        const [endH, endM] = memo.end.split(":").map(Number);
+
+        const start = new Date(firstDate);
+        start.setHours(startH, startM, 0, 0);
+        const end = new Date(firstDate);
+        end.setHours(endH, endM, 0, 0);
+
+        eventsToCreate.push({
+          sourceType: "memo",
+          sourceId,
+          title: memo.title || "메모",
+          description: memo.memo || "",
+          start,
+          end,
+          isAllDay: false,
+          scope: "personal",
+          user: syncUserId,
+          recurrence: { type: "weekly", endDate: periodEnd },
+          color: "#ff9800",
+        });
       }
     }
 
@@ -365,29 +413,55 @@ export const syncEnrollments = async (req, res) => {
     const currentSourceIds = new Set(eventsToCreate.map((e) => e.sourceId));
 
     for (const eventData of eventsToCreate) {
-      const existing = await CalendarEvent(req.user.academyId).findOne({
-        user: req.user._id,
-        sourceType: eventData.sourceType,
-        sourceId: eventData.sourceId,
-      });
-      if (!existing) {
-        await CalendarEvent(req.user.academyId).create(eventData);
-        created++;
+      if (eventData.sourceType === "memo") {
+        // For memos, only create if not exists; don't overwrite user edits
+        const result = await CalendarEvent(req.user.academyId).updateOne(
+          {
+            user: syncUserId,
+            sourceType: eventData.sourceType,
+            sourceId: eventData.sourceId,
+          },
+          { $setOnInsert: eventData },
+          { upsert: true }
+        );
+        if (result.upsertedCount > 0) created++;
+      } else {
+        const result = await CalendarEvent(req.user.academyId).updateOne(
+          {
+            user: syncUserId,
+            sourceType: eventData.sourceType,
+            sourceId: eventData.sourceId,
+          },
+          { $set: eventData },
+          { upsert: true }
+        );
+        if (result.upsertedCount > 0) created++;
       }
     }
 
-    // 삭제된 enrollment/syllabus의 고아 이벤트 정리
-    const existingEvents = await CalendarEvent(req.user.academyId).find({
-      user: req.user._id,
-      sourceType: { $in: ["enrollment", "syllabus"] },
-    });
+    // 삭제된 enrollment/syllabus의 고아 이벤트 정리 및 중복 제거
+    const existingEvents = await CalendarEvent(req.user.academyId)
+      .find({
+        user: syncUserId,
+        sourceType: { $in: ["enrollment", "syllabus", "memo"] },
+      })
+      .sort({ updatedAt: -1 }); // 최근 수정된 항목을 먼저 처리
 
     let removed = 0;
+    const processedSourceIds = new Set();
+
     for (const event of existingEvents) {
-      if (!currentSourceIds.has(event.sourceId)) {
-        await event.remove();
+      // 1. 소스 ID가 더 이상 유효하지 않거나(고아), 2. 이미 처리된 소스 ID인 경우(중복) 삭제
+      if (
+        !currentSourceIds.has(event.sourceId) ||
+        processedSourceIds.has(event.sourceId)
+      ) {
+        await event.deleteOne();
         removed++;
+        continue;
       }
+
+      processedSourceIds.add(event.sourceId);
     }
 
     return res.status(200).send({ synced: created, removed, total: eventsToCreate.length });
@@ -426,6 +500,46 @@ function expandRecurringEvent(event, queryStart, queryEnd) {
 
   const effectiveEnd = recurrenceEnd < queryEnd ? recurrenceEnd : queryEnd;
 
+  // Weekly with specific days: iterate day-by-day, only emit on matching days
+  if (event.recurrence.type === "weekly" && event.recurrence.days?.length > 0) {
+    const days = new Set(event.recurrence.days);
+    let current = new Date(eventStart);
+
+    // Skip ahead to query window for performance
+    if (queryStart > current) {
+      current = new Date(queryStart);
+      current.setDate(current.getDate() - current.getDay());
+    }
+
+    while (current <= effectiveEnd) {
+      if (days.has(current.getDay()) && current >= eventStart) {
+        const instanceStart = new Date(current);
+        instanceStart.setHours(
+          eventStart.getHours(),
+          eventStart.getMinutes(),
+          eventStart.getSeconds(),
+          eventStart.getMilliseconds()
+        );
+        const instanceEnd = new Date(instanceStart.getTime() + duration);
+
+        if (instanceEnd >= queryStart && instanceStart <= queryEnd) {
+          instances.push({
+            ...event,
+            _id: event._id,
+            recurrenceParentId: event._id,
+            start: instanceStart,
+            end: instanceEnd,
+            isRecurrenceInstance: true,
+          });
+        }
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return instances;
+  }
+
+  // Default logic for daily, monthly, and weekly without specific days
   let current = new Date(eventStart);
 
   while (current <= effectiveEnd) {

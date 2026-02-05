@@ -463,7 +463,9 @@ export const findEvaluations = async (req, res) => {
       });
     }
     if ("school" in req.query && "student" in req.query) {
+      const isOwnData = req.user._id.toString() === req.query.student;
       if (
+        !isOwnData &&
         !(await Registration(req.user.academyId).findOne({
           user: req.user._id,
           role: "teacher",

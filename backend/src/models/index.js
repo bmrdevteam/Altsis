@@ -21,6 +21,7 @@ import { School } from "../models/School.js";
 import { Season } from "../models/Season.js";
 import { Syllabus } from "../models/Syllabus.js";
 import { User } from "../models/User.js";
+import { UserCalendar } from "../models/UserCalendar.js";
 
 export {
   Academy,
@@ -41,4 +42,5 @@ export {
   Season,
   Syllabus,
   User,
+  UserCalendar,
 };

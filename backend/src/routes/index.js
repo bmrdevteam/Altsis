@@ -18,6 +18,7 @@ import { router as users } from "./users.js";
 import { router as files } from "./files.js";
 import { router as memos } from "./memos.js";
 
+import { router as userCalendars } from "./userCalendars.js";
 import { router as test } from "./test.js";
 
 export const routers = [
@@ -40,5 +41,6 @@ export const routers = [
   { label: "files", routes: files },
   { label: "users", routes: users },
   { label: "memos", routes: memos },
+  { label: "user-calendars", routes: userCalendars },
   { label: "test", routes: test },
 ];

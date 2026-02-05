@@ -57,6 +57,7 @@ const calendarEventSchema = mongoose.Schema(
             default: "none",
           },
           endDate: { type: Date },
+          days: { type: [Number] },
         },
         { _id: false }
       ),
@@ -65,10 +66,12 @@ const calendarEventSchema = mongoose.Schema(
     color: { type: String, default: "#4285f4" },
     sourceType: {
       type: String,
-      enum: ["manual", "enrollment", "syllabus"],
+      enum: ["manual", "enrollment", "syllabus", "memo"],
       default: "manual",
     },
     sourceId: { type: String },
+    syllabusId: { type: mongoose.Types.ObjectId },
+    calendarId: { type: mongoose.Types.ObjectId },
   },
   { timestamps: true }
 );
