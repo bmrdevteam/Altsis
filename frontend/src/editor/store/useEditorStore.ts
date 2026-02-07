@@ -58,7 +58,6 @@ const useEditorStore = create<EditorStore>()(
     future: [],
     maxHistory: 100,
     sidebarOpen: true,
-    draggedBlockIndex: null,
     isLoading: true,
     isSaving: false,
 
@@ -143,13 +142,6 @@ const useEditorStore = create<EditorStore>()(
     toggleSidebar: () => {
       set((state) => {
         state.sidebarOpen = !state.sidebarOpen;
-      });
-    },
-
-    // ========== Drag ==========
-    setDraggedBlockIndex: (index) => {
-      set((state) => {
-        state.draggedBlockIndex = index;
       });
     },
 

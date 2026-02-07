@@ -15,13 +15,10 @@ const Block = (props: Props) => {
   const block = useEditorStore((s) => s.blocks[props.index]);
   const selectBlock = useEditorStore((s) => s.selectBlock);
   const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
-  const mode = useEditorStore((s) => s.mode);
-  const setDraggedBlockIndex = useEditorStore((s) => s.setDraggedBlockIndex);
 
   if (!block) return null;
 
   const isSelected = selectedBlockId === block.id;
-  const isEditMode = mode === "edit";
 
   const blockContent = () => {
     switch (block.type) {
@@ -52,30 +49,6 @@ const Block = (props: Props) => {
       }}
       style={{ width: `${(block.data as any)?.width ?? 100}%` }}
     >
-      {isEditMode && (
-        <div
-          className={style.drag_handle}
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("text/plain", String(props.index));
-            setDraggedBlockIndex(props.index);
-            const wrapper = (e.currentTarget as HTMLElement).parentElement;
-            if (wrapper) {
-              setTimeout(() => {
-                wrapper.style.opacity = "0.4";
-              }, 0);
-            }
-          }}
-          onDragEnd={(e) => {
-            const wrapper = (e.currentTarget as HTMLElement).parentElement;
-            if (wrapper) wrapper.style.opacity = "1";
-            setDraggedBlockIndex(null);
-          }}
-        >
-          ⠿
-        </div>
-      )}
       {blockContent()}
     </div>
   );

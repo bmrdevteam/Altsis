@@ -233,7 +233,6 @@ export interface EditorState {
 
   // UI state
   sidebarOpen: boolean;
-  draggedBlockIndex: number | null;
 
   // Loading
   isLoading: boolean;
@@ -254,9 +253,6 @@ export interface EditorActions {
 
   // Sidebar
   toggleSidebar: () => void;
-
-  // Drag
-  setDraggedBlockIndex: (index: number | null) => void;
 
   // Selection
   selectBlock: (blockId: string | null) => void;
