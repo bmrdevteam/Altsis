@@ -199,6 +199,63 @@ export const create = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
 
+    /* copy from JSON data (다른 학교에서 가져온 학기 데이터) */
+    if ("copyFromData" in req.body && req.body.copyFromData) {
+      const sourceData = req.body.copyFromData;
+      logger.info("copyFromData received:", {
+        hasClassrooms: !!sourceData.classrooms,
+        classroomsLength: sourceData.classrooms?.length,
+        hasSubjects: !!sourceData.subjects,
+        subjectsDataLength: sourceData.subjects?.data?.length,
+        hasFormTimetable: !!sourceData.formTimetable,
+        hasFormSyllabus: !!sourceData.formSyllabus,
+        hasFormEvaluation: !!sourceData.formEvaluation,
+      });
+
+      // permission exceptions 제거 (다른 학교의 사용자 정보이므로)
+      const cleanPermission = (perm) => {
+        if (!perm) return undefined;
+        return {
+          teacher: perm.teacher ?? false,
+          student: perm.student ?? false,
+          exceptions: [], // 예외는 복사하지 않음
+        };
+      };
+
+      // aiSettings에서 파일 참조 제거 (다른 학교의 S3 파일이므로)
+      const cleanAiSettings = (settings) => {
+        if (!settings) return undefined;
+        return {
+          enabled: settings.enabled ?? false,
+          permission: settings.permission ?? { teacher: false, student: false },
+          guidelines: settings.guidelines ?? "",
+          references: [], // 파일 참조는 복사하지 않음
+        };
+      };
+
+      const season = await Season(admin.academyId).create({
+        school: school._id,
+        schoolId: school.schoolId,
+        schoolName: school.schoolName,
+        year: req.body.year,
+        term: req.body.term,
+        period: req.body.period,
+        classrooms: sourceData.classrooms ?? [],
+        subjects: sourceData.subjects ?? { label: [], data: [] },
+        permissionSyllabusV2: cleanPermission(sourceData.permissionSyllabusV2),
+        permissionEnrollmentV2: cleanPermission(sourceData.permissionEnrollmentV2),
+        permissionEvaluationV2: cleanPermission(sourceData.permissionEvaluationV2),
+        formTimetable: sourceData.formTimetable,
+        formSyllabus: sourceData.formSyllabus,
+        formEvaluation: sourceData.formEvaluation ?? [],
+        aiSettings: cleanAiSettings(sourceData.aiSettings),
+        isActivated: false,
+        isActivatedFirst: false,
+      });
+
+      return res.status(200).send({ season });
+    }
+
     if ("copyFrom" in req.body) {
       const seasonToCopy = await Season(admin.academyId).findById(
         req.body.copyFrom
@@ -1118,7 +1175,49 @@ export const remove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
+    // CalendarEvent 삭제를 위해 관련 데이터 먼저 조회
+    const [enrollments, syllabuses, registrations] = await Promise.all([
+      Enrollment(admin.academyId)
+        .find({ season: season._id })
+        .select("_id time"),
+      Syllabus(admin.academyId)
+        .find({ season: season._id })
+        .select("_id time"),
+      Registration(admin.academyId)
+        .find({ season: season._id })
+        .select("_id memos"),
+    ]);
+
+    // sourceId 배열 생성
+    const sourceIds = [];
+
+    for (const enrollment of enrollments) {
+      const timeCount = enrollment.time?.length || 0;
+      for (let i = 0; i < timeCount; i++) {
+        sourceIds.push(`enrollment_${enrollment._id}_${i}`);
+      }
+    }
+
+    for (const syllabus of syllabuses) {
+      const timeCount = syllabus.time?.length || 0;
+      for (let i = 0; i < timeCount; i++) {
+        sourceIds.push(`syllabus_${syllabus._id}_${i}`);
+      }
+    }
+
+    for (const registration of registrations) {
+      for (const memo of registration.memos || []) {
+        sourceIds.push(`memo_${registration._id}_${memo._id}`);
+      }
+    }
+
+    // 모든 관련 데이터 삭제
     await Promise.all([
+      sourceIds.length > 0
+        ? CalendarEvent(admin.academyId).deleteMany({
+            sourceId: { $in: sourceIds },
+          })
+        : Promise.resolve(),
       Enrollment(admin.academyId).deleteMany({ season: season._id }),
       Syllabus(admin.academyId).deleteMany({ season: season._id }),
       Registration(admin.academyId).deleteMany({ season: season._id }),

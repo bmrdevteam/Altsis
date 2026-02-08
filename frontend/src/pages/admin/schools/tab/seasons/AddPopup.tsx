@@ -53,49 +53,46 @@ type Props = {
 const Season = (props: Props) => {
   const { SeasonAPI } = useAPIv2();
   const fileInput = useRef<HTMLInputElement | null>(null);
-  const [jsonData, setJsonData] = useState(null);
 
   /**
    * upload json data
    * @returns upload json data & create form
    */
   
-  const handleProfileUploadButtonClick = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleProfileUploadButtonClick = () => {
     if (fileInput.current) fileInput.current.click();
   };
 
-  const handleFileChange = (e:any) => {
+  const handleFileChange = (e: any) => {
     const file = e.target.files[0];
     if (file) {
-      // 파일이 선택되었을 때 처리
       const reader = new FileReader();
 
-      // 파일 읽기가 완료되었을 때
-      reader.onload = (e:any) => {
+      reader.onload = (ev: any) => {
         try {
-          // 파일 내용을 JSON으로 파싱
-          const data = JSON.parse(e.target.result);
-          setJsonData(data);
-          // 데이터 베이스에 저장하기
-          setSelectedSeasonToCopy(data);
+          const data = JSON.parse(ev.target.result);
+          // 파일에서 가져온 데이터는 uploadedSeasonData에 저장
+          setUploadedSeasonData(data);
+          // 표시용으로 year, term만 설정 (_id는 사용하지 않음)
+          setSelectedSeasonToCopy({
+            _id: "", // 빈 문자열로 설정 (copyFrom 대신 copyFromData 사용)
+            year: data.year || "가져온 학기",
+            term: data.term || "",
+          });
           setIsLoadingSelectedSeasonToCopy(true);
           setSelectSeasonToCopyPopupActive(false);
           alert(SUCCESS_MESSAGE);
         } catch (err) {
           ALERT_ERROR(err);
-          setJsonData(null);
+          setUploadedSeasonData(null);
         }
       };
 
-      // 파일 읽기 오류 처리
       reader.onerror = (err) => {
         ALERT_ERROR(err);
-        setJsonData(null);
+        setUploadedSeasonData(null);
       };
 
-      // 파일 읽기 시작
       reader.readAsText(file);
     }
   };
@@ -114,6 +111,7 @@ const Season = (props: Props) => {
     year: string;
     term: string;
   }>();
+  const [uploadedSeasonData, setUploadedSeasonData] = useState<any>(null);
   const [isLoadingSelectedSeasonToCopy, setIsLoadingSelectedSeasonToCopy] =
     useState<boolean>(false);
 
@@ -133,19 +131,25 @@ const Season = (props: Props) => {
     }
 
     try {
+      // 파일에서 가져온 데이터가 있으면 copyFromData 사용, 아니면 copyFrom 사용
+      const useUploadedData = uploadedSeasonData && !selectedSeasonToCopy?._id;
+
       const { season } = await SeasonAPI.CSeason({
         data: {
           school: props.school,
           year: inputRef.current.year,
           term: inputRef.current.term,
           period: inputRef.current.period,
-          copyFrom: selectedSeasonToCopy?._id,
-          copyRecurringEvents: selectedSeasonToCopy?._id
-            ? copyRecurringEvents
-            : undefined,
-          copySchoolCalendar: selectedSeasonToCopy?._id
-            ? copySchoolCalendar
-            : undefined,
+          copyFromData: useUploadedData ? uploadedSeasonData : undefined,
+          copyFrom: !useUploadedData ? selectedSeasonToCopy?._id : undefined,
+          copyRecurringEvents:
+            !useUploadedData && selectedSeasonToCopy?._id
+              ? copyRecurringEvents
+              : undefined,
+          copySchoolCalendar:
+            !useUploadedData && selectedSeasonToCopy?._id
+              ? copySchoolCalendar
+              : undefined,
         },
       });
       alert(SUCCESS_MESSAGE);
@@ -324,6 +328,7 @@ const Season = (props: Props) => {
               }}
               onClick={() => {
                 setSelectedSeasonToCopy(undefined);
+                setUploadedSeasonData(null); // 업로드 데이터도 초기화
                 setIsLoadingSelectedSeasonToCopy(true);
                 setSelectSeasonToCopyPopupActive(false);
               }}
@@ -345,8 +350,8 @@ const Season = (props: Props) => {
           marginBottom: "4px",
           width: "100%",
         }}
-          onClick={(e: any) => {
-            handleProfileUploadButtonClick(e);
+          onClick={() => {
+            handleProfileUploadButtonClick();
           }}>
           파일 업로드
         </button>
@@ -390,6 +395,7 @@ const Season = (props: Props) => {
                 type: "button",
                 onClick: (e: any) => {
                   setSelectedSeasonToCopy(e);
+                  setUploadedSeasonData(null); // 테이블에서 선택하면 업로드 데이터 초기화
                   setIsLoadingSelectedSeasonToCopy(true);
                   setSelectSeasonToCopyPopupActive(false);
                 },
