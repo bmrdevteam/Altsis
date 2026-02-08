@@ -22,14 +22,21 @@ const ParsedBlock = (props: Props) => {
           className={style.parsed_block}
           style={{
             width: `${props.blockData.data?.width ?? 100}%`,
-            fontSize: props.blockData.data?.fontSize,
-            fontWeight: props.blockData.data?.fontWeight,
-            textAlign: props.blockData.data?.textAlign,
           }}
-          dangerouslySetInnerHTML={{
-            __html: props.blockData.data?.text ?? "",
-          }}
-        />
+        >
+          <div
+            style={{
+              width: "100%",
+              fontSize: props.blockData.data?.fontSize,
+              fontWeight: props.blockData.data?.fontWeight,
+              fontFamily: props.blockData.data?.fontFamily,
+              textAlign: props.blockData.data?.textAlign,
+            }}
+            dangerouslySetInnerHTML={{
+              __html: props.blockData.data?.text ?? "",
+            }}
+          />
+        </div>
       );
     case "table":
       return (
@@ -61,19 +68,20 @@ const ParsedBlock = (props: Props) => {
           className={style.parsed_block}
           style={{
             width: `${props.blockData.data?.width ?? 100}%`,
-            textAlign: props.blockData.data?.alignment ?? "center",
           }}
         >
-          <img
-            src={props.blockData.data.src}
-            alt={props.blockData.data?.alt ?? ""}
-            style={{ maxWidth: "100%" }}
-          />
-          {props.blockData.data?.caption && (
-            <div style={{ fontSize: "12px", color: "var(--accent-3)", marginTop: "4px" }}>
-              {props.blockData.data.caption}
-            </div>
-          )}
+          <div style={{ width: "100%", textAlign: props.blockData.data?.alignment ?? "center" }}>
+            <img
+              src={props.blockData.data.src}
+              alt={props.blockData.data?.alt ?? ""}
+              style={{ maxWidth: "100%" }}
+            />
+            {props.blockData.data?.caption && (
+              <div style={{ fontSize: "12px", color: "var(--accent-3)", marginTop: "4px" }}>
+                {props.blockData.data.caption}
+              </div>
+            )}
+          </div>
         </div>
       ) : null;
     case "input":
@@ -84,7 +92,9 @@ const ParsedBlock = (props: Props) => {
           className={style.parsed_block}
           style={{ width: `${props.blockData.data?.width ?? 100}%` }}
         >
-          {props.blockData.data?.text ?? ""}
+          <div style={{ width: "100%" }}>
+            {props.blockData.data?.text ?? ""}
+          </div>
         </div>
       );
   }

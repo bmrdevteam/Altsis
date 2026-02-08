@@ -53,6 +53,45 @@ const NumberSelect = ({
   </div>
 );
 
+const FONT_OPTIONS = [
+  // 기본 폰트
+  { value: "Pretendard", label: "Pretendard" },
+  // 고딕 계열
+  { value: "Noto Sans KR", label: "Noto Sans KR" },
+  { value: "Gothic A1", label: "Gothic A1" },
+  { value: "IBM Plex Sans KR", label: "IBM Plex Sans KR" },
+  { value: "Nanum Gothic", label: "나눔고딕" },
+  { value: "Nanum Gothic Coding", label: "나눔고딕코딩" },
+  { value: "Gowun Dodum", label: "고운돋움" },
+  { value: "Black Han Sans", label: "검정한산스" },
+  { value: "Do Hyeon", label: "도현" },
+  { value: "Jua", label: "주아" },
+  { value: "Gugi", label: "궁서" },
+  { value: "Sunflower", label: "해바라기" },
+  // 명조 계열
+  { value: "Noto Serif KR", label: "Noto Serif KR" },
+  { value: "Nanum Myeongjo", label: "나눔명조" },
+  { value: "Gowun Batang", label: "고운바탕" },
+  { value: "Hahmlet", label: "함렛" },
+  { value: "Song Myung", label: "송명" },
+  // 손글씨 / 캘리그라피
+  { value: "Nanum Pen Script", label: "나눔펜" },
+  { value: "Nanum Brush Script", label: "나눔브러시" },
+  { value: "Gaegu", label: "개구" },
+  { value: "Hi Melody", label: "하이멜로디" },
+  { value: "Gamja Flower", label: "감자꽃" },
+  { value: "Poor Story", label: "푸어스토리" },
+  { value: "Yeon Sung", label: "연성" },
+  { value: "Stylish", label: "스타일리시" },
+  { value: "Single Day", label: "싱글데이" },
+  { value: "Cute Font", label: "큐트폰트" },
+  // 특수 폰트
+  { value: "Dokdo", label: "독도" },
+  { value: "East Sea Dokdo", label: "동해독도" },
+  { value: "Kirang Haerang", label: "기랑해랑" },
+  { value: "Black And White Picture", label: "흑백사진" },
+];
+
 const ParagraphPanel = () => {
   const selectedBlock = useEditorStore((s) => {
     if (!s.selectedBlockId) return null;
@@ -68,6 +107,32 @@ const ParagraphPanel = () => {
   return (
     <Menu name="텍스트">
       <SubSection label="글자">
+        <div className={style.grid_item}>
+          <label>폰트</label>
+          <select
+            value={data?.fontFamily || "Pretendard"}
+            onChange={(e) => {
+              updateBlockData(blockId, {
+                fontFamily: e.target.value,
+              } as Partial<ParagraphBlockData>);
+            }}
+            style={{
+              height: "28px",
+              fontSize: "12px",
+              backgroundColor: "var(--background-color)",
+              border: "none",
+              borderRadius: "6px",
+              padding: "0 8px",
+              color: "var(--accent-1)",
+            }}
+          >
+            {FONT_OPTIONS.map((font) => (
+              <option key={font.value} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className={style.grid_item}>
           <label>정렬</label>
           <div className={style.align}>

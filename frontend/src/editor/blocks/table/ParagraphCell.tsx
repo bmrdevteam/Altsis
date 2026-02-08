@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef, useLayoutEffect } from "react";
 import style from "../../editor.module.scss";
 import useEditorStore from "../../store/useEditorStore";
 import { TableBlockData } from "../../types";
@@ -18,10 +18,27 @@ const ParagraphCell = (props: Props) => {
       ]
   );
   const mode = useEditorStore((s) => s.mode);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const lastTextRef = useRef<string>("");
+
+  // Sync content from store only when not focused (external changes)
+  useLayoutEffect(() => {
+    if (contentRef.current) {
+      const newText = cell?.data?.text || "";
+      if (
+        lastTextRef.current !== newText &&
+        document.activeElement !== contentRef.current
+      ) {
+        contentRef.current.innerHTML = newText;
+        lastTextRef.current = newText;
+      }
+    }
+  }, [cell?.data?.text]);
 
   const handleInput = useCallback(
     (e: React.FormEvent<HTMLDivElement>) => {
       const html = e.currentTarget.innerHTML;
+      lastTextRef.current = html;
       useEditorStore.setState((state) => {
         const tableData = state.blocks[props.blockIndex]?.data as TableBlockData;
         const c = tableData?.table?.[props.row]?.[props.column];
@@ -40,13 +57,13 @@ const ParagraphCell = (props: Props) => {
 
   return (
     <div
+      ref={contentRef}
       contentEditable={mode === "edit"}
       suppressContentEditableWarning
       className={style.cell}
       style={{ textAlign: cell?.align }}
       onInput={handleInput}
       onBlur={handleBlur}
-      dangerouslySetInnerHTML={{ __html: cell?.data?.text || "" }}
     />
   );
 };

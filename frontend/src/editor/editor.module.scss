@@ -899,6 +899,13 @@
     cursor: text;
 }
 
+.block > [contenteditable]:empty:before {
+    content: attr(placeholder);
+    color: rgb(171, 171, 171);
+    display: block;
+    cursor: text;
+}
+
 .block.line {
     min-height: 0;
 
@@ -1019,8 +1026,8 @@ parsed block
     font-family: 'Pretendard';
     outline: none;
     min-height: 29px;
-    vertical-align: middle;
-
+    display: flex;
+    align-items: center;
 }
 
 .parsed_block.line {

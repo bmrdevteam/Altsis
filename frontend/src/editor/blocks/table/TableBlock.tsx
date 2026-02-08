@@ -90,7 +90,7 @@ const TableBlock = (props: Props) => {
 
   if (!block || !data) return null;
 
-  const SetColumn = () => {
+  const renderColumns = () => {
     const columns = data?.columns;
     if (columns && Array.isArray(columns)) {
       const columnsSum = columns.reduce((a: number, b: any) => a + Number(b), 0);
@@ -105,15 +105,7 @@ const TableBlock = (props: Props) => {
     return <colgroup></colgroup>;
   };
 
-  const Cell = ({
-    type,
-    col,
-    row,
-  }: {
-    type: string;
-    col: number;
-    row: number;
-  }) => {
+  const renderCell = (type: string, col: number, row: number) => {
     const cellProps = {
       column: col,
       row: row,
@@ -158,6 +150,9 @@ const TableBlock = (props: Props) => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Don't intercept keys during IME composition (e.g., Korean input)
+    if (e.nativeEvent.isComposing) return;
+
     const pos = selectedCellPos;
     if (!pos || selectedBlockId !== props.blockId) return;
 
@@ -270,7 +265,7 @@ const TableBlock = (props: Props) => {
           backgroundColor: data.backgroundColor,
         }}
       >
-        <SetColumn />
+        {renderColumns()}
         <tbody>
           {data.table !== undefined &&
             data.table.map((value: any, index: number) => {
@@ -332,7 +327,7 @@ const TableBlock = (props: Props) => {
                             : undefined
                         }
                       >
-                        <Cell type={val.type} row={index} col={ind} />
+                        {renderCell(val.type, ind, index)}
                       </Tag>
                     );
                   })}

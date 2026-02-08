@@ -128,6 +128,7 @@ export interface ParagraphBlockData {
   text?: string;
   fontSize?: string;
   fontWeight?: number;
+  fontFamily?: string;
   textAlign?: TextAlign;
   width?: number;
 }
