@@ -39,6 +39,17 @@ const Block = (props: Props) => {
     }
   };
 
+  const wrapperWidth = (block.data as any)?.width ?? 100;
+
+  // For image blocks, calculate margin based on alignment
+  const getWrapperMargin = () => {
+    if (block.type !== "image") return undefined;
+    const alignment = (block.data as any)?.alignment || "center";
+    if (alignment === "left") return "0 auto 0 0";
+    if (alignment === "right") return "0 0 0 auto";
+    return "0 auto"; // center
+  };
+
   return (
     <div
       id={block.id}
@@ -47,7 +58,7 @@ const Block = (props: Props) => {
         e.stopPropagation();
         selectBlock(block.id);
       }}
-      style={{ width: `${(block.data as any)?.width ?? 100}%` }}
+      style={{ width: `${wrapperWidth}%`, margin: getWrapperMargin() }}
     >
       {blockContent()}
     </div>

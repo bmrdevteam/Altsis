@@ -62,17 +62,13 @@ const ImageBlock = (props: Props) => {
   }
 
   return (
-    <div
-      className={style.block}
-      style={{
-        textAlign: data.alignment || "center",
-      }}
-    >
+    <div className={style.block}>
       <img
         src={data.src}
         alt={data.alt || ""}
         style={{
-          maxWidth: `${data.width || 100}%`,
+          display: "block",
+          width: "100%",
           height: "auto",
           borderRadius: "4px",
         }}
