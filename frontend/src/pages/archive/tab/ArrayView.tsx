@@ -39,6 +39,9 @@ const One = (props: Props) => {
   const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
 
   const [isExcelPopupActive, setIsExcelPopupActive] = useState<boolean>(false);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [changedCount, setChangedCount] = useState<number>(0);
+  const initialArchiveListFlattenedRef = useRef<any[]>([]);
 
   useEffect(() => {
     if (props.pid) {
@@ -109,6 +112,44 @@ const One = (props: Props) => {
     setUserNameStatus(userNameStatus);
     setArchiveListFlattened(archiveListFlattened);
     archiveListFlattenedRef.current = archiveListFlattened;
+    initialArchiveListFlattenedRef.current = JSON.parse(JSON.stringify(archiveListFlattened));
+    setHasChanges(false);
+  };
+
+  const checkForChanges = () => {
+    // Build current and initial archive lists for comparison
+    const currentByStudent: { [key: string]: any[] } = {};
+    const initialByStudent: { [key: string]: any[] } = {};
+
+    for (const item of archiveListFlattenedRef.current) {
+      if (!currentByStudent[item._id]) currentByStudent[item._id] = [];
+      const dataItem: { [key: string]: string } = {};
+      for (const field of formArchive().fields ?? []) {
+        dataItem[field.label] = item[field.label];
+      }
+      currentByStudent[item._id].push(dataItem);
+    }
+
+    for (const item of initialArchiveListFlattenedRef.current) {
+      if (!initialByStudent[item._id]) initialByStudent[item._id] = [];
+      const dataItem: { [key: string]: string } = {};
+      for (const field of formArchive().fields ?? []) {
+        dataItem[field.label] = item[field.label];
+      }
+      initialByStudent[item._id].push(dataItem);
+    }
+
+    // Count changed students
+    let count = 0;
+    const allIds = Array.from(new Set([...Object.keys(currentByStudent), ...Object.keys(initialByStudent)]));
+    for (const id of allIds) {
+      if (!_.isEqual(currentByStudent[id] ?? [], initialByStudent[id] ?? [])) {
+        count++;
+      }
+    }
+
+    setChangedCount(count);
+    setHasChanges(count > 0);
   };
 
   useEffect(() => {
@@ -134,6 +175,7 @@ const One = (props: Props) => {
   }
 
   const updateArchives = async () => {
+    // Build current archive list from flattened data
     const _archiveList: any[] = archiveList.map((a) => {
       return {
         _id: a._id,
@@ -145,8 +187,6 @@ const One = (props: Props) => {
         data: [],
       };
     });
-    setUpdatingRatio(0);
-    const updatingLogs: string[] = [];
 
     for (let archiveFlattened of archiveListFlattenedRef.current) {
       const _aIdx = _.findIndex(
@@ -162,9 +202,49 @@ const One = (props: Props) => {
       }
     }
 
+    // Build initial archive list from initial flattened data for comparison
+    const _initialArchiveList: any[] = archiveList.map((a) => {
+      return {
+        _id: a._id,
+        data: [],
+      };
+    });
+
+    for (let archiveFlattened of initialArchiveListFlattenedRef.current) {
+      const _aIdx = _.findIndex(
+        _initialArchiveList,
+        (a) => a._id === archiveFlattened._id
+      );
+      if (_aIdx !== -1) {
+        const dataItem: { [key: string]: string } = {};
+        for (let field of formArchive().fields ?? []) {
+          dataItem[field.label] = archiveFlattened[field.label];
+        }
+        _initialArchiveList[_aIdx].data.push(dataItem);
+      }
+    }
+
+    // Find changed students
+    const changedIndices: number[] = [];
     for (let i = 0; i < _archiveList.length; i++) {
+      if (!_.isEqual(_archiveList[i].data, _initialArchiveList[i]?.data)) {
+        changedIndices.push(i);
+      }
+    }
+
+    setChangedCount(changedIndices.length);
+    setUpdatingRatio(0);
+    const updatingLogs: string[] = [];
+
+    let processed = 0;
+    for (let i = 0; i < _archiveList.length; i++) {
+      // Skip unchanged students
+      if (!changedIndices.includes(i)) {
+        continue;
+      }
+
       try {
-        const { archive } = await ArchiveAPI.UArchiveByRegistration({
+        await ArchiveAPI.UArchiveByRegistration({
           params: { _id: _archiveList[i]._id },
           data: {
             label: props.pid ?? "",
@@ -172,17 +252,13 @@ const One = (props: Props) => {
             registration: _archiveList[i].registration,
           },
         });
-        archiveList.push({
-          ..._archiveList[i],
-          ...archive,
-        });
       } catch (err) {
-        archiveList.push({ ..._archiveList[i] });
         updatingLogs.push(
-          `${archiveList[i].userName} (${archiveList[i].grade}/${archiveList[i].userId})`
+          `${_archiveList[i].userName} (${_archiveList[i].grade}/${_archiveList[i].userId})`
         );
       } finally {
-        setUpdatingRatio((i + 1) / _archiveList.length);
+        processed++;
+        setUpdatingRatio(changedIndices.length > 0 ? processed / changedIndices.length : 1);
       }
     }
 
@@ -262,32 +338,43 @@ const One = (props: Props) => {
 
   return !isLoading ? (
     <>
-      {archiveList.length !== 0 && (
+      {archiveList.length !== 0 && hasChanges && (
         <>
           <Button
-            type="ghost"
-            style={{ marginTop: "24px", borderColor: "gray" }}
+            type="solid"
+            style={{
+              marginTop: "24px",
+              backgroundColor: "#2563eb",
+              color: "white",
+              fontWeight: 600,
+              padding: "0 20px",
+              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+            }}
             onClick={() => {
               setIsUpdating(true);
             }}
           >
-            제출
+            {`변경 사항 저장 (${changedCount}명)`}
           </Button>{" "}
-    {/* 관리자만 엑셀 파일로 수정 기능 사용 24.02.04 devgoodway */}
-      {currentUser.auth == "manager" &&(
-        <>
-          <Button
-            type="ghost"
-            style={{ marginTop: "24px", borderColor: "gray" }}
-            onClick={() => {
-              setIsExcelPopupActive(true);
-            }}
-          >
-          엑셀 파일로 수정
-          </Button>
-          <br></br>
-        </>
-      )}
+    {/* 관리자 권한이 있고 교사/학생에게 수정 권한이 없을 때만 엑셀 파일로 수정 기능 사용 */}
+      {currentUser.auth === "manager" &&
+        formArchive().authManager === "viewAndEdit" &&
+        formArchive().authStudent !== "viewAndEdit" &&
+        formArchive().authTeacher !== "viewAndEditStudents" &&
+        formArchive().authTeacher !== "viewAndEditMyStudents" && (
+          <>
+            <Button
+              type="ghost"
+              style={{ marginTop: "24px", borderColor: "gray" }}
+              onClick={() => {
+                setIsExcelPopupActive(true);
+              }}
+            >
+              엑셀 파일로 수정
+            </Button>
+            <br></br>
+          </>
+        )}
       </>
     )}
     <div style={{ marginTop: "12px" }}>※ 이름을 선택하지 않고 입력한 값은 모든 사용자에게 일괄로 적용됩니다.</div>
@@ -299,6 +386,7 @@ const One = (props: Props) => {
             /* if value is updated */
             if (value.length === archiveListFlattenedRef.current.length) {
               archiveListFlattenedRef.current = value;
+              checkForChanges();
               return;
             }
             /* if value is added or removed */
@@ -334,7 +422,7 @@ const One = (props: Props) => {
               {isUpdating
                 ? "저장 중입니다."
                 : `저장이 완료되었습니다 (성공: ${
-                    archiveList.length - updatingLogs.length
+                    changedCount - updatingLogs.length
                   }, 실패: ${updatingLogs.length})`}
             </p>
             <Progress

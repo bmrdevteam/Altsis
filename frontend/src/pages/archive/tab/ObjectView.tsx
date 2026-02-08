@@ -8,6 +8,7 @@ import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
 import Progress from "components/progress/Progress";
 import Callout from "components/callout/Callout";
+import _ from "lodash";
 
 import ExcelPopup from "./ExcelPopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -20,7 +21,7 @@ type Props = {
 const ObjectView = (props: Props) => {
   const { ArchiveAPI, FileAPI } = useAPIv2();
 
-  const { currentSchool } = useAuth();
+  const { currentSchool, currentUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [archiveList, setArchiveList] = useState<any[]>([]);
@@ -33,6 +34,9 @@ const ObjectView = (props: Props) => {
   const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
 
   const [isExcelPopupActive, setIsExcelPopupActive] = useState<boolean>(false);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
+  const [changedCount, setChangedCount] = useState<number>(0);
+  const initialArchiveListRef = useRef<any[]>([]);
 
   const fileInput: {
     [key: string]: any;
@@ -87,12 +91,25 @@ const ObjectView = (props: Props) => {
         .then((archiveList) => {
           setArchiveList(archiveList);
           archiveListRef.current = archiveList;
+          initialArchiveListRef.current = JSON.parse(JSON.stringify(archiveList));
+          setHasChanges(false);
         })
         .then(() => {
           setIsLoading(false);
         });
     }
   }, [isLoading]);
+
+  const checkForChanges = () => {
+    let count = 0;
+    for (let i = 0; i < archiveListRef.current.length; i++) {
+      if (!_.isEqual(archiveListRef.current[i], initialArchiveListRef.current[i])) {
+        count++;
+      }
+    }
+    setChangedCount(count);
+    setHasChanges(count > 0);
+  };
 
   useEffect(() => {
     if (isUpdating && props.pid) {
@@ -101,6 +118,8 @@ const ObjectView = (props: Props) => {
         .then((archiveList) => {
           setArchiveList(archiveList);
           archiveListRef.current = archiveList;
+          initialArchiveListRef.current = JSON.parse(JSON.stringify(archiveList));
+          setHasChanges(false);
           setRefresh(true);
         })
         .then(() => {
@@ -122,12 +141,26 @@ const ObjectView = (props: Props) => {
   }
 
   const updateArchives = async () => {
-    const archiveList = [];
     setUpdatingRatio(0);
 
     const updatingLogs: string[] = [];
 
+    // Find indices of changed students only
+    const changedIndices: number[] = [];
     for (let i = 0; i < archiveListRef.current.length; i++) {
+      if (!_.isEqual(archiveListRef.current[i], initialArchiveListRef.current[i])) {
+        changedIndices.push(i);
+      }
+    }
+
+    setChangedCount(changedIndices.length);
+    let processed = 0;
+    for (let i = 0; i < archiveListRef.current.length; i++) {
+      // Skip unchanged students
+      if (!changedIndices.includes(i)) {
+        continue;
+      }
+
       try {
         const data: { [key: string]: string | number } = {};
 
@@ -135,7 +168,7 @@ const ObjectView = (props: Props) => {
           data[field.label] = archiveListRef.current[i][field.label];
         }
 
-        const { archive } = await ArchiveAPI.UArchiveByRegistration({
+        await ArchiveAPI.UArchiveByRegistration({
           params: { _id: archiveListRef.current[i]._id },
           data: {
             label: props.pid ?? "",
@@ -143,22 +176,18 @@ const ObjectView = (props: Props) => {
             registration: archiveListRef.current[i].registration,
           },
         });
-        archiveList.push({
-          ...archiveListRef.current[i],
-          ...archive,
-        });
       } catch (err) {
-        archiveList.push({ ...archiveListRef.current[i] });
         updatingLogs.push(
           `${archiveListRef.current[i].userName} (${archiveListRef.current[i].grade}/${archiveListRef.current[i].userId})`
         );
       } finally {
-        setUpdatingRatio((i + 1) / archiveListRef.current.length);
+        processed++;
+        setUpdatingRatio(changedIndices.length > 0 ? processed / changedIndices.length : 1);
       }
     }
 
     setUpdatingLogs([...updatingLogs]);
-    return archiveList;
+    return [...archiveListRef.current];
   };
 
   const fieldInput = (aIdx: number, label: string, index: number) => {
@@ -171,6 +200,7 @@ const ObjectView = (props: Props) => {
           rows={1}
           onChange={(e: any) => {
             archiveListRef.current[aIdx][label] = e.target.value;
+            checkForChanges();
           }}
         />
       </div>
@@ -609,26 +639,40 @@ const ObjectView = (props: Props) => {
 
   return !isLoading && !refresh ? (
     <>
-      {archiveList.length !== 0 && (
+      {archiveList.length !== 0 && hasChanges && (
         <div>
           <Button
-            type="ghost"
-            style={{ marginTop: "24px", borderColor: "red" }}
+            type="solid"
+            style={{
+              marginTop: "24px",
+              backgroundColor: "#2563eb",
+              color: "white",
+              fontWeight: 600,
+              padding: "0 20px",
+              boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+            }}
             onClick={() => {
               setIsUpdating(true);
             }}
           >
-            저장
+            {`변경 사항 저장 (${changedCount}명)`}
           </Button>
-          <Button
-            type="ghost"
-            style={{ marginTop: "24px", borderColor: "red" }}
-            onClick={() => {
-              setIsExcelPopupActive(true);
-            }}
-          >
-            엑셀 파일로 수정
-          </Button>
+          {/* 관리자 권한이 있고 교사/학생에게 수정 권한이 없을 때만 엑셀 파일로 수정 기능 사용 */}
+          {currentUser.auth === "manager" &&
+            formArchive().authManager === "viewAndEdit" &&
+            formArchive().authStudent !== "viewAndEdit" &&
+            formArchive().authTeacher !== "viewAndEditStudents" &&
+            formArchive().authTeacher !== "viewAndEditMyStudents" && (
+              <Button
+                type="ghost"
+                style={{ marginTop: "24px", borderColor: "red" }}
+                onClick={() => {
+                  setIsExcelPopupActive(true);
+                }}
+              >
+                엑셀 파일로 수정
+              </Button>
+            )}
         </div>
       )}
       <div className={style.content} style={{ paddingBottom: "24px" }}>
@@ -666,7 +710,7 @@ const ObjectView = (props: Props) => {
               {isUpdating
                 ? "저장 중입니다."
                 : `저장이 완료되었습니다 (성공: ${
-                    archiveList.length - updatingLogs.length
+                    changedCount - updatingLogs.length
                   }, 실패: ${updatingLogs.length})`}
             </p>
             <Progress

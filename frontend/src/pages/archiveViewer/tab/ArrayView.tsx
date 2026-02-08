@@ -24,12 +24,14 @@ const One = (props: Props) => {
   const [archiveId, setArchiveId] = useState<string>("");
   const [archiveData, setArchiveData] = useState<any[]>([]);
   const archiveDataRef = useRef<any[]>([]);
+  const initialArchiveDataRef = useRef<any[]>([]);
 
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [isUpdatePopupActive, setIsUpdatePopupActive] =
     useState<boolean>(false);
   const [updatingRatio, setUpdatingRatio] = useState<number>(0);
   const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
 
   useEffect(() => {
     if (isLoading && currentRegistration && pid) {
@@ -40,6 +42,10 @@ const One = (props: Props) => {
           setArchiveId(archive._id);
           setArchiveData(archive.data[pid] ?? []);
           archiveDataRef.current = archive.data[pid] ?? [];
+          initialArchiveDataRef.current = JSON.parse(
+            JSON.stringify(archive.data[pid] ?? [])
+          );
+          setHasChanges(false);
         })
         .then(() => {
           setIsLoading(false);
@@ -120,6 +126,32 @@ const One = (props: Props) => {
     return arr;
   }
 
+  const checkForChanges = () => {
+    const fields = formArchive().fields ?? [];
+
+    // Build current data for comparison
+    const currentData: any[] = [];
+    for (const item of archiveDataRef.current) {
+      const dataItem: { [key: string]: string } = {};
+      for (const field of fields) {
+        dataItem[field.label] = item[field.label];
+      }
+      currentData.push(dataItem);
+    }
+
+    // Build initial data for comparison
+    const initialData: any[] = [];
+    for (const item of initialArchiveDataRef.current) {
+      const dataItem: { [key: string]: string } = {};
+      for (const field of fields) {
+        dataItem[field.label] = item[field.label];
+      }
+      initialData.push(dataItem);
+    }
+
+    setHasChanges(!_.isEqual(currentData, initialData));
+  };
+
   const updateArchive = async () => {
     setUpdatingRatio(0);
     const updatingLogs: string[] = [];
@@ -144,6 +176,10 @@ const One = (props: Props) => {
       });
       setArchiveData(archive.data[pid!] ?? []);
       archiveDataRef.current = archive.data[pid!] ?? [];
+      initialArchiveDataRef.current = JSON.parse(
+        JSON.stringify(archive.data[pid!] ?? [])
+      );
+      setHasChanges(false);
       setUpdatingRatio(1);
     } catch (err) {
       updatingLogs.push("저장에 실패했습니다.");
@@ -164,15 +200,22 @@ const One = (props: Props) => {
 
   return !isLoading ? (
     <>
-      {props.editable && (
+      {props.editable && hasChanges && (
         <Button
-          type="ghost"
-          style={{ marginTop: "24px", borderColor: "gray" }}
+          type="solid"
+          style={{
+            marginTop: "24px",
+            backgroundColor: "#2563eb",
+            color: "white",
+            fontWeight: 600,
+            padding: "0 20px",
+            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+          }}
           onClick={() => {
             setIsUpdating(true);
           }}
         >
-          제출
+          변경 사항 저장
         </Button>
       )}
       <div style={{ marginTop: "24px" }}>
@@ -186,6 +229,7 @@ const One = (props: Props) => {
             ? {
                 onChange: (value: any[]) => {
                   archiveDataRef.current = value;
+                  checkForChanges();
                 },
               }
             : {})}

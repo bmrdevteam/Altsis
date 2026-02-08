@@ -26,6 +26,7 @@ const One = (props: Props) => {
   const [archiveId, setArchiveId] = useState<string>("");
   const [archiveData, setArchiveData] = useState<any>({});
   const archiveDataRef = useRef<any>({});
+  const initialArchiveDataRef = useRef<any>({});
 
   const [refresh, setRefresh] = useState<boolean>(false);
 
@@ -34,6 +35,7 @@ const One = (props: Props) => {
     useState<boolean>(false);
   const [updatingRatio, setUpdatingRatio] = useState<number>(0);
   const [updatingLogs, setUpdatingLogs] = useState<string[]>([]);
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
 
   const fileInput: { [key: string]: any } = {};
 
@@ -46,6 +48,10 @@ const One = (props: Props) => {
           setArchiveId(archive._id);
           setArchiveData(archive.data[pid]);
           archiveDataRef.current = archive.data[pid] ?? {};
+          initialArchiveDataRef.current = JSON.parse(
+            JSON.stringify(archive.data[pid] ?? {})
+          );
+          setHasChanges(false);
         })
         .then(() => {
           setIsLoading(false);
@@ -68,6 +74,19 @@ const One = (props: Props) => {
     );
   }
 
+  const checkForChanges = () => {
+    const fields = formArchive().fields ?? [];
+    for (const field of fields) {
+      const current = archiveDataRef.current?.[field.label];
+      const initial = initialArchiveDataRef.current?.[field.label];
+      if (!_.isEqual(current, initial)) {
+        setHasChanges(true);
+        return;
+      }
+    }
+    setHasChanges(false);
+  };
+
   const updateArchive = async () => {
     setUpdatingRatio(0);
     const updatingLogs: string[] = [];
@@ -88,6 +107,10 @@ const One = (props: Props) => {
       });
       setArchiveData(archive.data[pid!]);
       archiveDataRef.current = archive.data[pid!] ?? {};
+      initialArchiveDataRef.current = JSON.parse(
+        JSON.stringify(archive.data[pid!] ?? {})
+      );
+      setHasChanges(false);
       setUpdatingRatio(1);
       setRefresh(true);
     } catch (err) {
@@ -170,6 +193,7 @@ const One = (props: Props) => {
             props.editable
               ? (e: any) => {
                   archiveDataRef.current[label] = e.target.value;
+                  checkForChanges();
                 }
               : undefined
           }
@@ -556,15 +580,22 @@ const One = (props: Props) => {
 
   return !isLoading && !refresh ? (
     <>
-      {props.editable && (
+      {props.editable && hasChanges && (
         <Button
-          type="ghost"
-          style={{ marginTop: "24px", borderColor: "red" }}
+          type="solid"
+          style={{
+            marginTop: "24px",
+            backgroundColor: "#2563eb",
+            color: "white",
+            fontWeight: 600,
+            padding: "0 20px",
+            boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+          }}
           onClick={() => {
             setIsUpdating(true);
           }}
         >
-          저장
+          변경 사항 저장
         </Button>
       )}
       <div className={style.content} style={{ paddingBottom: "24px" }}>
