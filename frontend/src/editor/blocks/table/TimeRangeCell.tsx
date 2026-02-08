@@ -50,6 +50,14 @@ const TimeRangeCell = (props: Props) => {
     width: "45%",
   };
 
+  // Get display text - use custom text if set, otherwise show time range
+  const getDisplayText = () => {
+    if (cell?.timeRangeDisplayText) {
+      return cell.timeRangeDisplayText;
+    }
+    return `${cell?.timeRangeStart || "00:00"} ~ ${cell?.timeRangeEnd || "00:00"}`;
+  };
+
   return (
     <div
       className={style.cell}
@@ -77,9 +85,7 @@ const TimeRangeCell = (props: Props) => {
           />
         </>
       ) : (
-        <span>
-          {cell?.timeRangeStart || "00:00"} ~ {cell?.timeRangeEnd || "00:00"}
-        </span>
+        <span>{getDisplayText()}</span>
       )}
     </div>
   );

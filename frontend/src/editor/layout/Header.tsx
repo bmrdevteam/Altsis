@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Svg from "../../assets/svg/Svg";
 import style from "../editor.module.scss";
 import useEditorStore from "../store/useEditorStore";
 import useAPIv2 from "hooks/useAPIv2";
+import FormSettingsPopup from "./FormSettingsPopup";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ const Header = () => {
   const redo = useEditorStore((s) => s.redo);
   const historyLen = useEditorStore((s) => s.history.length);
   const futureLen = useEditorStore((s) => s.future.length);
+  const [settingsPopupActive, setSettingsPopupActive] = useState(false);
 
   return (
     <div className={style.header_container}>
@@ -42,11 +45,9 @@ const Header = () => {
               cursor: historyLen <= 1 ? "default" : "pointer",
               opacity: historyLen <= 1 ? 0.3 : 1,
               padding: "4px 8px",
-              fontSize: "14px",
-              fontWeight: 600,
             }}
           >
-            ↩
+            <Svg type="refresh" width="18px" height="18px" style={{ transform: "scaleX(-1)" }} />
           </div>
           <div
             onClick={() => futureLen > 0 && redo()}
@@ -55,21 +56,37 @@ const Header = () => {
               cursor: futureLen === 0 ? "default" : "pointer",
               opacity: futureLen === 0 ? 0.3 : 1,
               padding: "4px 8px",
-              fontSize: "14px",
-              fontWeight: 600,
             }}
           >
-            ↪
+            <Svg type="refresh" width="18px" height="18px" />
           </div>
 
-          <div className={style.preview} onClick={toggleMode}>
-            {mode === "preview" ? "편집" : "미리보기"}
+          <div
+            className={style.preview}
+            onClick={toggleMode}
+            title={mode === "preview" ? "편집" : "미리보기"}
+            style={{ cursor: "pointer", padding: "4px 8px" }}
+          >
+            <Svg type={mode === "preview" ? "edit" : "search"} width="18px" height="18px" />
           </div>
           <div
             className={style.save}
-            onClick={() => saveForm(FormAPI)}
+            onClick={() => !isSaving && saveForm(FormAPI)}
+            title={isSaving ? "저장 중..." : "저장"}
+            style={{
+              cursor: isSaving ? "default" : "pointer",
+              padding: "4px 8px",
+              opacity: isSaving ? 0.5 : 1,
+            }}
           >
-            {isSaving ? "저장 중..." : "저장"}
+            <Svg type="save" width="18px" height="18px" />
+          </div>
+          <div
+            onClick={() => setSettingsPopupActive(true)}
+            title="설정"
+            style={{ cursor: "pointer", padding: "4px 8px" }}
+          >
+            <Svg type="settings" width="18px" height="18px" />
           </div>
 
           {mode === "edit" && (
@@ -79,15 +96,17 @@ const Header = () => {
               style={{
                 cursor: "pointer",
                 padding: "4px 8px",
-                fontSize: "14px",
-                fontWeight: sidebarOpen ? 600 : 400,
+                opacity: sidebarOpen ? 1 : 0.5,
               }}
             >
-              ☰
+              <Svg type="menu" width="18px" height="18px" />
             </div>
           )}
         </div>
       </div>
+      {settingsPopupActive && (
+        <FormSettingsPopup setState={setSettingsPopupActive} />
+      )}
     </div>
   );
 };

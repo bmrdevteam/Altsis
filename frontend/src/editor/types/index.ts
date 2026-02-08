@@ -52,6 +52,9 @@ export interface StyleProps {
   borderStyle?: BorderStyle | string;
   borderRadius?: string;
   backgroundColor?: string;
+  backgroundImage?: string;
+  backgroundSize?: string;
+  backgroundPosition?: string;
 }
 
 // =====================================================
@@ -82,6 +85,7 @@ export interface CellData extends StyleProps {
   checked?: boolean;
   timeRangeStart?: string;
   timeRangeEnd?: string;
+  timeRangeDisplayText?: string;
   // input
   placeholder?: string;
   required?: boolean;

@@ -57,8 +57,10 @@ function Editor(props: Props) {
   return (
     <div className={style.editor}>
       <Header />
-      {mode === "edit" && sidebarOpen && <Sidebar />}
-      <Content />
+      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <Content />
+        {mode === "edit" && sidebarOpen && <Sidebar />}
+      </div>
       {mode === "edit" && <InlineToolbar />}
     </div>
   );

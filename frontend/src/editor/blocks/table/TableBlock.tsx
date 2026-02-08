@@ -292,7 +292,7 @@ const TableBlock = (props: Props) => {
                       isCellInRange(index, ind, selectedCellRange);
                     const isSelected = isSingleSelected || isInRange;
 
-                    const cellStyle = {
+                    const cellStyle: React.CSSProperties = {
                       fontSize: val?.fontSize,
                       fontWeight: val?.fontWeight,
                       borderWidth: val?.borderWidth,
@@ -300,6 +300,9 @@ const TableBlock = (props: Props) => {
                       borderStyle: val?.borderStyle,
                       borderRadius: val?.borderRadius,
                       backgroundColor: val?.backgroundColor,
+                      backgroundImage: val?.backgroundImage ? `url(${val.backgroundImage})` : undefined,
+                      backgroundSize: val?.backgroundSize || "cover",
+                      backgroundPosition: val?.backgroundPosition || "center",
                     };
 
                     const Tag = val.isHeader ? "th" : "td";

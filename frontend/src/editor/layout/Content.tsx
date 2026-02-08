@@ -6,7 +6,6 @@ import useEditorStore from "../store/useEditorStore";
 const Content = () => {
   const blocks = useEditorStore((s) => s.blocks);
   const mode = useEditorStore((s) => s.mode);
-  const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
   const selectBlock = useEditorStore((s) => s.selectBlock);
 
   const handleContentClick = (e: React.MouseEvent) => {
@@ -18,10 +17,6 @@ const Content = () => {
   return (
     <div
       className={`${style.content_container} ${mode === "preview" ? style.preview : ""}`}
-      style={{
-        width:
-          mode === "edit" && sidebarOpen ? "calc(100% - 280px)" : "100%",
-      }}
     >
       <div
         className={style.page}

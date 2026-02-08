@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useRef, useState, useEffect } from "react";
 import Svg from "../../assets/svg/Svg";
 import useEditorStore from "../store/useEditorStore";
 
@@ -31,11 +31,27 @@ const InlineToolbar = () => {
       return;
     }
 
+    const contentContainer = el.closest("[class*='content_container']");
+    const page = el.closest("[class*='page']");
+
     const updatePosition = () => {
       const rect = el.getBoundingClientRect();
+      const pageBounds = page?.getBoundingClientRect();
+      const containerBounds = contentContainer?.getBoundingClientRect();
+
+      // Position toolbar in the left padding area of the page
+      // Use page left + 8px for consistent positioning relative to content
+      let leftPos = rect.left - 40;
+      if (pageBounds) {
+        leftPos = pageBounds.left + 8;
+      }
+
+      // Calculate top boundary from container
+      const topBoundary = containerBounds ? containerBounds.top : 56;
+
       setPosition({
-        top: rect.top,
-        left: rect.left - 24,
+        top: Math.max(rect.top, topBoundary),
+        left: leftPos,
       });
       setVisible(true);
     };
@@ -43,12 +59,28 @@ const InlineToolbar = () => {
     updatePosition();
 
     // Recalculate on scroll
-    const contentContainer = el.closest("[class*='content_container']");
     if (contentContainer) {
       contentContainer.addEventListener("scroll", updatePosition);
-      return () =>
-        contentContainer.removeEventListener("scroll", updatePosition);
     }
+
+    // Use ResizeObserver to detect layout changes (sidebar open/close)
+    const resizeObserver = new ResizeObserver(() => {
+      updatePosition();
+    });
+
+    if (contentContainer) {
+      resizeObserver.observe(contentContainer);
+    }
+    if (page) {
+      resizeObserver.observe(page);
+    }
+
+    return () => {
+      if (contentContainer) {
+        contentContainer.removeEventListener("scroll", updatePosition);
+      }
+      resizeObserver.disconnect();
+    };
   }, [selectedBlockId, mode, blocks.length]);
 
   if (!visible || !selectedBlock || !selectedBlockId) return null;
@@ -57,10 +89,9 @@ const InlineToolbar = () => {
 
   const toolbarStyle: React.CSSProperties = {
     position: "fixed",
-    top: `${Math.max(position.top, 56)}px`,
+    top: `${position.top}px`,
     left: `${position.left}px`,
-    transform: "translateX(calc(-100% - 8px))",
-    zIndex: 2001,
+    zIndex: 100,
     display: "flex",
     flexDirection: "column",
     gap: "2px",

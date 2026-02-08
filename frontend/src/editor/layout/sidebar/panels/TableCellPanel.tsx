@@ -1,15 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { isArray } from "lodash";
 import Svg from "../../../../assets/svg/Svg";
 import Button from "../../../../components/button/Button";
 import Select from "../../../../components/select/Select";
 import ToggleSwitch from "../../../../components/toggleSwitch/ToggleSwitch";
 import style from "../../../editor.module.scss";
 import useEditorStore from "../../../store/useEditorStore";
+import useGenerateId from "../../../../hooks/useGenerateId";
 import { TableBlockData, TextAlign } from "../../../types";
 import Menu from "../Menu";
 import SubSection from "../SubSection";
+import DataConnPopup from "../DataConnPopup";
+
+const generateId = useGenerateId;
 
 type ActiveTab = "table" | "cell";
+type ImageInputMode = "file" | "url";
 
 const NumberSelect = ({
   value,
@@ -68,6 +74,8 @@ const TableCellPanel = () => {
   const updateBlockData = useEditorStore((s) => s.updateBlockData);
   const updateSelectedCells = useEditorStore((s) => s.updateSelectedCells);
   const [activeTab, setActiveTab] = useState<ActiveTab>("table");
+  const [imageInputMode, setImageInputMode] = useState<ImageInputMode>("file");
+  const bgImageFileRef = useRef<HTMLInputElement>(null);
 
   const hasCell = cellPos !== null || cellRange !== null;
 
@@ -390,6 +398,135 @@ const TableCellPanel = () => {
             value={currentBgColor}
           />
         </div>
+        <div style={{ marginTop: "8px" }}>
+          <div className={style.tab_bar} style={{ marginBottom: "8px" }}>
+            <button
+              className={`${style.tab_item} ${imageInputMode === "file" ? style.active : ""}`}
+              onClick={() => setImageInputMode("file")}
+            >
+              파일
+            </button>
+            <button
+              className={`${style.tab_item} ${imageInputMode === "url" ? style.active : ""}`}
+              onClick={() => setImageInputMode("url")}
+            >
+              URL
+            </button>
+          </div>
+          {imageInputMode === "file" ? (
+            <div className={style.grid_item}>
+              <label>이미지</label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "28px",
+                  borderRadius: "6px",
+                  backgroundColor: "var(--background-color)",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "var(--accent-3)",
+                }}
+                onClick={() => bgImageFileRef.current?.click()}
+              >
+                {(isTable ? data.backgroundImage : cell?.backgroundImage) ? "이미지 변경" : "파일 선택"}
+              </div>
+              <input
+                ref={bgImageFileRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const imageData = reader.result as string;
+                    if (isTable) {
+                      useEditorStore.setState((state) => {
+                        const block = state.blocks.find((b) => b.id === blockId);
+                        if (block && block.type === "table") {
+                          const td = block.data as TableBlockData;
+                          td.backgroundImage = imageData;
+                          td.table.forEach((row) =>
+                            row.forEach((c) => (c.backgroundImage = imageData))
+                          );
+                        }
+                      });
+                      useEditorStore.getState().saveSnapshot();
+                    } else {
+                      updateCellProp({ backgroundImage: imageData });
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </div>
+          ) : (
+            <div className={style.grid_item}>
+              <label>URL</label>
+              <input
+                type="text"
+                placeholder="https://..."
+                value={
+                  isTable
+                    ? (data.backgroundImage?.startsWith("data:") ? "" : (data.backgroundImage ?? ""))
+                    : (cell?.backgroundImage?.startsWith("data:") ? "" : (cell?.backgroundImage ?? ""))
+                }
+                onChange={(e) => {
+                  if (isTable) {
+                    useEditorStore.setState((state) => {
+                      const block = state.blocks.find((b) => b.id === blockId);
+                      if (block && block.type === "table") {
+                        const td = block.data as TableBlockData;
+                        td.backgroundImage = e.target.value;
+                        td.table.forEach((row) =>
+                          row.forEach((c) => (c.backgroundImage = e.target.value))
+                        );
+                      }
+                    });
+                    useEditorStore.getState().saveSnapshot();
+                  } else {
+                    updateCellProp({ backgroundImage: e.target.value });
+                  }
+                }}
+              />
+            </div>
+          )}
+          {(isTable ? data.backgroundImage : cell?.backgroundImage) && (
+            <Button
+              type="ghost"
+              style={{
+                width: "100%",
+                marginTop: "8px",
+                height: "28px",
+                fontSize: "12px",
+                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+              }}
+              onClick={() => {
+                if (isTable) {
+                  useEditorStore.setState((state) => {
+                    const block = state.blocks.find((b) => b.id === blockId);
+                    if (block && block.type === "table") {
+                      const td = block.data as TableBlockData;
+                      td.backgroundImage = "";
+                      td.table.forEach((row) =>
+                        row.forEach((c) => (c.backgroundImage = ""))
+                      );
+                    }
+                  });
+                  useEditorStore.getState().saveSnapshot();
+                } else {
+                  updateCellProp({ backgroundImage: "" });
+                }
+              }}
+            >
+              이미지 삭제
+            </Button>
+          )}
+        </div>
       </SubSection>
 
       {/* Table-only: 표 (Table width) */}
@@ -438,8 +575,8 @@ const TableCellPanel = () => {
               <div className={style.grid_item} style={{ flex: "1 1 0" }}>
                 <Svg
                   type={"tableMergeHorizontal"}
-                  width="20px"
-                  height="20px"
+                  width="16px"
+                  height="16px"
                 />
                 <input
                   min="1"
@@ -455,8 +592,8 @@ const TableCellPanel = () => {
               <div className={style.grid_item} style={{ flex: "1 1 0" }}>
                 <Svg
                   type={"tableMergeVertical"}
-                  width="20px"
-                  height="20px"
+                  width="16px"
+                  height="16px"
                 />
                 <input
                   min="1"
@@ -470,14 +607,15 @@ const TableCellPanel = () => {
                 />
               </div>
             </div>
-            <div style={{ display: "flex", gap: "4px" }}>
+            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
               <Button
                 type="ghost"
                 style={{
-                  flex: "1 1 0",
+                  flex: "1 1 calc(25% - 3px)",
+                  minWidth: "calc(25% - 3px)",
                   marginTop: "8px",
                   borderRadius: "4px",
-                  height: "32px",
+                  height: "28px",
                   boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
                 }}
                 onClick={() => {
@@ -486,15 +624,16 @@ const TableCellPanel = () => {
                     .insertColumnBefore(blockId, cellPos.col);
                 }}
               >
-                <Svg type={"tableInsertLeft"} />
+                <Svg type={"tableInsertLeft"} width="14px" height="14px" />
               </Button>
               <Button
                 type="ghost"
                 style={{
-                  flex: "1 1 0",
+                  flex: "1 1 calc(25% - 3px)",
+                  minWidth: "calc(25% - 3px)",
                   marginTop: "8px",
                   borderRadius: "4px",
-                  height: "32px",
+                  height: "28px",
                   boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
                 }}
                 onClick={() => {
@@ -503,17 +642,16 @@ const TableCellPanel = () => {
                     .addColumn(blockId, cellPos.col);
                 }}
               >
-                <Svg type={"tableInsertRight"} />
+                <Svg type={"tableInsertRight"} width="14px" height="14px" />
               </Button>
-            </div>
-            <div style={{ display: "flex", gap: "4px" }}>
               <Button
                 type="ghost"
                 style={{
-                  flex: "1 1 0",
+                  flex: "1 1 calc(25% - 3px)",
+                  minWidth: "calc(25% - 3px)",
                   marginTop: "8px",
                   borderRadius: "4px",
-                  height: "32px",
+                  height: "28px",
                   boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
                 }}
                 onClick={() => {
@@ -522,31 +660,32 @@ const TableCellPanel = () => {
                     .addRow(blockId, cellPos.row - 1);
                 }}
               >
-                <Svg type={"tableInsertUp"} />
+                <Svg type={"tableInsertUp"} width="14px" height="14px" />
               </Button>
               <Button
                 type="ghost"
                 style={{
-                  flex: "1 1 0",
+                  flex: "1 1 calc(25% - 3px)",
+                  minWidth: "calc(25% - 3px)",
                   marginTop: "8px",
                   borderRadius: "4px",
-                  height: "32px",
+                  height: "28px",
                   boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
                 }}
                 onClick={() => {
                   useEditorStore.getState().addRow(blockId, cellPos.row);
                 }}
               >
-                <Svg type={"tableInsertDown"} />
+                <Svg type={"tableInsertDown"} width="14px" height="14px" />
               </Button>
-            </div>
-            <div style={{ display: "flex", gap: "4px" }}>
               <Button
                 type="ghost"
                 style={{
-                  flex: "1 1 0",
-                  marginTop: "8px",
-                  height: "32px",
+                  flex: "1 1 calc(25% - 3px)",
+                  minWidth: "calc(25% - 3px)",
+                  marginTop: "4px",
+                  borderRadius: "4px",
+                  height: "28px",
                   boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
                 }}
                 onClick={() => {
@@ -555,15 +694,16 @@ const TableCellPanel = () => {
                     .removeColumn(blockId, cellPos.col);
                 }}
               >
-                <Svg type={"tableDeleteColumn"} />
+                <Svg type={"tableDeleteColumn"} width="14px" height="14px" />
               </Button>
               <Button
                 type="ghost"
                 style={{
-                  flex: "1 1 0",
-                  marginTop: "8px",
+                  flex: "1 1 calc(25% - 3px)",
+                  minWidth: "calc(25% - 3px)",
+                  marginTop: "4px",
                   borderRadius: "4px",
-                  height: "32px",
+                  height: "28px",
                   boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
                 }}
                 onClick={() => {
@@ -572,9 +712,272 @@ const TableCellPanel = () => {
                     .removeRow(blockId, cellPos.row);
                 }}
               >
-                <Svg type={"tableDeleteRow"} />
+                <Svg type={"tableDeleteRow"} width="14px" height="14px" />
               </Button>
             </div>
+          </SubSection>
+
+          {/* Cell Type Section */}
+          <SubSection label="셀 타입">
+            <div className={style.grid_item}>
+              <label>타입</label>
+              <Select
+                onChange={(value: any) => updateCellProp({ type: value })}
+                style={{ fontSize: "12px" }}
+                selectedValue={cell.type}
+                appearence="flat"
+                options={[
+                  { text: "텍스트셀", value: "paragraph" },
+                  { text: "데이터셀", value: "data" },
+                  { text: "시간셀", value: "time" },
+                  { text: "시간범위셀", value: "timeRange" },
+                  { text: "체크박스셀", value: "checkbox" },
+                  { text: "입력셀", value: "input" },
+                  { text: "선택셀", value: "select" },
+                ]}
+              />
+            </div>
+
+            {/* Checkbox type settings */}
+            {cell.type === "checkbox" && (
+              <>
+                <div className={style.grid_item}>
+                  <label>이름</label>
+                  <input
+                    type="text"
+                    value={cell.name ?? ""}
+                    onChange={(e) => updateCellProp({ name: e.target.value })}
+                  />
+                </div>
+                <div className={style.grid_item}>
+                  <label>시작 시간</label>
+                  <input
+                    type="time"
+                    value={cell.timeRangeStart ?? "00:00"}
+                    onChange={(e) =>
+                      updateCellProp({ timeRangeStart: e.target.value })
+                    }
+                  />
+                </div>
+                <div className={style.grid_item}>
+                  <label>끝 시간</label>
+                  <input
+                    type="time"
+                    value={cell.timeRangeEnd ?? "00:00"}
+                    onChange={(e) =>
+                      updateCellProp({ timeRangeEnd: e.target.value })
+                    }
+                  />
+                </div>
+              </>
+            )}
+
+            {/* TimeRange type settings */}
+            {cell.type === "timeRange" && (
+              <>
+                <div className={style.grid_item}>
+                  <label>시작 시간</label>
+                  <input
+                    type="time"
+                    value={cell.timeRangeStart ?? "00:00"}
+                    onChange={(e) =>
+                      updateCellProp({ timeRangeStart: e.target.value })
+                    }
+                  />
+                </div>
+                <div className={style.grid_item}>
+                  <label>끝 시간</label>
+                  <input
+                    type="time"
+                    value={cell.timeRangeEnd ?? "00:00"}
+                    onChange={(e) =>
+                      updateCellProp({ timeRangeEnd: e.target.value })
+                    }
+                  />
+                </div>
+                <div className={style.grid_item}>
+                  <label>표시 텍스트</label>
+                  <input
+                    type="text"
+                    placeholder="예: 1교시"
+                    value={cell.timeRangeDisplayText ?? ""}
+                    onChange={(e) =>
+                      updateCellProp({ timeRangeDisplayText: e.target.value })
+                    }
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Time type settings */}
+            {cell.type === "time" && (
+              <div className={style.grid_item}>
+                <label>시간</label>
+                <input
+                  type="time"
+                  value={cell.data?.text ?? "00:00"}
+                  onChange={(e) =>
+                    updateCellProp({ data: { text: e.target.value } })
+                  }
+                />
+              </div>
+            )}
+
+            {/* Input type settings */}
+            {cell.type === "input" && (
+              <>
+                <div className={style.grid_item}>
+                  <label>이름</label>
+                  <input
+                    type="text"
+                    value={cell.name ?? ""}
+                    onChange={(e) => updateCellProp({ name: e.target.value })}
+                  />
+                </div>
+                <div className={style.grid_item}>
+                  <label>응답 예시</label>
+                  <input
+                    type="text"
+                    value={cell.placeholder ?? ""}
+                    onChange={(e) =>
+                      updateCellProp({ placeholder: e.target.value })
+                    }
+                  />
+                </div>
+                <div className={style.grid_item}>
+                  <label>필수</label>
+                  <ToggleSwitch
+                    defaultChecked={cell.required}
+                    onChange={(e: boolean) => updateCellProp({ required: e })}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Select type settings */}
+            {cell.type === "select" && (
+              <div>
+                <div className={style.grid_item}>
+                  <label>이름</label>
+                  <input
+                    type="text"
+                    value={cell.name ?? ""}
+                    onChange={(e) => updateCellProp({ name: e.target.value })}
+                  />
+                </div>
+                <label style={{ display: "block", marginTop: "8px", marginBottom: "4px", fontSize: "11px", fontWeight: 700, color: "var(--accent-3)" }}>
+                  옵션
+                </label>
+                <div className={style.options}>
+                  {cell.options?.map((value) => (
+                    <div className={style.item} key={value.id} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <input
+                        type="text"
+                        value={value.text}
+                        style={{ flex: 1 }}
+                        onChange={(e) => {
+                          useEditorStore.setState((state) => {
+                            const block = state.blocks.find(
+                              (b) => b.id === blockId
+                            );
+                            if (block && block.type === "table") {
+                              const td = block.data as TableBlockData;
+                              const c =
+                                td.table?.[cellPos.row]?.[cellPos.col];
+                              const opt = c?.options?.find(
+                                (o) => o.id === value.id
+                              );
+                              if (opt) opt.text = e.target.value;
+                            }
+                          });
+                        }}
+                      />
+                      <span>|</span>
+                      <input
+                        type="text"
+                        value={value.value}
+                        style={{ flex: 1 }}
+                        onChange={(e) => {
+                          useEditorStore.setState((state) => {
+                            const block = state.blocks.find(
+                              (b) => b.id === blockId
+                            );
+                            if (block && block.type === "table") {
+                              const td = block.data as TableBlockData;
+                              const c =
+                                td.table?.[cellPos.row]?.[cellPos.col];
+                              const opt = c?.options?.find(
+                                (o) => o.id === value.id
+                              );
+                              if (opt) opt.value = e.target.value;
+                            }
+                          });
+                        }}
+                      />
+                      <span
+                        style={{ minWidth: "20px", cursor: "pointer" }}
+                        onClick={() => {
+                          useEditorStore.setState((state) => {
+                            const block = state.blocks.find(
+                              (b) => b.id === blockId
+                            );
+                            if (block && block.type === "table") {
+                              const td = block.data as TableBlockData;
+                              const c =
+                                td.table?.[cellPos.row]?.[cellPos.col];
+                              if (c?.options) {
+                                c.options = c.options.filter(
+                                  (o) => o.id !== value.id
+                                );
+                              }
+                            }
+                          });
+                          useEditorStore.getState().saveSnapshot();
+                        }}
+                      >
+                        <Svg width="16px" type={"x"} />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="ghost"
+                  style={{
+                    width: "100%",
+                    marginTop: "8px",
+                    height: "28px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                  }}
+                  onClick={() => {
+                    useEditorStore.setState((state) => {
+                      const block = state.blocks.find(
+                        (b) => b.id === blockId
+                      );
+                      if (block && block.type === "table") {
+                        const td = block.data as TableBlockData;
+                        const c = td.table?.[cellPos.row]?.[cellPos.col];
+                        if (c) {
+                          if (!isArray(c.options)) {
+                            c.options = [];
+                          }
+                          c.options.push({
+                            id: generateId(12),
+                            text: "필드",
+                            value: "값",
+                          });
+                        }
+                      }
+                    });
+                    useEditorStore.getState().saveSnapshot();
+                  }}
+                >
+                  옵션 추가
+                </Button>
+              </div>
+            )}
+
+            {/* Data type settings */}
+            {cell.type === "data" && <DataConnPopup />}
           </SubSection>
         </>
       )}
