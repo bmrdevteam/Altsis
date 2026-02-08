@@ -10,6 +10,7 @@ import { useAuth } from "contexts/authContext";
 type Props = {
   setPopupActive: any;
   onVisibilityChange?: () => void;
+  userId?: string;
 };
 
 const Index = (props: Props) => {
@@ -21,14 +22,14 @@ const Index = (props: Props) => {
   if (currentRegistration?._id) {
     if (currentRegistration?.role === "teacher") {
       courseItems["담당 수업"] = (
-        <MentoringCourseTab setIsReloadRequired={setIsReloadRequired} />
+        <MentoringCourseTab setIsReloadRequired={setIsReloadRequired} userId={props.userId} />
       );
       courseItems["수강 현황"] = (
-        <EnrolledCourseTab setIsReloadRequired={setIsReloadRequired} />
+        <EnrolledCourseTab setIsReloadRequired={setIsReloadRequired} userId={props.userId} />
       );
     } else {
       courseItems["수강 중인 수업"] = (
-        <EnrolledCourseTab setIsReloadRequired={setIsReloadRequired} />
+        <EnrolledCourseTab setIsReloadRequired={setIsReloadRequired} userId={props.userId} />
       );
     }
   }

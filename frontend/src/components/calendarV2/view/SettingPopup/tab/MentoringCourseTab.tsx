@@ -7,6 +7,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
   setIsReloadRequired: React.Dispatch<React.SetStateAction<boolean>>;
+  userId?: string;
 };
 
 const Index = (props: Props) => {
@@ -55,11 +56,12 @@ const Index = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading && currentSeason?._id && currentUser?._id) {
+    const targetUserId = props.userId || currentUser?._id;
+    if (isLoading && currentSeason?._id && targetUserId) {
       SyllabusAPI.RSyllabuses({
         query: {
           season: currentSeason._id,
-          teacher: currentUser._id,
+          teacher: targetUserId,
         },
       })
         .then(({ syllabuses }) => {
@@ -67,7 +69,7 @@ const Index = (props: Props) => {
           for (let syllabus of syllabuses) {
             const teacherIdx = _.findIndex(
               syllabus.teachers,
-              (teacher: any) => teacher._id === currentUser._id
+              (teacher: any) => teacher._id === targetUserId
             );
             if (teacherIdx !== -1) {
               syllabusMap.set(syllabus._id, {

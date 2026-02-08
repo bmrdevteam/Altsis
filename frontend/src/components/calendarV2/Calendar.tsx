@@ -631,6 +631,7 @@ const Calender = (props: Props) => {
         <SettingPopup
           setPopupActive={setIsSettingPopupActive}
           onVisibilityChange={() => updateCalendar(dateItem.yyyy)}
+          userId={props.userId}
         />
       )}
       {isEventFormPopupActive && (

@@ -6,6 +6,7 @@ import useAPIv2 from "hooks/useAPIv2";
 
 type Props = {
   setIsReloadRequired: React.Dispatch<React.SetStateAction<boolean>>;
+  userId?: string;
 };
 
 const Index = (props: Props) => {
@@ -54,9 +55,10 @@ const Index = (props: Props) => {
   };
 
   useEffect(() => {
-    if (isLoading && currentSeason?._id && currentUser?._id) {
+    const targetUserId = props.userId || currentUser?._id;
+    if (isLoading && currentSeason?._id && targetUserId) {
       EnrollmentAPI.REnrollments({
-        query: { season: currentSeason._id, student: currentUser._id },
+        query: { season: currentSeason._id, student: targetUserId },
       }).then(({ enrollments }) => {
         const enrollmentMap = new Map<string, any>();
         for (let enrollment of enrollments) {
