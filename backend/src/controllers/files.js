@@ -168,12 +168,18 @@ export const signArchive = async (req, res) => {
 
     const authStudent = formItem.authStudent ?? "undefined";
     const authTeacher = formItem.authTeacher ?? "undefined";
+    const authManager = formItem.authManager ?? "undefined";
 
-    if (archive.user.equals(req.user._id)) {
-      if (authStudent !== "view") {
+    /* manager with authManager permission can access */
+    if (req.user.auth === "manager" && authManager === "viewAndEdit") {
+      /* manager: allowed */
+    } else if (archive.user.equals(req.user._id)) {
+      /* student viewing own data */
+      if (authStudent !== "view" && authStudent !== "viewAndEdit") {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
     } else {
+      /* teacher viewing student data */
       if (authTeacher === "viewAndEditStudents") {
         const registrationTeacher = await Registration(
           req.user.academyId

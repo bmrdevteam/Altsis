@@ -93,8 +93,14 @@ export const findByRegistration = async (req, res) => {
           .send({ message: __NOT_FOUND("formArchive_item") });
       }
 
-      /* if it is student */
-      if (studentRegistration.user.equals(req.user._id)) {
+      /* manager with authManager permission can access */
+      if (
+        req.user.auth === "manager" &&
+        formArchiveItem?.authManager === "viewAndEdit"
+      ) {
+        /* manager: allowed */
+      } else if (studentRegistration.user.equals(req.user._id)) {
+        /* if it is student */
         if (
           formArchiveItem?.authStudent !== "view" &&
           formArchiveItem?.authStudent !== "viewAndEdit"
@@ -262,8 +268,14 @@ export const updateByRegistration = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("formArchive_Item") });
     }
 
-    /* check if student is editing their own archive */
+    /* check permission: manager with authManager permission can edit */
     if (
+      user.auth === "manager" &&
+      formArchiveItem?.authManager === "viewAndEdit"
+    ) {
+      /* manager: allowed */
+    } else if (
+      /* check if student is editing their own archive */
       formArchiveItem.authStudent === "viewAndEdit" &&
       archive.user.equals(user._id)
     ) {

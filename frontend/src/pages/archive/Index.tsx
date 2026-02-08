@@ -10,14 +10,17 @@ type Props = {};
 
 const Archive = (props: Props) => {
   const navigate = useNavigate();
-  const { currentSchool } = useAuth();
+  const { currentSchool, currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (isLoading) {
       if (currentSchool?._id && currentSchool.formArchive) {
+        const isManager = currentUser?.auth === "manager";
         const formArchive = currentSchool.formArchive.filter(
-          (form: any) => form.authTeacher && form.authTeacher !== "undefined"
+          (form: any) =>
+            (form.authTeacher && form.authTeacher !== "undefined") ||
+            (isManager && form.authManager === "viewAndEdit")
         );
         if (formArchive.length !== 0) {
           navigate(formArchive[0].label);

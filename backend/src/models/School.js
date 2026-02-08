@@ -70,6 +70,7 @@ const formArchiveFieldSchema = mongoose.Schema(
  * @prop {TFormArchiveField[]} fields
  * @prop {"undefined"|"viewAndEditStudents"|"viewAndEditMyStudents"} authTeacher="undefined"
  * @prop {"undefined"|"view"|"viewAndEdit"} authStudent="undefined"
+ * @prop {"undefined"|"viewAndEdit"} authManager="undefined"
  *
  */
 const formArchiveItemSchema = mongoose.Schema(
@@ -87,6 +88,49 @@ const formArchiveItemSchema = mongoose.Schema(
       enum: ["undefined", "view", "viewAndEdit"],
       default: "undefined",
     },
+    authManager: {
+      type: String,
+      enum: ["undefined", "viewAndEdit"],
+      default: "undefined",
+    },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.School
+ * @typedef TDeletedFormArchiveItem
+ *
+ * @prop {string} label
+ * @prop {"array"|"object"} dataType="array"
+ * @prop {TFormArchiveField[]} fields
+ * @prop {"undefined"|"viewAndEditStudents"|"viewAndEditMyStudents"} authTeacher="undefined"
+ * @prop {"undefined"|"view"|"viewAndEdit"} authStudent="undefined"
+ * @prop {"undefined"|"viewAndEdit"} authManager="undefined"
+ * @prop {Date} deletedAt - 삭제된 시점
+ *
+ */
+const deletedFormArchiveItemSchema = mongoose.Schema(
+  {
+    label: String,
+    dataType: { type: String, enum: ["array", "object"], default: "array" },
+    fields: [formArchiveFieldSchema],
+    authTeacher: {
+      type: String,
+      enum: ["undefined", "viewAndEditStudents", "viewAndEditMyStudents"],
+      default: "undefined",
+    },
+    authStudent: {
+      type: String,
+      enum: ["undefined", "view", "viewAndEdit"],
+      default: "undefined",
+    },
+    authManager: {
+      type: String,
+      enum: ["undefined", "viewAndEdit"],
+      default: "undefined",
+    },
+    deletedAt: { type: Date, default: Date.now },
   },
   { _id: false }
 );
@@ -99,6 +143,7 @@ const formArchiveItemSchema = mongoose.Schema(
  * @prop {string} schoolId - 학교 ID; unique; validate
  * @prop {string} schoolName - 학교 이름; validate
  * @prop {TFormArchiveItem[]} formArchive - 기록 양식
+ * @prop {TDeletedFormArchiveItem[]} deletedFormArchive - 삭제된 기록 양식 (휴지통)
  * @prop {TLink[]} links - 링크 목록
  *
  */
@@ -114,6 +159,7 @@ const schoolSchema = mongoose.Schema(
       validate: (val) => validate("schoolName", val),
     },
     formArchive: { type: [formArchiveItemSchema] },
+    deletedFormArchive: { type: [deletedFormArchiveItemSchema], default: [] },
     links: { type: [LinkSchema] },
   },
   { timestamps: true }

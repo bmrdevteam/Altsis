@@ -26,6 +26,7 @@ import {
   FIELD_IN_USE,
   FIELD_REQUIRED,
   FORM_LABEL_DUPLICATED,
+  FORM_LABEL_IN_TRASH,
   __NOT_FOUND,
 } from "../messages/index.js";
 import { validate } from "../utils/validate.js";
@@ -218,16 +219,47 @@ export const updateFormArchive = async (req, res) => {
       }
     }
 
+    // 기존 학교 정보 조회
+    const existingSchool = await School(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!existingSchool) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    const oldLabels = existingSchool.formArchive.map((item) => item.label);
+    const newLabels = req.body.formArchive.map((item) => item.label);
+    const deletedFormArchive = existingSchool.deletedFormArchive || [];
+
+    // 휴지통에 있는 라벨로 생성하려는지 확인
+    const trashedLabels = deletedFormArchive.map((item) => item.label);
+    for (const newLabel of newLabels) {
+      if (trashedLabels.includes(newLabel) && !oldLabels.includes(newLabel)) {
+        return res.status(400).send({ message: FORM_LABEL_IN_TRASH });
+      }
+    }
+
+    // 삭제되는 라벨 찾기 (기존에 있었지만 새로운 목록에 없는 것)
+    const deletedLabels = oldLabels.filter(
+      (label) => !newLabels.includes(label)
+    );
+
+    // 삭제되는 항목들을 휴지통으로 이동
+    const itemsToTrash = existingSchool.formArchive
+      .filter((item) => deletedLabels.includes(item.label))
+      .map((item) => ({
+        ...item.toObject(),
+        deletedAt: new Date(),
+      }));
+
     const school = await School(req.user.academyId).findByIdAndUpdate(
       req.params._id,
       {
         formArchive: req.body.formArchive,
+        $push: { deletedFormArchive: { $each: itemsToTrash } },
       },
       { new: true }
     );
-    if (!school) {
-      return res.status(404).send({ message: __NOT_FOUND("school") });
-    }
 
     return res.status(200).send({ formArchive: school.formArchive });
   } catch (err) {
@@ -283,6 +315,117 @@ export const updateLinks = async (req, res) => {
   }
 };
 
+/**
+ * @memberof APIs.SchoolAPI
+ * @function RestoreFormArchive API
+ * @description 삭제된 기록 양식 복원 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/schools/:_id/deletedFormArchive/:label/restore"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {TFormArchiveItem[]} res.formArchive - updated formArchive
+ * @param {TDeletedFormArchiveItem[]} res.deletedFormArchive - updated deletedFormArchive
+ *
+ */
+export const restoreFormArchive = async (req, res) => {
+  try {
+    const label = decodeURIComponent(req.params.label);
+
+    const school = await School(req.user.academyId).findById(req.params._id);
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    // 휴지통에서 해당 라벨 찾기
+    const deletedIdx = school.deletedFormArchive.findIndex(
+      (item) => item.label === label
+    );
+    if (deletedIdx === -1) {
+      return res.status(404).send({ message: __NOT_FOUND("deletedFormArchive") });
+    }
+
+    // 현재 formArchive에 같은 라벨이 있는지 확인
+    const existingIdx = school.formArchive.findIndex(
+      (item) => item.label === label
+    );
+    if (existingIdx !== -1) {
+      return res.status(400).send({ message: FORM_LABEL_DUPLICATED });
+    }
+
+    // 휴지통에서 꺼내서 formArchive로 이동
+    const itemToRestore = school.deletedFormArchive[deletedIdx].toObject();
+    delete itemToRestore.deletedAt;
+
+    school.formArchive.push(itemToRestore);
+    school.deletedFormArchive.splice(deletedIdx, 1);
+    await school.save();
+
+    return res.status(200).send({
+      formArchive: school.formArchive,
+      deletedFormArchive: school.deletedFormArchive,
+    });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SchoolAPI
+ * @function RemoveFormArchive API
+ * @description 삭제된 기록 양식 완전 삭제 API (휴지통에서 영구 삭제)
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/schools/:_id/deletedFormArchive/:label"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {TDeletedFormArchiveItem[]} res.deletedFormArchive - updated deletedFormArchive
+ *
+ */
+export const removeFormArchive = async (req, res) => {
+  try {
+    const label = decodeURIComponent(req.params.label);
+
+    const school = await School(req.user.academyId).findById(req.params._id);
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    // 휴지통에서 해당 라벨 찾기
+    const deletedIdx = school.deletedFormArchive.findIndex(
+      (item) => item.label === label
+    );
+    if (deletedIdx === -1) {
+      return res.status(404).send({ message: __NOT_FOUND("deletedFormArchive") });
+    }
+
+    // 휴지통에서 삭제
+    school.deletedFormArchive.splice(deletedIdx, 1);
+    await school.save();
+
+    // 해당 학교의 모든 Archive에서 해당 라벨의 데이터 삭제
+    await Archive(req.user.academyId).updateMany(
+      { school: school._id },
+      { $unset: { [`data.${label}`]: "" } }
+    );
+
+    return res.status(200).send({
+      deletedFormArchive: school.deletedFormArchive,
+    });
+  } catch (err) {
+    return res.status(err.status || 500).send({ message: err.message });
+  }
+};
 
 /**
  * @memberof APIs.SchoolAPI

@@ -13,15 +13,24 @@ export type TAuthTeacher =
 
 export type TAuthStudent = "undefined" | "view" | "viewAndEdit";
 
+export type TAuthManager = "undefined" | "viewAndEdit";
+
 export type TSchoolFormArchiveItem = {
   label: string;
   dataType: "array" | "object";
   fields: TSchoolFormArchiveField[];
   authTeacher: TAuthTeacher;
   authStudent: TAuthStudent;
+  authManager: TAuthManager;
 };
 
 export type TSchoolFormArchive = TSchoolFormArchiveItem[];
+
+export type TDeletedSchoolFormArchiveItem = TSchoolFormArchiveItem & {
+  deletedAt: string;
+};
+
+export type TDeletedSchoolFormArchive = TDeletedSchoolFormArchiveItem[];
 
 export type TSchool = {
   _id: string;
@@ -29,6 +38,7 @@ export type TSchool = {
   schoolId: string;
   schoolName: string;
   formArchive: TSchoolFormArchive;
+  deletedFormArchive?: TDeletedSchoolFormArchive;
   links: {
     url: string;
     title: string;
@@ -71,4 +81,21 @@ export const getAuthStudent = (text: string) => {
   console.log({ text });
   if (text === "") return undefined;
   return (textAuthStudentMap.get(text) ?? "undefined") as TAuthStudent;
+};
+
+export const authManagerTextMap: Map<TAuthManager, string> = new Map([
+  ["undefined", "미설정"],
+  ["viewAndEdit", "조회 및 수정"],
+]);
+
+export const getAuthManagerText = (text: TAuthManager) => {
+  return authManagerTextMap.get(text) ?? "미설정";
+};
+
+const textAuthManagerMap: Map<string, string> = new Map();
+authManagerTextMap.forEach((value, key) => textAuthManagerMap.set(value, key));
+
+export const getAuthManager = (text: string) => {
+  if (text === "") return undefined;
+  return (textAuthManagerMap.get(text) ?? "undefined") as TAuthManager;
 };

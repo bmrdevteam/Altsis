@@ -83,8 +83,11 @@ export const SidebarData = (auth: string, role?: string): any => {
     );
     if (currentRegistration.role === "teacher") {
       if (currentSchool?.formArchive) {
+        const isManager = auth === "manager";
         const formArchive = currentSchool.formArchive?.filter(
-          (form: any) => form.authTeacher && form.authTeacher !== "undefined"
+          (form: any) =>
+            (form.authTeacher && form.authTeacher !== "undefined") ||
+            (isManager && form.authManager === "viewAndEdit")
         );
         if (formArchive?.length > 0) {
           data.push({
@@ -122,6 +125,28 @@ export const SidebarData = (auth: string, role?: string): any => {
             };
           }),
         });
+      }
+      // 관리자이면서 학생인 경우, 관리자 권한이 있는 기록도 표시
+      if (auth === "manager" && currentSchool?.formArchive) {
+        const managerFormArchive = currentSchool.formArchive?.filter(
+          (form: any) => form.authManager === "viewAndEdit"
+        );
+        if (managerFormArchive?.length > 0) {
+          data.push({
+            title: "archive",
+            name: "기록",
+            path: "/archive",
+            icon: <Svg type="edit" />,
+            subLink: managerFormArchive.map((val: any) => {
+              return {
+                title: val.label,
+                name: val.label,
+                path: `/archive/${val.label}`,
+                icon: <Svg type="file" />,
+              };
+            }),
+          });
+        }
       }
     }
     data.push({

@@ -13,7 +13,11 @@ import { TAcademy } from "types/academies";
 import { TUser } from "types/users";
 import _ from "lodash";
 import { TCurrentUser } from "types/auth";
-import { TSchool, TSchoolFormArchive } from "types/schools";
+import {
+  TSchool,
+  TSchoolFormArchive,
+  TDeletedSchoolFormArchive,
+} from "types/schools";
 import {
   TFormEvaluation,
   TSeason,
@@ -996,6 +1000,48 @@ export default function useAPIv2() {
   }
 
   /**
+   * RestoreFormArchive API
+   * @description 삭제된 기록 양식 복원 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RestoreFormArchive(props: {
+    params: {
+      _id: string;
+      label: string;
+    };
+  }) {
+    const { formArchive, deletedFormArchive } = await database.U({
+      location: `schools/${props.params._id}/deletedFormArchive/${encodeURIComponent(props.params.label)}/restore`,
+      data: {},
+    });
+    return {
+      formArchive: formArchive as TSchoolFormArchive,
+      deletedFormArchive: deletedFormArchive as TDeletedSchoolFormArchive,
+    };
+  }
+
+  /**
+   * RemoveFormArchive API
+   * @description 삭제된 기록 양식 완전 삭제 API (휴지통에서 영구 삭제)
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RemoveFormArchive(props: {
+    params: {
+      _id: string;
+      label: string;
+    };
+  }) {
+    const { deletedFormArchive } = await database.D({
+      location: `schools/${props.params._id}/deletedFormArchive/${encodeURIComponent(props.params.label)}`,
+    });
+    return {
+      deletedFormArchive: deletedFormArchive as TDeletedSchoolFormArchive,
+    };
+  }
+
+  /**
    * DSchool API
    * @description 학교 삭제 API
    * @version 2.0.0
@@ -1212,6 +1258,7 @@ export default function useAPIv2() {
         end?: string;
       };
       copyFrom?: string;
+      copyFromData?: any; // 다른 학교에서 가져온 학기 JSON 데이터
       copyRecurringEvents?: boolean;
       copySchoolCalendar?: boolean;
     };
@@ -3350,6 +3397,8 @@ export default function useAPIv2() {
       RSchool,
       USchoolFormArchive,
       USchoolLinks,
+      RestoreFormArchive,
+      RemoveFormArchive,
       DSchool,
     },
     CalendarEventAPI: {

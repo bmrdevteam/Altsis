@@ -59,6 +59,16 @@ export const FIELD_INVALID = (field) => `${field.toUpperCase()}_INVALID`;
 export const FORM_LABEL_DUPLICATED = "FORM_LABEL_DUPLICATED";
 
 /**
+ * @tag 400 Bad Request
+ *
+ * @alias FORM_LABEL_IN_TRASH
+ * @description form의 label이 휴지통에 존재함
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const FORM_LABEL_IN_TRASH = "FORM_LABEL_IN_TRASH";
+
+/**
  * -----------------------------------------
  * 401 Unauthorized
  * 사용자 검증 실패

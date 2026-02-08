@@ -42,10 +42,18 @@ const ArchiveField = (props: Props) => {
 
   useEffect(() => {
     if (isLoading) {
+      const isManager = currentUser.auth === "manager";
+      const hasManagerPermission =
+        formArchive().authManager === "viewAndEdit";
+      const isTeacher = currentRegistration?.role === "teacher";
+      const hasTeacherPermission =
+        formArchive().authTeacher &&
+        formArchive().authTeacher !== "undefined";
+
+      // 관리자 권한이 있는 관리자이거나 교사 권한이 있는 교사만 접근 가능
       if (
-        currentRegistration?.role !== "teacher" ||
-        !formArchive().authTeacher ||
-        formArchive().authTeacher === "undefined"
+        !(isManager && hasManagerPermission) &&
+        (!isTeacher || !hasTeacherPermission)
       ) {
         alert("접근 권한이 없습니다.");
         navigate("/");
@@ -56,8 +64,12 @@ const ArchiveField = (props: Props) => {
       })[] = [];
       let newSelectedRegistrationList: TSeasonRegistration[] = [];
 
-      if (formArchive().authTeacher === "viewAndEditStudents") {
-        /* 1. 모든 선생님이 수정할 수 있는 양식인 경우 */
+      // 관리자 권한이 있거나 모든 학생 수정 권한이 있는 경우
+      if (
+        (isManager && hasManagerPermission) ||
+        formArchive().authTeacher === "viewAndEditStudents"
+      ) {
+        /* 1. 관리자 권한이 있거나 모든 선생님이 수정할 수 있는 양식인 경우 */
         newRegistrationList = currentSeason.registrations.filter(
           (reg) => reg.role === "student"
         );
@@ -69,7 +81,7 @@ const ArchiveField = (props: Props) => {
             (reg?.teacher === currentUser._id ||
               reg?.subTeacher === currentUser._id)
         );
-      } else {
+      } else if (!(isManager && hasManagerPermission)) {
         alert("잘못된 양식입니다.");
         return navigate("/");
       }
