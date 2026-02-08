@@ -253,6 +253,26 @@ function RouterPage() {
 
             {/* ----------------------------------------------------- */}
 
+            {/* forms routes */}
+            <Route
+              path="forms"
+              element={
+                <RequireAuth auth={["admin", "manager"]}>
+                  <Forms />
+                </RequireAuth>
+              }
+            ></Route>
+            <Route
+              path="forms/:pid"
+              element={
+                <RequireAuth auth={["admin", "manager"]}>
+                  <Form />
+                </RequireAuth>
+              }
+            ></Route>
+
+            {/* ----------------------------------------------------- */}
+
             {/* courses routes */}
             <Route path="courses">
               {/* [!make!] an hook to identify the number of */}
@@ -294,6 +314,15 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <CourseList />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="classrooms"
+                element={
+                  <RequireAuth>
+                    <Classrooms />
                   </RequireAuth>
                 }
               ></Route>
@@ -492,14 +521,6 @@ function RouterPage() {
               ></Route>
               <Route path="test" element={<Test />}></Route>
               <Route path="e" element={<E />}></Route>
-              <Route
-                path="classrooms"
-                element={
-                  <RequireAuth>
-                    <Classrooms />
-                  </RequireAuth>
-                }
-              ></Route>
               {/*  404 error */}
               <Route path="*" element={<Http404 />}></Route>
             </Route>

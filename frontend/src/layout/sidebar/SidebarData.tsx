@@ -77,6 +77,12 @@ export const SidebarData = (auth: string, role?: string): any => {
               path: "/courses/list",
               icon: <Svg type="list" />,
             },
+            {
+              title: "classrooms",
+              name: "강의실",
+              path: "/courses/classrooms",
+              icon: <Svg type="door-open" />,
+            },
           ].filter((element: any, i: number) => element !== undefined),
         },
       ]
@@ -113,9 +119,9 @@ export const SidebarData = (auth: string, role?: string): any => {
       if (myFormArchive?.length > 0) {
         data.push({
           title: "myArchive",
-          name: "내 정보",
+          name: "기록",
           path: "/myArchive",
-          icon: <Svg type="profile" />,
+          icon: <Svg type="edit" />,
           subLink: myFormArchive.map((val: any) => {
             return {
               title: val.label,
@@ -155,6 +161,14 @@ export const SidebarData = (auth: string, role?: string): any => {
       path: "/docs",
       icon: <Svg type="docs" />,
     });
+    if (auth === "manager" || auth === "admin") {
+      data.push({
+        title: "forms",
+        name: "양식",
+        path: "/forms",
+        icon: <Svg type="file" />,
+      });
+    }
   }
 
   if (auth === "manager") {
@@ -163,14 +177,6 @@ export const SidebarData = (auth: string, role?: string): any => {
       name: "관리자",
       path: "/admin/schools/list",
       icon: <Svg type="school" />,
-      subLink: [
-        {
-          title: "forms",
-          name: "양식",
-          path: "/admin/forms",
-          icon: <Svg type="file" />,
-        },
-      ],
     });
   } else if (auth === "admin") {
     data.push({
@@ -179,12 +185,6 @@ export const SidebarData = (auth: string, role?: string): any => {
       path: "/admin/schools/list",
       icon: <Svg type="school" />,
       subLink: [
-        {
-          title: "forms",
-          name: "양식",
-          path: "/admin/forms",
-          icon: <Svg type="file" />,
-        },
         {
           title: "users",
           name: "사용자",
@@ -214,21 +214,6 @@ export const SidebarData = (auth: string, role?: string): any => {
       })
     );
   }
-
-  data.push({
-    title: "dev",
-    name: "실험실",
-    path: "/dev",
-    icon: <Svg type="flask" />,
-    subLink: [
-      {
-        title: "강의실",
-        name: "강의실",
-        path: "/dev/classrooms",
-        icon: <Svg type="door-open" />,
-      },
-    ],
-  });
 
   return data;
 };
