@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useMemo, useRef, useState } from "react";
 import Svg from "../../assets/svg/Svg";
 import style from "./calendar.module.scss";
 
@@ -129,10 +129,19 @@ const Viewer = memo(
       onClickCreate?.(date);
     };
 
+    const viewerEventMap = useMemo(() => {
+      if (!calendar) return undefined;
+      if (mode === "day") return calendar.getEventMap(dateItem, dateItem);
+      if (mode === "week")
+        return calendar.getEventMap(dateItem, dateItem.getDateItemAfter(6));
+      if (mode === "month") return calendar.getFullMonthlyEventMap(dateItem);
+      return undefined;
+    }, [calendar, mode, dateItem]);
+
     if (mode === "day") {
       return (
         <WeeklyView
-          eventMap={calendar?.getEventMap(dateItem, dateItem)}
+          eventMap={viewerEventMap}
           isMounted={isMounted}
           dayList={[dateItem.getDayString()]}
           onClickEvent={onClickEventHandler}
@@ -144,10 +153,7 @@ const Viewer = memo(
     if (mode === "week") {
       return (
         <WeeklyView
-          eventMap={calendar?.getEventMap(
-            dateItem,
-            dateItem.getDateItemAfter(6)
-          )}
+          eventMap={viewerEventMap}
           isMounted={isMounted}
           dayList={["일", "월", "화", "수", "목", "금", "토"]}
           onClickEvent={onClickEventHandler}
@@ -160,7 +166,7 @@ const Viewer = memo(
         <MonthlyView
           year={dateItem.yyyy}
           month={dateItem.mm}
-          eventMap={calendar?.getFullMonthlyEventMap(dateItem)}
+          eventMap={viewerEventMap}
           onClickEvent={onClickEventHandler}
           onClickCreate={handleClickCreateMonthly}
         />
@@ -183,6 +189,14 @@ const Calender = (props: Props) => {
 
   const today = new DateItem({ date: new Date() });
   const [dateItem, setDateItem] = useState<DateItem>(today);
+
+  // Cache for avoiding redundant fetches
+  const rawEventsRef = useRef<any[]>([]);
+  const cachedRangeRef = useRef<{ start: string; end: string } | null>(null);
+
+  // Track current view state for background sync callback
+  const currentDateRef = useRef<DateItem>(today);
+  const currentModeRef = useRef<Mode>("week");
 
   const [isEventPopupActive, setIsEventPopupActive] = useState<boolean>(false);
   const [event, setEvent] = useState<EventItem>();
@@ -222,62 +236,150 @@ const Calender = (props: Props) => {
     });
   };
 
-  const updateCalendar = async (year: number) => {
+  const getQueryRange = (
+    targetDate: DateItem,
+    viewMode: Mode
+  ): { start: Date; end: Date } => {
+    switch (viewMode) {
+      case "day":
+        // Fetch current ±1 month for quick day navigation
+        return {
+          start: new Date(targetDate.yyyy, targetDate.mm - 2, 1),
+          end: new Date(targetDate.yyyy, targetDate.mm + 1, 0),
+        };
+      case "week":
+        // Fetch ±5 weeks buffer for quick week navigation
+        return {
+          start: targetDate.getDateItemBefore(35)._date,
+          end: targetDate.getDateItemAfter(41)._date,
+        };
+      case "month":
+        // Fetch current ±1 month for month navigation
+        return {
+          start: new Date(targetDate.yyyy, targetDate.mm - 2, 1),
+          end: new Date(targetDate.yyyy, targetDate.mm + 1, 0),
+        };
+    }
+  };
+
+  const buildCalendarFromEvents = (
+    rawEvents: any[],
+    startDate: string,
+    endDate: string
+  ) => {
+    const calendar = new Calendar({ startDate, endDate });
+    const filtered = filterEventsByVisibility(rawEvents);
+
+    const schoolEvents = filtered.filter((e: any) => e.scope === "school");
+    const personalEvents = filtered.filter(
+      (e: any) => e.scope === "personal"
+    );
+
+    if (schoolEvents.length > 0) {
+      calendar.addCustomEvents(schoolEvents, "schoolCalendar");
+    }
+    if (personalEvents.length > 0) {
+      calendar.addCustomEvents(personalEvents, "personalCalendar");
+    }
+    calendar.mergeConsecutiveRecurrenceInstances();
+    return calendar;
+  };
+
+  const fetchAndBuildCalendar = async (
+    targetDate: DateItem,
+    viewMode: Mode
+  ) => {
+    const range = getQueryRange(targetDate, viewMode);
+    const startDate = range.start.toISOString();
+    const endDate = range.end.toISOString();
+
+    const { calendarEvents } = await CalendarEventAPI.RCalendarEvents({
+      query: {
+        startDate,
+        endDate,
+        ...(props.userId ? { user: props.userId } : {}),
+      },
+    });
+
+    rawEventsRef.current = calendarEvents;
+    cachedRangeRef.current = { start: startDate, end: endDate };
+
+    const calendar = buildCalendarFromEvents(
+      calendarEvents,
+      startDate,
+      endDate
+    );
+    setCalendar(calendar);
+    return calendarEvents;
+  };
+
+  const updateCalendar = async (
+    targetDate: DateItem,
+    viewMode: Mode,
+    forceRefetch: boolean = false
+  ) => {
     setIsLoading(true);
 
-    // sync enrollment/syllabus events on first load
-    if (!hasSynced && currentRegistration?.season) {
-      try {
-        await CalendarEventAPI.SyncCalendarEvents({
-          data: {
-            season: currentRegistration.season,
-            ...(props.userId ? { targetUser: props.userId } : {}),
-          },
-        });
-        setHasSynced(true);
-      } catch (err: any) {
-        if (err?.response?.data?.message !== "REGISTRATION_NOT_FOUND") {
-          ALERT_ERROR(err);
-        }
-        setHasSynced(true);
-      }
+    const range = getQueryRange(targetDate, viewMode);
+    const startDate = range.start.toISOString();
+    const endDate = range.end.toISOString();
+
+    // Check if cached data covers the needed range
+    const cached = cachedRangeRef.current;
+    if (
+      !forceRefetch &&
+      cached &&
+      startDate >= cached.start &&
+      endDate <= cached.end &&
+      rawEventsRef.current.length > 0
+    ) {
+      // Use cached data
+      const calendar = buildCalendarFromEvents(
+        rawEventsRef.current,
+        cached.start,
+        cached.end
+      );
+      setCalendar(calendar);
+      setIsLoading(false);
+      return;
     }
 
-    const calendar = new Calendar({ year });
-    const startDate = new Date(year, 0, 1).toISOString();
-    const endDate = new Date(year, 11, 31).toISOString();
-
     try {
-      const { calendarEvents } = await CalendarEventAPI.RCalendarEvents({
-        query: {
-          startDate,
-          endDate,
-          ...(props.userId ? { user: props.userId } : {}),
-        },
-      });
-
-      const filtered = filterEventsByVisibility(calendarEvents);
-
-      const schoolEvents = filtered.filter(
-        (e: any) => e.scope === "school"
-      );
-      const personalEvents = filtered.filter(
-        (e: any) => e.scope === "personal"
-      );
-
-      if (schoolEvents.length > 0) {
-        calendar.addCustomEvents(schoolEvents, "schoolCalendar");
-      }
-      if (personalEvents.length > 0) {
-        calendar.addCustomEvents(personalEvents, "personalCalendar");
-      }
-      calendar.mergeConsecutiveRecurrenceInstances();
+      // Fetch existing events immediately to show UI fast
+      await fetchAndBuildCalendar(targetDate, viewMode);
     } catch (err) {
       ALERT_ERROR(err);
     }
 
-    setCalendar(calendar);
     setIsLoading(false);
+
+    // Background sync: update enrollment/syllabus/memo events without blocking UI
+    if (!hasSynced && currentRegistration?.season) {
+      setHasSynced(true);
+      CalendarEventAPI.SyncCalendarEvents({
+        data: {
+          season: currentRegistration.season,
+          ...(props.userId ? { targetUser: props.userId } : {}),
+        },
+      })
+        .then(async (res) => {
+          // Re-fetch only if sync actually changed something
+          if (res.synced > 0 || res.removed > 0) {
+            try {
+              // Use refs to get current view state (not stale closure)
+              await fetchAndBuildCalendar(
+                currentDateRef.current,
+                currentModeRef.current
+              );
+            } catch {}
+          }
+        })
+        .catch((err: any) => {
+          if (err?.response?.data?.message !== "REGISTRATION_NOT_FOUND") {
+            ALERT_ERROR(err);
+          }
+        });
+    }
   };
 
   const handleEventFormSave = async (formData: EventFormData) => {
@@ -344,7 +446,7 @@ const Calender = (props: Props) => {
       setIsEventFormPopupActive(false);
       setEditingEventId(undefined);
       setEventFormDefaults(undefined);
-      updateCalendar(dateItem.yyyy);
+      updateCalendar(dateItem, mode, true);
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -384,7 +486,7 @@ const Calender = (props: Props) => {
     try {
       await CalendarEventAPI.DCalendarEvent({ params: { _id: eventId } });
       setIsEventPopupActive(false);
-      updateCalendar(dateItem.yyyy);
+      updateCalendar(dateItem, mode, true);
     } catch (err) {
       ALERT_ERROR(err);
     }
@@ -472,32 +574,36 @@ const Calender = (props: Props) => {
       }
     }
 
-    if (_date.yyyy !== dateItem.yyyy) {
-      updateCalendar(_date.yyyy).then(() => {
-        setIsMounted(false);
-        setTimeout(() => {
-          setIsMounted(true);
-          setDateItem(_date);
-        }, 50);
-      });
-    } else {
+    // Check if navigation needs a refetch (outside cached range)
+    updateCalendar(_date, navProps.mode).then(() => {
       setIsMounted(false);
       setTimeout(() => {
         setIsMounted(true);
         setDateItem(_date);
       }, 50);
-    }
+    });
   };
+
+  // Keep refs in sync with state for background sync callback
+  useEffect(() => {
+    currentDateRef.current = dateItem;
+  }, [dateItem]);
+  useEffect(() => {
+    currentModeRef.current = mode;
+  }, [mode]);
 
   useEffect(() => {
     const _mode = window.localStorage.getItem("calendarMode");
+    let initialMode: Mode = "week";
     if (_mode && (_mode === "day" || _mode === "week" || _mode === "month")) {
       setMode(_mode);
+      initialMode = _mode;
     } else {
       window.localStorage.setItem("calendarMode", "week");
     }
 
-    updateCalendar(dateItem.yyyy);
+    currentModeRef.current = initialMode;
+    updateCalendar(dateItem, initialMode);
     return () => {};
   }, []);
 
@@ -588,7 +694,7 @@ const Calender = (props: Props) => {
               <div
                 className={style.svgBtn}
                 onClick={() => {
-                  updateCalendar(dateItem.yyyy);
+                  updateCalendar(dateItem, mode, true);
                 }}
               >
                 <Svg type="refresh" width="20px" height="20px" />
@@ -630,7 +736,18 @@ const Calender = (props: Props) => {
       {isSettingPopupActive && (
         <SettingPopup
           setPopupActive={setIsSettingPopupActive}
-          onVisibilityChange={() => updateCalendar(dateItem.yyyy)}
+          onVisibilityChange={() => {
+            if (rawEventsRef.current.length > 0 && cachedRangeRef.current) {
+              const cal = buildCalendarFromEvents(
+                rawEventsRef.current,
+                cachedRangeRef.current.start,
+                cachedRangeRef.current.end
+              );
+              setCalendar(cal);
+            } else {
+              updateCalendar(dateItem, mode, true);
+            }
+          }}
           userId={props.userId}
         />
       )}

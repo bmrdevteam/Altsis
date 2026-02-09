@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import style from "./style.module.scss";
 
 import { dateFormat } from "functions/functions";
@@ -54,10 +54,20 @@ const MonthlyView = (props: Props) => {
   const dateKeys = Array.from(props.eventMap?.keys() ?? []);
 
   // Group dates into weeks (rows of 7)
-  const weeks: string[][] = [];
-  for (let i = 0; i < dateKeys.length; i += 7) {
-    weeks.push(dateKeys.slice(i, i + 7));
-  }
+  const weeks: string[][] = useMemo(() => {
+    const result: string[][] = [];
+    for (let i = 0; i < dateKeys.length; i += 7) {
+      result.push(dateKeys.slice(i, i + 7));
+    }
+    return result;
+  }, [dateKeys.length, dateKeys[0], dateKeys[dateKeys.length - 1]]);
+
+  // Pre-compute spanning events for all weeks at once
+  const weekSpans = useMemo(() => {
+    return weeks.map((weekDates) =>
+      computeSpanningEvents(weekDates, props.eventMap ?? new Map())
+    );
+  }, [weeks, props.eventMap]);
 
   return (
     <div className={style.viewer} ref={scrollRef}>
@@ -72,10 +82,7 @@ const MonthlyView = (props: Props) => {
       </div>
       <div className={style.weeks}>
         {weeks.map((weekDates, weekIdx) => {
-          const { spans, maxLanes } = computeSpanningEvents(
-            weekDates,
-            props.eventMap ?? new Map()
-          );
+          const { spans, maxLanes } = weekSpans[weekIdx];
 
           return (
             <div key={weekIdx} className={style.weekRow}>

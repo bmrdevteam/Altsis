@@ -234,9 +234,22 @@ export function computeSpanningEvents(
 export class Calendar {
   public _eventMap: Map<string, EventItem[]> = new Map<string, EventItem[]>();
 
-  constructor(props: { year: number }) {
-    const startDateItem = new DateItem({ text: `${props.year}-01-01` });
-    const endDateItem = new DateItem({ text: `${props.year}-12-31` });
+  constructor(
+    props: { year: number } | { startDate: string; endDate: string }
+  ) {
+    let startDateItem: DateItem;
+    let endDateItem: DateItem;
+
+    if ("year" in props) {
+      startDateItem = new DateItem({ text: `${props.year}-01-01` });
+      endDateItem = new DateItem({ text: `${props.year}-12-31` });
+    } else {
+      startDateItem = new DateItem({
+        text: props.startDate.split("T")[0],
+      });
+      endDateItem = new DateItem({ text: props.endDate.split("T")[0] });
+    }
+
     for (
       let dateItem = startDateItem;
       dateItem.text <= endDateItem.text;

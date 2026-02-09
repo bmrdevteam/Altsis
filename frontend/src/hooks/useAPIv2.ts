@@ -1170,7 +1170,7 @@ export default function useAPIv2() {
       location: "calendar-events/sync",
       data: props.data,
     });
-    return result as { synced: number; total: number };
+    return result as { synced: number; removed: number; total: number };
   }
 
   /**
@@ -2653,6 +2653,72 @@ export default function useAPIv2() {
     return { settings: settings as TNotificationSettings };
   }
 
+  // ============================================================
+  // ThemeSettings API
+  // ============================================================
+
+  /**
+   * RThemeSettings API
+   * @description 테마 설정 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RThemeSettings() {
+    const { selectedTheme, colors } = await database.R({
+      location: "theme-settings/settings",
+    });
+    return {
+      selectedTheme: selectedTheme as string,
+      colors: colors as {
+        primaryColor: string;
+        backgroundColor: string;
+        componentColor: string;
+        textColor: string;
+        accentColor: string;
+        successColor: string;
+        errorColor: string;
+      },
+    };
+  }
+
+  /**
+   * UThemeSettings API
+   * @description 테마 설정 수정 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UThemeSettings(props: {
+    data: {
+      selectedTheme?: string;
+      colors?: Partial<{
+        primaryColor: string;
+        backgroundColor: string;
+        componentColor: string;
+        textColor: string;
+        accentColor: string;
+        successColor: string;
+        errorColor: string;
+      }>;
+    };
+  }) {
+    const { selectedTheme, colors } = await database.U({
+      location: "theme-settings/settings",
+      data: props.data,
+    });
+    return {
+      selectedTheme: selectedTheme as string,
+      colors: colors as {
+        primaryColor: string;
+        backgroundColor: string;
+        componentColor: string;
+        textColor: string;
+        accentColor: string;
+        successColor: string;
+        errorColor: string;
+      },
+    };
+  }
+
   /**
    * UBulkCheckNotifications API
    * @description 알림 일괄 확인 API
@@ -3498,6 +3564,10 @@ export default function useAPIv2() {
       RNotificationSettings,
       UNotificationSettings,
       UBulkCheckNotifications,
+    },
+    ThemeSettingsAPI: {
+      RThemeSettings,
+      UThemeSettings,
     },
     BoardAPI: {
       CBoard,

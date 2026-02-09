@@ -92,6 +92,20 @@ calendarEventSchema.index({
   sourceId: 1,
 });
 
+calendarEventSchema.index({
+  user: 1,
+  "recurrence.type": 1,
+  start: 1,
+  end: 1,
+});
+
+calendarEventSchema.index({
+  school: 1,
+  "recurrence.type": 1,
+  start: 1,
+  end: 1,
+});
+
 export const CalendarEvent = (dbName) => {
   return conn[dbName].model("CalendarEvent", calendarEventSchema);
 };

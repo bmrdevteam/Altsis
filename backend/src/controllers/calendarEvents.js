@@ -4,6 +4,7 @@
  * @see TCalendarEvent in {@link Models.CalendarEvent}
  */
 
+import mongoose from "mongoose";
 import { logger } from "../log/logger.js";
 import { CalendarEvent, Enrollment, Syllabus, Registration } from "../models/index.js";
 import {
@@ -105,15 +106,17 @@ export const find = async (req, res) => {
           start: { $lte: queryEnd },
           end: { $gte: queryStart },
         },
-        // Recurring events that started before query end
+        // Recurring events with endDate within range
         {
           "recurrence.type": { $ne: "none" },
           start: { $lte: queryEnd },
-          $or: [
-            { "recurrence.endDate": { $gte: queryStart } },
-            { "recurrence.endDate": { $exists: false } },
-            { "recurrence.endDate": null },
-          ],
+          "recurrence.endDate": { $gte: queryStart },
+        },
+        // Recurring events with no endDate (infinite)
+        {
+          "recurrence.type": { $ne: "none" },
+          start: { $lte: queryEnd },
+          "recurrence.endDate": null,
         },
       ],
     };
@@ -290,7 +293,7 @@ export const syncEnrollments = async (req, res) => {
     // 1. Student enrollments
     const enrollments = await Enrollment(req.user.academyId)
       .find({ season, student: syncUserId })
-      .select("-evaluation")
+      .select("_id classTitle time classroom syllabus isHiddenFromCalendar")
       .lean();
 
     for (const enrollment of enrollments) {
@@ -332,7 +335,8 @@ export const syncEnrollments = async (req, res) => {
     // 2. Teacher syllabuses (mentoring)
     if (registration.role === "teacher") {
       const syllabuses = await Syllabus(req.user.academyId)
-        .find({ season })
+        .find({ season, "teachers._id": syncUserId })
+        .select("classTitle time classroom teachers")
         .lean();
 
       for (const syllabus of syllabuses) {
@@ -412,56 +416,69 @@ export const syncEnrollments = async (req, res) => {
     let created = 0;
     const currentSourceIds = new Set(eventsToCreate.map((e) => e.sourceId));
 
+    const memoOps = [];
+    const otherOps = [];
+
     for (const eventData of eventsToCreate) {
+      const filter = {
+        user: syncUserId,
+        sourceType: eventData.sourceType,
+        sourceId: eventData.sourceId,
+      };
       if (eventData.sourceType === "memo") {
-        // For memos, only create if not exists; don't overwrite user edits
-        const result = await CalendarEvent(req.user.academyId).updateOne(
-          {
-            user: syncUserId,
-            sourceType: eventData.sourceType,
-            sourceId: eventData.sourceId,
-          },
-          { $setOnInsert: eventData },
-          { upsert: true }
-        );
-        if (result.upsertedCount > 0) created++;
+        memoOps.push({
+          updateOne: { filter, update: { $setOnInsert: eventData }, upsert: true },
+        });
       } else {
-        const result = await CalendarEvent(req.user.academyId).updateOne(
-          {
-            user: syncUserId,
-            sourceType: eventData.sourceType,
-            sourceId: eventData.sourceId,
-          },
-          { $set: eventData },
-          { upsert: true }
-        );
-        if (result.upsertedCount > 0) created++;
+        otherOps.push({
+          updateOne: { filter, update: { $set: eventData }, upsert: true },
+        });
       }
     }
 
+    if (otherOps.length > 0) {
+      const result = await CalendarEvent(req.user.academyId).bulkWrite(otherOps, { ordered: false });
+      created += result.upsertedCount;
+    }
+    if (memoOps.length > 0) {
+      const result = await CalendarEvent(req.user.academyId).bulkWrite(memoOps, { ordered: false });
+      created += result.upsertedCount;
+    }
+
     // 삭제된 enrollment/syllabus의 고아 이벤트 정리 및 중복 제거
-    const existingEvents = await CalendarEvent(req.user.academyId)
-      .find({
+    const currentSourceIdArray = Array.from(currentSourceIds);
+
+    // 1. 고아 이벤트 일괄 삭제 (sourceId가 더 이상 유효하지 않은 이벤트)
+    const deleteResult = await CalendarEvent(req.user.academyId).deleteMany({
+      user: syncUserId,
+      sourceType: { $in: ["enrollment", "syllabus", "memo"] },
+      sourceId: { $nin: currentSourceIdArray },
+    });
+    let removed = deleteResult.deletedCount;
+
+    // 2. 중복 이벤트 정리 (같은 sourceId가 여러 개인 경우 최신 1개만 유지)
+    const duplicates = await CalendarEvent(req.user.academyId).aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(syncUserId),
+          sourceType: { $in: ["enrollment", "syllabus", "memo"] },
+          sourceId: { $in: currentSourceIdArray },
+        },
+      },
+      { $sort: { updatedAt: -1 } },
+      { $group: { _id: "$sourceId", latestId: { $first: "$_id" }, count: { $sum: 1 } } },
+      { $match: { count: { $gt: 1 } } },
+    ]);
+
+    if (duplicates.length > 0) {
+      const keepIds = duplicates.map((d) => d.latestId);
+      const dupSourceIds = duplicates.map((d) => d._id);
+      const dupResult = await CalendarEvent(req.user.academyId).deleteMany({
         user: syncUserId,
-        sourceType: { $in: ["enrollment", "syllabus", "memo"] },
-      })
-      .sort({ updatedAt: -1 }); // 최근 수정된 항목을 먼저 처리
-
-    let removed = 0;
-    const processedSourceIds = new Set();
-
-    for (const event of existingEvents) {
-      // 1. 소스 ID가 더 이상 유효하지 않거나(고아), 2. 이미 처리된 소스 ID인 경우(중복) 삭제
-      if (
-        !currentSourceIds.has(event.sourceId) ||
-        processedSourceIds.has(event.sourceId)
-      ) {
-        await event.deleteOne();
-        removed++;
-        continue;
-      }
-
-      processedSourceIds.add(event.sourceId);
+        sourceId: { $in: dupSourceIds },
+        _id: { $nin: keepIds },
+      });
+      removed += dupResult.deletedCount;
     }
 
     return res.status(200).send({ synced: created, removed, total: eventsToCreate.length });
@@ -500,20 +517,44 @@ function expandRecurringEvent(event, queryStart, queryEnd) {
 
   const effectiveEnd = recurrenceEnd < queryEnd ? recurrenceEnd : queryEnd;
 
-  // Weekly with specific days: iterate day-by-day, only emit on matching days
+  // Pre-compute shared fields once (avoid per-instance object spread)
+  const sharedFields = {
+    _id: event._id,
+    title: event.title,
+    description: event.description,
+    isAllDay: event.isAllDay,
+    scope: event.scope,
+    school: event.school,
+    user: event.user,
+    recurrence: event.recurrence,
+    color: event.color,
+    sourceType: event.sourceType,
+    sourceId: event.sourceId,
+    syllabusId: event.syllabusId,
+    calendarId: event.calendarId,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+    recurrenceParentId: event._id,
+    isRecurrenceInstance: true,
+  };
+
+  // Weekly with specific days: iterate week-by-week instead of day-by-day
   if (event.recurrence.type === "weekly" && event.recurrence.days?.length > 0) {
-    const days = new Set(event.recurrence.days);
-    let current = new Date(eventStart);
+    const days = event.recurrence.days;
 
-    // Skip ahead to query window for performance
-    if (queryStart > current) {
-      current = new Date(queryStart);
-      current.setDate(current.getDate() - current.getDay());
-    }
+    // Start from the beginning of the week containing max(eventStart, queryStart)
+    let weekStart = new Date(Math.max(eventStart.getTime(), queryStart.getTime()));
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
 
-    while (current <= effectiveEnd) {
-      if (days.has(current.getDay()) && current >= eventStart) {
-        const instanceStart = new Date(current);
+    while (weekStart <= effectiveEnd) {
+      for (const dayOfWeek of days) {
+        const instanceDate = new Date(weekStart);
+        instanceDate.setDate(instanceDate.getDate() + dayOfWeek);
+
+        if (instanceDate < eventStart || instanceDate > effectiveEnd) continue;
+
+        const instanceStart = new Date(instanceDate);
         instanceStart.setHours(
           eventStart.getHours(),
           eventStart.getMinutes(),
@@ -524,16 +565,13 @@ function expandRecurringEvent(event, queryStart, queryEnd) {
 
         if (instanceEnd >= queryStart && instanceStart <= queryEnd) {
           instances.push({
-            ...event,
-            _id: event._id,
-            recurrenceParentId: event._id,
+            ...sharedFields,
             start: instanceStart,
             end: instanceEnd,
-            isRecurrenceInstance: true,
           });
         }
       }
-      current.setDate(current.getDate() + 1);
+      weekStart.setDate(weekStart.getDate() + 7);
     }
 
     return instances;
@@ -547,12 +585,9 @@ function expandRecurringEvent(event, queryStart, queryEnd) {
 
     if (instanceEnd >= queryStart && current <= queryEnd) {
       instances.push({
-        ...event,
-        _id: event._id,
-        recurrenceParentId: event._id,
+        ...sharedFields,
         start: new Date(current),
         end: new Date(instanceEnd),
-        isRecurrenceInstance: true,
       });
     }
 
