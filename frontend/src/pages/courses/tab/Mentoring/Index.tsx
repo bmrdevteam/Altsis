@@ -49,6 +49,7 @@ import Send from "../../../notifications/popup/Send";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
+import CourseCoverImage from "pages/courses/view/CourseCoverImage";
 
 type Props = {};
 
@@ -360,47 +361,34 @@ const CoursePid = (props: Props) => {
         {!isLoadingSyllabus && syllabus?._id ? (
           <div className={"syllabus-enrollments-wrapper"}>
             <div className={"syllabus"}>
-              <div
-                className={"syllabus-header"}
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  marginBottom: "18px",
-                  display: "flex",
-                  color: "var(--accent-1)",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
-                  <span>&nbsp;/&nbsp;</span>
-                  <span
-                    style={{ cursor: "pointer" }}
-                    onClick={() => {
-                      navigate("/courses#담당%20수업", { replace: true });
-                    }}
-                  >
-                    {`담당 수업 목록 / ${pid}`}
-                  </span>
-                </div>
-                <div
-                  className={`btn ${style.print_btn}`}
-                  onClick={() => {
-                    window.print();
-                  }}
-                  title="인쇄"
-                >
-                  <Svg type={"print"} />
-                </div>
-              </div>
-
-              <div className={style.title}>{syllabus.classTitle}</div>
-              <div className={style.meta_section}>
-                <CourseMetaInfo
-                  items={metaItems()}
-                  confirmedStatus={confirmedStatus}
-                  onStatusClick={() => setConfirmStatusPopupActive(true)}
+              <div className={style.course_header}>
+                <CourseCoverImage
+                  coverImage={syllabus.coverImage}
+                  coverColor={syllabus.coverColor}
+                  classTitle={syllabus.classTitle}
+                  syllabusId={syllabus._id}
                 />
+                <div className={style.course_header_info}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div className={style.title}>{syllabus.classTitle}</div>
+                    <div
+                      className={`btn ${style.print_btn}`}
+                      onClick={() => {
+                        window.print();
+                      }}
+                      title="인쇄"
+                    >
+                      <Svg type={"print"} />
+                    </div>
+                  </div>
+                  <div className={style.meta_section}>
+                    <CourseMetaInfo
+                      items={metaItems()}
+                      confirmedStatus={confirmedStatus}
+                      onStatusClick={() => setConfirmStatusPopupActive(true)}
+                    />
+                  </div>
+                </div>
               </div>
               <Divider />
               <EditorParser
@@ -409,64 +397,66 @@ const CoursePid = (props: Props) => {
                 defaultValues={syllabus.info}
                 data={currentSeason?.formSyllabus}
               />
-              <div style={{ height: "24px" }}></div>
-              <Divider />
-              {currentRegistration?.permissionSyllabusV2 && (
-                <>
-                  <Button
-                    type={"ghost"}
-                    style={{
-                      borderRadius: "4px",
-                      height: "32px",
-                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                      marginTop: "12px",
-                    }}
-                    onClick={() => {
-                      navigate(
-                        `/courses/edit/${pid}?byMentor=true${
-                          enrollmentList.length > 0 ? "&strictMode=true" : ""
-                        }`,
-                        { replace: true }
-                      );
-                    }}
-                  >
-                    수정
-                  </Button>
-                  <Button
-                    type={"ghost"}
-                    style={{
-                      borderRadius: "4px",
-                      height: "32px",
-                      boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                      marginTop: "12px",
-                    }}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `정말 삭제하시겠습니까?${
-                            enrollmentList.length > 0
-                              ? " 평가도 함께 삭제됩니다."
-                              : ""
-                          }`
-                        ) === true
-                      ) {
-                        SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
-                          .then(() => {
-                            alert(SUCCESS_MESSAGE);
-                            navigate("/courses#담당%20수업");
-                          })
-                          .catch((err) => {
-                            ALERT_ERROR(err);
-                          });
-                      } else {
-                        return false;
-                      }
-                    }}
-                  >
-                    삭제
-                  </Button>
-                </>
-              )}
+              <div className={style.no_print}>
+                <div style={{ height: "24px" }}></div>
+                <Divider />
+                {currentRegistration?.permissionSyllabusV2 && (
+                  <>
+                    <Button
+                      type={"ghost"}
+                      style={{
+                        borderRadius: "4px",
+                        height: "32px",
+                        boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                        marginTop: "12px",
+                      }}
+                      onClick={() => {
+                        navigate(
+                          `/courses/edit/${pid}?byMentor=true${
+                            enrollmentList.length > 0 ? "&strictMode=true" : ""
+                          }`,
+                          { replace: true }
+                        );
+                      }}
+                    >
+                      수정
+                    </Button>
+                    <Button
+                      type={"ghost"}
+                      style={{
+                        borderRadius: "4px",
+                        height: "32px",
+                        boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                        marginTop: "12px",
+                      }}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `정말 삭제하시겠습니까?${
+                              enrollmentList.length > 0
+                                ? " 평가도 함께 삭제됩니다."
+                                : ""
+                            }`
+                          ) === true
+                        ) {
+                          SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
+                            .then(() => {
+                              alert(SUCCESS_MESSAGE);
+                              navigate("/courses#담당%20수업");
+                            })
+                            .catch((err) => {
+                              ALERT_ERROR(err);
+                            });
+                        } else {
+                          return false;
+                        }
+                      }}
+                    >
+                      삭제
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             <div style={{ marginTop: "24px" }} className={"enrollments"}>
               <div style={{ display: "flex" }}>

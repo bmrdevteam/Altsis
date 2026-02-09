@@ -3,9 +3,14 @@
     height: auto !important;
     overflow: visible !important;
     padding: 0;
+
+    :global(.enrollments) {
+      display: none !important;
+    }
   }
 
-  .print_btn {
+  .print_btn,
+  .no_print {
     display: none !important;
   }
 
@@ -32,6 +37,20 @@
     font-weight: 600;
     margin-bottom: 24px;
     color: var(--accent-1);
+  }
+
+  .course_header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px;
+  }
+
+  .course_header_info {
+    min-width: 0;
+
+    .title {
+      margin-bottom: 12px;
+    }
   }
 
   .meta_section {
