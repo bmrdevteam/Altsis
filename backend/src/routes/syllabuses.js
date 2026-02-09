@@ -16,6 +16,9 @@ router.delete("/:_id/confirmed", isLoggedIn, syllabuses.cancelConfirm);
 router.put("/:_id", isLoggedIn, syllabuses.updateV2);
 router.put("/:_id/subject", isLoggedIn, syllabuses.updateSubject);
 
+router.put("/:_id/cover-image", isLoggedIn, syllabuses.updateCoverImage);
+router.delete("/:_id/cover-image", isLoggedIn, syllabuses.deleteCoverImage);
+
 router.put("/:_id/hide", isLoggedIn, syllabuses.hideFromCalendar);
 router.put("/:_id/show", isLoggedIn, syllabuses.showOnCalendar);
 

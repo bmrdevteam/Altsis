@@ -7,12 +7,15 @@ import { logger } from "../log/logger.js";
 import {
   CLASSROOM_IN_USE,
   FIELD_REQUIRED,
+  INVALID_FILE_TYPE,
+  LIMIT_FILE_SIZE,
   PERMISSION_DENIED,
   SYLLABUS_CONFIRMED_ALREADY,
   SYLLABUS_COUNT_EXCEEDS_LIMIT,
   SYLLABUS_ENROLLED_ALREADY,
   __NOT_FOUND,
 } from "../messages/index.js";
+import { courseMulter } from "../_s3/courseMulter.js";
 import { Registration, Syllabus, Enrollment } from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
 import _ from "lodash";
@@ -142,6 +145,8 @@ export const create = async (req, res) => {
       info: req.body.info,
       teachers: req.body.teachers,
       temp: req.body.temp,
+      ...(req.body.coverImage && { coverImage: req.body.coverImage }),
+      ...(req.body.coverColor && { coverColor: req.body.coverColor }),
     });
 
     return res.status(200).send({ syllabus });
@@ -547,6 +552,12 @@ export const updateV2 = async (req, res) => {
       subject: !_.isEqual(syllabus.subject, req.body.subject),
       limit: syllabus.limit !== req.body.limit,
     };
+
+    /* optional fields */
+    if ("coverImage" in req.body)
+      syllabus.coverImage = req.body.coverImage || undefined;
+    if ("coverColor" in req.body)
+      syllabus.coverColor = req.body.coverColor || undefined;
 
     /* 1. user가 syllabus 작성자이고 멘토가 아닌 경우 */
     if (
@@ -1023,5 +1034,83 @@ export const remove = async (req, res) => {
     });
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function USyllabusCoverImage API
+ * @description 강의계획서 커버 이미지 업로드 API
+ * @version 1.0.0
+ */
+export const updateCoverImage = async (req, res) => {
+  courseMulter.single("img")(req, {}, async (err) => {
+    try {
+      if (err) {
+        switch (err.code) {
+          case "LIMIT_FILE_SIZE":
+            return res.status(409).send({ message: LIMIT_FILE_SIZE });
+          case "INVALID_FILE_TYPE":
+            return res.status(409).send({ message: INVALID_FILE_TYPE });
+          default:
+            return res.status(500).send({ message: err.code });
+        }
+      }
+
+      const syllabus = await Syllabus(req.user.academyId).findById(
+        req.params._id
+      );
+      if (!syllabus) {
+        return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+      }
+
+      const isCreator = req.user._id.equals(syllabus.user);
+      const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
+      const isManager = req.user.auth === "manager";
+      if (!isCreator && !isMentor && !isManager) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+
+      syllabus.coverImage = req.file.location.replace(
+        "/original/",
+        "/thumb/"
+      );
+      await syllabus.save();
+      return res.status(200).send({ coverImage: syllabus.coverImage });
+    } catch (err) {
+      logger.error(err.message);
+      return res.status(500).send({ message: err.message });
+    }
+  });
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function DSyllabusCoverImage API
+ * @description 강의계획서 커버 이미지 삭제 API
+ * @version 1.0.0
+ */
+export const deleteCoverImage = async (req, res) => {
+  try {
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
+
+    const isCreator = req.user._id.equals(syllabus.user);
+    const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
+    const isManager = req.user.auth === "manager";
+    if (!isCreator && !isMentor && !isManager) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    syllabus.coverImage = undefined;
+    await syllabus.save();
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: err.message });
   }
 };

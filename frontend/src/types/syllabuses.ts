@@ -24,4 +24,6 @@ export type TSyllabus = {
   count: number;
 
   info?: any;
+  coverImage?: string;
+  coverColor?: string;
 };

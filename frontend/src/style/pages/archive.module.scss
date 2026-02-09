@@ -49,6 +49,7 @@
 
     .field {
       display: flex;
+      border-top: var(--border-default);
       border-bottom: var(--border-default);
       border-right: var(--border-default);
 
@@ -69,6 +70,10 @@
         flex: 1 1 0;
         background: var(--background);
       }
+    }
+
+    .field + .field {
+      border-top: none;
     }
   }
 

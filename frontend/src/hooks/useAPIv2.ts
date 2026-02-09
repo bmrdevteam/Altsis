@@ -1815,6 +1815,8 @@ export default function useAPIv2() {
       time: { label: string; day?: string; start?: string; end?: string }[];
       info: any;
       limit: number;
+      coverImage?: string;
+      coverColor?: string;
     };
   }) {
     const { syllabus } = await database.C({
@@ -1917,6 +1919,8 @@ export default function useAPIv2() {
       time: { label: string; day?: string; start?: string; end?: string }[];
       info: any;
       limit: number;
+      coverImage?: string;
+      coverColor?: string;
     };
   }) {
     const { syllabus } = await database.U({
@@ -1993,6 +1997,35 @@ export default function useAPIv2() {
   }) {
     return await database.D({
       location: "syllabuses/" + props.params._id,
+    });
+  }
+
+  /**
+   * USyllabusCoverImage API
+   * @description 강의계획서 커버 이미지 업로드 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function USyllabusCoverImage(props: {
+    params: { _id: string };
+    data: FormData;
+  }) {
+    const { coverImage } = await database.U({
+      location: `syllabuses/${props.params._id}/cover-image`,
+      data: props.data,
+    });
+    return { coverImage: coverImage as string };
+  }
+
+  /**
+   * DSyllabusCoverImage API
+   * @description 강의계획서 커버 이미지 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DSyllabusCoverImage(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `syllabuses/${props.params._id}/cover-image`,
     });
   }
 
@@ -3519,6 +3552,8 @@ export default function useAPIv2() {
       USyllabusSubject,
       UHideSyllabusFromCalendar,
       UShowSyllabusOnCalendar,
+      USyllabusCoverImage,
+      DSyllabusCoverImage,
       DSyllabus,
     },
     EnrollmentAPI: {

@@ -79,24 +79,20 @@ const Tab = (props: {
   const navigate = useAppNavigate();
   const location = useLocation();
 
-  const [activeKey, setActiveKey] = useState<string>();
+  const [activeKey, setActiveKey] = useState<string | undefined>(
+    props.dontUsePaths ? Object.keys(props.items)[0] : undefined
+  );
 
   /**
    * if the location.hash is "" navigate to the first elemnt in the tab
    */
   useEffect(() => {
-    if (location.hash === "" && !props.dontUsePaths) {
-      navigate(`#${Object.keys(props.items)[0]}`);
-    }
-    if (props.dontUsePaths) {
-      setActiveKey(Object.keys(props.items)[0])
-    }
-  }, [location.hash, navigate, props.items, props.dontUsePaths]);
-
-  useEffect(() => {
-    if(!props.dontUsePaths){
-
-      setActiveKey(decodeURI(location.hash).replace("#", ""));
+    if (!props.dontUsePaths) {
+      if (location.hash === "") {
+        navigate(`#${Object.keys(props.items)[0]}`);
+      } else {
+        setActiveKey(decodeURI(location.hash).replace("#", ""));
+      }
     }
   }, [location.hash]);
 

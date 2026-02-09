@@ -48,6 +48,7 @@ import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeach
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
 import AIGeneratePopup from "pages/courses/view/_components/AIGeneratePopup";
+import CourseCoverImagePopup from "pages/courses/view/CourseCoverImagePopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
@@ -76,6 +77,12 @@ const CourseAdd = (props: Props) => {
   const [timeSelectPopupActive, setTimeSelectPopupActive] =
     useState<boolean>(false);
   const [mentorSelectPopupActive, setMentorSelectPopupActive] =
+    useState<boolean>(false);
+
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string>("");
+  const [coverColor, setCoverColor] = useState<string>("");
+  const [coverImagePopupActive, setCoverImagePopupActive] =
     useState<boolean>(false);
 
   const [pastePopupActive, setPastePopupActive] = useState<boolean>(false);
@@ -135,8 +142,24 @@ const CourseAdd = (props: Props) => {
             time: courseTime,
             info: courseMoreInfo.current,
             limit: Number(courseLimit),
+            ...(coverImageUrl && { coverImage: coverImageUrl }),
+            ...(coverColor && { coverColor }),
           },
         });
+
+        if (coverImageFile) {
+          const formData = new FormData();
+          formData.append("img", coverImageFile);
+          try {
+            await SyllabusAPI.USyllabusCoverImage({
+              params: { _id: syllabus._id },
+              data: formData,
+            });
+          } catch (imgErr) {
+            console.warn("Cover image upload failed:", imgErr);
+          }
+        }
+
         alert(SUCCESS_MESSAGE);
         navigate(`/courses/created/${syllabus._id}`, {
           replace: true,
@@ -220,6 +243,13 @@ const CourseAdd = (props: Props) => {
               defaultValue={courseTitle}
             />
           </div>
+          <Button
+            style={{ flex: "1 1 0 ", marginTop: "24px" }}
+            type="ghost"
+            onClick={() => setCoverImagePopupActive(true)}
+          >
+            커버 이미지 설정
+          </Button>
           <div
             style={{
               display: "flex",
@@ -368,6 +398,17 @@ const CourseAdd = (props: Props) => {
         </div>
       </div>
 
+      {coverImagePopupActive && (
+        <CourseCoverImagePopup
+          setPopupActive={setCoverImagePopupActive}
+          initialCoverColor={coverColor}
+          onApply={({ file, url, color }) => {
+            setCoverImageFile(file);
+            setCoverImageUrl(url);
+            setCoverColor(color);
+          }}
+        />
+      )}
       {timeSelectPopupActive && (
         <ClassroomTimePopup
           setPopupActive={setTimeSelectPopupActive}

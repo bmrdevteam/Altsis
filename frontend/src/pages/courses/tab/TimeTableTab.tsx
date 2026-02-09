@@ -34,7 +34,6 @@ import { useAuth } from "contexts/authContext";
 import style from "style/pages/enrollment.module.scss";
 
 import EditorParser from "editor/EditorParser";
-import Divider from "components/divider/Divider";
 import Svg from "assets/svg/Svg";
 
 type Props = { courseList: any[] };
@@ -113,8 +112,6 @@ const Timetable = (props: Props) => {
             }}
             data={currentSeason?.formTimetable}
           />
-          <div style={{ height: "24px" }}></div>
-          <Divider />
           <div style={{ height: "24px" }}></div>
         </>
       )}

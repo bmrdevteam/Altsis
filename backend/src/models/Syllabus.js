@@ -135,6 +135,8 @@ const syllabusSchema = mongoose.Schema(
       required: true,
     },
     temp: Object,
+    coverImage: String,
+    coverColor: String,
   },
   { timestamps: true }
 );

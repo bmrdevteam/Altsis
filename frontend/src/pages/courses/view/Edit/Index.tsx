@@ -44,6 +44,7 @@ import MentoringTeacherPopup from "pages/courses/view/_components/MentoringTeach
 import UpdatedEvaluationPopup from "pages/courses/view/_components/UpdatedEvaluationPopup";
 import ClassroomTimePopup from "pages/courses/view/_components/ClassroomTimePopup";
 import SubjectSelect from "pages/courses/view/_components/SubjectSelect";
+import CourseCoverImagePopup from "pages/courses/view/CourseCoverImagePopup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {};
@@ -82,6 +83,13 @@ const CoursePid = (props: Props) => {
   const [mentorSelectPopupActive, setMentorSelectPopupActive] =
     useState<boolean>(false);
 
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string>("");
+  const [coverColor, setCoverColor] = useState<string>("");
+  const [coverImageRemoved, setCoverImageRemoved] = useState<boolean>(false);
+  const [coverImagePopupActive, setCoverImagePopupActive] =
+    useState<boolean>(false);
+
   const [changes, setChanges] = useState<any[]>([]);
   const [changesPoupActive, setChangesPopupActive] = useState<boolean>(false);
 
@@ -97,6 +105,9 @@ const CoursePid = (props: Props) => {
         time: courseTime,
         info: courseMoreInfo,
         limit: Number(courseLimit),
+        ...(coverImageUrl && { coverImage: coverImageUrl }),
+        ...(coverColor && { coverColor }),
+        ...(coverImageRemoved && !coverImageUrl && !coverImageFile && { coverImage: "" }),
       },
     });
     const res2 = strictMode
@@ -107,6 +118,23 @@ const CoursePid = (props: Props) => {
           },
         })
       : undefined;
+
+    try {
+      if (coverImageFile) {
+        const formData = new FormData();
+        formData.append("img", coverImageFile);
+        await SyllabusAPI.USyllabusCoverImage({
+          params: { _id: courseData._id },
+          data: formData,
+        });
+      } else if (coverImageRemoved && courseData?.coverImage) {
+        await SyllabusAPI.DSyllabusCoverImage({
+          params: { _id: courseData._id },
+        });
+      }
+    } catch (imgErr) {
+      console.error("Cover image operation failed:", imgErr);
+    }
 
     return { res1, res2 };
   }
@@ -136,6 +164,14 @@ const CoursePid = (props: Props) => {
           );
           setCourseMoreInfo(syllabus.info || {});
           setCourseLimit(syllabus.limit.toString());
+          setCoverColor(syllabus.coverColor || "");
+          setCoverImageUrl(
+            syllabus.coverImage &&
+              !syllabus.coverImage.includes("/original/") &&
+              !syllabus.coverImage.includes("/thumb/")
+              ? syllabus.coverImage
+              : ""
+          );
         })
         .then(() => {
           setIsLoading(false);
@@ -198,6 +234,13 @@ const CoursePid = (props: Props) => {
               defaultValue={courseTitle}
             />
           </div>
+          <Button
+            style={{ flex: "1 1 0 ", marginTop: "24px" }}
+            type="ghost"
+            onClick={() => setCoverImagePopupActive(true)}
+          >
+            커버 이미지 설정
+          </Button>
           <div
             style={{
               display: "flex",
@@ -367,6 +410,19 @@ const CoursePid = (props: Props) => {
         </div>
       </div>
 
+      {coverImagePopupActive && (
+        <CourseCoverImagePopup
+          setPopupActive={setCoverImagePopupActive}
+          initialCoverImage={!coverImageRemoved ? courseData?.coverImage : undefined}
+          initialCoverColor={coverColor}
+          onApply={({ file, url, color, removed }) => {
+            setCoverImageFile(file);
+            setCoverImageUrl(url);
+            setCoverColor(color);
+            setCoverImageRemoved(removed);
+          }}
+        />
+      )}
       {timeSelectPopupActive && (
         <ClassroomTimePopup
           syllabus={pid}
