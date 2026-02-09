@@ -30,7 +30,8 @@
  *
  */
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 // tab pages
 import style from "style/pages/courses/course.module.scss";
@@ -45,14 +46,16 @@ import EditorParser from "editor/EditorParser";
 import _ from "lodash";
 
 import Loading from "components/loading/Loading";
+import Svg from "assets/svg/Svg";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import CourseMetaInfo from "pages/courses/view/CourseMetaInfo";
 
 type Props = {};
 
 const CourseEnrollment = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentRegistration, currentSeason } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { EnrollmentAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -71,43 +74,35 @@ const CourseEnrollment = (props: Props) => {
 
   const [enrollments, setEnrollments] = useState<any[]>();
 
-  const categories = () => {
-    return (
-      <>
-        <div className={style.category}>
-          {_.join(currentSeason?.subjects?.label, "/")}:{" "}
-          {_.join(enrollmentData?.subject, "/")}
-        </div>{" "}
-        <div className={style.category}>
-          강의실: {enrollmentData?.classroom || "없음"}
-        </div>
-        <div className={style.category}>
-          시간:{" "}
-          {_.join(
-            enrollmentData?.time?.map((timeBlock: any) => timeBlock.label),
-            ", "
-          )}
-        </div>
-        <div className={style.category}>학점: {enrollmentData?.point}</div>
-        <div className={style.category}>수강정원: {enrollmentData?.limit}</div>
-        <div className={style.category}>개설자: {enrollmentData?.userName}</div>
-        <div className={style.category}>
-          멘토:{" "}
-          {_.join(
-            enrollmentData?.teachers?.map((teacher: any) => teacher.userName),
-            ", "
-          )}
-        </div>
-        <div
-          className={style.category}
-          onClick={() => {
-            setConfirmStatusPopupActive(true);
-          }}
-        >
-          상태: {confirmed ? "승인됨" : "미승인"}
-        </div>
-      </>
+  const metaItems = () => {
+    const items = [];
+    if (currentSeason?.subjects?.label) {
+      items.push({
+        label: _.join(currentSeason.subjects.label, "/"),
+        value: _.join(enrollmentData?.subject, "/"),
+      });
+    }
+    items.push(
+      { label: "강의실", value: enrollmentData?.classroom || "없음" },
+      {
+        label: "시간",
+        value: _.join(
+          enrollmentData?.time?.map((timeBlock: any) => timeBlock.label),
+          ", "
+        ),
+      },
+      { label: "학점", value: String(enrollmentData?.point) },
+      { label: "수강정원", value: String(enrollmentData?.limit) },
+      { label: "개설자", value: enrollmentData?.userName },
+      {
+        label: "멘토",
+        value: _.join(
+          enrollmentData?.teachers?.map((teacher: any) => teacher.userName),
+          ", "
+        ),
+      }
     );
+    return items;
   };
 
   const ClassInfo = () => {
@@ -245,6 +240,8 @@ const CourseEnrollment = (props: Props) => {
             marginBottom: "18px",
             display: "flex",
             color: "var(--accent-1)",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
           <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
@@ -258,10 +255,23 @@ const CourseEnrollment = (props: Props) => {
               {`수강 현황 / ${pid}`}
             </span>
           </div>
+          <div
+            className={`btn ${style.print_btn}`}
+            onClick={() => {
+              window.print();
+            }}
+            title="인쇄"
+          >
+            <Svg type={"print"} />
+          </div>
         </div>
         <div className={style.title}>{enrollmentData?.classTitle}</div>
-        <div className={style.categories_container}>
-          <div className={style.categories}>{categories()}</div>
+        <div className={style.meta_section}>
+          <CourseMetaInfo
+            items={metaItems()}
+            confirmedStatus={confirmed ? "fullyConfirmed" : "notConfirmed"}
+            onStatusClick={() => setConfirmStatusPopupActive(true)}
+          />
         </div>
         <Divider />
         <ClassInfo />

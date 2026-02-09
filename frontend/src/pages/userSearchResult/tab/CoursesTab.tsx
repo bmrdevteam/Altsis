@@ -6,7 +6,8 @@ import _ from "lodash";
 import { useEffect, useState } from "react";
 import useAPIv2 from "hooks/useAPIv2";
 import CourseTable from "pages/courses/table/CourseTable";
-import {useNavigate} from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
+import style from "style/pages/enrollment.module.scss";
 
 type Props = {
   user: any;
@@ -94,6 +95,7 @@ const CoursesTab = (props: Props) => {
       <Mentoring
         selected={selectedTab}
         mentoringCourseList={mentoringCourseList}
+        user={user}
       />
     </>
   );
@@ -105,7 +107,7 @@ const TimeTable = (props: {
 }) => {
   const { currentSeason } = useAuth();
 
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   function syllabusToTime(s: any) {
     let result = {};
@@ -162,61 +164,57 @@ const Enrollments = (props: {
   selected: string;
   enrolledCourseList: any[];
 }) => {
-  const { currentSeason } = useAuth();
-  const { currentRegistration } = useAuth();
+  const { currentSeason, currentRegistration } = useAuth();
 
   if (props.selected !== "enrollments") {
     return null;
   }
 
-  // 학점의 총합
-  let total = 0;
+  const totalCourses = props.enrolledCourseList.length;
+  const totalPoint = props.enrolledCourseList.reduce(
+    (acc, cur) => acc + (cur.point || 0),
+    0
+  );
+  const totalTimeSlots = props.enrolledCourseList.reduce(
+    (acc, cur) => acc + (cur.time?.length || 0),
+    0
+  );
 
-  props.enrolledCourseList.forEach((item) => {
-    total += item.point; 
-  });
+  const formEvaluation = currentSeason?.formEvaluation ?? [];
 
-  // 평가 현황
-  let evaluationCount:any =  {};
-  let evaluationKey:any =  {};
-  props.enrolledCourseList.forEach((item) => {
-    if (item.evaluation) {
-      Object.keys(item.evaluation).forEach((key) => {
-        if (item.evaluation[key] !== '') {
-          evaluationKey[key] = key;
-          evaluationCount[key] = (evaluationCount[key] || 0) + 1;
+  const evaluationCounts: { label: string; count: number }[] = [];
+  if (currentRegistration.role === "teacher") {
+    for (const field of formEvaluation) {
+      let count = 0;
+      for (const item of props.enrolledCourseList) {
+        if (item.evaluation?.[field.label]?.toString().trim()) {
+          count++;
         }
-      });
+      }
+      evaluationCounts.push({ label: field.label, count });
     }
-  });
+  }
 
-  let evaluation = "평가 현황";
-  Object.keys(evaluationCount).forEach((key)=>{
-    let emo = "";
-    if(evaluationCount[key] >= props.enrolledCourseList.length){
-      emo = "🟩";
-    }else{
-      emo = "🟥";
-    }
-    evaluation += " | " +  evaluationKey[key] + "[" + evaluationCount[key] + "/" + props.enrolledCourseList.length + "]" + emo;
-  })
+  const summaryItems: { label: string; value: string }[] = [
+    { label: "수강 과목", value: `${totalCourses}과목` },
+    { label: "총 학점", value: `${totalPoint}학점` },
+    { label: "주간 수업 시수", value: `${totalTimeSlots}시수` },
+    ...evaluationCounts.map((ec) => ({
+      label: ec.label,
+      value: `${ec.count}/${totalCourses}`,
+    })),
+  ];
 
   return (
     <>
-      <div style={{
-        fontSize: "14px",
-        fontWeight: "500",
-        marginTop:"10px",
-        marginBottom:"10px",
-        padding:"5px"
-        }}> 학점 현황 | {total}점</div>
-        {(currentRegistration.role === "teacher") && <div style={{
-          fontSize: "14px",
-          fontWeight: "500",
-          marginTop:"10px",
-          marginBottom:"10px",
-          padding:"5px"
-          }}> {evaluation}</div>}
+      <div className={style.summary_grid} style={{ marginBottom: "12px" }}>
+        {summaryItems.map((item, i) => (
+          <div className={style.summary_item} key={i}>
+            <span className={style.summary_label}>{item.label}</span>
+            <span className={style.summary_value}>{item.value}</span>
+          </div>
+        ))}
+      </div>
       <CourseTable
         data={props.enrolledCourseList}
         subjectLabels={currentSeason?.subjects?.label ?? []}
@@ -240,12 +238,17 @@ const MyDesgins = (props: { selected: string; createdCourseList: any[] }) => {
   );
 };
 
-const Mentoring = (props: { selected: string; mentoringCourseList: any[] }) => {
+const Mentoring = (props: {
+  selected: string;
+  mentoringCourseList: any[];
+  user: any;
+}) => {
   const { currentSeason } = useAuth();
 
   if (props.selected !== "mentoring") {
     return null;
   }
+
   return (
     <CourseTable
       data={props.mentoringCourseList}

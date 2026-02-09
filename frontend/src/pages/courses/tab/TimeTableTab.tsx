@@ -28,18 +28,19 @@
  *
  */
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/enrollment.module.scss";
 
 import EditorParser from "editor/EditorParser";
 import Divider from "components/divider/Divider";
+import Svg from "assets/svg/Svg";
 
 type Props = { courseList: any[] };
 
 const Timetable = (props: Props) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const { currentSeason, currentRegistration } = useAuth();
 
@@ -88,6 +89,20 @@ const Timetable = (props: Props) => {
     <div className={style.section}>
       {currentSeason?.formTimetable && (
         <>
+          <div
+            className={style.print_actions}
+            style={{ display: "flex", justifyContent: "flex-end" }}
+          >
+            <div
+              className="btn"
+              onClick={() => {
+                window.print();
+              }}
+              title="인쇄"
+            >
+              <Svg type={"print"} />
+            </div>
+          </div>
           <EditorParser
             type={"timetable"}
             auth="view"

@@ -28,7 +28,8 @@
  *
  */
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
@@ -47,6 +48,7 @@ import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
+import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
 
 type Props = {};
 
@@ -54,13 +56,13 @@ const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
   const [syllabus, setSyllabus] = useState<any>();
 
   const [confirmedStatus, setConfirmedStatus] =
-    useState<string>("notConfirmed");
+    useState<ConfirmedStatus>("notConfirmed");
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
 
@@ -105,56 +107,38 @@ const CoursePid = (props: Props) => {
         });
     }
 
-  const categories = () => {
-    return (
-      <>
-        {currentSeason?.subjects?.label && (
-          <div className={style.category}>
-            {_.join(currentSeason?.subjects.label, "/")}:{" "}
-            {_.join(syllabus.subject, "/")}
-          </div>
-        )}
-        <div className={style.category}>
-          강의실: {syllabus.classroom || "없음"}
-        </div>
-        <div className={style.category}>
-          시간:{" "}
-          {_.join(
-            syllabus?.time.map((timeBlock: any) => timeBlock.label),
-            ", "
-          )}
-        </div>
-        <div className={style.category}>학점: {syllabus.point}</div>
-        <div
-          className={style.category}
-          key={`category-${enrollmentList.length}-limit`}
-        >
-          수강/정원: {enrollmentList.length}/{syllabus.limit}
-        </div>
-
-        <div className={style.category}>개설자: {syllabus.userName}</div>
-        <div className={style.category}>
-          멘토:{" "}
-          {_.join(
-            syllabus.teachers?.map((teacher: any) => teacher.userName),
-            ", "
-          )}
-        </div>
-        <div
-          className={style.category}
-          onClick={() => {
-            setConfirmStatusPopupActive(true);
-          }}
-        >
-          상태:{" "}
-          {confirmedStatus === "fullyConfirmed"
-            ? "승인됨"
-            : confirmedStatus === "notConfirmed"
-            ? "미승인"
-            : "승인중"}
-        </div>
-      </>
+  const metaItems = () => {
+    const items = [];
+    if (currentSeason?.subjects?.label) {
+      items.push({
+        label: _.join(currentSeason.subjects.label, "/"),
+        value: _.join(syllabus.subject, "/"),
+      });
+    }
+    items.push(
+      { label: "강의실", value: syllabus.classroom || "없음" },
+      {
+        label: "시간",
+        value: _.join(
+          syllabus?.time.map((timeBlock: any) => timeBlock.label),
+          ", "
+        ),
+      },
+      { label: "학점", value: String(syllabus.point) },
+      {
+        label: "수강/정원",
+        value: `${enrollmentList.length}/${syllabus.limit}`,
+      },
+      { label: "개설자", value: syllabus.userName },
+      {
+        label: "멘토",
+        value: _.join(
+          syllabus.teachers?.map((teacher: any) => teacher.userName),
+          ", "
+        ),
+      }
     );
+    return items;
   };
 
   const onClickRemoveHandler = async (e: any) => {
@@ -385,6 +369,7 @@ const CoursePid = (props: Props) => {
                   display: "flex",
                   color: "var(--accent-1)",
                   justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
                 <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
@@ -398,11 +383,24 @@ const CoursePid = (props: Props) => {
                     {`담당 수업 목록 / ${pid}`}
                   </span>
                 </div>
+                <div
+                  className={`btn ${style.print_btn}`}
+                  onClick={() => {
+                    window.print();
+                  }}
+                  title="인쇄"
+                >
+                  <Svg type={"print"} />
+                </div>
               </div>
 
               <div className={style.title}>{syllabus.classTitle}</div>
-              <div className={style.categories_container}>
-                <div className={style.categories}>{categories()}</div>
+              <div className={style.meta_section}>
+                <CourseMetaInfo
+                  items={metaItems()}
+                  confirmedStatus={confirmedStatus}
+                  onStatusClick={() => setConfirmStatusPopupActive(true)}
+                />
               </div>
               <Divider />
               <EditorParser
