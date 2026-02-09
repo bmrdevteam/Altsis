@@ -599,7 +599,7 @@ const One = (props: Props) => {
         </Button>
       )}
       <div className={style.content} style={{ paddingBottom: "24px" }}>
-        <div style={{ marginTop: "24px" }}>
+        <div>
           {formArchive().fields?.map((val: any, index: number) => {
             if (
               val.type === "input" ||

@@ -27,7 +27,8 @@
  */
 import { useState } from "react";
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "./tab.module.scss";
 
 /**
@@ -75,7 +76,7 @@ const Tab = (props: {
   /**
    * import hooks
    */
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const location = useLocation();
 
   const [activeKey, setActiveKey] = useState<string>();

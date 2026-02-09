@@ -43,30 +43,35 @@ function getRecurringInstances(event, windowStart, windowEnd) {
   const eventMinute = eventStart.getMinutes();
 
   if (recurrenceType === "weekly") {
-    // 주간 반복: 이벤트 시작 요일과 현재 요일이 같은지 확인
-    const eventDay = eventStart.getDay();
+    // 주간 반복: recurrence.days 배열이 있으면 해당 요일들을 확인,
+    // 없으면 이벤트 시작 요일만 확인
+    const eventDays =
+      event.recurrence?.days?.length > 0
+        ? event.recurrence.days
+        : [eventStart.getDay()];
 
-    // windowStart ~ windowEnd 사이에 해당 요일이 있는지 확인
-    let checkDate = new Date(windowStart);
-    checkDate.setHours(eventHour, eventMinute, 0, 0);
+    const currentDay = new Date(windowStart).getDay();
 
-    // 해당 요일로 조정
-    const currentDay = checkDate.getDay();
-    const dayDiff = eventDay - currentDay;
-    checkDate.setDate(checkDate.getDate() + dayDiff);
+    for (const eventDay of eventDays) {
+      // 현재 요일과 이벤트 요일이 다르면 스킵
+      if (currentDay !== eventDay) continue;
 
-    // 검색 범위 안에 있고, 이벤트 시작일 이후이며, 반복 종료일 이전인지 확인
-    if (
-      checkDate >= windowStart &&
-      checkDate <= windowEnd &&
-      checkDate >= eventStart &&
-      (!recurrenceEnd || checkDate <= recurrenceEnd)
-    ) {
-      instances.push({
-        ...event.toObject ? event.toObject() : event,
-        instanceStart: checkDate,
-        instanceEnd: new Date(checkDate.getTime() + duration),
-      });
+      let checkDate = new Date(windowStart);
+      checkDate.setHours(eventHour, eventMinute, 0, 0);
+
+      // 검색 범위 안에 있고, 이벤트 시작일 이후이며, 반복 종료일 이전인지 확인
+      if (
+        checkDate >= windowStart &&
+        checkDate <= windowEnd &&
+        checkDate >= eventStart &&
+        (!recurrenceEnd || checkDate <= recurrenceEnd)
+      ) {
+        instances.push({
+          ...event.toObject ? event.toObject() : event,
+          instanceStart: checkDate,
+          instanceEnd: new Date(checkDate.getTime() + duration),
+        });
+      }
     }
   } else if (recurrenceType === "daily") {
     // 일간 반복: 매일 같은 시간에 발생
@@ -144,6 +149,7 @@ const checkScheduleStartNotifications = async () => {
 
       try {
         // 1. 비반복 일정: 시작 시간이 1분 전 ~ 현재 사이인 일정
+        // 동기화된 이벤트(enrollment, syllabus, memo)는 알림 대상에서 제외
         const nonRecurringEvents = await CalendarEvent(academyId).find({
           $or: [
             { "recurrence.type": "none" },
@@ -155,6 +161,7 @@ const checkScheduleStartNotifications = async () => {
             $lte: now,
           },
           isAllDay: false,
+          sourceType: { $in: ["manual", null] },
         });
 
         // 2. 반복 일정: 현재 시간대에 인스턴스가 있을 수 있는 이벤트
@@ -167,6 +174,7 @@ const checkScheduleStartNotifications = async () => {
             { "recurrence.endDate": null },
           ],
           isAllDay: false,
+          sourceType: { $in: ["manual", null] },
         });
 
         // 알림 대상 이벤트 목록 구성

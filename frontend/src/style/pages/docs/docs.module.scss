@@ -4,13 +4,14 @@
     }
 
     .section {
-        height: 100% !important;
+        height: auto !important;
         display: block !important;
-        padding: none;
+        overflow: visible !important;
+        padding: 0;
     }
 
     @page {
-        margin: 10mm 4mm 10mm 4mm;
+        margin: 10mm 4mm;
     }
 }
 

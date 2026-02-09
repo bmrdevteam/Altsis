@@ -3,7 +3,8 @@ import Table from "components/tableV2/Table";
 import { useAuth } from "contexts/authContext";
 import _ from "lodash";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import Loading from "components/loading/Loading";
 import Popup from "components/popup/Popup";
 import Progress from "components/progress/Progress";
@@ -126,6 +127,37 @@ const One = (props: Props) => {
     return arr;
   }
 
+  const autoSave = async () => {
+    try {
+      const data: any[] = [];
+      for (let item of archiveDataRef.current) {
+        const dataItem: { [key: string]: string } = {};
+        for (let field of formArchive().fields ?? []) {
+          dataItem[field.label] = item[field.label];
+        }
+        data.push(dataItem);
+      }
+
+      const { archive } = await ArchiveAPI.UArchiveByRegistration({
+        params: { _id: archiveId },
+        data: {
+          label: pid ?? "",
+          data,
+          registration: currentRegistration?._id,
+        },
+      });
+      setArchiveData(archive.data[pid!] ?? []);
+      archiveDataRef.current = archive.data[pid!] ?? [];
+      initialArchiveDataRef.current = JSON.parse(
+        JSON.stringify(archive.data[pid!] ?? [])
+      );
+      setHasChanges(false);
+    } catch (err) {
+      ALERT_ERROR(err);
+      setIsLoading(true);
+    }
+  };
+
   const checkForChanges = () => {
     const fields = formArchive().fields ?? [];
 
@@ -228,8 +260,13 @@ const One = (props: Props) => {
           {...(props.editable
             ? {
                 onChange: (value: any[]) => {
+                  const prevLength = initialArchiveDataRef.current.length;
                   archiveDataRef.current = value;
-                  checkForChanges();
+                  if (value.length !== prevLength) {
+                    autoSave();
+                  } else {
+                    checkForChanges();
+                  }
                 },
               }
             : {})}

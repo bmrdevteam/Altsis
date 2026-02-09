@@ -42,7 +42,7 @@ import Table from "components/tableV2/Table";
 import EditorParser from "editor/EditorParser";
 
 import _ from "lodash";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 type Props = {
@@ -53,7 +53,7 @@ type Props = {
 
 const CourseView = (props: Props) => {
   const { currentSeason } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { SyllabusAPI, EnrollmentAPI } = useAPIv2();
 
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =

@@ -1,3 +1,9 @@
+@media print {
+    .tab_menu_container {
+        display: none !important;
+    }
+}
+
 .tab_menu_container {
 
     overflow-x: auto;
