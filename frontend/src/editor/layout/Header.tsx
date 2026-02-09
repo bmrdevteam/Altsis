@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import Svg from "../../assets/svg/Svg";
 import style from "../editor.module.scss";
 import useEditorStore from "../store/useEditorStore";
@@ -7,7 +7,7 @@ import useAPIv2 from "hooks/useAPIv2";
 import FormSettingsPopup from "./FormSettingsPopup";
 
 const Header = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { FormAPI } = useAPIv2();
   const title = useEditorStore((s) => s.title);
   const mode = useEditorStore((s) => s.mode);

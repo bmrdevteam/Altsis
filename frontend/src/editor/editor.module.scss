@@ -828,6 +828,18 @@
     position: relative;
     transition: width 0.2s ease;
 
+    --background-color: rgb(255, 255, 255);
+    --component-color: rgb(245, 245, 245);
+    --component-hover-color: rgb(225, 225, 225);
+    --accent-1: rgb(0, 0, 0);
+    --accent-2: rgb(51, 51, 51);
+    --accent-3: rgb(102, 102, 102);
+    --accent-4: rgb(153, 153, 153);
+    --accent-5: rgb(204, 204, 204);
+    --accent-6: rgb(255, 255, 255);
+    --border-default: 1px solid rgb(230, 230, 230);
+    --border-default-color: rgb(225, 225, 225);
+
     .page {
         position: relative;
         z-index: 1;
@@ -938,6 +950,11 @@
         padding: 4px 6px;
         min-height: 24px;
         position: relative;
+        font-family: inherit;
+
+        span, input, select, a {
+            font-family: inherit;
+        }
 
         .data {
             user-select: none;
@@ -1009,13 +1026,35 @@ parsed block
 */
 @media print {
     .editor_parser_container {
-        padding: 24px 0 180px 0 ;
+        padding: 0;
+    }
+
+    .parsed_block {
+        display: block;
+        break-inside: auto;
+    }
+
+    .parsed_block .table {
+        overflow: visible;
+        break-inside: auto;
     }
 }
 
 .editor_parser_container {
     display: flex;
     flex-wrap: wrap;
+
+    --background-color: rgb(255, 255, 255);
+    --component-color: rgb(245, 245, 245);
+    --component-hover-color: rgb(225, 225, 225);
+    --accent-1: rgb(0, 0, 0);
+    --accent-2: rgb(51, 51, 51);
+    --accent-3: rgb(102, 102, 102);
+    --accent-4: rgb(153, 153, 153);
+    --accent-5: rgb(204, 204, 204);
+    --accent-6: rgb(255, 255, 255);
+    --border-default: 1px solid rgb(230, 230, 230);
+    --border-default-color: rgb(225, 225, 225);
 }
 
 .parsed_block {
@@ -1027,7 +1066,7 @@ parsed block
     outline: none;
     min-height: 29px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .parsed_block.line {
@@ -1049,6 +1088,11 @@ parsed block
         outline: none;
         padding: 4px 6px;
         position: relative;
+        font-family: inherit;
+
+        span, input, select, a {
+            font-family: inherit;
+        }
 
         table {
             tbody {

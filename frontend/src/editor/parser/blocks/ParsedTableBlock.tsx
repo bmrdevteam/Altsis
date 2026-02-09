@@ -505,9 +505,7 @@ const ParsedTableBlock = (props: Props) => {
       case "timeRange":
         return (
           <div className={style.cell} style={{ textAlign: data.align }}>
-            {data.timeRangeStart}
-            {" ~ "}
-            {data.timeRangeEnd}
+            {data.timeRangeDisplayText || `${data.timeRangeStart || "00:00"} ~ ${data.timeRangeEnd || "00:00"}`}
           </div>
         );
 
@@ -533,14 +531,15 @@ const ParsedTableBlock = (props: Props) => {
     >
       <table
         className={style.table}
-        style={{ 
+        style={{
           fontSize: props.blockData.data?.fontSize,
+          fontFamily: props.blockData.data?.fontFamily,
           fontWeight: props.blockData.data?.fontWeight,
           borderWidth: props.blockData.data?.borderWidth,
           borderColor: props.blockData.data?.borderColor,
-          borderStyle: props.blockData.data?.borderStyle, // Added borderStyle
-          borderRadius: props.blockData.data?.borderRadius, // Added borderRadius
-          backgroundColor: props.blockData.data?.backgroundColor // Added backgroundColor
+          borderStyle: props.blockData.data?.borderStyle,
+          borderRadius: props.blockData.data?.borderRadius,
+          backgroundColor: props.blockData.data?.backgroundColor,
         }}
       >
       <SetColumn />
@@ -590,14 +589,18 @@ const ParsedTableBlock = (props: Props) => {
         key={`${i}-${ind}`}
         colSpan={val?.colSpan}
         rowSpan={val?.rowSpan}
-        style={{ 
+        style={{
         fontSize: val?.fontSize,
+        fontFamily: val?.fontFamily,
         fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
-        borderStyle: val?.borderStyle, // Added borderStyle
-        borderRadius: val?.borderRadius, // Added borderRadius
-        backgroundColor: val?.backgroundColor // Added backgroundColor
+        borderStyle: val?.borderStyle,
+        borderRadius: val?.borderRadius,
+        backgroundColor: val?.backgroundColor,
+        backgroundImage: val?.backgroundImage ? `url(${val.backgroundImage})` : undefined,
+        backgroundSize: val?.backgroundImage ? (val?.backgroundSize || "cover") : undefined,
+        backgroundPosition: val?.backgroundImage ? (val?.backgroundPosition || "center") : undefined,
         }}
         >
         <Cell
@@ -614,14 +617,18 @@ const ParsedTableBlock = (props: Props) => {
         key={`${i}-${ind}`}
         colSpan={val?.colSpan}
         rowSpan={val?.rowSpan}
-        style={{ 
+        style={{
         fontSize: val?.fontSize,
+        fontFamily: val?.fontFamily,
         fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
-        borderStyle: val?.borderStyle, // Added borderStyle
-        borderRadius: val?.borderRadius, // Added borderRadius
-        backgroundColor: val?.backgroundColor // Added backgroundColor
+        borderStyle: val?.borderStyle,
+        borderRadius: val?.borderRadius,
+        backgroundColor: val?.backgroundColor,
+        backgroundImage: val?.backgroundImage ? `url(${val.backgroundImage})` : undefined,
+        backgroundSize: val?.backgroundImage ? (val?.backgroundSize || "cover") : undefined,
+        backgroundPosition: val?.backgroundImage ? (val?.backgroundPosition || "center") : undefined,
         }}
         >
         <Cell
@@ -679,14 +686,18 @@ const ParsedTableBlock = (props: Props) => {
       key={ind}
       colSpan={val?.colSpan}
       rowSpan={val?.rowSpan}
-      style={{ 
+      style={{
         fontSize: val?.fontSize,
+        fontFamily: val?.fontFamily,
         fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
-        borderStyle: val?.borderStyle, // Added borderStyle
-        borderRadius: val?.borderRadius, // Added borderRadius
-        backgroundColor: val?.backgroundColor // Added backgroundColor
+        borderStyle: val?.borderStyle,
+        borderRadius: val?.borderRadius,
+        backgroundColor: val?.backgroundColor,
+        backgroundImage: val?.backgroundImage ? `url(${val.backgroundImage})` : undefined,
+        backgroundSize: val?.backgroundImage ? (val?.backgroundSize || "cover") : undefined,
+        backgroundPosition: val?.backgroundImage ? (val?.backgroundPosition || "center") : undefined,
       }}
         >
       <Cell
@@ -701,14 +712,18 @@ const ParsedTableBlock = (props: Props) => {
       key={ind}
       colSpan={val?.colSpan}
       rowSpan={val?.rowSpan}
-      style={{ 
+      style={{
         fontSize: val?.fontSize,
+        fontFamily: val?.fontFamily,
         fontWeight: val?.fontWeight,
         borderWidth: val?.borderWidth,
         borderColor: val?.borderColor,
-        borderStyle: val?.borderStyle, // Added borderStyle
-        borderRadius: val?.borderRadius, // Added borderRadius
-        backgroundColor: val?.backgroundColor // Added backgroundColor
+        borderStyle: val?.borderStyle,
+        borderRadius: val?.borderRadius,
+        backgroundColor: val?.backgroundColor,
+        backgroundImage: val?.backgroundImage ? `url(${val.backgroundImage})` : undefined,
+        backgroundSize: val?.backgroundImage ? (val?.backgroundSize || "cover") : undefined,
+        backgroundPosition: val?.backgroundImage ? (val?.backgroundPosition || "center") : undefined,
       }}
         >
       <Cell

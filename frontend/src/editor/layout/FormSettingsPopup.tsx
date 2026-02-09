@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import Input from "components/input/Input";
@@ -14,7 +14,7 @@ type Props = {
 };
 
 const FormSettingsPopup = ({ setState }: Props) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { FormAPI, UserAPI } = useAPIv2();
   const { currentSchool } = useAuth();
   const formId = useEditorStore((s) => s.formId);

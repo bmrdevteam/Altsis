@@ -257,6 +257,7 @@ const TableBlock = (props: Props) => {
         className={style.table}
         style={{
           fontSize: data.fontSize,
+          fontFamily: data.fontFamily,
           fontWeight: data.fontWeight,
           borderWidth: data.borderWidth,
           borderColor: data.borderColor,
@@ -289,6 +290,7 @@ const TableBlock = (props: Props) => {
 
                     const cellStyle: React.CSSProperties = {
                       fontSize: val?.fontSize,
+                      fontFamily: val?.fontFamily,
                       fontWeight: val?.fontWeight,
                       borderWidth: val?.borderWidth,
                       borderColor: val?.borderColor,

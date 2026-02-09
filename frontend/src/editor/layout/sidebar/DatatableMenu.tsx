@@ -8,7 +8,7 @@ import { isArray } from "lodash";
 import Select from "../../../components/select/Select";
 import useDatabase from "../../../hooks/useDatabase";
 import Tab from "../../../components/tab/Tab";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 type Props = {};
 
@@ -25,7 +25,7 @@ const DatatableMenu = (props: Props) => {
 
   const [data, setData] = useState<any>();
   const [dataFrom, setDataFrom] = useState();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   useEffect(() => {
     if (isArray(getCurrentBlock()?.data?.dataTableHeader)) {

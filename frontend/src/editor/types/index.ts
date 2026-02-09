@@ -45,6 +45,7 @@ export type BorderStyle =
 
 export interface StyleProps {
   fontSize?: string;
+  fontFamily?: string;
   fontWeight?: number;
   textAlign?: TextAlign;
   borderWidth?: number;

@@ -14,6 +14,40 @@ import DataConnPopup from "../DataConnPopup";
 
 const generateId = useGenerateId;
 
+const FONT_OPTIONS = [
+  { value: "Pretendard", label: "Pretendard" },
+  { value: "Noto Sans KR", label: "Noto Sans KR" },
+  { value: "Gothic A1", label: "Gothic A1" },
+  { value: "IBM Plex Sans KR", label: "IBM Plex Sans KR" },
+  { value: "Nanum Gothic", label: "나눔고딕" },
+  { value: "Nanum Gothic Coding", label: "나눔고딕코딩" },
+  { value: "Gowun Dodum", label: "고운돋움" },
+  { value: "Black Han Sans", label: "검정한산스" },
+  { value: "Do Hyeon", label: "도현" },
+  { value: "Jua", label: "주아" },
+  { value: "Gugi", label: "궁서" },
+  { value: "Sunflower", label: "해바라기" },
+  { value: "Noto Serif KR", label: "Noto Serif KR" },
+  { value: "Nanum Myeongjo", label: "나눔명조" },
+  { value: "Gowun Batang", label: "고운바탕" },
+  { value: "Hahmlet", label: "함렛" },
+  { value: "Song Myung", label: "송명" },
+  { value: "Nanum Pen Script", label: "나눔펜" },
+  { value: "Nanum Brush Script", label: "나눔브러시" },
+  { value: "Gaegu", label: "개구" },
+  { value: "Hi Melody", label: "하이멜로디" },
+  { value: "Gamja Flower", label: "감자꽃" },
+  { value: "Poor Story", label: "푸어스토리" },
+  { value: "Yeon Sung", label: "연성" },
+  { value: "Stylish", label: "스타일리시" },
+  { value: "Single Day", label: "싱글데이" },
+  { value: "Cute Font", label: "큐트폰트" },
+  { value: "Dokdo", label: "독도" },
+  { value: "East Sea Dokdo", label: "동해독도" },
+  { value: "Kirang Haerang", label: "기랑해랑" },
+  { value: "Black And White Picture", label: "흑백사진" },
+];
+
 type ActiveTab = "table" | "cell";
 type ImageInputMode = "file" | "url";
 
@@ -119,6 +153,18 @@ const TableCellPanel = () => {
     useEditorStore.getState().saveSnapshot();
   };
 
+  const setFontFamilyAll = (ff: string) => {
+    useEditorStore.setState((state) => {
+      const block = state.blocks.find((b) => b.id === blockId);
+      if (block && block.type === "table") {
+        const td = block.data as TableBlockData;
+        td.fontFamily = ff;
+        td.table.forEach((row) => row.forEach((c) => (c.fontFamily = ff)));
+      }
+    });
+    useEditorStore.getState().saveSnapshot();
+  };
+
   const setFontSizeAll = (fs: string) => {
     useEditorStore.setState((state) => {
       const block = state.blocks.find((b) => b.id === blockId);
@@ -203,6 +249,9 @@ const TableCellPanel = () => {
   // --- Derived values based on active tab ---
   const isTable = activeTab === "table";
 
+  const currentFontFamily = isTable
+    ? (data.fontFamily ?? "Pretendard")
+    : (cell?.fontFamily ?? data.fontFamily ?? "Pretendard");
   const currentAlign = isTable
     ? data.align
     : (cell?.align ?? data.align);
@@ -226,6 +275,8 @@ const TableCellPanel = () => {
     : (cell?.backgroundColor ?? data.backgroundColor ?? "#ffffff");
 
   // --- Shared action dispatchers ---
+  const setFontFamily = (ff: string) =>
+    isTable ? setFontFamilyAll(ff) : updateCellProp({ fontFamily: ff });
   const setAlign = (a: TextAlign) =>
     isTable ? setAlignAll(a) : updateCellProp({ align: a });
   const setFontWeight = (fw: number) =>
@@ -265,6 +316,28 @@ const TableCellPanel = () => {
 
       {/* Shared: 글자 (Font) */}
       <SubSection label="글자">
+        <div className={style.grid_item}>
+          <label>폰트</label>
+          <select
+            value={currentFontFamily}
+            onChange={(e) => setFontFamily(e.target.value)}
+            style={{
+              height: "28px",
+              fontSize: "12px",
+              backgroundColor: "var(--background-color)",
+              border: "none",
+              borderRadius: "6px",
+              padding: "0 8px",
+              color: "var(--accent-1)",
+            }}
+          >
+            {FONT_OPTIONS.map((font) => (
+              <option key={font.value} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className={style.grid_item}>
           <label>정렬</label>
           <div className={style.align}>
@@ -721,21 +794,27 @@ const TableCellPanel = () => {
           <SubSection label="셀 타입">
             <div className={style.grid_item}>
               <label>타입</label>
-              <Select
-                onChange={(value: any) => updateCellProp({ type: value })}
-                style={{ fontSize: "12px" }}
-                selectedValue={cell.type}
-                appearence="flat"
-                options={[
-                  { text: "텍스트셀", value: "paragraph" },
-                  { text: "데이터셀", value: "data" },
-                  { text: "시간셀", value: "time" },
-                  { text: "시간범위셀", value: "timeRange" },
-                  { text: "체크박스셀", value: "checkbox" },
-                  { text: "입력셀", value: "input" },
-                  { text: "선택셀", value: "select" },
-                ]}
-              />
+              <select
+                value={cell.type}
+                onChange={(e) => updateCellProp({ type: e.target.value })}
+                style={{
+                  height: "28px",
+                  fontSize: "12px",
+                  backgroundColor: "var(--background-color)",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "0 8px",
+                  color: "var(--accent-1)",
+                }}
+              >
+                <option value="paragraph">텍스트셀</option>
+                <option value="data">데이터셀</option>
+                <option value="time">시간셀</option>
+                <option value="timeRange">시간범위셀</option>
+                <option value="checkbox">체크박스셀</option>
+                <option value="input">입력셀</option>
+                <option value="select">선택셀</option>
+              </select>
             </div>
 
             {/* Checkbox type settings */}
