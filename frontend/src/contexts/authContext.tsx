@@ -23,7 +23,7 @@ export function useAuth(): {
   currentUser: TCurrentUser;
   setCurrentUser: React.Dispatch<TCurrentUser>;
   currentSchool: TSchool;
-  changeSchool: (to: string) => void;
+  changeSchool: (to: string) => Promise<void>;
   currentRegistration: TCurrentRegistration;
   changeRegistration: (rid: string) => void;
   reloadRegistration: () => void;

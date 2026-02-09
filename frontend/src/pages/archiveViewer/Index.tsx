@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 import style from "style/pages/archive.module.scss";
 
@@ -10,7 +10,7 @@ import Loading from "components/loading/Loading";
 type Props = {};
 
 const Archive = (props: Props) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { currentSchool } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 

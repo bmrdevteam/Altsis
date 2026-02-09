@@ -32,7 +32,7 @@ import style from "style/pages/courses/course.module.scss";
 // components
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
@@ -53,7 +53,7 @@ type Props = {
 
 const Index = (props: Props) => {
   const { currentSeason } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const [changes, setChanges] = useState<any[]>([]);
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
 

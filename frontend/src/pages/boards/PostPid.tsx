@@ -11,7 +11,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -27,7 +28,7 @@ import { TBoard } from "types/board";
 import { TComment } from "types/comment";
 
 const PostPid = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { boardId, postId } = useParams<{ boardId: string; postId: string }>();
   const { currentUser, currentRegistration } = useAuth();
   const { PostAPI, CommentAPI } = useAPIv2();

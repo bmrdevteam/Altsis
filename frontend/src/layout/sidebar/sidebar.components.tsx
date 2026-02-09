@@ -2,8 +2,8 @@ import React, { ReactElement, useEffect, useState } from "react";
 import Svg from "assets/svg/Svg";
 import style from "./sidebar.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "contexts/authContext";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -27,7 +27,7 @@ const Nav = ({
 
 const NavLogo = ({ onClick }: { onClick: any }) => {
   const [open, setOpen] = useState<boolean>(false);
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const { currentUser, currentSchool, changeSchool } = useAuth();
 
@@ -41,14 +41,23 @@ const NavLogo = ({ onClick }: { onClick: any }) => {
         style={{ border: "none", outline: "none", background: "transparent" }}
         name=""
         onChange={(e) => {
-          changeSchool(e.target.value);
+          const selectedSchoolId = e.target.value;
+          const selectedSchool = currentUser.schools.find(
+            (s: any) => s.schoolId === selectedSchoolId
+          );
+          if (selectedSchool) {
+            changeSchool(selectedSchool.school);
+            navigate(`/${currentUser.academyId}/${selectedSchoolId}/`, {
+              replace: true,
+            });
+          }
         }}
         id=""
-        value={currentSchool?.school}
+        value={currentSchool?.schoolId}
       >
         {currentUser.schools.map((s: any) => {
           return (
-            <option key={s.school} value={s.school}>
+            <option key={s.school} value={s.schoolId}>
               {s.schoolName}
             </option>
           );
@@ -110,7 +119,7 @@ const NavLink = ({
   path?: string;
   type?: "default" | "link";
 }) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { currentUser } = useAuth();
 
   return type === "default" ? (
@@ -158,7 +167,7 @@ const SubLink = ({
   path?: string;
   active?: boolean;
 }) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { currentUser } = useAuth();
 
   return (
@@ -178,7 +187,7 @@ const SubLink = ({
 };
 
 const NavProfile = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { currentUser } = useAuth();
   const [logoutPopupActive, setLogoutPopupActive] = useState(false);
   const { UserAPI } = useAPIv2();

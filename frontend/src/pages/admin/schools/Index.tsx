@@ -27,7 +27,7 @@
  *
  */
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/admin/schools.module.scss";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -130,7 +130,7 @@ const AddSchoolPopup = (props: {
 };
 
 const Schools = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { SchoolAPI } = useAPIv2();
   const { currentUser, currentSchool } = useAuth();
   const [isLoading, setIsLoading] = useState(true);

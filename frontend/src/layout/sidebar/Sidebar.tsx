@@ -62,8 +62,9 @@ const Sidebar = (props: Props) => {
                     path={data.path}
                     icon={data.icon}
                     active={
-                      location.pathname !== "/" &&
-                      data.title.includes(location.pathname.split("/")[1])
+                      location.pathname.split("/")[3]
+                        ? data.title.includes(location.pathname.split("/")[3])
+                        : data.path === "/"
                     }
                     subLink={
                       data.subLink && (
@@ -75,10 +76,13 @@ const Sidebar = (props: Props) => {
                                 icon={sbData.icon}
                                 path={sbData.path}
                                 active={
-                                  location.pathname !== "/" &&
-                                  decodeURI(location.pathname).includes(
-                                    sbData.path
-                                  )
+                                  !!location.pathname.split("/")[3] &&
+                                  decodeURI(
+                                    location.pathname.replace(
+                                      /^\/[^/]+\/[^/]+/,
+                                      ""
+                                    )
+                                  ).includes(sbData.path)
                                 }
                               >
                                 {sbData.name}

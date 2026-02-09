@@ -29,7 +29,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/courseDesign.module.scss";
 
@@ -54,7 +54,7 @@ type Props = {};
 
 const CourseAdd = (props: Props) => {
   const { currentUser, currentSeason, currentRegistration } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);

@@ -2,11 +2,6 @@
   .navbar_container {
     display: none !important;
   }
-
-  @page {
-    margin: 0;
-    page-break-after: always;
-  }
 }
 
 @media (max-width: 800px) {

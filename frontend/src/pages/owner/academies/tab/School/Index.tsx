@@ -28,7 +28,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { copyClipBoard } from "functions/functions";
 
 // components
@@ -39,7 +40,7 @@ type Props = {};
 const School = (props: Props) => {
   const { AcademyAPI } = useAPIv2();
   const { pid: academyId = "" } = useParams<"pid">();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   /* document list */
   const [documentList, setDocumentList] = useState<any>();

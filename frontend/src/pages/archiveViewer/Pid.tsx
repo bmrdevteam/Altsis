@@ -1,5 +1,6 @@
 import { useAuth } from "contexts/authContext";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/archive.module.scss";
 import { useEffect, useRef, useState } from "react";
 
@@ -12,7 +13,7 @@ type Props = {};
 const ArchiveField = (props: Props) => {
   const { pid } = useParams(); // archive label ex) 인적 사항
   const { currentSchool, currentRegistration, currentUser } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {

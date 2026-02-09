@@ -28,7 +28,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import useAPIv2 from "hooks/useAPIv2";
 
 import style from "style/pages/owner/academy.module.scss";
@@ -44,7 +44,7 @@ import Loading from "components/loading/Loading";
 type Props = {};
 
 const Academies = (props: Props) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { AcademyAPI } = useAPIv2();
 
   /* document list */

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { Socket, io } from "socket.io-client";
 import style from "./navbar.module.scss";
 import _ from "lodash";
@@ -36,7 +36,7 @@ const Notification = () => {
   const { currentUser } = useAuth();
   const { NotificationAPI, PostAPI, EnrollmentAPI } = useAPIv2();
 
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const [socket, setSocket] = useState<Socket>();
 

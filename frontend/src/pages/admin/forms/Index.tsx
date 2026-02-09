@@ -27,7 +27,8 @@
  *
  */
 import React, { useEffect, useState, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/admin/forms.module.scss";
 
 // hooks
@@ -83,7 +84,7 @@ const Forms = (props: Props) => {
   const [selectFormType, setSelectFormType] = useState<
     "timetable" | "syllabus" | "print" | "other"
   >("timetable");
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   useEffect(() => {
     getForms();
@@ -190,7 +191,7 @@ const Forms = (props: Props) => {
    */
   const FormItem = ({ data }: { data: any }): JSX.Element => {
 
-    const navigate = useNavigate();
+    const navigate = useAppNavigate();
     const outsideclick = useOutsideClick();
 
     let fileColor;

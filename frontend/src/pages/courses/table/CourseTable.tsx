@@ -1,6 +1,6 @@
 import Table, { TTableHeader } from "components/tableV2/Table";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 
 import { defaultHeaderList } from "./defaultHeaderList";
@@ -31,7 +31,7 @@ const CourseTable = (props: Props) => {
   const [courseId, setCourseId] = useState<string | undefined>(undefined);
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const structuring = (data: any[]) => {
     return _.sortBy(

@@ -30,7 +30,7 @@ import Button from "components/button/Button";
 import useAPIv2 from "hooks/useAPIv2";
 import { ALERT_ERROR } from "hooks/useAPIv2";
 import Callout from "components/callout/Callout";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 type Props = {
   academyData: any;
@@ -38,7 +38,7 @@ type Props = {
 
 const Academy = (props: Props) => {
   const { AcademyAPI } = useAPIv2();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const onClickRemoveHandler = async () => {
     if (

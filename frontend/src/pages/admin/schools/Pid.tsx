@@ -28,7 +28,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/admin/schools.module.scss";
 
 // components
@@ -52,7 +53,7 @@ import { TSeason } from "types/seasons";
 type Props = {};
 
 const CannotFindSchool = ({ schoolId }: { schoolId?: string }) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   return (
     <div
       style={{
@@ -82,7 +83,7 @@ const School = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { SchoolAPI, SeasonAPI } = useAPIv2();
   const { currentUser, currentSchool } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [schoolData, setSchoolData] = useState<TSchool>();

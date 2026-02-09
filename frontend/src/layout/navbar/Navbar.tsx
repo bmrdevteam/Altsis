@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 // components
 import Select from "components/select/Select";
@@ -35,7 +35,7 @@ const Navbar = (props: Props) => {
     currentSchool,
     currentSeason,
   } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const [users, setUsers] = useState<Array<any>>([]);
   const [searchParam, setSearchParam] = useState<string>("");
   const outsideClick = useOutsideClick();

@@ -29,12 +29,12 @@
  *
  */
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 type Props = {};
 
 const Http404 = (props: Props) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   return (
     <div
       className="page_container"

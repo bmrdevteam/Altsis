@@ -4,7 +4,8 @@ import useApi from "hooks/useApi";
 
 import _ from "lodash";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "style/pages/archive.module.scss";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
@@ -21,7 +22,7 @@ const ArchiveField = (props: Props) => {
   const { pid: _pid } = useParams(); // archive label ex) 인적 사항
   const { currentUser, currentSchool, currentRegistration, currentSeason } =
     useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [pid, setPid] = useState<string>();

@@ -28,7 +28,7 @@
  *
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 
 import style from "style/pages/enrollment.module.scss";
@@ -42,7 +42,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {};
 
 const Courses = (props: Props) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { SyllabusAPI } = useAPIv2();
 
   const { currentSeason, currentRegistration } = useAuth();

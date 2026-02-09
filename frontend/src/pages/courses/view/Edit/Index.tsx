@@ -28,7 +28,8 @@
  *
  */
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import style from "style/pages/courses/course.module.scss";
 
@@ -55,7 +56,7 @@ const CoursePid = (props: Props) => {
 
   const { SyllabusAPI } = useAPIv2();
 
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { currentUser, currentSeason } = useAuth();
 
   const [courseData, setCourseData] = useState<any>();

@@ -11,7 +11,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import _ from "lodash";
@@ -31,7 +32,7 @@ import { TPost, TPostTargetAudience, TPostTargetUser } from "types/post";
 type TargetType = "all" | "manager" | "teacher" | "student" | "custom";
 
 const PostCreate = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { boardId, postId } = useParams<{ boardId: string; postId?: string }>();
   const { currentUser, currentSchool } = useAuth();
   const { BoardAPI, PostAPI, UserAPI } = useAPIv2();

@@ -27,7 +27,8 @@
  *
  */
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 /**
  * NavigationLinks component
@@ -38,9 +39,11 @@ import { useLocation, useNavigate } from "react-router-dom";
  */
 
 const NavigationLinks = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const location = useLocation();
-  const locationArr = location.pathname.split("/").filter((x) => x !== "");
+  const allSegments = location.pathname.split("/").filter((x) => x !== "");
+  // Skip first 2 segments (academyId, schoolId)
+  const locationArr = allSegments.slice(2);
 
   return (
     <div

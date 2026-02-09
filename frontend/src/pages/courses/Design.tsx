@@ -29,7 +29,7 @@
  */
 
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 
 // tab pages
@@ -40,7 +40,7 @@ type Props = {};
 // create new syllabus
 const CourseDesign = (props: Props) => {
   const { currentRegistration } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   useEffect(() => {
     if (!currentRegistration) {

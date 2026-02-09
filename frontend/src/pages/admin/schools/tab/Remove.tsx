@@ -30,7 +30,7 @@ import Button from "components/button/Button";
 import useAPIv2 from "hooks/useAPIv2";
 import { ALERT_ERROR } from "hooks/useAPIv2";
 import Callout from "components/callout/Callout";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import _ from "lodash";
 
@@ -41,7 +41,7 @@ type Props = {
 const Index = (props: Props) => {
   const { SchoolAPI } = useAPIv2();
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const onClickRemoveHandler = async () => {
     if (

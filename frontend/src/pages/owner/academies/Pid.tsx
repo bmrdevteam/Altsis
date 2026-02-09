@@ -28,7 +28,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import style from "style/pages/admin/schools.module.scss";
@@ -51,7 +52,7 @@ import Skeleton from "components/skeleton/Skeleton";
 type Props = {};
 
 const CannotFindAcademy = ({ schoolId }: { schoolId?: string }) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   return (
     <div
       style={{

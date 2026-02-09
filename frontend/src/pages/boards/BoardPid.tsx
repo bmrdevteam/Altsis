@@ -11,10 +11,11 @@
  */
 
 import { useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 const BoardPid = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const { boardId } = useParams<{ boardId: string }>();
 
   useEffect(() => {

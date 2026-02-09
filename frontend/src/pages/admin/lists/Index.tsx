@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 import style from "style/pages/admin/list.module.scss";
 
@@ -14,7 +14,7 @@ import Input from "components/input/Input";
 type Props = {};
 
 const Lists = (props: Props) => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
 
   const [addDatabasePopupActive, setAddDatabasePopupActive] =
     useState<boolean>(false);

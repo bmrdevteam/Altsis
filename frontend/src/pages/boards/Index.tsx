@@ -11,7 +11,8 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
@@ -45,7 +46,7 @@ const formatTargetAudience = (targetAudience?: TPostTargetAudience): string => {
 };
 
 const Boards = () => {
-  const navigate = useNavigate();
+  const navigate = useAppNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser, currentSchool } = useAuth();
   const { BoardAPI, PostAPI } = useAPIv2();
