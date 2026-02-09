@@ -1,4 +1,4 @@
-FROM node:16-alpine
+FROM node:20-alpine
 
 ## Timezone 설정
 RUN apk add tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
