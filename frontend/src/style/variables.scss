@@ -17,19 +17,13 @@
     --component-hover-color: rgb(225, 225, 225);
     --component-box-shadow: rgba(162, 162, 162, 0.15) 0px 8px 12px;
 
-    // black to white divided in 5 stops 
-    --accent-1: rgb(0, 0, 0);
+    // black to white divided in 6 stops
     --accent-1: rgb(0, 0, 0);
     --accent-2: rgb(51, 51, 51);
     --accent-3: rgb(102, 102, 102);
     --accent-4: rgb(153, 153, 153);
     --accent-5: rgb(204, 204, 204);
     --accent-6: rgb(255, 255, 255);
-
-    // @for $i from 0 to 255 {
-    //     --contrast-#{$i}: rgb(#{$i}, #{$i}, #{$i});
-    // }
-    // --contrast-225: rgb(225, 225, 225);
 
     // alert colors
     --alert-c1: rgb(255, 100, 100);
@@ -56,7 +50,7 @@
     --color-b6: rgb(225, 225, 255);
 
 
-    //border for the applicaion 
+    //border for the application
     --border-default: 1px solid rgb(230, 230, 230);
     --border-default-color: rgb(225, 225, 225);
 
@@ -64,21 +58,47 @@
     --btn-color-1: rgb(0, 0, 0);
     --btn-text-color-1: rgb(255, 255, 255);
 
+    // --- Semantic status colors ---
+    --status-success: #52c41a;
+    --status-success-bg: #f6ffed;
+    --status-success-border: #b7eb8f;
 
-    //
+    --status-info: #1677ff;
+    --status-info-bg: #e6f4ff;
+    --status-info-border: #91caff;
 
-    // -webkit-touch-callout: none;
-    // /* iOS Safari */
-    // -webkit-user-select: none;
-    // /* Safari */
-    // -khtml-user-select: none;
-    // /* Konqueror HTML */
-    // -moz-user-select: none;
-    // /* Old versions of Firefox */
-    // -ms-user-select: none;
-    // /* Internet Explorer/Edge */
-    // user-select: none;
-    // /* Non-prefixed version, currently */
+    --status-warning: #faad14;
+    --status-warning-bg: #fffbe6;
+    --status-warning-border: #ffe58f;
+
+    --status-error: #ff4d4f;
+    --status-error-bg: #fff2f0;
+    --status-error-border: #ffccc7;
+
+    // --- UI element colors ---
+    --highlight-color: #007affe0;
+    --highlight-text: rgb(255, 255, 255);
+    --current-time-color: #e53935;
+    --current-time-hover: rgba(0, 122, 255, 0.04);
+    --checkbox-checked: #0062c7;
+    --schedule-indicator: rgb(70, 133, 222);
+    --scrollbar-thumb: #babac0;
+    --toggle-inactive: #ccc;
+    --calendar-control-color: var(--primary-color);
+
+    // --- Progress bar ---
+    --progress-default: #1677ff;
+    --progress-track: rgba(0, 0, 0, 0.06);
+
+    // --- Overlay ---
+    --overlay-bg: rgba(0, 0, 0, 0.3);
+
+    // --- Event default bg ---
+    --event-default-bg: rgb(202, 222, 255);
+
+    // --- Placeholder text ---
+    --placeholder-color: rgb(171, 171, 171);
+
     body,
     p,
     span,
@@ -91,7 +111,42 @@
 
 }
 
+// =============================================
+// PRINT: force light theme
+// =============================================
+@media print {
+    :root {
+        --primary-color: rgb(49, 55, 117);
+        --primary-text-color: rgb(49, 55, 117);
+        --primary-background-color: rgb(220, 222, 252);
+        --background-color: rgb(255, 255, 255);
+        --background-hover-color: rgb(245, 245, 245);
+        --canvas-color: rgb(255, 255, 255);
+        --component-color: rgb(245, 245, 245);
+        --component-hover-color: rgb(225, 225, 225);
+        --component-box-shadow: rgba(162, 162, 162, 0.15) 0px 8px 12px;
+        --accent-1: rgb(0, 0, 0);
+        --accent-2: rgb(51, 51, 51);
+        --accent-3: rgb(102, 102, 102);
+        --accent-4: rgb(153, 153, 153);
+        --accent-5: rgb(204, 204, 204);
+        --accent-6: rgb(255, 255, 255);
+        --alert-c1: rgb(255, 100, 100);
+        --border-default: 1px solid rgb(230, 230, 230);
+        --border-default-color: rgb(225, 225, 225);
+        --btn-color-1: rgb(0, 0, 0);
+        --btn-text-color-1: rgb(255, 255, 255);
+    }
+}
+
+// =============================================
+// DARK THEME
+// =============================================
 :root[data-theme="dark"] {
+
+    --primary-color: rgb(140, 148, 220);
+    --primary-text-color: rgb(220, 226, 255);
+    --primary-background-color: rgb(40, 42, 70);
 
     --background-color: rgb(20, 20, 20);
     --background-hover-color: rgb(30, 30, 30);
@@ -101,8 +156,6 @@
     --component-hover-color: rgb(50, 50, 50);
 
     --component-box-shadow: none;
-
-
 
     --border-default: 1px solid rgb(45, 45, 45);
     --border-default-color: rgb(45, 45, 45);
@@ -114,11 +167,248 @@
     --accent-5: rgb(51, 51, 51);
     --accent-6: rgb(0, 0, 0);
 
+    --alert-c1: rgb(255, 120, 120);
 
+    --color-r1: rgb(255, 80, 80);
+    --color-r2: rgb(255, 100, 100);
+    --color-r3: rgb(200, 80, 80);
+    --color-r4: rgb(150, 60, 60);
+    --color-r5: rgb(100, 40, 40);
+    --color-r6: rgb(70, 30, 30);
 
-    --primary-text-color: rgb(220, 226, 255);
+    --color-g1: rgb(80, 220, 80);
+    --color-g2: rgb(100, 200, 100);
+    --color-g3: rgb(80, 160, 80);
+    --color-g4: rgb(60, 120, 60);
+    --color-g5: rgb(40, 80, 40);
+    --color-g6: rgb(30, 60, 30);
+
+    --color-b1: rgb(80, 80, 255);
+    --color-b2: rgb(100, 100, 255);
+    --color-b3: rgb(120, 120, 220);
+    --color-b4: rgb(90, 90, 170);
+    --color-b5: rgb(60, 60, 120);
+    --color-b6: rgb(40, 40, 80);
 
     --btn-color-1: rgb(100, 100, 100);
     --btn-text-color-1: rgb(255, 255, 255);
 
+    // --- Semantic status colors (dark) ---
+    --status-success: #73d13d;
+    --status-success-bg: rgba(82, 196, 26, 0.12);
+    --status-success-border: rgba(82, 196, 26, 0.3);
+
+    --status-info: #4096ff;
+    --status-info-bg: rgba(22, 119, 255, 0.12);
+    --status-info-border: rgba(22, 119, 255, 0.3);
+
+    --status-warning: #ffc53d;
+    --status-warning-bg: rgba(250, 173, 20, 0.12);
+    --status-warning-border: rgba(250, 173, 20, 0.3);
+
+    --status-error: #ff7875;
+    --status-error-bg: rgba(255, 77, 79, 0.12);
+    --status-error-border: rgba(255, 77, 79, 0.3);
+
+    // --- UI element colors (dark) ---
+    --highlight-color: #0a84ff;
+    --highlight-text: rgb(255, 255, 255);
+    --current-time-color: #ff6b6b;
+    --current-time-hover: rgba(10, 132, 255, 0.08);
+    --checkbox-checked: #4096ff;
+    --schedule-indicator: rgb(80, 140, 230);
+    --scrollbar-thumb: rgb(80, 80, 80);
+    --toggle-inactive: rgb(70, 70, 70);
+    --calendar-control-color: rgb(140, 148, 220);
+
+    // --- Progress bar (dark) ---
+    --progress-default: #4096ff;
+    --progress-track: rgba(255, 255, 255, 0.08);
+
+    // --- Overlay (dark) ---
+    --overlay-bg: rgba(0, 0, 0, 0.5);
+
+    // --- Event default bg (dark) ---
+    --event-default-bg: rgba(80, 120, 200, 0.3);
+
+    // --- Placeholder text (dark) ---
+    --placeholder-color: rgb(100, 100, 100);
+}
+
+// =============================================
+// HIGH CONTRAST THEME
+// =============================================
+:root[data-theme="high-contrast"] {
+
+    --primary-color: rgb(0, 0, 160);
+    --primary-text-color: rgb(0, 0, 160);
+    --primary-background-color: rgb(200, 200, 255);
+
+    --background-color: rgb(255, 255, 255);
+    --background-hover-color: rgb(230, 230, 230);
+
+    --canvas-color: rgb(255, 255, 255);
+    --component-color: rgb(235, 235, 235);
+    --component-hover-color: rgb(200, 200, 200);
+    --component-box-shadow: rgba(0, 0, 0, 0.25) 0px 4px 8px;
+
+    --accent-1: rgb(0, 0, 0);
+    --accent-2: rgb(20, 20, 20);
+    --accent-3: rgb(60, 60, 60);
+    --accent-4: rgb(100, 100, 100);
+    --accent-5: rgb(180, 180, 180);
+    --accent-6: rgb(255, 255, 255);
+
+    --alert-c1: rgb(220, 0, 0);
+
+    --color-r1: rgb(200, 0, 0);
+    --color-r2: rgb(220, 40, 40);
+    --color-r3: rgb(180, 30, 30);
+    --color-r4: rgb(140, 20, 20);
+    --color-r5: rgb(255, 200, 200);
+    --color-r6: rgb(255, 230, 230);
+
+    --color-g1: rgb(0, 140, 0);
+    --color-g2: rgb(30, 160, 30);
+    --color-g3: rgb(20, 120, 20);
+    --color-g4: rgb(10, 90, 10);
+    --color-g5: rgb(200, 255, 200);
+    --color-g6: rgb(230, 255, 230);
+
+    --color-b1: rgb(0, 0, 200);
+    --color-b2: rgb(30, 30, 220);
+    --color-b3: rgb(20, 20, 180);
+    --color-b4: rgb(10, 10, 140);
+    --color-b5: rgb(200, 200, 255);
+    --color-b6: rgb(230, 230, 255);
+
+    --border-default: 2px solid rgb(0, 0, 0);
+    --border-default-color: rgb(0, 0, 0);
+
+    --btn-color-1: rgb(0, 0, 0);
+    --btn-text-color-1: rgb(255, 255, 255);
+
+    // --- Semantic status colors (high-contrast) ---
+    --status-success: #2e7d00;
+    --status-success-bg: #e8f5e9;
+    --status-success-border: #2e7d00;
+
+    --status-info: #0050b3;
+    --status-info-bg: #e3f2fd;
+    --status-info-border: #0050b3;
+
+    --status-warning: #e65100;
+    --status-warning-bg: #fff3e0;
+    --status-warning-border: #e65100;
+
+    --status-error: #c62828;
+    --status-error-bg: #ffebee;
+    --status-error-border: #c62828;
+
+    // --- UI element colors (high-contrast) ---
+    --highlight-color: #0050b3;
+    --highlight-text: rgb(255, 255, 255);
+    --current-time-color: #c62828;
+    --current-time-hover: rgba(0, 80, 179, 0.1);
+    --checkbox-checked: #0050b3;
+    --schedule-indicator: #0050b3;
+    --scrollbar-thumb: rgb(100, 100, 100);
+    --toggle-inactive: rgb(150, 150, 150);
+    --calendar-control-color: rgb(0, 0, 160);
+
+    --progress-default: #0050b3;
+    --progress-track: rgba(0, 0, 0, 0.12);
+
+    --overlay-bg: rgba(0, 0, 0, 0.5);
+    --event-default-bg: rgb(180, 200, 255);
+    --placeholder-color: rgb(100, 100, 100);
+}
+
+// =============================================
+// SEPIA THEME
+// =============================================
+:root[data-theme="sepia"] {
+
+    --primary-color: rgb(101, 67, 33);
+    --primary-text-color: rgb(101, 67, 33);
+    --primary-background-color: rgb(237, 224, 200);
+
+    --background-color: rgb(244, 236, 216);
+    --background-hover-color: rgb(235, 225, 200);
+
+    --canvas-color: rgb(249, 243, 230);
+    --component-color: rgb(235, 225, 200);
+    --component-hover-color: rgb(220, 208, 180);
+    --component-box-shadow: rgba(120, 100, 60, 0.12) 0px 8px 12px;
+
+    --accent-1: rgb(50, 35, 20);
+    --accent-2: rgb(80, 60, 40);
+    --accent-3: rgb(120, 100, 75);
+    --accent-4: rgb(160, 140, 110);
+    --accent-5: rgb(210, 195, 170);
+    --accent-6: rgb(249, 243, 230);
+
+    --alert-c1: rgb(200, 80, 60);
+
+    --color-r1: rgb(200, 60, 40);
+    --color-r2: rgb(210, 90, 70);
+    --color-r3: rgb(220, 120, 100);
+    --color-r4: rgb(230, 160, 145);
+    --color-r5: rgb(240, 200, 190);
+    --color-r6: rgb(245, 225, 218);
+
+    --color-g1: rgb(60, 140, 40);
+    --color-g2: rgb(80, 160, 60);
+    --color-g3: rgb(110, 175, 90);
+    --color-g4: rgb(150, 200, 130);
+    --color-g5: rgb(200, 225, 190);
+    --color-g6: rgb(225, 238, 215);
+
+    --color-b1: rgb(50, 80, 150);
+    --color-b2: rgb(70, 100, 170);
+    --color-b3: rgb(100, 125, 185);
+    --color-b4: rgb(140, 160, 200);
+    --color-b5: rgb(190, 200, 220);
+    --color-b6: rgb(220, 225, 235);
+
+    --border-default: 1px solid rgb(200, 185, 155);
+    --border-default-color: rgb(200, 185, 155);
+
+    --btn-color-1: rgb(80, 60, 35);
+    --btn-text-color-1: rgb(249, 243, 230);
+
+    // --- Semantic status colors (sepia) ---
+    --status-success: #5a8a1e;
+    --status-success-bg: rgba(90, 138, 30, 0.1);
+    --status-success-border: rgba(90, 138, 30, 0.3);
+
+    --status-info: #3b6fa0;
+    --status-info-bg: rgba(59, 111, 160, 0.1);
+    --status-info-border: rgba(59, 111, 160, 0.3);
+
+    --status-warning: #b8860b;
+    --status-warning-bg: rgba(184, 134, 11, 0.1);
+    --status-warning-border: rgba(184, 134, 11, 0.3);
+
+    --status-error: #b33a3a;
+    --status-error-bg: rgba(179, 58, 58, 0.1);
+    --status-error-border: rgba(179, 58, 58, 0.3);
+
+    // --- UI element colors (sepia) ---
+    --highlight-color: #7a5c3a;
+    --highlight-text: rgb(249, 243, 230);
+    --current-time-color: #b33a3a;
+    --current-time-hover: rgba(122, 92, 58, 0.06);
+    --checkbox-checked: #5a7a3a;
+    --schedule-indicator: #7a5c3a;
+    --scrollbar-thumb: rgb(180, 165, 135);
+    --toggle-inactive: rgb(200, 185, 155);
+    --calendar-control-color: rgb(101, 67, 33);
+
+    --progress-default: #7a5c3a;
+    --progress-track: rgba(80, 60, 35, 0.08);
+
+    --overlay-bg: rgba(50, 35, 20, 0.3);
+    --event-default-bg: rgb(220, 208, 180);
+    --placeholder-color: rgb(160, 140, 110);
 }

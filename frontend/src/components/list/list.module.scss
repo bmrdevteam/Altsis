@@ -1,5 +1,5 @@
 .list {
-    background-color: #fff;
+    background-color: var(--background-color);
     display: flex;
     flex-direction: column;
 
@@ -10,7 +10,7 @@
         
     }
     .list_header:hover{
-        background-color:rgb(225, 225, 225)
+        background-color: var(--component-hover-color)
     }
     .list_item{
         padding: 24px 24px;

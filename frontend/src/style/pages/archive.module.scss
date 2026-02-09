@@ -100,6 +100,6 @@
   }
 
   .category:hover {
-    background-color: #ebebeb;
+    background-color: var(--component-hover-color);
   }
 }

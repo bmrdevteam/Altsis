@@ -1,59 +1,20 @@
-/**
- * @file Settings Page tab - SecuritySettings
- *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
- *
- * -------------------------------------------------------
- *
- * IN PRODUCTION
- * - SecuritySettings Page
- *
- * -------------------------------------------------------
- *
- * IN MAINTENANCE
- *
- * -------------------------------------------------------
- *
- * IN DEVELOPMENT
- * - change password btn onclick function
- *
- * -------------------------------------------------------
- *
- * DEPRECATED
- *
- * -------------------------------------------------------
- *
- * NOTES
- *
- */
-
 import { useRef, useState } from "react";
 import style from "style/pages/settings/settings.module.scss";
 import Svg from "assets/svg/Svg";
 
-// hooks
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
-// functions
-
-// components
-import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
-import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Button from "components/button/Button";
 import { validate } from "functions/functions";
 import { useAuth } from "contexts/authContext";
 
-type Props = {};
-
 const PasswordEditPopup = (props: {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const { UserAPI } = useAPIv2();
-
   const { currentUser } = useAuth();
-
   const passwordRef = useRef<string>("");
 
   const updateHandler = async () => {
@@ -91,18 +52,7 @@ const PasswordEditPopup = (props: {
         </Button>
       }
     >
-      <div style={{ width: "500px", marginTop: "24px" }}>
-        {/* <Input
-        appearence="flat"
-        label="기존 비밀번호 입력"
-        placeholder="기존 비밀번호 입력"
-        type="password"
-        onChange={(e: any) => {
-          setOldPassword(e.target.value);
-        }}
-        required
-      />
-      <div style={{ margin: "24px" }}></div> */}
+      <div className={style.popup_content_mt}>
         <Input
           appearence="flat"
           label="새로운 비밀번호 입력"
@@ -118,7 +68,7 @@ const PasswordEditPopup = (props: {
   );
 };
 
-const SecuritySettings = (props: Props) => {
+const SecuritySettings = () => {
   const [passwordEditPopupActive, setPasswordEditPopupActive] =
     useState<boolean>(false);
 
@@ -126,15 +76,6 @@ const SecuritySettings = (props: Props) => {
     <>
       <div className={style.settings_container}>
         <div className={style.container_title}>보안 설정</div>
-        {/* <div className={style.setting_item}>
-          <div className={style.info}>
-            <label className={style.label}>이 기기에서 로그인 기억 하기</label>
-          </div>
-          <div className={style.controls}>
-            <ToggleSwitch />
-          </div>
-        </div>
-        <Divider /> */}
         <div className={style.setting_item}>
           <div className={style.info}>
             <label className={style.label}>비밀번호 재설정</label>
@@ -142,13 +83,9 @@ const SecuritySettings = (props: Props) => {
               계정 비밀번호를 재설정 합니다
             </span>
           </div>
-          <div className={style.controls} style={{ alignItems: "center" }}>
+          <div className={`${style.controls} ${style.controls_centered}`}>
             <div
-              style={{
-                cursor: "pointer",
-                fill: "var(--accent-3)",
-                padding: "4px",
-              }}
+              className={style.chevron_button}
               onClick={() => {
                 setPasswordEditPopupActive(true);
               }}

@@ -24,7 +24,7 @@
     }
 
     .textarea::-webkit-scrollbar-thumb {
-        background-color: #babac0;
+        background-color: var(--scrollbar-thumb);
         border-radius: 16px;
         border: 6px solid var(--component-color);
     }

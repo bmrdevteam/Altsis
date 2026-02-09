@@ -455,7 +455,7 @@ const Table = (props: Props) => {
                   type={"checkboxChecked"}
                   height={"24px"}
                   width={"24px"}
-                  style={{ fill: "#0062c7" }}
+                  style={{ fill: "var(--checkbox-checked)" }}
                 />
               ) : (
                 <Svg type={"checkbox"} height={"24px"} width={"24px"} />

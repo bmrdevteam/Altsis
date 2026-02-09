@@ -168,7 +168,7 @@
 
       .unread_badge {
         background-color: var(--color-r3);
-        color: #fff;
+        color: var(--highlight-text);
         border-radius: 8px;
         padding: 1px 5px;
         font-size: 9px;
@@ -375,7 +375,7 @@
 
         .message {
           background-color: var(--color-b4, #4a90d9);
-          color: #ffffff;
+          color: var(--highlight-text);
 
           .sender {
             display: none;

@@ -2,12 +2,23 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import style from "./colorPicker.module.scss";
 
+// 10 columns x 5 rows: hue spectrum with lightness variations
 const PRESET_COLORS = [
-  "#4285f4", "#ea4335", "#34a853", "#fbbc04",
-  "#ff6d01", "#a142f4", "#039be5", "#f538a0",
-  "#7cb342", "#e67c73", "#8e24aa", "#616161",
-  "#d50000", "#0b8043", "#f6bf26", "#3f51b5",
-  "#33b679", "#d81b60", "#795548", "#546e7a",
+  // Row 1: light
+  "#ffcdd2", "#f8bbd0", "#e1bee7", "#c5cae9", "#bbdefb",
+  "#b2ebf2", "#b2dfdb", "#c8e6c9", "#fff9c4", "#ffe0b2",
+  // Row 2: medium-light
+  "#ef9a9a", "#f48fb1", "#ce93d8", "#9fa8da", "#90caf9",
+  "#80deea", "#80cbc4", "#a5d6a7", "#fff176", "#ffcc80",
+  // Row 3: medium
+  "#ef5350", "#ec407a", "#ab47bc", "#5c6bc0", "#42a5f5",
+  "#26c6da", "#26a69a", "#66bb6a", "#ffee58", "#ffa726",
+  // Row 4: dark
+  "#c62828", "#ad1457", "#6a1b9a", "#283593", "#1565c0",
+  "#00838f", "#00695c", "#2e7d32", "#f9a825", "#e65100",
+  // Row 5: neutrals
+  "#000000", "#424242", "#616161", "#9e9e9e", "#bdbdbd",
+  "#e0e0e0", "#f5f5f5", "#ffffff", "#795548", "#455a64",
 ];
 
 type Props = {
@@ -44,13 +55,24 @@ const ColorPicker = ({ label, value, onChange }: Props) => {
   }, []);
 
   useEffect(() => {
-    if (open && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setDropdownPos({
-        top: rect.bottom + 4,
-        left: rect.left,
-      });
-    }
+    if (!open || !triggerRef.current) return;
+
+    // Use rAF to ensure portal DOM is painted before measuring
+    const id = requestAnimationFrame(() => {
+      const triggerRect = triggerRef.current!.getBoundingClientRect();
+      const dropdown = dropdownRef.current;
+      const dropdownHeight = dropdown ? dropdown.offsetHeight : 250;
+      const spaceBelow = window.innerHeight - triggerRect.bottom;
+      const spaceAbove = triggerRect.top;
+
+      const top =
+        spaceBelow >= dropdownHeight + 4 || spaceBelow >= spaceAbove
+          ? triggerRect.bottom + 4
+          : triggerRect.top - dropdownHeight - 4;
+
+      setDropdownPos({ top, left: triggerRect.left });
+    });
+    return () => cancelAnimationFrame(id);
   }, [open]);
 
   const handlePresetClick = (color: string) => {
@@ -112,10 +134,7 @@ const ColorPicker = ({ label, value, onChange }: Props) => {
                   onChange={(e) => handleNativeChange(e.target.value)}
                   className={style.nativeInput}
                 />
-                <div
-                  className={style.nativeSwatch}
-                  style={{ backgroundColor: value }}
-                />
+                <span className={style.nativeLabel}>색상 선택</span>
               </label>
               <input
                 type="text"

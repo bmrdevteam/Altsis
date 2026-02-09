@@ -9,13 +9,13 @@
 
     .inner {
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.06);
+      background-color: var(--progress-track);
       border-radius: 100px;
 
       .bar {
         width: 0%;
         height: 100%;
-        background-color: #1677ff;
+        background-color: var(--progress-default);
         border-radius: 100px;
         transition: all 0.3s cubic-bezier(0.78, 0.14, 0.15, 0.86);
       }
@@ -47,13 +47,13 @@
   .outer {
     .inner {
       .bar {
-        background-color: #52c41a;
+        background-color: var(--status-success);
       }
     }
   }
   .icon {
     svg {
-      fill: #52c41a;
+      fill: var(--status-success);
     }
   }
 }
@@ -62,13 +62,13 @@
   .outer {
     .inner {
       .bar {
-        background-color: #ff4d4f;
+        background-color: var(--status-error);
       }
     }
   }
   .icon {
     svg {
-      fill: #ff4d4f;
+      fill: var(--status-error);
     }
   }
 }

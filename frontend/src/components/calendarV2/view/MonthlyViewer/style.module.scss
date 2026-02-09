@@ -60,8 +60,8 @@
           }
 
           .date.today {
-            background-color: #007affe0;
-            color: white;
+            background-color: var(--highlight-color);
+            color: var(--highlight-text);
           }
 
           .spanSpacer {

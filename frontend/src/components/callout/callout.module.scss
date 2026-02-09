@@ -1,12 +1,12 @@
 .callout {
-  background-color: #f6ffed;
-  border: 1px solid #b7eb8f;
+  background-color: var(--status-success-bg);
+  border: 1px solid var(--status-success-border);
 
   border-radius: 8px;
   box-sizing: "border-box";
   margin: 0px;
   padding: 8px 12px;
-  color: black;
+  color: var(--accent-1);
   font-size: 1.2rem;
 
   display: flex;
@@ -15,7 +15,7 @@
   .icon {
     margin-right: 8px;
     svg {
-      fill: #52c41a;
+      fill: var(--status-success);
     }
   }
 
@@ -52,31 +52,31 @@
 }
 
 .info {
-  background-color: #e6f4ff;
-  border-color: #91caff;
+  background-color: var(--status-info-bg);
+  border-color: var(--status-info-border);
   .icon {
     svg {
-      fill: #1677ff;
+      fill: var(--status-info);
     }
   }
 }
 
 .warning {
-  background-color: #fffbe6;
-  border-color: #ffe58f;
+  background-color: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
   .icon {
     svg {
-      fill: #faad14;
+      fill: var(--status-warning);
     }
   }
 }
 
 .error {
-  background-color: #fff2f0;
-  border-color: #ffccc7;
+  background-color: var(--status-error-bg);
+  border-color: var(--status-error-border);
   .icon {
     svg {
-      fill: #ff4d4f;
+      fill: var(--status-error);
     }
   }
 }

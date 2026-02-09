@@ -1,32 +1,3 @@
-/**
- * @file Settings Page tab - UserSettings
- *
- * @author seedlessapple <luminousseedlessapple@gmail.com>
- *
- * -------------------------------------------------------
- *
- * IN PRODUCTION
- *
- * - UserSettings Page
- *
- * -------------------------------------------------------
- *
- * IN MAINTENANCE
- *
- * -------------------------------------------------------
- *
- * IN DEVELOPMENT
- *
- * -------------------------------------------------------
- *
- * DEPRECATED
- *
- * -------------------------------------------------------
- *
- * NOTES
- *
- */
-
 import React, { useState, useRef, useEffect } from "react";
 
 import Input from "components/input/Input";
@@ -40,15 +11,11 @@ import defaultProfilePic from "assets/img/default_profile.png";
 import { validate } from "functions/functions";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
-type Props = {};
-
 const EmailEditPopup = (props: {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const { UserAPI } = useAPIv2();
-
   const { currentUser, setCurrentUser } = useAuth();
-
   const emailRef = useRef<string>("");
 
   useEffect(() => {
@@ -88,7 +55,7 @@ const EmailEditPopup = (props: {
         </Button>
       }
     >
-      <div style={{ width: "500px" }}>
+      <div className={style.popup_content}>
         <Input
           appearence="flat"
           label="이메일"
@@ -108,9 +75,7 @@ const TelEditPopup = (props: {
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const { UserAPI } = useAPIv2();
-
   const { currentUser, setCurrentUser } = useAuth();
-
   const telRef = useRef<string>("");
 
   useEffect(() => {
@@ -150,7 +115,7 @@ const TelEditPopup = (props: {
         </Button>
       }
     >
-      <div style={{ width: "500px" }}>
+      <div className={style.popup_content}>
         <Input
           appearence="flat"
           label="전화번호"
@@ -166,20 +131,17 @@ const TelEditPopup = (props: {
   );
 };
 
-const UserSettings = (props: Props) => {
+const UserSettings = () => {
   const { currentUser, setCurrentUser } = useAuth();
   const { UserAPI } = useAPIv2();
 
-  /* popup Activattion */
   const [emailEditPopupActive, setEmailEditPopupActive] =
     useState<boolean>(false);
   const [telEditPopupActive, setTelEditPopupActive] = useState<boolean>(false);
 
   const fileInput = React.useRef<HTMLInputElement | null>(null);
 
-  const handleProfileUploadButtonClick = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleProfileUploadButtonClick = () => {
     if (fileInput.current) fileInput.current.click();
   };
   const correctForm = /(jpeg|jpg|webp|png)$/;
@@ -213,73 +175,43 @@ const UserSettings = (props: Props) => {
       <div className={style.settings_container}>
         <div className={style.container_title}>사용자 정보</div>
 
-        <div className={style.profile_upload}>
-          <div className={style.profile_boxed}>
-            <img
-              src={currentUser?.profile || defaultProfilePic}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src =
-                  currentUser?.profile?.replace("/thumb/", "/original/") ?? "";
-              }}
-              alt="profile"
-            />
-            <React.Fragment>
-              <Button
-                type={"ghost"}
-                style={{
-                  backgroundColor: "rgba(33,37,41,.64)",
-                  color: "white",
-                  position: "absolute",
-                  bottom: "0",
-                  height: "20%",
-                  width: "100%",
-                  border: "none",
+        <div className={style.profile_card}>
+          <div className={style.profile_card_left}>
+            <div className={style.profile_boxed}>
+              <img
+                src={currentUser?.profile || defaultProfilePic}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src =
+                    currentUser?.profile?.replace("/thumb/", "/original/") ?? "";
                 }}
+                alt="profile"
+              />
+              <div
+                className={style.profile_overlay}
                 onClick={handleProfileUploadButtonClick}
               >
                 변경
-              </Button>
+              </div>
               <input
                 type="file"
                 ref={fileInput}
                 style={{ display: "none" }}
                 onChange={handleProfileChange}
               />
-            </React.Fragment>
+            </div>
+          </div>
+          <div className={style.profile_card_info}>
+            <div className={style.profile_name}>{currentUser.userName}</div>
+            <div className={style.profile_id}>{currentUser.userId}</div>
+            <div className={style.profile_role}>{currentUser.auth}</div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
-          <Input
-            label="이름"
-            placeholder="이름"
-            appearence="flat"
-            style={{ fontSize: "14px" }}
-            defaultValue={currentUser.userName}
-            disabled
-          />
-          <Input
-            label="아이디"
-            placeholder="아이디"
-            appearence="flat"
-            style={{ fontSize: "14px" }}
-            defaultValue={currentUser.userId}
-            disabled
-          />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            marginTop: "24px",
-            alignItems: "flex-end",
-          }}
-        >
+        <div className={style.form_row_end}>
           <Input
             label="이메일"
             appearence="flat"
-            style={{ fontSize: "14px" }}
             defaultValue={currentUser.email}
             disabled
           />
@@ -292,18 +224,10 @@ const UserSettings = (props: Props) => {
             수정
           </Button>
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            marginTop: "24px",
-            alignItems: "flex-end",
-          }}
-        >
+        <div className={style.form_row_end}>
           <Input
             label="전화번호"
             appearence="flat"
-            style={{ fontSize: "14px" }}
             defaultValue={currentUser.tel}
             disabled
           />
@@ -316,9 +240,6 @@ const UserSettings = (props: Props) => {
             수정
           </Button>
         </div>
-        {/* <div style={{ marginTop: "12px" }}>
-     <Textarea label="설명" placeholder="설명" />
-   </div> */}
       </div>
       {emailEditPopupActive && (
         <EmailEditPopup setPopupActive={setEmailEditPopupActive} />

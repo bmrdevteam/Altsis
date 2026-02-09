@@ -57,7 +57,7 @@
       font-size: 12px;
       font-weight: 600;
       text-align: right;
-      color: rgb(75, 75, 75);
+      color: var(--accent-3);
 
       .label {
         min-height: 80px;
@@ -83,14 +83,14 @@
         min-width: 80px;
         max-width: 80px;
         text-align: right;
-        color: red;
+        color: var(--current-time-color);
 
       }
 
       .indicator {
         flex: 1 1 0;
         height: 1px;
-        background-color: red;
+        background-color: var(--current-time-color);
       }
     }
 
@@ -135,7 +135,7 @@
             font-size: 12px;
             padding: 4px;
             border-radius: 4px;
-            background-color: rgb(202, 222, 255);
+            background-color: var(--event-default-bg);
 
             .title {
               word-break: keep-all;

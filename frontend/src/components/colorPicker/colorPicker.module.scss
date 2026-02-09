@@ -49,25 +49,27 @@
   border: var(--border-default);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
 }
 
 .presets {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
   justify-items: center;
 }
 
 .preset {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
   transition: transform 0.1s ease, border-color 0.15s ease;
 
   &:hover {
-    transform: scale(1.15);
+    transform: scale(1.2);
   }
 
   &.selected {
@@ -91,7 +93,18 @@
 .nativeWrapper {
   position: relative;
   cursor: pointer;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px dashed var(--accent-4);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--accent-2);
+    background: var(--background-hover-color);
+  }
 }
 
 .nativeInput {
@@ -105,16 +118,11 @@
   padding: 0;
 }
 
-.nativeSwatch {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px dashed var(--accent-4);
-  transition: border-color 0.15s ease;
-
-  .nativeWrapper:hover & {
-    border-color: var(--accent-2);
-  }
+.nativeLabel {
+  font-size: 12px;
+  color: var(--accent-3);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .hexInput {

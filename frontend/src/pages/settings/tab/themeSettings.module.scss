@@ -1,0 +1,266 @@
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.themeCard {
+  cursor: pointer;
+  border: 2px solid var(--border-default-color);
+  border-radius: 10px;
+  padding: 0;
+  background: var(--background-color);
+  overflow: hidden;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  color: var(--accent-1);
+
+  &:hover {
+    border-color: var(--accent-3);
+  }
+
+  &.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
+  }
+}
+
+// --- Preview thumbnails ---
+.preview {
+  height: 80px;
+  display: flex;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-default-color);
+}
+
+.previewBar {
+  width: 24px;
+  min-height: 100%;
+}
+
+.previewContent {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.previewLine {
+  height: 8px;
+  width: 80%;
+  border-radius: 4px;
+}
+
+.previewLineShort {
+  height: 8px;
+  width: 50%;
+  border-radius: 4px;
+}
+
+// Light preview
+.preview_light {
+  background: #ffffff;
+  .previewBar {
+    background: rgb(49, 55, 117);
+  }
+  .previewLine,
+  .previewLineShort {
+    background: #e0e0e0;
+  }
+}
+
+// Dark preview
+.preview_dark {
+  background: #1a1a1a;
+  .previewBar {
+    background: rgb(60, 60, 100);
+  }
+  .previewLine,
+  .previewLineShort {
+    background: #333;
+  }
+}
+
+// System preview
+.preview_system {
+  background: linear-gradient(135deg, #ffffff 50%, #1a1a1a 50%);
+  .previewBar {
+    background: linear-gradient(180deg, rgb(49, 55, 117) 50%, rgb(60, 60, 100) 50%);
+  }
+  .previewLine,
+  .previewLineShort {
+    background: linear-gradient(135deg, #e0e0e0 50%, #333 50%);
+  }
+}
+
+// High contrast preview
+.preview_high_contrast {
+  background: #ffffff;
+  .previewBar {
+    background: #000;
+  }
+  .previewLine,
+  .previewLineShort {
+    background: #000;
+  }
+}
+
+// Sepia preview
+.preview_sepia {
+  background: #f4ecd8;
+  .previewBar {
+    background: rgb(101, 67, 33);
+  }
+  .previewLine,
+  .previewLineShort {
+    background: rgb(210, 195, 170);
+  }
+}
+
+// --- Card info ---
+.cardInfo {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardLabel {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cardDesc {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+// --- Custom theme preview ---
+.preview_custom {
+  background: linear-gradient(
+    135deg,
+    #ff6b6b 0%,
+    #ffd93d 25%,
+    #6bcb77 50%,
+    #4d96ff 75%,
+    #9b59b6 100%
+  );
+  .previewBar {
+    background: linear-gradient(180deg, #4d96ff, #9b59b6);
+  }
+  .previewLine,
+  .previewLineShort {
+    background: rgba(255, 255, 255, 0.4);
+  }
+}
+
+// --- Custom editor panel ---
+.customEditor {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--component-color);
+  border-radius: 10px;
+  border: 1px solid var(--border-default-color);
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.editorTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-1);
+}
+
+.autoToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--accent-2);
+  cursor: pointer;
+  user-select: none;
+
+  input[type="checkbox"] {
+    accent-color: var(--primary-color);
+    cursor: pointer;
+  }
+}
+
+.primaryOnly {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.primaryPicker {
+  max-width: 300px;
+}
+
+.generatedPreview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.generatedItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.generatedSwatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.generatedLabel {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.colorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.colorField {
+  display: flex;
+  align-items: center;
+}
+
+.editorActions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.saveBtn {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary-color);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.85;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

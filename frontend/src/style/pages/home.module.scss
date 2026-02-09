@@ -62,7 +62,7 @@ scrollbar-width: none;
                 border-radius: 10px;
                 left: 10px;
                 height: calc(100% - 24px);
-                background-color: rgb(70, 133, 222);
+                background-color: var(--schedule-indicator);
                 position: absolute;
 
             }
