@@ -18,6 +18,7 @@ import { router as users } from "./users.js";
 import { router as files } from "./files.js";
 import { router as memos } from "./memos.js";
 
+import { router as themeSettings } from "./themeSettings.js";
 import { router as userCalendars } from "./userCalendars.js";
 import { router as test } from "./test.js";
 
@@ -41,6 +42,7 @@ export const routers = [
   { label: "files", routes: files },
   { label: "users", routes: users },
   { label: "memos", routes: memos },
+  { label: "theme-settings", routes: themeSettings },
   { label: "user-calendars", routes: userCalendars },
   { label: "test", routes: test },
 ];
