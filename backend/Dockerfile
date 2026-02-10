@@ -7,6 +7,9 @@ RUN apk add tzdata && ln -snf /usr/share/zoneinfo/Asia/Seoul /etc/localtime
 RUN mkdir -p /app
 WORKDIR /app
 
+# Corepack 활성화 (Yarn 3.x 지원)
+RUN corepack enable
+
 # 의존성 설치
 COPY package*.json ./
 COPY yarn.lock ./
