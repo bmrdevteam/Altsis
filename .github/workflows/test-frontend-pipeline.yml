@@ -1,0 +1,63 @@
+name: test-frontend-pipeline
+
+on:
+  push:
+    branches: [test-frontend]
+
+jobs:
+  frontend-CI:
+    name: test-frontend-CI/CD
+    runs-on: ubuntu-22.04
+    env:
+      CLIENT_PORT: ${{secrets.CLIENT_PORT_DEV}}
+      CI: false
+
+    steps:
+      # 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 캐시 받아오기
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-test-build-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Set .env File
+        run: |
+          cd frontend
+          echo "PORT=${{env.CLIENT_PORT}}" >> .env
+          echo "REACT_APP_SERVER_URL=${{secrets.SERVER_URL_TEST}}" >> .env
+          echo "REACT_APP_GOOGLE_CLIENT_ID=${{secrets.GOOGLE_CLIENT_ID}}" >> .env
+          echo "REACT_APP_GOOGLE_CALENDAR_API_KEY=${{secrets.REACT_APP_GOOGLE_CALENDAR_API_KEY}}" >> .env
+
+      - name: Install Dependencies and Build
+        run: |
+          cd frontend
+          yarn
+          yarn build
+
+      - name: Deploy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESSKEYID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRETACCESSKEY }}
+          AWS_REGION: ${{ secrets.S3_REGION }}
+
+        run: |
+          cd frontend
+          aws s3 sync \
+          --acl public-read \
+          --cache-control private,max-age=0,must-revalidate \
+          --include "*.html" --include "*.json" \
+          --delete \
+          ./build ${{secrets.S3_BUCKET_CLIENT_TEST}}
+          aws s3 sync \
+          --acl public-read \
+          --cache-control private,max-age=31536000 \
+          --exclude "*.html" --exclude "*.json" \
+          --delete \
+          ./build ${{secrets.S3_BUCKET_CLIENT_TEST}}

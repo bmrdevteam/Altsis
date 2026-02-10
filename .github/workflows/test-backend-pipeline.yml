@@ -1,0 +1,120 @@
+name: test-backend-pipeline
+
+on:
+  push:
+    branches: [test-backend]
+
+jobs:
+  backend-CI:
+    name: test-backend-CI
+    runs-on: ubuntu-latest
+    env:
+      SERVER_PORT: ${{secrets.SERVER_PORT_TEST}}
+
+    steps:
+      # 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # docker build 세팅
+      - name: Docker Setup Buildx
+        uses: docker/setup-buildx-action@v2.0.0
+
+      # 캐시 받아오기
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-test-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-test-
+
+      # GitHub 컨테이너 레지스트리에 로그인
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io/bmrdevteam
+          username: ${{ github.actor }}
+          password: ${{ secrets[format('GHCR_TOKEN_{0}', github.actor)] }}
+
+      # .env 파일 생성
+      - name: Set .env File
+        run: |
+          cd backend
+          echo "DB_URL= ${{secrets.DB_URL}}" >> .env
+          echo "REDIS_URL= ${{secrets.REDIS_URL}}" >> .env
+          echo "s3_accessKeyId = ${{secrets.S3_ACCESSKEYID}}" >> .env
+          echo "s3_secretAccessKey= ${{secrets.S3_SECRETACCESSKEY}}" >> .env
+          echo "s3_region=${{secrets.S3_REGION}}" >> .env
+          echo "s3_bucket=${{secrets.S3_BUCKET}}" >> .env
+          echo "saltRounts= ${{secrets.SALTROUNTS}}" >> .env
+          echo "session_key= ${{secrets.SESSION_KEY}}" >> .env
+          echo "GOOGLE_CLIENT_ID= ${{secrets.GOOGLE_CLIENT_ID}}" >> .env
+          echo "URL= ${{secrets.SERVER_URL_TEST}}" >> .env
+          echo "SERVER_PORT= ${{env.SERVER_PORT}}" >> .env
+          echo "ENCKEY_E= ${{secrets.ENCKEY_E}}" >> .env
+          echo "SIGKEY_E= ${{secrets.SIGKEY_E}}" >> .env
+          echo "ENCKEY_A= ${{secrets.ENCKEY_A}}" >> .env
+          echo "SIGKEY_A= ${{secrets.SIGKEY_A}}" >> .env
+          echo "s3_accessKeyId2 = ${{secrets.S3_ACCESSKEYID2}}" >> .env
+          echo "s3_secretAccessKey2= ${{secrets.S3_SECRETACCESSKEY2}}" >> .env
+          echo "s3_bucket2=${{secrets.S3_BUCKET2}}" >> .env
+          echo "s3_bucket3=${{secrets.S3_BUCKET3}}" >> .env
+
+      # 빌드 후 푸쉬
+      - name: Build and push
+        id: docker-build
+        uses: docker/build-push-action@v3
+        with:
+          context: backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: "ghcr.io/bmrdevteam/bsis-test_backend:latest"
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+      # 이전 캐시 지우고 새로운 캐시 옮기기
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  backend-CD:
+    name: test-backend-CD
+    needs: backend-CI
+    strategy:
+      matrix:
+        labels: [L0-test]
+    runs-on: ${{ matrix.labels }}
+    env:
+      SERVER_PORT: ${{secrets.SERVER_PORT_TEST}}
+
+    steps:
+      # 체크아웃
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # GitHub 컨테이너 레지스트리에 로그인
+      - name: Login to ghcr
+        uses: docker/login-action@v2.0.0
+        with:
+          registry: ghcr.io/bmrdevteam
+          username: ${{ github.actor }}
+          password: ${{ secrets[format('GHCR_TOKEN_{0}', github.actor)] }}
+
+      # Pull images
+      - name: Docker pull
+        run: |
+          docker pull ghcr.io/bmrdevteam/bsis-test_backend:latest
+
+      # Run containers
+      - name: Docker run
+        run: |
+          docker rm -f bsis-test_backend_1 &>/dev/null && echo 'Removed old container'
+          docker run --name bsis-test_backend_1 --restart on-failure -p 80:${{env.SERVER_PORT}} -d ghcr.io/bmrdevteam/bsis-test_backend:latest
+
+      # 이전 이미지 삭제
+      - name: Prune images
+        run: |
+          docker image prune -f
+          docker images
