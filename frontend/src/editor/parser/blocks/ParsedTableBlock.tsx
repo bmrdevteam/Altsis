@@ -330,7 +330,35 @@ const ParsedTableBlock = (props: Props) => {
                     }
                     return `${_.get(props.dbData, locationArr, "")}`;
                   } else {
-                    return dataRepeat?.[locationArr[locationArr.length - 1]];
+                    const repeatResult = dataRepeat?.[locationArr[locationArr.length - 1]];
+                    if (
+                      isObject(repeatResult) &&
+                      "key" in repeatResult &&
+                      "originalName" in repeatResult
+                    ) {
+                      const key = repeatResult.key as string;
+                      const originalName = repeatResult.originalName as string;
+                      return (
+                        <div style={{ margin: "auto" }}>
+                          <img
+                            src={url}
+                            onError={async (e) => {
+                              e.currentTarget.onerror = null;
+                              FileAPI.RSignedUrlDocument({
+                                query: {
+                                  key,
+                                  fileName: originalName,
+                                },
+                              }).then(({ preSignedUrl }) => {
+                                setUrl(preSignedUrl);
+                              });
+                            }}
+                            alt="undefined"
+                          />
+                        </div>
+                      );
+                    }
+                    return repeatResult;
                   }
                 }
                 if (dataTextElement.tag === "BR") {
@@ -545,7 +573,8 @@ const ParsedTableBlock = (props: Props) => {
       <tbody>
       {props.blockData.data.table.map((value: any[], index: number) => {
       const repeatIndex = props.blockData.data.dataRepeat?.index;
-      if (typeof repeatIndex === "number" && repeatIndex === index) {
+      const repeatBy = props.blockData.data.dataRepeat?.by;
+      if (repeatBy && typeof repeatIndex === "number" && repeatIndex === index) {
       return (
       filteredRepeat &&
       filteredRepeat.map((v: any, i: number) => {
