@@ -10,6 +10,7 @@ WORKDIR /app
 # 의존성 설치 (Yarn classic 사용 - lockfile이 v1 형식)
 COPY package*.json ./
 COPY yarn.lock ./
+RUN node -e "const p=require('./package.json'); delete p.packageManager; require('fs').writeFileSync('./package.json', JSON.stringify(p, null, 2))"
 RUN yarn install
 
 COPY ./ ./
