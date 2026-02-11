@@ -1,4 +1,3 @@
-
 backend/.DS_Store
 backend/.yarn/cache/lru-cache-npm-7.14.0-354cf654ec-efdd329f2c.zip
 backend/.yarn/cache/minimatch-npm-5.1.0-34f6240621-15ce53d31a.zip
@@ -9,3 +8,8 @@ working.md
 backend/.DS_Store
 asd.code-workspace
 frontend/package-lock.json
+
+# Root-level package manager artifacts (project uses frontend/backend subdirectories)
+/yarn.lock
+/package-lock.json
+/node_modules
