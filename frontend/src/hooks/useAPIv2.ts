@@ -36,7 +36,7 @@ function QUERY_BUILDER(params?: object) {
   if (params) {
     query = "?";
     for (const [key, value] of Object.entries(params)) {
-      query = query.concat(`${key}=${value}&`);
+      query = query.concat(`${key}=${encodeURIComponent(value)}&`);
     }
   }
   return query;
