@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import useAPIv2 from "hooks/useAPIv2";
 import CourseTable from "pages/courses/table/CourseTable";
 import {useNavigate} from "react-router-dom";
+import ViewPopup from "pages/courses/view/ViewPopup";
 
 type Props = {
   user: any;
@@ -106,6 +107,8 @@ const TimeTable = (props: {
   const { currentSeason } = useAuth();
 
   const navigate = useNavigate();
+  const [viewPopupActive, setViewPopupActive] = useState<boolean>(false);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(undefined);
 
   function syllabusToTime(s: any) {
     let result = {};
@@ -145,16 +148,22 @@ const TimeTable = (props: {
   }
 
   return (
-    <EditorParser
-      type="timetable"
-      auth="view"
-      defaultTimetable={syllabusToTime(props.enrolledCourseList)}
-      idTimetable={syllabusIdByTime(props.enrolledCourseList)}
-      onClickCourse={(id: string) => {
-        navigate(`/courses/mentoring/${id}`);
-      }}
-      data={currentSeason?.formTimetable}
-    />
+    <>
+      <EditorParser
+        type="timetable"
+        auth="view"
+        defaultTimetable={syllabusToTime(props.enrolledCourseList)}
+        idTimetable={syllabusIdByTime(props.enrolledCourseList)}
+        onClickCourse={(id: string) => {
+          setSelectedCourseId(id);
+          setViewPopupActive(true);
+        }}
+        data={currentSeason?.formTimetable}
+      />
+      {viewPopupActive && selectedCourseId && (
+        <ViewPopup course={selectedCourseId} setPopupActive={setViewPopupActive} />
+      )}
+    </>
   );
 };
 
