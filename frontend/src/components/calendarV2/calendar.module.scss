@@ -114,11 +114,7 @@
         }
 
         .selector {
-          border: var(--border-default);
           border-radius: 4px;
-          height: 30px;
-          display: flex;
-          align-items: center;
         }
         .selector:hover {
           background-color: var(--component-hover-color);
