@@ -73,6 +73,7 @@ type Props = {
   defaultPageBy?: 0 | 10 | 50 | 100 | 200;
   onChange?: (value: any[]) => void;
   menus?: { onClick: () => void; label: string }[];
+  disableSorting?: boolean;
 };
 
 const Table = (props: Props) => {
@@ -202,6 +203,9 @@ const Table = (props: Props) => {
   }
 
   function handleHeaderOnClick(val: TTableHeader) {
+    if (props.disableSorting) {
+      return;
+    }
     if (val.key !== undefined && val.key !== " ") {
       if (tableData.orderBy !== val.key) {
         setTableData((prev) => ({
@@ -516,6 +520,7 @@ const Table = (props: Props) => {
                         minWidth: val.width,
                         width: val.width,
                         maxWidth: val.width,
+                        cursor: props.disableSorting ? "default" : "pointer",
                       }}
                       className={style.item_container}
                       key={index}
@@ -525,14 +530,16 @@ const Table = (props: Props) => {
                     >
                       <div className={style.item}>
                         <span className={style.icon}>
-                          {tableData.orderBy === val.key &&
+                          {!props.disableSorting &&
+                            tableData.orderBy === val.key &&
                             tableData.order === "asc" && (
                               <Svg type="chevronUp" />
                             )}
                         </span>
                         <span>{val.text}</span>
                         <span className={style.icon}>
-                          {tableData.orderBy === val.key &&
+                          {!props.disableSorting &&
+                            tableData.orderBy === val.key &&
                             tableData.order === "desc" && (
                               <Svg type="chevronDown" />
                             )}
@@ -851,7 +858,7 @@ const Table = (props: Props) => {
                             key={index}
                           >
                             <ToggleSwitch
-                              defaultChecked={row[`${val.key}`]}
+                              checked={row[`${val.key}`]}
                               onChange={(b) => {
                                 const arr = [...tableData.data];
                                 const ii = arr.findIndex(

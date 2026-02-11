@@ -100,6 +100,7 @@ function Index(props: Props) {
           type="object-array"
           data={!isLoading ? formArchiveItemFields : []}
           onChange={updateItemFields}
+          disableSorting={true}
           header={
             props.formArchive[props.itemIdx].dataType === "array"
               ? [
