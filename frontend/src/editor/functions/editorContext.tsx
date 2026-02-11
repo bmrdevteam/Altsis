@@ -420,13 +420,15 @@ export const EditorProvider = (props: {
     JSON.stringify(editorData.current[getCurrentBlockIndex()].data)
   );
 
-  // `table` 내부의 id 값을 모두 새로 생성
-  blockData.table = blockData.table.map((row: any[]) =>
-    row.map((cell) => ({
-      ...cell,
-      id: `${cell.id.slice(0,12)}-${generateId(12)}`, // 새로운 ID 생성
-    }))
-  );
+  // `table`이 있는 경우에만 내부의 id 값을 모두 새로 생성
+  if (blockData.table) {
+    blockData.table = blockData.table.map((row: any[]) =>
+      row.map((cell) => ({
+        ...cell,
+        id: `${cell.id.slice(0,12)}-${generateId(12)}`, // 새로운 ID 생성
+      }))
+    );
+  }
     addBlock({
       insertIndex: getCurrentBlockIndex() + 1,
       blockType: editorData.current[getCurrentBlockIndex()].type,
