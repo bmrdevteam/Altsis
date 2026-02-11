@@ -12,6 +12,7 @@ import Svg from "assets/svg/Svg";
 
 import audioURL from "assets/audio/notification-a.mp3";
 import { TNotificationReceived } from "types/notification";
+import { TUpcomingReminder, TReminder, TEventReminder } from "types/reminder";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 function formatNotificationTime(date: Date | string): string {
@@ -32,9 +33,45 @@ function formatNotificationTime(date: Date | string): string {
   return `${month}/${day}`;
 }
 
+function formatTimeUntil(date: Date | string): string {
+  const now = new Date();
+  const d = new Date(date);
+  const diffMs = d.getTime() - now.getTime();
+
+  if (diffMs <= 0) return "지금";
+
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHour = Math.floor(diffMs / 3600000);
+
+  if (diffMin < 1) return "1분 이내";
+  if (diffMin < 60) return `${diffMin}분 후`;
+  if (diffHour < 24) {
+    const remainMin = diffMin % 60;
+    if (remainMin === 0) return `${diffHour}시간 후`;
+    return `${diffHour}시간 ${remainMin}분 후`;
+  }
+
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const hour = d.getHours();
+  const minute = String(d.getMinutes()).padStart(2, "0");
+  const ampm = hour < 12 ? "오전" : "오후";
+  const h12 = hour % 12 || 12;
+  return `${month}/${day} ${ampm} ${h12}:${minute}`;
+}
+
+function formatEventTime(date: Date | string): string {
+  const d = new Date(date);
+  const hour = d.getHours();
+  const minute = String(d.getMinutes()).padStart(2, "0");
+  const ampm = hour < 12 ? "오전" : "오후";
+  const h12 = hour % 12 || 12;
+  return `${ampm} ${h12}:${minute}`;
+}
+
 const Notification = () => {
   const { currentUser } = useAuth();
-  const { NotificationAPI, PostAPI, EnrollmentAPI } = useAPIv2();
+  const { NotificationAPI, ReminderAPI, PostAPI, EnrollmentAPI } = useAPIv2();
 
   const navigate = useAppNavigate();
 
@@ -54,6 +91,21 @@ const Notification = () => {
     useState(false);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // 탭 상태
+  const [activeTab, setActiveTab] = useState<"notifications" | "reminders">(
+    "notifications"
+  );
+
+  // 리마인더 상태
+  const [upcomingReminders, setUpcomingReminders] = useState<
+    TUpcomingReminder[]
+  >([]);
+  const [isReminderFormOpen, setIsReminderFormOpen] = useState(false);
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderMemo, setReminderMemo] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("");
 
   const audio = new Audio(audioURL);
 
@@ -76,6 +128,15 @@ const Notification = () => {
       } catch (err) {
         ALERT_ERROR(err);
       }
+    }
+  };
+
+  const loadReminders = async () => {
+    try {
+      const { reminders } = await ReminderAPI.RUpcomingReminders();
+      setUpcomingReminders(reminders as TUpcomingReminder[]);
+    } catch (err) {
+      ALERT_ERROR(err);
     }
   };
 
@@ -133,6 +194,8 @@ const Notification = () => {
         }
         setIsNotifiationLoading(false);
       });
+      // WebSocket 알림 시 리마인더도 갱신
+      loadReminders();
     }
     return () => {};
   }, [isNotificationLoading, soundEnabled]);
@@ -151,7 +214,16 @@ const Notification = () => {
     return () => {};
   }, [isNotificationContenLoading]);
 
-  const handleNotificationClick = async (notification: TNotificationReceived) => {
+  // 드롭다운 열릴 때 또는 리마인더 탭 활성화 시 리마인더 로드
+  useEffect(() => {
+    if (notificationContentActive && activeTab === "reminders") {
+      loadReminders();
+    }
+  }, [notificationContentActive, activeTab]);
+
+  const handleNotificationClick = async (
+    notification: TNotificationReceived
+  ) => {
     // 알림을 확인 처리
     try {
       await NotificationAPI.UCheckNotification({
@@ -200,18 +272,23 @@ const Notification = () => {
         navigate("/courses");
       }
       // 승인/승인취소 알림은 교사가 받으므로 created 경로로
-      else if (notification.notificationType === "classApproval" || notification.notificationType === "classApprovalCancel") {
+      else if (
+        notification.notificationType === "classApproval" ||
+        notification.notificationType === "classApprovalCancel"
+      ) {
         navigate(`/courses/created/${notification.relatedEntity.id}`);
       } else {
         navigate(`/courses/${notification.relatedEntity.id}`);
       }
     }
-    // 일정 시작 알림
-    else if (notification.relatedEntity?.type === "calendarEvent") {
+    // 일정 시작 알림 또는 리마인더 알림
+    else if (
+      notification.relatedEntity?.type === "calendarEvent" ||
+      notification.relatedEntity?.type === "reminder"
+    ) {
       setNotificationContentActive(false);
       navigate("/");
-    }
-    else {
+    } else {
       setNotificationContentActive(false);
       navigate("/boards");
     }
@@ -234,40 +311,237 @@ const Notification = () => {
     }
   };
 
-  const notificationItems = () => {
-    return notifications.map((notification: TNotificationReceived, idx: number) => {
-      return (
-        <div
-          key={`notificationItem-${idx}`}
-          className={style.item}
-          onClick={() => handleNotificationClick(notification)}
-        >
-          <div className={style.description}>
-            {notification.category && (
-              <span className={style.type}>[{notification.category}]</span>
-            )}
-            {notification.title}
-          </div>
-          <div className={style.time}>
-            {formatNotificationTime(notification.date)}
-          </div>
-          <div
-            onClick={(e) => handleCheckNotification(e, notification)}
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              padding: "2px",
-              cursor: "pointer",
-              color: "gray",
-              flexShrink: 0,
-            }}
-            title="확인"
-          >
-            <Svg type="check" width="14px" height="14px" />
-          </div>
-        </div>
+  const handleCompleteReminder = async (
+    e: React.MouseEvent,
+    reminderId: string
+  ) => {
+    e.stopPropagation();
+    try {
+      await ReminderAPI.UCompleteReminder({ params: { _id: reminderId } });
+      setUpcomingReminders((prev) =>
+        prev.filter(
+          (r) => !(r.type === "standalone" && (r.data as TReminder)._id === reminderId)
+        )
       );
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleDeleteReminder = async (
+    e: React.MouseEvent,
+    reminderId: string
+  ) => {
+    e.stopPropagation();
+    try {
+      await ReminderAPI.DReminder({ params: { _id: reminderId } });
+      setUpcomingReminders((prev) =>
+        prev.filter(
+          (r) => !(r.type === "standalone" && (r.data as TReminder)._id === reminderId)
+        )
+      );
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleCreateReminder = async () => {
+    if (!reminderTitle.trim() || !reminderDate || !reminderTime) return;
+
+    try {
+      await ReminderAPI.CReminder({
+        data: {
+          title: reminderTitle,
+          memo: reminderMemo,
+          reminderTime: `${reminderDate}T${reminderTime}:00`,
+        },
+      });
+      // 폼 초기화
+      setReminderTitle("");
+      setReminderMemo("");
+      setReminderDate("");
+      setReminderTime("");
+      setIsReminderFormOpen(false);
+      // 리마인더 목록 갱신
+      loadReminders();
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const notificationItems = () => {
+    return notifications.map(
+      (notification: TNotificationReceived, idx: number) => {
+        return (
+          <div
+            key={`notificationItem-${idx}`}
+            className={style.item}
+            onClick={() => handleNotificationClick(notification)}
+          >
+            <div className={style.description}>
+              {notification.category && (
+                <span className={style.type}>[{notification.category}]</span>
+              )}
+              {notification.title}
+            </div>
+            <div className={style.time}>
+              {formatNotificationTime(notification.date)}
+            </div>
+            <div
+              onClick={(e) => handleCheckNotification(e, notification)}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                padding: "2px",
+                cursor: "pointer",
+                color: "gray",
+                flexShrink: 0,
+              }}
+              title="확인"
+            >
+              <Svg type="check" width="14px" height="14px" />
+            </div>
+          </div>
+        );
+      }
+    );
+  };
+
+  const reminderItems = () => {
+    if (upcomingReminders.length === 0) {
+      return (
+        <div className={style.emptyState}>24시간 이내 리마인더가 없습니다</div>
+      );
+    }
+
+    return upcomingReminders.map((reminder, idx) => {
+      if (reminder.type === "standalone") {
+        const data = reminder.data as TReminder;
+        return (
+          <div key={`reminder-standalone-${idx}`} className={style.reminderItem}>
+            <div className={style.reminderContent}>
+              <div className={style.reminderTitle}>{data.title}</div>
+              {data.memo && (
+                <div className={style.reminderMemo}>{data.memo}</div>
+              )}
+              <div className={style.reminderTime}>
+                {formatTimeUntil(data.reminderTime)}
+              </div>
+            </div>
+            <div className={style.reminderActions}>
+              <div
+                onClick={(e) => handleCompleteReminder(e, data._id)}
+                title="완료"
+                className={style.reminderActionBtn}
+              >
+                <Svg type="check" width="14px" height="14px" />
+              </div>
+              <div
+                onClick={(e) => handleDeleteReminder(e, data._id)}
+                title="삭제"
+                className={style.reminderActionBtn}
+              >
+                <Svg type="x" width="14px" height="14px" />
+              </div>
+            </div>
+          </div>
+        );
+      } else {
+        const data = reminder.data as TEventReminder;
+        return (
+          <div
+            key={`reminder-event-${idx}`}
+            className={style.reminderItem}
+            onClick={() => {
+              setNotificationContentActive(false);
+              navigate("/");
+            }}
+          >
+            <div className={style.reminderContent}>
+              <div className={style.reminderTitle}>
+                {data.color && (
+                  <span
+                    className={style.reminderColorDot}
+                    style={{ backgroundColor: data.color }}
+                  />
+                )}
+                {data.title}
+              </div>
+              <div className={style.reminderMemo}>
+                {formatEventTime(data.eventStart)} 시작
+                {data.isRecurring && " (반복)"}
+              </div>
+              <div className={style.reminderTime}>
+                {formatTimeUntil(data.reminderTime)}
+              </div>
+            </div>
+          </div>
+        );
+      }
     });
+  };
+
+  const reminderForm = () => {
+    if (!isReminderFormOpen) return null;
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(
+      today.getMonth() + 1
+    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    return (
+      <div className={style.reminderForm}>
+        <input
+          className={style.reminderInput}
+          type="text"
+          placeholder="제목"
+          value={reminderTitle}
+          onChange={(e) => setReminderTitle(e.target.value)}
+        />
+        <textarea
+          className={style.reminderTextarea}
+          placeholder="메모 (선택)"
+          rows={2}
+          value={reminderMemo}
+          onChange={(e) => setReminderMemo(e.target.value)}
+        />
+        <div className={style.reminderDateTime}>
+          <input
+            className={style.reminderInput}
+            type="date"
+            value={reminderDate || todayStr}
+            onChange={(e) => setReminderDate(e.target.value)}
+          />
+          <input
+            className={style.reminderInput}
+            type="time"
+            value={reminderTime}
+            onChange={(e) => setReminderTime(e.target.value)}
+          />
+        </div>
+        <div className={style.reminderFormActions}>
+          <button
+            className={style.reminderBtn}
+            onClick={() => {
+              setIsReminderFormOpen(false);
+              setReminderTitle("");
+              setReminderMemo("");
+              setReminderDate("");
+              setReminderTime("");
+            }}
+          >
+            취소
+          </button>
+          <button
+            className={`${style.reminderBtn} ${style.reminderBtnPrimary}`}
+            onClick={handleCreateReminder}
+            disabled={!reminderTitle.trim() || !reminderTime}
+          >
+            저장
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -284,64 +558,106 @@ const Notification = () => {
 
       {notificationContentActive && !isNotificationLoading && (
         <div className={style.contents}>
-          <div
-            className={style.title}
-            style={{
-              display: "flex",
-              gap: "4px",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-              <Svg type="notification" width="20px" height="20px" />
-              알림
-            </div>
-            {notifications.length > 0 && (
-              <div
-                onClick={async () => {
-                  try {
-                    await NotificationAPI.UBulkCheckNotifications();
-                    setNotifications([]);
-                  } catch (err) {
-                    ALERT_ERROR(err);
-                  }
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: "pointer",
-                  padding: "4px",
-                  color: "var(--accent-1)",
-                }}
-                title="일괄 확인"
-              >
-                <Svg type="check" width="20px" height="20px" />
-              </div>
-            )}
-          </div>
-          <div className={style.item_box}>
-            {!isNotificationContenLoading && notificationItems()}
-          </div>
-          <div
-            className={style.button}
-            style={{ display: "flex", justifyContent: "center" }}
-          >
+          {/* 탭 헤더 */}
+          <div className={style.tabs}>
             <div
-              onClick={() => {
-                setNotificationContentActive(false);
-                navigate("/boards");
-              }}
-              style={{
-                cursor: "pointer",
-                padding: "8px 16px",
-                color: "var(--accent-1)",
-                fontSize: "14px",
-              }}
+              className={`${style.tab} ${
+                activeTab === "notifications" ? style.activeTab : ""
+              }`}
+              onClick={() => setActiveTab("notifications")}
             >
-              게시판 보기
+              알림
+              {notifications.length > 0 && ` (${notifications.length})`}
+            </div>
+            <div
+              className={`${style.tab} ${
+                activeTab === "reminders" ? style.activeTab : ""
+              }`}
+              onClick={() => setActiveTab("reminders")}
+            >
+              리마인더
+              {upcomingReminders.length > 0 &&
+                ` (${upcomingReminders.length})`}
             </div>
           </div>
+
+          {/* 알림 탭 */}
+          {activeTab === "notifications" && (
+            <>
+              {notifications.length > 0 && (
+                <div className={style.tabActions}>
+                  <div
+                    onClick={async () => {
+                      try {
+                        await NotificationAPI.UBulkCheckNotifications();
+                        setNotifications([]);
+                      } catch (err) {
+                        ALERT_ERROR(err);
+                      }
+                    }}
+                    className={style.tabActionBtn}
+                    title="일괄 확인"
+                  >
+                    <Svg type="check" width="14px" height="14px" />
+                    일괄 확인
+                  </div>
+                </div>
+              )}
+              <div className={style.item_box}>
+                {!isNotificationContenLoading && notificationItems()}
+                {notifications.length === 0 && (
+                  <div className={style.emptyState}>새 알림이 없습니다</div>
+                )}
+              </div>
+              <div
+                className={style.button}
+                style={{ display: "flex", justifyContent: "center" }}
+              >
+                <div
+                  onClick={() => {
+                    setNotificationContentActive(false);
+                    navigate("/boards");
+                  }}
+                  style={{
+                    cursor: "pointer",
+                    padding: "8px 16px",
+                    color: "var(--accent-1)",
+                    fontSize: "14px",
+                  }}
+                >
+                  게시판 보기
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 리마인더 탭 */}
+          {activeTab === "reminders" && (
+            <>
+              <div className={style.item_box}>
+                {reminderItems()}
+                {reminderForm()}
+                {!isReminderFormOpen && (
+                  <div
+                    className={style.addReminderBtn}
+                    onClick={() => {
+                      const today = new Date();
+                      const todayStr = `${today.getFullYear()}-${String(
+                        today.getMonth() + 1
+                      ).padStart(2, "0")}-${String(today.getDate()).padStart(
+                        2,
+                        "0"
+                      )}`;
+                      setReminderDate(todayStr);
+                      setIsReminderFormOpen(true);
+                    }}
+                  >
+                    + 새 리마인더
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

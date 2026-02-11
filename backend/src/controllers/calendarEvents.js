@@ -70,6 +70,14 @@ export const create = async (req, res) => {
       };
     }
 
+    if (req.body.reminder) {
+      eventData.reminder = {
+        enabled: req.body.reminder.enabled ?? false,
+        minutesBefore: req.body.reminder.minutesBefore,
+        useDefault: req.body.reminder.useDefault ?? true,
+      };
+    }
+
     const calendarEvent = await CalendarEvent(req.user.academyId).create(
       eventData
     );
@@ -196,6 +204,7 @@ export const update = async (req, res) => {
       "recurrence",
       "color",
       "calendarId",
+      "reminder",
     ];
     for (const field of allowedFields) {
       if (field in req.body) {
@@ -208,6 +217,12 @@ export const update = async (req, res) => {
               ? new Date(req.body.recurrence.endDate)
               : undefined,
             days: req.body.recurrence.days || [],
+          };
+        } else if (field === "reminder") {
+          event.reminder = {
+            enabled: req.body.reminder.enabled ?? false,
+            minutesBefore: req.body.reminder.minutesBefore,
+            useDefault: req.body.reminder.useDefault ?? true,
           };
         } else {
           event[field] = req.body[field];

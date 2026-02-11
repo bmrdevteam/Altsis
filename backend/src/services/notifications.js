@@ -140,6 +140,8 @@ export const getOrCreateNotificationSetting = async (academyId, user) => {
         newPost: true,
         directMessage: true,
         soundEnabled: true,
+        reminder: true,
+        eventReminderDefault: 15,
       },
     });
   }

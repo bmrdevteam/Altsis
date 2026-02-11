@@ -172,6 +172,13 @@ export class EventItem {
   recurrenceType?: "none" | "daily" | "weekly" | "monthly";
   recurrenceEndDate?: string;
   recurrenceDays?: number[];
+
+  // reminder
+  reminder?: {
+    enabled: boolean;
+    minutesBefore?: number;
+    useDefault?: boolean;
+  };
 }
 
 export interface SpanningEvent {
@@ -296,6 +303,7 @@ export class Calendar {
           ? new Date(event.recurrence.endDate).toISOString().split("T")[0]
           : undefined,
         recurrenceDays: event.recurrence?.days || [],
+        reminder: event.reminder,
       };
 
       const startDate = new Date(event.start);

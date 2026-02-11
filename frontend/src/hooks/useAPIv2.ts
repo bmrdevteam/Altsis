@@ -1085,6 +1085,11 @@ export default function useAPIv2() {
       };
       color?: string;
       calendarId?: string;
+      reminder?: {
+        enabled: boolean;
+        minutesBefore?: number;
+        useDefault?: boolean;
+      };
     };
   }) {
     const { calendarEvent } = await database.C({
@@ -1136,6 +1141,11 @@ export default function useAPIv2() {
       };
       color?: string;
       calendarId?: string;
+      reminder?: {
+        enabled: boolean;
+        minutesBefore?: number;
+        useDefault?: boolean;
+      };
     };
   }) {
     const { calendarEvent } = await database.U({
@@ -3446,6 +3456,76 @@ export default function useAPIv2() {
     };
   }
 
+  /**
+   * CReminder API
+   * @description 리마인더 생성 API
+   */
+  async function CReminder(props: {
+    data: {
+      title: string;
+      memo?: string;
+      reminderTime: string;
+    };
+  }) {
+    const { reminder } = await database.C({
+      location: "reminders",
+      data: props.data,
+    });
+    return { reminder };
+  }
+
+  /**
+   * RUpcomingReminders API
+   * @description 다가오는 리마인더 조회 (24시간 이내)
+   */
+  async function RUpcomingReminders() {
+    const { reminders } = await database.R({
+      location: "reminders/upcoming",
+    });
+    return { reminders: reminders as any[] };
+  }
+
+  /**
+   * UReminder API
+   * @description 리마인더 수정 API
+   */
+  async function UReminder(props: {
+    params: { _id: string };
+    data: {
+      title?: string;
+      memo?: string;
+      reminderTime?: string;
+    };
+  }) {
+    const { reminder } = await database.U({
+      location: `reminders/${props.params._id}`,
+      data: props.data,
+    });
+    return { reminder };
+  }
+
+  /**
+   * UCompleteReminder API
+   * @description 리마인더 완료 처리 API
+   */
+  async function UCompleteReminder(props: { params: { _id: string } }) {
+    const { reminder } = await database.U({
+      location: `reminders/${props.params._id}/complete`,
+      data: {},
+    });
+    return { reminder };
+  }
+
+  /**
+   * DReminder API
+   * @description 리마인더 삭제 API
+   */
+  async function DReminder(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `reminders/${props.params._id}`,
+    });
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -3599,6 +3679,13 @@ export default function useAPIv2() {
       RNotificationSettings,
       UNotificationSettings,
       UBulkCheckNotifications,
+    },
+    ReminderAPI: {
+      CReminder,
+      RUpcomingReminders,
+      UReminder,
+      UCompleteReminder,
+      DReminder,
     },
     ThemeSettingsAPI: {
       RThemeSettings,

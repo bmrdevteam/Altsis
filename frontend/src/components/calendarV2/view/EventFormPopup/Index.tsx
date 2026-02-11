@@ -31,12 +31,17 @@ export type EventFormData = {
   color: string;
   calendarId?: string;
   daysOfWeek?: number[];
+  reminder?: {
+    enabled: boolean;
+    minutesBefore?: number;
+    useDefault?: boolean;
+  };
 };
 
 
 const Index = (props: Props) => {
   const { currentUser, currentSchool } = useAuth();
-  const { UserCalendarAPI } = useAPIv2();
+  const { UserCalendarAPI, NotificationAPI } = useAPIv2();
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
 
@@ -83,6 +88,19 @@ const Index = (props: Props) => {
     props.defaultValues?.daysOfWeek ?? []
   );
 
+  // 리마인더 상태
+  const [reminderEnabled, setReminderEnabled] = useState(
+    props.defaultValues?.reminder?.enabled ?? false
+  );
+  const [reminderMinutesBefore, setReminderMinutesBefore] = useState<
+    number | "default"
+  >(
+    props.defaultValues?.reminder?.useDefault !== false
+      ? "default"
+      : props.defaultValues?.reminder?.minutesBefore ?? 15
+  );
+  const [defaultReminderMinutes, setDefaultReminderMinutes] = useState(15);
+
   const [userCalendars, setUserCalendars] = useState<any[]>([]);
 
   useEffect(() => {
@@ -91,6 +109,15 @@ const Index = (props: Props) => {
     })
       .then(({ userCalendars }) => {
         setUserCalendars(userCalendars);
+      })
+      .catch(() => {});
+
+    // 기본 리마인더 설정 로드
+    NotificationAPI.RNotificationSettings()
+      .then(({ settings }) => {
+        if (settings.eventReminderDefault) {
+          setDefaultReminderMinutes(settings.eventReminderDefault);
+        }
       })
       .catch(() => {});
   }, []);
@@ -198,6 +225,16 @@ const Index = (props: Props) => {
       color,
       calendarId: calendarId || undefined,
       daysOfWeek: recurrenceType === "weekly" ? daysOfWeek : undefined,
+      reminder: reminderEnabled
+        ? {
+            enabled: true,
+            minutesBefore:
+              reminderMinutesBefore === "default"
+                ? undefined
+                : reminderMinutesBefore,
+            useDefault: reminderMinutesBefore === "default",
+          }
+        : { enabled: false },
     });
   };
 
@@ -407,6 +444,41 @@ const Index = (props: Props) => {
               value={recurrenceEndDate}
               onChange={(e: any) => setRecurrenceEndDate(e.target.value)}
             />
+          </div>
+        )}
+
+        {!isAllDay && (
+          <div className={style.rowInline}>
+            <label className={style.checkbox}>
+              <input
+                type="checkbox"
+                checked={reminderEnabled}
+                onChange={(e) => setReminderEnabled(e.target.checked)}
+              />
+              리마인더
+            </label>
+            {reminderEnabled && (
+              <div style={{ flex: 1 }}>
+                <Select
+                  options={[
+                    {
+                      text: `기본 설정 (${defaultReminderMinutes}분 전)`,
+                      value: "default",
+                    },
+                    { text: "15분 전", value: "15" },
+                    { text: "30분 전", value: "30" },
+                    { text: "1시간 전", value: "60" },
+                    { text: "1일 전", value: "1440" },
+                  ]}
+                  defaultSelectedValue={String(reminderMinutesBefore)}
+                  onChange={(e: any) => {
+                    setReminderMinutesBefore(
+                      e === "default" ? "default" : Number(e)
+                    );
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
 

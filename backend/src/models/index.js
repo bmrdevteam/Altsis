@@ -16,6 +16,7 @@ import { Form } from "../models/Form.js";
 import { Notification } from "../models/Notification.js";
 import { NotificationSetting } from "../models/NotificationSetting.js";
 import { Post } from "../models/Post.js";
+import { Reminder } from "../models/Reminder.js";
 import { Registration } from "../models/Registration.js";
 import { School } from "../models/School.js";
 import { Season } from "../models/Season.js";
@@ -38,6 +39,7 @@ export {
   Notification,
   NotificationSetting,
   Post,
+  Reminder,
   Registration,
   School,
   Season,

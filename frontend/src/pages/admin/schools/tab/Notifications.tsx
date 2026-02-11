@@ -118,6 +118,8 @@ const NotificationSettingsSection = () => {
     newPost: true,
     directMessage: true,
     soundEnabled: true,
+    reminder: true,
+    eventReminderDefault: 15,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -221,7 +223,7 @@ const NotificationSettingsSection = () => {
                     }}
                   >
                     <ToggleSwitch
-                      checked={settings[item.key]}
+                      checked={!!settings[item.key]}
                       onChange={(checked: boolean) => {
                         updateSetting(item.key, checked);
                       }}

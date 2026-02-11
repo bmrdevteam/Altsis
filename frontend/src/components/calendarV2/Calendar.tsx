@@ -413,6 +413,7 @@ const Calender = (props: Props) => {
             },
             color: formData.color,
             calendarId: formData.calendarId,
+            reminder: formData.reminder,
           },
         });
       } else {
@@ -439,6 +440,7 @@ const Calender = (props: Props) => {
             },
             color: formData.color,
             calendarId: formData.calendarId,
+            reminder: formData.reminder,
           },
         });
       }
@@ -473,6 +475,7 @@ const Calender = (props: Props) => {
       color: eventItem.color || "#4285f4",
       calendarId: eventItem.calendarId,
       daysOfWeek: eventItem.recurrenceDays || [],
+      reminder: eventItem.reminder,
     };
 
     const eventId = eventItem.recurrenceParentId || eventItem.eventId;

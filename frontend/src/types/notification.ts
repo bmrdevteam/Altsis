@@ -5,10 +5,11 @@ export type TNotificationType =
   | "classApproval"
   | "classApprovalCancel"
   | "scheduleStart"
-  | "newPost";
+  | "newPost"
+  | "reminder";
 
 export type TRelatedEntity = {
-  type: "enrollment" | "syllabus" | "calendarEvent" | "post";
+  type: "enrollment" | "syllabus" | "calendarEvent" | "post" | "reminder";
   id: string;
 };
 
@@ -54,4 +55,6 @@ export type TNotificationSettings = {
   newPost: boolean;
   directMessage: boolean;
   soundEnabled: boolean;
+  reminder: boolean;
+  eventReminderDefault: number;
 };

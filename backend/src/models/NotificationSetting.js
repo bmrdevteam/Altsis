@@ -35,6 +35,8 @@ const settingsSchema = mongoose.Schema(
     newPost: { type: Boolean, default: true },
     directMessage: { type: Boolean, default: true },
     soundEnabled: { type: Boolean, default: true },
+    reminder: { type: Boolean, default: true },
+    eventReminderDefault: { type: Number, default: 15 },
   },
   { _id: false }
 );
@@ -48,6 +50,8 @@ const settingsDefault = {
   newPost: true,
   directMessage: true,
   soundEnabled: true,
+  reminder: true,
+  eventReminderDefault: 15,
 };
 
 /**

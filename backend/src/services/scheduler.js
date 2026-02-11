@@ -6,7 +6,7 @@
  */
 
 import cron from "node-cron";
-import { Academy, CalendarEvent, User } from "../models/index.js";
+import { Academy, CalendarEvent, NotificationSetting, Reminder, User } from "../models/index.js";
 import { conn } from "../_database/mongodb/index.js";
 import { sendAutoNotification } from "./notifications.js";
 import { logger } from "../log/logger.js";
@@ -277,6 +277,216 @@ const checkScheduleStartNotifications = async () => {
 };
 
 /**
+ * 리마인더 알림 발송
+ * @memberof Services.SchedulerService
+ * @function checkReminders
+ *
+ * @description 1분마다 실행되어 도래한 리마인더에 대해 알림을 발송
+ */
+const notifiedReminders = new Set();
+
+const checkReminders = async () => {
+  try {
+    const now = new Date();
+    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+
+    const academies = await Academy.find({ isActivated: true });
+
+    for (const academy of academies) {
+      const academyId = academy.academyId;
+      if (!conn[academyId]) continue;
+
+      try {
+        // 1. 독립 리마인더 확인 (시간이 도래한 모든 미통보 리마인더)
+        const dueReminders = await Reminder(academyId).find({
+          completed: false,
+          notified: false,
+          reminderTime: { $lte: now },
+        });
+
+        for (const reminder of dueReminders) {
+          const user = await User(academyId).findById(reminder.user);
+          if (!user) continue;
+
+          await sendAutoNotification({
+            academyId,
+            toUserList: [
+              {
+                user: user._id,
+                userId: user.userId,
+                userName: user.userName,
+              },
+            ],
+            notificationType: "reminder",
+            category: "리마인더",
+            title: reminder.title,
+            description: reminder.memo || "",
+            relatedEntity: {
+              type: "reminder",
+              id: reminder._id,
+            },
+          });
+
+          reminder.notified = true;
+          await reminder.save();
+
+          logger.info(
+            `Reminder notification sent: ${reminder.title} (${reminder._id}) in academy: ${academyId}`
+          );
+        }
+
+        // 2. 이벤트 기반 리마인더 확인
+        // 리마인더가 활성화된 이벤트 조회
+        const maxReminderMinutes = 1440; // 최대 1일 전
+        const searchWindowEnd = new Date(
+          now.getTime() + maxReminderMinutes * 60 * 1000
+        );
+
+        // 비반복 이벤트
+        const nonRecurringReminderEvents = await CalendarEvent(academyId).find({
+          "reminder.enabled": true,
+          isAllDay: false,
+          sourceType: { $in: ["manual", null] },
+          $or: [
+            { "recurrence.type": "none" },
+            { "recurrence.type": { $exists: false } },
+            { recurrence: { $exists: false } },
+          ],
+          start: { $gte: oneMinuteAgo, $lte: searchWindowEnd },
+        });
+
+        // 반복 이벤트
+        const recurringReminderEvents = await CalendarEvent(academyId).find({
+          "reminder.enabled": true,
+          isAllDay: false,
+          sourceType: { $in: ["manual", null] },
+          "recurrence.type": { $in: ["daily", "weekly", "monthly"] },
+          start: { $lte: searchWindowEnd },
+          $or: [
+            { "recurrence.endDate": { $gte: oneMinuteAgo } },
+            { "recurrence.endDate": { $exists: false } },
+            { "recurrence.endDate": null },
+          ],
+        });
+
+        // 사용자별 기본 리마인더 시간 캐시
+        const userDefaultMinutesCache = {};
+
+        const getDefaultMinutes = async (userId) => {
+          if (userDefaultMinutesCache[userId] !== undefined) {
+            return userDefaultMinutesCache[userId];
+          }
+          const setting = await NotificationSetting(academyId).findOne({
+            user: userId,
+          });
+          const minutes = setting?.settings?.eventReminderDefault || 15;
+          userDefaultMinutesCache[userId] = minutes;
+          return minutes;
+        };
+
+        // 이벤트 리마인더 처리
+        const eventsToCheck = [];
+
+        for (const event of nonRecurringReminderEvents) {
+          eventsToCheck.push({
+            event,
+            instanceStart: event.start,
+            eventKey: `${academyId}:${event._id}:reminder`,
+          });
+        }
+
+        for (const event of recurringReminderEvents) {
+          const instances = getRecurringInstances(
+            event,
+            oneMinuteAgo,
+            searchWindowEnd
+          );
+          for (const instance of instances) {
+            const instanceDateStr = instance.instanceStart
+              .toISOString()
+              .split("T")[0];
+            eventsToCheck.push({
+              event,
+              instanceStart: instance.instanceStart,
+              eventKey: `${academyId}:${event._id}:${instanceDateStr}:reminder`,
+            });
+          }
+        }
+
+        for (const { event, instanceStart, eventKey } of eventsToCheck) {
+          if (notifiedReminders.has(eventKey)) continue;
+
+          const minutesBefore = event.reminder.useDefault
+            ? await getDefaultMinutes(event.user)
+            : event.reminder.minutesBefore || 15;
+
+          const reminderTime = new Date(
+            new Date(instanceStart).getTime() - minutesBefore * 60 * 1000
+          );
+
+          // 리마인더 시각이 1분 전 ~ 현재 사이인지 확인
+          if (reminderTime < oneMinuteAgo || reminderTime > now) continue;
+
+          const user = await User(academyId).findById(event.user);
+          if (!user) continue;
+
+          const toUserList = [
+            {
+              user: user._id,
+              userId: user.userId,
+              userName: user.userName,
+            },
+          ];
+
+          // 학교 일정인 경우 해당 학교 소속 사용자들에게도 알림
+          if (event.scope === "school" && event.school) {
+            const schoolUsers = await User(academyId).find({
+              "schools.school": event.school,
+              _id: { $ne: user._id },
+            });
+            for (const schoolUser of schoolUsers) {
+              toUserList.push({
+                user: schoolUser._id,
+                userId: schoolUser.userId,
+                userName: schoolUser.userName,
+              });
+            }
+          }
+
+          await sendAutoNotification({
+            academyId,
+            toUserList,
+            notificationType: "reminder",
+            category: "리마인더",
+            title: `[${minutesBefore}분 전] ${event.title}`,
+            description: event.description || "",
+            relatedEntity: {
+              type: "calendarEvent",
+              id: event._id,
+            },
+          });
+
+          notifiedReminders.add(eventKey);
+          setTimeout(() => {
+            notifiedReminders.delete(eventKey);
+          }, 24 * 60 * 60 * 1000);
+
+          logger.info(
+            `Event reminder notification sent: ${event.title} (${event._id}) in academy: ${academyId}`
+          );
+        }
+      } catch (err) {
+        logger.error(
+          `Error processing reminders for academy ${academyId}: ${err.message}`
+        );
+      }
+    }
+  } catch (err) {
+    logger.error(`checkReminders failed: ${err.message}`);
+  }
+};
+
+/**
  * 스케줄러 초기화
  * @memberof Services.SchedulerService
  * @function initializeScheduler
@@ -284,10 +494,11 @@ const checkScheduleStartNotifications = async () => {
  * @description 모든 스케줄링 작업을 시작
  */
 export const initializeScheduler = () => {
-  // 매 분 실행 (일정 시작 알림)
+  // 매 분 실행 (일정 시작 알림 + 리마인더)
   cron.schedule("* * * * *", () => {
     checkScheduleStartNotifications();
+    checkReminders();
   });
 
-  logger.info("✅ Scheduler initialized - schedule start notifications enabled");
+  logger.info("✅ Scheduler initialized - schedule start notifications and reminders enabled");
 };

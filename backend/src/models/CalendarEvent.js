@@ -64,6 +64,17 @@ const calendarEventSchema = mongoose.Schema(
       default: { type: "none" },
     },
     color: { type: String, default: "#4285f4" },
+    reminder: {
+      type: mongoose.Schema(
+        {
+          enabled: { type: Boolean, default: false },
+          minutesBefore: { type: Number },
+          useDefault: { type: Boolean, default: true },
+        },
+        { _id: false }
+      ),
+      default: { enabled: false, useDefault: true },
+    },
     sourceType: {
       type: String,
       enum: ["manual", "enrollment", "syllabus", "memo"],
