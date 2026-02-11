@@ -41,28 +41,61 @@ const ParsedTableBlock = (props: Props) => {
   ));
 
   const sortInfo = _.get(props.blockData.data,"dataOrder");
-  const sortByArray = _.map(sortInfo, 'by');
-  const sortOrderArray = _.map(sortInfo, 'order');
-  const sortPriorityArray = _.map(sortInfo, 'priority');
-  
-  let matchedItem : any[] = []; // 우선순위와 일치하는 아이템을 저장할 배열
-  let unmatchedItem : any[] = []; // 우선순위와 일치하지 않는 아이템을 저장할 배열
-  
-  _.forEach(sortPriorityArray, (item : any, index : number) => {
-    if(item){
-      const priorityArray = item.split("/");
-      const byArray = sortByArray[index];
-      _.forEach(priorityArray, (item : any, index : number) => {
-        matchedItem = [...matchedItem, ..._.orderBy(_.filter(repeat, (v) => v[byArray] === item ),sortByArray, sortOrderArray)];
-      });
-    }
-  });
-  
-  // 우선순위와 일치하지 않는 아이템 찾기
-  unmatchedItem = _.orderBy(_.difference(repeat, matchedItem), sortByArray, sortOrderArray);
-  
-  // 우선순위와 일치하는 아이템과 일치하지 않는 아이템을 합친 후 repeat 배열을 갱신
-  repeat = [...matchedItem, ...unmatchedItem];
+
+  if (sortInfo && sortInfo.length > 0 && repeat && _.isArray(repeat)) {
+    // 정렬 조건들을 준비
+    const sortByArray = _.map(sortInfo, 'by');
+    const sortOrderArray = _.map(sortInfo, 'order');
+    const sortPriorityArray = _.map(sortInfo, 'priority');
+
+    // 우선순위 정렬을 위한 커스텀 iteratee 함수들 생성
+    const iteratees = sortByArray.map((field: string, idx: number) => {
+      const priority = sortPriorityArray[idx];
+      const order = sortOrderArray[idx];
+
+      if (priority && priority.trim()) {
+        // 우선순위가 있는 경우
+        const priorityArray = priority.split("/").map((p: string) => p.trim()).filter((p: string) => p);
+        return (item: any) => {
+          const value = String(item[field] ?? '');
+          const priorityIndex = priorityArray.indexOf(value);
+
+          if (priorityIndex >= 0) {
+            // 우선순위에 있으면: 항상 먼저 나오도록 "0" 접두사 사용
+            // 내림차순일 때는 인덱스를 반전하여 역순으로
+            const index = order === 'desc'
+              ? (priorityArray.length - 1 - priorityIndex)
+              : priorityIndex;
+            return '0' + String(index).padStart(10, '0');
+          } else {
+            // 우선순위에 없으면: 나중에 나오도록 "1" 접두사 사용
+            return '1' + value;
+          }
+        };
+      } else {
+        // 우선순위가 없는 경우: 필드 값을 문자열로 변환하여 반환 (일관성 유지)
+        return (item: any) => {
+          const value = item[field];
+          // null/undefined는 빈 문자열로, 나머지는 문자열로 변환
+          return value == null ? '' : String(value);
+        };
+      }
+    });
+
+    // 우선순위가 있는 필드는 항상 오름차순으로 정렬 (인덱스 반전으로 방향 조정)
+    // 우선순위가 없는 필드는 원래 order 사용
+    const adjustedOrderArray = sortByArray.map((_: string, idx: number) => {
+      const priority = sortPriorityArray[idx];
+      if (priority && priority.trim()) {
+        return 'asc';  // 우선순위가 있으면 항상 오름차순 (인덱스로 이미 방향 조정됨)
+      } else {
+        return sortOrderArray[idx];  // 우선순위가 없으면 원래 order 사용
+      }
+    });
+
+    // lodash orderBy를 사용하여 모든 정렬 조건을 한 번에 적용
+    repeat = _.orderBy(repeat, iteratees, adjustedOrderArray);
+  }
   
   // 필터
 
@@ -107,7 +140,7 @@ const ParsedTableBlock = (props: Props) => {
     }
   });
   
-  let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
+  let filteredRepeat: any[] = (repeat && _.isArray(repeat) ? repeat : []).filter((v: any, i: number) => {
       // 0을 제외한 falsy 값이 있는지 확인하는 변수
     const normalizeValue = (value : any) => {
       if (value === 0) return "0";  // 0은 유지
