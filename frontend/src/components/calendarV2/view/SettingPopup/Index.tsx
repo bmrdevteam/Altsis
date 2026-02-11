@@ -45,7 +45,8 @@ const Index = (props: Props) => {
       style={{
         display: "flex",
         flexDirection: "column",
-        minWidth: "520px",
+        width: "520px",
+        maxWidth: "100%",
       }}
       closeBtn
       title={"캘린더 설정"}
