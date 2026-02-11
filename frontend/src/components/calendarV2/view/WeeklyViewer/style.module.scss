@@ -10,6 +10,10 @@
     font-size: 14px;
     font-weight: 600;
 
+    @media (max-width: 768px) {
+      top: 100px;
+    }
+
     .days {
       display: flex;
       .day {
