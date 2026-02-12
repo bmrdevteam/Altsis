@@ -29,25 +29,6 @@ client.on("error", function (err) {
 });
 
 client.on("ready", async () => {
-  // clean up "io/notification/*" data on every server start
-  try {
-    const [keys1, keys2] = await Promise.all([
-      client.v4.hGetAll("io/notification/sid-user"),
-      client.v4.hGetAll("io/notification/user-sidList"),
-    ]);
-
-    await Promise.all([
-      ...Object.keys(keys1).map((key) =>
-        client.v4.hDel("io/notification/sid-user", key)
-      ),
-      ...Object.keys(keys2).map((key) =>
-        client.v4.hDel("io/notification/user-sidList", key)
-      ),
-    ]);
-  } catch (err) {
-    console.error("Redis cleanup error:", err);
-  }
-
   console.log("✅ Redis is connected");
   isConnected = true;
 });

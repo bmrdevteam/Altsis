@@ -7,7 +7,6 @@ import { logger } from "../log/logger.js";
 import _ from "lodash";
 import { Notification, NotificationSetting, Registration } from "../models/index.js";
 import { getOrCreateNotificationSetting } from "../services/notifications.js";
-import { client } from "../_database/redis/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
 
 import mongoose from "mongoose";
@@ -115,15 +114,15 @@ export const send = async (req, res) => {
       notifications
     );
 
-    for (let notification of _.filter(newNotifications, { type: "received" })) {
-      const data = await client.v4.hGet(
-        "io/notification/user-sidList",
-        `${req.user.academyId}/${notification.userId}`
-      );
-      if (data) {
-        JSON.parse(data).sid?.forEach((sid) => {
-          getIoNotification().to(sid).emit("listen", "update notifications");
-        });
+    const io = getIoNotification();
+    if (io) {
+      const notifiedRooms = new Set();
+      for (const notification of _.filter(newNotifications, { type: "received" })) {
+        const room = `${req.user.academyId}/${notification.userId}`;
+        if (!notifiedRooms.has(room)) {
+          io.to(room).emit("listen", "update notifications");
+          notifiedRooms.add(room);
+        }
       }
     }
 

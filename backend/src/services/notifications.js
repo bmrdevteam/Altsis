@@ -4,7 +4,6 @@
  */
 
 import { Notification, NotificationSetting } from "../models/index.js";
-import { client } from "../_database/redis/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
 
@@ -82,28 +81,18 @@ export const sendAutoNotification = async ({
       notifications
     );
 
-    // WebSocket으로 알림 전송
-    logger.info(`Sending WebSocket events to ${createdNotifications.length} users`);
-    for (let notification of createdNotifications) {
-      try {
-        const redisKey = `${academyId}/${notification.userId}`;
-        const data = await client.v4.hGet(
-          "io/notification/user-sidList",
-          redisKey
-        );
-        if (data) {
-          const sidList = JSON.parse(data).sid;
-          logger.info(`Found ${sidList?.length || 0} socket(s) for user ${notification.userId}`);
-          sidList?.forEach((sid) => {
-            getIoNotification().to(sid).emit("listen", "update notifications");
-          });
-        } else {
-          logger.info(`No socket connection found for user ${notification.userId} (key: ${redisKey})`);
+    // WebSocket으로 알림 전송 (Socket.io Room 사용)
+    const io = getIoNotification();
+    if (io) {
+      const notifiedRooms = new Set();
+      for (const notification of createdNotifications) {
+        const room = `${academyId}/${notification.userId}`;
+        if (!notifiedRooms.has(room)) {
+          io.to(room).emit("listen", "update notifications");
+          notifiedRooms.add(room);
         }
-      } catch (socketErr) {
-        // WebSocket 실패는 무시
-        logger.warn(`WebSocket notification failed: ${socketErr.message}`);
       }
+      logger.info(`WebSocket events sent to ${notifiedRooms.size} room(s)`);
     }
 
     return createdNotifications;

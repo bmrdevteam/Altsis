@@ -1,5 +1,4 @@
 import { Server } from "socket.io";
-import _ from "lodash";
 import { client } from "../_database/redis/index.js";
 import {
   getTaskCompleted,
@@ -21,65 +20,9 @@ const initializeWebSocket = (_server) => {
   });
 
   ioNotification.on("connect", (socket) => {
-    socket.on("listening", async (data) => {
-      const user = `${data.academyId}/${data.userId}`;
-
-      const prev = await client.v4.hGet("io/notification/user-sidList", user);
-      const value = [socket.id];
-      if (prev) {
-        const prevSid = JSON.parse(prev).sid;
-        if (prevSid) {
-          value.push(...prevSid);
-        }
-      }
-
-      await client.v4.hSet("io/notification/sid-user", socket.id, user);
-      await client.v4.hSet(
-        "io/notification/user-sidList",
-        user,
-        JSON.stringify({ sid: value })
-      );
-    });
-
-    socket.on("disconnect", async () => {
-      try {
-        const user = await client.v4.hGet(
-          "io/notification/sid-user",
-          socket.id
-        );
-        if (user) {
-          await client.v4.hDel("io/notification/sid-user", socket.id);
-          const data = await client.v4.hGet(
-            "io/notification/user-sidList",
-            user
-          );
-          if (data) {
-            const prevSidList = JSON.parse(data).sid;
-            if (prevSidList) {
-              if (prevSidList.length === 1) {
-                await client.v4.hDel("io/notification/user-sidList", user);
-              } else {
-                const idx = _.findIndex(
-                  prevSidList,
-                  (sid) => sid === socket.id
-                );
-                if (idx !== -1) {
-                  prevSidList.splice(idx, 1);
-                  await client.v4.hSet(
-                    "io/notification/user-sidList",
-                    user,
-                    JSON.stringify({
-                      sid: prevSidList,
-                    })
-                  );
-                }
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
+    socket.on("listening", (data) => {
+      const room = `${data.academyId}/${data.userId}`;
+      socket.join(room);
     });
 
     socket.on("error", (err) => {
