@@ -353,7 +353,7 @@ const Notification = () => {
         data: {
           title: reminderTitle,
           memo: reminderMemo,
-          reminderTime: `${reminderDate}T${reminderTime}:00`,
+          reminderTime: new Date(`${reminderDate}T${reminderTime}:00`).toISOString(),
         },
       });
       // 폼 초기화
