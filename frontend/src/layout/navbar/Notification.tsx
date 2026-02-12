@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppNavigate } from "hooks/useAppNavigate";
-import { Socket, io } from "socket.io-client";
+import { io } from "socket.io-client";
 import style from "./navbar.module.scss";
 import _ from "lodash";
 
@@ -75,15 +75,9 @@ const Notification = () => {
 
   const navigate = useAppNavigate();
 
-  const [socket, setSocket] = useState<Socket>();
-
   const [notifications, setNotifications] = useState<TNotificationReceived[]>(
     []
   );
-
-  const [isNotificationLoading, setIsNotifiationLoading] = useState(false);
-  const [isNotificationContenLoading, setIsNotifiationContenLoading] =
-    useState(false);
 
   const notificationDivRef = useRef<HTMLDivElement>(null);
 
@@ -107,7 +101,10 @@ const Notification = () => {
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
 
-  const audio = new Audio(audioURL);
+  // ref로 관리하여 socket 이벤트 핸들러에서 항상 최신 값/함수 참조
+  const audioRef = useRef(new Audio(audioURL));
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
 
   function handleMousedown(e: MouseEvent) {
     if (
@@ -140,6 +137,13 @@ const Notification = () => {
     }
   };
 
+  // socket 이벤트 핸들러에서 항상 최신 함수를 호출하기 위한 ref
+  const updateNotificationsRef = useRef(updateNotifications);
+  updateNotificationsRef.current = updateNotifications;
+
+  const loadRemindersRef = useRef(loadReminders);
+  loadRemindersRef.current = loadReminders;
+
   useEffect(() => {
     if (currentUser?._id) {
       updateNotifications();
@@ -167,17 +171,35 @@ const Notification = () => {
     });
 
     newSocket.on("connect", () => {
+      console.log("[Notification] Socket connected:", newSocket.id);
       newSocket.emit("listening", {
         academyId: currentUser.academyId,
         userId: currentUser.userId,
       });
+      // 재연결 시 누락된 알림 갱신
+      updateNotificationsRef.current();
+      loadRemindersRef.current();
     });
 
+    newSocket.on("connect_error", (err) => {
+      console.error("[Notification] Socket connection error:", err.message);
+    });
+
+    newSocket.on("disconnect", (reason) => {
+      console.warn("[Notification] Socket disconnected:", reason);
+    });
+
+    // listen 이벤트 수신 시 직접 알림 갱신
     newSocket.on("listen", () => {
-      setIsNotifiationLoading(true);
+      console.log("[Notification] Received 'listen' event - fetching notifications");
+      updateNotificationsRef.current();
+      if (soundEnabledRef.current) {
+        audioRef.current.play().catch(() => {
+          // 자동 재생 정책에 의해 재생이 차단될 수 있음
+        });
+      }
+      loadRemindersRef.current();
     });
-
-    setSocket(newSocket);
 
     return () => {
       newSocket.close();
@@ -185,34 +207,11 @@ const Notification = () => {
   }, [currentUser?.academyId, currentUser?.userId]);
 
   useEffect(() => {
-    if (isNotificationLoading) {
-      updateNotifications().then(() => {
-        if (soundEnabled) {
-          audio.play().catch(() => {
-            // 자동 재생 정책에 의해 재생이 차단될 수 있음
-          });
-        }
-        setIsNotifiationLoading(false);
-      });
-      // WebSocket 알림 시 리마인더도 갱신
-      loadReminders();
-    }
-    return () => {};
-  }, [isNotificationLoading, soundEnabled]);
-
-  useEffect(() => {
     document.addEventListener("mousedown", handleMousedown);
     return () => {
       document.removeEventListener("mousedown", handleMousedown);
     };
   }, []);
-
-  useEffect(() => {
-    if (isNotificationContenLoading) {
-      setIsNotifiationContenLoading(false);
-    }
-    return () => {};
-  }, [isNotificationContenLoading]);
 
   // 드롭다운 열릴 때 또는 탭 전환 시 데이터 로드
   useEffect(() => {
@@ -560,7 +559,7 @@ const Notification = () => {
         <Svg type="notification" width="20px" height="20px" />
       </div>
 
-      {notificationContentActive && !isNotificationLoading && (
+      {notificationContentActive && (
         <div className={style.contents}>
           {/* 탭 헤더 */}
           <div className={style.tabs}>
@@ -608,7 +607,7 @@ const Notification = () => {
                 </div>
               )}
               <div className={style.item_box}>
-                {!isNotificationContenLoading && notificationItems()}
+                {notificationItems()}
                 {notifications.length === 0 && (
                   <div className={style.emptyState}>새 알림이 없습니다</div>
                 )}

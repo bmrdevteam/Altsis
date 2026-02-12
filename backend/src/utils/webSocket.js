@@ -4,6 +4,7 @@ import {
   getTaskCompleted,
   getTaskRequested,
 } from "../controllers/enrollments.js";
+import { logger } from "../log/logger.js";
 
 let ioNotification = undefined;
 let ioEnrollment = undefined;
@@ -20,12 +21,20 @@ const initializeWebSocket = (_server) => {
   });
 
   ioNotification.on("connect", (socket) => {
+    logger.info(`[WS:Notification] client connected: ${socket.id}`);
+
     socket.on("listening", (data) => {
       const room = `${data.academyId}/${data.userId}`;
       socket.join(room);
+      logger.info(`[WS:Notification] socket ${socket.id} joined room: ${room}`);
+    });
+
+    socket.on("disconnect", (reason) => {
+      logger.info(`[WS:Notification] client disconnected: ${socket.id}, reason: ${reason}`);
     });
 
     socket.on("error", (err) => {
+      logger.error(`[WS:Notification] socket error: ${socket.id}, ${err.message}`);
       if (err && err.message === "unauthorized event") {
         socket.disconnect();
       }
