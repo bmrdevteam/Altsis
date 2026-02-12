@@ -214,10 +214,14 @@ const Notification = () => {
     return () => {};
   }, [isNotificationContenLoading]);
 
-  // 드롭다운 열릴 때 또는 리마인더 탭 활성화 시 리마인더 로드
+  // 드롭다운 열릴 때 또는 탭 전환 시 데이터 로드
   useEffect(() => {
-    if (notificationContentActive && activeTab === "reminders") {
-      loadReminders();
+    if (notificationContentActive) {
+      if (activeTab === "notifications") {
+        updateNotifications();
+      } else if (activeTab === "reminders") {
+        loadReminders();
+      }
     }
   }, [notificationContentActive, activeTab]);
 
