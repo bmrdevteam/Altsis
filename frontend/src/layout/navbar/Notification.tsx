@@ -134,7 +134,7 @@ const Notification = () => {
   const loadReminders = async () => {
     try {
       const { reminders } = await ReminderAPI.RUpcomingReminders();
-      setUpcomingReminders(reminders as TUpcomingReminder[]);
+      setUpcomingReminders((reminders ?? []) as TUpcomingReminder[]);
     } catch (err) {
       ALERT_ERROR(err);
     }
