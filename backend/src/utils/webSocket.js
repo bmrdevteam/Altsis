@@ -33,8 +33,8 @@ const initializeWebSocket = (_server) => {
         }
       }
 
-      await client.hSet("io/notification/sid-user", socket.id, user);
-      await client.hSet(
+      await client.v4.hSet("io/notification/sid-user", socket.id, user);
+      await client.v4.hSet(
         "io/notification/user-sidList",
         user,
         JSON.stringify({ sid: value })
@@ -48,7 +48,7 @@ const initializeWebSocket = (_server) => {
           socket.id
         );
         if (user) {
-          await client.hDel("io/notification/sid-user", socket.id);
+          await client.v4.hDel("io/notification/sid-user", socket.id);
           const data = await client.v4.hGet(
             "io/notification/user-sidList",
             user
@@ -57,18 +57,19 @@ const initializeWebSocket = (_server) => {
             const prevSidList = JSON.parse(data).sid;
             if (prevSidList) {
               if (prevSidList.length === 1) {
-                await client.hDel("io/notification/user-sidList", user);
+                await client.v4.hDel("io/notification/user-sidList", user);
               } else {
                 const idx = _.findIndex(
                   prevSidList,
                   (sid) => sid === socket.id
                 );
                 if (idx !== -1) {
-                  await client.hSet(
+                  prevSidList.splice(idx, 1);
+                  await client.v4.hSet(
                     "io/notification/user-sidList",
                     user,
                     JSON.stringify({
-                      sid: prevSidList.splice(idx, 1),
+                      sid: prevSidList,
                     })
                   );
                 }
@@ -126,7 +127,7 @@ const initializeWebSocket = (_server) => {
 
       // Store user mapping in Redis
       try {
-        await client.hSet("io/chat/sid-user", socket.id, userRoom);
+        await client.v4.hSet("io/chat/sid-user", socket.id, userRoom);
       } catch (err) {
         console.error("Redis error on chat join:", err);
       }
@@ -149,7 +150,7 @@ const initializeWebSocket = (_server) => {
 
     socket.on("disconnect", async () => {
       try {
-        await client.hDel("io/chat/sid-user", socket.id);
+        await client.v4.hDel("io/chat/sid-user", socket.id);
       } catch (err) {
         console.error("Redis error on chat disconnect:", err);
       }
