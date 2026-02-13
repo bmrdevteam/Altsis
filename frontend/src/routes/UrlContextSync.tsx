@@ -1,6 +1,27 @@
 import { useEffect, useRef } from "react";
-import { useParams, useNavigate, Outlet } from "react-router-dom";
+import {
+  useParams,
+  useNavigate,
+  useLocation,
+  Outlet,
+} from "react-router-dom";
 import { useAuth } from "contexts/authContext";
+
+/** Path segments that are known app routes (not academy IDs) */
+const KNOWN_PATH_SEGMENTS = new Set([
+  "admin",
+  "courses",
+  "archive",
+  "myArchive",
+  "docs",
+  "forms",
+  "notifications",
+  "boards",
+  "settings",
+  "myaccount",
+  "search",
+  "dev",
+]);
 
 const UrlContextSync = () => {
   const { academyId: urlAcademyId, schoolId: urlSchoolId } = useParams<{
@@ -9,6 +30,7 @@ const UrlContextSync = () => {
   }>();
   const { currentUser, currentSchool, changeSchool } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const changingRef = useRef(false);
 
   useEffect(() => {
@@ -16,6 +38,18 @@ const UrlContextSync = () => {
     if (changingRef.current) return;
 
     if (urlAcademyId !== currentUser.academyId) {
+      // Legacy URL without /:academyId/:schoolId prefix — redirect gracefully
+      if (KNOWN_PATH_SEGMENTS.has(urlAcademyId)) {
+        const schoolId =
+          currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
+        if (schoolId) {
+          navigate(
+            `/${currentUser.academyId}/${schoolId}${location.pathname}${location.search}`,
+            { replace: true }
+          );
+          return;
+        }
+      }
       alert("잘못된 접근입니다.");
       navigate("/login", { replace: true });
       return;

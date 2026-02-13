@@ -1,6 +1,7 @@
 import {
   BrowserRouter,
   Navigate,
+  Outlet,
   Route,
   Routes,
   useLocation,
@@ -79,16 +80,62 @@ const LegacyRedirect = () => {
   const { currentUser, currentSchool } = useAuth();
   const location = useLocation();
 
-  if (currentUser?.academyId && currentSchool?.schoolId) {
-    const newPath = `/${currentUser.academyId}/${currentSchool.schoolId}${location.pathname}${location.search}${location.hash}`;
-    return <Navigate to={newPath} replace />;
+  if (currentUser?.academyId) {
+    const schoolId =
+      currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
+    if (schoolId) {
+      const newPath = `/${currentUser.academyId}/${schoolId}${location.pathname}${location.search}${location.hash}`;
+      return <Navigate to={newPath} replace />;
+    }
   }
 
   return <Navigate to="/login" replace />;
 };
 
+/**
+ * Layout for top-level /admin routes (no school prefix).
+ * If the user has a school, redirects to the prefixed URL.
+ * If the user has no school (e.g. new academy admin), renders admin pages directly.
+ */
+const AdminFallback = () => {
+  const { currentUser, currentSchool } = useAuth();
+  const location = useLocation();
+
+  if (!currentUser) return <Navigate to="/login" replace />;
+
+  // If user has a school available, redirect to the prefixed URL
+  const schoolId =
+    currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
+  if (schoolId) {
+    return (
+      <Navigate
+        to={`/${currentUser.academyId}/${schoolId}${location.pathname}${location.search}${location.hash}`}
+        replace
+      />
+    );
+  }
+
+  // No school — render admin pages directly (admin needs to create schools first)
+  if (!["admin", "manager"].includes(currentUser.auth)) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+};
+
 function RouterPage() {
   const { currentUser, currentSchool } = useAuth();
+
+  /** Home path for authenticated users (used to redirect away from login) */
+  const getHomePath = (): string => {
+    if (!currentUser) return "/login";
+    const schoolId =
+      currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
+    if (schoolId) return `/${currentUser.academyId}/${schoolId}/`;
+    if (["admin", "manager"].includes(currentUser.auth))
+      return "/admin/schools/list";
+    return "/login";
+  };
 
   // authenticate path with simple userlogin check
   const RequireAuth = ({
@@ -130,8 +177,26 @@ function RouterPage() {
             {/* ----------------------------------------------------- */}
 
             {/* basic routes (no prefix) */}
-            <Route path="login" element={<ChooseAcademy />}></Route>
-            <Route path=":pid/login" element={<Login />}></Route>
+            <Route
+              path="login"
+              element={
+                currentUser ? (
+                  <Navigate to={getHomePath()} replace />
+                ) : (
+                  <ChooseAcademy />
+                )
+              }
+            ></Route>
+            <Route
+              path=":pid/login"
+              element={
+                currentUser ? (
+                  <Navigate to={getHomePath()} replace />
+                ) : (
+                  <Login />
+                )
+              }
+            ></Route>
             <Route path="register" element={<Register />}></Route>
 
             {/* ----------------------------------------------------- */}
@@ -171,6 +236,37 @@ function RouterPage() {
                 }
               ></Route>
             </Route>
+
+            {/* ----------------------------------------------------- */}
+
+            {/* legacy URL redirects (no /:academyId/:schoolId prefix) */}
+            {/* Static segments score higher than dynamic params in React Router v6,
+                so these will always match before :academyId/:schoolId for unprefixed URLs */}
+
+            {/* admin routes: redirect to prefixed URL if school exists,
+                otherwise render directly (admin with no schools yet) */}
+            <Route path="admin" element={<AdminFallback />}>
+              <Route path="" element={<Admin />} />
+              <Route path="backup" element={<Backup />} />
+              <Route path="users" element={<Users />} />
+              <Route path="users/add" element={<Schools />} />
+              <Route path="schools/list" element={<Schools />} />
+              <Route path="schools/:pid" element={<School />} />
+              <Route path="schools" element={<School />} />
+              <Route path="forms" element={<Forms />} />
+              <Route path="forms/:pid" element={<Form />} />
+            </Route>
+            <Route path="courses/*" element={<LegacyRedirect />} />
+            <Route path="forms/*" element={<LegacyRedirect />} />
+            <Route path="archive/*" element={<LegacyRedirect />} />
+            <Route path="myArchive/*" element={<LegacyRedirect />} />
+            <Route path="docs" element={<LegacyRedirect />} />
+            <Route path="notifications" element={<LegacyRedirect />} />
+            <Route path="boards/*" element={<LegacyRedirect />} />
+            <Route path="settings" element={<LegacyRedirect />} />
+            <Route path="myaccount" element={<LegacyRedirect />} />
+            <Route path="search/*" element={<LegacyRedirect />} />
+            <Route path="dev/*" element={<LegacyRedirect />} />
 
             {/* ----------------------------------------------------- */}
 

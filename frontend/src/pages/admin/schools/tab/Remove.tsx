@@ -63,7 +63,16 @@ const Index = (props: Props) => {
           (exSchool) => exSchool.school === props.schoolData._id
         )
       ) {
-        return window.location.replace("/admin/schools/list");
+        // Current school was deleted — full reload to re-initialize auth context
+        const otherSchool = currentUser.schools.find(
+          (s: any) => s.school !== props.schoolData._id
+        );
+        if (otherSchool) {
+          return window.location.replace(
+            `/${currentUser.academyId}/${otherSchool.schoolId}/admin/schools/list`
+          );
+        }
+        return window.location.replace("/login");
       } else {
         navigate("/admin/schools/list", { replace: true });
       }
