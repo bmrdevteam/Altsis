@@ -61,6 +61,8 @@ const enrollmentSchema = mongoose.Schema(
     userId: String,
     userName: String,
     classTitle: String,
+    coverImage: String,
+    coverColor: String,
     time: [],
     classroom: String,
     subject: [String],

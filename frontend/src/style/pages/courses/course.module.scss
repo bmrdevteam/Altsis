@@ -28,6 +28,10 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 
+  @media (max-width: 768px) {
+    padding: 16px;
+  }
+
   .title {
     font-size: 18px;
     font-weight: 600;
@@ -38,7 +42,13 @@
   .course_header {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 6px;
+    grid-template-rows: auto;
+    gap: 16px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
   }
 
   .course_header_info {
@@ -46,6 +56,8 @@
 
     .title {
       margin-bottom: 12px;
+      word-break: keep-all;
+      overflow-wrap: break-word;
     }
   }
 

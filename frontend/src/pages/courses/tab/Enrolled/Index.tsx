@@ -50,6 +50,7 @@ import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import CourseMetaInfo from "pages/courses/view/CourseMetaInfo";
+import CourseCoverImage from "pages/courses/view/CourseCoverImage";
 
 type Props = {};
 
@@ -266,13 +267,23 @@ const CourseEnrollment = (props: Props) => {
             <Svg type={"print"} />
           </div>
         </div>
-        <div className={style.title}>{enrollmentData?.classTitle}</div>
-        <div className={style.meta_section}>
-          <CourseMetaInfo
-            items={metaItems()}
-            confirmedStatus={confirmed ? "fullyConfirmed" : "notConfirmed"}
-            onStatusClick={() => setConfirmStatusPopupActive(true)}
+        <div className={style.course_header}>
+          <CourseCoverImage
+            coverImage={enrollmentData?.coverImage}
+            coverColor={enrollmentData?.coverColor}
+            classTitle={enrollmentData?.classTitle || ""}
+            syllabusId={enrollmentData?.syllabus || pid || ""}
           />
+          <div className={style.course_header_info}>
+            <div className={style.title}>{enrollmentData?.classTitle}</div>
+            <div className={style.meta_section}>
+              <CourseMetaInfo
+                items={metaItems()}
+                confirmedStatus={confirmed ? "fullyConfirmed" : "notConfirmed"}
+                onStatusClick={() => setConfirmStatusPopupActive(true)}
+              />
+            </div>
+          </div>
         </div>
         <Divider />
         <div style={{ marginTop: "12px" }}>

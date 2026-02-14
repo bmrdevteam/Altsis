@@ -175,6 +175,8 @@ syllabusSchema.methods.getSubdocument = function () {
     year: this.year,
     term: this.term,
     classTitle: this.classTitle,
+    coverImage: this.coverImage,
+    coverColor: this.coverColor,
     time: this.time,
     classroom: this.classroom,
     subject: this.subject,

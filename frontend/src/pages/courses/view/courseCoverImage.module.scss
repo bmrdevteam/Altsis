@@ -4,6 +4,11 @@
   overflow: hidden;
   cursor: pointer;
   border: var(--border-default);
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    width: 100px;
+  }
 }
 
 .cover_image {

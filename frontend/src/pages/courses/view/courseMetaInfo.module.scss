@@ -3,6 +3,11 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 4px;
+
+  @media (max-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
 }
 
 .meta_item {
@@ -13,6 +18,7 @@
   border: var(--border-default);
   border-radius: 6px;
   min-width: 60px;
+  overflow: hidden;
 }
 
 .meta_label {
@@ -27,6 +33,14 @@
   font-weight: 600;
   color: var(--accent-1);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @media (max-width: 768px) {
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
 }
 
 // Status item
