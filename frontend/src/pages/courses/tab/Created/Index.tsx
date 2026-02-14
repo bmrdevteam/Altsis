@@ -163,14 +163,58 @@ const CoursePid = (props: Props) => {
               {`개설한 수업 목록 / ${pid}`}
             </span>
           </div>
-          <div
-            className={`btn ${style.print_btn}`}
-            onClick={() => {
-              window.print();
-            }}
-            title="인쇄"
-          >
-            <Svg type={"print"} />
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {currentRegistration?.permissionSyllabusV2 && (
+              <>
+                <Button
+                  type={"ghost"}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                  }}
+                  onClick={() => {
+                    navigate(`/courses/edit/${pid}`, { replace: true });
+                  }}
+                  disabled={confirmedStatus !== "notConfirmed"}
+                >
+                  수정
+                </Button>
+                <Button
+                  type={"ghost"}
+                  style={{
+                    borderRadius: "4px",
+                    height: "32px",
+                    boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                  }}
+                  onClick={() => {
+                    if (window.confirm("정말 삭제하시겠습니까?") === true) {
+                      SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
+                        .then(() => {
+                          alert(SUCCESS_MESSAGE);
+                          navigate("/courses#개설%20수업");
+                        })
+                        .catch((err) => {
+                          ALERT_ERROR(err);
+                        });
+                    } else {
+                      return false;
+                    }
+                  }}
+                >
+                  삭제
+                </Button>
+              </>
+            )}
+            <div
+              className={`btn ${style.print_btn}`}
+              onClick={() => {
+                window.print();
+              }}
+              title="인쇄"
+            >
+              <Svg type={"print"} />
+            </div>
           </div>
         </div>
 
@@ -199,55 +243,6 @@ const CoursePid = (props: Props) => {
           defaultValues={syllabus.info}
           data={currentSeason?.formSyllabus}
         />
-        <div style={{ height: "24px" }}></div>
-        <Divider />
-
-        {currentRegistration?.permissionSyllabusV2 && (
-          <div className={style.print_btn}>
-            <Button
-              type={"ghost"}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                marginTop: "12px",
-              }}
-              onClick={() => {
-                navigate(`/courses/edit/${pid}`, { replace: true });
-              }}
-              disabled={confirmedStatus !== "notConfirmed"}
-            >
-              수정
-            </Button>
-            <Button
-              type={"ghost"}
-              style={{
-                borderRadius: "4px",
-                height: "32px",
-                boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                marginTop: "12px",
-              }}
-              onClick={() => {
-                if (window.confirm("정말 삭제하시겠습니까?") === true) {
-                  SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
-                    .then(() => {
-                      alert(SUCCESS_MESSAGE);
-                      navigate("/courses#개설%20수업");
-                    })
-                    .catch((err) => {
-                      ALERT_ERROR(err);
-                    });
-                } else {
-                  return false;
-                }
-              }}
-            >
-              삭제
-            </Button>
-          </div>
-        )}
-
-        <div style={{ height: "24px" }}></div>
       </div>
       {confirmStatusPopupActive && (
         <Popup

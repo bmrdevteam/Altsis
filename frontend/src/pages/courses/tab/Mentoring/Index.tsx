@@ -38,11 +38,12 @@ import EditorParser from "editor/EditorParser";
 import Divider from "components/divider/Divider";
 import Button from "components/button/Button";
 
-import MentoringTable from "pages/courses/table/MentoringTable";
+import MentoringTable, { TTableHeader } from "pages/courses/table/MentoringTable";
 import Table from "components/tableV2/Table";
 import Popup from "components/popup/Popup";
 import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
+import Tab from "components/tab/Tab";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
 import Send from "../../../notifications/popup/Send";
@@ -297,8 +298,8 @@ const CoursePid = (props: Props) => {
     return () => {};
   }, [isEnrollmentsLoading]);
 
-  const studentsHeader = () => {
-    const header = [];
+  const studentListHeader = (): TTableHeader[] => {
+    const header: TTableHeader[] = [];
     if (currentRegistration?.permissionEnrollmentV2) {
       header.push({
         text: "checkbox",
@@ -308,31 +309,62 @@ const CoursePid = (props: Props) => {
       });
     }
     header.push(
-      ...[
-        {
-          text: "학년",
-          key: "studentGrade",
-          type: "text",
-          textAlign: "center",
-          whiteSpace: "pre",
-        },
-
-        {
-          text: "이름",
-          key: "studentName",
-          type: "text",
-          textAlign: "center",
-          whiteSpace: "pre",
-        },
-        {
-          text: "ID",
-          key: "studentId",
-          type: "text",
-          textAlign: "center",
-          whiteSpace: "pre",
-        },
-      ]
+      {
+        text: "No",
+        type: "text",
+        key: "tableRowIndex",
+        width: "48px",
+        textAlign: "center",
+      },
+      {
+        text: "학년",
+        key: "studentGrade",
+        type: "text",
+        textAlign: "center",
+        whiteSpace: "pre",
+      },
+      {
+        text: "이름",
+        key: "studentName",
+        type: "text",
+        textAlign: "center",
+        whiteSpace: "pre",
+      },
+      {
+        text: "ID",
+        key: "studentId",
+        type: "text",
+        textAlign: "center",
+        whiteSpace: "pre",
+      },
     );
+    return header;
+  };
+
+  const evaluationHeader = (): TTableHeader[] => {
+    const header: TTableHeader[] = [
+      {
+        text: "학년",
+        key: "studentGrade",
+        type: "text",
+        textAlign: "center",
+        whiteSpace: "pre",
+      },
+      {
+        text: "이름",
+        key: "studentName",
+        type: "text",
+        textAlign: "center",
+        whiteSpace: "pre",
+      },
+      {
+        text: "ID",
+        key: "studentId",
+        type: "text",
+        textAlign: "center",
+        whiteSpace: "pre",
+      },
+    ];
     header.push(...formEvaluationHeader);
     if (currentRegistration?.permissionEvaluationV2) {
       header.push({
@@ -351,7 +383,6 @@ const CoursePid = (props: Props) => {
         },
       });
     }
-
     return header;
   };
 
@@ -371,14 +402,70 @@ const CoursePid = (props: Props) => {
                 <div className={style.course_header_info}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div className={style.title}>{syllabus.classTitle}</div>
-                    <div
-                      className={`btn ${style.print_btn}`}
-                      onClick={() => {
-                        window.print();
-                      }}
-                      title="인쇄"
-                    >
-                      <Svg type={"print"} />
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      {currentRegistration?.permissionSyllabusV2 && (
+                        <>
+                          <Button
+                            type={"ghost"}
+                            style={{
+                              borderRadius: "4px",
+                              height: "32px",
+                              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                            }}
+                            onClick={() => {
+                              navigate(
+                                `/courses/edit/${pid}?byMentor=true${
+                                  enrollmentList.length > 0 ? "&strictMode=true" : ""
+                                }`,
+                                { replace: true }
+                              );
+                            }}
+                          >
+                            수정
+                          </Button>
+                          <Button
+                            type={"ghost"}
+                            style={{
+                              borderRadius: "4px",
+                              height: "32px",
+                              boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
+                            }}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `정말 삭제하시겠습니까?${
+                                    enrollmentList.length > 0
+                                      ? " 평가도 함께 삭제됩니다."
+                                      : ""
+                                  }`
+                                ) === true
+                              ) {
+                                SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
+                                  .then(() => {
+                                    alert(SUCCESS_MESSAGE);
+                                    navigate("/courses#담당%20수업");
+                                  })
+                                  .catch((err) => {
+                                    ALERT_ERROR(err);
+                                  });
+                              } else {
+                                return false;
+                              }
+                            }}
+                          >
+                            삭제
+                          </Button>
+                        </>
+                      )}
+                      <div
+                        className={`btn ${style.print_btn}`}
+                        onClick={() => {
+                          window.print();
+                        }}
+                        title="인쇄"
+                      >
+                        <Svg type={"print"} />
+                      </div>
                     </div>
                   </div>
                   <div className={style.meta_section}>
@@ -391,191 +478,149 @@ const CoursePid = (props: Props) => {
                 </div>
               </div>
               <Divider />
-              <EditorParser
-                type="syllabus"
-                auth="view"
-                defaultValues={syllabus.info}
-                data={currentSeason?.formSyllabus}
-              />
-              <div className={style.no_print}>
-                <div style={{ height: "24px" }}></div>
-                <Divider />
-                {currentRegistration?.permissionSyllabusV2 && (
-                  <>
-                    <Button
-                      type={"ghost"}
-                      style={{
-                        borderRadius: "4px",
-                        height: "32px",
-                        boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                        marginTop: "12px",
-                      }}
-                      onClick={() => {
-                        navigate(
-                          `/courses/edit/${pid}?byMentor=true${
-                            enrollmentList.length > 0 ? "&strictMode=true" : ""
-                          }`,
-                          { replace: true }
-                        );
-                      }}
-                    >
-                      수정
-                    </Button>
-                    <Button
-                      type={"ghost"}
-                      style={{
-                        borderRadius: "4px",
-                        height: "32px",
-                        boxShadow: "rgba(0, 0, 0, 0.1) 0px 1px 2px 0px",
-                        marginTop: "12px",
-                      }}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `정말 삭제하시겠습니까?${
-                              enrollmentList.length > 0
-                                ? " 평가도 함께 삭제됩니다."
-                                : ""
-                            }`
-                          ) === true
-                        ) {
-                          SyllabusAPI.DSyllabus({ params: { _id: syllabus._id } })
-                            .then(() => {
-                              alert(SUCCESS_MESSAGE);
-                              navigate("/courses#담당%20수업");
-                            })
-                            .catch((err) => {
-                              ALERT_ERROR(err);
-                            });
-                        } else {
-                          return false;
-                        }
-                      }}
-                    >
-                      삭제
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-            <div style={{ marginTop: "24px" }} className={"enrollments"}>
-              <div style={{ display: "flex" }}>
-                <div
-                  style={{
-                    flex: "auto",
-                    marginLeft: "12px",
-                    display: "flex",
-                    gap: "12px",
-                  }}
-                >
-                  <div className={style.title}>수강생 목록 및 평가</div>
-                </div>
-                <div
-                  style={{
-                    flex: "auto",
-                    marginRight: "24px",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "12px",
-                    alignItems: "center",
-                  }}
-                >
-                  {!isChecked ? (
-                    <div
-                      className={style.icon}
-                      onClick={(e: any) => {
-                        if (confirmedStatus !== "fullyConfirmed") {
-                          alert(
-                            "수업이 승인되지 않아 학생을 초대할 수 없습니다."
-                          );
-                        } else if (
-                          !currentRegistration?.permissionEnrollmentV2
-                        ) {
-                          alert("수업 초대 권한이 없습니다.");
-                        } else {
-                          setEnrollBulkPopupActive(true);
-                        }
-                      }}
-                      style={{
-                        display: "flex",
-                        gap: "4px",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Svg type="user_check" width="24px" height="24px" />
-                      초대
-                    </div>
-                  ) : (
+              <div style={{ marginTop: "12px" }}>
+              <Tab
+                dontUsePaths
+                items={{
+                  강의계획서: (
                     <>
-                      <div
-                        className={style.icon}
-                        onClick={onClickRemoveHandler}
-                        style={{
-                          display: "flex",
-                          gap: "4px",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Svg type="user_check" width="24px" height="24px" />
-                        초대 취소
-                      </div>
-                      <div
-                        className={style.icon}
-                        onClick={(e: any) => {
-                          setSendNotificationPopupActive(true);
-                        }}
-                        style={{ display: "flex", gap: "4px" }}
-                      >
-                        <Svg type="send" width="20px" height="20px" />
-                        알림
-                      </div>
+                      <div className={style.title} style={{ marginTop: "16px", marginBottom: "12px" }}>강의계획서</div>
+                      <EditorParser
+                        type="syllabus"
+                        auth="view"
+                        defaultValues={syllabus.info}
+                        data={currentSeason?.formSyllabus}
+                      />
                     </>
-                  )}
-                </div>
-              </div>
-              
-              <MentoringTable
-                type="object-array"
-                data={!isEnrollmentsLoading ? enrollmentList : []}
-                // 평가 자동 저장 기능 추가 24.02.04 devgoodway
-                onBlur={(e: any) => {
-                  for (let item of e) {
-                    if(item.isModified === true){                  
-                      const evaluation: any = {};
-                      for (let obj of fieldEvaluationList) {
-                        evaluation[obj.text] = item[obj.key];
-                      }
-                      EnrollmentAPI.UEvaluation({
-                        params: {
-                          _id: item._id,
-                        },
-                        data: { evaluation },
-                      })
-                        .then(() => {
-                          if (enrollmentListRef.current.length !== 0) {
-                            enrollmentListRef.current[item.tableRowIndex - 1].isModified =
-                              false;
-                            setEnrollmentList([...enrollmentListRef.current]);
+                  ),
+                  "수강생 목록": (
+                    <div style={{ marginTop: "16px" }} className={"enrollments"}>
+                      <div style={{ display: "flex", alignItems: "center", marginBottom: "12px" }}>
+                        <div className={style.title} style={{ marginBottom: "0", flex: "auto" }}>수강생 목록</div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: "12px",
+                            alignItems: "center",
+                          }}
+                        >
+                          {!isChecked ? (
+                            <div
+                              className={style.icon}
+                              onClick={(e: any) => {
+                                if (confirmedStatus !== "fullyConfirmed") {
+                                  alert(
+                                    "수업이 승인되지 않아 학생을 초대할 수 없습니다."
+                                  );
+                                } else if (
+                                  !currentRegistration?.permissionEnrollmentV2
+                                ) {
+                                  alert("수업 초대 권한이 없습니다.");
+                                } else {
+                                  setEnrollBulkPopupActive(true);
+                                }
+                              }}
+                              style={{
+                                display: "flex",
+                                gap: "4px",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Svg type="user_check" width="24px" height="24px" />
+                              초대
+                            </div>
+                          ) : (
+                            <>
+                              <div
+                                className={style.icon}
+                                onClick={onClickRemoveHandler}
+                                style={{
+                                  display: "flex",
+                                  gap: "4px",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Svg type="user_check" width="24px" height="24px" />
+                                초대 취소
+                              </div>
+                              <div
+                                className={style.icon}
+                                onClick={(e: any) => {
+                                  setSendNotificationPopupActive(true);
+                                }}
+                                style={{ display: "flex", gap: "4px" }}
+                              >
+                                <Svg type="send" width="20px" height="20px" />
+                                알림
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <MentoringTable
+                        type="object-array"
+                        data={!isEnrollmentsLoading ? enrollmentList : []}
+                        onChange={(e: any) => {
+                          setTimeout(() => {
+                            enrollmentListRef.current = e;
+                            setIsChecked(
+                              _.find(e, {
+                                tableRowChecked: true,
+                              })
+                            );
+                          }, 50);
+                        }}
+                        header={studentListHeader()}
+                      />
+                    </div>
+                  ),
+                  평가: (
+                    <div style={{ marginTop: "16px" }}>
+                      <div className={style.title} style={{ marginBottom: "12px" }}>평가</div>
+                      <MentoringTable
+                        type="object-array"
+                        data={!isEnrollmentsLoading ? enrollmentList : []}
+                        onBlur={(e: any) => {
+                          for (let item of e) {
+                            if(item.isModified === true){
+                              const evaluation: any = {};
+                              for (let obj of fieldEvaluationList) {
+                                evaluation[obj.text] = item[obj.key];
+                              }
+                              EnrollmentAPI.UEvaluation({
+                                params: {
+                                  _id: item._id,
+                                },
+                                data: { evaluation },
+                              })
+                                .then(() => {
+                                  if (enrollmentListRef.current.length !== 0) {
+                                    enrollmentListRef.current[item.tableRowIndex - 1].isModified =
+                                      false;
+                                    setEnrollmentList([...enrollmentListRef.current]);
+                                  }
+                                })
+                                .catch((err: any) => {
+                                  ALERT_ERROR(err);
+                                });}
+                              }
+                            }
                           }
-                        })
-                        .catch((err: any) => {
-                          ALERT_ERROR(err);
-                        });}
-                      }
-                    }
-                  }
-                onChange={(e: any) => {
-                  setTimeout(() => {
-                    enrollmentListRef.current = e;
-                    setIsChecked(
-                      _.find(e, {
-                        tableRowChecked: true,
-                      })
-                    );
-                  }, 50);
+                        onChange={(e: any) => {
+                          setTimeout(() => {
+                            enrollmentListRef.current = e;
+                          }, 50);
+                        }}
+                        header={evaluationHeader()}
+                      />
+                    </div>
+                  ),
                 }}
-                header={studentsHeader()}
+                align="flex-start"
               />
+              </div>
             </div>
           </div>
         ) : (

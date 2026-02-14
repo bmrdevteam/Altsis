@@ -40,6 +40,7 @@ import style from "style/pages/courses/course.module.scss";
 import Divider from "components/divider/Divider";
 import Popup from "components/popup/Popup";
 import Table from "components/tableV2/Table";
+import Tab from "components/tab/Tab";
 
 import EditorParser from "editor/EditorParser";
 
@@ -274,113 +275,118 @@ const CourseEnrollment = (props: Props) => {
           />
         </div>
         <Divider />
-        <ClassInfo />
-        <div style={{ height: "24px" }}></div>
-
-        <>
-          <Divider />
-
-          {formEvaluationHeader.length !== 0 && !isLoadingEvaluation ? (
-            <div style={{ marginTop: "24px" }}>
-              <div
-                className={style.title}
-                style={{
-                  marginLeft: "12px",
-                }}
-              >
-                평가
-              </div>
-
-              {currentRegistration?.permissionEvaluationV2 ? (
+        <div style={{ marginTop: "12px" }}>
+        <Tab
+          dontUsePaths
+          items={{
+            강의계획서: (
+              <>
+                <div className={style.title} style={{ marginTop: "16px", marginBottom: "12px" }}>강의계획서</div>
+                <ClassInfo />
+              </>
+            ),
+            "수강생 목록": (
+              <div style={{ marginTop: "16px" }}>
+                <div className={style.title} style={{ marginBottom: "12px" }}>수강생 목록</div>
                 <Table
                   type="object-array"
-                  data={[enrollmentData]}
+                  data={enrollments || []}
                   header={[
-                    ...formEvaluationHeader,
                     {
-                      text: "저장",
-                      key: "evaluation",
-                      onClick: (e: any) => {
-                        if (!pid) return;
-                        const evaluation: any = {};
-                        for (let obj of fieldEvaluationList) {
-                          evaluation[obj.text] = e[obj.key];
-                        }
-                        EnrollmentAPI.UEvaluation({
-                          params: {
-                            _id: pid,
-                          },
-                          data: {
-                            evaluation,
-                          },
-                        })
-                          .then(() => {
-                            alert(SUCCESS_MESSAGE);
-                            setIsLoadingEvaluation(true);
-                          })
-                          .catch((err: any) => ALERT_ERROR(err));
-                      },
-                      type: "button",
-
+                      text: "No",
+                      type: "text",
+                      key: "tableRowIndex",
+                      width: "48px",
                       textAlign: "center",
-                      width: "80px",
-                      btnStyle: {
-                        round: true,
-                        border: true,
-                        padding: "4px",
-                        color: "red",
-                        background: "#FFF1F1",
-                      },
-                      fontWeight: "600",
+                    },
+                    {
+                      text: "학년",
+                      key: "studentGrade",
+                      type: "text",
+                      textAlign: "center",
+                    },
+                    {
+                      text: "ID",
+                      key: "studentId",
+                      type: "text",
+                      textAlign: "center",
+                    },
+                    {
+                      text: "이름",
+                      key: "studentName",
+                      type: "text",
+                      textAlign: "center",
                     },
                   ]}
                 />
-              ) : (
-                <Table
-                  type="object-array"
-                  data={[enrollmentData]}
-                  header={formEvaluationHeader}
-                />
-              )}
-            </div>
-          ) : (
-            <Loading height={"calc(100vh - 55px)"} />
-          )}
-          <div style={{ height: "24px" }}></div>
-          <div className={style.title}>수강생 목록</div>
+              </div>
+            ),
+            평가: (
+              <>
+                <div className={style.title} style={{ marginTop: "16px", marginBottom: "12px" }}>평가</div>
+                {formEvaluationHeader.length !== 0 && !isLoadingEvaluation ? (
+                  <div>
+                    {currentRegistration?.permissionEvaluationV2 ? (
+                      <Table
+                        type="object-array"
+                        data={[enrollmentData]}
+                        header={[
+                          ...formEvaluationHeader,
+                          {
+                            text: "저장",
+                            key: "evaluation",
+                            onClick: (e: any) => {
+                              if (!pid) return;
+                              const evaluation: any = {};
+                              for (let obj of fieldEvaluationList) {
+                                evaluation[obj.text] = e[obj.key];
+                              }
+                              EnrollmentAPI.UEvaluation({
+                                params: {
+                                  _id: pid,
+                                },
+                                data: {
+                                  evaluation,
+                                },
+                              })
+                                .then(() => {
+                                  alert(SUCCESS_MESSAGE);
+                                  setIsLoadingEvaluation(true);
+                                })
+                                .catch((err: any) => ALERT_ERROR(err));
+                            },
+                            type: "button",
 
-          <Table
-            type="object-array"
-            data={enrollments || []}
-            header={[
-              {
-                text: "No",
-                type: "text",
-                key: "tableRowIndex",
-                width: "48px",
-                textAlign: "center",
-              },
-              {
-                text: "학년",
-                key: "studentGrade",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "ID",
-                key: "studentId",
-                type: "text",
-                textAlign: "center",
-              },
-              {
-                text: "이름",
-                key: "studentName",
-                type: "text",
-                textAlign: "center",
-              },
-            ]}
-          />
-        </>
+                            textAlign: "center",
+                            width: "80px",
+                            btnStyle: {
+                              round: true,
+                              border: true,
+                              padding: "4px",
+                              color: "red",
+                              background: "#FFF1F1",
+                            },
+                            fontWeight: "600",
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <Table
+                        type="object-array"
+                        data={[enrollmentData]}
+                        header={formEvaluationHeader}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <Loading height={"calc(100vh - 55px)"} />
+                )}
+              </>
+            ),
+          }}
+          align="flex-start"
+        />
+        </div>
         {confirmStatusPopupActive && (
           <Popup
             setState={setConfirmStatusPopupActive}
