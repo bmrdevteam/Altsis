@@ -50,19 +50,19 @@ const DataConnPopup = (props: Props) => {
   const [filters, setFilters] = useState<any[]>(
     getCurrentBlock()?.data?.dataFilter ?? []
   );
-  const filtersRef = useRef<any[]>(getCurrentBlock()?.data?.dataFilter ?? []);
+  const filtersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataFilter ?? [])]);
   const [orFilters, setOrFilters] = useState<any[]>(
     getCurrentBlock()?.data?.dataOrFilter ?? []
   );
-  const orFiltersRef = useRef<any[]>(getCurrentBlock()?.data?.dataOrFilter ?? []);
+  const orFiltersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataOrFilter ?? [])]);
   const [cellFilters, setCellFilters] = useState<any[]>(
     getCurrentBlock()?.data?.dataCellFilter ?? []
   );
-  const cellFiltersRef = useRef<any[]>(getCurrentBlock()?.data?.dataCellFilter ?? []);
+  const cellFiltersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataCellFilter ?? [])]);
   const [orders, setOrders] = useState<any[]>(
     getCurrentBlock()?.data?.dataOrder ?? []
   );
-  const ordersRef = useRef<any[]>(getCurrentBlock()?.data?.dataOrder ?? []);
+  const ordersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataOrder ?? [])]);
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
   useEffect(() => {
