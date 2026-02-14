@@ -102,7 +102,13 @@ const Sidebar = (props: Props) => {
           )}
         </div>
       </div>
-      <NavProfile />
+      <NavProfile
+        onNavigate={() => {
+          if (window.innerWidth < 800) {
+            setSidebarOpen(false);
+          }
+        }}
+      />
     </Nav>
   );
 };

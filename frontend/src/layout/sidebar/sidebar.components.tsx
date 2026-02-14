@@ -186,7 +186,7 @@ const SubLink = ({
   );
 };
 
-const NavProfile = () => {
+const NavProfile = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useAppNavigate();
   const { currentUser } = useAuth();
   const [logoutPopupActive, setLogoutPopupActive] = useState(false);
@@ -209,6 +209,7 @@ const NavProfile = () => {
                 currentUser?.userId
                   ? navigate("/settings", { replace: true })
                   : navigate("/login", { replace: true });
+                onNavigate?.();
               }}
             />
           </div>
@@ -219,6 +220,7 @@ const NavProfile = () => {
                 currentUser?.userId
                   ? navigate("/settings", { replace: true })
                   : navigate("/login", { replace: true });
+                onNavigate?.();
               }}
             >
               {currentUser?.userName ?? "로그인"}
