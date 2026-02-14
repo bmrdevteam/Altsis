@@ -449,6 +449,17 @@
 
     }
 
+    .nav_link_container.active .sub_links {
+        display: none;
+        max-height: 0;
+        height: 0px;
+        opacity: 0;
+    }
+
+    .nav_link_container.active .sub_links::before {
+        display: none;
+    }
+
     .nav_link_container:hover .sub_links {
         position: absolute !important;
         padding: 8px 0;
