@@ -402,7 +402,7 @@ const CoursePid = (props: Props) => {
                 <div className={style.course_header_info}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", flexWrap: "wrap" }}>
                     <div className={style.title} style={{ flex: "1 1 auto", minWidth: 0 }}>{syllabus.classTitle}</div>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+                    <div className={style.no_print} style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
                       {currentRegistration?.permissionSyllabusV2 && (
                         <>
                           <Button

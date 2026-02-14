@@ -163,7 +163,7 @@ const CoursePid = (props: Props) => {
               {`개설한 수업 목록 / ${pid}`}
             </span>
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div className={style.no_print} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             {currentRegistration?.permissionSyllabusV2 && (
               <>
                 <Button
