@@ -117,6 +117,23 @@ calendarEventSchema.index({
   end: 1,
 });
 
+// 스케줄러: 비반복/반복 이벤트 조회 최적화
+calendarEventSchema.index({
+  sourceType: 1,
+  isAllDay: 1,
+  "recurrence.type": 1,
+  start: 1,
+});
+
+// 스케줄러: 리마인더 활성 이벤트 조회 최적화
+calendarEventSchema.index({
+  "reminder.enabled": 1,
+  isAllDay: 1,
+  sourceType: 1,
+  "recurrence.type": 1,
+  start: 1,
+});
+
 export const CalendarEvent = (dbName) => {
   return conn[dbName].model("CalendarEvent", calendarEventSchema);
 };

@@ -47,6 +47,13 @@ reminderSchema.index({
   reminderTime: 1,
 });
 
+// 스케줄러: 미처리 리마인더 조회 최적화 (user 없이)
+reminderSchema.index({
+  completed: 1,
+  notified: 1,
+  reminderTime: 1,
+});
+
 export const Reminder = (dbName) => {
   return conn[dbName].model("Reminder", reminderSchema);
 };

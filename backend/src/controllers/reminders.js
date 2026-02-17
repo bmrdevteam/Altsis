@@ -14,6 +14,10 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
+import {
+  registerStandaloneReminder,
+  removeStandaloneReminder,
+} from "../services/schedulerQueue.js";
 
 /**
  * 반복 일정의 인스턴스 생성 (24시간 이내)
@@ -182,6 +186,11 @@ export const create = async (req, res) => {
       } catch (notifErr) {
         logger.error(`Immediate reminder notification failed: ${notifErr.message}`);
       }
+    } else {
+      // 미래 리마인더는 스케줄러 큐에 등록
+      registerStandaloneReminder(req.user.academyId, reminder).catch((err) =>
+        logger.error(`Failed to register standalone reminder: ${err.message}`)
+      );
     }
 
     return res.status(200).send({ reminder });
@@ -374,6 +383,14 @@ export const complete = async (req, res) => {
     reminder.completed = true;
     await reminder.save();
 
+    // 스케줄러 큐에서 제거
+    removeStandaloneReminder(req.user.academyId, String(reminder._id)).catch(
+      (err) =>
+        logger.error(
+          `Failed to remove completed reminder from queue: ${err.message}`
+        )
+    );
+
     return res.status(200).send({ reminder });
   } catch (err) {
     logger.error(err.message);
@@ -406,6 +423,19 @@ export const update = async (req, res) => {
 
     await reminder.save();
 
+    // reminderTime이 변경된 경우 스케줄러 큐 재등록
+    if (req.body.reminderTime !== undefined) {
+      removeStandaloneReminder(
+        req.user.academyId,
+        String(reminder._id)
+      ).catch((err) =>
+        logger.error(`Failed to remove old reminder from queue: ${err.message}`)
+      );
+      registerStandaloneReminder(req.user.academyId, reminder).catch((err) =>
+        logger.error(`Failed to re-register reminder: ${err.message}`)
+      );
+    }
+
     return res.status(200).send({ reminder });
   } catch (err) {
     logger.error(err.message);
@@ -428,6 +458,12 @@ export const remove = async (req, res) => {
     if (!reminder) {
       return res.status(404).send({ message: __NOT_FOUND("reminder") });
     }
+
+    // 스케줄러 큐에서 제거
+    removeStandaloneReminder(req.user.academyId, String(reminder._id)).catch(
+      (err) =>
+        logger.error(`Failed to remove reminder from queue: ${err.message}`)
+    );
 
     await reminder.deleteOne();
 

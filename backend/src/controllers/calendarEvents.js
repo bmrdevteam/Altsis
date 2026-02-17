@@ -13,6 +13,12 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+import {
+  registerEventNotification,
+  removeEventNotification,
+  registerEventReminder,
+  removeEventReminder,
+} from "../services/schedulerQueue.js";
 
 const DAY_MAP = { "일": 0, "월": 1, "화": 2, "수": 3, "목": 4, "금": 5, "토": 6 };
 
@@ -81,6 +87,16 @@ export const create = async (req, res) => {
     const calendarEvent = await CalendarEvent(req.user.academyId).create(
       eventData
     );
+
+    // 스케줄러 큐에 등록 (fire-and-forget)
+    registerEventNotification(req.user.academyId, calendarEvent).catch((err) =>
+      logger.error(`Failed to register event notification: ${err.message}`)
+    );
+    if (calendarEvent.reminder?.enabled) {
+      registerEventReminder(req.user.academyId, calendarEvent).catch((err) =>
+        logger.error(`Failed to register event reminder: ${err.message}`)
+      );
+    }
 
     return res.status(200).send({ calendarEvent });
   } catch (err) {
@@ -244,6 +260,25 @@ export const update = async (req, res) => {
     }
 
     await event.save();
+
+    // 스케줄러 큐 재등록 (기존 제거 후 새로 등록)
+    const academyId = req.user.academyId;
+    const eventId = String(event._id);
+    removeEventNotification(academyId, eventId).catch((err) =>
+      logger.error(`Failed to remove old event notification: ${err.message}`)
+    );
+    removeEventReminder(academyId, eventId).catch((err) =>
+      logger.error(`Failed to remove old event reminder: ${err.message}`)
+    );
+    registerEventNotification(academyId, event).catch((err) =>
+      logger.error(`Failed to re-register event notification: ${err.message}`)
+    );
+    if (event.reminder?.enabled) {
+      registerEventReminder(academyId, event).catch((err) =>
+        logger.error(`Failed to re-register event reminder: ${err.message}`)
+      );
+    }
+
     return res.status(200).send({ calendarEvent: event });
   } catch (err) {
     logger.error(err.message);
@@ -274,6 +309,16 @@ export const remove = async (req, res) => {
     } else if (String(event.user) !== String(req.user._id)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
+
+    // 스케줄러 큐에서 제거
+    const academyId = req.user.academyId;
+    const eventId = String(event._id);
+    removeEventNotification(academyId, eventId).catch((err) =>
+      logger.error(`Failed to remove event notification: ${err.message}`)
+    );
+    removeEventReminder(academyId, eventId).catch((err) =>
+      logger.error(`Failed to remove event reminder: ${err.message}`)
+    );
 
     await event.deleteOne();
     return res.status(200).send();

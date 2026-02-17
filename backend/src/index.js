@@ -11,7 +11,7 @@ const startServer = async () => {
     logger.info(`Express server listening on port ${server.address().port}`);
   });
   initializeWebSocket(server);
-  initializeScheduler();
+  await initializeScheduler();
 };
 
 startServer();
