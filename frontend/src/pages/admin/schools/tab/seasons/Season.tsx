@@ -167,7 +167,6 @@ const Season = (props: Props) => {
                     setEditPopupActive(true);
                   }
                 );
-                console.log(e);
               },
               width: "80px",
               textAlign: "center",

@@ -57,7 +57,6 @@ const ExcelPopup = (props: {
               registration: archive.registration,
             };
             for (let field of props.fields) {
-              console.log(field);
               if (field.type === "file" || field.type === "file-image") {
                 item[field.label] = archive[field.label];
               } else {

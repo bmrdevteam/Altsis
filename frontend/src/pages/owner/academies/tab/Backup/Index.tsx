@@ -129,9 +129,7 @@ ___________________
       anchor.href = preSignedUrl;
       anchor.download = title;
       anchor.click();
-    } catch (err) {
-      // console.log(err);
-    }
+    } catch (err) {}
   };
 
   const modelSelectRef = useRef<any[]>(["schools"]);

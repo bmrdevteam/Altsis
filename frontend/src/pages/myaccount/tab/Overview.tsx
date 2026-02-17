@@ -42,9 +42,6 @@ const Overview = () => {
     }
   }, [currentSeason]);
 
-  // console.log(currentUser);
-  // console.log(currentSeason);
-  // console.log(Enrollments);
   return (
     <div>
       <div className={style.settings_container}>
@@ -174,9 +171,7 @@ const Overview = () => {
                 let result = e.map((val: any) => val.userName);
                 return result;
               },
-              onClick: (value) => {
-                // console.log(value);
-              },
+              onClick: (value) => {},
               type: "string",
               align: "left",
               width: "100px",
@@ -188,9 +183,7 @@ const Overview = () => {
                 let result = e.map((val: any) => val.label);
                 return result;
               },
-              onClick: (value) => {
-                // console.log(value);
-              },
+              onClick: (value) => {},
               type: "string",
               align: "left",
               width: "100px",
@@ -239,9 +232,7 @@ const Overview = () => {
                 let result = e.map((val: any) => val.userName);
                 return result;
               },
-              onClick: (value) => {
-                // console.log(value);
-              },
+              onClick: (value) => {},
               type: "string",
               align: "left",
               width: "100px",
@@ -253,9 +244,7 @@ const Overview = () => {
                 let result = e.map((val: any) => val.label);
                 return result;
               },
-              onClick: (value) => {
-                // console.log(value);
-              },
+              onClick: (value) => {},
               type: "string",
               align: "left",
               width: "100px",

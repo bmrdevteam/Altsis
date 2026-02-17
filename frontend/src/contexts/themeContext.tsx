@@ -28,8 +28,6 @@ interface ThemeContextValue {
   customColors: CustomThemeColors;
   setTheme: (mode: ThemeMode) => void;
   setCustomColors: (colors: CustomThemeColors) => void;
-  /** @deprecated Use setTheme instead */
-  setDefaultAppTheme: (mode: "dark" | "light") => void;
 }
 
 const DEFAULT_CUSTOM_COLORS: CustomThemeColors = {
@@ -87,14 +85,6 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     [theme]
   );
 
-  // Legacy compatibility
-  const setDefaultAppTheme = useCallback(
-    (mode: "dark" | "light") => {
-      setTheme(mode);
-    },
-    [setTheme]
-  );
-
   // Initialize theme from localStorage
   useEffect(() => {
     const stored = window.localStorage.getItem("appTheme") as
@@ -146,7 +136,6 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     customColors,
     setTheme,
     setCustomColors,
-    setDefaultAppTheme,
   };
 
   return (

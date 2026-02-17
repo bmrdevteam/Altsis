@@ -171,7 +171,6 @@ const Notification = () => {
     });
 
     newSocket.on("connect", () => {
-      console.log("[Notification] Socket connected:", newSocket.id);
       newSocket.emit("listening", {
         academyId: currentUser.academyId,
         userId: currentUser.userId,
@@ -185,13 +184,10 @@ const Notification = () => {
       console.error("[Notification] Socket connection error:", err.message);
     });
 
-    newSocket.on("disconnect", (reason) => {
-      console.warn("[Notification] Socket disconnected:", reason);
-    });
+    newSocket.on("disconnect", (reason) => {});
 
     // listen 이벤트 수신 시 직접 알림 갱신
     newSocket.on("listen", () => {
-      console.log("[Notification] Received 'listen' event - fetching notifications");
       updateNotificationsRef.current();
       if (soundEnabledRef.current) {
         audioRef.current.play().catch(() => {

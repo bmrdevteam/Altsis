@@ -30,7 +30,6 @@ app.use(
     origin: process.env["URL"].trim(),
     credentials: true,
   })
-  // cors() //테스트를 위해 모든 도메인에서 오는 요청 허용(임시)
 );
 
 app.use(
@@ -46,20 +45,11 @@ app.use(
     store: new RedisStore({
       client: redisClient,
       ttl: 24 * 60 * 60, //1 day
-      // no need to set reapInterval
     }),
-    //  store : new FileStore({
-    //   ttl:24*60*60, // 1 day
-    //   path: "./sessions",
-    //   reapInterval: 12*60*60 // purge all expired cookies every 12 hours
-    //  })
   })
 );
 app.use(passport.initialize());
 app.use(passport.session()); //반드시 app.use(session(...)) 아래에 있어야 함
-
-// const combined =
-//   ':remote-addr - :remote-user ":method :url HTTP/:http-version" :body ":status :response-time ms" ":referrer" ":user-agent"';
 
 const combined = (tokens, req, res) => {
   return [
@@ -83,8 +73,6 @@ app.use(
     stream: logger.stream,
   })
 );
-
-// app.use(morgan(morganFormat, { stream: logger.stream })); // morgan
 
 routers.forEach((router) => {
   app.use("/api/" + router.label, router.routes);

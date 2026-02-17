@@ -56,13 +56,11 @@ let taskActivated = 0;
 // active event handler
 queue.on("active", () => {
   taskActivated += 1;
-  // console.log(`Task #${taskActivated} is activated`);
 });
 
 // next event(task completed normally or with an error) handler
 queue.on("next", () => {
   taskCompleted += 1;
-  // console.log(`Task #${taskCompleted} is completed`);
 });
 
 // Add task to the queue.
@@ -281,11 +279,6 @@ export const enroll = async (req, res) => {
     }
 
     const taskIdx = ++taskRequested;
-    // console.log(
-    //   `Task ${taskIdx} is requested; Your waiting order is ${
-    //     taskIdx - taskCompleted
-    //   }`
-    // );
 
     // send waiting order to user with socket
     if ("socketId" in req.body && taskIdx - taskCompleted > 10) {

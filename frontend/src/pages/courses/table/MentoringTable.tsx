@@ -628,7 +628,6 @@ const Table = (props: Props) => {
                                 ...prev,
                                 [`${val.key}`]: e.target.value,
                               }));
-                              // console.log(addRowData[`${val.key}`]);
                             }}
                           >
                             <option value="" key={"none"}></option>

@@ -13,9 +13,7 @@ const E = (props: Props) => {
         data={registrations ?? []}
         control
         defaultPageBy={10}
-        onChange={(e) => {
-          // console.log(e);
-        }}
+        onChange={(e) => {}}
         header={[
           {
             text: "",

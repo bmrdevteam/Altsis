@@ -54,9 +54,7 @@ const Http404 = (props: Props) => {
     >
       <strong
         style={{ fontSize: "32px", marginBottom: "4px" }}
-        onClick={() => {
-          // console.log("click");
-        }}
+        onClick={() => {}}
       >
         404
       </strong>

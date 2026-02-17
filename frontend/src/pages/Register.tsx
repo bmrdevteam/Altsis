@@ -46,11 +46,7 @@ const Register = (props: Props) => {
   // const status = useGoogleLogin();
 
   useEffect(() => {
-    // console.log("first");
-
-    return () => {
-      // // console.log(status);
-    };
+    return () => {};
   }, []);
 
   // deprecated API
@@ -106,9 +102,7 @@ const Register = (props: Props) => {
         <p className={style.error}>{errorMessage}</p>
         <Input
           placeholder="아이디 입력"
-          onChange={(e: React.FormEvent<HTMLInputElement>) => {
-            // console.log(usernameRef.current?.value);
-          }}
+          onChange={(e: React.FormEvent<HTMLInputElement>) => {}}
           required={true}
         />
         <Input placeholder="이메일 입력" type="email" required />

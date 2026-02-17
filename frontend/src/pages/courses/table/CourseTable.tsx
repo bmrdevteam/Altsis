@@ -191,7 +191,6 @@ const CourseTable = (props: Props) => {
         onClick: props.onClickDetail
           ? props.onClickDetail
           : (e: any) => {
-          console.log(e)
             if(currentUser.auth === "manager"){
               navigate(`/courses/mentoring/${e._id}`);
             }else{

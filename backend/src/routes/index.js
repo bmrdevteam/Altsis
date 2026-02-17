@@ -42,7 +42,6 @@ export const routers = [
   { label: "syllabuses", routes: syllabuses },
   { label: "users", routes: users },
   { label: "files", routes: files },
-  { label: "users", routes: users },
   { label: "memos", routes: memos },
   { label: "theme-settings", routes: themeSettings },
   { label: "user-calendars", routes: userCalendars },

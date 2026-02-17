@@ -119,7 +119,6 @@ const NotificationSend = (props: Props) => {
 
   useEffect(() => {
     if (receiverList) {
-      // console.log("receiverList", receiverList);
       setIsReceiverListLoaded(true);
     }
     return () => {};
@@ -362,8 +361,6 @@ const NotificationSend = (props: Props) => {
                     <Button
                       type="ghost"
                       onClick={(e: any) => {
-                        // console.log("receiver is ", receiver);
-
                         setReceiverSelectedList(
                           _.filter(receiverSelectedList, (val) => {
                             return val.userId !== userId;

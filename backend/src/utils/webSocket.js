@@ -51,10 +51,7 @@ const initializeWebSocket = (_server) => {
   });
 
   ioEnrollment.on("connect", (socket) => {
-    // console.log("ioEnrollment connection is made; ", socket.id);
-
     socket.on("requestWaitingOrder", async (data) => {
-      // console.log("requestWaitingOrder is received");
       socket.emit("responseWaitingOrder", {
         waitingOrder: data.taskIdx - getTaskCompleted(),
         waitingBehind: getTaskRequested() - data.taskIdx,

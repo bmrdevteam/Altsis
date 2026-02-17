@@ -12,5 +12,3 @@ if (process.env.NODE_ENV?.trim() === "local") {
 } else {
   dotenv.config();
 }
-
-console.log("debug: process.env.DB_URL is ", process.env.DB_URL);

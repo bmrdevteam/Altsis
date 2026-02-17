@@ -1,4 +1,4 @@
-import { isArray, isObject, find } from "lodash";
+import { isArray, isObject } from "lodash";
 import * as xlsx from "xlsx";
 
 /**
@@ -270,48 +270,3 @@ export async function copyClipBoard(text: string) {
   }
 }
 
-export function unzipPermission(
-  _permission: [string, string, boolean][],
-  registrations?: []
-) {
-  let teacher = false;
-  let student = false;
-  let exceptions: { userId: string; isAllowed: boolean }[] = [];
-
-  for (let i = 0; i < _permission.length; i++) {
-    if (_permission[i][0] === "role") {
-      if (_permission[i][1] === "teacher") {
-        teacher = _permission[i][2];
-      } else if (_permission[i][1] === "student") {
-        student = _permission[i][2];
-      }
-    } else {
-      exceptions.push({
-        userId: _permission[i][1],
-        isAllowed: _permission[i][2],
-        ...(find(registrations, { userId: _permission[i][1] }) ?? {
-          userName: "",
-          role: "",
-        }),
-      });
-    }
-  }
-
-  return { teacher, student, exceptions };
-}
-
-export function zipPermission(_permission: any) {
-  const permission = [];
-
-  for (let i = 0; i < _permission.exceptions.length; i++) {
-    permission.push([
-      "userId",
-      _permission.exceptions[i]["userId"],
-      _permission.exceptions[i]["isAllowed"],
-    ]);
-  }
-  permission.push(["role", "teacher", _permission?.teacher]);
-  permission.push(["role", "student", _permission?.student]);
-
-  return permission;
-}
