@@ -40,7 +40,6 @@ import Input from "components/input/Input";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { GoogleLoginBtn } from "hooks/useGoogleLogin";
-import { useAuth } from "contexts/authContext";
 
 /**
  *
@@ -103,7 +102,6 @@ const Login = () => {
    */
   const navigate = useNavigate();
   const { AcademyAPI, UserAPI } = useAPIv2();
-  const { setLoading: setAuthLoading } = useAuth();
 
   /** Date for setting the cookie expire date  */
   var date = new Date();
@@ -170,7 +168,7 @@ const Login = () => {
           password: passwordRef.current,
         },
       });
-      setAuthLoading(true);
+      window.location.replace("/");
     } catch (err: any) {
       ALERT_ERROR(err);
       switch (err.response?.data?.message) {

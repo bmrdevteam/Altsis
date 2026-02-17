@@ -38,10 +38,6 @@ app.use(
 
 const isProduction = process.env.NODE_ENV === "production";
 
-if (isProduction) {
-  app.set("trust proxy", 1);
-}
-
 app.use(
   session({
     resave: false,
@@ -50,7 +46,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: isProduction,
-      sameSite: "lax",
+      sameSite: "strict",
     },
     rolling: true,
     store: new RedisStore({
