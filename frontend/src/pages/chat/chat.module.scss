@@ -1,0 +1,16 @@
+.container {
+  width: 100%;
+  height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+}
+
+.disabled,
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--accent-3, #999);
+  font-size: 14px;
+}

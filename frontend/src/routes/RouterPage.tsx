@@ -49,6 +49,9 @@ import BoardPid from "pages/boards/BoardPid";
 import PostPid from "pages/boards/PostPid";
 import PostCreate from "pages/boards/PostCreate";
 
+// chat pages
+import ChatPage from "pages/chat/Index";
+
 //error pages
 import Http404 from "../pages/error/404";
 
@@ -262,6 +265,7 @@ function RouterPage() {
             <Route path="myArchive/*" element={<LegacyRedirect />} />
             <Route path="docs" element={<LegacyRedirect />} />
             <Route path="notifications" element={<LegacyRedirect />} />
+            <Route path="chat" element={<LegacyRedirect />} />
             <Route path="boards/*" element={<LegacyRedirect />} />
             <Route path="settings" element={<LegacyRedirect />} />
             <Route path="myaccount" element={<LegacyRedirect />} />
@@ -552,6 +556,15 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <Notifications />
+                  </RequireAuth>
+                }
+              ></Route>
+
+              <Route
+                path="chat"
+                element={
+                  <RequireAuth>
+                    <ChatPage />
                   </RequireAuth>
                 }
               ></Route>

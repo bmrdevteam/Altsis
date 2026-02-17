@@ -27,29 +27,12 @@
  *
  */
 
-import style from "style/pages/enrollment.module.scss";
-
-// tab
-import Inbox from "./mailbox/Inbox";
-import Sent from "./mailbox/Sent";
-
-import Tab from "components/tab/Tab";
+import Reminders from "./reminder/Reminders";
 
 type Props = {};
 
 const Courses = (props: Props) => {
-  return (
-    <>
-      <div className={style.section}>
-            <Tab
-              items={{
-                "받은 알림": <Inbox />,
-                "보낸 알림": <Sent />,
-              }}
-            />
-          </div>
-    </>
-  );
+  return <Reminders />;
 };
 
 export default Courses;

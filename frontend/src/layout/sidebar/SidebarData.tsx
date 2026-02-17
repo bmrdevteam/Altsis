@@ -8,13 +8,15 @@ export interface INavLink {
   icon: JSX.Element;
   subLink?: INavSubLink[];
   type?: "default" | "link";
+  matchPaths?: string[];
 }
 
-interface INavSubLink {
+export interface INavSubLink {
   title: string;
   name: string;
   path: string;
   icon: JSX.Element;
+  type?: "default" | "link";
 }
 export const SidebarData = (auth: string, role?: string): any => {
   const { currentRegistration, currentSchool } = useAuth();
@@ -39,20 +41,20 @@ export const SidebarData = (auth: string, role?: string): any => {
           title: "schedule",
           name: "일정",
           path: "/",
-          icon: <Svg type="calender" />,
+          icon: <Svg type="eventCalendar" />,
         },
         {
           title: "courses",
           name: "수업",
           path: "/courses",
-          icon: <Svg type="bookOpen" />,
+          icon: <Svg type="menuBook" />,
           subLink: [
             currentRegistration?.permissionSyllabusV2
               ? {
                   title: "design",
                   name: "수업 개설",
                   path: "/courses/design",
-                  icon: <Svg type="write" />,
+                  icon: <Svg type="postAdd" />,
                 }
               : undefined,
             currentRegistration?.permissionEnrollmentV2
@@ -79,9 +81,9 @@ export const SidebarData = (auth: string, role?: string): any => {
             },
             {
               title: "classrooms",
-              name: "강의실",
+              name: "강의실 현황",
               path: "/courses/classrooms",
-              icon: <Svg type="door-open" />,
+              icon: <Svg type="meetingRoom" />,
             },
           ].filter((element: any, i: number) => element !== undefined),
         },
@@ -100,7 +102,7 @@ export const SidebarData = (auth: string, role?: string): any => {
             title: "archive",
             name: "기록",
             path: "/archive",
-            icon: <Svg type="edit" />,
+            icon: <Svg type="editNote" />,
             subLink: formArchive.map((val: any) => {
               return {
                 title: val.label,
@@ -121,7 +123,7 @@ export const SidebarData = (auth: string, role?: string): any => {
           title: "myArchive",
           name: "기록",
           path: "/myArchive",
-          icon: <Svg type="edit" />,
+          icon: <Svg type="editNote" />,
           subLink: myFormArchive.map((val: any) => {
             return {
               title: val.label,
@@ -142,7 +144,7 @@ export const SidebarData = (auth: string, role?: string): any => {
             title: "archive",
             name: "기록",
             path: "/archive",
-            icon: <Svg type="edit" />,
+            icon: <Svg type="editNote" />,
             subLink: managerFormArchive.map((val: any) => {
               return {
                 title: val.label,
@@ -159,32 +161,61 @@ export const SidebarData = (auth: string, role?: string): any => {
       title: "docs",
       name: "문서",
       path: "/docs",
-      icon: <Svg type="docs" />,
+      icon: <Svg type="article" />,
     });
-    if (auth === "manager" || auth === "admin") {
-      data.push({
-        title: "forms",
-        name: "양식",
-        path: "/forms",
-        icon: <Svg type="file" />,
-      });
-    }
+    data.push({
+      title: "communication",
+      name: "소통",
+      path: "/boards",
+      icon: <Svg type="forum" />,
+      matchPaths: ["boards", "chat"],
+      subLink: [
+        {
+          title: "boards",
+          name: "게시판",
+          path: "/boards",
+          icon: <Svg type="dashboard" />,
+        },
+        {
+          title: "chat",
+          name: "채팅",
+          path: "/chat",
+          icon: <Svg type="chatBubble" />,
+        },
+      ],
+    });
   }
 
   if (auth === "manager") {
     data.push({
       title: "admin",
-      name: "관리자",
+      name: "관리",
       path: "/admin/schools/list",
-      icon: <Svg type="school" />,
+      icon: <Svg type="adminSettings" />,
+      matchPaths: ["admin", "forms"],
+      subLink: [
+        {
+          title: "forms",
+          name: "양식",
+          path: "/forms",
+          icon: <Svg type="description" />,
+        },
+      ],
     });
   } else if (auth === "admin") {
     data.push({
       title: "admin",
       name: "아카데미 관리자",
       path: "/admin/schools/list",
-      icon: <Svg type="school" />,
+      icon: <Svg type="adminSettings" />,
+      matchPaths: ["admin", "forms"],
       subLink: [
+        {
+          title: "forms",
+          name: "양식",
+          path: "/forms",
+          icon: <Svg type="description" />,
+        },
         {
           title: "users",
           name: "사용자",
@@ -201,18 +232,21 @@ export const SidebarData = (auth: string, role?: string): any => {
     });
   }
 
-  if (currentSchool?.links) {
-    data.push(
-      ...currentSchool.links.map((link: { title: string; url: string }) => {
-        return {
-          type: "link",
+  if (currentSchool?.links && currentSchool.links.length > 0) {
+    data.push({
+      title: "links",
+      name: "링크",
+      icon: <Svg type="openInNew" />,
+      subLink: currentSchool.links.map(
+        (link: { title: string; url: string }) => ({
           title: `link-${link.title}`,
           name: link.title,
           path: link.url,
-          icon: <Svg type="linkExternal" />,
-        };
-      })
-    );
+          icon: <Svg type="openInNew" />,
+          type: "link" as const,
+        })
+      ),
+    });
   }
 
   return data;

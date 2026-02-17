@@ -63,7 +63,10 @@ const Sidebar = (props: Props) => {
                     icon={data.icon}
                     active={
                       location.pathname.split("/")[3]
-                        ? data.title.includes(location.pathname.split("/")[3])
+                        ? data.title.includes(location.pathname.split("/")[3]) ||
+                          (data.matchPaths?.includes(
+                            location.pathname.split("/")[3]
+                          ) ?? false)
                         : data.path === "/"
                     }
                     subLink={
@@ -75,6 +78,7 @@ const Sidebar = (props: Props) => {
                                 key={index}
                                 icon={sbData.icon}
                                 path={sbData.path}
+                                type={sbData.type}
                                 active={
                                   !!location.pathname.split("/")[3] &&
                                   decodeURI(

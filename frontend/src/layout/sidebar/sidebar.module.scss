@@ -188,6 +188,21 @@
                     flex: 1 1 0;
                     color: var(--accent-4)
                 }
+
+                .chevron {
+                    display: flex;
+                    align-items: center;
+                    margin-right: 8px;
+                    transition: transform 0.2s ease;
+
+                    svg {
+                        fill: var(--accent-4);
+                    }
+
+                    &.chevron_open {
+                        transform: rotate(180deg);
+                    }
+                }
             }
 
             .nav_link:hover {
@@ -273,21 +288,10 @@
                 .name {
                     color: var(--primary-text-color);
                 }
-            }
 
-
-            .sub_links {
-                max-height: 100vh;
-                display: block;
-                transition: max-height .5s linear;
-
-                .sub_link_container {
-                    height: auto;
-                    animation-name: sidebar_sub_link-openAnimation;
-                    opacity: 1;
-
+                .chevron svg {
+                    fill: var(--primary-text-color);
                 }
-
             }
 
             .sub_link.active {
@@ -303,6 +307,21 @@
                     color: var(--primary-text-color);
                 }
             }
+        }
+
+        // when expanded (sub-links visible)
+        .nav_link_container.expanded {
+            .sub_links {
+                max-height: 100vh;
+                display: block;
+                transition: max-height .5s linear;
+
+                .sub_link_container {
+                    height: auto;
+                    animation-name: sidebar_sub_link-openAnimation;
+                    opacity: 1;
+                }
+            }
 
             .sub_links::before {
                 content: '';
@@ -314,17 +333,13 @@
                 max-height: 100vh;
                 height: 82%;
                 top: 9%;
-
             }
 
             @for $i from 1 through 20 {
                 .sub_links .sub_link_container:nth-child(#{$i}n) {
                     animation-duration: #{$i * 0.7}s;
-
                 }
             }
-
-
         }
     }
 
@@ -450,15 +465,21 @@
 
     }
 
-    .nav_link_container.active .sub_links {
+    .nav_link_container.active .sub_links,
+    .nav_link_container.expanded .sub_links {
         display: none;
         max-height: 0;
         height: 0px;
         opacity: 0;
     }
 
-    .nav_link_container.active .sub_links::before {
+    .nav_link_container.active .sub_links::before,
+    .nav_link_container.expanded .sub_links::before {
         display: none;
+    }
+
+    .nav_link_container .chevron {
+        display: none !important;
     }
 
     .nav_link_container:hover .sub_links {

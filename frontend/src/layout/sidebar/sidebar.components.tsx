@@ -121,17 +121,40 @@ const NavLink = ({
 }) => {
   const navigate = useAppNavigate();
   const { currentUser } = useAuth();
+  const [expanded, setExpanded] = useState<boolean | null>(null);
+
+  // expanded가 null이면 active 상태를 따름, 아니면 수동 토글 값 사용
+  const isExpanded = expanded !== null ? expanded : !!active;
+
+  useEffect(() => {
+    // active 상태 변경 시 수동 토글 초기화
+    setExpanded(null);
+  }, [active]);
 
   return type === "default" ? (
-    <div className={`${style.nav_link_container} ${active && style.active}`}>
+    <div
+      className={`${style.nav_link_container} ${active && style.active} ${
+        subLink && isExpanded ? style.expanded : ""
+      }`}
+    >
       <div
         className={style.nav_link}
         onClick={() => {
+          if (subLink) {
+            setExpanded((prev) => (prev !== null ? !prev : !active));
+          }
           currentUser && path && navigate(path, { replace: true });
         }}
       >
         <span className={style.icon}>{icon}</span>
         <span className={style.name}>{children}</span>
+        {subLink && (
+          <span
+            className={`${style.chevron} ${isExpanded ? style.chevron_open : ""}`}
+          >
+            <Svg type="chevronDown" width="14px" height="14px" />
+          </span>
+        )}
       </div>
       {subLink}
     </div>
@@ -160,12 +183,14 @@ const SubLink = ({
   handleClick,
   path,
   active,
+  type,
 }: {
   children?: string;
   icon?: JSX.Element;
   handleClick?: any;
   path?: string;
   active?: boolean;
+  type?: "default" | "link";
 }) => {
   const navigate = useAppNavigate();
   const { currentUser } = useAuth();
@@ -176,8 +201,13 @@ const SubLink = ({
         className={`${style.sub_link} ${active && style.active}`}
         onClick={() => {
           handleClick && handleClick();
-          currentUser && path && navigate(path, { replace: true });
+          if (type === "link") {
+            window.open(path, "_blank", "noopener, noreferrer");
+          } else {
+            currentUser && path && navigate(path, { replace: true });
+          }
         }}
+        title={type === "link" ? path : undefined}
       >
         <div className={style.icon}>{icon}</div>
         <div className={style.name}>{children}</div>

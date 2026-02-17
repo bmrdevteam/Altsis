@@ -608,25 +608,6 @@ const Notification = () => {
                   <div className={style.emptyState}>새 알림이 없습니다</div>
                 )}
               </div>
-              <div
-                className={style.button}
-                style={{ display: "flex", justifyContent: "center" }}
-              >
-                <div
-                  onClick={() => {
-                    setNotificationContentActive(false);
-                    navigate("/boards");
-                  }}
-                  style={{
-                    cursor: "pointer",
-                    padding: "8px 16px",
-                    color: "var(--accent-1)",
-                    fontSize: "14px",
-                  }}
-                >
-                  게시판 보기
-                </div>
-              </div>
             </>
           )}
 

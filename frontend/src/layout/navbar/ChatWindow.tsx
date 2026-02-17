@@ -29,9 +29,10 @@ type Props = {
   onRoomUpdated?: (room: TChatRoom) => void;
   onNewChatCreated: (room: TChatRoom) => void;
   onRoomLeft: () => void;
+  embedded?: boolean;
 };
 
-const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, onRoomUpdated, onNewChatCreated, onRoomLeft }: Props) => {
+const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, onRoomUpdated, onNewChatCreated, onRoomLeft, embedded }: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
 
@@ -748,7 +749,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
 
   return (
     <>
-      <div className={style.chat_panel_container}>
+      <div className={`${style.chat_panel_container} ${embedded ? style.embedded : ""}`}>
         <div className={style.chat_panel_header}>
           <div className={style.chat_panel_title_area}>
             <button
