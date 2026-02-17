@@ -304,7 +304,7 @@ export const find = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
     const query = { board: board._id, isActive: true };
 
     if (req.query.before) {

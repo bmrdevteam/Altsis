@@ -712,7 +712,8 @@ export const sendMessage = async (req, res) => {
  */
 export const findMessages = async (req, res) => {
   try {
-    const { limit = 50, before } = req.query;
+    const { limit: rawLimit = 50, before } = req.query;
+    const limit = Math.min(Math.max(parseInt(rawLimit) || 50, 1), 100);
 
     const room = await ChatRoom(req.user.academyId).findById(req.params.roomId);
     if (!room) {
@@ -739,7 +740,7 @@ export const findMessages = async (req, res) => {
     const messages = await ChatMessage(req.user.academyId)
       .find(query)
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit));
+      .limit(limit);
 
     // Sign attachment URLs for image/file messages
     const messagesWithSignedUrls = messages.map((msg) => {
@@ -988,7 +989,8 @@ export const uploadChatFile = async (req, res) => {
  */
 export const findMyFiles = async (req, res) => {
   try {
-    const { fileType, limit = 20, before } = req.query;
+    const { fileType, limit: rawFileLimit = 20, before } = req.query;
+    const limit = Math.min(Math.max(parseInt(rawFileLimit) || 20, 1), 100);
 
     const query = {
       user: req.user._id,
@@ -1006,7 +1008,7 @@ export const findMyFiles = async (req, res) => {
     const files = await ChatFile(req.user.academyId)
       .find(query)
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit));
+      .limit(limit);
 
     // Sign URLs for viewing
     const filesWithSignedUrls = files.map((file) => {

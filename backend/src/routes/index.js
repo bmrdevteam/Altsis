@@ -45,5 +45,7 @@ export const routers = [
   { label: "memos", routes: memos },
   { label: "theme-settings", routes: themeSettings },
   { label: "user-calendars", routes: userCalendars },
-  { label: "test", routes: test },
+  ...(process.env.NODE_ENV?.trim() !== "production"
+    ? [{ label: "test", routes: test }]
+    : []),
 ];

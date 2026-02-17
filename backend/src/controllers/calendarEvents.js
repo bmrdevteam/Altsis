@@ -103,6 +103,19 @@ export const find = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("startDate") });
     }
 
+    // IDOR 방지: 타인 캘린더 조회 시 권한 확인
+    if (userId && userId !== req.user._id.toString()) {
+      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+        const teacherReg = await Registration(req.user.academyId).findOne({
+          user: req.user._id,
+          role: "teacher",
+        });
+        if (!teacherReg) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      }
+    }
+
     const queryStart = new Date(startDate);
     const queryEnd = new Date(endDate);
 

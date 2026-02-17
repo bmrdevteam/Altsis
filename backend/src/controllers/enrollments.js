@@ -375,6 +375,22 @@ export const find = async (req, res) => {
       return res.status(200).send({ enrollment });
     }
 
+    // IDOR 방지: 타인 수강 내역 조회 시 권한 확인
+    if (
+      "student" in req.query &&
+      req.query.student !== req.user._id.toString()
+    ) {
+      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
+        const teacherReg = await Registration(req.user.academyId).findOne({
+          user: req.user._id,
+          role: "teacher",
+        });
+        if (!teacherReg) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+      }
+    }
+
     const query = {};
     if ("syllabus" in req.query) {
       query["syllabus"] = req.query.syllabus;
