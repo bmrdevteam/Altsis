@@ -314,7 +314,7 @@ export const generateSyllabusContent = async (req, res) => {
           "AI 모델을 찾을 수 없습니다. @google/generative-ai SDK를 최신 버전으로 업데이트해주세요.",
       });
     } else {
-      sendEvent("error", { message: err.message });
+      sendEvent("error", { message: "AI 생성 중 오류가 발생했습니다." });
     }
     return res.end();
   }
@@ -371,7 +371,7 @@ export const testApiKey = async (req, res) => {
           "AI 모델을 찾을 수 없습니다. 모델명을 확인해주세요.",
       });
     }
-    return res.status(200).send({ valid: false, error: err.message });
+    return res.status(200).send({ valid: false, error: "API 키가 유효하지 않습니다." });
   }
 };
 
@@ -417,6 +417,6 @@ export const listModels = async (req, res) => {
     return res.status(200).send({ models });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

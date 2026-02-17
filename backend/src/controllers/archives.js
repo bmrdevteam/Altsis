@@ -208,7 +208,7 @@ export const findByRegistration = async (req, res) => {
     return res.status(200).send({ archive });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -333,6 +333,6 @@ export const updateByRegistration = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

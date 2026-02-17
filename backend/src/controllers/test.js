@@ -11,6 +11,6 @@ export const findMyself = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

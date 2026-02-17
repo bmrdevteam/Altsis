@@ -81,7 +81,7 @@ export const uploadArchive = async (req, res) => {
       });
     } catch (err) {
       logger.error(err.message);
-      return res.status(500).send({ message: err.message });
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
     }
   });
 };
@@ -228,7 +228,7 @@ export const signArchive = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -274,7 +274,7 @@ export const signDocument = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -325,6 +325,6 @@ export const signBackup = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

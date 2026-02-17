@@ -92,7 +92,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ board });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -172,7 +172,7 @@ export const find = async (req, res) => {
     return res.status(200).send({ boards: accessibleBoards });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -215,7 +215,7 @@ export const update = async (req, res) => {
     return res.status(200).send({ board });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -282,7 +282,7 @@ export const updatePermission = async (req, res) => {
     return res.status(200).send({ board });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -359,7 +359,7 @@ export const addPermissionException = async (req, res) => {
     return res.status(200).send({ board });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -420,7 +420,7 @@ export const removePermissionException = async (req, res) => {
     return res.status(200).send({ board });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -454,7 +454,7 @@ export const remove = async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 

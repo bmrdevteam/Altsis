@@ -150,7 +150,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ registration });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -227,7 +227,7 @@ export const copyFromSeason = async (req, res) => {
     return res.status(200).send({ registerations: registerationPasted });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -290,7 +290,7 @@ export const find = async (req, res) => {
     return res.status(200).send({ registrations });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -363,7 +363,7 @@ export const update = async (req, res) => {
     return res.status(200).send({ registration });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -395,6 +395,7 @@ export const remove = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
-    return res.status(500).send({ err: err.message });
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

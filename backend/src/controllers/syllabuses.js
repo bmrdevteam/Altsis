@@ -152,7 +152,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ syllabus });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -259,7 +259,10 @@ export const find = async (req, res) => {
       .select("-info");
     return res.status(200).send({ syllabuses });
   } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
+    if (err) {
+      logger.error(err.message);
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    }
   }
 };
 
@@ -358,7 +361,10 @@ export const confirm = async (req, res) => {
     }
     return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
+    if (err) {
+      logger.error(err.message);
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    }
   }
 };
 
@@ -463,7 +469,10 @@ export const cancelConfirm = async (req, res) => {
     }
     return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
-    if (err) return res.status(500).send({ err: err.message });
+    if (err) {
+      logger.error(err.message);
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    }
   }
 };
 
@@ -680,7 +689,8 @@ export const updateV2 = async (req, res) => {
       message: PERMISSION_DENIED,
     });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -869,7 +879,8 @@ export const updateSubject = async (req, res) => {
 
     return res.status(200).send({ syllabus, changes });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -912,7 +923,7 @@ export const hideFromCalendar = async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -955,7 +966,7 @@ export const showOnCalendar = async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1033,7 +1044,8 @@ export const remove = async (req, res) => {
       message: PERMISSION_DENIED,
     });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1079,7 +1091,7 @@ export const updateCoverImage = async (req, res) => {
       return res.status(200).send({ coverImage: syllabus.coverImage });
     } catch (err) {
       logger.error(err.message);
-      return res.status(500).send({ message: err.message });
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
     }
   });
 };
@@ -1111,6 +1123,6 @@ export const deleteCoverImage = async (req, res) => {
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

@@ -438,7 +438,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ season });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -528,7 +528,7 @@ export const find = async (req, res) => {
     return res.status(200).send({ seasons });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -581,7 +581,8 @@ export const activate = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -623,7 +624,8 @@ export const inactivate = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -679,7 +681,8 @@ export const updatePeriod = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -720,7 +723,8 @@ export const updateClassrooms = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -770,7 +774,8 @@ export const updateSubjects = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -825,7 +830,8 @@ export const updateFormTimetable = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -880,7 +886,8 @@ export const updateFormSyllabus = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -935,7 +942,8 @@ export const updateFormEvaluation = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1022,7 +1030,8 @@ export const updatePermission = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1081,7 +1090,8 @@ export const addPermissionException = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1146,7 +1156,8 @@ export const removePermissionException = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1226,7 +1237,8 @@ export const remove = async (req, res) => {
     await season.delete();
     return res.status(200).send();
   } catch (err) {
-    return res.status(500).send({ err: err.message });
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1299,7 +1311,8 @@ export const updateAiSettings = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1342,7 +1355,7 @@ export const uploadAiReference = async (req, res) => {
                 "지원하지 않는 파일 형식입니다. PDF, DOCX, TXT, HWP 파일만 업로드할 수 있습니다.",
             });
           }
-          return res.status(500).send({ message: err.message });
+          return res.status(500).send({ message: "서버 오류가 발생했습니다." });
         }
 
         if (!req.file) {
@@ -1378,7 +1391,8 @@ export const uploadAiReference = async (req, res) => {
       }
     });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1407,7 +1421,8 @@ export const downloadAiReference = async (req, res) => {
     const { preSignedUrl } = signUrl(ref.fileKey, ref.fileName, 300);
     return res.status(200).send({ url: preSignedUrl });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1450,6 +1465,7 @@ export const deleteAiReference = async (req, res) => {
 
     return res.status(200).send({ season });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

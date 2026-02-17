@@ -129,7 +129,7 @@ export const send = async (req, res) => {
     return res.status(200).send({ notifications: newNotifications });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -210,7 +210,7 @@ export const find = async (req, res) => {
     return res.status(200).send({ notifications });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -255,7 +255,7 @@ export const check = async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -293,7 +293,7 @@ export const remove = async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -342,7 +342,7 @@ export const bulkCheck = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -373,7 +373,7 @@ export const getSettings = async (req, res) => {
     return res.status(200).send({ settings: setting.settings });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -431,6 +431,6 @@ export const updateSettings = async (req, res) => {
     return res.status(200).send({ settings: setting.settings });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

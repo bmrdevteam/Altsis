@@ -101,7 +101,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ school });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -163,7 +163,7 @@ export const find = async (req, res) => {
     return res.status(200).send({ schools });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -263,7 +263,8 @@ export const updateFormArchive = async (req, res) => {
 
     return res.status(200).send({ formArchive: school.formArchive });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -311,7 +312,8 @@ export const updateLinks = async (req, res) => {
 
     return res.status(200).send({ links: school.links });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -371,7 +373,8 @@ export const restoreFormArchive = async (req, res) => {
       deletedFormArchive: school.deletedFormArchive,
     });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -423,7 +426,8 @@ export const removeFormArchive = async (req, res) => {
       deletedFormArchive: school.deletedFormArchive,
     });
   } catch (err) {
-    return res.status(err.status || 500).send({ message: err.message });
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -477,6 +481,7 @@ export const remove = async (req, res) => {
 
     return res.status(200).send();
   } catch (err) {
-    return res.status(500).send({ err: err.message });
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

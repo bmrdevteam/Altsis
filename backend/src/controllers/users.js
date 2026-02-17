@@ -87,7 +87,7 @@ export const loginLocal = async (req, res) => {
         return res.status(200).send();
       });
     } catch (err) {
-      return res.status(500).send({ message: err.message });
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
     }
   })(req, res);
 };
@@ -139,7 +139,7 @@ export const loginGoogle = async (req, res) => {
         return res.status(200).send();
       });
     } catch (err) {
-      return res.status(500).send({ message: err.message });
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
     }
   })(req, res);
 };
@@ -162,7 +162,7 @@ export const loginGoogle = async (req, res) => {
  */
 export const logout = async (req, res) => {
   req.logout((err) => {
-    if (err) return res.status(500).send({ message: err.message });
+    if (err) return res.status(500).send({ message: "서버 오류가 발생했습니다." });
 
     req.session.destroy();
     res.clearCookie("connect.sid");
@@ -305,7 +305,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ user });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -358,7 +358,7 @@ export const findUsers = async (req, res) => {
     return res.status(200).send({ users });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -395,7 +395,7 @@ export const current = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -441,7 +441,7 @@ export const findUser = async (req, res) => {
     return res.status(200).send({ user });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -474,7 +474,7 @@ export const findProfile = async (req, res) => {
     return res.status(200).send({ profile: user.profile });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -518,7 +518,7 @@ export const updateProfile = async (req, res) => {
 
       return res.status(200).send({ profile: user.profile });
     } catch (err) {
-      return res.status(500).send({ message: err.message });
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
     }
   });
 };
@@ -569,7 +569,7 @@ export const updatePassword = async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -815,7 +815,7 @@ export const connectGoogleAuth = async (req, res) => {
     return res.status(200).send({ snsId: user.snsId });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -927,7 +927,7 @@ export const registerSchool = async (req, res) => {
     return res.status(200).send({ schools: user.schools });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -987,7 +987,7 @@ export const deregisterSchool = async (req, res) => {
     return res.status(200).send({ schools: user.schools });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1023,6 +1023,6 @@ export const remove = async (req, res) => {
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

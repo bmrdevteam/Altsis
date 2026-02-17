@@ -78,7 +78,7 @@ const initializeWebSocket = (_server) => {
       try {
         await client.v4.hSet("io/chat/sid-user", socket.id, userRoom);
       } catch (err) {
-        console.error("Redis error on chat join:", err);
+        logger.error("Redis error on chat join: " + err.message);
       }
     });
 
@@ -101,7 +101,7 @@ const initializeWebSocket = (_server) => {
       try {
         await client.v4.hDel("io/chat/sid-user", socket.id);
       } catch (err) {
-        console.error("Redis error on chat disconnect:", err);
+        logger.error("Redis error on chat disconnect: " + err.message);
       }
     });
 

@@ -133,7 +133,7 @@ export const create = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -206,7 +206,7 @@ export const find = async (req, res) => {
     return res.status(403).send({ message: PERMISSION_DENIED });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -245,7 +245,7 @@ export const activate = async (req, res) => {
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -284,7 +284,7 @@ export const inactivate = async (req, res) => {
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -330,7 +330,7 @@ export const updateEmail = async (req, res) => {
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -375,7 +375,7 @@ export const updateTel = async (req, res) => {
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -421,7 +421,7 @@ export const updateChatEnabled = async (req, res) => {
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -467,7 +467,7 @@ export const updateAiEnabled = async (req, res) => {
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -512,7 +512,7 @@ export const updateAiApiKey = async (req, res) => {
     return res.status(200).send({ success: true });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -559,7 +559,7 @@ export const updateAiModel = async (req, res) => {
     return res.status(200).send({ success: true });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -579,7 +579,7 @@ export const checkAiApiKey = async (req, res) => {
     });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -723,7 +723,7 @@ export const createBackup = async (req, res) => {
     return res.status(200).send({ logs });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -778,7 +778,7 @@ export const restoreBackup = async (req, res) => {
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -896,7 +896,7 @@ export const findBackup = async (req, res) => {
     return res.status(200).send({ backup });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -948,7 +948,7 @@ export const removeBackup = async (req, res) => {
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1021,7 +1021,7 @@ export const findDocuments = async (req, res) => {
     return res.status(200).send({ documents });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -1059,6 +1059,6 @@ export const remove = async (req, res) => {
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

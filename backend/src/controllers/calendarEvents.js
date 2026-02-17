@@ -85,7 +85,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ calendarEvent });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -167,7 +167,7 @@ export const find = async (req, res) => {
     return res.status(200).send({ calendarEvents: expandedEvents });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -234,7 +234,7 @@ export const update = async (req, res) => {
     return res.status(200).send({ calendarEvent: event });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -266,7 +266,7 @@ export const remove = async (req, res) => {
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -499,7 +499,7 @@ export const syncEnrollments = async (req, res) => {
     return res.status(200).send({ synced: created, removed, total: eventsToCreate.length });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 

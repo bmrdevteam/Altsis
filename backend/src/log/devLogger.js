@@ -14,6 +14,14 @@ const devLogger = winston.createLogger({
   ),
   defaultMeta: { service: "user-service" },
   transports: [
+    new winston.transports.Console({
+      level: "info",
+      format: combine(
+        format.colorize(),
+        timestamp({ format: "HH:mm:ss" }),
+        printf((info) => `${info.timestamp} ${info.level}: ${info.message}`)
+      ),
+    }),
     new WinstonDaily({
       level: "http",
       datePattern: "YYYY-MM-DD",

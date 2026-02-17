@@ -24,7 +24,7 @@ export const create = async (req, res) => {
     return res.status(200).send({ memos: registration.memos });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -59,7 +59,7 @@ export const update = async (req, res) => {
     return res.status(200).send({ memos: registration.memos });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
 
@@ -82,6 +82,6 @@ export const remove = async (req, res) => {
     return res.status(200).send({ memos: registration.memos });
   } catch (err) {
     logger.error(err.message);
-    return res.status(500).send({ message: err.message });
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };

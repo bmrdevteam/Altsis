@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { resolve } from "path";
 
-console.log(`✅ NODE_ENV is ${process.env.NODE_ENV}`);
+/* NODE_ENV is logged via winston logger after initialization */
 
 if (process.env.NODE_ENV?.trim() === "local") {
   const __dirname = resolve();

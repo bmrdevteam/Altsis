@@ -21,7 +21,7 @@ export const isNotLoggedIn = (req, res, next) => {
 export const forceNotLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) {
     req.logout((err) => {
-      if (err) return res.status(500).send({ err: err.message });
+      if (err) return res.status(500).send({ message: "서버 오류가 발생했습니다." });
       next();
     });
   } else {
@@ -106,7 +106,7 @@ export const isReceivedNotifications = (req, res, next) => {
     client.get(
       `isReceivedNotifications/${req.user.academyId}/${req.query.userId}`,
       (err, value) => {
-        if (err) res.status(409).send({ message: err.message });
+        if (err) res.status(409).send({ message: "서버 오류가 발생했습니다." });
         if (value) next();
         else {
           res.status(200).send();
