@@ -49,7 +49,7 @@ app.use(
     secret: process.env["session_key"].trim(),
     cookie: {
       httpOnly: true,
-      secure: isProduction,
+      secure: false,
       sameSite: "strict",
     },
     rolling: true,
