@@ -45,6 +45,7 @@ export default function useGoogleLogin(academyId: string) {
   // script script
   const [loadingScript, setLoadingScript] = useState<boolean>(true);
   const { UserAPI } = useAPIv2();
+  const { setLoading: setAuthLoading } = useAuth();
 
   //load script on load
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function useGoogleLogin(academyId: string) {
     })
       .then(() => {
         //redirect the user to the index page on success
-        window.location.replace("/");
+        setAuthLoading(true);
       })
       .catch((err) => {
         ALERT_ERROR(err);

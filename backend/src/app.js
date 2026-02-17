@@ -46,7 +46,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: isProduction,
-      sameSite: "strict",
+      sameSite: "lax",
     },
     rolling: true,
     store: new RedisStore({
