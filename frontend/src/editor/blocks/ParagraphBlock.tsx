@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useLayoutEffect } from "react";
+import DOMPurify from "dompurify";
 import style from "../editor.module.scss";
 import useEditorStore from "../store/useEditorStore";
 import { ParagraphBlockData } from "../types";
@@ -22,7 +23,7 @@ const ParagraphBlock = (props: Props) => {
         lastTextRef.current !== newText &&
         document.activeElement !== contentRef.current
       ) {
-        contentRef.current.innerHTML = newText;
+        contentRef.current.innerHTML = DOMPurify.sanitize(newText);
         lastTextRef.current = newText;
       }
     }

@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 const router = express.Router();
 import * as users from "../controllers/users.js";
 import {
@@ -9,13 +10,21 @@ import {
   isOwAdmin,
 } from "../middleware/auth.js";
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 15, // IP당 최대 15회
+  message: { message: "로그인 시도 횟수를 초과했습니다. 15분 후 다시 시도해주세요." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 //=================================
 //             User
 //=================================
 
 // ____________ Authentication ____________
-router.post("/login/local", forceNotLoggedIn, users.loginLocal);
-router.post("/login/google", forceNotLoggedIn, users.loginGoogle);
+router.post("/login/local", loginLimiter, forceNotLoggedIn, users.loginLocal);
+router.post("/login/google", loginLimiter, forceNotLoggedIn, users.loginGoogle);
 router.get("/logout", isLoggedIn, users.logout);
 
 // ___________ Create _____________

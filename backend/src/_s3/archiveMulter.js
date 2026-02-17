@@ -44,7 +44,7 @@ export const archiveMulter = multer({
   storage: multerS3({
     s3: fileS3,
     bucket: fileBucket,
-    acl: "public-read",
+    acl: "private",
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
       cb(null, req.tmp.key);

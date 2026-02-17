@@ -825,11 +825,15 @@ export const searchUsers = async (req, res) => {
   try {
     const { q, sid } = req.query;
 
+    const escapeRegex = (str) =>
+      str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     const query = {};
     if (q) {
+      const escaped = escapeRegex(q);
       query.$or = [
-        { userId: { $regex: q, $options: "i" } },
-        { userName: { $regex: q, $options: "i" } },
+        { userId: { $regex: escaped, $options: "i" } },
+        { userName: { $regex: escaped, $options: "i" } },
       ];
     }
     if (sid) {

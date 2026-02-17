@@ -1,15 +1,30 @@
-backend/.DS_Store
-backend/.yarn/cache/lru-cache-npm-7.14.0-354cf654ec-efdd329f2c.zip
-backend/.yarn/cache/minimatch-npm-5.1.0-34f6240621-15ce53d31a.zip
-backend/.yarn/cache/minipass-npm-3.3.5-a555b091e7-f89f02bcaa.zip
-backend/.yarn/install-state.gz
-seedlessapple-workspace.code-workspace
-working.md
-backend/.DS_Store
-asd.code-workspace
-frontend/package-lock.json
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+.env.test
+
+# OS files
+.DS_Store
+
+# Dependencies
+/node_modules
 
 # Root-level package manager artifacts (project uses frontend/backend subdirectories)
 /yarn.lock
 /package-lock.json
-/node_modules
+
+# Yarn cache
+backend/.yarn/cache/lru-cache-npm-7.14.0-354cf654ec-efdd329f2c.zip
+backend/.yarn/cache/minimatch-npm-5.1.0-34f6240621-15ce53d31a.zip
+backend/.yarn/cache/minipass-npm-3.3.5-a555b091e7-f89f02bcaa.zip
+backend/.yarn/install-state.gz
+
+# IDE / workspace
+seedlessapple-workspace.code-workspace
+asd.code-workspace
+
+# Misc
+working.md
+frontend/package-lock.json

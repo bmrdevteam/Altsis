@@ -82,7 +82,7 @@ export const loginLocal = async (req, res) => {
         if (loginError) throw loginError;
         /* set maxAge as 1 year if auto login is requested */
         if (req.body.persist === true) {
-          req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
+          req.session.cookie["maxAge"] = 90 * 24 * 60 * 60 * 1000; //90 days
         }
         return res.status(200).send();
       });
@@ -134,7 +134,7 @@ export const loginGoogle = async (req, res) => {
         if (loginError) throw loginError;
         /* set maxAge as 1 year if auto login is requested */
         if (req.body.persist === true) {
-          req.session.cookie["maxAge"] = 365 * 24 * 60 * 60 * 1000; //1 year
+          req.session.cookie["maxAge"] = 90 * 24 * 60 * 60 * 1000; //90 days
         }
         return res.status(200).send();
       });

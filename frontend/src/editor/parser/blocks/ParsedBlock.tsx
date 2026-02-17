@@ -1,4 +1,5 @@
 import React from "react";
+import DOMPurify from "dompurify";
 import style from "../../editor.module.scss";
 import ParsedTableBlock from "./ParsedTableBlock";
 type Props = {
@@ -33,7 +34,7 @@ const ParsedBlock = (props: Props) => {
               textAlign: props.blockData.data?.textAlign,
             }}
             dangerouslySetInnerHTML={{
-              __html: props.blockData.data?.text ?? "",
+              __html: DOMPurify.sanitize(props.blockData.data?.text ?? ""),
             }}
           />
         </div>
