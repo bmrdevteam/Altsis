@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Socket, io } from "socket.io-client";
 
 import { useAuth } from "contexts/authContext";
@@ -11,11 +12,13 @@ import style from "./chat.module.scss";
 const ChatPage = () => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
+  const location = useLocation();
 
   const [socket, setSocket] = useState<Socket>();
   const [rooms, setRooms] = useState<TChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<TChatRoom | null>(null);
   const [chatEnabled, setChatEnabled] = useState<boolean | null>(null);
+  const initialRoomApplied = useRef(false);
 
   const loadRooms = async () => {
     if (!currentUser?._id) return;
@@ -23,6 +26,16 @@ const ChatPage = () => {
       const { rooms } = await ChatAPI.RChatRooms();
       setRooms(rooms);
       setChatEnabled(true);
+
+      // Auto-select room if navigated with roomId state
+      const state = location.state as { roomId?: string } | null;
+      if (state?.roomId && !initialRoomApplied.current) {
+        const targetRoom = rooms.find((r) => r._id === state.roomId);
+        if (targetRoom) {
+          setSelectedRoom(targetRoom);
+          initialRoomApplied.current = true;
+        }
+      }
     } catch (err: any) {
       if (err?.response?.data?.message === "CHAT_NOT_ENABLED") {
         setChatEnabled(false);

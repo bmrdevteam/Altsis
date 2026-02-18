@@ -174,11 +174,18 @@ const CoursePid = (props: Props) => {
 
     setIsCreatingChatRoom(true);
     try {
-      const participants = selectedStudents.map((e: any) => ({
-        user: e.student,
-        userId: e.studentId,
-        userName: e.studentName,
-      }));
+      const participants = selectedStudents
+        .filter((e: any) => e.student !== currentUser?._id)
+        .map((e: any) => ({
+          user: e.student,
+          userId: e.studentId,
+          userName: e.studentName,
+        }));
+
+      if (participants.length === 0) {
+        alert("본인 외 다른 참가자를 선택해주세요.");
+        return;
+      }
 
       const { room } = await ChatAPI.CChatRoom({
         data: {
@@ -188,7 +195,7 @@ const CoursePid = (props: Props) => {
         },
       });
 
-      alert(`채팅방이 생성되었습니다: ${room.name || "그룹 채팅"}`);
+      navigate("/chat", { state: { roomId: room._id } });
     } catch (err: any) {
       ALERT_ERROR(err);
     } finally {

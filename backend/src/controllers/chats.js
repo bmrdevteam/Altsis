@@ -72,6 +72,11 @@ export const createRoom = async (req, res) => {
       }
     }
 
+    // Filter out current user from participants (will be added automatically)
+    const filteredParticipants = participants.filter(
+      (p) => String(p.user) !== String(req.user._id)
+    );
+
     // Add current user to participants
     const allParticipants = [
       {
@@ -81,7 +86,7 @@ export const createRoom = async (req, res) => {
         profile: req.user.profile,
         joinedAt: new Date(),
       },
-      ...participants.map((p) => ({
+      ...filteredParticipants.map((p) => ({
         user: p.user,
         userId: p.userId,
         userName: p.userName,
@@ -89,6 +94,20 @@ export const createRoom = async (req, res) => {
         joinedAt: new Date(),
       })),
     ];
+
+    // For group chats, check if room with same participants already exists
+    if (type === "group") {
+      const allUserIds = allParticipants.map((p) => p.user);
+      const existingRoom = await ChatRoom(req.user.academyId).findOne({
+        type: "group",
+        "participants.user": { $all: allUserIds },
+        isActive: true,
+      });
+
+      if (existingRoom && existingRoom.participants.length === allUserIds.length) {
+        return res.status(200).send({ room: existingRoom, existing: true });
+      }
+    }
 
     const room = await ChatRoom(req.user.academyId).create({
       type,
