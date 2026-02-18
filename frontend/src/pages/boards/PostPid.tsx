@@ -27,6 +27,8 @@ import { TPost } from "types/post";
 import { TBoard } from "types/board";
 import { TComment } from "types/comment";
 
+import UserListPopup from "./popup/UserListPopup";
+
 const PostPid = () => {
   const navigate = useAppNavigate();
   const { boardId, postId } = useParams<{ boardId: string; postId: string }>();
@@ -36,6 +38,7 @@ const PostPid = () => {
   const [post, setPost] = useState<TPost | null>(null);
   const [board, setBoard] = useState<TBoard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showReadersPopup, setShowReadersPopup] = useState(false);
 
   // 댓글 관련 상태
   const [comments, setComments] = useState<TComment[]>([]);
@@ -49,17 +52,10 @@ const PostPid = () => {
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
   const canEdit = isAuthor || isManager;
 
-  // 댓글 작성 권한 확인
+  // 댓글 작성 권한: 멤버는 댓글 가능
   const canComment = () => {
-    if (!board?.permissionComment) return true; // 기본값: 모두 가능
-    if (currentUser?.auth === "admin") return true;
-    if (currentUser?.auth === "manager" && board.permissionComment.manager) return true;
-
-    const role = currentRegistration?.role;
-    if (role === "teacher" && board.permissionComment.teacher) return true;
-    if (role === "student" && board.permissionComment.student) return true;
-
-    return false;
+    // 보드 멤버이면 댓글 가능 (새 구조에서는 permissionComment 삭제)
+    return true;
   };
 
   useEffect(() => {
@@ -265,6 +261,17 @@ const PostPid = () => {
             <span>{formatDate(post.createdAt)}</span>
             <span style={{ margin: "0 8px" }}>|</span>
             <span>조회 {post.viewCount}</span>
+            {!post.isLegacyNotification && (
+              <>
+                <span style={{ margin: "0 8px" }}>|</span>
+                <span
+                  style={{ cursor: "pointer", textDecoration: "underline" }}
+                  onClick={() => setShowReadersPopup(true)}
+                >
+                  열람 대상
+                </span>
+              </>
+            )}
           </div>
 
           {canEdit && (
@@ -511,6 +518,16 @@ const PostPid = () => {
           </Button>
         </div>
       </div>
+
+      {showReadersPopup && postId && (
+        <UserListPopup
+          title="열람 대상"
+          setState={setShowReadersPopup}
+          fetchUsers={() =>
+            PostAPI.RPostReaders({ params: { _id: postId } })
+          }
+        />
+      )}
     </>
   );
 };

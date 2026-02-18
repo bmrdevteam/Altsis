@@ -1,3 +1,20 @@
+// 새 멤버 구조
+export type TMemberUser = {
+  user: string;
+  userId: string;
+  userName: string;
+};
+
+export type TBoardMembers = {
+  groups: {
+    manager: boolean;
+    teacher: boolean;
+    student: boolean;
+  };
+  users: TMemberUser[];
+};
+
+// 하위호환용 - 기존 권한 구조
 export type TBoardPermissionException = {
   user: string;
   userId: string;
@@ -12,6 +29,10 @@ export type TBoardPermission = {
   exceptions: TBoardPermissionException[];
 };
 
+export type TBoardContentViewMode = "table" | "gallery" | "blog";
+export type TBoardListViewMode = "table" | "gallery";
+export type TBoardType = "official" | "user";
+
 export type TBoard = {
   _id: string;
   school: string;
@@ -23,13 +44,33 @@ export type TBoard = {
   creator?: string;
   creatorId?: string;
   creatorName?: string;
-  permissionWrite: TBoardPermission;
-  permissionRead: TBoardPermission;
+  members: TBoardMembers;
+  writers: TBoardMembers;
+  /** @deprecated 하위호환용 */
+  permissionWrite?: TBoardPermission;
+  /** @deprecated 하위호환용 */
+  permissionRead?: TBoardPermission;
+  /** @deprecated 하위호환용 */
   permissionComment?: TBoardPermission;
   isDefault: boolean;
   isActive: boolean;
   order: number;
   postCount: number;
+  contentViewMode: TBoardContentViewMode;
+  boardType: TBoardType;
+  coverImage?: string;
+  coverColor?: string;
+  isFavorited?: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TBoardFavorite = {
+  _id: string;
+  user: string;
+  board: string;
+  school: string;
+  order: number;
   createdAt: string;
   updatedAt: string;
 };

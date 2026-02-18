@@ -10,6 +10,9 @@ router.get("/:_id?", isLoggedIn, posts.find);
 router.put("/:_id", isLoggedIn, posts.update);
 router.delete("/:_id", isLoggedIn, posts.remove);
 
+// 게시글 열람 대상 사용자 목록
+router.get("/:_id/readers", isLoggedIn, posts.findReaders);
+
 // 게시글 고정 (관리자만)
 router.put("/:_id/pin", isAdManager, posts.pin);
 

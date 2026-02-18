@@ -1,3 +1,5 @@
+import { TBoardMembers } from "./board";
+
 export type TPostAttachment = {
   url: string;
   fileName: string;
@@ -6,12 +8,14 @@ export type TPostAttachment = {
   key?: string;
 };
 
+/** @deprecated 하위호환용 */
 export type TPostTargetUser = {
   user: string;
   userId: string;
   userName: string;
 };
 
+/** @deprecated 하위호환용 */
 export type TPostTargetAudience = {
   type: "all" | "manager" | "teacher" | "student" | "custom";
   users?: TPostTargetUser[];
@@ -32,6 +36,8 @@ export type TPost = {
   isActive: boolean;
   viewCount: number;
   attachments: TPostAttachment[];
+  permissionRead?: TBoardMembers;
+  /** @deprecated 하위호환용 */
   targetAudience?: TPostTargetAudience;
   legacyNotificationId?: string;
   isLegacyNotification?: boolean;

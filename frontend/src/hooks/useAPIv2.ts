@@ -28,8 +28,8 @@ import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
 import { TNotification, TNotificationSettings } from "types/notification";
 import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
-import { TBoard } from "types/board";
-import { TPost, TPostAttachment, TPostTargetAudience } from "types/post";
+import { TBoard, TBoardFavorite, TBoardMembers } from "types/board";
+import { TPost, TPostAttachment } from "types/post";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -2771,7 +2771,7 @@ export default function useAPIv2() {
   /**
    * CBoard API
    * @description 게시판 생성 API
-   * @version 1.0.0
+   * @version 2.0.0
    * @auth admin|manager
    */
   async function CBoard(props: {
@@ -2779,16 +2779,10 @@ export default function useAPIv2() {
       school: string;
       name: string;
       description?: string;
-      permissionWrite?: {
-        manager?: boolean;
-        teacher?: boolean;
-        student?: boolean;
-      };
-      permissionRead?: {
-        manager?: boolean;
-        teacher?: boolean;
-        student?: boolean;
-      };
+      contentViewMode?: "table" | "gallery" | "blog";
+      coverColor?: string;
+      members?: TBoardMembers;
+      writers?: TBoardMembers;
     };
   }) {
     const { board } = await database.C({
@@ -2836,6 +2830,8 @@ export default function useAPIv2() {
       name?: string;
       description?: string;
       order?: number;
+      contentViewMode?: "table" | "gallery" | "blog";
+      coverColor?: string;
     };
   }) {
     const { board } = await database.U({
@@ -2846,64 +2842,143 @@ export default function useAPIv2() {
   }
 
   /**
-   * UBoardPermission API
-   * @description 게시판 권한 수정 API
-   * @version 1.0.0
+   * UBoardMembers API
+   * @description 보드 멤버 그룹 설정 API
+   * @version 2.0.0
    * @auth admin|manager
    */
-  async function UBoardPermission(props: {
-    params: { _id: string; type: "read" | "write" | "comment" };
+  async function UBoardMembers(props: {
+    params: { _id: string };
     data: {
-      manager?: boolean;
-      teacher?: boolean;
-      student?: boolean;
+      groups: {
+        manager?: boolean;
+        teacher?: boolean;
+        student?: boolean;
+      };
     };
   }) {
     const { board } = await database.U({
-      location: `boards/${props.params._id}/permission/${props.params.type}`,
+      location: `boards/${props.params._id}/members`,
       data: props.data,
     });
     return { board: board as TBoard };
   }
 
   /**
-   * CBoardPermissionException API
-   * @description 게시판 권한 예외 추가 API
-   * @version 1.0.0
+   * UBoardWriters API
+   * @description 보드 작성자 그룹 설정 API
+   * @version 2.0.0
    * @auth admin|manager
    */
-  async function CBoardPermissionException(props: {
-    params: { _id: string; type: "read" | "write" };
+  async function UBoardWriters(props: {
+    params: { _id: string };
+    data: {
+      groups: {
+        manager?: boolean;
+        teacher?: boolean;
+        student?: boolean;
+      };
+    };
+  }) {
+    const { board } = await database.U({
+      location: `boards/${props.params._id}/writers`,
+      data: props.data,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * CBoardMemberUser API
+   * @description 보드 개별 멤버 추가 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CBoardMemberUser(props: {
+    params: { _id: string };
     data: {
       user: string;
       userId: string;
       userName: string;
-      isAllowed: boolean;
     };
   }) {
     const { board } = await database.C({
-      location: `boards/${props.params._id}/permission/${props.params.type}/exceptions`,
+      location: `boards/${props.params._id}/members/users`,
       data: props.data,
     });
     return { board: board as TBoard };
   }
 
   /**
-   * DBoardPermissionException API
-   * @description 게시판 권한 예외 삭제 API
-   * @version 1.0.0
+   * DBoardMemberUser API
+   * @description 보드 개별 멤버 제거 API
+   * @version 2.0.0
    * @auth admin|manager
    */
-  async function DBoardPermissionException(props: {
-    params: { _id: string; type: "read" | "write" };
+  async function DBoardMemberUser(props: {
+    params: { _id: string };
     query: { userId: string };
   }) {
     const { board } = await database.D({
       location:
-        `boards/${props.params._id}/permission/${props.params.type}/exceptions` +
+        `boards/${props.params._id}/members/users` +
         QUERY_BUILDER(props.query),
     });
     return { board: board as TBoard };
+  }
+
+  /**
+   * CBoardWriterUser API
+   * @description 보드 개별 작성자 추가 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function CBoardWriterUser(props: {
+    params: { _id: string };
+    data: {
+      user: string;
+      userId: string;
+      userName: string;
+    };
+  }) {
+    const { board } = await database.C({
+      location: `boards/${props.params._id}/writers/users`,
+      data: props.data,
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * DBoardWriterUser API
+   * @description 보드 개별 작성자 제거 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function DBoardWriterUser(props: {
+    params: { _id: string };
+    query: { userId: string };
+  }) {
+    const { board } = await database.D({
+      location:
+        `boards/${props.params._id}/writers/users` +
+        QUERY_BUILDER(props.query),
+    });
+    return { board: board as TBoard };
+  }
+
+  /**
+   * RBoardMemberList API
+   * @description 보드 멤버 사용자 목록 (resolved) 조회 API
+   * @version 2.0.0
+   */
+  async function RBoardMemberList(props: {
+    params: { _id: string };
+  }) {
+    const { users } = await database.R({
+      location: `boards/${props.params._id}/members/list`,
+    });
+    return {
+      users: users as { user: string; userId: string; userName: string }[],
+    };
   }
 
   /**
@@ -2915,6 +2990,86 @@ export default function useAPIv2() {
   async function DBoard(props: { params: { _id: string } }) {
     return await database.D({
       location: `boards/${props.params._id}`,
+    });
+  }
+
+  /**
+   * UBoardCoverImage API
+   * @description 보드 커버 이미지 업로드 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UBoardCoverImage(props: {
+    params: { _id: string };
+    data: FormData;
+  }) {
+    const { coverImage } = await database.U({
+      location: `boards/${props.params._id}/cover-image`,
+      data: props.data,
+    });
+    return { coverImage: coverImage as string };
+  }
+
+  /**
+   * DBoardCoverImage API
+   * @description 보드 커버 이미지 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DBoardCoverImage(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `boards/${props.params._id}/cover-image`,
+    });
+  }
+
+  /**
+   * ##########################################################################
+   * Board Favorite API
+   * ##########################################################################
+   */
+
+  /**
+   * RBoardFavorites API
+   * @description 보드 즐겨찾기 목록 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RBoardFavorites(props: {
+    query: { school: string };
+  }) {
+    const { boardFavorites } = await database.R({
+      location: "board-favorites" + QUERY_BUILDER(props.query),
+    });
+    return { boardFavorites: boardFavorites as TBoardFavorite[] };
+  }
+
+  /**
+   * CBoardFavorite API
+   * @description 보드 즐겨찾기 추가 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CBoardFavorite(props: {
+    data: { board: string; school: string };
+  }) {
+    const { boardFavorite } = await database.C({
+      location: "board-favorites",
+      data: props.data,
+    });
+    return { boardFavorite: boardFavorite as TBoardFavorite };
+  }
+
+  /**
+   * DBoardFavorite API
+   * @description 보드 즐겨찾기 삭제 API (보드 ID로)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DBoardFavoriteByBoard(props: {
+    params: { boardId: string };
+  }) {
+    return await database.D({
+      location: `board-favorites/board/${props.params.boardId}`,
     });
   }
 
@@ -2937,7 +3092,7 @@ export default function useAPIv2() {
       content: string;
       category?: string;
       attachments?: TPostAttachment[];
-      targetAudience?: TPostTargetAudience;
+      permissionRead?: TBoardMembers;
     };
   }) {
     const { post } = await database.C({
@@ -2992,7 +3147,7 @@ export default function useAPIv2() {
       content?: string;
       category?: string;
       attachments?: TPostAttachment[];
-      targetAudience?: TPostTargetAudience;
+      permissionRead?: TBoardMembers | null;
     };
   }) {
     const { post } = await database.U({
@@ -3017,6 +3172,22 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { post: post as TPost };
+  }
+
+  /**
+   * RPostReaders API
+   * @description 게시글 열람 대상 사용자 목록 조회 API
+   * @version 2.0.0
+   */
+  async function RPostReaders(props: {
+    params: { _id: string };
+  }) {
+    const { users } = await database.R({
+      location: `posts/${props.params._id}/readers`,
+    });
+    return {
+      users: users as { user: string; userId: string; userName: string }[],
+    };
   }
 
   /**
@@ -3714,10 +3885,21 @@ export default function useAPIv2() {
       RBoards,
       RBoard,
       UBoard,
-      UBoardPermission,
-      CBoardPermissionException,
-      DBoardPermissionException,
+      UBoardMembers,
+      UBoardWriters,
+      CBoardMemberUser,
+      DBoardMemberUser,
+      CBoardWriterUser,
+      DBoardWriterUser,
+      RBoardMemberList,
       DBoard,
+      UBoardCoverImage,
+      DBoardCoverImage,
+    },
+    BoardFavoriteAPI: {
+      RBoardFavorites,
+      CBoardFavorite,
+      DBoardFavoriteByBoard,
     },
     PostAPI: {
       CPost,
@@ -3725,6 +3907,7 @@ export default function useAPIv2() {
       RPost,
       UPost,
       UPostPin,
+      RPostReaders,
       DPost,
     },
     CommentAPI: {

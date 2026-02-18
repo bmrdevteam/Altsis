@@ -23,6 +23,38 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {string} mimeType - MIME 타입
  * @prop {string} key - S3 key
  */
+/**
+ * @memberof Models.Post
+ * @typedef TMemberUser
+ */
+const memberUserSchema = mongoose.Schema(
+  {
+    user: mongoose.Types.ObjectId,
+    userId: String,
+    userName: String,
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Post
+ * @typedef TPostPermissionRead
+ *
+ * @prop {Object} groups - 역할 그룹
+ * @prop {TMemberUser[]} users - 개별 사용자
+ */
+const postPermissionReadSchema = mongoose.Schema(
+  {
+    groups: {
+      manager: { type: Boolean, default: false },
+      teacher: { type: Boolean, default: false },
+      student: { type: Boolean, default: false },
+    },
+    users: { type: [memberUserSchema], default: [] },
+  },
+  { _id: false }
+);
+
 const attachmentSchema = mongoose.Schema(
   {
     url: String,
@@ -103,14 +135,18 @@ const postSchema = mongoose.Schema(
       default: 0,
     },
 
-    // 대상 지정 (알림 발송 대상)
+    // 읽기 권한 (보드 멤버 범위 내, null이면 전체 멤버 공개)
+    permissionRead: {
+      type: postPermissionReadSchema,
+    },
+
+    // 하위호환용 - 기존 대상 지정 (레거시 데이터)
     targetAudience: {
       type: {
         type: String,
         enum: ["all", "manager", "teacher", "student", "custom"],
         default: "all",
       },
-      // custom인 경우 사용자 목록
       users: [
         {
           user: mongoose.Types.ObjectId,
@@ -118,7 +154,6 @@ const postSchema = mongoose.Schema(
           userName: String,
         },
       ],
-      // 학년 지정 (옵션)
       grade: Number,
     },
 

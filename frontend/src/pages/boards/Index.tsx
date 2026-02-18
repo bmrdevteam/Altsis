@@ -1,5 +1,5 @@
 /**
- * @file Boards Page with Tab-based UI
+ * @file Boards List Page - Board list with tab/gallery views, favorites
  *
  * @author
  *
@@ -11,55 +11,49 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import style from "style/pages/enrollment.module.scss";
+import bStyle from "./boards.module.scss";
 
-import Table from "components/tableV2/Table";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 
-import { TBoard } from "types/board";
-import { TPost, TPostTargetAudience } from "types/post";
+import { TBoard, TBoardListViewMode } from "types/board";
 
-type TPostWithSelection = TPost & { tableRowChecked?: boolean };
-
-const formatTargetAudience = (targetAudience?: TPostTargetAudience): string => {
-  if (!targetAudience || targetAudience.type === "all") {
-    return "전체";
-  }
-  switch (targetAudience.type) {
-    case "manager":
-      return "관리자";
-    case "teacher":
-      return "교사";
-    case "student":
-      return "학생";
-    case "custom":
-      return "지정";
-    default:
-      return "전체";
-  }
-};
+import BoardCreatePopup from "./popup/BoardCreate";
+import BoardManagePopup from "./popup/BoardManage";
+import BoardGalleryView from "./views/BoardGalleryView";
 
 const Boards = () => {
   const navigate = useAppNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser, currentSchool } = useAuth();
-  const { BoardAPI, PostAPI } = useAPIv2();
+  const { BoardAPI, BoardFavoriteAPI } = useAPIv2();
 
   const [boards, setBoards] = useState<TBoard[]>([]);
-  const [posts, setPosts] = useState<TPost[]>([]);
-  const [selectedBoard, setSelectedBoard] = useState<TBoard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPostsLoading, setIsPostsLoading] = useState(false);
-  const [selectedPosts, setSelectedPosts] = useState<TPostWithSelection[]>([]);
+
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [boardListViewMode, setBoardListViewMode] =
+    useState<TBoardListViewMode>(
+      () =>
+        (localStorage.getItem("boardListViewMode") as TBoardListViewMode) ||
+        "table"
+    );
+  const [showBoardCreatePopup, setShowBoardCreatePopup] = useState(false);
+  const [showBoardManagePopup, setShowBoardManagePopup] = useState(false);
+  const [managingBoard, setManagingBoard] = useState<TBoard | null>(null);
 
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
+
+  const canManageBoard = (board: TBoard) => {
+    if (isManager) return true;
+    if (board.creator && board.creator === currentUser?._id) return true;
+    return false;
+  };
 
   // 게시판 목록 로드
   useEffect(() => {
@@ -69,27 +63,6 @@ const Boards = () => {
       })
         .then(({ boards }) => {
           setBoards(boards);
-
-          // URL에서 boardId 파라미터 확인, 없으면 기본 게시판(공지사항) 선택
-          const boardIdFromUrl = searchParams.get("boardId");
-          let initialBoard: TBoard | null = null;
-
-          if (boardIdFromUrl) {
-            initialBoard =
-              boards.find((b: TBoard) => b._id === boardIdFromUrl) || null;
-          }
-
-          if (!initialBoard && boards.length > 0) {
-            // isDefault가 true인 게시판(공지사항)을 우선 선택
-            initialBoard =
-              boards.find((b: TBoard) => b.isDefault) || boards[0];
-          }
-
-          if (initialBoard) {
-            setSelectedBoard(initialBoard);
-            setIsPostsLoading(true);
-          }
-
           setIsLoading(false);
         })
         .catch((err) => {
@@ -99,382 +72,215 @@ const Boards = () => {
     }
   }, [isLoading, currentSchool]);
 
-  // 선택된 게시판의 게시글 로드
-  useEffect(() => {
-    if (isPostsLoading && selectedBoard) {
-      PostAPI.RPosts({ query: { board: selectedBoard._id } })
-        .then(({ posts }) => {
-          setPosts(posts);
-          setIsPostsLoading(false);
-        })
-        .catch((err) => {
-          ALERT_ERROR(err);
-          setIsPostsLoading(false);
+  // 보드 클릭 → 상세 페이지로 이동
+  const handleBoardClick = (board: TBoard) => {
+    navigate(`/boards/${board._id}`);
+  };
+
+  // 보드 목록 뷰 모드 변경
+  const handleListViewModeChange = (mode: TBoardListViewMode) => {
+    setBoardListViewMode(mode);
+    localStorage.setItem("boardListViewMode", mode);
+  };
+
+  // 즐겨찾기 토글
+  const handleToggleFavorite = async (board: TBoard) => {
+    if (!currentSchool) return;
+
+    try {
+      if (board.isFavorited) {
+        await BoardFavoriteAPI.DBoardFavoriteByBoard({
+          params: { boardId: board._id },
         });
-    }
-  }, [isPostsLoading, selectedBoard]);
+      } else {
+        await BoardFavoriteAPI.CBoardFavorite({
+          data: { board: board._id, school: currentSchool._id },
+        });
+      }
 
-  // 게시판 탭 변경
-  const handleBoardChange = (board: TBoard) => {
-    setSelectedBoard(board);
-    setSearchParams({ boardId: board._id });
-    setSelectedPosts([]);
-    setIsPostsLoading(true);
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
-
-  // 쓰기 권한 확인
-  const canWrite = () => {
-    if (!selectedBoard) return false;
-    if (isManager) return true;
-
-    const role = currentUser?.auth;
-    const permission = selectedBoard.permissionWrite;
-
-    if (role === "member") {
-      // member는 교사 또는 학생이므로 둘 중 하나의 권한이 있으면 허용
-      if (permission?.teacher || permission?.student) return true;
-    }
-
-    return false;
-  };
-
-  // 테이블 변경 시 선택된 게시글 업데이트
-  const handleTableChange = (data: TPostWithSelection[]) => {
-    const checked = data.filter((post) => post.tableRowChecked);
-    setSelectedPosts(checked);
-  };
-
-  // 선택된 게시글에 대한 권한 확인
-  const canEditSelected = () => {
-    if (selectedPosts.length === 0) return false;
-    // 레거시 알림은 수정 불가
-    if (selectedPosts.some((post) => post.isLegacyNotification)) return false;
-    if (isManager) return true;
-    // 비관리자는 자신이 작성한 글만 수정 가능
-    return selectedPosts.every(
-      (post) => post.author === currentUser?._id
-    );
-  };
-
-  const canDeleteSelected = () => {
-    if (selectedPosts.length === 0) return false;
-    if (isManager) return true;
-    // 비관리자는 자신이 작성한 글만 삭제 가능
-    return selectedPosts.every(
-      (post) => post.author === currentUser?._id
-    );
-  };
-
-  const canPinSelected = () => {
-    // 고정은 관리자만 가능, 레거시 알림은 고정 불가
-    if (selectedPosts.some((post) => post.isLegacyNotification)) return false;
-    return selectedPosts.length > 0 && isManager;
-  };
-
-  // 선택된 게시글 삭제
-  const handleDeleteSelected = async () => {
-    if (!window.confirm(`선택한 ${selectedPosts.length}개의 게시글을 삭제하시겠습니까?`)) {
-      return;
-    }
-
-    try {
-      await Promise.all(
-        selectedPosts.map((post) =>
-          PostAPI.DPost({ params: { _id: post._id } })
+      setBoards((prev) =>
+        prev.map((b) =>
+          b._id === board._id ? { ...b, isFavorited: !b.isFavorited } : b
         )
       );
-      setSelectedPosts([]);
-      setIsPostsLoading(true);
     } catch (err) {
       ALERT_ERROR(err);
     }
   };
 
-  // 선택된 게시글 고정/고정해제
-  const handlePinSelected = async (isPinned: boolean) => {
-    try {
-      await Promise.all(
-        selectedPosts.map((post) =>
-          PostAPI.UPostPin({
-            params: { _id: post._id },
-            data: { isPinned },
-          })
-        )
-      );
-      setSelectedPosts([]);
-      setIsPostsLoading(true);
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
+  // 보드 관리 팝업 열기
+  const handleManageBoard = (board: TBoard) => {
+    setManagingBoard(board);
+    setShowBoardManagePopup(true);
   };
 
-  // 선택된 게시글 수정 (1개만 선택된 경우)
-  const handleEditSelected = () => {
-    if (selectedPosts.length === 1 && selectedBoard) {
-      navigate(`/boards/${selectedBoard._id}/edit/${selectedPosts[0]._id}`);
-    }
-  };
-
-  // 테이블 데이터 메모이제이션 (체크박스 상태 유지를 위해)
-  const tableData = useMemo(
+  // 즐겨찾기 필터 적용된 보드 목록
+  const displayBoards = useMemo(
     () =>
-      posts.map((post, index) => ({
-        ...post,
-        no: posts.length - index,
-        createdAtDisplay: formatDate(post.createdAt),
-        titleDisplay: post.isPinned ? `[공지] ${post.title}` : post.title,
-        targetAudienceDisplay: formatTargetAudience(post.targetAudience),
-      })),
-    [posts]
+      showFavoritesOnly
+        ? boards.filter((b) => b.isFavorited)
+        : boards,
+    [boards, showFavoritesOnly]
   );
 
   return (
     <>
-      <div className={style.section}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "16px",
-          }}
-        >
+      <div className={`${style.section} ${bStyle.page}`}>
+        {/* 상단 헤더: 제목 + 툴바 */}
+        <div className={bStyle.header}>
           <div className={style.title} style={{ margin: 0 }}>
             보드
           </div>
+
+          {/* 툴바 */}
+          <div className={bStyle.toolbar}>
+            <Button
+              type="ghost"
+              onClick={() => setShowBoardCreatePopup(true)}
+              style={{ fontSize: "13px" }}
+            >
+              <>
+                <Svg type="plus" width="16px" height="16px" />
+                보드 생성
+              </>
+            </Button>
+
+            <button
+              className={`${bStyle.textBtn} ${
+                showFavoritesOnly ? bStyle.textBtnActive : ""
+              }`}
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              title="즐겨찾기만 보기"
+            >
+              {showFavoritesOnly ? "★" : "☆"} 즐겨찾기
+            </button>
+
+            <div className={bStyle.segmentGroup}>
+              <button
+                className={`${bStyle.segmentBtn} ${
+                  boardListViewMode === "table" ? bStyle.segmentBtnActive : ""
+                }`}
+                onClick={() => handleListViewModeChange("table")}
+                title="탭 보기"
+              >
+                <Svg type="list" width="14px" height="14px" />
+                탭
+              </button>
+              <button
+                className={`${bStyle.segmentBtn} ${
+                  boardListViewMode === "gallery"
+                    ? bStyle.segmentBtnActive
+                    : ""
+                }`}
+                onClick={() => handleListViewModeChange("gallery")}
+                title="갤러리 보기"
+              >
+                <Svg type="dashboard" width="14px" height="14px" />
+                갤러리
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* 보드 탭 */}
-        {boards.length > 0 && (
-          <div
-            className="hide-scrollbar"
-            style={{
-              display: "flex",
-              gap: "4px",
-              borderBottom: "1px solid var(--border-color)",
-              marginBottom: "16px",
-              overflowX: "auto",
-            }}
-          >
-            {boards.map((board) => (
-              <button
-                key={board._id}
-                onClick={() => handleBoardChange(board)}
-                style={{
-                  padding: "12px 20px",
-                  border: "none",
-                  background: "none",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: selectedBoard?._id === board._id ? 600 : 400,
-                  color:
-                    selectedBoard?._id === board._id
-                      ? "var(--accent-1)"
-                      : "var(--text-color-2)",
-                  borderBottom:
-                    selectedBoard?._id === board._id
-                      ? "2px solid var(--accent-1)"
-                      : "2px solid transparent",
-                  marginBottom: "-1px",
-                  whiteSpace: "nowrap",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                {board.isDefault && "📢 "}
-                {board.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* 선택된 게시판 설명 */}
-        {selectedBoard?.description && (
-          <p
-            style={{
-              color: "var(--text-color-2)",
-              marginBottom: "16px",
-              marginTop: "16px",
-            }}
-          >
-            {selectedBoard.description}
-          </p>
-        )}
-
-        {/* 글쓰기 버튼 및 선택 시 액션 버튼 */}
-        {selectedBoard && (
-          <div style={{ marginBottom: "16px", marginTop: "16px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {selectedPosts.length === 0 ? (
-              // 선택된 게시글이 없을 때: 글쓰기 버튼만 표시
-              canWrite() && (
-                <Button
-                  type="ghost"
-                  onClick={() => navigate(`/boards/${selectedBoard._id}/create`)}
-                >
-                  <>
-                    <Svg type="edit" width="16px" height="16px" />
-                    글쓰기
-                  </>
-                </Button>
-              )
-            ) : (
-              // 선택된 게시글이 있을 때: 액션 버튼 표시
-              <>
-                {canEditSelected() && selectedPosts.length === 1 && (
-                  <Button type="ghost" onClick={handleEditSelected}>
-                    <>
-                      <Svg type="edit" width="16px" height="16px" />
-                      수정
-                    </>
-                  </Button>
-                )}
-                {canDeleteSelected() && (
-                  <Button
-                    type="ghost"
-                    onClick={handleDeleteSelected}
-                    style={{ color: "var(--red-1)" }}
+        {/* 보드 목록 */}
+        {boardListViewMode === "table" ? (
+          <>
+            {displayBoards.length > 0 && (
+              <div className={bStyle.boardList}>
+                {displayBoards.map((board) => (
+                  <div
+                    key={board._id}
+                    className={bStyle.boardItem}
+                    onClick={() => handleBoardClick(board)}
                   >
-                    <>
-                      <Svg type="trash" width="16px" height="16px" />
-                      삭제
-                    </>
-                  </Button>
-                )}
-                {canPinSelected() && selectedPosts.some((p) => !p.isPinned) && (
-                  <Button
-                    type="ghost"
-                    onClick={() => handlePinSelected(true)}
-                  >
-                    <>
-                      <Svg type="pin" width="16px" height="16px" />
-                      고정
-                    </>
-                  </Button>
-                )}
-                {canPinSelected() && selectedPosts.some((p) => p.isPinned) && (
-                  <Button
-                    type="ghost"
-                    onClick={() => handlePinSelected(false)}
-                  >
-                    <>
-                      <Svg type="pinOff" width="16px" height="16px" />
-                      고정해제
-                    </>
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* 게시글 목록 */}
-        {selectedBoard && (
-          <Table
-            type="object-array"
-            control
-            data={tableData}
-            defaultPageBy={10}
-            onChange={handleTableChange}
-            header={[
-              {
-                text: "",
-                type: "checkbox",
-                width: "0",
-                textAlign: "center",
-              },
-              {
-                text: "No",
-                key: "no",
-                type: "text",
-                width: "48px",
-                textAlign: "center",
-              },
-              {
-                text: "제목",
-                key: "titleDisplay",
-                type: "text",
-                cursor: "pointer",
-                onClick: (e: TPost) => {
-                  navigate(`/boards/${selectedBoard._id}/post/${e._id}`);
-                },
-              },
-              {
-                text: "대상",
-                key: "targetAudienceDisplay",
-                type: "text",
-                width: "80px",
-                textAlign: "center",
-              },
-              {
-                text: "작성자",
-                key: "authorName",
-                type: "text",
-                width: "180px",
-                render: (_value: string, row: TPost) => (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div
-                      style={{
-                        width: "24px",
-                        height: "24px",
-                        borderRadius: "50%",
-                        backgroundColor: "var(--background-color-2)",
-                        backgroundImage: row.authorProfile
-                          ? `url(${row.authorProfile})`
-                          : "none",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "12px",
-                        color: "var(--text-color-2)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {!row.authorProfile && row.authorName?.charAt(0)}
+                    {board.coverColor && (
+                      <div
+                        className={bStyle.boardItemColorBar}
+                        style={{ backgroundColor: board.coverColor }}
+                      />
+                    )}
+                    <div className={bStyle.boardItemLeft}>
+                      <div className={bStyle.boardItemInfo}>
+                        <div className={bStyle.boardNameRow}>
+                          <span className={bStyle.boardName}>
+                            {board.isDefault && "📢 "}
+                            {board.name}
+                          </span>
+                          {board.boardType === "user" && (
+                            <span
+                              className={`${bStyle.badge} ${bStyle.badgeUser}`}
+                            >
+                              사용자
+                            </span>
+                          )}
+                          <button
+                            className={`${bStyle.favoriteBtn} ${
+                              board.isFavorited ? bStyle.favoriteBtnActive : ""
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleFavorite(board);
+                            }}
+                            title={board.isFavorited ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                          >
+                            {board.isFavorited ? "★" : "☆"}
+                          </button>
+                        </div>
+                        {board.description && (
+                          <span className={bStyle.boardDescription}>
+                            {board.description}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span>{row.authorName}({row.authorId})</span>
+                    <div className={bStyle.boardItemRight}>
+                      <span>게시글 {board.postCount}개</span>
+                      {canManageBoard(board) && (
+                        <button
+                          className={bStyle.iconBtn}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleManageBoard(board);
+                          }}
+                          title="보드 관리"
+                        >
+                          <Svg type="settings" width="16px" height="16px" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                ),
-              },
-              {
-                text: "조회",
-                key: "viewCount",
-                type: "text",
-                width: "80px",
-                textAlign: "center",
-              },
-              {
-                text: "작성일",
-                key: "createdAtDisplay",
-                type: "text",
-                width: "120px",
-                textAlign: "center",
-              },
-            ]}
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <BoardGalleryView
+            boards={displayBoards}
+            selectedBoard={null}
+            onSelect={handleBoardClick}
+            onToggleFavorite={handleToggleFavorite}
           />
         )}
 
         {boards.length === 0 && !isLoading && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "40px",
-              color: "var(--text-color-2)",
-            }}
-          >
-            보드가 없습니다.
-          </div>
+          <div className={bStyle.empty}>보드가 없습니다.</div>
         )}
       </div>
+
+      {/* 팝업 */}
+      {showBoardCreatePopup && (
+        <BoardCreatePopup
+          setState={setShowBoardCreatePopup}
+          onSuccess={() => setIsLoading(true)}
+        />
+      )}
+      {showBoardManagePopup && managingBoard && (
+        <BoardManagePopup
+          board={managingBoard}
+          setState={setShowBoardManagePopup}
+          onSuccess={() => setIsLoading(true)}
+        />
+      )}
     </>
   );
 };

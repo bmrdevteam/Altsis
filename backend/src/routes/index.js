@@ -1,6 +1,7 @@
 import { router as academies } from "./academies.js";
 import { router as ai } from "./ai.js";
 import { router as archives } from "./archives.js";
+import { router as boardFavorites } from "./boardFavorites.js";
 import { router as boards } from "./boards.js";
 import { router as calendarEvents } from "./calendarEvents.js";
 import { router as comments } from "./comments.js";
@@ -27,6 +28,7 @@ export const routers = [
   { label: "academies", routes: academies },
   { label: "ai", routes: ai },
   { label: "archives", routes: archives },
+  { label: "board-favorites", routes: boardFavorites },
   { label: "boards", routes: boards },
   { label: "calendar-events", routes: calendarEvents },
   { label: "chats", routes: chats },

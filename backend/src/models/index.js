@@ -6,6 +6,7 @@
 import { Academy } from "../models/Academy.js";
 import { Archive } from "../models/Archive.js";
 import { Board } from "../models/Board.js";
+import { BoardFavorite } from "../models/BoardFavorite.js";
 import { CalendarEvent } from "../models/CalendarEvent.js";
 import { Comment } from "../models/Comment.js";
 import { ChatFile } from "../models/ChatFile.js";
@@ -29,6 +30,7 @@ export {
   Academy,
   Archive,
   Board,
+  BoardFavorite,
   CalendarEvent,
   ChatFile,
   Comment,

@@ -5,10 +5,12 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { Board, School } from "../models/index.js";
+import { Board, BoardFavorite, School } from "../models/index.js";
 import {
-  hasBoardPermission,
+  canManageBoard,
+  isBoardMember,
   getUserRoleInSeason,
+  getBoardMembers,
 } from "../services/boards.js";
 
 import {
@@ -16,13 +18,16 @@ import {
   FIELD_IN_USE,
   PERMISSION_DENIED,
   __NOT_FOUND,
+  LIMIT_FILE_SIZE,
+  INVALID_FILE_TYPE,
 } from "../messages/index.js";
+import { boardMulter } from "../_s3/boardMulter.js";
 
 /**
  * @memberof APIs.BoardAPI
  * @function CBoard API
  * @description 게시판 생성 API
- * @version 1.0.0
+ * @version 2.0.0
  *
  * @param {Object} req
  * @param {"POST"} req.method
@@ -32,6 +37,8 @@ import {
  * @param {string} req.body.school - school._id
  * @param {string} req.body.name - 게시판 이름
  * @param {string?} req.body.description - 게시판 설명
+ * @param {Object?} req.body.members - 멤버 설정
+ * @param {Object?} req.body.writers - 작성자 설정
  *
  * @param {Object} res
  * @param {Object} res.board - 생성된 게시판
@@ -50,20 +57,23 @@ export const create = async (req, res) => {
     }
 
     // slug 생성 (이름을 URL-safe하게 변환)
-    const slug = req.body.name
+    let baseSlug = req.body.name
       .toLowerCase()
       .replace(/[^a-z0-9가-힣]/g, "-")
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "") || `board-${Date.now()}`;
 
-    // 중복 slug 확인
-    const existingBoard = await Board(req.user.academyId).findOne({
-      school: school._id,
-      slug,
-    });
-    if (existingBoard) {
-      return res.status(409).send({ message: FIELD_IN_USE("board") });
+    // slug 충돌 시 숫자 접미사 추가
+    let slug = baseSlug;
+    let slugSuffix = 1;
+    while (await Board(req.user.academyId).findOne({ school: school._id, slug })) {
+      slugSuffix++;
+      slug = `${baseSlug}-${slugSuffix}`;
     }
+
+    // boardType 결정: admin/manager → official, 그 외 → user
+    const isAdminOrManager = req.user.auth === "admin" || req.user.auth === "manager";
+    const boardType = isAdminOrManager ? "official" : "user";
 
     const board = await Board(req.user.academyId).create({
       school: school._id,
@@ -75,17 +85,16 @@ export const create = async (req, res) => {
       creator: req.user._id,
       creatorId: req.user.userId,
       creatorName: req.user.userName,
-      permissionWrite: req.body.permissionWrite || {
-        manager: true,
-        teacher: true,
-        student: false,
-        exceptions: [],
+      boardType,
+      contentViewMode: req.body.contentViewMode || "table",
+      ...(req.body.coverColor && { coverColor: req.body.coverColor }),
+      members: req.body.members || {
+        groups: { manager: true, teacher: true, student: true },
+        users: [],
       },
-      permissionRead: req.body.permissionRead || {
-        manager: true,
-        teacher: true,
-        student: true,
-        exceptions: [],
+      writers: req.body.writers || {
+        groups: { manager: true, teacher: true, student: false },
+        users: [],
       },
     });
 
@@ -100,18 +109,7 @@ export const create = async (req, res) => {
  * @memberof APIs.BoardAPI
  * @function RBoards/RBoard API
  * @description 게시판 목록/상세 조회 API
- * @version 1.0.0
- *
- * @param {Object} req
- * @param {"GET"} req.method
- * @param {"/boards/:_id?"} req.url
- *
- * @param {Object} req.query
- * @param {string?} req.query.school - school._id (목록 조회시)
- *
- * @param {Object} res
- * @param {Object[]} res.boards - 게시판 목록 또는
- * @param {Object} res.board - 게시판 상세
+ * @version 2.0.0
  */
 export const find = async (req, res) => {
   try {
@@ -122,13 +120,13 @@ export const find = async (req, res) => {
         return res.status(404).send({ message: __NOT_FOUND("board") });
       }
 
-      // 읽기 권한 확인
+      // 멤버 확인
       const role = await getUserRoleInSeason(
         req.user.academyId,
         board.schoolId,
         req.user
       );
-      if (!hasBoardPermission(board, "read", req.user, role)) {
+      if (!isBoardMember(board, req.user, role)) {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
 
@@ -162,14 +160,28 @@ export const find = async (req, res) => {
 
     const boards = await Board(req.user.academyId)
       .find({ school: school._id, isActive: true })
-      .sort({ isDefault: -1, order: 1, createdAt: 1 });
+      .sort({ isDefault: -1, boardType: 1, order: 1, createdAt: 1 });
 
-    // 읽기 권한이 있는 게시판만 필터링
+    // 멤버인 게시판만 필터링
     const accessibleBoards = boards.filter((board) =>
-      hasBoardPermission(board, "read", req.user, role)
+      isBoardMember(board, req.user, role)
     );
 
-    return res.status(200).send({ boards: accessibleBoards });
+    // 즐겨찾기 정보 조회
+    const favorites = await BoardFavorite(req.user.academyId).find({
+      user: req.user._id,
+      school: school._id,
+    });
+    const favoriteBoardIds = new Set(favorites.map((f) => f.board.toString()));
+
+    // isFavorited 플래그 추가
+    const boardsWithFavorites = accessibleBoards.map((board) => {
+      const boardObj = board.toObject();
+      boardObj.isFavorited = favoriteBoardIds.has(board._id.toString());
+      return boardObj;
+    });
+
+    return res.status(200).send({ boards: boardsWithFavorites });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -180,25 +192,18 @@ export const find = async (req, res) => {
  * @memberof APIs.BoardAPI
  * @function UBoard API
  * @description 게시판 수정 API
- * @version 1.0.0
- *
- * @param {Object} req
- * @param {"PUT"} req.method
- * @param {"/boards/:_id"} req.url
- *
- * @param {Object} req.body
- * @param {string?} req.body.name - 게시판 이름
- * @param {string?} req.body.description - 게시판 설명
- * @param {number?} req.body.order - 정렬 순서
- *
- * @param {Object} res
- * @param {Object} res.board - 수정된 게시판
+ * @version 2.0.0
  */
 export const update = async (req, res) => {
   try {
     const board = await Board(req.user.academyId).findById(req.params._id);
     if (!board) {
       return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    // 관리 권한 확인 (admin/manager 또는 보드 생성자)
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     // 기본 게시판은 이름 변경 불가
@@ -209,6 +214,14 @@ export const update = async (req, res) => {
     if (req.body.name) board.name = req.body.name;
     if ("description" in req.body) board.description = req.body.description;
     if ("order" in req.body) board.order = req.body.order;
+    if ("contentViewMode" in req.body) {
+      const validModes = ["table", "gallery", "blog"];
+      if (validModes.includes(req.body.contentViewMode)) {
+        board.contentViewMode = req.body.contentViewMode;
+      }
+    }
+    if ("coverColor" in req.body)
+      board.coverColor = req.body.coverColor || undefined;
 
     await board.save();
 
@@ -221,62 +234,38 @@ export const update = async (req, res) => {
 
 /**
  * @memberof APIs.BoardAPI
- * @function UBoardPermission API
- * @description 게시판 권한 수정 API
- * @version 1.0.0
- *
- * @param {Object} req
- * @param {"PUT"} req.method
- * @param {"/boards/:_id/permission/:type"} req.url
+ * @function UBoardMembers API
+ * @description 보드 멤버 그룹 설정 API
+ * @version 2.0.0
  *
  * @param {Object} req.body
- * @param {boolean?} req.body.manager - 관리자 권한
- * @param {boolean?} req.body.teacher - 교사 권한
- * @param {boolean?} req.body.student - 학생 권한
- *
- * @param {Object} res
- * @param {Object} res.board - 수정된 게시판
+ * @param {Object} req.body.groups - { manager, teacher, student }
  */
-export const updatePermission = async (req, res) => {
+export const updateMembers = async (req, res) => {
   try {
     const board = await Board(req.user.academyId).findById(req.params._id);
     if (!board) {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    const permissionType = req.params.type; // "read", "write", or "comment"
-    if (!["read", "write", "comment"].includes(permissionType)) {
-      return res.status(400).send({ message: "Invalid permission type" });
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    let permissionField;
-    switch (permissionType) {
-      case "read":
-        permissionField = "permissionRead";
-        break;
-      case "write":
-        permissionField = "permissionWrite";
-        break;
-      case "comment":
-        permissionField = "permissionComment";
-        // permissionComment가 없으면 기본값으로 초기화
-        if (!board.permissionComment) {
-          board.permissionComment = { manager: true, teacher: true, student: true, exceptions: [] };
-        }
-        break;
+    if (!board.members) {
+      board.members = {
+        groups: { manager: true, teacher: true, student: true },
+        users: [],
+      };
     }
 
-    if ("manager" in req.body) {
-      board[permissionField].manager = req.body.manager;
-    }
-    if ("teacher" in req.body) {
-      board[permissionField].teacher = req.body.teacher;
-    }
-    if ("student" in req.body) {
-      board[permissionField].student = req.body.student;
+    if (req.body.groups) {
+      if ("manager" in req.body.groups) board.members.groups.manager = req.body.groups.manager;
+      if ("teacher" in req.body.groups) board.members.groups.teacher = req.body.groups.teacher;
+      if ("student" in req.body.groups) board.members.groups.student = req.body.groups.student;
     }
 
-    board.markModified(permissionField);
+    board.markModified("members");
     await board.save();
 
     return res.status(200).send({ board });
@@ -288,72 +277,89 @@ export const updatePermission = async (req, res) => {
 
 /**
  * @memberof APIs.BoardAPI
- * @function CBoardPermissionException API
- * @description 게시판 권한 예외 추가 API
- * @version 1.0.0
+ * @function UBoardWriters API
+ * @description 보드 작성자 그룹 설정 API
+ * @version 2.0.0
  *
- * @param {Object} req
- * @param {"POST"} req.method
- * @param {"/boards/:_id/permission/:type/exceptions"} req.url
+ * @param {Object} req.body
+ * @param {Object} req.body.groups - { manager, teacher, student }
+ */
+export const updateWriters = async (req, res) => {
+  try {
+    const board = await Board(req.user.academyId).findById(req.params._id);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if (!board.writers) {
+      board.writers = {
+        groups: { manager: true, teacher: true, student: false },
+        users: [],
+      };
+    }
+
+    if (req.body.groups) {
+      if ("manager" in req.body.groups) board.writers.groups.manager = req.body.groups.manager;
+      if ("teacher" in req.body.groups) board.writers.groups.teacher = req.body.groups.teacher;
+      if ("student" in req.body.groups) board.writers.groups.student = req.body.groups.student;
+    }
+
+    board.markModified("writers");
+    await board.save();
+
+    return res.status(200).send({ board });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function CBoardMemberUser API
+ * @description 보드 개별 멤버 추가 API
+ * @version 2.0.0
  *
  * @param {Object} req.body
  * @param {string} req.body.user - user._id
  * @param {string} req.body.userId
  * @param {string} req.body.userName
- * @param {boolean} req.body.isAllowed
- *
- * @param {Object} res
- * @param {Object} res.board - 수정된 게시판
  */
-export const addPermissionException = async (req, res) => {
+export const addMemberUser = async (req, res) => {
   try {
     const board = await Board(req.user.academyId).findById(req.params._id);
     if (!board) {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    for (let field of ["user", "userId", "userName", "isAllowed"]) {
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    for (let field of ["user", "userId", "userName"]) {
       if (!(field in req.body)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
     }
 
-    const permissionType = req.params.type;
-    if (!["read", "write", "comment"].includes(permissionType)) {
-      return res.status(400).send({ message: "Invalid permission type" });
-    }
-
-    let permissionField;
-    switch (permissionType) {
-      case "read":
-        permissionField = "permissionRead";
-        break;
-      case "write":
-        permissionField = "permissionWrite";
-        break;
-      case "comment":
-        permissionField = "permissionComment";
-        if (!board.permissionComment) {
-          board.permissionComment = { manager: true, teacher: true, student: true, exceptions: [] };
-        }
-        break;
+    if (!board.members) {
+      board.members = { groups: { manager: true, teacher: true, student: true }, users: [] };
     }
 
     // 중복 체크
-    const existingException = board[permissionField].exceptions.find(
-      (e) => e.userId === req.body.userId
-    );
-    if (existingException) {
-      existingException.isAllowed = req.body.isAllowed;
-    } else {
-      board[permissionField].exceptions.push({
+    if (!board.members.users.some((u) => u.userId === req.body.userId)) {
+      board.members.users.push({
         user: req.body.user,
         userId: req.body.userId,
         userName: req.body.userName,
-        isAllowed: req.body.isAllowed,
       });
     }
 
+    board.markModified("members");
     await board.save();
 
     return res.status(200).send({ board });
@@ -365,57 +371,116 @@ export const addPermissionException = async (req, res) => {
 
 /**
  * @memberof APIs.BoardAPI
- * @function DBoardPermissionException API
- * @description 게시판 권한 예외 삭제 API
- * @version 1.0.0
- *
- * @param {Object} req
- * @param {"DELETE"} req.method
- * @param {"/boards/:_id/permission/:type/exceptions"} req.url
+ * @function DBoardMemberUser API
+ * @description 보드 개별 멤버 제거 API
+ * @version 2.0.0
  *
  * @param {Object} req.query
- * @param {string} req.query.userId - 삭제할 사용자의 userId
- *
- * @param {Object} res
- * @param {Object} res.board - 수정된 게시판
+ * @param {string} req.query.userId - 제거할 사용자의 userId
  */
-export const removePermissionException = async (req, res) => {
+export const removeMemberUser = async (req, res) => {
   try {
     const board = await Board(req.user.academyId).findById(req.params._id);
     if (!board) {
       return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     if (!req.query.userId) {
       return res.status(400).send({ message: FIELD_REQUIRED("userId") });
     }
 
-    const permissionType = req.params.type;
-    if (!["read", "write", "comment"].includes(permissionType)) {
-      return res.status(400).send({ message: "Invalid permission type" });
+    if (board.members?.users) {
+      board.members.users = board.members.users.filter(
+        (u) => u.userId !== req.query.userId
+      );
+      board.markModified("members");
+      await board.save();
     }
 
-    let permissionField;
-    switch (permissionType) {
-      case "read":
-        permissionField = "permissionRead";
-        break;
-      case "write":
-        permissionField = "permissionWrite";
-        break;
-      case "comment":
-        permissionField = "permissionComment";
-        if (!board.permissionComment) {
-          return res.status(200).send({ board });
-        }
-        break;
+    return res.status(200).send({ board });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function CBoardWriterUser API
+ * @description 보드 개별 작성자 추가 API
+ * @version 2.0.0
+ */
+export const addWriterUser = async (req, res) => {
+  try {
+    const board = await Board(req.user.academyId).findById(req.params._id);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    board[permissionField].exceptions = board[permissionField].exceptions.filter(
-      (e) => e.userId !== req.query.userId
-    );
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
+    for (let field of ["user", "userId", "userName"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    if (!board.writers) {
+      board.writers = { groups: { manager: true, teacher: true, student: false }, users: [] };
+    }
+
+    if (!board.writers.users.some((u) => u.userId === req.body.userId)) {
+      board.writers.users.push({
+        user: req.body.user,
+        userId: req.body.userId,
+        userName: req.body.userName,
+      });
+    }
+
+    board.markModified("writers");
     await board.save();
+
+    return res.status(200).send({ board });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function DBoardWriterUser API
+ * @description 보드 개별 작성자 제거 API
+ * @version 2.0.0
+ */
+export const removeWriterUser = async (req, res) => {
+  try {
+    const board = await Board(req.user.academyId).findById(req.params._id);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if (!req.query.userId) {
+      return res.status(400).send({ message: FIELD_REQUIRED("userId") });
+    }
+
+    if (board.writers?.users) {
+      board.writers.users = board.writers.users.filter(
+        (u) => u.userId !== req.query.userId
+      );
+      board.markModified("writers");
+      await board.save();
+    }
 
     return res.status(200).send({ board });
   } catch (err) {
@@ -429,12 +494,6 @@ export const removePermissionException = async (req, res) => {
  * @function DBoard API
  * @description 게시판 삭제 API (soft delete)
  * @version 1.0.0
- *
- * @param {Object} req
- * @param {"DELETE"} req.method
- * @param {"/boards/:_id"} req.url
- *
- * @param {Object} res
  */
 export const remove = async (req, res) => {
   try {
@@ -443,7 +502,10 @@ export const remove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    // 기본 게시판은 삭제 불가
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     if (board.isDefault) {
       return res.status(400).send({ message: "기본 보드는 삭제할 수 없습니다." });
     }
@@ -462,14 +524,8 @@ export const remove = async (req, res) => {
  * @memberof APIs.BoardAPI
  * @function createDefaultBoard
  * @description 기본 게시판 (공지사항) 생성 헬퍼 함수
- *
- * @param {string} academyId - 아카데미 ID
- * @param {Object} school - 학교 문서
- *
- * @returns {Promise<Object>} 생성된 게시판
  */
 export const createDefaultBoard = async (academyId, school) => {
-  // 이미 기본 게시판이 있는지 확인
   const existingBoard = await Board(academyId).findOne({
     school: school._id,
     isDefault: true,
@@ -487,19 +543,113 @@ export const createDefaultBoard = async (academyId, school) => {
     slug: "announcements",
     description: "학교 공지사항입니다.",
     isDefault: true,
-    permissionWrite: {
-      manager: true,
-      teacher: true,
-      student: false,
-      exceptions: [],
+    members: {
+      groups: { manager: true, teacher: true, student: true },
+      users: [],
     },
-    permissionRead: {
-      manager: true,
-      teacher: true,
-      student: true,
-      exceptions: [],
+    writers: {
+      groups: { manager: true, teacher: true, student: false },
+      users: [],
     },
   });
 
   return board;
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function RBoardMemberList API
+ * @description 보드 멤버 사용자 목록 (resolved) 조회 API
+ * @version 2.0.0
+ */
+export const findMemberList = async (req, res) => {
+  try {
+    const board = await Board(req.user.academyId).findById(req.params._id);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const role = await getUserRoleInSeason(
+      req.user.academyId,
+      board.schoolId,
+      req.user
+    );
+    if (!isBoardMember(board, req.user, role)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const users = await getBoardMembers(req.user.academyId, board);
+    return res.status(200).send({ users });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function UBoardCoverImage API
+ * @description 보드 커버 이미지 업로드 API
+ * @version 1.0.0
+ */
+export const updateCoverImage = async (req, res) => {
+  boardMulter.single("img")(req, {}, async (err) => {
+    try {
+      if (err) {
+        switch (err.code) {
+          case "LIMIT_FILE_SIZE":
+            return res.status(409).send({ message: LIMIT_FILE_SIZE });
+          case "INVALID_FILE_TYPE":
+            return res.status(409).send({ message: INVALID_FILE_TYPE });
+          default:
+            return res.status(500).send({ message: err.code });
+        }
+      }
+
+      const board = await Board(req.user.academyId).findById(req.params._id);
+      if (!board) {
+        return res.status(404).send({ message: __NOT_FOUND("board") });
+      }
+
+      if (!canManageBoard(board, req.user)) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+
+      board.coverImage = req.file.location.replace(
+        "/original/",
+        "/thumb/"
+      );
+      await board.save();
+      return res.status(200).send({ coverImage: board.coverImage });
+    } catch (err) {
+      logger.error(err.message);
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    }
+  });
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function DBoardCoverImage API
+ * @description 보드 커버 이미지 삭제 API
+ * @version 1.0.0
+ */
+export const deleteCoverImage = async (req, res) => {
+  try {
+    const board = await Board(req.user.academyId).findById(req.params._id);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageBoard(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    board.coverImage = undefined;
+    await board.save();
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
 };

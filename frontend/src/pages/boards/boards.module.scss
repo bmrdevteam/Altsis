@@ -1,0 +1,293 @@
+/* ─── Board list & detail shared styles ─── */
+
+/* Page wrapper — tinted background so cards stand out */
+.page {
+  background: var(--background-color-2);
+}
+
+/* Page header: title + toolbar */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Segment toggle button group (탭/갤러리, 테이블/갤러리/블로그) */
+.segmentGroup {
+  display: inline-flex;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segmentBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  background: transparent;
+  color: var(--text-color-2);
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:not(:first-child) {
+    border-left: 1px solid var(--border-color);
+  }
+
+  &:hover:not(.segmentBtnActive) {
+    background: var(--background-color-2);
+  }
+
+  &.segmentBtnActive {
+    background: var(--accent-1);
+    color: #fff;
+  }
+}
+
+/* Icon button (settings gear, back arrow) */
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--text-color-2);
+  border-radius: 6px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--background-color-2);
+  }
+}
+
+/* Text + icon button (즐겨찾기, 멤버) */
+.textBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  background: transparent;
+  color: var(--text-color-2);
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--background-color-2);
+  }
+
+  &.textBtnActive {
+    background: var(--accent-1);
+    color: #fff;
+    border-color: var(--accent-1);
+  }
+}
+
+/* ─── Board list (table view) — card style ─── */
+.boardList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.boardItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  background: var(--background-color-1);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: var(--accent-1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.boardItemColorBar {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.boardItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.boardItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.boardNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.boardColorDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.boardName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-1);
+  white-space: nowrap;
+}
+
+.badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badgeUser {
+  background: var(--background-color-2);
+  color: var(--text-color-2);
+}
+
+.badgeFavorite {
+  color: var(--accent-1);
+  font-size: 12px;
+}
+
+.favoriteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  color: var(--text-color-2);
+  opacity: 0;
+  transition: all 0.15s ease;
+  line-height: 1;
+
+  .boardItem:hover & {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--accent-1);
+  }
+
+  &.favoriteBtnActive {
+    opacity: 1;
+    color: var(--accent-1);
+  }
+}
+
+.boardDescription {
+  font-size: 12px;
+  color: var(--text-color-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.boardItemRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-color-2);
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+/* ─── Board detail header ─── */
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.detailHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detailTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detailDescription {
+  color: var(--text-color-2);
+  margin: 0;
+  font-size: 13px;
+}
+
+.detailHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Board detail toolbar ─── */
+.detailToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.viewModeLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.actionBtns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─── Empty state ─── */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-color-2);
+  font-size: 14px;
+}

@@ -22,7 +22,7 @@ import Textarea from "components/textarea/Textarea";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Svg from "assets/svg/Svg";
 
-import { TBoard, TBoardPermission } from "types/board";
+import { TBoard, TBoardMembers } from "types/board";
 import { TSchool } from "types/schools";
 import { TNotificationSettings } from "types/notification";
 
@@ -295,20 +295,34 @@ const Notifications = ({ schoolData }: Props) => {
         data={boards.map((board) => ({
           ...board,
           postCountDisplay: board.postCount || 0,
-          permissionReadDisplay: [
-            board.permissionRead?.manager && "관리자",
-            board.permissionRead?.teacher && "교사",
-            board.permissionRead?.student && "학생",
+          boardTypeDisplay: board.boardType === "user" ? "사용자" : "공식",
+          contentViewModeDisplay:
+            board.contentViewMode === "gallery"
+              ? "갤러리"
+              : board.contentViewMode === "blog"
+              ? "블로그"
+              : "테이블",
+          creatorDisplay: board.creatorName || "-",
+          membersDisplay: [
+            board.members?.groups?.manager && "관리자",
+            board.members?.groups?.teacher && "교사",
+            board.members?.groups?.student && "학생",
           ]
             .filter(Boolean)
-            .join(", "),
-          permissionWriteDisplay: [
-            board.permissionWrite?.manager && "관리자",
-            board.permissionWrite?.teacher && "교사",
-            board.permissionWrite?.student && "학생",
+            .join(", ") +
+            (board.members?.users?.length
+              ? ` +${board.members.users.length}명`
+              : ""),
+          writersDisplay: [
+            board.writers?.groups?.manager && "관리자",
+            board.writers?.groups?.teacher && "교사",
+            board.writers?.groups?.student && "학생",
           ]
             .filter(Boolean)
-            .join(", "),
+            .join(", ") +
+            (board.writers?.users?.length
+              ? ` +${board.writers.users.length}명`
+              : ""),
         }))}
         defaultPageBy={10}
         header={[
@@ -318,27 +332,41 @@ const Notifications = ({ schoolData }: Props) => {
             type: "text",
           },
           {
-            text: "설명",
-            key: "description",
-            type: "text",
-            width: "200px",
-          },
-          {
-            text: "글 수",
-            key: "postCountDisplay",
+            text: "유형",
+            key: "boardTypeDisplay",
             type: "text",
             width: "80px",
             textAlign: "center",
           },
           {
-            text: "읽기 권한",
-            key: "permissionReadDisplay",
+            text: "뷰 모드",
+            key: "contentViewModeDisplay",
+            type: "text",
+            width: "80px",
+            textAlign: "center",
+          },
+          {
+            text: "생성자",
+            key: "creatorDisplay",
+            type: "text",
+            width: "100px",
+          },
+          {
+            text: "글 수",
+            key: "postCountDisplay",
+            type: "text",
+            width: "60px",
+            textAlign: "center",
+          },
+          {
+            text: "멤버",
+            key: "membersDisplay",
             type: "text",
             width: "150px",
           },
           {
-            text: "쓰기 권한",
-            key: "permissionWriteDisplay",
+            text: "작성 권한",
+            key: "writersDisplay",
             type: "text",
             width: "150px",
           },
@@ -473,83 +501,46 @@ const CreateBoardPopup = ({
   );
 };
 
-// 권한 테이블 컴포넌트
-type PermissionTableProps = {
-  permissions: {
-    read: TBoardPermission;
-    write: TBoardPermission;
-    comment: TBoardPermission;
-  };
-  onChange: (
-    type: "read" | "write" | "comment",
-    key: "manager" | "teacher" | "student",
-    checked: boolean
-  ) => void;
-};
-
-const PermissionTable = ({ permissions, onChange }: PermissionTableProps) => {
-  const roles = [
-    { key: "manager" as const, label: "관리자" },
-    { key: "teacher" as const, label: "교사" },
-    { key: "student" as const, label: "학생" },
-  ];
-
-  const permissionTypes = [
-    { key: "read" as const, label: "읽기" },
-    { key: "write" as const, label: "쓰기" },
-    { key: "comment" as const, label: "댓글" },
-  ];
-
-  const cellStyle: React.CSSProperties = {
-    padding: "8px 12px",
-    textAlign: "center",
-  };
-
-  const headerCellStyle: React.CSSProperties = {
-    ...cellStyle,
-    fontWeight: 600,
-    fontSize: "13px",
-    color: "var(--text-color-2)",
-  };
-
-  return (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          <th style={{ ...headerCellStyle, textAlign: "left" }}></th>
-          {roles.map(({ key, label }) => (
-            <th key={key} style={headerCellStyle}>
-              {label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {permissionTypes.map(({ key: permKey, label }) => (
-          <tr key={permKey}>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 500 }}>
-              {label}
-            </td>
-            {roles.map(({ key: roleKey }) => (
-              <td key={roleKey} style={cellStyle}>
-                <ToggleSwitch
-                  checked={permissions[permKey][roleKey]}
-                  onChange={(checked: boolean) => onChange(permKey, roleKey, checked)}
-                />
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-};
-
 // 알림 관리 팝업
 type ManageBoardPopupProps = {
   board: TBoard;
   setState: (state: boolean) => void;
   onSuccess?: () => void;
+};
+
+/** board.members가 없으면 레거시 permissionRead에서 변환 */
+const resolveMembers = (board: TBoard): TBoardMembers => {
+  if (board.members?.groups) return board.members;
+  if (board.permissionRead) {
+    return {
+      groups: {
+        manager: board.permissionRead.manager ?? true,
+        teacher: board.permissionRead.teacher ?? true,
+        student: board.permissionRead.student ?? true,
+      },
+      users: [],
+    };
+  }
+  return { groups: { manager: true, teacher: true, student: true }, users: [] };
+};
+
+/** board.writers가 없으면 레거시 permissionWrite에서 변환 */
+const resolveWriters = (board: TBoard): TBoardMembers => {
+  if (board.writers?.groups) return board.writers;
+  if (board.permissionWrite) {
+    return {
+      groups: {
+        manager: board.permissionWrite.manager ?? true,
+        teacher: board.permissionWrite.teacher ?? true,
+        student: board.permissionWrite.student ?? false,
+      },
+      users: [],
+    };
+  }
+  return {
+    groups: { manager: true, teacher: true, student: false },
+    users: [],
+  };
 };
 
 const ManageBoardPopup = ({
@@ -561,36 +552,34 @@ const ManageBoardPopup = ({
 
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || "");
-  const [permissionWrite, setPermissionWrite] = useState<TBoardPermission>(
-    board.permissionWrite || {
-      manager: true,
-      teacher: true,
-      student: false,
-      exceptions: [],
-    }
+  const [members, setMembers] = useState<TBoardMembers>(
+    resolveMembers(board)
   );
-  const [permissionRead, setPermissionRead] = useState<TBoardPermission>(
-    board.permissionRead || {
-      manager: true,
-      teacher: true,
-      student: true,
-      exceptions: [],
-    }
-  );
-  const [permissionComment, setPermissionComment] = useState<TBoardPermission>(
-    board.permissionComment || {
-      manager: true,
-      teacher: true,
-      student: true,
-      exceptions: [],
-    }
+  const [writers, setWriters] = useState<TBoardMembers>(
+    resolveWriters(board)
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const handleMemberGroupChange = (
+    role: "manager" | "teacher" | "student",
+    checked: boolean
+  ) => {
+    setMembers((prev) => ({
+      ...prev,
+      groups: { ...prev.groups, [role]: checked },
+    }));
+    if (!checked) {
+      setWriters((prev) => ({
+        ...prev,
+        groups: { ...prev.groups, [role]: false },
+      }));
+    }
+  };
+
   const handleSubmit = async () => {
     if (!name.trim()) {
-      alert("알림 이름을 입력해주세요.");
+      alert("보드 이름을 입력해주세요.");
       return;
     }
 
@@ -605,31 +594,14 @@ const ManageBoardPopup = ({
         },
       });
 
-      await BoardAPI.UBoardPermission({
-        params: { _id: board._id, type: "read" },
-        data: {
-          manager: permissionRead.manager,
-          teacher: permissionRead.teacher,
-          student: permissionRead.student,
-        },
+      await BoardAPI.UBoardMembers({
+        params: { _id: board._id },
+        data: { groups: members.groups },
       });
 
-      await BoardAPI.UBoardPermission({
-        params: { _id: board._id, type: "write" },
-        data: {
-          manager: permissionWrite.manager,
-          teacher: permissionWrite.teacher,
-          student: permissionWrite.student,
-        },
-      });
-
-      await BoardAPI.UBoardPermission({
-        params: { _id: board._id, type: "comment" },
-        data: {
-          manager: permissionComment.manager,
-          teacher: permissionComment.teacher,
-          student: permissionComment.student,
-        },
+      await BoardAPI.UBoardWriters({
+        params: { _id: board._id },
+        data: { groups: writers.groups },
       });
 
       alert("저장되었습니다.");
@@ -644,7 +616,7 @@ const ManageBoardPopup = ({
 
   const handleDelete = async () => {
     if (board.isDefault) {
-      alert("기본 알림은 삭제할 수 없습니다.");
+      alert("기본 보드는 삭제할 수 없습니다.");
       return;
     }
 
@@ -666,10 +638,28 @@ const ManageBoardPopup = ({
     }
   };
 
+  const roles = [
+    { key: "manager" as const, label: "관리자" },
+    { key: "teacher" as const, label: "교사" },
+    { key: "student" as const, label: "학생" },
+  ];
+
+  const cellStyle: React.CSSProperties = {
+    padding: "8px 12px",
+    textAlign: "center",
+  };
+
+  const headerCellStyle: React.CSSProperties = {
+    ...cellStyle,
+    fontWeight: 600,
+    fontSize: "13px",
+    color: "var(--text-color-2)",
+  };
+
   return (
     <Popup
       setState={setState}
-      title="알림 관리"
+      title="보드 관리"
       closeBtn
       style={{ maxWidth: "600px", width: "100%" }}
       footer={
@@ -706,13 +696,19 @@ const ManageBoardPopup = ({
       <div>
         {/* 기본 정보 */}
         <div style={{ marginBottom: "24px" }}>
-          <h4 style={{ marginBottom: "12px", fontSize: "14px", fontWeight: 600 }}>
+          <h4
+            style={{
+              marginBottom: "12px",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
             기본 정보
           </h4>
           <div style={{ marginBottom: "16px" }}>
             <Input
-              label="알림 이름"
-              placeholder="알림 이름을 입력하세요"
+              label="보드 이름"
+              placeholder="보드 이름을 입력하세요"
               defaultValue={name}
               onChange={(e: any) => setName(e.target.value)}
               required
@@ -726,40 +722,111 @@ const ManageBoardPopup = ({
                   marginTop: "4px",
                 }}
               >
-                기본 알림의 이름은 변경할 수 없습니다.
+                기본 보드의 이름은 변경할 수 없습니다.
               </p>
             )}
           </div>
           <div>
             <Textarea
               label="설명 (선택)"
-              placeholder="알림에 대한 설명을 입력하세요"
+              placeholder="보드에 대한 설명을 입력하세요"
               defaultValue={description}
               onChange={(e: any) => setDescription(e.target.value)}
             />
           </div>
         </div>
 
+        {/* 권한 설정 */}
         <div>
-          <h4 style={{ marginBottom: "12px", fontSize: "14px", fontWeight: 600 }}>
+          <h4
+            style={{
+              marginBottom: "12px",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
             권한 설정
           </h4>
-          <PermissionTable
-            permissions={{
-              read: permissionRead,
-              write: permissionWrite,
-              comment: permissionComment,
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ ...headerCellStyle, textAlign: "left" }}></th>
+                {roles.map(({ key, label }) => (
+                  <th key={key} style={headerCellStyle}>
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td
+                  style={{
+                    ...cellStyle,
+                    textAlign: "left",
+                    fontWeight: 500,
+                  }}
+                >
+                  멤버
+                </td>
+                {roles.map(({ key }) => (
+                  <td key={key} style={cellStyle}>
+                    <ToggleSwitch
+                      checked={members.groups[key]}
+                      onChange={(checked: boolean) =>
+                        handleMemberGroupChange(key, checked)
+                      }
+                    />
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td
+                  style={{
+                    ...cellStyle,
+                    textAlign: "left",
+                    fontWeight: 500,
+                  }}
+                >
+                  작성
+                </td>
+                {roles.map(({ key }) => (
+                  <td key={key} style={cellStyle}>
+                    {members.groups[key] ? (
+                      <ToggleSwitch
+                        checked={writers.groups[key]}
+                        onChange={(checked: boolean) =>
+                          setWriters((prev) => ({
+                            ...prev,
+                            groups: { ...prev.groups, [key]: checked },
+                          }))
+                        }
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "var(--text-color-3)",
+                        }}
+                      >
+                        -
+                      </span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              marginTop: "8px",
             }}
-            onChange={(type, key, checked) => {
-              if (type === "read") {
-                setPermissionRead((prev) => ({ ...prev, [key]: checked }));
-              } else if (type === "write") {
-                setPermissionWrite((prev) => ({ ...prev, [key]: checked }));
-              } else {
-                setPermissionComment((prev) => ({ ...prev, [key]: checked }));
-              }
-            }}
-          />
+          >
+            멤버: 보드에 접근할 수 있는 역할 / 작성: 게시글을 작성할 수 있는
+            역할
+          </p>
         </div>
       </div>
     </Popup>
