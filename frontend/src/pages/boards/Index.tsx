@@ -249,11 +249,11 @@ const Boards = () => {
           }}
         >
           <div className={style.title} style={{ margin: 0 }}>
-            게시판
+            보드
           </div>
         </div>
 
-        {/* 게시판 탭 */}
+        {/* 보드 탭 */}
         {boards.length > 0 && (
           <div
             className="hide-scrollbar"
@@ -471,7 +471,7 @@ const Boards = () => {
               color: "var(--text-color-2)",
             }}
           >
-            게시판이 없습니다.
+            보드가 없습니다.
           </div>
         )}
       </div>

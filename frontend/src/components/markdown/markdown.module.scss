@@ -522,6 +522,7 @@
 
 // HTML 앱 임베드 래퍼
 .htmlEmbedWrapper {
+  position: relative;
   width: 100%;
   margin-bottom: 16px;
   border-radius: 8px;
@@ -534,6 +535,83 @@
     min-height: 300px;
     border: none;
     background-color: #fff;
+  }
+
+  &:hover .embedFullscreenBtn {
+    opacity: 1;
+  }
+}
+
+.embedFullscreenBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  svg {
+    fill: currentColor;
+  }
+}
+
+// 전체보기 오버레이 (CSS module에서 사용)
+.embedFullscreenOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  iframe {
+    width: 90vw;
+    height: 90vh;
+    border: none;
+    border-radius: 8px;
+    background-color: #fff;
+  }
+}
+
+.embedFullscreenClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  svg {
+    fill: currentColor;
   }
 }
 
@@ -655,5 +733,163 @@
 
   &:hover {
     opacity: 0.85;
+  }
+}
+
+// === 에디터 노드뷰 전역 스타일 (TipTap vanilla DOM) ===
+:global {
+  .embed-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--component-color);
+    border-bottom: 1px solid var(--border-default-color);
+    font-size: 12px;
+  }
+
+  .embed-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .embed-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 8px;
+    font-size: 12px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--accent-3);
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: var(--background-hover-color);
+      color: var(--accent-1);
+    }
+
+    &.active {
+      background: var(--accent-1);
+      color: #fff;
+      border-color: var(--accent-1);
+    }
+  }
+
+  .embed-toolbar-icon {
+    padding: 3px 5px;
+    margin-left: auto;
+  }
+
+  .embed-height-input {
+    width: 60px;
+    padding: 2px 6px;
+    font-size: 12px;
+    border: 1px solid var(--border-default-color);
+    border-radius: 4px;
+    outline: none;
+    background: var(--background-color);
+    color: var(--accent-1);
+    text-align: right;
+
+    &:focus {
+      border-color: var(--primary-color);
+    }
+
+    // 스피너 숨김
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    -moz-appearance: textfield;
+  }
+
+  .embed-toolbar-label {
+    font-size: 11px;
+    color: var(--accent-3);
+    margin-left: 2px;
+  }
+
+  .embed-resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    cursor: ns-resize;
+    background: transparent;
+    transition: background 0.15s ease;
+    z-index: 2;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--accent-3);
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+
+      &::after {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  // 전체보기 오버레이 (에디터용 - vanilla DOM)
+  .embed-fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .embed-fullscreen-iframe {
+    width: 90vw;
+    height: 90vh;
+    border: none;
+    border-radius: 8px;
+    background-color: #fff;
+  }
+
+  .embed-fullscreen-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #fff;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    svg {
+      fill: currentColor;
+    }
   }
 }

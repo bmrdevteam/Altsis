@@ -203,7 +203,7 @@ export const update = async (req, res) => {
 
     // 기본 게시판은 이름 변경 불가
     if (board.isDefault && req.body.name && req.body.name !== board.name) {
-      return res.status(400).send({ message: "기본 게시판의 이름은 변경할 수 없습니다." });
+      return res.status(400).send({ message: "기본 보드의 이름은 변경할 수 없습니다." });
     }
 
     if (req.body.name) board.name = req.body.name;
@@ -445,7 +445,7 @@ export const remove = async (req, res) => {
 
     // 기본 게시판은 삭제 불가
     if (board.isDefault) {
-      return res.status(400).send({ message: "기본 게시판은 삭제할 수 없습니다." });
+      return res.status(400).send({ message: "기본 보드는 삭제할 수 없습니다." });
     }
 
     board.isActive = false;

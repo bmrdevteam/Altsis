@@ -285,7 +285,7 @@ const Notifications = ({ schoolData }: Props) => {
         <Button type="ghost" onClick={() => setShowCreatePopup(true)}>
           <>
             <Svg type="plus" width="16px" height="16px" />
-            게시판 추가
+            보드 추가
           </>
         </Button>
       </div>
@@ -366,7 +366,7 @@ const Notifications = ({ schoolData }: Props) => {
       <Tab
         items={{
           "알림 설정": <NotificationSettingsSection />,
-          "게시판 관리": BoardManagementContent,
+          "보드 관리": BoardManagementContent,
         }}
         align="flex-start"
         dontUsePaths

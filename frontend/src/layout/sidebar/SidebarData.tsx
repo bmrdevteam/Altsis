@@ -172,7 +172,7 @@ export const SidebarData = (auth: string, role?: string): any => {
       subLink: [
         {
           title: "boards",
-          name: "게시판",
+          name: "보드",
           path: "/boards",
           icon: <Svg type="dashboard" />,
         },

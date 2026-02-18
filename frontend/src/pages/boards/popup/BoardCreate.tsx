@@ -34,7 +34,7 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      alert("게시판 이름을 입력해주세요.");
+      alert("보드 이름을 입력해주세요.");
       return;
     }
 
@@ -53,7 +53,7 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
           description: description.trim(),
         },
       });
-      alert("게시판이 생성되었습니다.");
+      alert("보드가 생성되었습니다.");
       setState(false);
       onSuccess?.();
     } catch (err) {
@@ -66,7 +66,7 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
   return (
     <Popup
       setState={setState}
-      title="게시판 생성"
+      title="보드 생성"
       closeBtn
       style={{ maxWidth: "500px", width: "100%" }}
       footer={
@@ -83,8 +83,8 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
       <div>
         <div style={{ marginBottom: "16px" }}>
           <Input
-            label="게시판 이름"
-            placeholder="게시판 이름을 입력하세요"
+            label="보드 이름"
+            placeholder="보드 이름을 입력하세요"
             onChange={(e: any) => setName(e.target.value)}
             required
           />
@@ -92,7 +92,7 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
         <div>
           <Textarea
             label="설명 (선택)"
-            placeholder="게시판에 대한 설명을 입력하세요"
+            placeholder="보드에 대한 설명을 입력하세요"
             onChange={(e: any) => setDescription(e.target.value)}
           />
         </div>

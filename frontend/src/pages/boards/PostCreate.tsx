@@ -173,7 +173,7 @@ const PostCreate = () => {
           <Input
             label="제목"
             placeholder="제목을 입력하세요"
-            defaultValue={title}
+            value={title}
             onChange={(e: any) => setTitle(e.target.value)}
           />
         </div>

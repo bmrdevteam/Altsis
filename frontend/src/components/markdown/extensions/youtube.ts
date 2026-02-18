@@ -70,37 +70,49 @@ export const transformSpecialNodes = (editor: Editor): void => {
       }
     }
 
-    // ![embed](URL) → HtmlEmbed 노드
+    // ![embed](URL) 또는 ![embed:HEIGHT](URL) → HtmlEmbed 노드
     if (
       htmlEmbedType &&
       node.type.name === "image" &&
-      node.attrs.alt === "embed" &&
       node.attrs.src
     ) {
-      transforms.push({
-        from: pos,
-        to: pos + node.nodeSize,
-        node: htmlEmbedType.create({
-          embedType: "url",
-          content: node.attrs.src,
-        }),
-      });
+      const embedMatch = (node.attrs.alt || "").match(
+        /^embed(?::(\d+))?$/
+      );
+      if (embedMatch) {
+        const height = embedMatch[1] ? parseInt(embedMatch[1], 10) : 0;
+        transforms.push({
+          from: pos,
+          to: pos + node.nodeSize,
+          node: htmlEmbedType.create({
+            embedType: "url",
+            content: node.attrs.src,
+            height,
+          }),
+        });
+      }
     }
 
-    // ```html-app → HtmlEmbed 노드
+    // ```html-app 또는 ```html-app:HEIGHT → HtmlEmbed 노드
     if (
       htmlEmbedType &&
-      node.type.name === "codeBlock" &&
-      node.attrs.language === "html-app"
+      node.type.name === "codeBlock"
     ) {
-      transforms.push({
-        from: pos,
-        to: pos + node.nodeSize,
-        node: htmlEmbedType.create({
-          embedType: "code",
-          content: node.textContent,
-        }),
-      });
+      const langMatch = (node.attrs.language || "").match(
+        /^html-app(?::(\d+))?$/
+      );
+      if (langMatch) {
+        const height = langMatch[1] ? parseInt(langMatch[1], 10) : 0;
+        transforms.push({
+          from: pos,
+          to: pos + node.nodeSize,
+          node: htmlEmbedType.create({
+            embedType: "code",
+            content: node.textContent,
+            height,
+          }),
+        });
+      }
     }
   });
 
@@ -138,15 +150,25 @@ export const postprocessMarkdown = (md: string): string => {
     }
   );
 
-  // HTML 임베드: <div data-html-embed ...> → markdown
+  // HTML 임베드: <div data-html-embed ...> → markdown (height 포함)
   result = result.replace(
-    /<div data-html-embed[^>]*data-embed-type="(\w+)"[^>]*data-embed-content="([^"]*)"[^>]*><\/div>/g,
-    (_match, embedType: string, encodedContent: string) => {
+    /<div data-html-embed[^>]*><\/div>/g,
+    (match) => {
+      const typeMatch = match.match(/data-embed-type="(\w+)"/);
+      const contentMatch = match.match(/data-embed-content="([^"]*)"/);
+      const heightMatch = match.match(/data-embed-height="(\d+)"/);
+
+      if (!typeMatch || !contentMatch) return match;
+
+      const embedType = typeMatch[1];
+      const encodedContent = contentMatch[1];
+      const heightSuffix = heightMatch ? `:${heightMatch[1]}` : "";
+
       if (embedType === "code") {
         const decoded = safeAtob(encodedContent);
-        return `\`\`\`html-app\n${decoded}\n\`\`\``;
+        return `\`\`\`html-app${heightSuffix}\n${decoded}\n\`\`\``;
       } else {
-        return `![embed](${encodedContent})`;
+        return `![embed${heightSuffix}](${encodedContent})`;
       }
     }
   );
