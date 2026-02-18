@@ -513,6 +513,9 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
       {/* Chat Header with Menu */}
       <div className={style.room_header}>
         <div className={style.room_header_top}>
+          {embedded && (
+            <span className={style.room_name_title}>{getRoomDisplayName()}</span>
+          )}
           <div
             className={style.room_title}
             onClick={() => setShowParticipants(!showParticipants)}
@@ -586,6 +589,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                 />
                 <span className={style.participant_name}>
                   {participant.userName}
+                  <span className={style.participant_id}>({participant.userId})</span>
                 </span>
                 {participant.user === room.creator && (
                   <span className={style.creator_badge}>방장</span>
@@ -624,7 +628,10 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
               )}
               <div className={style.message}>
                 {msg.sender !== currentUser?._id && (
-                  <div className={style.sender}>{msg.senderName}</div>
+                  <div className={style.sender}>
+                    {msg.senderName}
+                    <span className={style.sender_id}>({msg.senderId})</span>
+                  </div>
                 )}
                 <div className={style.content}>
                   <ChatMessageContent
@@ -747,6 +754,126 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
 
   const headerTitle = showChatList || !room ? "채팅" : getRoomDisplayName();
 
+  // === Embedded (page) layout: sidebar + main area ===
+  if (embedded) {
+    return (
+      <>
+        <div className={style.embedded_layout}>
+          {/* Sidebar - Chat List */}
+          <div className={style.sidebar}>
+            <div className={style.sidebar_header}>
+              <span className={style.sidebar_title}>채팅</span>
+              <button
+                className={style.new_chat_btn}
+                onClick={() => setShowNewChat(true)}
+              >
+                + 새 채팅
+              </button>
+            </div>
+            <div className={style.sidebar_list}>
+              {rooms.length === 0 ? (
+                <div className={style.sidebar_empty}>채팅방이 없습니다</div>
+              ) : (
+                rooms.map((r) => {
+                  const participant = r.participants.find(
+                    (p) => p.userId === currentUser?.userId
+                  );
+                  const hasUnread =
+                    r.lastMessage?.sentAt &&
+                    r.lastMessage.sender !== currentUser?._id &&
+                    (!participant?.lastReadAt ||
+                      new Date(r.lastMessage.sentAt) >
+                        new Date(participant.lastReadAt));
+
+                  return (
+                    <div
+                      key={r._id}
+                      className={`${style.chat_list_item} ${room?._id === r._id ? style.active : ""}`}
+                      onClick={() => handleRoomClick(r)}
+                    >
+                      <img
+                        src={defaultProfilePic}
+                        alt={getRoomDisplayName(r)}
+                        className={style.chat_list_avatar}
+                      />
+                      <div className={style.chat_list_info}>
+                        <div className={style.chat_list_header}>
+                          <span
+                            className={`${style.chat_list_name} ${hasUnread ? style.unread : ""}`}
+                          >
+                            {getRoomDisplayName(r)}
+                            <span className={style.participant_count}>
+                              ({r.participants.length})
+                            </span>
+                          </span>
+                          <span className={style.chat_list_time}>
+                            {formatTime(r.lastMessage?.sentAt)}
+                          </span>
+                        </div>
+                        {r.lastMessage && (
+                          <div className={style.chat_list_preview}>
+                            {hasUnread && (
+                              <span className={style.unread_badge}>N</span>
+                            )}
+                            {r.lastMessage.content}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Main Area - Conversation */}
+          <div className={style.main_area}>
+            {room ? (
+              <div className={`${style.chat_window} ${style.chat_window_embedded}`}>
+                {chatConversationContent}
+              </div>
+            ) : (
+              <div className={style.no_room_selected}>
+                채팅방을 선택해주세요
+              </div>
+            )}
+          </div>
+        </div>
+
+        {showInvite && room && (
+          <InviteUsers
+            room={room}
+            onClose={() => setShowInvite(false)}
+            onInvited={handleInviteComplete}
+          />
+        )}
+        {showSettings && room && (
+          <RoomSettings
+            room={room}
+            onClose={() => setShowSettings(false)}
+            onUpdated={handleSettingsUpdate}
+          />
+        )}
+        {showNewChat && (
+          <NewChat
+            onClose={() => setShowNewChat(false)}
+            onChatCreated={handleNewChatComplete}
+          />
+        )}
+        {showStorage && (
+          <ChatFileStorage onClose={() => setShowStorage(false)} />
+        )}
+        {lightboxImage && (
+          <ImageLightbox
+            imageUrl={lightboxImage}
+            onClose={() => setLightboxImage(null)}
+          />
+        )}
+      </>
+    );
+  }
+
+  // === Modal (navbar panel) layout ===
   return (
     <>
       <div className={`${style.chat_panel_container} ${embedded ? style.embedded : ""}`}>
