@@ -343,12 +343,10 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
       const formData = new FormData();
       formData.append("file", previewFile.file);
 
-      console.log("[ChatUpload] Uploading:", previewFile.file.name, previewFile.file.size);
       const { attachment } = await ChatAPI.CChatFileUpload({
         params: { roomId: room._id },
         data: formData,
       });
-      console.log("[ChatUpload] Result:", attachment);
 
       const { message } = await ChatAPI.CChatMessage({
         params: { roomId: room._id },
