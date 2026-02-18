@@ -5,7 +5,7 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { Board, Post, Notification, User, Registration, SurveyResponse } from "../models/index.js";
+import { Board, Post, Notification, User, Registration, SurveyResponse, ReservationSlot, Reservation } from "../models/index.js";
 import {
   isBoardMember,
   isBoardWriter,
@@ -81,6 +81,22 @@ export const create = async (req, res) => {
       }
     }
 
+    const postType = req.body.postType || "general";
+
+    // 예약 게시글 검증
+    if (postType === "reservation") {
+      if (!req.body.reservationConfig?.resource) {
+        return res.status(400).send({ message: FIELD_REQUIRED("reservationConfig.resource") });
+      }
+    }
+
+    // 설문 게시글 검증
+    if (postType === "survey") {
+      if (!req.body.survey?.questions?.length) {
+        return res.status(400).send({ message: "설문 게시글은 최소 1개의 질문이 필요합니다." });
+      }
+    }
+
     const post = await Post(req.user.academyId).create({
       board: board._id,
       author: req.user._id,
@@ -89,6 +105,10 @@ export const create = async (req, res) => {
       authorProfile: req.user.profile,
       title: req.body.title,
       content: req.body.content,
+      postType,
+      ...(postType === "reservation" && {
+        reservationConfig: req.body.reservationConfig,
+      }),
       category: req.body.category || "",
       attachments: req.body.attachments || [],
       ...(permissionRead && { permissionRead }),
@@ -422,6 +442,16 @@ export const update = async (req, res) => {
       post.markModified("permissionRead");
     }
 
+    // 예약 설정 수정
+    if ("reservationConfig" in req.body && post.postType === "reservation") {
+      if (req.body.reservationConfig) {
+        // totalSlots는 외부에서 변경 불가 (슬롯 생성/삭제 시 자동 관리)
+        const { totalSlots, ...configUpdate } = req.body.reservationConfig;
+        Object.assign(post.reservationConfig, configUpdate);
+      }
+      post.markModified("reservationConfig");
+    }
+
     // 하위호환: targetAudience
     if (req.body.targetAudience) post.targetAudience = req.body.targetAudience;
 
@@ -434,8 +464,20 @@ export const update = async (req, res) => {
             message: "이미 응답이 있는 설문의 질문을 수정할 수 없습니다.",
           });
         }
+        // 설문 게시글이면 질문 1개 이상 필수
+        if (post.postType === "survey" && !req.body.survey.questions?.length) {
+          return res.status(400).send({
+            message: "설문 게시글은 최소 1개의 질문이 필요합니다.",
+          });
+        }
         post.survey = req.body.survey;
       } else {
+        // 설문 게시글에서는 설문 삭제 불가
+        if (post.postType === "survey") {
+          return res.status(400).send({
+            message: "설문 게시글에서는 설문을 제거할 수 없습니다.",
+          });
+        }
         post.survey = null;
       }
       post.markModified("survey");
@@ -568,6 +610,18 @@ export const remove = async (req, res) => {
     // 설문 응답 정리
     if (post.survey) {
       await SurveyResponse(req.user.academyId).deleteMany({ post: post._id });
+    }
+
+    // 예약 데이터 비활성화
+    if (post.postType === "reservation") {
+      await ReservationSlot(req.user.academyId).updateMany(
+        { post: post._id },
+        { isActive: false }
+      );
+      await Reservation(req.user.academyId).updateMany(
+        { post: post._id, status: "pending" },
+        { status: "cancelled" }
+      );
     }
 
     return res.status(200).send();

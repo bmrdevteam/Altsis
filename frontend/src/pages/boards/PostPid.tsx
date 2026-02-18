@@ -30,6 +30,8 @@ import { TComment } from "types/comment";
 import UserListPopup from "./popup/UserListPopup";
 import SurveyViewPopup from "./survey/SurveyViewPopup";
 import surveyStyle from "./survey/survey.module.scss";
+import ReservationViewPopup from "./reservation/ReservationViewPopup";
+import resStyle from "./reservation/reservation.module.scss";
 
 const PostPid = () => {
   const navigate = useAppNavigate();
@@ -49,6 +51,7 @@ const PostPid = () => {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [showSurveyPopup, setShowSurveyPopup] = useState(false);
+  const [showReservationPopup, setShowReservationPopup] = useState(false);
 
   // 서명 URL 캐시 (다운로드/새 탭 열기용)
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -108,6 +111,14 @@ const PostPid = () => {
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
   const canEdit = isAuthor || isManager;
+
+  // 보드 관리 권한 (예약 관리용): 게시글 작성자 또는 보드 관리자
+  const canManageBoard = () => {
+    if (isAuthor) return true;
+    if (isManager) return true;
+    if (board?.creator && board.creator === currentUser?._id) return true;
+    return false;
+  };
 
   // 댓글 작성 권한: 멤버는 댓글 가능
   const canComment = () => {
@@ -493,9 +504,18 @@ const PostPid = () => {
 
         {/* 설문 섹션 */}
         {post.survey && post.survey.questions.length > 0 && (
-          <div className={surveyStyle.surveyActionCard}>
+          <div
+            className={surveyStyle.surveyActionCard}
+            style={
+              post.postType === "survey"
+                ? { borderColor: "var(--accent-1)", borderWidth: "2px" }
+                : undefined
+            }
+          >
             <div className={surveyStyle.surveyActionLeft}>
-              <span className={surveyStyle.surveyActionIcon}>📋</span>
+              <span className={surveyStyle.surveyActionIcon}>
+                {post.postType === "survey" ? "📝" : "📋"}
+              </span>
               <div className={surveyStyle.surveyActionInfo}>
                 <span className={surveyStyle.surveyActionTitle}>
                   {post.survey.title || "설문조사"}
@@ -512,6 +532,35 @@ const PostPid = () => {
             </div>
             <Button type="ghost" onClick={() => setShowSurveyPopup(true)}>
               설문 참여
+            </Button>
+          </div>
+        )}
+
+        {/* 예약 섹션 */}
+        {post.postType === "reservation" && post.reservationConfig && (
+          <div className={resStyle.reservationActionCard}>
+            <div className={resStyle.reservationActionLeft}>
+              <span className={resStyle.reservationActionIcon}>📅</span>
+              <div className={resStyle.reservationActionInfo}>
+                <span className={resStyle.reservationActionTitle}>
+                  {post.reservationConfig.resource}
+                </span>
+                <span className={resStyle.reservationActionMeta}>
+                  {post.reservationConfig.totalSlots || 0}개 슬롯
+                  {post.reservationConfig.requireApproval
+                    ? " · 승인 필요"
+                    : " · 자동 승인"}
+                  {post.reservationConfig.slotMode === "label"
+                    ? " · 라벨 모드"
+                    : " · 시간 모드"}
+                </span>
+              </div>
+            </div>
+            <Button
+              type="ghost"
+              onClick={() => setShowReservationPopup(true)}
+            >
+              {canManageBoard() ? "예약 관리" : "예약하기"}
             </Button>
           </div>
         )}
@@ -721,6 +770,18 @@ const PostPid = () => {
           isManager={isManager}
         />
       )}
+
+      {showReservationPopup &&
+        post.postType === "reservation" &&
+        post.reservationConfig &&
+        board && (
+          <ReservationViewPopup
+            setState={setShowReservationPopup}
+            post={post}
+            board={board}
+            canManage={canManageBoard()}
+          />
+        )}
     </>
   );
 };

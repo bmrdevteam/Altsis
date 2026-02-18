@@ -28,9 +28,11 @@ import { MarkdownEditor } from "components/markdown";
 
 import { TBoard, TBoardMembers, TMemberUser } from "types/board";
 import { TPost, TPostAttachment } from "types/post";
+import { TPostType, TSlotMode, TApplicationFormField } from "types/reservation";
 import { TSurvey } from "types/survey";
 import SurveyBuilderPopup from "./survey/SurveyBuilderPopup";
 import surveyStyle from "./survey/survey.module.scss";
+import resStyle from "./reservation/reservation.module.scss";
 
 const PostCreate = () => {
   const navigate = useAppNavigate();
@@ -55,6 +57,31 @@ const PostCreate = () => {
   const [userList, setUserList] = useState<any[]>([]);
   const [survey, setSurvey] = useState<TSurvey | null>(null);
   const [showSurveyBuilderPopup, setShowSurveyBuilderPopup] = useState(false);
+
+  // 게시글 유형 (일반/예약)
+  const [postType, setPostType] = useState<TPostType>("general");
+  const [reservationConfig, setReservationConfig] = useState<{
+    resource: string;
+    resourceDescription: string;
+    slotMode: TSlotMode;
+    defaultCapacity: number;
+    requireApproval: boolean;
+    maxReservationsPerUser: number;
+    reservationOpenAt: string;
+    reservationCloseAt: string;
+    applicationForm: TApplicationFormField[];
+  }>({
+    resource: "",
+    resourceDescription: "",
+    slotMode: "time",
+    defaultCapacity: 1,
+    requireApproval: true,
+    maxReservationsPerUser: 0,
+    reservationOpenAt: "",
+    reservationCloseAt: "",
+    applicationForm: [],
+  });
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -67,6 +94,24 @@ const PostCreate = () => {
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
 
   const isEditMode = !!postId;
+
+  // postType이 "survey"로 변경되면 설문 자동 초기화
+  useEffect(() => {
+    if (postType === "survey" && !survey) {
+      setSurvey({
+        title: "",
+        description: "",
+        questions: [],
+        settings: {
+          isAnonymous: false,
+          showResults: "afterResponse",
+          deadline: null,
+          allowModify: false,
+        },
+        responseCount: 0,
+      });
+    }
+  }, [postType]);
 
   useEffect(() => {
     if (isLoading && boardId) {
@@ -155,6 +200,33 @@ const PostCreate = () => {
             // 설문 데이터 로드
             if (post.survey) {
               setSurvey(post.survey);
+            }
+            // 설문 게시글 데이터 로드
+            if (post.postType === "survey") {
+              setPostType("survey");
+            }
+            // 예약 데이터 로드
+            if (post.postType === "reservation") {
+              setPostType("reservation");
+              if (post.reservationConfig) {
+                setReservationConfig({
+                  resource: post.reservationConfig.resource || "",
+                  resourceDescription:
+                    post.reservationConfig.resourceDescription || "",
+                  slotMode: post.reservationConfig.slotMode || "time",
+                  defaultCapacity: post.reservationConfig.defaultCapacity || 1,
+                  requireApproval:
+                    post.reservationConfig.requireApproval ?? true,
+                  maxReservationsPerUser:
+                    post.reservationConfig.maxReservationsPerUser || 0,
+                  reservationOpenAt:
+                    post.reservationConfig.reservationOpenAt || "",
+                  reservationCloseAt:
+                    post.reservationConfig.reservationCloseAt || "",
+                  applicationForm:
+                    post.reservationConfig.applicationForm || [],
+                });
+              }
             }
           } else {
             // 신규 작성: 보드 멤버 그룹으로 기본값
@@ -306,10 +378,45 @@ const PostCreate = () => {
       return;
     }
 
+    // 예약 게시글 유효성 검증
+    if (postType === "reservation" && !reservationConfig.resource.trim()) {
+      alert("예약 대상(자원)을 입력해주세요.");
+      return;
+    }
+
+    // 설문 게시글 유효성 검증
+    if (postType === "survey") {
+      if (!survey || survey.questions.length === 0) {
+        alert("설문 게시글은 최소 1개의 질문이 필요합니다.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
       const postPermissionRead = useSpecificPermission ? permissionRead : undefined;
+
+      // 예약 설정 데이터 구성
+      const resConfig =
+        postType === "reservation"
+          ? {
+              resource: reservationConfig.resource.trim(),
+              resourceDescription:
+                reservationConfig.resourceDescription.trim(),
+              slotMode: reservationConfig.slotMode,
+              defaultCapacity: reservationConfig.defaultCapacity,
+              requireApproval: reservationConfig.requireApproval,
+              maxReservationsPerUser:
+                reservationConfig.maxReservationsPerUser,
+              ...(reservationConfig.reservationOpenAt
+                ? { reservationOpenAt: reservationConfig.reservationOpenAt }
+                : {}),
+              ...(reservationConfig.reservationCloseAt
+                ? { reservationCloseAt: reservationConfig.reservationCloseAt }
+                : {}),
+            }
+          : undefined;
 
       if (isEditMode && postId) {
         await PostAPI.UPost({
@@ -320,6 +427,9 @@ const PostCreate = () => {
             attachments,
             permissionRead: useSpecificPermission ? permissionRead : null,
             survey,
+            ...(postType === "reservation" && {
+              reservationConfig: resConfig,
+            }),
           },
         });
         alert("수정되었습니다.");
@@ -333,6 +443,10 @@ const PostCreate = () => {
             attachments,
             permissionRead: postPermissionRead,
             survey,
+            postType,
+            ...(postType === "reservation" && {
+              reservationConfig: resConfig,
+            }),
           },
         });
         alert("작성되었습니다.");
@@ -414,6 +528,209 @@ const PostCreate = () => {
             onChange={(e: any) => setTitle(e.target.value)}
           />
         </div>
+
+        {/* 게시글 유형 선택 (신규 작성 시만) */}
+        {!isEditMode && (
+          <div style={{ marginBottom: "16px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: 500,
+                marginBottom: "8px",
+              }}
+            >
+              게시글 유형
+            </label>
+            <div className={resStyle.postTypeSelector}>
+              <button
+                className={`${resStyle.postTypeOption} ${
+                  postType === "general" ? resStyle.postTypeActive : ""
+                }`}
+                onClick={() => setPostType("general")}
+              >
+                일반
+              </button>
+              <button
+                className={`${resStyle.postTypeOption} ${
+                  postType === "reservation" ? resStyle.postTypeActive : ""
+                }`}
+                onClick={() => setPostType("reservation")}
+              >
+                예약
+              </button>
+              <button
+                className={`${resStyle.postTypeOption} ${
+                  postType === "survey" ? resStyle.postTypeActive : ""
+                }`}
+                onClick={() => setPostType("survey")}
+              >
+                설문
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 예약 설정 */}
+        {postType === "reservation" && (
+          <div style={{ marginBottom: "16px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: 500,
+                marginBottom: "8px",
+              }}
+            >
+              예약 설정
+            </label>
+            <div className={resStyle.configSection}>
+              <div className={resStyle.configRow}>
+                <label>예약 대상 *</label>
+                <input
+                  className={resStyle.configInput}
+                  placeholder="예: 상담실, 회의실, 음악실"
+                  value={reservationConfig.resource}
+                  onChange={(e) =>
+                    setReservationConfig((prev) => ({
+                      ...prev,
+                      resource: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className={resStyle.configRow}>
+                <label>설명</label>
+                <input
+                  className={resStyle.configInput}
+                  placeholder="예약 대상에 대한 설명 (선택)"
+                  value={reservationConfig.resourceDescription}
+                  onChange={(e) =>
+                    setReservationConfig((prev) => ({
+                      ...prev,
+                      resourceDescription: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className={resStyle.configRow}>
+                <label>슬롯 모드</label>
+                <select
+                  className={resStyle.configSelect}
+                  value={reservationConfig.slotMode}
+                  onChange={(e) =>
+                    setReservationConfig((prev) => ({
+                      ...prev,
+                      slotMode: e.target.value as TSlotMode,
+                    }))
+                  }
+                  disabled={isEditMode}
+                >
+                  <option value="time">시간 (09:00~10:00)</option>
+                  <option value="label">라벨 (1교시, 2교시 등)</option>
+                </select>
+              </div>
+
+              <div className={resStyle.configRow}>
+                <label>기본 정원</label>
+                <input
+                  type="number"
+                  className={resStyle.configNumberInput}
+                  min={1}
+                  value={reservationConfig.defaultCapacity}
+                  onChange={(e) =>
+                    setReservationConfig((prev) => ({
+                      ...prev,
+                      defaultCapacity: parseInt(e.target.value) || 1,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className={resStyle.configToggleRow}>
+                <label style={{ fontSize: "13px", fontWeight: 500 }}>
+                  승인 필요
+                </label>
+                <ToggleSwitch
+                  defaultChecked={reservationConfig.requireApproval}
+                  onChange={(checked: boolean) =>
+                    setReservationConfig((prev) => ({
+                      ...prev,
+                      requireApproval: checked,
+                    }))
+                  }
+                />
+              </div>
+              <p className={resStyle.configHint}>
+                {reservationConfig.requireApproval
+                  ? "관리자 승인 후 예약이 확정됩니다."
+                  : "신청 즉시 예약이 확정됩니다."}
+              </p>
+
+              <div className={resStyle.configRow}>
+                <label>최대 예약</label>
+                <input
+                  type="number"
+                  className={resStyle.configNumberInput}
+                  min={0}
+                  value={reservationConfig.maxReservationsPerUser}
+                  onChange={(e) =>
+                    setReservationConfig((prev) => ({
+                      ...prev,
+                      maxReservationsPerUser: parseInt(e.target.value) || 0,
+                    }))
+                  }
+                />
+                <span
+                  style={{ fontSize: "12px", color: "var(--text-color-2)" }}
+                >
+                  0 = 무제한
+                </span>
+              </div>
+
+              <div className={resStyle.configRow}>
+                <label>예약 기간</label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    flex: 1,
+                  }}
+                >
+                  <input
+                    type="datetime-local"
+                    className={resStyle.configDateInput}
+                    value={reservationConfig.reservationOpenAt}
+                    onChange={(e) =>
+                      setReservationConfig((prev) => ({
+                        ...prev,
+                        reservationOpenAt: e.target.value,
+                      }))
+                    }
+                  />
+                  <span style={{ color: "var(--text-color-2)" }}>~</span>
+                  <input
+                    type="datetime-local"
+                    className={resStyle.configDateInput}
+                    value={reservationConfig.reservationCloseAt}
+                    onChange={(e) =>
+                      setReservationConfig((prev) => ({
+                        ...prev,
+                        reservationCloseAt: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <p className={resStyle.configHint}>
+                비워두면 기간 제한 없이 예약 가능합니다.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* 읽기 권한 설정 */}
         <div style={{ marginBottom: "16px" }}>
@@ -772,30 +1089,46 @@ const PostCreate = () => {
 
         {/* 설문 설정 */}
         <div style={{ marginBottom: "24px" }}>
-          <div className={surveyStyle.surveyToggle}>
-            <ToggleSwitch
-              checked={!!survey}
-              onChange={(checked: boolean) => {
-                if (checked) {
-                  setSurvey({
-                    title: "",
-                    description: "",
-                    questions: [],
-                    settings: {
-                      isAnonymous: false,
-                      showResults: "afterResponse",
-                      deadline: null,
-                      allowModify: false,
-                    },
-                    responseCount: 0,
-                  });
-                } else {
-                  setSurvey(null);
-                }
+          {/* 일반/예약 게시글일 때만 토글 표시 (설문 게시글은 설문 필수) */}
+          {postType !== "survey" && (
+            <div className={surveyStyle.surveyToggle}>
+              <ToggleSwitch
+                checked={!!survey}
+                onChange={(checked: boolean) => {
+                  if (checked) {
+                    setSurvey({
+                      title: "",
+                      description: "",
+                      questions: [],
+                      settings: {
+                        isAnonymous: false,
+                        showResults: "afterResponse",
+                        deadline: null,
+                        allowModify: false,
+                      },
+                      responseCount: 0,
+                    });
+                  } else {
+                    setSurvey(null);
+                  }
+                }}
+              />
+              <span className={surveyStyle.surveyToggleLabel}>설문 추가</span>
+            </div>
+          )}
+
+          {postType === "survey" && (
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: 500,
+                marginBottom: "8px",
               }}
-            />
-            <span className={surveyStyle.surveyToggleLabel}>설문 추가</span>
-          </div>
+            >
+              설문 설정 (필수)
+            </label>
+          )}
 
           {survey && (
             <div className={surveyStyle.surveyBuilderCard}>

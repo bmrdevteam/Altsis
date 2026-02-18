@@ -168,6 +168,69 @@ const surveySchema = mongoose.Schema(
 
 /**
  * @memberof Models.Post
+ * @typedef TReservationConfig
+ *
+ * @prop {string} resource - 자원명 (예: "3층 회의실")
+ * @prop {string} resourceDescription - 자원 상세 설명
+ * @prop {string} slotMode - 슬롯 모드 ("time" | "label")
+ * @prop {number} defaultCapacity - 슬롯별 기본 정원
+ * @prop {boolean} requireApproval - 승인 필요 여부
+ * @prop {number} maxReservationsPerUser - 1인당 최대 예약 수 (0=무제한)
+ * @prop {Date?} reservationOpenAt - 예약 오픈 시각
+ * @prop {Date?} reservationCloseAt - 예약 마감 시각
+ * @prop {number} totalSlots - 총 슬롯 수 (캐시)
+ */
+const reservationConfigSchema = mongoose.Schema(
+  {
+    resource: {
+      type: String,
+      required: true,
+    },
+    resourceDescription: {
+      type: String,
+      default: "",
+    },
+    slotMode: {
+      type: String,
+      enum: ["time", "label"],
+      default: "time",
+    },
+    defaultCapacity: {
+      type: Number,
+      default: 1,
+    },
+    requireApproval: {
+      type: Boolean,
+      default: true,
+    },
+    maxReservationsPerUser: {
+      type: Number,
+      default: 0,
+    },
+    reservationOpenAt: Date,
+    reservationCloseAt: Date,
+    totalSlots: {
+      type: Number,
+      default: 0,
+    },
+    // 신청 양식 (신청자가 작성해야 할 폼 필드)
+    applicationForm: {
+      type: [
+        {
+          label: { type: String, required: true },
+          type: { type: String, enum: ["text", "textarea", "select"], default: "text" },
+          options: [String],
+          required: { type: Boolean, default: false },
+        },
+      ],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Post
  * @typedef TPost
  *
  * @prop {ObjectId} _id
@@ -178,6 +241,8 @@ const surveySchema = mongoose.Schema(
  * @prop {string?} authorProfile - 작성자.profile
  * @prop {string} title - 제목
  * @prop {string} content - 내용 (Markdown)
+ * @prop {string} postType - 게시글 유형 ("general" | "reservation" | "survey")
+ * @prop {TReservationConfig?} reservationConfig - 예약 설정 (예약 게시글만)
  * @prop {string} category - 카테고리 (선택)
  * @prop {boolean} isPinned - 상단 고정 여부
  * @prop {boolean} isActive - 활성화 상태 (soft delete)
@@ -218,6 +283,19 @@ const postSchema = mongoose.Schema(
     content: {
       type: String,
       required: true,
+    },
+
+    // 게시글 유형
+    postType: {
+      type: String,
+      enum: ["general", "reservation", "survey"],
+      default: "general",
+    },
+
+    // 예약 설정 (postType === "reservation"일 때만 사용)
+    reservationConfig: {
+      type: reservationConfigSchema,
+      default: null,
     },
 
     // 메타데이터

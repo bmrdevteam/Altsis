@@ -20,6 +20,8 @@ import { NotificationSetting } from "../models/NotificationSetting.js";
 import { Post } from "../models/Post.js";
 import { Reminder } from "../models/Reminder.js";
 import { Registration } from "../models/Registration.js";
+import { Reservation } from "../models/Reservation.js";
+import { ReservationSlot } from "../models/ReservationSlot.js";
 import { RequestStat } from "../models/RequestStat.js";
 import { School } from "../models/School.js";
 import { Season } from "../models/Season.js";
@@ -47,6 +49,8 @@ export {
   Post,
   Reminder,
   Registration,
+  Reservation,
+  ReservationSlot,
   RequestStat,
   School,
   Season,

@@ -1,4 +1,5 @@
 import { TBoardMembers } from "./board";
+import { TPostType, TReservationConfig } from "./reservation";
 import { TSurvey } from "./survey";
 
 export type TPostAttachment = {
@@ -32,6 +33,8 @@ export type TPost = {
   authorProfile?: string;
   title: string;
   content: string;
+  postType: TPostType;
+  reservationConfig?: TReservationConfig | null;
   category?: string;
   isPinned: boolean;
   isActive: boolean;
