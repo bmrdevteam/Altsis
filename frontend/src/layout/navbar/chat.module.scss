@@ -1609,3 +1609,52 @@
   overflow: hidden;
   height: 100%;
 }
+
+// Mobile back button (hidden on desktop, shown on mobile)
+.mobile_back_btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: var(--background-secondary, #f5f5f5);
+  }
+}
+
+// ===================================
+// Mobile Responsive
+// ===================================
+@media (max-width: 768px) {
+  .embedded_layout {
+    // Default: show sidebar only
+    .sidebar {
+      width: 100% !important;
+      min-width: 100% !important;
+    }
+
+    .main_area {
+      display: none;
+    }
+
+    // When a room is selected: hide sidebar, show main area
+    &.room_selected {
+      .sidebar {
+        display: none;
+      }
+
+      .main_area {
+        display: flex;
+      }
+    }
+  }
+
+  .mobile_back_btn {
+    display: flex;
+  }
+}

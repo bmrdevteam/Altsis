@@ -545,7 +545,19 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
       <div className={style.room_header}>
         <div className={style.room_header_top}>
           {embedded && (
-            <span className={style.room_name_title}>{getRoomDisplayName()}</span>
+            <>
+              <button
+                className={style.mobile_back_btn}
+                onClick={() => {
+                  setRoom(null);
+                  onRoomSelect(null as any);
+                }}
+                title="목록으로"
+              >
+                <Svg type="arrowLeft" width="16px" height="16px" style={{ fill: "var(--accent-2)" }} />
+              </button>
+              <span className={style.room_name_title}>{getRoomDisplayName()}</span>
+            </>
           )}
           <div
             className={style.room_title}
@@ -817,7 +829,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
   if (embedded) {
     return (
       <>
-        <div className={style.embedded_layout}>
+        <div className={`${style.embedded_layout} ${room ? style.room_selected : ""}`}>
           {/* Sidebar - Chat List */}
           <div className={`${style.sidebar} ${sidebarCollapsed ? style.collapsed : ""}`}>
             {sidebarCollapsed ? (

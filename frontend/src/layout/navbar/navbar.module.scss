@@ -6,7 +6,30 @@
 
 @media (max-width: 800px) {
   .navbar_container {
-    padding: 0 24px 0 60px !important;
+    padding: 0 12px 0 52px !important;
+    gap: 8px;
+
+    .search_trigger {
+      flex: 0 0 auto;
+      padding: 6px 8px;
+
+      .search_placeholder {
+        display: none;
+      }
+
+      .search_shortcut {
+        display: none;
+      }
+    }
+
+    .menu_item {
+      padding-left: 8px !important;
+    }
+
+    .controls {
+      margin-left: 8px;
+      gap: 12px;
+    }
   }
 }
 
