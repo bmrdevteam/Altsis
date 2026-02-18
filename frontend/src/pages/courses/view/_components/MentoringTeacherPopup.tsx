@@ -98,7 +98,7 @@ const Index = (props: Props) => {
   return (
     <Popup
       setState={props.setPopupActive}
-      title={"멘토 선택"}
+      title={"교사 선택"}
       closeBtn
       contentScroll
       style={{ width: "900px" }}

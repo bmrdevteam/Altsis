@@ -132,7 +132,7 @@ const CoursePid = (props: Props) => {
       },
       { label: "개설자", value: syllabus.userName },
       {
-        label: "멘토",
+        label: "교사",
         value: _.join(
           syllabus.teachers?.map((teacher: any) => teacher.userName),
           ", "
@@ -519,9 +519,9 @@ const CoursePid = (props: Props) => {
               <Tab
                 dontUsePaths
                 items={{
-                  강의계획서: (
+                  계획서: (
                     <>
-                      <div className={style.title} style={{ marginTop: "16px", marginBottom: "12px" }}>강의계획서</div>
+                      <div className={style.title} style={{ marginTop: "16px", marginBottom: "12px" }}>계획서</div>
                       <EditorParser
                         type="syllabus"
                         auth="view"
@@ -530,10 +530,10 @@ const CoursePid = (props: Props) => {
                       />
                     </>
                   ),
-                  "수강생 목록": (
+                  사용자: (
                     <div style={{ marginTop: "16px" }} className={"enrollments"}>
                       <div style={{ display: "flex", alignItems: "center", marginBottom: "12px" }}>
-                        <div className={style.title} style={{ marginBottom: "0", flex: "auto" }}>수강생 목록</div>
+                        <div className={style.title} style={{ marginBottom: "0", flex: "auto" }}>사용자</div>
                         <div
                           style={{
                             display: "flex",
@@ -681,14 +681,14 @@ const CoursePid = (props: Props) => {
                 whiteSpace: "pre",
               },
               {
-                text: "멘토 ID",
+                text: "교사 ID",
                 key: "userId",
                 type: "text",
                 textAlign: "center",
                 whiteSpace: "pre",
               },
               {
-                text: "멘토 이름",
+                text: "교사 이름",
                 key: "userName",
                 type: "text",
                 textAlign: "center",

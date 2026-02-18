@@ -58,13 +58,14 @@ const CourseEnrollment = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentUser, currentRegistration, currentSeason } = useAuth();
   const navigate = useAppNavigate();
-  const { EnrollmentAPI } = useAPIv2();
+  const { EnrollmentAPI, SyllabusAPI } = useAPIv2();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingEvaluation, setIsLoadingEvaluation] =
     useState<boolean>(false);
 
   const [enrollmentData, setEnrollmentData] = useState<any>();
+  const [syllabusData, setSyllabusData] = useState<any>();
 
   const [courseData, setCourseData] = useState<any>();
   const [confirmedStatus, setConfirmedStatus] =
@@ -98,7 +99,7 @@ const CourseEnrollment = (props: Props) => {
       { label: "수강정원", value: String(enrollmentData?.limit) },
       { label: "개설자", value: enrollmentData?.userName },
       {
-        label: "멘토",
+        label: "교사",
         value: _.join(
           enrollmentData?.teachers?.map((teacher: any) => teacher.userName),
           ", "
@@ -113,7 +114,7 @@ const CourseEnrollment = (props: Props) => {
       <EditorParser
         type="syllabus"
         auth="view"
-        defaultValues={courseData?.info}
+        defaultValues={syllabusData?.info || courseData?.info}
         data={currentSeason?.formSyllabus}
       />
     );
@@ -156,6 +157,13 @@ const CourseEnrollment = (props: Props) => {
 
           setCourseData(enrollment);
           setEnrollmentData(enrollment);
+
+          // 최신 강의계획서 데이터 조회 (커버 이미지, info 등 동기화)
+          SyllabusAPI.RSyllabus({ params: { _id: enrollment.syllabus } })
+            .then(({ syllabus }) => {
+              setSyllabusData(syllabus);
+            })
+            .catch(() => {});
 
           let _formEvaluationHeader: any[] = [];
           if (currentRegistration?.permissionEvaluationV2) {
@@ -243,47 +251,26 @@ const CourseEnrollment = (props: Props) => {
   return !isLoading ? (
     <>
       <div className={style.section}>
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 500,
-            marginBottom: "18px",
-            display: "flex",
-            color: "var(--accent-1)",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ wordBreak: "keep-all" }} title="목록으로 이동">
-            <span>&nbsp;/&nbsp;</span>
-            <span
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                navigate("/courses#수강%20현황", { replace: true });
-              }}
-            >
-              {`수강 현황 / ${pid}`}
-            </span>
-          </div>
-          <div
-            className={`btn ${style.print_btn}`}
-            onClick={() => {
-              window.print();
-            }}
-            title="인쇄"
-          >
-            <Svg type={"print"} />
-          </div>
-        </div>
         <div className={style.course_header}>
           <CourseCoverImage
-            coverImage={enrollmentData?.coverImage}
-            coverColor={enrollmentData?.coverColor}
+            coverImage={syllabusData?.coverImage || enrollmentData?.coverImage}
+            coverColor={syllabusData?.coverColor || enrollmentData?.coverColor}
             classTitle={enrollmentData?.classTitle || ""}
             syllabusId={enrollmentData?.syllabus || pid || ""}
           />
           <div className={style.course_header_info}>
-            <div className={style.title}>{enrollmentData?.classTitle}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div className={style.title}>{enrollmentData?.classTitle}</div>
+              <div
+                className={`btn ${style.print_btn}`}
+                onClick={() => {
+                  window.print();
+                }}
+                title="인쇄"
+              >
+                <Svg type={"print"} />
+              </div>
+            </div>
             <div className={style.meta_section}>
               <CourseMetaInfo
                 items={metaItems()}
@@ -298,15 +285,15 @@ const CourseEnrollment = (props: Props) => {
         <Tab
           dontUsePaths
           items={{
-            강의계획서: (
+            계획서: (
               <>
-                <div className={style.title} style={{ marginTop: "16px", marginBottom: "12px" }}>강의계획서</div>
+                <div className={style.title} style={{ marginTop: "16px", marginBottom: "12px" }}>계획서</div>
                 <ClassInfo />
               </>
             ),
-            "수강생 목록": (
+            사용자: (
               <div style={{ marginTop: "16px" }}>
-                <div className={style.title} style={{ marginBottom: "12px" }}>수강생 목록</div>
+                <div className={style.title} style={{ marginBottom: "12px" }}>사용자</div>
                 <Table
                   type="object-array"
                   data={enrollments || []}
@@ -424,13 +411,13 @@ const CourseEnrollment = (props: Props) => {
                   textAlign: "center",
                 },
                 {
-                  text: "멘토 ID",
+                  text: "교사 ID",
                   key: "userId",
                   type: "text",
                   textAlign: "center",
                 },
                 {
-                  text: "멘토 이름",
+                  text: "교사 이름",
                   key: "userName",
                   type: "text",
                   textAlign: "center",
