@@ -49,7 +49,7 @@ import _ from "lodash";
 import Loading from "components/loading/Loading";
 import Svg from "assets/svg/Svg";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import CourseMetaInfo from "pages/courses/view/CourseMetaInfo";
+import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
 import CourseCoverImage from "pages/courses/view/CourseCoverImage";
 
 type Props = {};
@@ -67,7 +67,8 @@ const CourseEnrollment = (props: Props) => {
   const [enrollmentData, setEnrollmentData] = useState<any>();
 
   const [courseData, setCourseData] = useState<any>();
-  const [confirmed, setConfirmed] = useState<boolean>(true);
+  const [confirmedStatus, setConfirmedStatus] =
+    useState<ConfirmedStatus>("notConfirmed");
   const [confirmStatusPopupActive, setConfirmStatusPopupActive] =
     useState<boolean>(false);
 
@@ -197,12 +198,19 @@ const CourseEnrollment = (props: Props) => {
           setIsLoading(false);
 
           // is this syllabus fully confirmed?
+          let confirmedCnt = 0;
           for (let teacher of enrollment.teachers) {
-            if (!teacher.confirmed) {
-              setConfirmed(false);
-              break;
+            if (teacher.confirmed) {
+              confirmedCnt++;
             }
           }
+          setConfirmedStatus(
+            confirmedCnt === 0
+              ? "notConfirmed"
+              : confirmedCnt === enrollment.teachers.length
+              ? "fullyConfirmed"
+              : "semiConfirmed"
+          );
           EnrollmentAPI.REnrollments({
             query: { syllabus: enrollment.syllabus },
           }).then(({ enrollments }) => {
@@ -279,7 +287,7 @@ const CourseEnrollment = (props: Props) => {
             <div className={style.meta_section}>
               <CourseMetaInfo
                 items={metaItems()}
-                confirmedStatus={confirmed ? "fullyConfirmed" : "notConfirmed"}
+                confirmedStatus={confirmedStatus}
                 onStatusClick={() => setConfirmStatusPopupActive(true)}
               />
             </div>

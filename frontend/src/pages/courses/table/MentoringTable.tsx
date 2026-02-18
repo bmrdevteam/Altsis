@@ -12,8 +12,6 @@ import {
 import useOutsideClick from "hooks/useOutsideClick";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Button from "components/button/Button";
-import CoursePid from "pages/courses/tab/Mentoring/Index";
-
 type TTableItems =
   | "text"
   | "checkbox"
