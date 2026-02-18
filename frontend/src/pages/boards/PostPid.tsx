@@ -10,7 +10,7 @@
  * -------------------------------------------------------
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
@@ -23,7 +23,7 @@ import Svg from "assets/svg/Svg";
 import Textarea from "components/textarea/Textarea";
 import { MarkdownViewer } from "components/markdown";
 
-import { TPost } from "types/post";
+import { TPost, TPostAttachment } from "types/post";
 import { TBoard } from "types/board";
 import { TComment } from "types/comment";
 
@@ -49,6 +49,60 @@ const PostPid = () => {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [showSurveyPopup, setShowSurveyPopup] = useState(false);
+
+  // 서명 URL 캐시 (다운로드/새 탭 열기용)
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  const getSignedUrl = async (
+    file: TPostAttachment,
+    forView = false
+  ): Promise<string> => {
+    if (!file.key) return file.url;
+
+    const cacheKey = `${file.key}-${forView ? "view" : "download"}`;
+    if (signedUrls[cacheKey]) return signedUrls[cacheKey];
+
+    try {
+      const { preSignedUrl } = await PostAPI.RSignedUrlPostFile({
+        query: {
+          key: file.key,
+          fileName: file.fileName,
+          ...(forView && { view: "true" }),
+        },
+      });
+      setSignedUrls((prev) => ({ ...prev, [cacheKey]: preSignedUrl }));
+      return preSignedUrl;
+    } catch {
+      return file.url;
+    }
+  };
+
+  // 첨부파일 서명 URL 프리페치 (비이미지 파일용)
+  useEffect(() => {
+    if (post?.attachments?.length) {
+      post.attachments.forEach((file) => {
+        if (file.key && !file.mimeType?.startsWith("image/")) {
+          getSignedUrl(file, true);
+        }
+      });
+    }
+  }, [post?.attachments]);
+
+  // S3 서명 URL → 만료되지 않는 프록시 URL로 변환
+  const processedContent = useMemo(() => {
+    if (!post?.content) return "";
+    return post.content.replace(
+      /https?:\/\/[^/\s)]*\.s3\.[^/\s)]*\.amazonaws\.com\/([^?\s)]+\/posts\/[^?\s)]+)\?[^\s)]*/g,
+      (_match, key) =>
+        `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(key)}`
+    );
+  }, [post?.content]);
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
 
   const isAuthor = currentUser?._id === post?.author;
   const isManager =
@@ -300,7 +354,7 @@ const PostPid = () => {
         </div>
 
         <div style={{ minHeight: "300px" }}>
-          <MarkdownViewer content={post.content} />
+          <MarkdownViewer content={processedContent} />
         </div>
 
         {post.attachments && post.attachments.length > 0 && (
@@ -317,21 +371,122 @@ const PostPid = () => {
             >
               첨부파일 ({post.attachments.length})
             </div>
-            {post.attachments.map((file, idx) => (
-              <a
-                key={idx}
-                href={file.url}
-                target="_blank"
-                rel="noopener noreferrer"
+
+            {/* 이미지 미리보기 */}
+            {post.attachments.filter((f) => f.mimeType?.startsWith("image/"))
+              .length > 0 && (
+              <div
                 style={{
-                  display: "block",
-                  color: "var(--accent-1)",
-                  marginBottom: "4px",
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fill, minmax(120px, 1fr))",
+                  gap: "8px",
+                  marginBottom: "12px",
+                }}
+              >
+                {post.attachments
+                  .filter((f) => f.mimeType?.startsWith("image/"))
+                  .map((file, idx) => {
+                    const imageUrl = file.key
+                      ? `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`
+                      : file.url;
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          cursor: "pointer",
+                          borderRadius: "6px",
+                          overflow: "hidden",
+                          aspectRatio: "1",
+                          backgroundColor: "var(--component-color)",
+                        }}
+                        onClick={async () => {
+                          const url = await getSignedUrl(file, true);
+                          window.open(url, "_blank");
+                        }}
+                      >
+                        <img
+                          src={imageUrl}
+                          alt={file.fileName}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* 파일 목록 */}
+            {post.attachments.map((file, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "6px 0",
                   fontSize: "14px",
                 }}
               >
-                {file.fileName} ({Math.round(file.fileSize / 1024)}KB)
-              </a>
+                <Svg
+                  type={
+                    file.mimeType?.startsWith("image/")
+                      ? "image"
+                      : "paperclip"
+                  }
+                  width="16px"
+                  height="16px"
+                  style={{ flexShrink: 0 }}
+                />
+                <span
+                  style={{
+                    flex: 1,
+                    cursor: "pointer",
+                    color: "var(--accent-1)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  onClick={async () => {
+                    const url = await getSignedUrl(file, true);
+                    window.open(url, "_blank");
+                  }}
+                >
+                  {file.fileName}
+                </span>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--text-color-2)",
+                    flexShrink: 0,
+                  }}
+                >
+                  {formatFileSize(file.fileSize)}
+                </span>
+                <span
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                  }}
+                  onClick={async () => {
+                    const url = await getSignedUrl(file, false);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = file.fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
+                >
+                  <Svg type="download" width="16px" height="16px" />
+                </span>
+              </div>
             ))}
           </div>
         )}

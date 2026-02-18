@@ -17,6 +17,7 @@ import {
 import { HtmlEmbed } from "./extensions/htmlEmbed";
 import TipTapToolbar from "./TipTapToolbar";
 import EmbedDialog from "./EmbedDialog";
+import ImageInsertDialog from "./ImageInsertDialog";
 import {
   postprocessMarkdown,
   transformSpecialNodes,
@@ -28,6 +29,7 @@ type Props = {
   onChange: (value: string) => void;
   placeholder?: string;
   minHeight?: string;
+  onImageUpload?: (file: File) => Promise<string | null>;
 };
 
 type ViewMode = "wysiwyg" | "source";
@@ -45,9 +47,11 @@ const MarkdownEditor = ({
   onChange,
   placeholder = "내용을 입력하세요...",
   minHeight = "300px",
+  onImageUpload,
 }: Props) => {
   const [viewMode, setViewMode] = useState<ViewMode>("wysiwyg");
   const [showEmbedDialog, setShowEmbedDialog] = useState(false);
+  const [showImageDialog, setShowImageDialog] = useState(false);
   const isInternalUpdate = useRef(false);
 
   const editor = useEditor({
@@ -169,6 +173,7 @@ const MarkdownEditor = ({
           isSourceMode={viewMode === "source"}
           onSourceToggle={handleSourceToggle}
           onEmbedClick={() => setShowEmbedDialog(true)}
+          onImageClick={() => setShowImageDialog(true)}
         />
       </div>
 
@@ -190,6 +195,18 @@ const MarkdownEditor = ({
         <EmbedDialog
           onSubmit={handleEmbedSubmit}
           onClose={() => setShowEmbedDialog(false)}
+        />
+      )}
+
+      {showImageDialog && (
+        <ImageInsertDialog
+          onSubmit={(url) => {
+            if (editor) {
+              editor.chain().focus().setImage({ src: url }).run();
+            }
+          }}
+          onClose={() => setShowImageDialog(false)}
+          onImageUpload={onImageUpload}
         />
       )}
     </div>

@@ -10,7 +10,7 @@
  * -------------------------------------------------------
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
@@ -27,7 +27,7 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import { MarkdownEditor } from "components/markdown";
 
 import { TBoard, TBoardMembers, TMemberUser } from "types/board";
-import { TPost } from "types/post";
+import { TPost, TPostAttachment } from "types/post";
 import { TSurvey } from "types/survey";
 import SurveyBuilderPopup from "./survey/SurveyBuilderPopup";
 import surveyStyle from "./survey/survey.module.scss";
@@ -58,6 +58,14 @@ const PostCreate = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 첨부파일
+  const [attachments, setAttachments] = useState<TPostAttachment[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // 첨부파일 미리보기 URL 캐시 (서명 URL)
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+
   const isEditMode = !!postId;
 
   useEffect(() => {
@@ -80,7 +88,26 @@ const PostCreate = () => {
           if (postRes?.post) {
             const post: TPost = postRes.post;
             setTitle(post.title);
-            setContent(post.content);
+            // S3 서명 URL → 만료되지 않는 리다이렉트 URL로 변환
+            const fixedContent = post.content.replace(
+              /https?:\/\/[^/\s)]*\.s3\.[^/\s)]*\.amazonaws\.com\/([^?\s)]+\/posts\/[^?\s)]+)\?[^\s)]*/g,
+              (_match: string, key: string) =>
+                `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(key)}`
+            );
+            setContent(fixedContent);
+
+            // 첨부파일 로드 + 이미지 미리보기 URL 설정
+            if (post.attachments && post.attachments.length > 0) {
+              setAttachments(post.attachments);
+              // 이미지 미리보기용 리다이렉트 URL 생성
+              const imageUrls: Record<string, string> = {};
+              post.attachments.forEach((file) => {
+                if (file.key && file.mimeType?.startsWith("image/")) {
+                  imageUrls[file.key] = `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`;
+                }
+              });
+              setPreviewUrls(imageUrls);
+            }
 
             // 새 구조: permissionRead
             if (post.permissionRead?.groups) {
@@ -150,6 +177,115 @@ const PostCreate = () => {
     }
   }, [isLoading, boardId, postId]);
 
+  // 첨부파일 업로드
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      if (file.size > 20 * 1024 * 1024) {
+        alert(`${file.name}: 파일 크기는 20MB 이하여야 합니다.`);
+        continue;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const result = await PostAPI.CUploadPostFile({ data: formData });
+
+        setAttachments((prev) => [
+          ...prev,
+          {
+            url: result.url,
+            fileName: result.fileName,
+            fileSize: result.fileSize,
+            mimeType: result.mimeType,
+            key: result.key,
+          },
+        ]);
+
+        // 이미지 미리보기 URL 저장 (리다이렉트 URL 사용)
+        if (result.mimeType?.startsWith("image/")) {
+          setPreviewUrls((prev) => ({
+            ...prev,
+            [result.key]: `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(result.key)}`,
+          }));
+        }
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
+    }
+
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveAttachment = (key: string) => {
+    setAttachments((prev) => prev.filter((a) => a.key !== key));
+  };
+
+  // 에디터 이미지 업로드 콜백
+  const handleEditorImageUpload = async (
+    file: File
+  ): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const result = await PostAPI.CUploadPostFile({ data: formData });
+
+      // 첨부파일 목록에도 추가
+      setAttachments((prev) => [
+        ...prev,
+        {
+          url: result.url,
+          fileName: result.fileName,
+          fileSize: result.fileSize,
+          mimeType: result.mimeType,
+          key: result.key,
+        },
+      ]);
+
+      // 이미지 미리보기 URL 저장 (프록시 URL 사용)
+      if (result.mimeType?.startsWith("image/")) {
+        setPreviewUrls((prev) => ({
+          ...prev,
+          [result.key]: `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(result.key)}`,
+        }));
+      }
+
+      // 만료되지 않는 프록시 URL 반환
+      return `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(result.key)}`;
+    } catch (err) {
+      ALERT_ERROR(err);
+      return null;
+    }
+  };
+
+  // 드래그앤드롭
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    handleFileSelect(e.dataTransfer.files);
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       alert("제목을 입력해주세요.");
@@ -181,6 +317,7 @@ const PostCreate = () => {
           data: {
             title: title.trim(),
             content: content.trim(),
+            attachments,
             permissionRead: useSpecificPermission ? permissionRead : null,
             survey,
           },
@@ -193,6 +330,7 @@ const PostCreate = () => {
             board: boardId!,
             title: title.trim(),
             content: content.trim(),
+            attachments,
             permissionRead: postPermissionRead,
             survey,
           },
@@ -234,6 +372,12 @@ const PostCreate = () => {
           userName: u.userName,
         }),
       }));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
   return (
@@ -481,7 +625,149 @@ const PostCreate = () => {
             onChange={setContent}
             placeholder="마크다운 형식으로 작성할 수 있습니다."
             minHeight="400px"
+            onImageUpload={handleEditorImageUpload}
           />
+        </div>
+
+        {/* 첨부파일 */}
+        <div style={{ marginBottom: "24px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontSize: "14px",
+              fontWeight: 500,
+            }}
+          >
+            첨부파일
+          </label>
+
+          {/* 첨부 목록 */}
+          {attachments.length > 0 && (
+            <div
+              style={{
+                marginBottom: "12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "6px",
+              }}
+            >
+              {attachments.map((file) => {
+                const isImage = file.mimeType?.startsWith("image/");
+                return (
+                  <div
+                    key={file.key}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      backgroundColor: "var(--background-color-2)",
+                      fontSize: "13px",
+                    }}
+                  >
+                    {isImage && previewUrls[file.key!] ? (
+                      <img
+                        src={previewUrls[file.key!]}
+                        alt={file.fileName}
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          objectFit: "cover",
+                          borderRadius: "4px",
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <Svg
+                        type="paperclip"
+                        width="16px"
+                        height="16px"
+                        style={{ flexShrink: 0 }}
+                      />
+                    )}
+                    <span
+                      style={{
+                        flex: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {file.fileName}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-color-2)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {formatFileSize(file.fileSize)}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveAttachment(file.key!)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--text-color-2)",
+                        fontSize: "18px",
+                        padding: "0 4px",
+                        lineHeight: 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 업로드 영역 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => handleFileSelect(e.target.files)}
+          />
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              padding: "20px",
+              border: `2px dashed ${
+                isDragging ? "var(--accent-1)" : "var(--border-color)"
+              }`,
+              borderRadius: "8px",
+              cursor: isUploading ? "default" : "pointer",
+              backgroundColor: isDragging
+                ? "var(--background-hover-color)"
+                : "transparent",
+              transition: "all 0.2s",
+            }}
+          >
+            <Svg type="upload" width="24px" height="24px" />
+            <span style={{ fontSize: "13px", color: "var(--text-color-2)" }}>
+              {isUploading
+                ? "업로드 중..."
+                : "파일을 드래그하거나 클릭하여 첨부"}
+            </span>
+            <span style={{ fontSize: "11px", color: "var(--text-color-2)" }}>
+              최대 20MB
+            </span>
+          </div>
         </div>
 
         {/* 설문 설정 */}

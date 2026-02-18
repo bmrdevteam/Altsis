@@ -8,9 +8,10 @@ type Props = {
   isSourceMode: boolean;
   onSourceToggle: () => void;
   onEmbedClick: () => void;
+  onImageClick: () => void;
 };
 
-const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick }: Props) => {
+const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick, onImageClick }: Props) => {
   if (!editor) return null;
 
   const handleLinkInsert = () => {
@@ -24,13 +25,6 @@ const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick }: P
     }
 
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  };
-
-  const handleImageInsert = () => {
-    const url = prompt("이미지 URL을 입력하세요:");
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
   };
 
   const handleYouTubeInsert = () => {
@@ -102,7 +96,7 @@ const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick }: P
     {
       icon: "image",
       title: "이미지",
-      action: handleImageInsert,
+      action: onImageClick,
     },
     {
       icon: "listBullet",

@@ -6,6 +6,12 @@ import * as posts from "../controllers/posts.js";
 
 // 게시글 CRUD
 router.post("/", isLoggedIn, posts.create);
+
+// 게시글 첨부파일 업로드/조회 (/:_id? 위에 배치)
+router.post("/upload", isLoggedIn, posts.uploadFile);
+router.get("/file/view", posts.viewFile);
+router.get("/file/signed", isLoggedIn, posts.signPostFile);
+
 router.get("/:_id?", isLoggedIn, posts.find);
 router.put("/:_id", isLoggedIn, posts.update);
 router.delete("/:_id", isLoggedIn, posts.remove);

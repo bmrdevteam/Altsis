@@ -736,6 +736,86 @@
   }
 }
 
+// 이미지 삽입 다이얼로그
+.imageDropZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  border: 2px dashed var(--border-default-color);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--accent-3);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--primary-color);
+    background-color: var(--background-hover-color);
+  }
+
+  svg {
+    fill: currentColor;
+    opacity: 0.5;
+  }
+
+  span {
+    font-size: 13px;
+  }
+}
+
+.imageDropZoneActive {
+  border-color: var(--primary-color);
+  background-color: var(--background-hover-color);
+}
+
+.imagePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: var(--border-default);
+  border-radius: 8px;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    max-height: 240px;
+    object-fit: contain;
+    background-color: var(--component-color);
+  }
+}
+
+.imagePreviewInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--accent-3);
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  button {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--accent-1);
+    background: none;
+    border: 1px solid var(--border-default-color);
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: var(--background-hover-color);
+    }
+  }
+}
+
 // === 에디터 노드뷰 전역 스타일 (TipTap vanilla DOM) ===
 :global {
   .embed-toolbar {

@@ -19,9 +19,14 @@ import { sendAutoNotification } from "../services/notifications.js";
 
 import {
   FIELD_REQUIRED,
+  FIELD_INVALID,
   PERMISSION_DENIED,
   __NOT_FOUND,
+  LIMIT_FILE_SIZE,
+  INVALID_FILE_TYPE,
 } from "../messages/index.js";
+import { postMulter, isImageFile } from "../_s3/postMulter.js";
+import { signUrl, signUrlForView, fileS3, fileBucket } from "../_s3/fileBucket.js";
 
 /**
  * @memberof APIs.PostAPI
@@ -566,6 +571,132 @@ export const remove = async (req, res) => {
     }
 
     return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.PostAPI
+ * @function CUploadPostFile API
+ * @description 게시글 첨부파일 업로드 API
+ * @version 1.0.0
+ */
+export const uploadFile = async (req, res) => {
+  postMulter.single("file")(req, {}, async (err) => {
+    if (err) {
+      switch (err.code) {
+        case "LIMIT_FILE_SIZE":
+          return res.status(409).send({ message: LIMIT_FILE_SIZE });
+        case "INVALID_FILE_TYPE":
+          return res.status(409).send({ message: INVALID_FILE_TYPE });
+        default:
+          return res.status(500).send({ message: err.code });
+      }
+    }
+
+    try {
+      const isImage = req.tmp.isImage;
+
+      // 이미지: 인라인 삽입용 7일 서명 URL, 비이미지: 5분 서명 URL
+      const viewUrl = signUrlForView(
+        req.tmp.key,
+        isImage ? 60 * 60 * 24 * 7 : undefined
+      );
+      const { preSignedUrl, expiryDate } = signUrl(
+        req.tmp.key,
+        req.file.originalname
+      );
+
+      return res.status(200).send({
+        fileName: req.file.originalname,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        key: req.tmp.key,
+        url: req.file.location,
+        isImage,
+        viewUrl,
+        preSignedUrl,
+        expiryDate,
+      });
+    } catch (err) {
+      logger.error(err.message);
+      return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+    }
+  });
+};
+
+/**
+ * @memberof APIs.PostAPI
+ * @function viewFile API
+ * @description 게시글 파일 인라인 보기 (302 리다이렉트)
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ * @param {"GET"} req.method
+ * @param {"/posts/file/view"} req.url
+ * @param {string} req.query.key - S3 key
+ */
+export const viewFile = async (req, res) => {
+  try {
+    if (!req.query.key) {
+      return res.status(400).send({ message: FIELD_REQUIRED("key") });
+    }
+
+    const keys = req.query.key.split("/");
+    if (keys[1] !== "posts") {
+      return res.status(400).send({ message: FIELD_INVALID("key") });
+    }
+
+    const data = await fileS3
+      .getObject({ Bucket: fileBucket, Key: req.query.key })
+      .promise();
+
+    res.set("Content-Type", data.ContentType);
+    res.set("Content-Length", String(data.ContentLength));
+    res.set("Cache-Control", "public, max-age=86400");
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    return res.send(data.Body);
+  } catch (err) {
+    if (err.code === "NoSuchKey") {
+      return res.status(404).send({ message: "파일을 찾을 수 없습니다." });
+    }
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.PostAPI
+ * @function RSignedUrlPostFile API
+ * @description 게시글 첨부파일 서명된 URL 조회 API
+ * @version 1.0.0
+ */
+export const signPostFile = async (req, res) => {
+  try {
+    for (let field of ["key", "fileName"]) {
+      if (!(field in req.query)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    const keys = req.query.key.split("/");
+    if (keys[1] !== "posts") {
+      return res.status(400).send({ message: FIELD_INVALID("key") });
+    }
+
+    if (req.query.view === "true") {
+      const preSignedUrl = signUrlForView(req.query.key);
+      return res.status(200).send({ preSignedUrl });
+    }
+
+    const { preSignedUrl, expiryDate } = signUrl(
+      req.query.key,
+      req.query.fileName
+    );
+
+    return res.status(200).send({ preSignedUrl, expiryDate });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

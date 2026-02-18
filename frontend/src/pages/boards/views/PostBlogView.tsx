@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TPost } from "types/post";
 import { MarkdownViewer } from "components/markdown";
 import style from "./postBlogView.module.scss";
@@ -19,6 +19,16 @@ const formatDate = (dateStr: string) => {
   });
 };
 
+// S3 서명 URL → 만료되지 않는 리다이렉트 URL로 변환
+const processContent = (content: string): string => {
+  if (!content) return "";
+  return content.replace(
+    /https?:\/\/[^/\s)]*\.s3\.[^/\s)]*\.amazonaws\.com\/([^?\s)]+\/posts\/[^?\s)]+)\?[^\s)]*/g,
+    (_match, key) =>
+      `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(key)}`
+  );
+};
+
 const PostBlogCard = ({
   post,
   onClickPost,
@@ -26,6 +36,11 @@ const PostBlogCard = ({
   post: TPost;
   onClickPost: (post: TPost) => void;
 }) => {
+  const processedContent = useMemo(
+    () => processContent(post.content),
+    [post.content]
+  );
+
   return (
     <div className={style.card}>
       <div className={style.cardHeader}>
@@ -60,7 +75,7 @@ const PostBlogCard = ({
 
       {post.content && (
         <div className={style.contentWrapper}>
-          <MarkdownViewer content={post.content} />
+          <MarkdownViewer content={processedContent} />
         </div>
       )}
 

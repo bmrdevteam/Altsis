@@ -3212,6 +3212,48 @@ export default function useAPIv2() {
   }
 
   /**
+   * CUploadPostFile API
+   * @description 게시글 첨부파일 업로드 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CUploadPostFile(props: { data: FormData }) {
+    const result = await database.C({
+      location: "posts/upload",
+      data: props.data,
+    });
+    return result as {
+      fileName: string;
+      fileSize: number;
+      mimeType: string;
+      key: string;
+      url: string;
+      isImage: boolean;
+      viewUrl: string;
+      preSignedUrl: string;
+      expiryDate: string;
+    };
+  }
+
+  /**
+   * RSignedUrlPostFile API
+   * @description 게시글 첨부파일 서명된 URL 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RSignedUrlPostFile(props: {
+    query: { key: string; fileName: string; view?: string };
+  }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: "posts/file/signed" + QUERY_BUILDER(props.query),
+    });
+    return {
+      preSignedUrl: preSignedUrl as string,
+      expiryDate: expiryDate as string | undefined,
+    };
+  }
+
+  /**
    * ##########################################################################
    * SurveyResponse API
    * ##########################################################################
@@ -4037,6 +4079,8 @@ export default function useAPIv2() {
       UPostPin,
       RPostReaders,
       DPost,
+      CUploadPostFile,
+      RSignedUrlPostFile,
     },
     SurveyResponseAPI: {
       CSurveyResponse,
