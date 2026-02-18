@@ -5,7 +5,7 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { Board, Post, Notification, User, Registration } from "../models/index.js";
+import { Board, Post, Notification, User, Registration, SurveyResponse } from "../models/index.js";
 import {
   isBoardMember,
   isBoardWriter,
@@ -87,6 +87,7 @@ export const create = async (req, res) => {
       category: req.body.category || "",
       attachments: req.body.attachments || [],
       ...(permissionRead && { permissionRead }),
+      ...(req.body.survey && { survey: req.body.survey }),
     });
 
     // 게시글 수 증가
@@ -419,6 +420,22 @@ export const update = async (req, res) => {
     // 하위호환: targetAudience
     if (req.body.targetAudience) post.targetAudience = req.body.targetAudience;
 
+    // 설문 수정
+    if ("survey" in req.body) {
+      if (req.body.survey) {
+        // 응답이 있으면 질문 구조 변경 차단
+        if (post.survey && post.survey.responseCount > 0) {
+          return res.status(400).send({
+            message: "이미 응답이 있는 설문의 질문을 수정할 수 없습니다.",
+          });
+        }
+        post.survey = req.body.survey;
+      } else {
+        post.survey = null;
+      }
+      post.markModified("survey");
+    }
+
     await post.save();
 
     return res.status(200).send({ post });
@@ -541,6 +558,11 @@ export const remove = async (req, res) => {
     if (board) {
       board.postCount = Math.max(0, (board.postCount || 0) - 1);
       await board.save();
+    }
+
+    // 설문 응답 정리
+    if (post.survey) {
+      await SurveyResponse(req.user.academyId).deleteMany({ post: post._id });
     }
 
     return res.status(200).send();

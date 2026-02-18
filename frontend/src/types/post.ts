@@ -1,4 +1,5 @@
 import { TBoardMembers } from "./board";
+import { TSurvey } from "./survey";
 
 export type TPostAttachment = {
   url: string;
@@ -41,6 +42,7 @@ export type TPost = {
   targetAudience?: TPostTargetAudience;
   legacyNotificationId?: string;
   isLegacyNotification?: boolean;
+  survey?: TSurvey | null;
   createdAt: string;
   updatedAt: string;
 };

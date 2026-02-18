@@ -68,6 +68,106 @@ const attachmentSchema = mongoose.Schema(
 
 /**
  * @memberof Models.Post
+ * @typedef TSurveyFileInfo
+ */
+const surveyFileSchema = mongoose.Schema(
+  {
+    fileName: String,
+    fileSize: Number,
+    mimeType: String,
+    key: String,
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Post
+ * @typedef TSurveyOption
+ */
+const surveyOptionSchema = mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    text: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Post
+ * @typedef TSurveyQuestion
+ */
+const surveyQuestionSchema = mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    type: {
+      type: String,
+      required: true,
+      enum: [
+        "singleChoice",
+        "multipleChoice",
+        "shortText",
+        "longText",
+        "rating",
+        "linearScale",
+        "dropdown",
+        "date",
+        "fileUpload",
+      ],
+    },
+    title: { type: String, required: true },
+    description: { type: String, default: "" },
+    isRequired: { type: Boolean, default: false },
+    // choice/dropdown용
+    options: { type: [surveyOptionSchema], default: [] },
+    // linearScale용
+    scaleMin: { type: Number, default: 1 },
+    scaleMax: { type: Number, default: 5 },
+    scaleMinLabel: { type: String, default: "" },
+    scaleMaxLabel: { type: String, default: "" },
+    // 질문 첨부파일 (모든 유형 공통)
+    attachments: { type: [surveyFileSchema], default: [] },
+    // fileUpload 질문용
+    maxFiles: { type: Number, default: 1 },
+    maxFileSize: { type: Number, default: 10 * 1024 * 1024 },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Post
+ * @typedef TSurveySettings
+ */
+const surveySettingsSchema = mongoose.Schema(
+  {
+    isAnonymous: { type: Boolean, default: false },
+    showResults: {
+      type: String,
+      enum: ["creator", "afterResponse"],
+      default: "afterResponse",
+    },
+    deadline: { type: Date, default: null },
+    allowModify: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Post
+ * @typedef TSurvey
+ */
+const surveySchema = mongoose.Schema(
+  {
+    title: { type: String, default: "" },
+    description: { type: String, default: "" },
+    questions: { type: [surveyQuestionSchema], required: true },
+    settings: { type: surveySettingsSchema, default: () => ({}) },
+    responseCount: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+/**
+ * @memberof Models.Post
  * @typedef TPost
  *
  * @prop {ObjectId} _id
@@ -162,6 +262,12 @@ const postSchema = mongoose.Schema(
 
     // 기존 알림 마이그레이션용 참조
     legacyNotificationId: mongoose.Types.ObjectId,
+
+    // 설문 (선택사항)
+    survey: {
+      type: surveySchema,
+      default: null,
+    },
   },
   { timestamps: true }
 );

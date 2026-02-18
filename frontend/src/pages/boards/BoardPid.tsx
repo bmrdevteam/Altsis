@@ -266,7 +266,11 @@ const BoardPid = () => {
         ...post,
         no: posts.length - index,
         createdAtDisplay: formatDate(post.createdAt),
-        titleDisplay: post.isPinned ? `[공지] ${post.title}` : post.title,
+        titleDisplay: [
+          post.isPinned ? "[공지]" : "",
+          post.title,
+          post.survey?.questions?.length ? "[설문]" : "",
+        ].filter(Boolean).join(" "),
         permissionDisplay: formatPermissionRead(post),
       })),
     [posts]

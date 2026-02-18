@@ -28,6 +28,9 @@ import { MarkdownEditor } from "components/markdown";
 
 import { TBoard, TBoardMembers, TMemberUser } from "types/board";
 import { TPost } from "types/post";
+import { TSurvey } from "types/survey";
+import SurveyBuilderPopup from "./survey/SurveyBuilderPopup";
+import surveyStyle from "./survey/survey.module.scss";
 
 const PostCreate = () => {
   const navigate = useAppNavigate();
@@ -50,6 +53,8 @@ const PostCreate = () => {
   });
 
   const [userList, setUserList] = useState<any[]>([]);
+  const [survey, setSurvey] = useState<TSurvey | null>(null);
+  const [showSurveyBuilderPopup, setShowSurveyBuilderPopup] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -120,6 +125,10 @@ const PostCreate = () => {
                 users: [],
               });
             }
+            // 설문 데이터 로드
+            if (post.survey) {
+              setSurvey(post.survey);
+            }
           } else {
             // 신규 작성: 보드 멤버 그룹으로 기본값
             setPermissionRead({
@@ -173,6 +182,7 @@ const PostCreate = () => {
             title: title.trim(),
             content: content.trim(),
             permissionRead: useSpecificPermission ? permissionRead : null,
+            survey,
           },
         });
         alert("수정되었습니다.");
@@ -184,6 +194,7 @@ const PostCreate = () => {
             title: title.trim(),
             content: content.trim(),
             permissionRead: postPermissionRead,
+            survey,
           },
         });
         alert("작성되었습니다.");
@@ -473,6 +484,65 @@ const PostCreate = () => {
           />
         </div>
 
+        {/* 설문 설정 */}
+        <div style={{ marginBottom: "24px" }}>
+          <div className={surveyStyle.surveyToggle}>
+            <ToggleSwitch
+              checked={!!survey}
+              onChange={(checked: boolean) => {
+                if (checked) {
+                  setSurvey({
+                    title: "",
+                    description: "",
+                    questions: [],
+                    settings: {
+                      isAnonymous: false,
+                      showResults: "afterResponse",
+                      deadline: null,
+                      allowModify: false,
+                    },
+                    responseCount: 0,
+                  });
+                } else {
+                  setSurvey(null);
+                }
+              }}
+            />
+            <span className={surveyStyle.surveyToggleLabel}>설문 추가</span>
+          </div>
+
+          {survey && (
+            <div className={surveyStyle.surveyBuilderCard}>
+              <div className={surveyStyle.surveyBuilderInfo}>
+                <span>
+                  {survey.title
+                    ? `${survey.title} · ${survey.questions.length}개 질문`
+                    : survey.questions.length > 0
+                    ? `${survey.questions.length}개 질문 구성됨`
+                    : "질문을 추가해주세요"}
+                </span>
+                {survey.settings.isAnonymous && (
+                  <span className={surveyStyle.anonymousBadge}>익명</span>
+                )}
+                {survey.settings.deadline && (
+                  <span className={surveyStyle.deadlineText}>
+                    마감:{" "}
+                    {new Date(survey.settings.deadline).toLocaleDateString(
+                      "ko-KR"
+                    )}
+                  </span>
+                )}
+              </div>
+              <Button
+                type="ghost"
+                onClick={() => setShowSurveyBuilderPopup(true)}
+              >
+                설문 편집
+              </Button>
+            </div>
+          )}
+        </div>
+
         <div style={{ display: "flex", gap: "12px" }}>
           <Button type="ghost" onClick={() => navigate(`/boards/${boardId}`)}>
             취소
@@ -486,6 +556,15 @@ const PostCreate = () => {
           </Button>
         </div>
       </div>
+
+      {showSurveyBuilderPopup && (
+        <SurveyBuilderPopup
+          setState={setShowSurveyBuilderPopup}
+          survey={survey}
+          onChange={setSurvey}
+          postId={postId}
+        />
+      )}
     </>
   );
 };

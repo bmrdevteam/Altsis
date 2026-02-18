@@ -21,6 +21,7 @@ import { Reminder } from "../models/Reminder.js";
 import { Registration } from "../models/Registration.js";
 import { School } from "../models/School.js";
 import { Season } from "../models/Season.js";
+import { SurveyResponse } from "../models/SurveyResponse.js";
 import { Syllabus } from "../models/Syllabus.js";
 import { ThemeSetting } from "../models/ThemeSetting.js";
 import { User } from "../models/User.js";
@@ -45,6 +46,7 @@ export {
   Registration,
   School,
   Season,
+  SurveyResponse,
   Syllabus,
   ThemeSetting,
   User,

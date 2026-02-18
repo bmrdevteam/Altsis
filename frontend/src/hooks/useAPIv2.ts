@@ -30,6 +30,13 @@ import { TNotification, TNotificationSettings } from "types/notification";
 import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
 import { TBoard, TBoardFavorite, TBoardMembers } from "types/board";
 import { TPost, TPostAttachment } from "types/post";
+import {
+  TSurvey,
+  TSurveyResponse,
+  TSurveyStats,
+  TSurveyFileInfo,
+  TSurveyAnswer,
+} from "types/survey";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -3093,6 +3100,7 @@ export default function useAPIv2() {
       category?: string;
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers;
+      survey?: TSurvey | null;
     };
   }) {
     const { post } = await database.C({
@@ -3148,6 +3156,7 @@ export default function useAPIv2() {
       category?: string;
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers | null;
+      survey?: TSurvey | null;
     };
   }) {
     const { post } = await database.U({
@@ -3200,6 +3209,125 @@ export default function useAPIv2() {
     return await database.D({
       location: `posts/${props.params._id}`,
     });
+  }
+
+  /**
+   * ##########################################################################
+   * SurveyResponse API
+   * ##########################################################################
+   */
+
+  /**
+   * CSurveyResponse API
+   * @description 설문 응답 제출 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CSurveyResponse(props: {
+    data: {
+      post: string;
+      answers: TSurveyAnswer[];
+    };
+  }) {
+    const { surveyResponse } = await database.C({
+      location: "survey-responses",
+      data: props.data,
+    });
+    return { surveyResponse: surveyResponse as TSurveyResponse };
+  }
+
+  /**
+   * RSurveyResponseMy API
+   * @description 내 설문 응답 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RSurveyResponseMy(props: {
+    query: { post: string };
+  }) {
+    const { surveyResponse } = await database.R({
+      location: "survey-responses/my" + QUERY_BUILDER(props.query),
+    });
+    return { surveyResponse: surveyResponse as TSurveyResponse | null };
+  }
+
+  /**
+   * RSurveyResponses API
+   * @description 설문 응답 전체 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RSurveyResponses(props: {
+    query: { post: string };
+  }) {
+    const { surveyResponses } = await database.R({
+      location: "survey-responses" + QUERY_BUILDER(props.query),
+    });
+    return { surveyResponses: surveyResponses as TSurveyResponse[] };
+  }
+
+  /**
+   * RSurveyStats API
+   * @description 설문 통계 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RSurveyStats(props: {
+    query: { post: string };
+  }) {
+    const { stats } = await database.R({
+      location: "survey-responses/stats" + QUERY_BUILDER(props.query),
+    });
+    return { stats: stats as TSurveyStats };
+  }
+
+  /**
+   * USurveyResponse API
+   * @description 설문 응답 수정 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function USurveyResponse(props: {
+    params: { _id: string };
+    data: { answers: TSurveyAnswer[] };
+  }) {
+    const { surveyResponse } = await database.U({
+      location: `survey-responses/${props.params._id}`,
+      data: props.data,
+    });
+    return { surveyResponse: surveyResponse as TSurveyResponse };
+  }
+
+  /**
+   * CSurveyFileUpload API
+   * @description 설문 파일 업로드 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function CSurveyFileUpload(props: {
+    query: { post: string };
+    data: FormData;
+  }) {
+    const result = await database.C({
+      location: "survey-responses/upload" + QUERY_BUILDER(props.query),
+      data: props.data,
+    });
+    return result as TSurveyFileInfo;
+  }
+
+  /**
+   * RSurveyFileSignedUrl API
+   * @description 설문 파일 signed URL 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RSurveyFileSignedUrl(props: {
+    query: { key: string; fileName: string };
+  }) {
+    const { preSignedUrl, expiryDate } = await database.R({
+      location: "survey-responses/file/signed" + QUERY_BUILDER(props.query),
+    });
+    return { preSignedUrl: preSignedUrl as string, expiryDate: expiryDate as string };
   }
 
   /**
@@ -3909,6 +4037,15 @@ export default function useAPIv2() {
       UPostPin,
       RPostReaders,
       DPost,
+    },
+    SurveyResponseAPI: {
+      CSurveyResponse,
+      RSurveyResponseMy,
+      RSurveyResponses,
+      RSurveyStats,
+      USurveyResponse,
+      CSurveyFileUpload,
+      RSurveyFileSignedUrl,
     },
     CommentAPI: {
       CComment,

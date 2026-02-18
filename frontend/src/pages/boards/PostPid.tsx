@@ -28,6 +28,8 @@ import { TBoard } from "types/board";
 import { TComment } from "types/comment";
 
 import UserListPopup from "./popup/UserListPopup";
+import SurveyViewPopup from "./survey/SurveyViewPopup";
+import surveyStyle from "./survey/survey.module.scss";
 
 const PostPid = () => {
   const navigate = useAppNavigate();
@@ -46,6 +48,7 @@ const PostPid = () => {
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [showSurveyPopup, setShowSurveyPopup] = useState(false);
 
   const isAuthor = currentUser?._id === post?.author;
   const isManager =
@@ -333,6 +336,31 @@ const PostPid = () => {
           </div>
         )}
 
+        {/* 설문 섹션 */}
+        {post.survey && post.survey.questions.length > 0 && (
+          <div className={surveyStyle.surveyActionCard}>
+            <div className={surveyStyle.surveyActionLeft}>
+              <span className={surveyStyle.surveyActionIcon}>📋</span>
+              <div className={surveyStyle.surveyActionInfo}>
+                <span className={surveyStyle.surveyActionTitle}>
+                  {post.survey.title || "설문조사"}
+                </span>
+                <span className={surveyStyle.surveyActionMeta}>
+                  {post.survey.questions.length}문항 ·{" "}
+                  {post.survey.responseCount}명 응답
+                  {post.survey.settings.isAnonymous && " · 익명"}
+                  {post.survey.settings.deadline &&
+                    new Date() > new Date(post.survey.settings.deadline) &&
+                    " · 마감됨"}
+                </span>
+              </div>
+            </div>
+            <Button type="ghost" onClick={() => setShowSurveyPopup(true)}>
+              설문 참여
+            </Button>
+          </div>
+        )}
+
         {/* 댓글 섹션 */}
         <div
           style={{
@@ -526,6 +554,16 @@ const PostPid = () => {
           fetchUsers={() =>
             PostAPI.RPostReaders({ params: { _id: postId } })
           }
+        />
+      )}
+
+      {showSurveyPopup && post.survey && (
+        <SurveyViewPopup
+          setState={setShowSurveyPopup}
+          post={post}
+          currentUserId={currentUser?._id || ""}
+          isAuthor={isAuthor}
+          isManager={isManager}
         />
       )}
     </>
