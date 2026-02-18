@@ -46,25 +46,11 @@ const Chat = () => {
       setRooms(rooms);
       setChatEnabled(true);
 
-      // Calculate unread count
-      let count = 0;
-      rooms.forEach((room) => {
-        const participant = room.participants.find(
-          (p) => p.userId === currentUser.userId
-        );
-        if (
-          participant &&
-          room.lastMessage?.sentAt &&
-          (!participant.lastReadAt ||
-            new Date(room.lastMessage.sentAt) >
-              new Date(participant.lastReadAt))
-        ) {
-          // Check if the last message is not from current user
-          if (room.lastMessage.sender !== currentUser._id) {
-            count++;
-          }
-        }
-      });
+      // Calculate total unread count from backend-provided unreadCount
+      const count = rooms.reduce(
+        (sum, room) => sum + (room.unreadCount ?? 0),
+        0
+      );
       setUnreadCount(count);
     } catch (err: any) {
       // Chat may not be enabled

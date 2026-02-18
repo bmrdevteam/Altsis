@@ -32,6 +32,8 @@ const chatParticipantSchema = mongoose.Schema(
     profile: String,
     joinedAt: { type: Date, default: Date.now },
     lastReadAt: Date,
+    isPinned: { type: Boolean, default: false },
+    isArchived: { type: Boolean, default: false },
   },
   { _id: false }
 );

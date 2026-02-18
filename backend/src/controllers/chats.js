@@ -150,7 +150,44 @@ export const findRooms = async (req, res) => {
       })
       .sort({ "lastMessage.sentAt": -1, updatedAt: -1 });
 
-    return res.status(200).send({ rooms });
+    const showArchived = req.query.archived === "true";
+
+    const roomsWithUnread = await Promise.all(
+      rooms.map(async (room) => {
+        const roomObj = room.toObject();
+        const participant = room.participants.find(
+          (p) => p.user.toString() === req.user._id.toString()
+        );
+        const query = {
+          room: room._id,
+          sender: { $ne: req.user._id },
+          isDeleted: false,
+        };
+        if (participant?.lastReadAt) {
+          query.createdAt = { $gt: participant.lastReadAt };
+        }
+        roomObj.unreadCount = await ChatMessage(
+          req.user.academyId
+        ).countDocuments(query);
+        roomObj.isPinned = participant?.isPinned || false;
+        roomObj.isArchived = participant?.isArchived || false;
+        return roomObj;
+      })
+    );
+
+    // Filter: show archived or non-archived
+    const filtered = roomsWithUnread.filter((r) =>
+      showArchived ? r.isArchived : !r.isArchived
+    );
+
+    // Sort: pinned first, then by last message time
+    filtered.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return 0; // preserve existing sort from DB query
+    });
+
+    return res.status(200).send({ rooms: filtered });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -871,6 +908,80 @@ export const searchUsers = async (req, res) => {
     );
 
     return res.status(200).send({ users: filteredUsers });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+//=================================
+//         Pin / Archive
+//=================================
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function UChatRoomPin API
+ * @description 채팅방 고정/고정해제 API
+ * @version 1.0.0
+ */
+export const pinRoom = async (req, res) => {
+  try {
+    const room = await ChatRoom(req.user.academyId).findById(req.params.roomId);
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    const participantIndex = room.participants.findIndex(
+      (p) => p.user.toString() === req.user._id.toString()
+    );
+    if (participantIndex === -1) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    room.participants[participantIndex].isPinned =
+      !room.participants[participantIndex].isPinned;
+    await room.save();
+
+    return res.status(200).send({
+      isPinned: room.participants[participantIndex].isPinned,
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
+ * @function UChatRoomArchive API
+ * @description 채팅방 보관/보관해제 API
+ * @version 1.0.0
+ */
+export const archiveRoom = async (req, res) => {
+  try {
+    const room = await ChatRoom(req.user.academyId).findById(req.params.roomId);
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    const participantIndex = room.participants.findIndex(
+      (p) => p.user.toString() === req.user._id.toString()
+    );
+    if (participantIndex === -1) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    room.participants[participantIndex].isArchived =
+      !room.participants[participantIndex].isArchived;
+    // If archiving, also unpin
+    if (room.participants[participantIndex].isArchived) {
+      room.participants[participantIndex].isPinned = false;
+    }
+    await room.save();
+
+    return res.status(200).send({
+      isArchived: room.participants[participantIndex].isArchived,
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

@@ -3111,8 +3111,10 @@ export default function useAPIv2() {
    * @version 1.0.0
    * @auth user
    */
-  async function RChatRooms() {
-    const { rooms } = await database.R({ location: "chats/rooms" });
+  async function RChatRooms(props?: { query?: { archived?: string } }) {
+    const { rooms } = await database.R({
+      location: "chats/rooms" + QUERY_BUILDER(props?.query),
+    });
     return { rooms: rooms as TChatRoom[] };
   }
 
@@ -3281,6 +3283,34 @@ export default function useAPIv2() {
       location: `chats/rooms/${props.params.roomId}/read`,
       data: {},
     });
+  }
+
+  /**
+   * UChatRoomPin API
+   * @description 채팅방 고정/고정해제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UChatRoomPin(props: { params: { roomId: string } }) {
+    const { isPinned } = await database.U({
+      location: `chats/rooms/${props.params.roomId}/pin`,
+      data: {},
+    });
+    return { isPinned: isPinned as boolean };
+  }
+
+  /**
+   * UChatRoomArchive API
+   * @description 채팅방 보관/보관해제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UChatRoomArchive(props: { params: { roomId: string } }) {
+    const { isArchived } = await database.U({
+      location: `chats/rooms/${props.params.roomId}/archive`,
+      data: {},
+    });
+    return { isArchived: isArchived as boolean };
   }
 
   /**
@@ -3708,6 +3738,8 @@ export default function useAPIv2() {
       RChatMessages,
       CChatMessage,
       UChatRoomRead,
+      UChatRoomPin,
+      UChatRoomArchive,
       RChatUsers,
       CChatFileUpload,
       RChatFiles,

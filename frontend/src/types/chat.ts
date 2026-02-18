@@ -5,6 +5,8 @@ export type TChatParticipant = {
   profile?: string;
   joinedAt: string;
   lastReadAt?: string;
+  isPinned?: boolean;
+  isArchived?: boolean;
 };
 
 export type TLastMessage = {
@@ -30,6 +32,9 @@ export type TChatRoom = {
   lastMessage?: TLastMessage;
   isActive: boolean;
   settings?: TChatRoomSettings;
+  unreadCount?: number;
+  isPinned?: boolean;
+  isArchived?: boolean;
   createdAt: string;
   updatedAt: string;
 };

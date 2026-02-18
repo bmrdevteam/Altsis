@@ -11,6 +11,7 @@ import NewChat from "./NewChat";
 import ChatMessageContent from "./ChatMessageContent";
 import ImageLightbox from "./ImageLightbox";
 import ChatFileStorage from "./ChatFileStorage";
+import ChatRoomListItem from "./ChatRoomListItem";
 import style from "./chat.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
@@ -52,6 +53,10 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
   const [showChatList, setShowChatList] = useState(!initialRoom);
   const [showNewChat, setShowNewChat] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedRooms, setArchivedRooms] = useState<TChatRoom[]>([]);
 
   // File upload states
   const [isDragging, setIsDragging] = useState(false);
@@ -201,6 +206,14 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     }, 100);
   };
 
+  const adjustTextareaHeight = () => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const maxHeight = 100; // ~5 lines
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+  };
+
   const handleSend = async () => {
     if (!room || !newMessage.trim() || isSending || !canChat) return;
 
@@ -212,6 +225,9 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
       });
       setMessages((prev) => [...prev, message]);
       setNewMessage("");
+      if (inputRef.current) {
+        inputRef.current.style.height = "auto";
+      }
       scrollToBottom();
       inputRef.current?.focus();
     } catch (err) {
@@ -363,6 +379,57 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     }
   };
 
+  const handlePinRoom = async () => {
+    if (!room) return;
+    try {
+      const { isPinned } = await ChatAPI.UChatRoomPin({
+        params: { roomId: room._id },
+      });
+      setRoom({ ...room, isPinned });
+      onRoomUpdated?.({ ...room, isPinned });
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleArchiveRoom = async () => {
+    if (!room) return;
+    try {
+      await ChatAPI.UChatRoomArchive({
+        params: { roomId: room._id },
+      });
+      // After archiving, go back to list
+      setRoom(null);
+      setShowChatList(true);
+      onRoomLeft();
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const loadArchivedRooms = async () => {
+    try {
+      const { rooms } = await ChatAPI.RChatRooms({
+        query: { archived: "true" },
+      });
+      setArchivedRooms(rooms);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleUnarchiveRoom = async (targetRoom: TChatRoom) => {
+    try {
+      await ChatAPI.UChatRoomArchive({
+        params: { roomId: targetRoom._id },
+      });
+      setArchivedRooms((prev) => prev.filter((r) => r._id !== targetRoom._id));
+      onRoomLeft(); // trigger parent reload
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const handleRoomClick = (selectedRoom: TChatRoom) => {
     onRoomSelect(selectedRoom);
     setRoom(selectedRoom);
@@ -374,31 +441,6 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     onNewChatCreated(newRoom);
     setRoom(newRoom);
     setShowChatList(false);
-  };
-
-  const formatTime = (dateString?: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (diffDays === 0) {
-      return date.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } else if (diffDays === 1) {
-      return "어제";
-    } else if (diffDays < 7) {
-      return `${diffDays}일 전`;
-    } else {
-      return date.toLocaleDateString("ko-KR", {
-        month: "short",
-        day: "numeric",
-      });
-    }
   };
 
   const handleInviteComplete = () => {
@@ -448,62 +490,51 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     return participant?.profile || defaultProfilePic;
   };
 
+  const filteredRooms = sidebarSearch.trim()
+    ? rooms.filter((r) => {
+        const query = sidebarSearch.toLowerCase();
+        const nameMatch = getRoomDisplayName(r).toLowerCase().includes(query);
+        const participantMatch = r.participants.some(
+          (p) =>
+            p.userName.toLowerCase().includes(query) ||
+            p.userId.toLowerCase().includes(query)
+        );
+        return nameMatch || participantMatch;
+      })
+    : rooms;
+
   // Chat list view
   const chatListContent = (
     <div className={style.chat_list_container}>
       <div className={style.chat_list_items}>
         {rooms.length === 0 ? (
-          <div className={style.empty}>채팅방이 없습니다</div>
+          <div className={style.empty_state}>
+            <Svg type="chatBubble" width="48px" height="48px" style={{ fill: "var(--accent-4, #ccc)" }} />
+            <span className={style.empty_state_text}>채팅방이 없습니다</span>
+            <Button type="ghost" onClick={() => setShowNewChat(true)}>
+              새 채팅 시작하기
+            </Button>
+          </div>
         ) : (
-          rooms.map((r) => {
-            const participant = r.participants.find(
-              (p) => p.userId === currentUser?.userId
-            );
-            const hasUnread =
-              r.lastMessage?.sentAt &&
-              r.lastMessage.sender !== currentUser?._id &&
-              (!participant?.lastReadAt ||
-                new Date(r.lastMessage.sentAt) >
-                  new Date(participant.lastReadAt));
-
-            return (
-              <div
-                key={r._id}
-                className={`${style.chat_list_item} ${room?._id === r._id ? style.active : ""}`}
-                onClick={() => handleRoomClick(r)}
-              >
-                <img
-                  src={defaultProfilePic}
-                  alt={getRoomDisplayName(r)}
-                  className={style.chat_list_avatar}
-                />
-                <div className={style.chat_list_info}>
-                  <div className={style.chat_list_header}>
-                    <span className={`${style.chat_list_name} ${hasUnread ? style.unread : ""}`}>
-                      {getRoomDisplayName(r)}
-                      <span className={style.participant_count}>({r.participants.length})</span>
-                    </span>
-                    <span className={style.chat_list_time}>
-                      {formatTime(r.lastMessage?.sentAt)}
-                    </span>
-                  </div>
-                  {r.lastMessage && (
-                    <div className={style.chat_list_preview}>
-                      {hasUnread && <span className={style.unread_badge}>N</span>}
-                      {r.lastMessage.content}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })
+          rooms.map((r) => (
+            <ChatRoomListItem
+              key={r._id}
+              room={r}
+              isActive={room?._id === r._id}
+              currentUserId={currentUser?.userId ?? ""}
+              currentUserObjId={currentUser?._id ?? ""}
+              onClick={handleRoomClick}
+            />
+          ))
         )}
       </div>
-      <div className={style.chat_list_footer}>
-        <Button type="ghost" onClick={() => setShowNewChat(true)} style={{ width: "100%" }}>
-          새 채팅
-        </Button>
-      </div>
+      {rooms.length > 0 && (
+        <div className={style.chat_list_footer}>
+          <Button type="ghost" onClick={() => setShowNewChat(true)} style={{ width: "100%" }}>
+            새 채팅
+          </Button>
+        </div>
+      )}
     </div>
   );
 
@@ -542,7 +573,8 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                       setShowInvite(true);
                     }}
                   >
-                    사용자 초대
+                    <Svg type="userPlus" width="16px" height="16px" />
+                    <span>사용자 초대</span>
                   </div>
                 )}
                 {isCreator && (
@@ -553,9 +585,20 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                       setShowSettings(true);
                     }}
                   >
-                    채팅방 설정
+                    <Svg type="settings" width="16px" height="16px" />
+                    <span>채팅방 설정</span>
                   </div>
                 )}
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    setShowMenu(false);
+                    handlePinRoom();
+                  }}
+                >
+                  <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
+                  <span>{room.isPinned ? "고정 해제" : "고정"}</span>
+                </div>
                 <div
                   className={style.menu_item}
                   onClick={() => {
@@ -563,7 +606,18 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                     setShowStorage(true);
                   }}
                 >
-                  내 파일
+                  <Svg type="file" width="16px" height="16px" />
+                  <span>내 파일</span>
+                </div>
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    setShowMenu(false);
+                    handleArchiveRoom();
+                  }}
+                >
+                  <Svg type="archive" width="16px" height="16px" />
+                  <span>보관</span>
                 </div>
                 <div
                   className={`${style.menu_item} ${style.danger}`}
@@ -572,7 +626,8 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                     handleLeaveRoom();
                   }}
                 >
-                  채팅방 나가기
+                  <Svg type="logout" width="16px" height="16px" />
+                  <span>채팅방 나가기</span>
                 </div>
               </div>
             )}
@@ -603,8 +658,10 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
         {isLoading ? (
           <div className={style.loading}>메시지를 불러오는 중...</div>
         ) : messages.length === 0 ? (
-          <div className={style.empty}>
-            아직 메시지가 없습니다. 첫 메시지를 보내보세요!
+          <div className={style.empty_state}>
+            <Svg type="send" width="40px" height="40px" style={{ fill: "var(--accent-4, #ccc)" }} />
+            <span className={style.empty_state_text}>아직 메시지가 없습니다</span>
+            <span className={style.empty_state_sub}>첫 메시지를 보내보세요!</span>
           </div>
         ) : (
           messages.map((msg, index) => (
@@ -717,7 +774,10 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
             <textarea
               ref={inputRef}
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                adjustTextareaHeight();
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -727,15 +787,16 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
               onKeyUp={handleTyping}
               onPaste={handlePaste}
               placeholder="메시지를 입력하세요..."
-              rows={2}
+              rows={1}
             />
-            <Button
-              type="ghost"
+            <button
+              className={`${style.send_button} ${newMessage.trim() ? style.active : ""}`}
               onClick={handleSend}
               disabled={isSending || !newMessage.trim()}
+              title="전송"
             >
-              전송
-            </Button>
+              <Svg type="send" width="20px" height="20px" />
+            </button>
           </>
         ) : (
           <div className={style.chat_disabled}>
@@ -752,78 +813,149 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     </div>
   );
 
-  const headerTitle = showChatList || !room ? "채팅" : getRoomDisplayName();
-
   // === Embedded (page) layout: sidebar + main area ===
   if (embedded) {
     return (
       <>
         <div className={style.embedded_layout}>
           {/* Sidebar - Chat List */}
-          <div className={style.sidebar}>
-            <div className={style.sidebar_header}>
-              <span className={style.sidebar_title}>채팅</span>
-              <button
-                className={style.new_chat_btn}
-                onClick={() => setShowNewChat(true)}
-              >
-                + 새 채팅
-              </button>
-            </div>
-            <div className={style.sidebar_list}>
-              {rooms.length === 0 ? (
-                <div className={style.sidebar_empty}>채팅방이 없습니다</div>
-              ) : (
-                rooms.map((r) => {
-                  const participant = r.participants.find(
-                    (p) => p.userId === currentUser?.userId
-                  );
-                  const hasUnread =
-                    r.lastMessage?.sentAt &&
-                    r.lastMessage.sender !== currentUser?._id &&
-                    (!participant?.lastReadAt ||
-                      new Date(r.lastMessage.sentAt) >
-                        new Date(participant.lastReadAt));
-
-                  return (
-                    <div
-                      key={r._id}
-                      className={`${style.chat_list_item} ${room?._id === r._id ? style.active : ""}`}
-                      onClick={() => handleRoomClick(r)}
+          <div className={`${style.sidebar} ${sidebarCollapsed ? style.collapsed : ""}`}>
+            {sidebarCollapsed ? (
+              <div className={style.sidebar_collapsed_content}>
+                <button
+                  className={style.sidebar_toggle}
+                  onClick={() => setSidebarCollapsed(false)}
+                  title="사이드바 펼치기"
+                >
+                  <Svg type="chevronRight" width="16px" height="16px" style={{ fill: "var(--accent-2)" }} />
+                </button>
+                <button
+                  className={style.sidebar_toggle}
+                  onClick={() => setShowNewChat(true)}
+                  title="새 채팅"
+                >
+                  <Svg type="chat" width="16px" height="16px" style={{ fill: "var(--accent-2)" }} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className={style.sidebar_header}>
+                  <button
+                    className={style.sidebar_toggle}
+                    onClick={() => setSidebarCollapsed(true)}
+                    title="사이드바 접기"
+                  >
+                    <Svg type="arrowLeft" width="14px" height="14px" style={{ fill: "var(--accent-2)" }} />
+                  </button>
+                  <span className={style.sidebar_title}>채팅</span>
+                  <button
+                    className={style.new_chat_btn}
+                    onClick={() => setShowNewChat(true)}
+                  >
+                    + 새 채팅
+                  </button>
+                </div>
+                <div className={style.sidebar_search}>
+                  <Svg type="search" width="14px" height="14px" style={{ fill: "var(--accent-3)" }} />
+                  <input
+                    type="text"
+                    value={sidebarSearch}
+                    onChange={(e) => setSidebarSearch(e.target.value)}
+                    placeholder="채팅방 검색..."
+                    className={style.sidebar_search_input}
+                  />
+                  {sidebarSearch && (
+                    <button
+                      className={style.sidebar_search_clear}
+                      onClick={() => setSidebarSearch("")}
                     >
-                      <img
-                        src={defaultProfilePic}
-                        alt={getRoomDisplayName(r)}
-                        className={style.chat_list_avatar}
-                      />
-                      <div className={style.chat_list_info}>
-                        <div className={style.chat_list_header}>
-                          <span
-                            className={`${style.chat_list_name} ${hasUnread ? style.unread : ""}`}
-                          >
-                            {getRoomDisplayName(r)}
-                            <span className={style.participant_count}>
-                              ({r.participants.length})
-                            </span>
-                          </span>
-                          <span className={style.chat_list_time}>
-                            {formatTime(r.lastMessage?.sentAt)}
-                          </span>
+                      <Svg type="x" width="12px" height="12px" style={{ fill: "var(--accent-3)" }} />
+                    </button>
+                  )}
+                </div>
+                <div className={style.sidebar_list}>
+                  {showArchived ? (
+                    <>
+                      <button
+                        className={style.archive_back_btn}
+                        onClick={() => setShowArchived(false)}
+                      >
+                        <Svg type="arrowLeft" width="14px" height="14px" style={{ fill: "var(--accent-2)" }} />
+                        <span>보관함</span>
+                      </button>
+                      {archivedRooms.length === 0 ? (
+                        <div className={style.empty_state}>
+                          <span className={style.empty_state_text}>보관된 채팅이 없습니다</span>
                         </div>
-                        {r.lastMessage && (
-                          <div className={style.chat_list_preview}>
-                            {hasUnread && (
-                              <span className={style.unread_badge}>N</span>
-                            )}
-                            {r.lastMessage.content}
+                      ) : (
+                        archivedRooms.map((r) => (
+                          <div key={r._id} className={style.archived_room_item}>
+                            <ChatRoomListItem
+                              room={r}
+                              isActive={false}
+                              currentUserId={currentUser?.userId ?? ""}
+                              currentUserObjId={currentUser?._id ?? ""}
+                              onClick={handleRoomClick}
+                            />
+                            <button
+                              className={style.unarchive_btn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUnarchiveRoom(r);
+                              }}
+                              title="보관 해제"
+                            >
+                              <Svg type="unarchive" width="14px" height="14px" style={{ fill: "var(--accent-2)" }} />
+                            </button>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+                        ))
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {filteredRooms.length === 0 ? (
+                        <div className={style.empty_state}>
+                          {rooms.length === 0 ? (
+                            <>
+                              <Svg type="chatBubble" width="48px" height="48px" style={{ fill: "var(--accent-4, #ccc)" }} />
+                              <span className={style.empty_state_text}>채팅방이 없습니다</span>
+                              <Button type="ghost" onClick={() => setShowNewChat(true)}>
+                                새 채팅 시작하기
+                              </Button>
+                            </>
+                          ) : (
+                            <span className={style.empty_state_text}>검색 결과가 없습니다</span>
+                          )}
+                        </div>
+                      ) : (
+                        filteredRooms.map((r) => (
+                          <ChatRoomListItem
+                            key={r._id}
+                            room={r}
+                            isActive={room?._id === r._id}
+                            currentUserId={currentUser?.userId ?? ""}
+                            currentUserObjId={currentUser?._id ?? ""}
+                            onClick={handleRoomClick}
+                          />
+                        ))
+                      )}
+                    </>
+                  )}
+                </div>
+                {!showArchived && (
+                  <button
+                    className={style.archive_toggle_btn}
+                    onClick={() => {
+                      setShowArchived(true);
+                      loadArchivedRooms();
+                    }}
+                  >
+                    <Svg type="archive" width="14px" height="14px" style={{ fill: "var(--accent-3)" }} />
+                    <span>보관함</span>
+                  </button>
+                )}
+              </>
+            )}
           </div>
 
           {/* Main Area - Conversation */}
@@ -833,8 +965,10 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                 {chatConversationContent}
               </div>
             ) : (
-              <div className={style.no_room_selected}>
-                채팅방을 선택해주세요
+              <div className={style.empty_state}>
+                <Svg type="chat" width="48px" height="48px" style={{ fill: "var(--accent-4, #ccc)" }} />
+                <span className={style.empty_state_text}>채팅방을 선택해주세요</span>
+                <span className={style.empty_state_sub}>왼쪽 목록에서 채팅방을 선택하거나 새 채팅을 시작하세요</span>
               </div>
             )}
           </div>
@@ -879,14 +1013,26 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
       <div className={`${style.chat_panel_container} ${embedded ? style.embedded : ""}`}>
         <div className={style.chat_panel_header}>
           <div className={style.chat_panel_title_area}>
-            <button
-              className={style.chat_panel_btn}
-              onClick={() => setShowChatList(!showChatList)}
-              title="채팅 목록"
-            >
-              <Svg type="chat" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-            </button>
-            <span className={style.chat_panel_title}>{headerTitle}</span>
+            {!showChatList && room ? (
+              <>
+                <button
+                  className={style.chat_panel_btn}
+                  onClick={() => {
+                    setShowChatList(true);
+                    setRoom(null);
+                  }}
+                  title="목록으로"
+                >
+                  <Svg type="arrowLeft" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
+                </button>
+                <span className={style.chat_panel_title}>{getRoomDisplayName()}</span>
+              </>
+            ) : (
+              <>
+                <Svg type="chat" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
+                <span className={style.chat_panel_title}>채팅</span>
+              </>
+            )}
           </div>
           <div className={style.chat_panel_actions}>
             <button className={style.chat_panel_btn} onClick={onClose} title="닫기">

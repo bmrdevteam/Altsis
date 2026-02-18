@@ -24,40 +24,37 @@
     color: var(--accent-1);
   }
 
-  .user_search {
-    position: relative;
-    z-index: 1999;
+  .search_trigger {
     flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background-color: var(--component-color);
+    cursor: pointer;
 
-    .search {
-      border-radius: 4px;
-      background-color: var(--component-color);
-      padding: 6.5px 15px;
-      font-size: 14px;
-      width: 100%;
-      outline: none;
-      border: none;
+    &:hover {
+      background-color: var(--component-hover-color);
     }
 
-    .result {
-      position: absolute;
-      background-color: var(--component-color);
+    svg {
+      fill: var(--accent-3);
+    }
+
+    .search_placeholder {
+      flex: 1;
+      font-size: 14px;
+      color: var(--accent-4);
+    }
+
+    .search_shortcut {
+      font-size: 11px;
+      color: var(--accent-4);
+      background-color: var(--background-color);
+      padding: 2px 6px;
       border-radius: 4px;
-      width: 100%;
-      top: 32px;
-      max-height: 150px;
-      overflow-y: scroll;
-
-      .row {
-        cursor: pointer;
-        font-size: 14px;
-        padding: 6.5px 15px;
-      }
-
-      .row:hover {
-        background-color: var(--component-hover-color);
-        border-radius: 4px;
-      }
+      border: var(--border-default);
     }
   }
 

@@ -23,6 +23,13 @@ router.post("/rooms/:roomId/participants", isLoggedIn, isChatEnabled, chats.addP
 router.delete("/rooms/:roomId/participants/:participantId", isLoggedIn, isChatEnabled, chats.removeParticipant);
 
 //=================================
+//             Pin / Archive
+//=================================
+
+router.put("/rooms/:roomId/pin", isLoggedIn, isChatEnabled, chats.pinRoom);
+router.put("/rooms/:roomId/archive", isLoggedIn, isChatEnabled, chats.archiveRoom);
+
+//=================================
 //             Messages
 //=================================
 

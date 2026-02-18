@@ -19,7 +19,6 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
   const [users, setUsers] = useState<TChatUser[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<TChatUser[]>([]);
   const [groupName, setGroupName] = useState("");
-  const [groupNameTouched, setGroupNameTouched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -51,7 +50,7 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
   }, [searchQuery]);
 
   useEffect(() => {
-    if (!groupNameTouched && currentUser) {
+    if (currentUser) {
       if (selectedUsers.length > 0) {
         const participantNames = selectedUsers.map((u) => u.userName);
         const allNames = [currentUser.userName, ...participantNames].join(
@@ -62,7 +61,7 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
         setGroupName("");
       }
     }
-  }, [selectedUsers, groupNameTouched, currentUser]);
+  }, [selectedUsers, currentUser]);
 
   const toggleUserSelection = (user: TChatUser) => {
     setSelectedUsers((prev) => {
@@ -130,19 +129,6 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
             ))}
           </div>
         )}
-
-        {/* Group Name Input */}
-        <div className={style.group_name_container}>
-          <input
-            type="text"
-            placeholder="채팅방 이름 (선택)"
-            value={groupName}
-            onChange={(e) => {
-              setGroupName(e.target.value);
-              setGroupNameTouched(true);
-            }}
-          />
-        </div>
 
         {/* Search Input */}
         <div className={style.search_container}>
