@@ -13,14 +13,19 @@
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import {
+  AIUsageLog,
   Archive,
+  Board,
   Enrollment,
   Registration,
+  RequestStat,
   School,
   Season,
   Syllabus,
   User,
 } from "../models/index.js";
+import { profileS3, profileBucket } from "../_s3/profileBucket.js";
+import { fileS3, fileBucket } from "../_s3/fileBucket.js";
 import {
   FIELD_INVALID,
   FIELD_IN_USE,
@@ -480,6 +485,277 @@ export const remove = async (req, res) => {
     await school.delete();
 
     return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SchoolAPI
+ * @function RSchoolDashboard API
+ * @description 학교 대시보드 통계 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ * @param {"GET"} req.method
+ * @param {"/schools/:_id/dashboard"} req.url
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.dashboard
+ */
+export const dashboard = async (req, res) => {
+  try {
+    const academyId = req.user.academyId;
+    const schoolId = req.params._id;
+
+    const school = await School(academyId).findById(schoolId);
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    // ── 1. School Stats ──
+    const seasons = await Season(academyId)
+      .find({ school: schoolId })
+      .sort({ year: -1, term: 1 })
+      .lean();
+
+    const activeSeasons = seasons.filter((s) => s.isActivated);
+    const activeSeasonIds = activeSeasons.map((s) => s._id);
+    const allSeasonIds = seasons.map((s) => s._id);
+
+    const registrations = await Registration(academyId)
+      .find({ season: { $in: allSeasonIds } })
+      .select("season role")
+      .lean();
+
+    const seasonStats = seasons.map((season) => {
+      const regs = registrations.filter(
+        (r) => r.season.toString() === season._id.toString()
+      );
+      return {
+        _id: season._id,
+        year: season.year,
+        term: season.term,
+        isActivated: season.isActivated,
+        studentCount: regs.filter((r) => r.role === "student").length,
+        teacherCount: regs.filter((r) => r.role === "teacher").length,
+      };
+    });
+
+    const activeRegs = registrations.filter((r) =>
+      activeSeasonIds.some((id) => id.toString() === r.season.toString())
+    );
+    const summary = {
+      totalStudents: activeRegs.filter((r) => r.role === "student").length,
+      totalTeachers: activeRegs.filter((r) => r.role === "teacher").length,
+    };
+
+    const syllabuses = await Syllabus(academyId)
+      .find({ season: { $in: activeSeasonIds } })
+      .select("classTitle count limit")
+      .lean();
+
+    summary.totalCourses = syllabuses.length;
+    summary.totalEnrollments = syllabuses.reduce(
+      (s, syl) => s + (syl.count || 0),
+      0
+    );
+
+    const courseFillRates = syllabuses
+      .map((syl) => ({
+        classTitle: syl.classTitle,
+        count: syl.count || 0,
+        limit: syl.limit || 0,
+        fillRate:
+          syl.limit > 0
+            ? Math.round(((syl.count || 0) / syl.limit) * 100)
+            : null,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // ── 2. Board Activity ──
+    let boardActivity = [];
+    try {
+      const boards = await Board(academyId)
+        .find({ school: schoolId })
+        .select("name postCount")
+        .sort({ postCount: -1 })
+        .limit(10)
+        .lean();
+      boardActivity = boards.map((b) => ({
+        name: b.name,
+        postCount: b.postCount || 0,
+      }));
+    } catch (_) {}
+
+    // ── 3. Traffic Stats (academy-wide, last 7 days) ──
+    let trafficStats = [];
+    try {
+      const today = new Date();
+      const dates = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        dates.push(d.toISOString().slice(0, 10));
+      }
+      const stats = await RequestStat(academyId)
+        .find({ date: { $in: dates } })
+        .lean();
+      trafficStats = dates.map((date) => {
+        const stat = stats.find((s) => s.date === date);
+        return {
+          date,
+          requests: stat?.requests || 0,
+          avgResponseTime:
+            stat?.requests > 0
+              ? Math.round(stat.totalResponseTime / stat.requests)
+              : 0,
+          dataIn: stat?.dataIn || 0,
+          dataOut: stat?.dataOut || 0,
+          uniqueUsers: stat?.uniqueUsers?.length || 0,
+        };
+      });
+    } catch (_) {}
+
+    // ── 4. S3 Storage Stats (academy-wide) ──
+    let storageStats = [];
+    try {
+      const categories = [
+        {
+          name: "프로필 이미지",
+          s3: profileS3,
+          bucket: profileBucket,
+          prefix: `original/${academyId}/`,
+        },
+        {
+          name: "채팅 파일",
+          s3: fileS3,
+          bucket: fileBucket,
+          prefix: `${academyId}/chat/`,
+        },
+        {
+          name: "게시판 첨부파일",
+          s3: fileS3,
+          bucket: fileBucket,
+          prefix: `${academyId}/posts/`,
+        },
+        {
+          name: "설문 파일",
+          s3: fileS3,
+          bucket: fileBucket,
+          prefix: `${academyId}/survey/`,
+        },
+        {
+          name: "기록 파일",
+          s3: fileS3,
+          bucket: fileBucket,
+          prefix: `${academyId}/archive/`,
+        },
+        {
+          name: "AI 참고자료",
+          s3: fileS3,
+          bucket: fileBucket,
+          prefix: `${academyId}/ai-ref/`,
+        },
+      ];
+
+      storageStats = await Promise.all(
+        categories.map(async (cat) => {
+          let totalSize = 0;
+          let count = 0;
+          let ContinuationToken;
+
+          try {
+            do {
+              const response = await cat.s3
+                .listObjectsV2({
+                  Bucket: cat.bucket,
+                  Prefix: cat.prefix,
+                  ContinuationToken,
+                })
+                .promise();
+
+              for (const obj of response.Contents || []) {
+                totalSize += obj.Size;
+                count++;
+              }
+              ContinuationToken = response.NextContinuationToken;
+            } while (ContinuationToken);
+          } catch (_) {}
+
+          return { name: cat.name, count, totalSize };
+        })
+      );
+    } catch (_) {}
+
+    // ── 5. AI Token Usage (academy-wide, last 7 days + total) ──
+    let aiUsage = { daily: [], total: { requests: 0, totalTokens: 0 } };
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+
+      const recentLogs = await AIUsageLog(academyId)
+        .find({ createdAt: { $gte: sevenDaysAgo } })
+        .select("totalTokens promptTokens candidatesTokens createdAt")
+        .lean();
+
+      // Group by date
+      const dailyMap = {};
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        dailyMap[key] = { date: key, requests: 0, totalTokens: 0 };
+      }
+
+      for (const log of recentLogs) {
+        const key = log.createdAt.toISOString().slice(0, 10);
+        if (dailyMap[key]) {
+          dailyMap[key].requests++;
+          dailyMap[key].totalTokens += log.totalTokens || 0;
+        }
+      }
+
+      aiUsage.daily = Object.values(dailyMap);
+
+      // Total counts
+      const totalCount = await AIUsageLog(academyId).countDocuments();
+      const totalAgg = await AIUsageLog(academyId).aggregate([
+        {
+          $group: {
+            _id: null,
+            totalTokens: { $sum: "$totalTokens" },
+            promptTokens: { $sum: "$promptTokens" },
+            candidatesTokens: { $sum: "$candidatesTokens" },
+            thoughtsTokens: { $sum: "$thoughtsTokens" },
+          },
+        },
+      ]);
+
+      aiUsage.total = {
+        requests: totalCount,
+        totalTokens: totalAgg[0]?.totalTokens || 0,
+        promptTokens: totalAgg[0]?.promptTokens || 0,
+        candidatesTokens: totalAgg[0]?.candidatesTokens || 0,
+        thoughtsTokens: totalAgg[0]?.thoughtsTokens || 0,
+      };
+    } catch (_) {}
+
+    return res.status(200).send({
+      dashboard: {
+        summary,
+        seasonStats,
+        courseFillRates,
+        boardActivity,
+        trafficStats,
+        storageStats,
+        aiUsage,
+      },
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

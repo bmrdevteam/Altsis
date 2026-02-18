@@ -10,7 +10,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
-import { Season, Registration, Enrollment, Syllabus } from "../models/index.js";
+import { Season, Registration, Enrollment, Syllabus, AIUsageLog } from "../models/index.js";
 
 /**
  * Extract input field names from formSyllabus editor data
@@ -292,7 +292,27 @@ export const generateSyllabusContent = async (req, res) => {
       sendEvent("generating", { text: chunkText });
     }
 
-    // 7. Parse JSON response
+    // 7. Log AI token usage
+    try {
+      const response = await result.response;
+      const usage = response.usageMetadata;
+      if (usage) {
+        AIUsageLog(req.user.academyId)
+          .create({
+            user: req.user._id,
+            userId: req.user.userId,
+            userName: req.user.userName,
+            model: modelName,
+            promptTokens: usage.promptTokenCount || 0,
+            candidatesTokens: usage.candidatesTokenCount || 0,
+            thoughtsTokens: usage.thoughtsTokenCount || 0,
+            totalTokens: usage.totalTokenCount || 0,
+          })
+          .catch(() => {});
+      }
+    } catch (_) {}
+
+    // 8. Parse JSON response
     let content;
     try {
       const jsonMatch =

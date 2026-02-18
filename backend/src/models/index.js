@@ -4,6 +4,7 @@
  */
 
 import { Academy } from "../models/Academy.js";
+import { AIUsageLog } from "../models/AIUsageLog.js";
 import { Archive } from "../models/Archive.js";
 import { Board } from "../models/Board.js";
 import { BoardFavorite } from "../models/BoardFavorite.js";
@@ -19,6 +20,7 @@ import { NotificationSetting } from "../models/NotificationSetting.js";
 import { Post } from "../models/Post.js";
 import { Reminder } from "../models/Reminder.js";
 import { Registration } from "../models/Registration.js";
+import { RequestStat } from "../models/RequestStat.js";
 import { School } from "../models/School.js";
 import { Season } from "../models/Season.js";
 import { SurveyResponse } from "../models/SurveyResponse.js";
@@ -29,6 +31,7 @@ import { UserCalendar } from "../models/UserCalendar.js";
 
 export {
   Academy,
+  AIUsageLog,
   Archive,
   Board,
   BoardFavorite,
@@ -44,6 +47,7 @@ export {
   Post,
   Reminder,
   Registration,
+  RequestStat,
   School,
   Season,
   SurveyResponse,

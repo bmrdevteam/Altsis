@@ -18,6 +18,7 @@ import {
   TSchoolFormArchive,
   TDeletedSchoolFormArchive,
 } from "types/schools";
+import { TDashboard } from "types/dashboard";
 import {
   TFormEvaluation,
   TSeason,
@@ -957,6 +958,25 @@ export default function useAPIv2() {
     });
     return {
       school: school as TSchool,
+    };
+  }
+
+  /**
+   * RSchoolDashboard API
+   * @description 학교 대시보드 통계 조회 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RSchoolDashboard(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { dashboard } = await database.R({
+      location: `schools/${props.params._id}/dashboard`,
+    });
+    return {
+      dashboard: dashboard as TDashboard,
     };
   }
 
@@ -3934,6 +3954,7 @@ export default function useAPIv2() {
       CSchool,
       RSchools,
       RSchool,
+      RSchoolDashboard,
       USchoolFormArchive,
       USchoolLinks,
       RestoreFormArchive,

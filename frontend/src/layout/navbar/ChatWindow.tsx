@@ -12,6 +12,7 @@ import ChatMessageContent from "./ChatMessageContent";
 import ImageLightbox from "./ImageLightbox";
 import ChatFileStorage from "./ChatFileStorage";
 import ChatRoomListItem from "./ChatRoomListItem";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import style from "./chat.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
@@ -36,6 +37,7 @@ type Props = {
 const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, onRoomUpdated, onNewChatCreated, onRoomLeft, embedded }: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
+  const navigate = useAppNavigate();
 
   const [room, setRoom] = useState<TChatRoom | null>(initialRoom);
   const [messages, setMessages] = useState<TChatMessage[]>([]);
@@ -1058,6 +1060,16 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
             )}
           </div>
           <div className={style.chat_panel_actions}>
+            <button
+              className={style.chat_panel_btn}
+              onClick={() => {
+                onClose();
+                navigate("/chat");
+              }}
+              title="전체 화면으로 보기"
+            >
+              <Svg type="openInNew" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
+            </button>
             <button className={style.chat_panel_btn} onClick={onClose} title="닫기">
               <Svg type="x" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
             </button>

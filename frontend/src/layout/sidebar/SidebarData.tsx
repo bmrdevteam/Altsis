@@ -164,25 +164,11 @@ export const SidebarData = (auth: string, role?: string): any => {
       icon: <Svg type="article" />,
     });
     data.push({
-      title: "communication",
-      name: "소통",
+      title: "boards",
+      name: "보드",
       path: "/boards",
-      icon: <Svg type="forum" />,
-      matchPaths: ["boards", "chat"],
-      subLink: [
-        {
-          title: "boards",
-          name: "보드",
-          path: "/boards",
-          icon: <Svg type="dashboard" />,
-        },
-        {
-          title: "chat",
-          name: "채팅",
-          path: "/chat",
-          icon: <Svg type="chatBubble" />,
-        },
-      ],
+      icon: <Svg type="dashboard" />,
+      matchPaths: ["boards"],
     });
   }
 

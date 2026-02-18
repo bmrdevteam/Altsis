@@ -1,0 +1,346 @@
+/* ═══════════════════════════════════════════
+   Dashboard — Notion-inspired minimal design
+   ═══════════════════════════════════════════ */
+
+.dashboardContainer {
+  padding: 20px 0;
+}
+
+.emptyMessage {
+  font-size: 14px;
+  color: var(--text-color-2);
+  padding: 24px 0;
+}
+
+/* ─── Summary Cards ─── */
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.summaryCard {
+  padding: 20px;
+  border-radius: 8px;
+  background: var(--background-color-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summaryLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.summaryValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.summaryValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-color-1);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryUnit {
+  font-size: 14px;
+  color: var(--text-color-2);
+  font-weight: 500;
+}
+
+/* ─── Sections ─── */
+
+.section {
+  margin-bottom: 28px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  margin: 0 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sectionSubLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-color-2);
+  margin-left: 8px;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Bar Chart (reuses survey pattern) ─── */
+
+.barChartContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.barRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.barRowTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.barLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.barValue {
+  font-size: 13px;
+  color: var(--text-color-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.barTrack {
+  width: 100%;
+  height: 8px;
+  background: rgba(var(--accent-1-rgb, 55, 53, 47), 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: var(--accent-1);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  min-width: 0;
+  opacity: 0.75;
+}
+
+.barFillSecondary {
+  background: var(--status-info, var(--accent-1));
+  opacity: 0.55;
+}
+
+.barFillWarning {
+  background: var(--status-warning);
+  opacity: 0.85;
+}
+
+/* ─── Season Chart (dual bar) ─── */
+
+.seasonRow {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.activeBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  margin-left: 8px;
+  border-radius: 3px;
+  background: var(--status-success-bg);
+  color: var(--status-success);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dualBarGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.dualBarRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dualBarLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color-2);
+  min-width: 28px;
+  flex-shrink: 0;
+}
+
+/* ─── Traffic Stats ─── */
+
+.trafficSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.trafficCard {
+  padding: 14px 16px;
+  border-radius: 6px;
+  background: var(--background-color-2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trafficCardLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  letter-spacing: 0.02em;
+}
+
+.trafficCardValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color-1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Storage Stats ─── */
+
+.storageList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.storageRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.storageName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-1);
+}
+
+.storageInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.storageCount {
+  font-size: 13px;
+  color: var(--text-color-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.storageSize {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  font-variant-numeric: tabular-nums;
+  min-width: 80px;
+  text-align: right;
+}
+
+.storageTotalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  margin-top: 4px;
+  border-top: 2px solid var(--border-color);
+}
+
+.storageTotalLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.storageTotalSize {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-color-1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── AI Usage ─── */
+
+.aiSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 768px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .summaryValue {
+    font-size: 22px;
+  }
+
+  .trafficSummary,
+  .aiSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .barLabel {
+    max-width: 50%;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .summaryGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .summaryCard {
+    padding: 14px;
+  }
+
+  .summaryValue {
+    font-size: 20px;
+  }
+
+  .storageInfo {
+    gap: 8px;
+  }
+
+  .storageSize {
+    min-width: 60px;
+  }
+}

@@ -37,12 +37,14 @@ import Tab from "components/tab/Tab";
 import Skeleton from "components/skeleton/Skeleton";
 
 // tab elements
+import Dashboard from "./tab/Dashboard";
 import Season from "./tab/seasons/Season";
 import Archive from "./tab/archive/Index";
 import User from "./tab/users/User";
 import Links from "./tab/Links";
 import Remove from "./tab/Remove";
 import Notifications from "./tab/Notifications";
+import BoardManagement from "./tab/BoardManagement";
 
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
@@ -163,12 +165,16 @@ const School = (props: Props) => {
                     ),
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
-                    알림: <Notifications schoolData={schoolData} />,
-                    "사이드바 링크": (
+                    알림: <Notifications />,
+                    보드: <BoardManagement schoolData={schoolData} />,
+                    링크: (
                       <Links
                         schoolData={schoolData}
                         setSchoolData={setSchoolData}
                       />
+                    ),
+                    대시보드: (
+                      <Dashboard schoolId={schoolData._id} />
                     ),
                     삭제: <Remove schoolData={schoolData} />,
                   }
@@ -182,12 +188,16 @@ const School = (props: Props) => {
                     ),
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
-                    알림: <Notifications schoolData={schoolData} />,
-                    "사이드바 링크": (
+                    알림: <Notifications />,
+                    보드: <BoardManagement schoolData={schoolData} />,
+                    링크: (
                       <Links
                         schoolData={schoolData}
                         setSchoolData={setSchoolData}
                       />
+                    ),
+                    대시보드: (
+                      <Dashboard schoolId={schoolData._id} />
                     ),
                   }
             }

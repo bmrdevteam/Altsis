@@ -11,6 +11,7 @@ import passport from "passport";
 import { config as passportConfig } from "./_passport/index.js";
 
 import { routers } from "./routes/index.js";
+import { requestTracker } from "./middleware/requestTracker.js";
 
 /* logger */
 import morgan from "morgan";
@@ -94,6 +95,9 @@ app.use(
     stream: logger.stream,
   })
 );
+
+/* request stats tracker */
+app.use(requestTracker);
 
 routers.forEach((router) => {
   app.use("/api/" + router.label, router.routes);
