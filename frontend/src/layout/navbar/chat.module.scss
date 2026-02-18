@@ -1657,4 +1657,8 @@
   .mobile_back_btn {
     display: flex;
   }
+
+  .sidebar .sidebar_toggle {
+    display: none !important;
+  }
 }

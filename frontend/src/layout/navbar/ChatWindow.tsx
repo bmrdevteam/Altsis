@@ -58,6 +58,17 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
   const [showArchived, setShowArchived] = useState(false);
   const [archivedRooms, setArchivedRooms] = useState<TChatRoom[]>([]);
 
+  // On mobile, force sidebar expanded
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches && sidebarCollapsed) setSidebarCollapsed(false);
+    };
+    handler(mq);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [sidebarCollapsed]);
+
   // File upload states
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<{
