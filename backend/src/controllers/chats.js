@@ -1040,7 +1040,12 @@ export const uploadChatFile = async (req, res) => {
 
     // Upload file using chatMulter
     chatMulter(roomId).single("file")(req, {}, async (err) => {
+      logger.info(
+        `[ChatUpload] multer callback - err: ${err?.message || "none"}, file: ${!!req.file}, tmp: ${!!req.tmp}, content-type: ${req.headers["content-type"]}`
+      );
+
       if (err) {
+        logger.error(`[ChatUpload] multer error - code: ${err.code}, message: ${err.message}`);
         switch (err.code) {
           case "LIMIT_FILE_SIZE":
             return res.status(409).send({ message: LIMIT_FILE_SIZE });
@@ -1053,6 +1058,7 @@ export const uploadChatFile = async (req, res) => {
       }
 
       if (!req.file) {
+        logger.warn(`[ChatUpload] No file in request`);
         return res.status(400).send({ message: FIELD_REQUIRED("file") });
       }
 
