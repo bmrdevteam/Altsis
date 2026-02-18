@@ -4,8 +4,6 @@ import { isLoggedIn } from "../middleware/auth.js";
 
 import * as notifications from "../controllers/notifications.js";
 
-router.post("/", isLoggedIn, notifications.send);
-
 // 알림 설정 (/:_id 라우트보다 먼저 선언)
 router.get("/settings", isLoggedIn, notifications.getSettings);
 router.put("/settings", isLoggedIn, notifications.updateSettings);

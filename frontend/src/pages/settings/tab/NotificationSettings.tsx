@@ -43,7 +43,7 @@ const NotificationSettings = (props: Props) => {
     classApprovalCancel: true,
     scheduleStart: true,
     newPost: true,
-    directMessage: true,
+    chatMessage: true,
     soundEnabled: true,
     reminder: true,
     eventReminderDefault: 15,

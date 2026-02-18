@@ -127,7 +127,7 @@ export const getOrCreateNotificationSetting = async (academyId, user) => {
         classApprovalCancel: true,
         scheduleStart: true,
         newPost: true,
-        directMessage: true,
+        chatMessage: true,
         soundEnabled: true,
         reminder: true,
         eventReminderDefault: 15,

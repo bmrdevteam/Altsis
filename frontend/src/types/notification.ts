@@ -1,5 +1,4 @@
 export type TNotificationType =
-  | "direct"
   | "classInvitation"
   | "classCancellation"
   | "classApproval"
@@ -33,11 +32,6 @@ export type TNotification = {
   autoDeleteOnCheck?: boolean;
 };
 
-export type TNotificationSent = TNotification & {
-  type: "sent";
-  toUserList: { user: string; userId: string; userName: string }[];
-};
-
 export type TNotificationReceived = TNotification & {
   type: "received";
   fromUser: string;
@@ -53,7 +47,7 @@ export type TNotificationSettings = {
   classApprovalCancel: boolean;
   scheduleStart: boolean;
   newPost: boolean;
-  directMessage: boolean;
+  chatMessage: boolean;
   soundEnabled: boolean;
   reminder: boolean;
   eventReminderDefault: number;

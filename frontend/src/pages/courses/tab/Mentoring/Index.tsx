@@ -46,7 +46,6 @@ import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
-import Send from "../../../notifications/popup/Send";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
@@ -57,7 +56,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
+  const { SeasonAPI, SyllabusAPI, EnrollmentAPI, ChatAPI } = useAPIv2();
   const navigate = useAppNavigate();
 
   const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
@@ -76,7 +75,7 @@ const CoursePid = (props: Props) => {
 
   const [enrollBulkPopupActive, setEnrollBulkPopupActive] =
     useState<boolean>(false);
-  const [sendNotificationPopupActive, setSendNotificationPopupActive] =
+  const [isCreatingChatRoom, setIsCreatingChatRoom] =
     useState<boolean>(false);
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
@@ -163,6 +162,37 @@ const CoursePid = (props: Props) => {
       } finally {
         setRatio((i + 1) / enrollmentsToRemove.length);
       }
+    }
+  };
+
+  const handleCreateChatRoom = async () => {
+    const selectedStudents = _.filter(enrollmentListRef.current, {
+      tableRowChecked: true,
+    });
+
+    if (selectedStudents.length === 0) return;
+
+    setIsCreatingChatRoom(true);
+    try {
+      const participants = selectedStudents.map((e: any) => ({
+        user: e.student,
+        userId: e.studentId,
+        userName: e.studentName,
+      }));
+
+      const { room } = await ChatAPI.CChatRoom({
+        data: {
+          type: "group",
+          participants,
+          name: syllabus?.classTitle || "수업 채팅방",
+        },
+      });
+
+      alert(`채팅방이 생성되었습니다: ${room.name || "그룹 채팅"}`);
+    } catch (err: any) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsCreatingChatRoom(false);
     }
   };
 
@@ -546,13 +576,11 @@ const CoursePid = (props: Props) => {
                               </div>
                               <div
                                 className={style.icon}
-                                onClick={(e: any) => {
-                                  setSendNotificationPopupActive(true);
-                                }}
-                                style={{ display: "flex", gap: "4px" }}
+                                onClick={handleCreateChatRoom}
+                                style={{ display: "flex", gap: "4px", alignItems: "center" }}
                               >
-                                <Svg type="send" width="20px" height="20px" />
-                                알림
+                                <Svg type="chat" width="20px" height="20px" />
+                                {isCreatingChatRoom ? "생성 중..." : "채팅방 만들기"}
                               </div>
                             </>
                           )}
@@ -713,29 +741,6 @@ const CoursePid = (props: Props) => {
             ]}
           />
         </Popup>
-      )}
-      {sendNotificationPopupActive && (
-        <Send
-          setState={setSendNotificationPopupActive}
-          receiverSelectedList={_.filter(enrollmentListRef.current, {
-            tableRowChecked: true,
-          }).map((e: any) => {
-            return {
-              user: e.student,
-              userId: e.studentId,
-              userName: e.studentName,
-            };
-          })}
-          category={syllabus?.classTitle}
-          receiverList={enrollmentListRef.current.map((e) => {
-            return {
-              user: e.student,
-              userId: e.studentId,
-              userName: e.studentName,
-            };
-          })}
-          receiverType={"enrollment"}
-        />
       )}
       {enrollBulkPopupActive && (
         <EnrollBulkPopup

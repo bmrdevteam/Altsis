@@ -7,10 +7,11 @@ import Svg from "assets/svg/Svg";
 import useAPIv2 from "hooks/useAPIv2";
 import { TChatRoom } from "types/chat";
 import ChatWindow from "./ChatWindow";
+import audioURL from "assets/audio/notification-a.mp3";
 
 const Chat = () => {
   const { currentUser } = useAuth();
-  const { ChatAPI } = useAPIv2();
+  const { ChatAPI, NotificationAPI } = useAPIv2();
 
   const [socket, setSocket] = useState<Socket>();
   const [rooms, setRooms] = useState<TChatRoom[]>([]);
@@ -20,6 +21,23 @@ const Chat = () => {
   const [chatEnabled, setChatEnabled] = useState<boolean | null>(null);
 
   const chatDivRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef(new Audio(audioURL));
+  const soundEnabledRef = useRef(true);
+  const chatWindowActiveRef = useRef(false);
+
+  // Keep refs in sync with state
+  chatWindowActiveRef.current = chatWindowActive;
+
+  // Load sound preference
+  useEffect(() => {
+    if (currentUser?._id) {
+      NotificationAPI.RNotificationSettings()
+        .then(({ settings }) => {
+          soundEnabledRef.current = settings.soundEnabled ?? true;
+        })
+        .catch(() => {});
+    }
+  }, [currentUser?._id]);
 
   const loadRooms = async () => {
     if (!currentUser?._id) return;
@@ -74,6 +92,12 @@ const Chat = () => {
 
     newSocket.on("new_message", () => {
       loadRooms();
+      // Play sound when chat window is not active
+      if (soundEnabledRef.current && !chatWindowActiveRef.current) {
+        audioRef.current.play().catch(() => {
+          // 자동 재생 정책에 의해 재생이 차단될 수 있음
+        });
+      }
     });
 
     newSocket.on("participants_added", () => {

@@ -94,12 +94,12 @@ const notificationSettingGroups: NotificationSettingGroup[] = [
     ],
   },
   {
-    category: "메시지",
+    category: "채팅",
     items: [
       {
-        key: "directMessage",
-        label: "직접 메시지 알림",
-        description: "다른 사용자로부터 직접 메시지를 받았을 때 알림을 받습니다",
+        key: "chatMessage",
+        label: "채팅 메시지 알림",
+        description: "채팅에서 새 메시지가 도착했을 때 알림을 받습니다",
       },
     ],
   },
@@ -116,7 +116,7 @@ const NotificationSettingsSection = () => {
     classApprovalCancel: true,
     scheduleStart: true,
     newPost: true,
-    directMessage: true,
+    chatMessage: true,
     soundEnabled: true,
     reminder: true,
     eventReminderDefault: 15,

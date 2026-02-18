@@ -2576,23 +2576,6 @@ export default function useAPIv2() {
    */
 
   /**
-   * CNotification API
-   * @description 알림 생성 API
-   * @version 2.0.0
-   * @auth user
-   */
-  async function CNotification(props: {
-    data: {
-      toUserList: { user: string; userId: string; userName: string }[];
-      category?: string;
-      title: string;
-      description: string;
-    };
-  }) {
-    return await database.C({ location: "notifications", data: props.data });
-  }
-
-  /**
    * RNotifications API
    * @description 알림 목록 조회 API
    * @version 2.0.0
@@ -3671,7 +3654,6 @@ export default function useAPIv2() {
       RSignedUrlBackup,
     },
     NotificationAPI: {
-      CNotification,
       RNotifications,
       RNotification,
       UCheckNotification,

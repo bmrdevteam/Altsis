@@ -22,7 +22,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {boolean} classApprovalCancel - 수업 승인 취소 알림
  * @prop {boolean} scheduleStart - 일정 시작 알림
  * @prop {boolean} newPost - 새 게시글 알림
- * @prop {boolean} directMessage - 직접 메시지 알림
+ * @prop {boolean} chatMessage - 직접 메시지 알림
  * @prop {boolean} soundEnabled - 알림음 활성화
  */
 const settingsSchema = mongoose.Schema(
@@ -33,7 +33,7 @@ const settingsSchema = mongoose.Schema(
     classApprovalCancel: { type: Boolean, default: true },
     scheduleStart: { type: Boolean, default: true },
     newPost: { type: Boolean, default: true },
-    directMessage: { type: Boolean, default: true },
+    chatMessage: { type: Boolean, default: true },
     soundEnabled: { type: Boolean, default: true },
     reminder: { type: Boolean, default: true },
     eventReminderDefault: { type: Number, default: 15 },
@@ -48,7 +48,7 @@ const settingsDefault = {
   classApprovalCancel: true,
   scheduleStart: true,
   newPost: true,
-  directMessage: true,
+  chatMessage: true,
   soundEnabled: true,
   reminder: true,
   eventReminderDefault: 15,
