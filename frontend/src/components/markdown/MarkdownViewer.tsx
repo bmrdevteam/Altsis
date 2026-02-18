@@ -27,15 +27,40 @@ const YouTubeEmbed = ({ videoId }: { videoId: string }) => (
   </div>
 );
 
+// HTML 앱 임베드 컴포넌트
+const HtmlAppEmbed = ({ html }: { html: string }) => (
+  <div className={style.htmlEmbedWrapper}>
+    <iframe
+      srcDoc={html}
+      sandbox="allow-scripts allow-same-origin"
+      title="임베드된 앱"
+    />
+  </div>
+);
+
+// URL 임베드 컴포넌트
+const UrlEmbed = ({ url }: { url: string }) => (
+  <div className={style.htmlEmbedWrapper}>
+    <iframe
+      src={url}
+      sandbox="allow-scripts allow-same-origin"
+      title="임베드된 앱"
+    />
+  </div>
+);
+
 // 마크다운 컴포넌트 커스터마이징
 const markdownComponents = {
-  // ![youtube](URL) 형식 처리
+  // ![youtube](URL) / ![embed](URL) 형식 처리
   img: ({ src, alt, ...props }: any) => {
     if (alt === "youtube" && src) {
       const youtubeId = extractYouTubeId(src);
       if (youtubeId) {
         return <YouTubeEmbed videoId={youtubeId} />;
       }
+    }
+    if (alt === "embed" && src) {
+      return <UrlEmbed url={src} />;
     }
     return <img src={src} alt={alt} {...props} />;
   },
@@ -47,7 +72,11 @@ const markdownComponents = {
         return <YouTubeEmbed videoId={youtubeId} />;
       }
     }
-    return <a href={href} {...props}>{children}</a>;
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    );
   },
   p: ({ children, ...props }: any) => {
     if (typeof children === "string") {
@@ -65,6 +94,28 @@ const markdownComponents = {
       }
     }
     return <p {...props}>{children}</p>;
+  },
+  // ```html-app 코드 블록을 임베드로 렌더링
+  code: ({ className, children, ...props }: any) => {
+    const match = /language-html-app/.exec(className || "");
+    if (match) {
+      const html = String(children).replace(/\n$/, "");
+      return <HtmlAppEmbed html={html} />;
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+  // pre 태그에서 html-app 코드 블록 감지
+  pre: ({ children, ...props }: any) => {
+    // children이 code 엘리먼트이고 language-html-app 클래스를 가지면
+    // code 컴포넌트가 이미 iframe으로 변환하므로 pre 래핑 제거
+    if (children?.props?.className?.includes("language-html-app")) {
+      return <>{children}</>;
+    }
+    return <pre {...props}>{children}</pre>;
   },
 };
 

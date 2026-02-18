@@ -3336,12 +3336,18 @@ export default function useAPIv2() {
     params: { roomId: string };
     data: FormData;
   }) {
-    const { attachment } = await database.C({
+    const result = await database.C({
       location: `chats/rooms/${props.params.roomId}/upload`,
       data: props.data,
     });
+
+    if (!result?.attachment) {
+      console.error("[CChatFileUpload] Invalid response:", result);
+      throw new Error("파일 업로드에 실패했습니다.");
+    }
+
     return {
-      attachment: attachment as {
+      attachment: result.attachment as {
         url: string;
         fileName: string;
         fileSize: number;
