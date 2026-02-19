@@ -184,31 +184,11 @@ export const getBoardMembers = async (academyId, board) => {
     return users;
   }
 
-  // 일반 보드: 개별 초대 사용자 + admin + manager + creator
+  // 일반 보드: 개별 초대 사용자만 반환 (admin/manager는 자동 접근 권한이 있으므로 목록에 미포함)
   const members = resolveBoardMembers(board);
 
-  // 1. 개별 초대 사용자 추가
   for (const u of members.users || []) {
     users.push({ user: u.user, userId: u.userId, userName: u.userName });
-  }
-
-  // 2. admin 사용자는 항상 포함
-  const admins = await User(academyId).find({ auth: "admin" });
-  for (const admin of admins) {
-    if (!users.some((u) => u.userId === admin.userId)) {
-      users.push({ user: admin._id, userId: admin.userId, userName: admin.userName });
-    }
-  }
-
-  // 3. manager 사용자는 항상 포함
-  const managers = await User(academyId).find({
-    auth: "manager",
-    "schools.schoolId": board.schoolId,
-  });
-  for (const manager of managers) {
-    if (!users.some((u) => u.userId === manager.userId)) {
-      users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
-    }
   }
 
   return users;
