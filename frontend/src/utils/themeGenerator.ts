@@ -335,6 +335,15 @@ export function generateCSSVariables(
     "--toggle-inactive": rgb(...mix(colors.textColor, colors.backgroundColor, 0.7)),
     "--calendar-control-color": rgb(pr, pg, pb),
 
+    // Chat
+    "--chat-own-bg": bgIsLight
+      ? rgba(sr, ssg, sb, 0.12)
+      : rgba(sr, ssg, sb, 0.2),
+    "--chat-active-bg": bgIsLight
+      ? rgba(ar, ag, ab, 0.1)
+      : rgba(ar, ag, ab, 0.15),
+    "--chat-send-color": rgb(ar, ag, ab),
+
     // Progress
     "--progress-default": rgb(ar, ag, ab),
     "--progress-track": rgba(tr, tg, tb, bgIsLight ? 0.06 : 0.08),

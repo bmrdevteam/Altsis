@@ -110,8 +110,11 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
       setIsLoading(false);
       scrollToBottom();
 
-      // Mark as read
+      // Mark as read and notify parent to refresh unread counts
       await ChatAPI.UChatRoomRead({ params: { roomId: room._id } });
+      if (room.unreadCount && room.unreadCount > 0) {
+        onRoomUpdated?.({ ...room, unreadCount: 0 });
+      }
     } catch (err) {
       ALERT_ERROR(err);
       setIsLoading(false);
@@ -497,6 +500,19 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     return currentDate !== prevDate;
   };
 
+  // Message grouping: determines if this message starts a new sender group
+  const isGroupStart = (index: number) => {
+    if (index === 0) return true;
+    if (shouldShowDate(index)) return true;
+    const current = messages[index];
+    const prev = messages[index - 1];
+    if (current.sender !== prev.sender) return true;
+    // Break group if more than 2 minutes apart
+    const timeDiff = new Date(current.createdAt).getTime() - new Date(prev.createdAt).getTime();
+    if (timeDiff > 2 * 60 * 1000) return true;
+    return false;
+  };
+
   const getSenderProfile = (senderId: string) => {
     if (!room) return defaultProfilePic;
     const participant = room.participants.find((p) => p.user === senderId);
@@ -689,48 +705,58 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
             <span className={style.empty_state_sub}>첫 메시지를 보내보세요!</span>
           </div>
         ) : (
-          messages.map((msg, index) => (
-            <div
-              key={msg._id}
-              className={`${style.message_wrapper} ${
-                msg.sender === currentUser?._id ? style.own : ""
-              }`}
-            >
-              {shouldShowDate(index) && (
-                <div className={style.date_divider}>
-                  {formatMessageDate(msg.createdAt)}
-                </div>
-              )}
-              {msg.sender !== currentUser?._id && (
-                <img
-                  src={msg.senderProfile || getSenderProfile(msg.sender)}
-                  alt={msg.senderName}
-                  className={style.sender_avatar}
-                />
-              )}
-              <div className={style.message}>
-                {msg.sender !== currentUser?._id && (
-                  <div className={style.sender}>
-                    {msg.senderName}
-                    <span className={style.sender_id}>({msg.senderId})</span>
+          messages.map((msg, index) => {
+            const groupStart = isGroupStart(index);
+            const isOwn = msg.sender === currentUser?._id;
+            return (
+              <div key={msg._id}>
+                {shouldShowDate(index) && (
+                  <div className={style.date_divider}>
+                    <span>{formatMessageDate(msg.createdAt)}</span>
                   </div>
                 )}
-                <div className={style.content}>
-                  <ChatMessageContent
-                    message={msg}
-                    onImageClick={(url) => setLightboxImage(url)}
-                    onFileDownload={handleFileDownload}
-                  />
-                </div>
-                <div className={style.time}>
-                  {formatMessageTime(msg.createdAt)}
+                <div
+                  className={`${style.message_wrapper} ${isOwn ? style.own : ""} ${
+                    groupStart ? style.group_start : style.group_continuation
+                  }`}
+                >
+                  {!isOwn && groupStart && (
+                    <img
+                      src={msg.senderProfile || getSenderProfile(msg.sender)}
+                      alt={msg.senderName}
+                      className={style.sender_avatar}
+                    />
+                  )}
+                  <div className={style.message}>
+                    {!isOwn && groupStart && (
+                      <div className={style.sender}>
+                        {msg.senderName}
+                        <span className={style.sender_id}>({msg.senderId})</span>
+                      </div>
+                    )}
+                    <div className={style.content}>
+                      <ChatMessageContent
+                        message={msg}
+                        onImageClick={(url) => setLightboxImage(url)}
+                        onFileDownload={handleFileDownload}
+                      />
+                    </div>
+                    <div className={style.time}>
+                      {formatMessageTime(msg.createdAt)}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         {isTyping && (
-          <div className={style.typing}>{isTyping.userName}님이 입력 중...</div>
+          <div className={style.typing}>
+            <div className={style.typing_dots}>
+              <span /><span /><span />
+            </div>
+            {isTyping.userName}님이 입력 중...
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -789,39 +815,41 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                 }
               }}
             />
-            <button
-              className={style.attach_button}
-              onClick={() => fileInputRef.current?.click()}
-              title="파일 첨부"
-            >
-              <Svg type="paperclip" width="20px" height="20px" />
-            </button>
-            <textarea
-              ref={inputRef}
-              value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                adjustTextareaHeight();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              onKeyUp={handleTyping}
-              onPaste={handlePaste}
-              placeholder="메시지를 입력하세요..."
-              rows={1}
-            />
-            <button
-              className={`${style.send_button} ${newMessage.trim() ? style.active : ""}`}
-              onClick={handleSend}
-              disabled={isSending || !newMessage.trim()}
-              title="전송"
-            >
-              <Svg type="send" width="20px" height="20px" />
-            </button>
+            <div className={style.input_bar}>
+              <button
+                className={style.attach_button}
+                onClick={() => fileInputRef.current?.click()}
+                title="파일 첨부"
+              >
+                <Svg type="paperclip" width="20px" height="20px" />
+              </button>
+              <textarea
+                ref={inputRef}
+                value={newMessage}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  adjustTextareaHeight();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                onKeyUp={handleTyping}
+                onPaste={handlePaste}
+                placeholder="메시지를 입력하세요..."
+                rows={1}
+              />
+              <button
+                className={`${style.send_button} ${newMessage.trim() ? style.active : ""}`}
+                onClick={handleSend}
+                disabled={isSending || !newMessage.trim()}
+                title="전송"
+              >
+                <Svg type="send" width="20px" height="20px" />
+              </button>
+            </div>
           </>
         ) : (
           <div className={style.chat_disabled}>
@@ -876,8 +904,9 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                   <button
                     className={style.new_chat_btn}
                     onClick={() => setShowNewChat(true)}
+                    title="새 채팅"
                   >
-                    + 새 채팅
+                    <Svg type="chat" width="18px" height="18px" style={{ fill: "currentColor" }} />
                   </button>
                 </div>
                 <div className={style.sidebar_search}>

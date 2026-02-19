@@ -111,9 +111,9 @@
 .chat_list_item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 20px;
   cursor: pointer;
   transition: background-color 0.15s;
 
@@ -122,8 +122,7 @@
   }
 
   &.active {
-    background-color: var(--component-hover-color, #f0f0f0);
-    border-left: 3px solid var(--accent-1);
+    background-color: var(--chat-active-bg, #e8f0fe);
   }
 
   .chat_list_avatar {
@@ -207,17 +206,22 @@
     .chat_list_preview {
       font-size: 12px;
       color: var(--accent-3);
-      margin-top: 4px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      margin-top: 2px;
       display: flex;
       align-items: center;
       gap: 6px;
 
+      .preview_text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+
       .unread_badge {
-        background-color: var(--color-r3);
-        color: var(--highlight-text);
+        background-color: var(--chat-send-color, #1a73e8);
+        color: #ffffff;
         border-radius: 10px;
         padding: 1px 6px;
         font-size: 10px;
@@ -245,7 +249,7 @@
   > .room_header {
     display: flex;
     flex-direction: column;
-    padding: 8px 12px;
+    padding: 12px 16px;
     border-bottom: var(--border-default, 1px solid #e0e0e0);
     background-color: var(--component-color, #ffffff);
     position: relative;
@@ -259,10 +263,14 @@
     }
 
     .room_name_title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--accent-1);
       margin-right: 12px;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .room_title {
@@ -272,12 +280,17 @@
       display: flex;
       align-items: center;
       gap: 4px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      transition: background-color 0.15s;
 
       &:hover {
         color: var(--accent-1);
+        background-color: var(--background-secondary, #f5f5f5);
       }
 
       .expand_icon {
+        font-size: 10px;
         transition: transform 0.2s;
 
         &.expanded {
@@ -339,17 +352,18 @@
       position: relative;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 2px;
 
       .menu_button {
         background: none;
         border: none;
         cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
+        padding: 6px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: background-color 0.15s;
 
         &:hover {
           background-color: var(--background-secondary, #f5f5f5);
@@ -360,22 +374,23 @@
         position: absolute;
         top: 100%;
         right: 0;
-        min-width: 140px;
+        min-width: 180px;
         background-color: var(--component-color, #ffffff);
-        border: var(--border-default, 1px solid #e0e0e0);
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.12);
         z-index: 9999;
         overflow: hidden;
+        padding: 4px 0;
 
         .menu_item {
-          padding: 10px 14px;
+          padding: 8px 16px;
           font-size: 13px;
           cursor: pointer;
           transition: background-color 0.15s;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 12px;
+          color: var(--accent-1);
 
           svg {
             fill: var(--accent-2);
@@ -405,11 +420,11 @@
   .messages_container {
     flex: 1;
     overflow-y: auto;
-    padding: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    background-color: var(--background-secondary, #f5f5f5);
+    gap: 2px;
+    background-color: var(--component-color, #ffffff);
 
     .loading,
     .empty {
@@ -424,20 +439,19 @@
     .date_divider {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 12px;
+      justify-content: center;
+      font-size: 11px;
       color: var(--accent-3);
-      padding: 8px 0;
-      margin: 8px 0;
+      padding: 4px 0;
+      margin: 12px 0;
       width: 100%;
       flex-basis: 100%;
 
-      &::before,
-      &::after {
-        content: "";
-        flex: 1;
-        height: 1px;
-        background-color: var(--accent-4, #ccc);
+      span {
+        background-color: var(--background-secondary, #f1f3f4);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-weight: 500;
       }
     }
 
@@ -448,6 +462,26 @@
       align-items: flex-start;
       width: 100%;
       gap: 8px;
+      padding: 4px 0;
+      position: relative;
+
+      // Grouped message: first message shows avatar/name
+      &.group_start {
+        margin-top: 12px;
+      }
+
+      // Grouped message: continuation hides avatar/name, indented
+      &.group_continuation {
+        padding-left: 40px; // 32px avatar + 8px gap
+
+        .sender_avatar {
+          display: none;
+        }
+
+        .message .sender {
+          display: none;
+        }
+      }
 
       .sender_avatar {
         width: 32px;
@@ -464,8 +498,12 @@
           display: none;
         }
 
+        &.group_continuation {
+          padding-left: 0;
+        }
+
         .message {
-          background-color: var(--accent-5, #e0e0e0);
+          background-color: var(--chat-own-bg, #e8f5e9);
           color: var(--accent-1);
 
           .sender {
@@ -482,26 +520,26 @@
     .message {
       max-width: 75%;
       padding: 8px 12px;
-      border-radius: 12px;
-      background-color: var(--component-color, #ffffff);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      background-color: var(--background-secondary, #f1f3f4);
 
       .sender {
-        font-size: 11px;
-        color: var(--accent-3);
-        margin-bottom: 4px;
-        font-weight: 500;
+        font-size: 12px;
+        color: var(--accent-2);
+        margin-bottom: 2px;
+        font-weight: 600;
 
         .sender_id {
           font-size: 10px;
           font-weight: 400;
-          margin-left: 3px;
+          color: var(--accent-3);
+          margin-left: 4px;
         }
       }
 
       .content {
         font-size: 14px;
-        line-height: 1.5;
+        line-height: 1.45;
         word-break: break-word;
         white-space: pre-wrap;
       }
@@ -509,46 +547,92 @@
       .time {
         font-size: 10px;
         color: var(--accent-3);
-        margin-top: 4px;
+        margin-top: 3px;
         text-align: right;
       }
     }
 
     .typing {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 12px;
       color: var(--accent-3);
-      font-style: italic;
       padding: 4px 8px;
+      margin-left: 40px;
+
+      .typing_dots {
+        display: flex;
+        gap: 3px;
+
+        span {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background-color: var(--accent-3);
+          animation: typingBounce 1.4s infinite;
+
+          &:nth-child(2) {
+            animation-delay: 0.2s;
+          }
+
+          &:nth-child(3) {
+            animation-delay: 0.4s;
+          }
+        }
+      }
+
+      @keyframes typingBounce {
+        0%, 60%, 100% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        30% {
+          transform: translateY(-4px);
+          opacity: 1;
+        }
+      }
     }
   }
 
   .input_container {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px;
+    align-items: flex-end;
+    gap: 0;
+    padding: 8px 12px;
     border-top: var(--border-default, 1px solid #e0e0e0);
     background-color: var(--component-color, #ffffff);
+
+    .input_bar {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      background-color: var(--background-secondary, #f1f3f4);
+      border-radius: 24px;
+      padding: 4px 4px 4px 12px;
+      transition: background-color 0.15s;
+
+      &:focus-within {
+        background-color: var(--component-color, #ffffff);
+        box-shadow: 0 0 0 1px var(--accent-1);
+      }
+    }
 
     textarea {
       flex: 1;
       resize: none;
-      border: var(--border-default, 1px solid #e0e0e0);
-      border-radius: 8px;
-      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      padding: 6px 0;
       font-size: 14px;
       outline: none;
       font-family: inherit;
       line-height: 1.4;
-      min-height: 36px;
+      min-height: 32px;
       max-height: 100px;
       overflow-y: auto;
-      background-color: var(--component-color, #ffffff);
       color: var(--accent-1);
-
-      &:focus {
-        border-color: var(--accent-1, #333);
-      }
 
       &::placeholder {
         color: var(--accent-3);
@@ -559,12 +643,13 @@
       background: none;
       border: none;
       cursor: pointer;
-      padding: 8px;
-      border-radius: 6px;
+      padding: 6px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      transition: background-color 0.15s;
 
       svg {
         fill: var(--accent-4);
@@ -572,7 +657,7 @@
       }
 
       &.active svg {
-        fill: var(--accent-1);
+        fill: var(--chat-send-color, #1a73e8);
       }
 
       &:disabled {
@@ -995,21 +1080,24 @@
   position: relative;
 
   &.dragging {
-    border-color: var(--accent-1);
-    background-color: var(--component-hover-color, #f0f0f0);
+    .input_bar {
+      background-color: var(--component-hover-color, #f0f0f0);
+      box-shadow: 0 0 0 2px var(--accent-1);
+    }
   }
 
   .attach_button {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 8px;
-    border-radius: 6px;
+    padding: 6px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: var(--accent-2);
+    color: var(--accent-3);
+    transition: all 0.15s;
 
     &:hover {
       background-color: var(--background-secondary, #f5f5f5);
@@ -1422,7 +1510,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--background-secondary);
+  background-color: var(--component-color, #ffffff);
   border-right: var(--border-default, 1px solid #e0e0e0);
   transition: width 0.25s ease, min-width 0.25s ease;
 
@@ -1470,15 +1558,20 @@
 
     .new_chat_btn {
       background: none;
-      border: var(--border-default, 1px solid #e0e0e0);
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 13px;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
       cursor: pointer;
       color: var(--accent-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s;
 
       &:hover {
-        background-color: var(--background-secondary, #f5f5f5);
+        background-color: var(--component-hover-color, #f0f0f0);
         color: var(--accent-1);
       }
     }
@@ -1489,7 +1582,16 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    border-bottom: var(--border-default, 1px solid #e0e0e0);
+    margin: 0 8px 0 8px;
+    background-color: var(--component-color, #ffffff);
+    border-radius: 20px;
+    border: 1px solid var(--border-color, #e0e0e0);
+    transition: box-shadow 0.15s;
+
+    &:focus-within {
+      box-shadow: 0 0 0 1px var(--accent-1);
+      border-color: var(--accent-1);
+    }
 
     .sidebar_search_input {
       flex: 1;
@@ -1514,7 +1616,7 @@
       border-radius: 50%;
 
       &:hover {
-        background-color: var(--component-color, #ffffff);
+        background-color: var(--background-secondary, #f5f5f5);
       }
     }
   }

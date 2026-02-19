@@ -98,13 +98,15 @@ const ChatRoomListItem = ({
 
     return (
       <div className={style.chat_list_preview}>
+        <span className={style.preview_text}>
+          {prefix}
+          {room.lastMessage.content}
+        </span>
         {unreadCount > 0 && (
           <span className={style.unread_badge}>
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
-        {prefix}
-        {room.lastMessage.content}
       </div>
     );
   };

@@ -86,6 +86,11 @@
     --toggle-inactive: #ccc;
     --calendar-control-color: var(--primary-color);
 
+    // --- Chat colors ---
+    --chat-own-bg: #e8f5e9;
+    --chat-active-bg: #e8f0fe;
+    --chat-send-color: #1a73e8;
+
     // --- Progress bar ---
     --progress-default: #1677ff;
     --progress-track: rgba(0, 0, 0, 0.06);
@@ -221,6 +226,11 @@
     --toggle-inactive: rgb(70, 70, 70);
     --calendar-control-color: rgb(140, 148, 220);
 
+    // --- Chat colors (dark) ---
+    --chat-own-bg: rgba(46, 125, 50, 0.2);
+    --chat-active-bg: rgba(66, 133, 244, 0.15);
+    --chat-send-color: #8ab4f8;
+
     // --- Progress bar (dark) ---
     --progress-default: #4096ff;
     --progress-track: rgba(255, 255, 255, 0.08);
@@ -316,6 +326,11 @@
     --toggle-inactive: rgb(150, 150, 150);
     --calendar-control-color: rgb(0, 0, 160);
 
+    // --- Chat colors (high-contrast) ---
+    --chat-own-bg: #c8e6c9;
+    --chat-active-bg: #bbdefb;
+    --chat-send-color: #0050b3;
+
     --progress-default: #0050b3;
     --progress-track: rgba(0, 0, 0, 0.12);
 
@@ -404,6 +419,11 @@
     --scrollbar-thumb: rgb(180, 165, 135);
     --toggle-inactive: rgb(200, 185, 155);
     --calendar-control-color: rgb(101, 67, 33);
+
+    // --- Chat colors (sepia) ---
+    --chat-own-bg: rgba(90, 122, 58, 0.15);
+    --chat-active-bg: rgba(122, 92, 58, 0.12);
+    --chat-send-color: #7a5c3a;
 
     --progress-default: #7a5c3a;
     --progress-track: rgba(80, 60, 35, 0.08);
