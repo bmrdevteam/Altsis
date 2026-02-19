@@ -1,21 +1,22 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  max-width: 820px;
+  margin: 0 auto;
 }
 
 .card {
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 24px;
-  background: var(--background-color-1);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border-radius: 12px;
+  background: var(--background-color);
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.1),
+    0 1px 3px 1px rgba(60, 64, 67, 0.08);
+  overflow: hidden;
+}
 
-  &:hover {
-    border-color: var(--accent-1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  }
+.cardBody {
+  padding: 20px 24px 16px;
 }
 
 .cardHeader {
@@ -36,40 +37,41 @@
 }
 
 .cardTitle {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--accent-1);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-color-1);
   cursor: pointer;
   line-height: 1.4;
+  margin-top: 4px;
 
   &:hover {
     text-decoration: underline;
+    color: var(--accent-1);
   }
 }
 
 .authorRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-color);
+  gap: 10px;
+  margin-bottom: 8px;
   font-size: 13px;
   color: var(--text-color-2);
 }
 
 .authorAvatar {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background-color: var(--background-color-2);
+  background-color: transparent;
   background-size: cover;
   background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-color-2);
+  font-weight: 500;
   flex-shrink: 0;
 }
 
@@ -77,20 +79,221 @@
   color: var(--text-color-2);
 }
 
+/* ─── Content truncation ─── */
+
 .contentWrapper {
-  margin-top: 16px;
-  padding-bottom: 16px;
+  margin-top: 4px;
+  position: relative;
 }
+
+.contentTruncated {
+  max-height: 200px;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(transparent, var(--background-color));
+    pointer-events: none;
+  }
+}
+
+.expandBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--accent-1);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ─── Attachment section ─── */
+
+.attachmentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ─── Card footer ─── */
 
 .cardFooter {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-color-2);
-  padding-top: 12px;
+  padding: 10px 24px;
   border-top: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: var(--background-hover-color);
+  }
 }
+
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ─── Comment section ─── */
+
+.commentSection {
+  padding: 0 24px 16px;
+}
+
+.commentToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-color-2);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+
+  &:hover {
+    color: var(--accent-1);
+  }
+}
+
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 8px 0;
+}
+
+.commentItem {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.commentAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: transparent;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-color-2);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.commentContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentAuthor {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-1);
+}
+
+.commentDate {
+  font-size: 11px;
+  color: var(--text-color-2);
+  margin-left: 6px;
+}
+
+.commentText {
+  font-size: 14px;
+  color: var(--text-color-1);
+  margin-top: 2px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.commentInputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 0;
+}
+
+.commentInput {
+  flex: 1;
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &::placeholder {
+    color: var(--text-color-2);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    border-color: var(--accent-1);
+  }
+}
+
+.commentSendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--accent-1);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--background-hover-color);
+  }
+}
+
+.commentLoading {
+  font-size: 13px;
+  color: var(--text-color-2);
+  padding: 8px 0;
+}
+
+/* ─── Pagination ─── */
 
 .pagination {
   display: flex;
@@ -136,4 +339,37 @@
   text-align: center;
   padding: 40px;
   color: var(--text-color-2);
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 768px) {
+  .cardBody {
+    padding: 16px;
+  }
+
+  .cardTitle {
+    font-size: 14px;
+  }
+
+  .authorAvatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .attachmentSection {
+    gap: 6px;
+  }
+
+  .cardFooter {
+    padding: 10px 16px;
+  }
+
+  .commentSection {
+    padding: 0 16px 12px;
+  }
+
+  .commentInputRow {
+    gap: 8px;
+  }
 }

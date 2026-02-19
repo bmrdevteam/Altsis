@@ -3,6 +3,7 @@
  * @namespace APIs.CommentAPI
  * @see TComment in {@link Models.Comment}
  */
+import mongoose from "mongoose";
 import { logger } from "../log/logger.js";
 import { Board, Post, Comment } from "../models/index.js";
 import {
@@ -203,6 +204,61 @@ export const update = async (req, res) => {
  *
  * @param {Object} res
  */
+/**
+ * @memberof APIs.CommentAPI
+ * @function RCommentCounts API
+ * @description 여러 게시글의 댓글 수 일괄 조회 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ * @param {"GET"} req.method
+ * @param {"/comments/counts"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.posts - 쉼표로 구분된 post._id 목록
+ *
+ * @param {Object} res
+ * @param {Object} res.counts - { [postId]: number }
+ */
+export const findCounts = async (req, res) => {
+  try {
+    if (!req.query.posts) {
+      return res.status(400).send({ message: FIELD_REQUIRED("posts") });
+    }
+
+    const postIds = req.query.posts.split(",").filter(Boolean);
+    if (postIds.length === 0 || postIds.length > 50) {
+      return res
+        .status(400)
+        .send({ message: "1~50개의 게시글 ID를 입력하세요." });
+    }
+
+    const validIds = postIds.filter((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
+
+    // Mongoose find()를 사용하여 타입 캐스팅 보장 (aggregate는 캐스팅 안 함)
+    const comments = await Comment(req.user.academyId)
+      .find({ post: { $in: validIds }, isActive: true })
+      .select("post")
+      .lean();
+
+    const result = {};
+    for (const id of postIds) {
+      result[id] = 0;
+    }
+    for (const c of comments) {
+      const key = c.post.toString();
+      if (key in result) result[key]++;
+    }
+
+    return res.status(200).send({ counts: result });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
 export const remove = async (req, res) => {
   try {
     const comment = await Comment(req.user.academyId).findById(req.params._id);

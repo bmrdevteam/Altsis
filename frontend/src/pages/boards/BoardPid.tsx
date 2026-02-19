@@ -23,12 +23,11 @@ import Table from "components/tableV2/Table";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 
-import { TBoard, TBoardContentViewMode, TBoardMembers } from "types/board";
+import { TBoard, TBoardContentViewMode } from "types/board";
 import { TPost } from "types/post";
 
 import BoardManagePopup from "./popup/BoardManage";
 import UserListPopup from "./popup/UserListPopup";
-import PostGalleryView from "./views/PostGalleryView";
 import PostBlogView from "./views/PostBlogView";
 
 type TPostWithSelection = TPost & { tableRowChecked?: boolean };
@@ -268,8 +267,6 @@ const BoardPid = () => {
         createdAtDisplay: formatDate(post.createdAt),
         titleDisplay: [
           post.isPinned ? "[공지]" : "",
-          post.surveys?.some(s => s.questions?.length) ? "[설문]" : "",
-          post.reservationConfig ? "[예약]" : "",
           post.title,
         ].filter(Boolean).join(" "),
         permissionDisplay: formatPermissionRead(post),
@@ -277,23 +274,13 @@ const BoardPid = () => {
     [posts]
   );
 
-  const viewModes = [
-    { mode: "table" as const, icon: "list", label: "테이블" },
-    { mode: "gallery" as const, icon: "dashboard", label: "갤러리" },
-    { mode: "blog" as const, icon: "article", label: "블로그" },
-  ] as const;
-
   const renderPostView = () => {
     if (!board) return null;
     const viewMode = board.contentViewMode || "table";
 
     switch (viewMode) {
-      case "gallery":
-        return (
-          <PostGalleryView posts={posts} onClickPost={handleClickPost} />
-        );
       case "blog":
-        return <PostBlogView posts={posts} onClickPost={handleClickPost} />;
+        return <PostBlogView posts={posts} board={board} onClickPost={handleClickPost} />;
       case "table":
       default:
         return (
@@ -372,13 +359,6 @@ const BoardPid = () => {
                     </span>
                   </div>
                 ),
-              },
-              {
-                text: "조회",
-                key: "viewCount",
-                type: "text",
-                width: "80px",
-                textAlign: "center",
               },
               {
                 text: "작성일",
@@ -461,49 +441,35 @@ const BoardPid = () => {
 
         {/* 툴바: 뷰 모드 전환 + 글쓰기/액션 버튼 */}
         <div className={bStyle.detailToolbar}>
-          {/* 콘텐츠 뷰 모드 전환 */}
-          {canManageBoard(board) ? (
-            <div className={bStyle.segmentGroup}>
-              {viewModes.map(({ mode, icon, label }) => (
-                <button
-                  key={mode}
-                  className={`${bStyle.segmentBtn} ${
-                    (board.contentViewMode || "table") === mode
-                      ? bStyle.segmentBtnActive
-                      : ""
-                  }`}
-                  onClick={() => handleViewModeChange(mode)}
-                  title={`${label} 보기`}
-                >
-                  <Svg type={icon} width="14px" height="14px" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className={bStyle.viewModeLabel}>
-              <Svg
-                type={
-                  board.contentViewMode === "gallery"
-                    ? "dashboard"
-                    : board.contentViewMode === "blog"
-                    ? "article"
-                    : "list"
-                }
-                width="14px"
-                height="14px"
-              />
-              {board.contentViewMode === "gallery"
-                ? "갤러리"
-                : board.contentViewMode === "blog"
-                ? "블로그"
-                : "테이블"}{" "}
-              보기
-            </div>
-          )}
+          <div />
 
           {/* 글쓰기/액션 버튼 */}
           <div className={bStyle.actionBtns}>
+            {canManageBoard(board) && selectedPosts.length === 0 && (
+              <Button
+                type="ghost"
+                onClick={() =>
+                  handleViewModeChange(
+                    (board.contentViewMode || "table") === "table"
+                      ? "blog"
+                      : "table"
+                  )
+                }
+              >
+                <>
+                  <Svg
+                    type={
+                      (board.contentViewMode || "table") === "table"
+                        ? "article"
+                        : "list"
+                    }
+                    width="16px"
+                    height="16px"
+                  />
+                  보기
+                </>
+              </Button>
+            )}
             {selectedPosts.length === 0 ? (
               canWrite() && (
                 <Button

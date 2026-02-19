@@ -215,7 +215,7 @@ export const update = async (req, res) => {
     if ("description" in req.body) board.description = req.body.description;
     if ("order" in req.body) board.order = req.body.order;
     if ("contentViewMode" in req.body) {
-      const validModes = ["table", "gallery", "blog"];
+      const validModes = ["table", "blog"];
       if (validModes.includes(req.body.contentViewMode)) {
         board.contentViewMode = req.body.contentViewMode;
       }

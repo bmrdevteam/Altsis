@@ -171,7 +171,7 @@ const boardSchema = mongoose.Schema(
     // 콘텐츠 뷰 모드 (보드 관리자가 설정, 전체 사용자에게 적용)
     contentViewMode: {
       type: String,
-      enum: ["table", "gallery", "blog"],
+      enum: ["table", "blog"],
       default: "table",
     },
 

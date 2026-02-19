@@ -71,9 +71,7 @@ const BoardManagement = ({ schoolData }: Props) => {
           postCountDisplay: board.postCount || 0,
           boardTypeDisplay: board.boardType === "user" ? "사용자" : "공식",
           contentViewModeDisplay:
-            board.contentViewMode === "gallery"
-              ? "갤러리"
-              : board.contentViewMode === "blog"
+            board.contentViewMode === "blog"
               ? "블로그"
               : "테이블",
           creatorDisplay: board.creatorName || "-",

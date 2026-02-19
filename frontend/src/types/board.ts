@@ -29,7 +29,7 @@ export type TBoardPermission = {
   exceptions: TBoardPermissionException[];
 };
 
-export type TBoardContentViewMode = "table" | "gallery" | "blog";
+export type TBoardContentViewMode = "table" | "blog";
 export type TBoardListViewMode = "table" | "gallery";
 export type TBoardType = "official" | "user";
 

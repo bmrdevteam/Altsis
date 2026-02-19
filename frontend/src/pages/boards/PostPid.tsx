@@ -326,8 +326,6 @@ const PostPid = () => {
             </span>
             <span style={{ margin: "0 8px" }}>|</span>
             <span>{formatDate(post.createdAt)}</span>
-            <span style={{ margin: "0 8px" }}>|</span>
-            <span>조회 {post.viewCount}</span>
             {!post.isLegacyNotification && (
               <>
                 <span style={{ margin: "0 8px" }}>|</span>

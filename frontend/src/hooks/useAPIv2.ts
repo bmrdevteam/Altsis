@@ -3493,6 +3493,19 @@ export default function useAPIv2() {
   }
 
   /**
+   * RCommentCounts API
+   * @description 여러 게시글의 댓글 수 일괄 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RCommentCounts(props: { query: { posts: string } }) {
+    const { counts } = await database.R({
+      location: "comments/counts" + QUERY_BUILDER(props.query),
+    });
+    return { counts } as { counts: Record<string, number> };
+  }
+
+  /**
    * ##########################################################################
    * Chat API
    * ##########################################################################
@@ -4340,6 +4353,7 @@ export default function useAPIv2() {
     CommentAPI: {
       CComment,
       RComments,
+      RCommentCounts,
       UComment,
       DComment,
     },
