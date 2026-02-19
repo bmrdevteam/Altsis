@@ -222,6 +222,24 @@ const reservationConfigSchema = mongoose.Schema(
       ],
       default: [],
     },
+    // 슬롯 규칙 템플릿 (JSON 가져오기/내보내기용)
+    slotRuleTemplate: {
+      type: mongoose.Schema(
+        {
+          days: { type: [Number], default: [1, 2, 3, 4, 5] },
+          timeSlots: [
+            {
+              startTime: String,
+              endTime: String,
+            },
+          ],
+          labels: [String],
+          capacity: { type: Number, default: 1 },
+        },
+        { _id: false }
+      ),
+      default: null,
+    },
   },
   { _id: false }
 );

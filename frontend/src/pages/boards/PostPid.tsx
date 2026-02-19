@@ -31,7 +31,6 @@ import UserListPopup from "./popup/UserListPopup";
 import SurveyViewPopup from "./survey/SurveyViewPopup";
 import surveyStyle from "./survey/survey.module.scss";
 import ReservationViewPopup from "./reservation/ReservationViewPopup";
-import resStyle from "./reservation/reservation.module.scss";
 
 const PostPid = () => {
   const navigate = useAppNavigate();
@@ -368,16 +367,18 @@ const PostPid = () => {
           <MarkdownViewer content={processedContent} />
         </div>
 
-        {/* 첨부 (파일 + 설문 통합) */}
+        {/* 첨부 (파일 + 설문 + 예약 통합) */}
         {((post.attachments && post.attachments.length > 0) ||
-          (post.surveys && post.surveys.length > 0)) && (
+          (post.surveys && post.surveys.length > 0) ||
+          post.reservationConfig) && (
           <div style={{ marginTop: "24px" }}>
             <div
               style={{ fontWeight: 500, marginBottom: "10px", fontSize: "14px" }}
             >
               첨부 (
               {(post.attachments?.length || 0) +
-                (post.surveys?.length || 0)}
+                (post.surveys?.length || 0) +
+                (post.reservationConfig ? 1 : 0)}
               )
             </div>
             <div className={surveyStyle.attachList}>
@@ -501,36 +502,74 @@ const PostPid = () => {
                   </div>
                 </div>
               ))}
+              {/* 예약 첨부 항목 */}
+              {post.reservationConfig && (
+                <div
+                  className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
+                  onClick={() => setShowReservationPopup(true)}
+                >
+                  <div className={surveyStyle.attachItemThumbArea}>
+                    <div className={surveyStyle.attachItemIconLarge}>
+                      <Svg type="eventCalendar" width="24px" height="24px" />
+                    </div>
+                  </div>
+                  <div className={surveyStyle.attachItemBody}>
+                    <div className={surveyStyle.attachItemInfo}>
+                      <span className={surveyStyle.attachItemTitle}>
+                        {post.reservationConfig.resource}
+                      </span>
+                      <span className={surveyStyle.attachItemMeta}>
+                        {post.reservationConfig.totalSlots || 0}개 슬롯
+                        {post.reservationConfig.requireApproval
+                          ? " · 승인 필요"
+                          : " · 자동 승인"}
+                        {post.reservationConfig.slotMode === "label"
+                          ? " · 라벨 모드"
+                          : " · 시간 모드"}
+                      </span>
+                    </div>
+                    <div
+                      className={surveyStyle.attachItemActions}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className={surveyStyle.attachItemBtn}>
+                        {canManageBoard() ? "관리" : "예약"}
+                      </span>
+                      {canManageBoard() && (
+                        <Button
+                          type="hover"
+                          onClick={async () => {
+                            try {
+                              const data =
+                                await PostAPI.ExportReservationJSON({
+                                  params: { _id: post._id },
+                                });
+                              const blob = new Blob(
+                                [JSON.stringify(data, null, 2)],
+                                { type: "application/json" }
+                              );
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = `${
+                                post.reservationConfig!.resource || "reservation"
+                              }.json`;
+                              link.click();
+                              URL.revokeObjectURL(url);
+                            } catch (err) {
+                              ALERT_ERROR(err);
+                            }
+                          }}
+                          style={{ fontSize: "13px" }}
+                        >
+                          JSON
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
-
-        {/* 예약 섹션 */}
-        {post.postType === "reservation" && post.reservationConfig && (
-          <div className={resStyle.reservationActionCard}>
-            <div className={resStyle.reservationActionLeft}>
-              <span className={resStyle.reservationActionIcon}>📅</span>
-              <div className={resStyle.reservationActionInfo}>
-                <span className={resStyle.reservationActionTitle}>
-                  {post.reservationConfig.resource}
-                </span>
-                <span className={resStyle.reservationActionMeta}>
-                  {post.reservationConfig.totalSlots || 0}개 슬롯
-                  {post.reservationConfig.requireApproval
-                    ? " · 승인 필요"
-                    : " · 자동 승인"}
-                  {post.reservationConfig.slotMode === "label"
-                    ? " · 라벨 모드"
-                    : " · 시간 모드"}
-                </span>
-              </div>
-            </div>
-            <Button
-              type="ghost"
-              onClick={() => setShowReservationPopup(true)}
-            >
-              {canManageBoard() ? "예약 관리" : "예약하기"}
-            </Button>
           </div>
         )}
 
@@ -744,7 +783,6 @@ const PostPid = () => {
         )}
 
       {showReservationPopup &&
-        post.postType === "reservation" &&
         post.reservationConfig &&
         board && (
           <ReservationViewPopup

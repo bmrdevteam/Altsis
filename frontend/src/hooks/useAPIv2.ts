@@ -3241,6 +3241,12 @@ export default function useAPIv2() {
     });
   }
 
+  async function ExportReservationJSON(props: { params: { _id: string } }) {
+    return await database.R({
+      location: `posts/${props.params._id}/export-reservation`,
+    });
+  }
+
   /**
    * CUploadPostFile API
    * @description 게시글 첨부파일 업로드 API
@@ -4319,6 +4325,7 @@ export default function useAPIv2() {
       DPost,
       CUploadPostFile,
       RSignedUrlPostFile,
+      ExportReservationJSON,
     },
     SurveyResponseAPI: {
       CSurveyResponse,

@@ -545,6 +545,7 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
           slotMode={config.slotMode}
           defaultCapacity={config.defaultCapacity}
           onCreated={loadData}
+          template={config.slotRuleTemplate}
         />
       )}
 

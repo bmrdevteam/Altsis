@@ -4,7 +4,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 
-import { TSlotMode } from "types/reservation";
+import { TSlotMode, TSlotRuleTemplate } from "types/reservation";
 import style from "./reservation.module.scss";
 
 type Props = {
@@ -13,6 +13,7 @@ type Props = {
   slotMode: TSlotMode;
   defaultCapacity: number;
   onCreated: () => void;
+  template?: TSlotRuleTemplate;
 };
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -23,23 +24,34 @@ const SlotBulkCreateForm = ({
   slotMode,
   defaultCapacity,
   onCreated,
+  template,
 }: Props) => {
   const { ReservationSlotAPI } = useAPIv2();
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [days, setDays] = useState<number[]>([1, 2, 3, 4, 5]);
-  const [capacity, setCapacity] = useState(defaultCapacity);
+  const [days, setDays] = useState<number[]>(
+    template?.days ?? [1, 2, 3, 4, 5]
+  );
+  const [capacity, setCapacity] = useState(
+    template?.capacity ?? defaultCapacity
+  );
   const [excludeDates, setExcludeDates] = useState<string[]>([]);
   const [excludeDateInput, setExcludeDateInput] = useState("");
 
   // 시간 모드
   const [timeSlots, setTimeSlots] = useState<
     { startTime: string; endTime: string }[]
-  >([{ startTime: "09:00", endTime: "10:00" }]);
+  >(
+    template?.timeSlots?.length
+      ? template.timeSlots
+      : [{ startTime: "09:00", endTime: "10:00" }]
+  );
 
   // 라벨 모드
-  const [labels, setLabels] = useState<string[]>([""]);
+  const [labels, setLabels] = useState<string[]>(
+    template?.labels?.length ? template.labels : [""]
+  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 

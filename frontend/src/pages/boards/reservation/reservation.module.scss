@@ -859,3 +859,122 @@
     flex-wrap: wrap;
   }
 }
+
+/* ─── Import Popup ─── */
+
+.importContent {
+  padding: 4px 0;
+}
+
+.importDropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--accent-1);
+    background: rgba(var(--accent-1-rgb, 55, 53, 47), 0.03);
+  }
+}
+
+.importDropzoneText {
+  font-size: 14px;
+  color: var(--text-color-1);
+  font-weight: 500;
+}
+
+.importDropzoneHint {
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.importPreview {
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color-2);
+}
+
+.importPreviewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.importPreviewTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.importChangeBtn {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: var(--accent-1);
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--background-color-1);
+  }
+}
+
+.importPreviewDesc {
+  font-size: 13px;
+  color: var(--text-color-2);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.importPreviewMeta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-color-2);
+  margin-bottom: 12px;
+}
+
+.importDetailList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.importDetailItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--background-color-1);
+}
+
+.importDetailLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color-2);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.importDetailValue {
+  font-size: 13px;
+  color: var(--text-color-1);
+}
+
+.importError {
+  font-size: 13px;
+  color: var(--status-error);
+  margin-top: 10px;
+}

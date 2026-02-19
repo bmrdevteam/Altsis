@@ -81,7 +81,18 @@ export const create = async (req, res) => {
       }
     }
 
-    const postType = req.body.postType || "general";
+    // postType 자동 결정 (첨부 기반)
+    const surveys = req.body.surveys || [];
+    let postType = "general";
+    if (req.body.reservationConfig?.resource) {
+      postType = "reservation";
+    } else if (surveys.length > 0 && surveys.some((s) => s.questions?.length)) {
+      postType = "survey";
+    }
+    // 하위 호환: 명시적 postType 허용
+    if (req.body.postType && !req.body.reservationConfig?.resource) {
+      postType = req.body.postType;
+    }
 
     // 예약 게시글 검증
     if (postType === "reservation") {
@@ -91,7 +102,6 @@ export const create = async (req, res) => {
     }
 
     // 설문 게시글 검증
-    const surveys = req.body.surveys || [];
     if (postType === "survey") {
       if (!surveys.length || !surveys.some((s) => s.questions?.length)) {
         return res.status(400).send({ message: "설문 게시글은 최소 1개의 설문이 필요합니다." });
@@ -443,12 +453,38 @@ export const update = async (req, res) => {
       post.markModified("permissionRead");
     }
 
-    // 예약 설정 수정
-    if ("reservationConfig" in req.body && post.postType === "reservation") {
+    // 예약 설정 수정 (첨부 방식: postType 조건 제거)
+    if ("reservationConfig" in req.body) {
       if (req.body.reservationConfig) {
         // totalSlots는 외부에서 변경 불가 (슬롯 생성/삭제 시 자동 관리)
         const { totalSlots, ...configUpdate } = req.body.reservationConfig;
-        Object.assign(post.reservationConfig, configUpdate);
+        if (post.reservationConfig) {
+          Object.assign(post.reservationConfig, configUpdate);
+        } else {
+          post.reservationConfig = configUpdate;
+          post.postType = "reservation";
+        }
+      } else {
+        // null 전송 → 예약 설정 제거
+        if (post.reservationConfig) {
+          // 슬롯 및 대기 중인 예약 정리
+          await ReservationSlot(req.user.academyId).updateMany(
+            { post: post._id },
+            { isActive: false }
+          );
+          await Reservation(req.user.academyId).updateMany(
+            { post: post._id, status: "pending" },
+            { status: "cancelled" }
+          );
+          post.reservationConfig = null;
+          // postType 재결정
+          const newSurveys = req.body.surveys ?? post.surveys ?? [];
+          if (newSurveys.length > 0 && newSurveys.some((s) => s.questions?.length)) {
+            post.postType = "survey";
+          } else {
+            post.postType = "general";
+          }
+        }
       }
       post.markModified("reservationConfig");
     }
@@ -615,7 +651,7 @@ export const remove = async (req, res) => {
     }
 
     // 예약 데이터 비활성화
-    if (post.postType === "reservation") {
+    if (post.reservationConfig) {
       await ReservationSlot(req.user.academyId).updateMany(
         { post: post._id },
         { isActive: false }
@@ -753,6 +789,63 @@ export const signPostFile = async (req, res) => {
     );
 
     return res.status(200).send({ preSignedUrl, expiryDate });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.PostAPI
+ * @function exportReservation API
+ * @description 예약 설정을 JSON으로 내보내기
+ */
+export const exportReservation = async (req, res) => {
+  try {
+    const post = await Post(req.user.academyId).findById(req.params._id);
+    if (!post || !post.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("post") });
+    }
+    if (!post.reservationConfig) {
+      return res.status(400).send({ message: "이 게시글에 예약 설정이 없습니다." });
+    }
+
+    const config = post.reservationConfig;
+    const exportData = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      type: "reservation",
+      config: {
+        resource: config.resource,
+        resourceDescription: config.resourceDescription || "",
+        slotMode: config.slotMode,
+        defaultCapacity: config.defaultCapacity,
+        requireApproval: config.requireApproval,
+        maxReservationsPerUser: config.maxReservationsPerUser,
+        ...(config.applicationForm?.length > 0 && {
+          applicationForm: config.applicationForm.map((f) => ({
+            label: f.label,
+            type: f.type,
+            options: f.options || [],
+            required: f.required,
+          })),
+        }),
+      },
+      ...(config.slotRuleTemplate && {
+        slotRuleTemplate: {
+          days: config.slotRuleTemplate.days,
+          ...(config.slotRuleTemplate.timeSlots?.length > 0 && {
+            timeSlots: config.slotRuleTemplate.timeSlots,
+          }),
+          ...(config.slotRuleTemplate.labels?.length > 0 && {
+            labels: config.slotRuleTemplate.labels,
+          }),
+          capacity: config.slotRuleTemplate.capacity,
+        },
+      }),
+    };
+
+    return res.status(200).send(exportData);
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

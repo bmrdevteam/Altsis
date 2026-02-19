@@ -18,6 +18,14 @@ export type TApplicationResponse = {
   value: string;
 };
 
+// 슬롯 규칙 템플릿 (날짜 범위 제외 - JSON 가져오기/내보내기용)
+export type TSlotRuleTemplate = {
+  days: number[];
+  timeSlots?: { startTime: string; endTime: string }[];
+  labels?: string[];
+  capacity: number;
+};
+
 // 예약 게시글 설정
 export type TReservationConfig = {
   resource: string;
@@ -30,6 +38,24 @@ export type TReservationConfig = {
   reservationCloseAt?: string | null;
   totalSlots?: number;
   applicationForm?: TApplicationFormField[];
+  slotRuleTemplate?: TSlotRuleTemplate;
+};
+
+// 예약 설정 내보내기 데이터
+export type TReservationExportData = {
+  version: string;
+  exportedAt: string;
+  type: "reservation";
+  config: {
+    resource: string;
+    resourceDescription: string;
+    slotMode: TSlotMode;
+    defaultCapacity: number;
+    requireApproval: boolean;
+    maxReservationsPerUser: number;
+    applicationForm?: TApplicationFormField[];
+  };
+  slotRuleTemplate?: TSlotRuleTemplate;
 };
 
 // 게시글 유형
