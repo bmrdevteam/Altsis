@@ -21,6 +21,7 @@
         "@tiptap/pm": "^3.19.0",
         "@tiptap/react": "^3.19.0",
         "@tiptap/starter-kit": "^3.19.0",
+        "@tiptap/suggestion": "^3.20.0",
         "@types/dompurify": "^3.0.5",
         "@types/react": "~18.2.0",
         "@types/react-dom": "~18.2.0",
