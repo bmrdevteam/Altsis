@@ -6,10 +6,9 @@ import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Textarea from "components/textarea/Textarea";
-import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Svg from "assets/svg/Svg";
 
-import { TBoard, TBoardMembers } from "types/board";
+import { TBoard } from "types/board";
 import { TSchool } from "types/schools";
 
 type Props = {
@@ -75,26 +74,14 @@ const BoardManagement = ({ schoolData }: Props) => {
               ? "블로그"
               : "테이블",
           creatorDisplay: board.creatorName || "-",
-          membersDisplay: [
-            board.members?.groups?.manager && "관리자",
-            board.members?.groups?.teacher && "교사",
-            board.members?.groups?.student && "학생",
-          ]
-            .filter(Boolean)
-            .join(", ") +
-            (board.members?.users?.length
-              ? ` +${board.members.users.length}명`
-              : ""),
-          writersDisplay: [
-            board.writers?.groups?.manager && "관리자",
-            board.writers?.groups?.teacher && "교사",
-            board.writers?.groups?.student && "학생",
-          ]
-            .filter(Boolean)
-            .join(", ") +
-            (board.writers?.users?.length
-              ? ` +${board.writers.users.length}명`
-              : ""),
+          membersDisplay: board.isDefault
+            ? "전체"
+            : board.members?.users?.length
+              ? `${board.members.users.length}명`
+              : "-",
+          writersDisplay: board.writers?.users?.length
+            ? `${board.writers.users.length}명`
+            : "-",
         }))}
         defaultPageBy={10}
         header={[
@@ -265,39 +252,6 @@ type ManageBoardPopupProps = {
   onSuccess?: () => void;
 };
 
-const resolveMembers = (board: TBoard): TBoardMembers => {
-  if (board.members?.groups) return board.members;
-  if (board.permissionRead) {
-    return {
-      groups: {
-        manager: board.permissionRead.manager ?? true,
-        teacher: board.permissionRead.teacher ?? true,
-        student: board.permissionRead.student ?? true,
-      },
-      users: [],
-    };
-  }
-  return { groups: { manager: true, teacher: true, student: true }, users: [] };
-};
-
-const resolveWriters = (board: TBoard): TBoardMembers => {
-  if (board.writers?.groups) return board.writers;
-  if (board.permissionWrite) {
-    return {
-      groups: {
-        manager: board.permissionWrite.manager ?? true,
-        teacher: board.permissionWrite.teacher ?? true,
-        student: board.permissionWrite.student ?? false,
-      },
-      users: [],
-    };
-  }
-  return {
-    groups: { manager: true, teacher: true, student: false },
-    users: [],
-  };
-};
-
 const ManageBoardPopup = ({
   board,
   setState,
@@ -307,30 +261,8 @@ const ManageBoardPopup = ({
 
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || "");
-  const [members, setMembers] = useState<TBoardMembers>(
-    resolveMembers(board)
-  );
-  const [writers, setWriters] = useState<TBoardMembers>(
-    resolveWriters(board)
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleMemberGroupChange = (
-    role: "manager" | "teacher" | "student",
-    checked: boolean
-  ) => {
-    setMembers((prev) => ({
-      ...prev,
-      groups: { ...prev.groups, [role]: checked },
-    }));
-    if (!checked) {
-      setWriters((prev) => ({
-        ...prev,
-        groups: { ...prev.groups, [role]: false },
-      }));
-    }
-  };
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -347,16 +279,6 @@ const ManageBoardPopup = ({
           name: name.trim(),
           description: description.trim(),
         },
-      });
-
-      await BoardAPI.UBoardMembers({
-        params: { _id: board._id },
-        data: { groups: members.groups },
-      });
-
-      await BoardAPI.UBoardWriters({
-        params: { _id: board._id },
-        data: { groups: writers.groups },
       });
 
       alert("저장되었습니다.");
@@ -393,30 +315,12 @@ const ManageBoardPopup = ({
     }
   };
 
-  const roles = [
-    { key: "manager" as const, label: "관리자" },
-    { key: "teacher" as const, label: "교사" },
-    { key: "student" as const, label: "학생" },
-  ];
-
-  const cellStyle: React.CSSProperties = {
-    padding: "8px 12px",
-    textAlign: "center",
-  };
-
-  const headerCellStyle: React.CSSProperties = {
-    ...cellStyle,
-    fontWeight: 600,
-    fontSize: "13px",
-    color: "var(--text-color-2)",
-  };
-
   return (
     <Popup
       setState={setState}
       title="보드 관리"
       closeBtn
-      style={{ maxWidth: "600px", width: "100%" }}
+      style={{ maxWidth: "500px", width: "100%" }}
       footer={
         <div
           style={{
@@ -449,137 +353,34 @@ const ManageBoardPopup = ({
       }
     >
       <div>
-        <div style={{ marginBottom: "24px" }}>
-          <h4
-            style={{
-              marginBottom: "12px",
-              fontSize: "14px",
-              fontWeight: 600,
-            }}
-          >
-            기본 정보
-          </h4>
-          <div style={{ marginBottom: "16px" }}>
-            <Input
-              label="보드 이름"
-              placeholder="보드 이름을 입력하세요"
-              defaultValue={name}
-              onChange={(e: any) => setName(e.target.value)}
-              required
-              disabled={board.isDefault}
-            />
-            {board.isDefault && (
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-color-2)",
-                  marginTop: "4px",
-                }}
-              >
-                기본 보드의 이름은 변경할 수 없습니다.
-              </p>
-            )}
-          </div>
-          <div>
-            <Textarea
-              label="설명 (선택)"
-              placeholder="보드에 대한 설명을 입력하세요"
-              defaultValue={description}
-              onChange={(e: any) => setDescription(e.target.value)}
-            />
-          </div>
+        <div style={{ marginBottom: "16px" }}>
+          <Input
+            label="보드 이름"
+            placeholder="보드 이름을 입력하세요"
+            defaultValue={name}
+            onChange={(e: any) => setName(e.target.value)}
+            required
+            disabled={board.isDefault}
+          />
+          {board.isDefault && (
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginTop: "4px",
+              }}
+            >
+              기본 보드의 이름은 변경할 수 없습니다.
+            </p>
+          )}
         </div>
-
         <div>
-          <h4
-            style={{
-              marginBottom: "12px",
-              fontSize: "14px",
-              fontWeight: 600,
-            }}
-          >
-            권한 설정
-          </h4>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ ...headerCellStyle, textAlign: "left" }}></th>
-                {roles.map(({ key, label }) => (
-                  <th key={key} style={headerCellStyle}>
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td
-                  style={{
-                    ...cellStyle,
-                    textAlign: "left",
-                    fontWeight: 500,
-                  }}
-                >
-                  멤버
-                </td>
-                {roles.map(({ key }) => (
-                  <td key={key} style={cellStyle}>
-                    <ToggleSwitch
-                      checked={members.groups[key]}
-                      onChange={(checked: boolean) =>
-                        handleMemberGroupChange(key, checked)
-                      }
-                    />
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                <td
-                  style={{
-                    ...cellStyle,
-                    textAlign: "left",
-                    fontWeight: 500,
-                  }}
-                >
-                  작성
-                </td>
-                {roles.map(({ key }) => (
-                  <td key={key} style={cellStyle}>
-                    {members.groups[key] ? (
-                      <ToggleSwitch
-                        checked={writers.groups[key]}
-                        onChange={(checked: boolean) =>
-                          setWriters((prev) => ({
-                            ...prev,
-                            groups: { ...prev.groups, [key]: checked },
-                          }))
-                        }
-                      />
-                    ) : (
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          color: "var(--text-color-3)",
-                        }}
-                      >
-                        -
-                      </span>
-                    )}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-          <p
-            style={{
-              fontSize: "12px",
-              color: "var(--text-color-2)",
-              marginTop: "8px",
-            }}
-          >
-            멤버: 보드에 접근할 수 있는 역할 / 작성: 게시글을 작성할 수 있는
-            역할
-          </p>
+          <Textarea
+            label="설명 (선택)"
+            placeholder="보드에 대한 설명을 입력하세요"
+            defaultValue={description}
+            onChange={(e: any) => setDescription(e.target.value)}
+          />
         </div>
       </div>
     </Popup>

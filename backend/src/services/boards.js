@@ -107,15 +107,13 @@ export const isBoardMember = (board, user, role) => {
   if (user.auth === "admin" || user.auth === "manager") return true;
   if (board.creator && board.creator.equals(user._id)) return true;
 
+  // 기본 보드(공지사항)는 전체 접근 허용
+  if (board.isDefault) return true;
+
   const members = resolveBoardMembers(board);
 
   // 개별 초대 사용자 확인
   if (members.users?.some((u) => u.userId === user.userId)) return true;
-
-  // 역할 그룹 확인
-  if (members.groups?.manager && user.auth === "manager") return true;
-  if (role === "teacher" && members.groups?.teacher) return true;
-  if (role === "student" && members.groups?.student) return true;
 
   return false;
 };
@@ -140,11 +138,6 @@ export const isBoardWriter = (board, user, role) => {
   // 개별 작성 권한 사용자 확인
   if (writers.users?.some((u) => u.userId === user.userId)) return true;
 
-  // 역할 그룹 확인
-  if (writers.groups?.manager && user.auth === "manager") return true;
-  if (role === "teacher" && writers.groups?.teacher) return true;
-  if (role === "student" && writers.groups?.student) return true;
-
   return false;
 };
 
@@ -159,8 +152,40 @@ export const isBoardWriter = (board, user, role) => {
  * @returns {Promise<Array>} 멤버 사용자 목록 [{user, userId, userName}]
  */
 export const getBoardMembers = async (academyId, board) => {
-  const members = resolveBoardMembers(board);
   const users = [];
+
+  // 기본 보드(공지사항): 전체 학교 구성원 반환
+  if (board.isDefault) {
+    const admins = await User(academyId).find({ auth: "admin" });
+    for (const admin of admins) {
+      users.push({ user: admin._id, userId: admin.userId, userName: admin.userName });
+    }
+
+    const managers = await User(academyId).find({
+      auth: "manager",
+      "schools.schoolId": board.schoolId,
+    });
+    for (const manager of managers) {
+      if (!users.some((u) => u.userId === manager.userId)) {
+        users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
+      }
+    }
+
+    const registrations = await Registration(academyId).find({
+      schoolId: board.schoolId,
+      isActivated: true,
+    });
+    for (const reg of registrations) {
+      if (!users.some((u) => u.userId === reg.userId)) {
+        users.push({ user: reg.user, userId: reg.userId, userName: reg.userName });
+      }
+    }
+
+    return users;
+  }
+
+  // 일반 보드: 개별 초대 사용자 + admin + manager + creator
+  const members = resolveBoardMembers(board);
 
   // 1. 개별 초대 사용자 추가
   for (const u of members.users || []) {
@@ -175,34 +200,14 @@ export const getBoardMembers = async (academyId, board) => {
     }
   }
 
-  // 3. manager 그룹
-  if (members.groups?.manager) {
-    const managers = await User(academyId).find({
-      auth: "manager",
-      "schools.schoolId": board.schoolId,
-    });
-    for (const manager of managers) {
-      if (!users.some((u) => u.userId === manager.userId)) {
-        users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
-      }
-    }
-  }
-
-  // 4. teacher/student 그룹
-  const roleQuery = [];
-  if (members.groups?.teacher) roleQuery.push("teacher");
-  if (members.groups?.student) roleQuery.push("student");
-
-  if (roleQuery.length > 0) {
-    const registrations = await Registration(academyId).find({
-      schoolId: board.schoolId,
-      isActivated: true,
-      role: { $in: roleQuery },
-    });
-    for (const reg of registrations) {
-      if (!users.some((u) => u.userId === reg.userId)) {
-        users.push({ user: reg.user, userId: reg.userId, userName: reg.userName });
-      }
+  // 3. manager 사용자는 항상 포함
+  const managers = await User(academyId).find({
+    auth: "manager",
+    "schools.schoolId": board.schoolId,
+  });
+  for (const manager of managers) {
+    if (!users.some((u) => u.userId === manager.userId)) {
+      users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
     }
   }
 
@@ -232,34 +237,14 @@ const getUsersByPermission = async (academyId, board, permission) => {
     }
   }
 
-  // 3. manager 그룹
-  if (permission.groups?.manager) {
-    const managers = await User(academyId).find({
-      auth: "manager",
-      "schools.schoolId": board.schoolId,
-    });
-    for (const manager of managers) {
-      if (!users.some((u) => u.userId === manager.userId)) {
-        users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
-      }
-    }
-  }
-
-  // 4. teacher/student 그룹
-  const roleQuery = [];
-  if (permission.groups?.teacher) roleQuery.push("teacher");
-  if (permission.groups?.student) roleQuery.push("student");
-
-  if (roleQuery.length > 0) {
-    const registrations = await Registration(academyId).find({
-      schoolId: board.schoolId,
-      isActivated: true,
-      role: { $in: roleQuery },
-    });
-    for (const reg of registrations) {
-      if (!users.some((u) => u.userId === reg.userId)) {
-        users.push({ user: reg.user, userId: reg.userId, userName: reg.userName });
-      }
+  // 3. manager 항상 포함
+  const managers = await User(academyId).find({
+    auth: "manager",
+    "schools.schoolId": board.schoolId,
+  });
+  for (const manager of managers) {
+    if (!users.some((u) => u.userId === manager.userId)) {
+      users.push({ user: manager._id, userId: manager.userId, userName: manager.userName });
     }
   }
 
@@ -303,20 +288,6 @@ export const getPostReaders = async (academyId, board, post) => {
  * @returns {{ valid: boolean, message?: string }}
  */
 export const validatePostPermission = (board, postPermission) => {
-  if (!postPermission) return { valid: true };
-
-  const boardMembers = resolveBoardMembers(board);
-
-  if (!boardMembers.groups?.manager && postPermission.groups?.manager) {
-    return { valid: false, message: "보드 멤버에 관리자 그룹이 포함되어 있지 않습니다." };
-  }
-  if (!boardMembers.groups?.teacher && postPermission.groups?.teacher) {
-    return { valid: false, message: "보드 멤버에 교사 그룹이 포함되어 있지 않습니다." };
-  }
-  if (!boardMembers.groups?.student && postPermission.groups?.student) {
-    return { valid: false, message: "보드 멤버에 학생 그룹이 포함되어 있지 않습니다." };
-  }
-
   return { valid: true };
 };
 
@@ -340,17 +311,12 @@ export const canUserSeePost = (post, user, role) => {
     return true;
   }
 
-  // 새 구조: permissionRead
-  if (post.permissionRead?.groups) {
+  // 새 구조: permissionRead (개별 사용자만 체크)
+  if (post.permissionRead?.users) {
     const perm = post.permissionRead;
 
     // 개별 사용자 확인
     if (perm.users?.some((u) => u.userId === user.userId)) return true;
-
-    // 역할 그룹 확인
-    if (perm.groups.manager && user.auth === "manager") return true;
-    if (role === "teacher" && perm.groups.teacher) return true;
-    if (role === "student" && perm.groups.student) return true;
 
     return false;
   }

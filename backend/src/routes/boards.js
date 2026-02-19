@@ -14,14 +14,13 @@ router.delete("/:_id", isLoggedIn, boards.remove);
 router.put("/:_id/cover-image", isLoggedIn, boards.updateCoverImage);
 router.delete("/:_id/cover-image", isLoggedIn, boards.deleteCoverImage);
 
-// 멤버 관리 (보드에 접근할 수 있는 사람)
+// 멤버 관리 (초대 기반)
 router.get("/:_id/members/list", isLoggedIn, boards.findMemberList);
-router.put("/:_id/members", isLoggedIn, boards.updateMembers);
 router.post("/:_id/members/users", isLoggedIn, boards.addMemberUser);
 router.delete("/:_id/members/users", isLoggedIn, boards.removeMemberUser);
+router.delete("/:_id/leave", isLoggedIn, boards.leaveBoard);
 
-// 작성자 관리 (게시글을 작성할 수 있는 사람)
-router.put("/:_id/writers", isLoggedIn, boards.updateWriters);
+// 작성자 관리
 router.post("/:_id/writers/users", isLoggedIn, boards.addWriterUser);
 router.delete("/:_id/writers/users", isLoggedIn, boards.removeWriterUser);
 

@@ -177,11 +177,7 @@ const PostCreate = () => {
               // 전체 공개
               setUseSpecificPermission(false);
               setPermissionRead({
-                groups: {
-                  manager: loadedBoard.members?.groups?.manager ?? true,
-                  teacher: loadedBoard.members?.groups?.teacher ?? true,
-                  student: loadedBoard.members?.groups?.student ?? true,
-                },
+                groups: { manager: false, teacher: false, student: false },
                 users: [],
               });
             }
@@ -213,13 +209,9 @@ const PostCreate = () => {
               });
             }
           } else {
-            // 신규 작성: 보드 멤버 그룹으로 기본값
+            // 신규 작성: 전체 멤버 대상 (기본값)
             setPermissionRead({
-              groups: {
-                manager: loadedBoard.members?.groups?.manager ?? true,
-                teacher: loadedBoard.members?.groups?.teacher ?? true,
-                student: loadedBoard.members?.groups?.student ?? true,
-              },
+              groups: { manager: false, teacher: false, student: false },
               users: [],
             });
           }
@@ -374,13 +366,7 @@ const PostCreate = () => {
       alert("내용을 입력해주세요.");
       return;
     }
-    if (
-      useSpecificPermission &&
-      !permissionRead.groups.manager &&
-      !permissionRead.groups.teacher &&
-      !permissionRead.groups.student &&
-      permissionRead.users.length === 0
-    ) {
+    if (useSpecificPermission && permissionRead.users.length === 0) {
       alert("읽기 권한 대상을 한 명 이상 선택해주세요.");
       return;
     }
@@ -579,14 +565,7 @@ const PostCreate = () => {
                   fontWeight: 600,
                 }}
               >
-                {(() => {
-                  let count = 0;
-                  if (permissionRead.groups.manager) count++;
-                  if (permissionRead.groups.teacher) count++;
-                  if (permissionRead.groups.student) count++;
-                  count += permissionRead.users.length;
-                  return count;
-                })()}
+                {permissionRead.users.length}
               </span>
             )}
           </button>
@@ -1002,11 +981,7 @@ const PostCreate = () => {
                   setUseSpecificPermission(checked);
                   if (!checked) {
                     setPermissionRead({
-                      groups: {
-                        manager: board?.members?.groups?.manager ?? true,
-                        teacher: board?.members?.groups?.teacher ?? true,
-                        student: board?.members?.groups?.student ?? true,
-                      },
+                      groups: { manager: false, teacher: false, student: false },
                       users: [],
                     });
                   }
@@ -1034,76 +1009,7 @@ const PostCreate = () => {
                   backgroundColor: "var(--background-color-2)",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "10px",
-                  }}
-                >
-                  {board.members?.groups?.manager && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontSize: "14px" }}>관리자</span>
-                      <ToggleSwitch
-                        defaultChecked={permissionRead.groups.manager}
-                        onChange={(checked: boolean) =>
-                          setPermissionRead((prev) => ({
-                            ...prev,
-                            groups: { ...prev.groups, manager: checked },
-                          }))
-                        }
-                      />
-                    </div>
-                  )}
-                  {board.members?.groups?.teacher && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontSize: "14px" }}>교사</span>
-                      <ToggleSwitch
-                        defaultChecked={permissionRead.groups.teacher}
-                        onChange={(checked: boolean) =>
-                          setPermissionRead((prev) => ({
-                            ...prev,
-                            groups: { ...prev.groups, teacher: checked },
-                          }))
-                        }
-                      />
-                    </div>
-                  )}
-                  {board.members?.groups?.student && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontSize: "14px" }}>학생</span>
-                      <ToggleSwitch
-                        defaultChecked={permissionRead.groups.student}
-                        onChange={(checked: boolean) =>
-                          setPermissionRead((prev) => ({
-                            ...prev,
-                            groups: { ...prev.groups, student: checked },
-                          }))
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ marginTop: "12px" }}>
+                <div>
                   <label
                     style={{
                       display: "block",
@@ -1112,7 +1018,7 @@ const PostCreate = () => {
                       marginBottom: "6px",
                     }}
                   >
-                    개별 사용자 지정
+                    대상 사용자 지정
                   </label>
                   <Autofill
                     appearence="flat"

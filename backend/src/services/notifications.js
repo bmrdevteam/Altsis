@@ -130,6 +130,7 @@ export const getOrCreateNotificationSetting = async (academyId, user) => {
         chatMessage: true,
         soundEnabled: true,
         reminder: true,
+        boardInvitation: true,
         eventReminderDefault: 15,
       },
     });

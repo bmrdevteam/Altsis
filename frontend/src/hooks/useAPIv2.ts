@@ -2877,49 +2877,15 @@ export default function useAPIv2() {
   }
 
   /**
-   * UBoardMembers API
-   * @description 보드 멤버 그룹 설정 API
+   * DBoardLeave API
+   * @description 보드 탈퇴 API (자기 자신을 멤버에서 제거)
    * @version 2.0.0
-   * @auth admin|manager
+   * @auth user
    */
-  async function UBoardMembers(props: {
-    params: { _id: string };
-    data: {
-      groups: {
-        manager?: boolean;
-        teacher?: boolean;
-        student?: boolean;
-      };
-    };
-  }) {
-    const { board } = await database.U({
-      location: `boards/${props.params._id}/members`,
-      data: props.data,
+  async function DBoardLeave(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `boards/${props.params._id}/leave`,
     });
-    return { board: board as TBoard };
-  }
-
-  /**
-   * UBoardWriters API
-   * @description 보드 작성자 그룹 설정 API
-   * @version 2.0.0
-   * @auth admin|manager
-   */
-  async function UBoardWriters(props: {
-    params: { _id: string };
-    data: {
-      groups: {
-        manager?: boolean;
-        teacher?: boolean;
-        student?: boolean;
-      };
-    };
-  }) {
-    const { board } = await database.U({
-      location: `boards/${props.params._id}/writers`,
-      data: props.data,
-    });
-    return { board: board as TBoard };
   }
 
   /**
@@ -4329,12 +4295,11 @@ export default function useAPIv2() {
       RBoards,
       RBoard,
       UBoard,
-      UBoardMembers,
-      UBoardWriters,
       CBoardMemberUser,
       DBoardMemberUser,
       CBoardWriterUser,
       DBoardWriterUser,
+      DBoardLeave,
       RBoardMemberList,
       DBoard,
       UBoardCoverImage,

@@ -36,6 +36,7 @@ const settingsSchema = mongoose.Schema(
     chatMessage: { type: Boolean, default: true },
     soundEnabled: { type: Boolean, default: true },
     reminder: { type: Boolean, default: true },
+    boardInvitation: { type: Boolean, default: true },
     eventReminderDefault: { type: Number, default: 15 },
   },
   { _id: false }
@@ -51,6 +52,7 @@ const settingsDefault = {
   chatMessage: true,
   soundEnabled: true,
   reminder: true,
+  boardInvitation: true,
   eventReminderDefault: 15,
 };
 

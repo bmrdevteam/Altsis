@@ -12,6 +12,7 @@ import {
   getUserRoleInSeason,
   getBoardMembers,
 } from "../services/boards.js";
+import { sendAutoNotification } from "../services/notifications.js";
 
 import {
   FIELD_REQUIRED,
@@ -224,91 +225,6 @@ export const update = async (req, res) => {
   }
 };
 
-/**
- * @memberof APIs.BoardAPI
- * @function UBoardMembers API
- * @description 보드 멤버 그룹 설정 API
- * @version 2.0.0
- *
- * @param {Object} req.body
- * @param {Object} req.body.groups - { manager, teacher, student }
- */
-export const updateMembers = async (req, res) => {
-  try {
-    const board = await Board(req.user.academyId).findById(req.params._id);
-    if (!board) {
-      return res.status(404).send({ message: __NOT_FOUND("board") });
-    }
-
-    if (!canManageBoard(board, req.user)) {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
-
-    if (!board.members) {
-      board.members = {
-        groups: { manager: true, teacher: true, student: true },
-        users: [],
-      };
-    }
-
-    if (req.body.groups) {
-      if ("manager" in req.body.groups) board.members.groups.manager = req.body.groups.manager;
-      if ("teacher" in req.body.groups) board.members.groups.teacher = req.body.groups.teacher;
-      if ("student" in req.body.groups) board.members.groups.student = req.body.groups.student;
-    }
-
-    board.markModified("members");
-    await board.save();
-
-    return res.status(200).send({ board });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
-  }
-};
-
-/**
- * @memberof APIs.BoardAPI
- * @function UBoardWriters API
- * @description 보드 작성자 그룹 설정 API
- * @version 2.0.0
- *
- * @param {Object} req.body
- * @param {Object} req.body.groups - { manager, teacher, student }
- */
-export const updateWriters = async (req, res) => {
-  try {
-    const board = await Board(req.user.academyId).findById(req.params._id);
-    if (!board) {
-      return res.status(404).send({ message: __NOT_FOUND("board") });
-    }
-
-    if (!canManageBoard(board, req.user)) {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
-
-    if (!board.writers) {
-      board.writers = {
-        groups: { manager: true, teacher: true, student: false },
-        users: [],
-      };
-    }
-
-    if (req.body.groups) {
-      if ("manager" in req.body.groups) board.writers.groups.manager = req.body.groups.manager;
-      if ("teacher" in req.body.groups) board.writers.groups.teacher = req.body.groups.teacher;
-      if ("student" in req.body.groups) board.writers.groups.student = req.body.groups.student;
-    }
-
-    board.markModified("writers");
-    await board.save();
-
-    return res.status(200).send({ board });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
-  }
-};
 
 /**
  * @memberof APIs.BoardAPI
@@ -343,7 +259,8 @@ export const addMemberUser = async (req, res) => {
     }
 
     // 중복 체크
-    if (!board.members.users.some((u) => u.userId === req.body.userId)) {
+    const isNew = !board.members.users.some((u) => u.userId === req.body.userId);
+    if (isNew) {
       board.members.users.push({
         user: req.body.user,
         userId: req.body.userId,
@@ -353,6 +270,28 @@ export const addMemberUser = async (req, res) => {
 
     board.markModified("members");
     await board.save();
+
+    // 초대 알림 발송
+    if (isNew) {
+      try {
+        await sendAutoNotification({
+          academyId: req.user.academyId,
+          toUserList: [{
+            user: req.body.user,
+            userId: req.body.userId,
+            userName: req.body.userName,
+          }],
+          notificationType: "boardInvitation",
+          category: "보드",
+          title: `${board.name} 보드에 초대되었습니다`,
+          description: `${req.user.userName}님이 "${board.name}" 보드에 초대했습니다.`,
+          relatedEntity: { type: "board", id: board._id },
+          fromUser: req.user,
+        });
+      } catch (notifErr) {
+        logger.error(`Board invitation notification failed: ${notifErr.message}`);
+      }
+    }
 
     return res.status(200).send({ board });
   } catch (err) {
@@ -390,8 +329,17 @@ export const removeMemberUser = async (req, res) => {
         (u) => u.userId !== req.query.userId
       );
       board.markModified("members");
-      await board.save();
     }
+
+    // 멤버에서 제거 시 작성자에서도 제거
+    if (board.writers?.users) {
+      board.writers.users = board.writers.users.filter(
+        (u) => u.userId !== req.query.userId
+      );
+      board.markModified("writers");
+    }
+
+    await board.save();
 
     return res.status(200).send({ board });
   } catch (err) {
@@ -475,6 +423,53 @@ export const removeWriterUser = async (req, res) => {
     }
 
     return res.status(200).send({ board });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.BoardAPI
+ * @function LeaveBoardMember API
+ * @description 보드 탈퇴 API (자기 자신을 멤버에서 제거)
+ * @version 2.0.0
+ */
+export const leaveBoard = async (req, res) => {
+  try {
+    const board = await Board(req.user.academyId).findById(req.params._id);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    // 기본 보드에서는 탈퇴 불가
+    if (board.isDefault) {
+      return res.status(400).send({ message: "기본 보드에서는 탈퇴할 수 없습니다." });
+    }
+
+    // 관리자 또는 보드 생성자는 탈퇴 불가
+    if (canManageBoard(board, req.user)) {
+      return res.status(400).send({ message: "관리자 또는 보드 생성자는 탈퇴할 수 없습니다." });
+    }
+
+    // 멤버에서 제거
+    if (board.members?.users) {
+      board.members.users = board.members.users.filter(
+        (u) => u.userId !== req.user.userId
+      );
+      board.markModified("members");
+    }
+
+    // 작성자에서도 제거
+    if (board.writers?.users) {
+      board.writers.users = board.writers.users.filter(
+        (u) => u.userId !== req.user.userId
+      );
+      board.markModified("writers");
+    }
+
+    await board.save();
+    return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

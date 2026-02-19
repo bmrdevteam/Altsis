@@ -19,13 +19,10 @@ import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Button from "components/button/Button";
 import Textarea from "components/textarea/Textarea";
-import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
-import Autofill from "components/input/Autofill";
 import CourseCoverImageEditor from "pages/courses/view/CourseCoverImageEditor";
 
 import {
   TBoard,
-  TBoardContentViewMode,
   TBoardMembers,
   TMemberUser,
 } from "types/board";
@@ -76,13 +73,11 @@ const resolveWriters = (board: TBoard): TBoardMembers => {
 };
 
 const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
-  const { currentUser, currentSchool } = useAuth();
-  const { BoardAPI, UserAPI } = useAPIv2();
+  const { currentRegistration } = useAuth();
+  const { BoardAPI, RegistrationAPI } = useAPIv2();
 
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || "");
-  const [contentViewMode, setContentViewMode] =
-    useState<TBoardContentViewMode>(board.contentViewMode || "table");
 
   // 새 멤버/작성자 구조
   const initialMembers = resolveMembers(board);
@@ -94,75 +89,128 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 사용자 목록 (개별 초대용)
-  const [userList, setUserList] = useState<any[]>([]);
+  // 쿼터 사용자 목록 (초대용)
+  const [registrationList, setRegistrationList] = useState<any[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [writerSearch, setWriterSearch] = useState("");
 
   const coverFileRef = useRef<File | null>(null);
   const coverUrlRef = useRef<string>("");
   const [coverRemoved, setCoverRemoved] = useState(false);
 
   useEffect(() => {
-    if (currentSchool) {
-      UserAPI.RUsers({ query: { sid: currentSchool._id } })
-        .then(({ users }) => setUserList(users))
+    if (currentRegistration?.season) {
+      RegistrationAPI.RRegistrations({
+        query: { season: currentRegistration.season },
+      })
+        .then(({ registrations }) => {
+          setRegistrationList(_.uniqBy(registrations, "userId"));
+        })
         .catch(() => {});
     }
   }, []);
 
-  /** 멤버 그룹 토글 시 작성자 그룹도 연동 (멤버에서 해제된 그룹은 작성자에서도 해제) */
-  const handleMemberGroupChange = (
-    role: "manager" | "teacher" | "student",
+  /** 멤버 체크박스 토글 */
+  const handleToggleMember = (
+    u: { user: string; userId: string; userName: string },
     checked: boolean
   ) => {
-    setMembers((prev) => ({
-      ...prev,
-      groups: { ...prev.groups, [role]: checked },
-    }));
-    if (!checked) {
+    if (checked) {
+      setMembers((prev) => ({
+        ...prev,
+        users: _.uniqBy(
+          [...prev.users, { user: u.user, userId: u.userId, userName: u.userName }],
+          (x) => x.userId
+        ),
+      }));
+    } else {
+      setMembers((prev) => ({
+        ...prev,
+        users: prev.users.filter((x) => x.userId !== u.userId),
+      }));
+      // 멤버에서 해제하면 작성자에서도 제거
       setWriters((prev) => ({
         ...prev,
-        groups: { ...prev.groups, [role]: false },
+        users: prev.users.filter((x) => x.userId !== u.userId),
       }));
     }
   };
 
-  /** 개별 멤버 추가 */
-  const handleAddMemberUser = (userJson: string) => {
-    const parsed: TMemberUser = JSON.parse(userJson);
-    setMembers((prev) => ({
-      ...prev,
-      users: _.uniqBy([...prev.users, parsed], (u) => u.userId),
-    }));
+  /** 작성자 체크박스 토글 */
+  const handleToggleWriter = (u: TMemberUser, checked: boolean) => {
+    if (checked) {
+      setWriters((prev) => ({
+        ...prev,
+        users: _.uniqBy([...prev.users, u], (x) => x.userId),
+      }));
+    } else {
+      setWriters((prev) => ({
+        ...prev,
+        users: prev.users.filter((x) => x.userId !== u.userId),
+      }));
+    }
   };
 
-  /** 개별 멤버 제거 */
-  const handleRemoveMemberUser = (userId: string) => {
-    setMembers((prev) => ({
-      ...prev,
-      users: prev.users.filter((u) => u.userId !== userId),
-    }));
-    // 멤버에서 제거되면 작성자에서도 제거
-    setWriters((prev) => ({
-      ...prev,
-      users: prev.users.filter((u) => u.userId !== userId),
-    }));
+  /** 멤버 전체 선택/해제 (그룹 단위) */
+  const handleToggleAllMembers = (
+    users: { user: string; userId: string; userName: string }[],
+    checked: boolean
+  ) => {
+    if (checked) {
+      setMembers((prev) => ({
+        ...prev,
+        users: _.uniqBy(
+          [
+            ...prev.users,
+            ...users.map((u) => ({
+              user: u.user,
+              userId: u.userId,
+              userName: u.userName,
+            })),
+          ],
+          (x) => x.userId
+        ),
+      }));
+    } else {
+      const removeIds = new Set(users.map((u) => u.userId));
+      setMembers((prev) => ({
+        ...prev,
+        users: prev.users.filter((x) => !removeIds.has(x.userId)),
+      }));
+      setWriters((prev) => ({
+        ...prev,
+        users: prev.users.filter((x) => !removeIds.has(x.userId)),
+      }));
+    }
   };
 
-  /** 개별 작성자 추가 */
-  const handleAddWriterUser = (userJson: string) => {
-    const parsed: TMemberUser = JSON.parse(userJson);
-    setWriters((prev) => ({
-      ...prev,
-      users: _.uniqBy([...prev.users, parsed], (u) => u.userId),
-    }));
-  };
-
-  /** 개별 작성자 제거 */
-  const handleRemoveWriterUser = (userId: string) => {
-    setWriters((prev) => ({
-      ...prev,
-      users: prev.users.filter((u) => u.userId !== userId),
-    }));
+  /** 작성자 전체 선택/해제 */
+  const handleToggleAllWriters = (
+    users: { user: string; userId: string; userName: string }[],
+    checked: boolean
+  ) => {
+    if (checked) {
+      setWriters((prev) => ({
+        ...prev,
+        users: _.uniqBy(
+          [
+            ...prev.users,
+            ...users.map((u) => ({
+              user: u.user,
+              userId: u.userId,
+              userName: u.userName,
+            })),
+          ],
+          (x) => x.userId
+        ),
+      }));
+    } else {
+      const removeIds = new Set(users.map((u) => u.userId));
+      setWriters((prev) => ({
+        ...prev,
+        users: prev.users.filter((x) => !removeIds.has(x.userId)),
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -180,7 +228,6 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
         data: {
           name: name.trim(),
           description: description.trim(),
-          contentViewMode,
           coverColor: coverColor || undefined,
         },
       });
@@ -198,19 +245,7 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
         });
       }
 
-      // 3. 멤버 그룹 업데이트
-      await BoardAPI.UBoardMembers({
-        params: { _id: board._id },
-        data: { groups: members.groups },
-      });
-
-      // 4. 작성자 그룹 업데이트
-      await BoardAPI.UBoardWriters({
-        params: { _id: board._id },
-        data: { groups: writers.groups },
-      });
-
-      // 5. 개별 멤버 동기화
+      // 3. 개별 멤버 동기화
       const prevMemberUserIds = new Set(
         initialMembers.users.map((u) => u.userId)
       );
@@ -233,7 +268,7 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
         }
       }
 
-      // 6. 개별 작성자 동기화
+      // 4. 개별 작성자 동기화
       const prevWriterUserIds = new Set(
         initialWriters.users.map((u) => u.userId)
       );
@@ -290,83 +325,141 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
     }
   };
 
-  /** 개별 사용자 목록에서 이미 추가된 사용자를 제외한 옵션 생성 */
-  const getMemberUserOptions = () => {
-    const existingIds = new Set(members.users.map((u) => u.userId));
-    return userList
-      .filter((u: any) => !existingIds.has(u.userId))
-      .map((u: any) => ({
-        text: `${u.userName}(${u.userId})`,
-        value: JSON.stringify({
-          user: u._id,
-          userId: u.userId,
-          userName: u.userName,
-        }),
-      }));
+  /** 그룹 헤더 스타일 */
+  const groupHeaderStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "6px 12px",
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "var(--text-color-2)",
+    backgroundColor: "var(--background-color-2)",
+    borderBottom: "1px solid var(--border-color)",
+    cursor: "pointer",
   };
 
-  const getWriterUserOptions = () => {
-    const existingIds = new Set(writers.users.map((u) => u.userId));
-    // 작성자는 멤버 중에서만 선택 가능 (개별 멤버 + 그룹 멤버)
-    return userList
-      .filter((u: any) => !existingIds.has(u.userId))
-      .map((u: any) => ({
-        text: `${u.userName}(${u.userId})`,
-        value: JSON.stringify({
-          user: u._id,
-          userId: u.userId,
-          userName: u.userName,
-        }),
-      }));
-  };
-
-  const renderUserList = (
-    users: TMemberUser[],
-    onRemove: (userId: string) => void
+  /** 체크박스 리스트 렌더링 */
+  const renderCheckboxList = (
+    items: { user: string; userId: string; userName: string; role?: string }[],
+    selectedIds: Set<string>,
+    onToggle: (
+      u: { user: string; userId: string; userName: string },
+      checked: boolean
+    ) => void,
+    onToggleAll: (
+      users: { user: string; userId: string; userName: string }[],
+      checked: boolean
+    ) => void,
+    searchTerm: string,
+    grouped?: boolean
   ) => {
-    if (users.length === 0) return null;
-    return (
-      <div
+    const filtered = items.filter(
+      (u) =>
+        !searchTerm ||
+        u.userName.includes(searchTerm) ||
+        u.userId.includes(searchTerm)
+    );
+
+    if (filtered.length === 0) {
+      return (
+        <div
+          style={{
+            padding: "16px",
+            textAlign: "center",
+            fontSize: "13px",
+            color: "var(--text-color-2)",
+          }}
+        >
+          {searchTerm ? "검색 결과가 없습니다." : "사용자가 없습니다."}
+        </div>
+      );
+    }
+
+    const renderRow = (u: {
+      user: string;
+      userId: string;
+      userName: string;
+    }) => (
+      <label
+        key={u.userId}
         style={{
           display: "flex",
-          flexWrap: "wrap",
+          alignItems: "center",
           gap: "8px",
-          marginTop: "8px",
+          padding: "6px 12px",
+          cursor: "pointer",
         }}
       >
-        {users.map((u) => (
-          <div
-            key={u.userId}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "4px 10px",
-              backgroundColor: "var(--component-color)",
-              borderRadius: "16px",
-              fontSize: "13px",
-            }}
-          >
-            <span>
-              {u.userName}({u.userId})
-            </span>
-            <button
-              onClick={() => onRemove(u.userId)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "0",
-                fontSize: "14px",
-                color: "var(--text-color-2)",
-                lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
+        <input
+          type="checkbox"
+          checked={selectedIds.has(u.userId)}
+          onChange={(e) => onToggle(u, e.target.checked)}
+        />
+        <span style={{ fontSize: "13px" }}>
+          {u.userName}({u.userId})
+        </span>
+      </label>
+    );
+
+    const renderGroupHeader = (
+      label: string,
+      groupItems: { user: string; userId: string; userName: string }[],
+      extraStyle?: React.CSSProperties
+    ) => {
+      const allSelected = groupItems.every((u) => selectedIds.has(u.userId));
+      return (
+        <label style={{ ...groupHeaderStyle, ...extraStyle }}>
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={(e) => onToggleAll(groupItems, e.target.checked)}
+          />
+          {label} ({groupItems.length})
+        </label>
+      );
+    };
+
+    if (!grouped) {
+      const allSelected = filtered.every((u) => selectedIds.has(u.userId));
+      return (
+        <>
+          <label style={groupHeaderStyle}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => onToggleAll(filtered, e.target.checked)}
+            />
+            전체 선택 ({filtered.length})
+          </label>
+          {filtered.map(renderRow)}
+        </>
+      );
+    }
+
+    const teachers = filtered.filter((u) => u.role === "teacher");
+    const students = filtered.filter((u) => u.role === "student");
+
+    return (
+      <>
+        {teachers.length > 0 && (
+          <>
+            {renderGroupHeader("교사", teachers)}
+            {teachers.map(renderRow)}
+          </>
+        )}
+        {students.length > 0 && (
+          <>
+            {renderGroupHeader("학생", students, {
+              borderTop:
+                teachers.length > 0
+                  ? "1px solid var(--border-color)"
+                  : undefined,
+            })}
+            {students.map(renderRow)}
+          </>
+        )}
+      </>
     );
   };
 
@@ -453,48 +546,6 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
               onChange={(e: any) => setDescription(e.target.value)}
             />
           </div>
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                fontWeight: 500,
-                marginBottom: "6px",
-              }}
-            >
-              콘텐츠 뷰 모드
-            </label>
-            <select
-              value={contentViewMode}
-              onChange={(e) =>
-                setContentViewMode(e.target.value as TBoardContentViewMode)
-              }
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid var(--border-color)",
-                borderRadius: "6px",
-                fontSize: "14px",
-                backgroundColor: "var(--background-color-1)",
-                color: "var(--accent-1)",
-                cursor: "pointer",
-              }}
-            >
-              <option value="table">테이블</option>
-              <option value="gallery">갤러리</option>
-              <option value="blog">블로그</option>
-            </select>
-            <p
-              style={{
-                fontSize: "12px",
-                color: "var(--text-color-2)",
-                marginTop: "4px",
-              }}
-            >
-              보드 내 게시글이 표시되는 방식입니다.
-            </p>
-          </div>
-
           <div style={{ marginTop: "16px" }}>
             <label
               style={{
@@ -557,88 +608,57 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
             style={{
               fontSize: "12px",
               color: "var(--text-color-2)",
-              marginBottom: "12px",
+              marginBottom: "8px",
             }}
           >
-            이 보드에 접근할 수 있는 사람을 설정합니다.
+            이 보드에 접근할 수 있는 사람을 초대합니다.
           </p>
 
-          {/* 역할 그룹 토글 */}
+          <input
+            type="text"
+            placeholder="이름 또는 아이디로 검색"
+            value={memberSearch}
+            onChange={(e) => setMemberSearch(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px 12px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              fontSize: "13px",
+              backgroundColor: "var(--background-color-1)",
+              color: "var(--accent-1)",
+              boxSizing: "border-box",
+            }}
+          />
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
+              maxHeight: "240px",
+              overflowY: "auto",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              marginTop: "8px",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span>관리자</span>
-              <ToggleSwitch
-                defaultChecked={members.groups.manager}
-                onChange={(checked: boolean) =>
-                  handleMemberGroupChange("manager", checked)
-                }
-              />
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span>교사</span>
-              <ToggleSwitch
-                defaultChecked={members.groups.teacher}
-                onChange={(checked: boolean) =>
-                  handleMemberGroupChange("teacher", checked)
-                }
-              />
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span>학생</span>
-              <ToggleSwitch
-                defaultChecked={members.groups.student}
-                onChange={(checked: boolean) =>
-                  handleMemberGroupChange("student", checked)
-                }
-              />
-            </div>
+            {renderCheckboxList(
+              registrationList,
+              new Set(members.users.map((u) => u.userId)),
+              handleToggleMember,
+              handleToggleAllMembers,
+              memberSearch,
+              true
+            )}
           </div>
-
-          {/* 개별 사용자 초대 */}
-          <div style={{ marginTop: "16px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "13px",
-                fontWeight: 500,
-                marginBottom: "6px",
-              }}
-            >
-              개별 사용자 초대
-            </label>
-            <Autofill
-              appearence="flat"
-              placeholder="이름 또는 아이디로 검색"
-              options={getMemberUserOptions()}
-              setState={(val: string) => handleAddMemberUser(val)}
-              resetOnClick
-            />
-            {renderUserList(members.users, handleRemoveMemberUser)}
-          </div>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              marginTop: "4px",
+            }}
+          >
+            {members.users.length > 0
+              ? `${members.users.length}명 선택됨`
+              : "선택된 멤버가 없습니다."}
+          </p>
         </div>
 
         {/* 작성 권한 */}
@@ -656,115 +676,69 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
             style={{
               fontSize: "12px",
               color: "var(--text-color-2)",
-              marginBottom: "12px",
+              marginBottom: "8px",
             }}
           >
             이 보드에 게시글을 작성할 수 있는 사람을 설정합니다.
           </p>
 
-          {/* 역할 그룹 토글 (멤버에서 활성화된 그룹만 표시) */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-            }}
-          >
-            {members.groups.manager && (
+          {members.users.length > 0 ? (
+            <>
+              <input
+                type="text"
+                placeholder="이름 또는 아이디로 검색"
+                value={writerSearch}
+                onChange={(e) => setWriterSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  backgroundColor: "var(--background-color-1)",
+                  color: "var(--accent-1)",
+                  boxSizing: "border-box",
+                }}
+              />
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "6px",
+                  marginTop: "8px",
                 }}
               >
-                <span>관리자</span>
-                <ToggleSwitch
-                  defaultChecked={writers.groups.manager}
-                  onChange={(checked: boolean) =>
-                    setWriters((prev) => ({
-                      ...prev,
-                      groups: { ...prev.groups, manager: checked },
-                    }))
-                  }
-                />
+                {renderCheckboxList(
+                  members.users,
+                  new Set(writers.users.map((u) => u.userId)),
+                  handleToggleWriter,
+                  handleToggleAllWriters,
+                  writerSearch
+                )}
               </div>
-            )}
-            {members.groups.teacher && (
-              <div
+              <p
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  fontSize: "12px",
+                  color: "var(--text-color-2)",
+                  marginTop: "4px",
                 }}
               >
-                <span>교사</span>
-                <ToggleSwitch
-                  defaultChecked={writers.groups.teacher}
-                  onChange={(checked: boolean) =>
-                    setWriters((prev) => ({
-                      ...prev,
-                      groups: { ...prev.groups, teacher: checked },
-                    }))
-                  }
-                />
-              </div>
-            )}
-            {members.groups.student && (
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <span>학생</span>
-                <ToggleSwitch
-                  defaultChecked={writers.groups.student}
-                  onChange={(checked: boolean) =>
-                    setWriters((prev) => ({
-                      ...prev,
-                      groups: { ...prev.groups, student: checked },
-                    }))
-                  }
-                />
-              </div>
-            )}
-            {!members.groups.manager &&
-              !members.groups.teacher &&
-              !members.groups.student && (
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-color-2)",
-                  }}
-                >
-                  멤버에 활성화된 역할 그룹이 없습니다.
-                </p>
-              )}
-          </div>
-
-          {/* 개별 작성자 추가 */}
-          <div style={{ marginTop: "16px" }}>
-            <label
+                {writers.users.length > 0
+                  ? `${writers.users.length}명 선택됨`
+                  : "선택된 작성자가 없습니다."}
+              </p>
+            </>
+          ) : (
+            <p
               style={{
-                display: "block",
                 fontSize: "13px",
-                fontWeight: 500,
-                marginBottom: "6px",
+                color: "var(--text-color-2)",
               }}
             >
-              개별 작성자 추가
-            </label>
-            <Autofill
-              appearence="flat"
-              placeholder="이름 또는 아이디로 검색"
-              options={getWriterUserOptions()}
-              setState={(val: string) => handleAddWriterUser(val)}
-              resetOnClick
-            />
-            {renderUserList(writers.users, handleRemoveWriterUser)}
-          </div>
+              먼저 멤버를 선택해주세요.
+            </p>
+          )}
         </div>
       </div>
     </Popup>

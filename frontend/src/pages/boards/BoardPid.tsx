@@ -33,20 +33,9 @@ import PostBlogView from "./views/PostBlogView";
 type TPostWithSelection = TPost & { tableRowChecked?: boolean };
 
 const formatPermissionRead = (post: TPost): string => {
-  // 새 구조: permissionRead
-  if (post.permissionRead?.groups) {
-    const { groups, users } = post.permissionRead;
-    const roles: string[] = [];
-    if (groups.manager) roles.push("관리자");
-    if (groups.teacher) roles.push("교사");
-    if (groups.student) roles.push("학생");
-
-    if (roles.length === 3 && (!users || users.length === 0)) return "전체";
-    if (roles.length === 0 && users && users.length > 0)
-      return `지정(${users.length}명)`;
-    const label = roles.join("/");
-    if (users && users.length > 0) return `${label} +${users.length}명`;
-    return label || "없음";
+  // 새 구조: permissionRead (개별 사용자 기반)
+  if (post.permissionRead?.users && post.permissionRead.users.length > 0) {
+    return `지정(${post.permissionRead.users.length}명)`;
   }
 
   // 레거시 폴백: targetAudience
@@ -144,18 +133,14 @@ const BoardPid = () => {
   const canWrite = () => {
     if (!board) return false;
     if (currentUser?.auth === "admin") return true;
-    if (currentUser?.auth === "manager" && board.writers?.groups?.manager)
-      return true;
+    if (currentUser?.auth === "manager") return true;
+    if (board.creator && board.creator === currentUser?._id) return true;
     // 개별 작성자 확인
     if (
       board.writers?.users?.some(
         (u) => u.userId === currentUser?.userId
       )
     )
-      return true;
-    // 역할 그룹 확인은 registration 기반이라 프론트에서 완전 체크 불가
-    // 서버에서 최종 검증하므로 교사/학생 그룹이 열려있으면 허용
-    if (board.writers?.groups?.teacher || board.writers?.groups?.student)
       return true;
     return false;
   };
@@ -229,6 +214,18 @@ const BoardPid = () => {
   const handleClickPost = (post: TPost) => {
     if (board) {
       navigate(`/boards/${board._id}/post/${post._id}`);
+    }
+  };
+
+  const handleLeaveBoard = async () => {
+    if (!board) return;
+    if (!window.confirm("이 보드에서 나가시겠습니까?")) return;
+    try {
+      await BoardAPI.DBoardLeave({ params: { _id: board._id } });
+      alert("보드에서 나갔습니다.");
+      navigate("/boards");
+    } catch (err) {
+      ALERT_ERROR(err);
     }
   };
 
@@ -434,6 +431,16 @@ const BoardPid = () => {
                 title="보드 관리"
               >
                 <Svg type="settings" width="18px" height="18px" />
+              </button>
+            )}
+            {!canManageBoard(board) && !board.isDefault && (
+              <button
+                className={bStyle.textBtn}
+                onClick={handleLeaveBoard}
+                title="보드 나가기"
+              >
+                <Svg type="logout" width="16px" height="16px" />
+                나가기
               </button>
             )}
           </div>
