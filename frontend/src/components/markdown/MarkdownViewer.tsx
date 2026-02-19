@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -265,6 +265,45 @@ type Props = {
 };
 
 const MarkdownViewer = ({ content, className }: Props) => {
+  const sanitizedContent = useMemo(() => {
+    // html-app 코드 블록을 DOMPurify 처리 전에 추출 (script 태그 보존)
+    const preserved: string[] = [];
+    const withPlaceholders = content.replace(
+      /```html-app(?::\d+)?\n[\s\S]*?```/g,
+      (match) => {
+        preserved.push(match);
+        return `__HTMLAPP_PRESERVE_${preserved.length - 1}__`;
+      }
+    );
+
+    let sanitized = DOMPurify.sanitize(withPlaceholders, {
+      ADD_TAGS: ["iframe", "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation"],
+      ADD_ATTR: [
+        "allow",
+        "allowfullscreen",
+        "frameborder",
+        "scrolling",
+        "sandbox",
+        "srcdoc",
+        "data-youtube-video",
+        "data-html-embed",
+        "data-embed-type",
+        "data-embed-content",
+        "data-embed-height",
+        "data-mention",
+        "data-id",
+        "data-color",
+      ],
+    });
+
+    // 보존된 html-app 코드 블록 복원
+    preserved.forEach((block, i) => {
+      sanitized = sanitized.replace(`__HTMLAPP_PRESERVE_${i}__`, block);
+    });
+
+    return sanitized;
+  }, [content]);
+
   return (
     <div className={`${style.markdown} ${className || ""}`}>
       <ReactMarkdown
@@ -272,25 +311,7 @@ const MarkdownViewer = ({ content, className }: Props) => {
         rehypePlugins={[rehypeRaw, rehypeKatex] as any}
         components={markdownComponents}
       >
-        {DOMPurify.sanitize(content, {
-          ADD_TAGS: ["iframe", "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation"],
-          ADD_ATTR: [
-            "allow",
-            "allowfullscreen",
-            "frameborder",
-            "scrolling",
-            "sandbox",
-            "srcdoc",
-            "data-youtube-video",
-            "data-html-embed",
-            "data-embed-type",
-            "data-embed-content",
-            "data-embed-height",
-            "data-mention",
-            "data-id",
-            "data-color",
-          ],
-        })}
+        {sanitizedContent}
       </ReactMarkdown>
     </div>
   );
