@@ -20,14 +20,21 @@ import {
 } from "../messages/index.js";
 
 /**
+ * post.surveys 배열에서 특정 설문 찾기
+ */
+function findSurveyInPost(post, surveyId) {
+  return post.surveys?.find((s) => s._id.toString() === surveyId.toString());
+}
+
+/**
  * @memberof APIs.SurveyResponseAPI
  * @function CSurveyResponse API
  * @description 설문 응답 제출 API
- * @version 1.0.0
+ * @version 2.0.0
  */
 export const create = async (req, res) => {
   try {
-    for (let field of ["post", "answers"]) {
+    for (let field of ["post", "surveyId", "answers"]) {
       if (!(field in req.body)) {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
@@ -38,8 +45,9 @@ export const create = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
 
-    if (!post.survey || !post.survey.questions.length) {
-      return res.status(400).send({ message: "이 게시글에는 설문이 없습니다." });
+    const survey = findSurveyInPost(post, req.body.surveyId);
+    if (!survey || !survey.questions.length) {
+      return res.status(400).send({ message: "해당 설문을 찾을 수 없습니다." });
     }
 
     // 보드 멤버 확인
@@ -58,8 +66,8 @@ export const create = async (req, res) => {
     }
 
     // 마감일 확인
-    if (post.survey.settings.deadline) {
-      if (new Date() > new Date(post.survey.settings.deadline)) {
+    if (survey.settings.deadline) {
+      if (new Date() > new Date(survey.settings.deadline)) {
         return res.status(400).send({ message: "설문이 마감되었습니다." });
       }
     }
@@ -67,6 +75,7 @@ export const create = async (req, res) => {
     // 중복 응답 확인
     const existing = await SurveyResponse(req.user.academyId).findOne({
       post: post._id,
+      surveyId: survey._id,
       respondent: req.user._id,
     });
     if (existing) {
@@ -74,13 +83,14 @@ export const create = async (req, res) => {
     }
 
     // 답변 검증
-    const validationError = validateAnswers(post.survey.questions, req.body.answers);
+    const validationError = validateAnswers(survey.questions, req.body.answers);
     if (validationError) {
       return res.status(400).send({ message: validationError });
     }
 
     const surveyResponse = await SurveyResponse(req.user.academyId).create({
       post: post._id,
+      surveyId: survey._id,
       respondent: req.user._id,
       respondentId: req.user.userId,
       respondentName: req.user.userName,
@@ -88,8 +98,8 @@ export const create = async (req, res) => {
     });
 
     // responseCount 증가
-    post.survey.responseCount = (post.survey.responseCount || 0) + 1;
-    post.markModified("survey");
+    survey.responseCount = (survey.responseCount || 0) + 1;
+    post.markModified("surveys");
     await post.save();
 
     return res.status(200).send({ surveyResponse });
@@ -106,16 +116,19 @@ export const create = async (req, res) => {
  * @memberof APIs.SurveyResponseAPI
  * @function RSurveyResponseMy API
  * @description 내 설문 응답 조회 API
- * @version 1.0.0
+ * @version 2.0.0
  */
 export const findMy = async (req, res) => {
   try {
-    if (!("post" in req.query)) {
-      return res.status(400).send({ message: FIELD_REQUIRED("post") });
+    for (let field of ["post", "surveyId"]) {
+      if (!(field in req.query)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
     }
 
     const surveyResponse = await SurveyResponse(req.user.academyId).findOne({
       post: req.query.post,
+      surveyId: req.query.surveyId,
       respondent: req.user._id,
     });
 
@@ -137,27 +150,34 @@ export const findMy = async (req, res) => {
  * @memberof APIs.SurveyResponseAPI
  * @function RSurveyResponses API
  * @description 설문 응답 전체 조회 API
- * @version 1.0.0
+ * @version 2.0.0
  */
 export const findAll = async (req, res) => {
   try {
-    if (!("post" in req.query)) {
-      return res.status(400).send({ message: FIELD_REQUIRED("post") });
+    for (let field of ["post", "surveyId"]) {
+      if (!(field in req.query)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
     }
 
     const post = await Post(req.user.academyId).findById(req.query.post);
-    if (!post || !post.isActive || !post.survey) {
+    if (!post || !post.isActive) {
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
 
+    const survey = findSurveyInPost(post, req.query.surveyId);
+    if (!survey) {
+      return res.status(404).send({ message: "해당 설문을 찾을 수 없습니다." });
+    }
+
     // 결과 조회 권한 확인
-    const canView = await canViewResults(req.user, post);
+    const canView = await canViewResults(req.user, post, survey);
     if (!canView) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     let surveyResponses = await SurveyResponse(req.user.academyId)
-      .find({ post: post._id })
+      .find({ post: post._id, surveyId: survey._id })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -169,7 +189,7 @@ export const findAll = async (req, res) => {
     // 익명 모드 시 응답자 정보 제거 (작성자/관리자 제외)
     const isAuthor = post.author.equals(req.user._id);
     const isManager = req.user.auth === "admin" || req.user.auth === "manager";
-    if (post.survey.settings.isAnonymous && !isAuthor && !isManager) {
+    if (survey.settings.isAnonymous && !isAuthor && !isManager) {
       surveyResponses = surveyResponses.map((r) => ({
         ...r,
         respondent: undefined,
@@ -189,31 +209,38 @@ export const findAll = async (req, res) => {
  * @memberof APIs.SurveyResponseAPI
  * @function RSurveyStats API
  * @description 설문 통계 조회 API
- * @version 1.0.0
+ * @version 2.0.0
  */
 export const stats = async (req, res) => {
   try {
-    if (!("post" in req.query)) {
-      return res.status(400).send({ message: FIELD_REQUIRED("post") });
+    for (let field of ["post", "surveyId"]) {
+      if (!(field in req.query)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
     }
 
     const post = await Post(req.user.academyId).findById(req.query.post);
-    if (!post || !post.isActive || !post.survey) {
+    if (!post || !post.isActive) {
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
 
+    const survey = findSurveyInPost(post, req.query.surveyId);
+    if (!survey) {
+      return res.status(404).send({ message: "해당 설문을 찾을 수 없습니다." });
+    }
+
     // 결과 조회 권한 확인
-    const canView = await canViewResults(req.user, post);
+    const canView = await canViewResults(req.user, post, survey);
     if (!canView) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     const responses = await SurveyResponse(req.user.academyId)
-      .find({ post: post._id })
+      .find({ post: post._id, surveyId: survey._id })
       .lean();
 
     const totalResponses = responses.length;
-    const questionStats = post.survey.questions.map((question) => {
+    const questionStats = survey.questions.map((question) => {
       const answers = responses
         .map((r) => r.answers.find((a) => a.questionId === question.id))
         .filter(Boolean);
@@ -292,7 +319,7 @@ export const stats = async (req, res) => {
  * @memberof APIs.SurveyResponseAPI
  * @function USurveyResponse API
  * @description 설문 응답 수정 API
- * @version 1.0.0
+ * @version 2.0.0
  */
 export const update = async (req, res) => {
   try {
@@ -309,18 +336,23 @@ export const update = async (req, res) => {
     }
 
     const post = await Post(req.user.academyId).findById(surveyResponse.post);
-    if (!post || !post.isActive || !post.survey) {
+    if (!post || !post.isActive) {
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
 
+    const survey = findSurveyInPost(post, surveyResponse.surveyId);
+    if (!survey) {
+      return res.status(404).send({ message: "해당 설문을 찾을 수 없습니다." });
+    }
+
     // 수정 허용 확인
-    if (!post.survey.settings.allowModify) {
+    if (!survey.settings.allowModify) {
       return res.status(403).send({ message: "응답 수정이 허용되지 않습니다." });
     }
 
     // 마감일 확인
-    if (post.survey.settings.deadline) {
-      if (new Date() > new Date(post.survey.settings.deadline)) {
+    if (survey.settings.deadline) {
+      if (new Date() > new Date(survey.settings.deadline)) {
         return res.status(400).send({ message: "설문이 마감되었습니다." });
       }
     }
@@ -330,7 +362,7 @@ export const update = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("answers") });
     }
 
-    const validationError = validateAnswers(post.survey.questions, req.body.answers);
+    const validationError = validateAnswers(survey.questions, req.body.answers);
     if (validationError) {
       return res.status(400).send({ message: validationError });
     }
@@ -339,6 +371,63 @@ export const update = async (req, res) => {
     await surveyResponse.save();
 
     return res.status(200).send({ surveyResponse });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SurveyResponseAPI
+ * @function ExportSurveyJSON API
+ * @description 설문 JSON 내보내기 API (구조만, 응답 미포함)
+ * @version 1.0.0
+ */
+export const exportSurvey = async (req, res) => {
+  try {
+    const post = await Post(req.user.academyId).findById(req.params.postId);
+    if (!post || !post.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("post") });
+    }
+
+    const survey = findSurveyInPost(post, req.params.surveyId);
+    if (!survey) {
+      return res.status(404).send({ message: "해당 설문을 찾을 수 없습니다." });
+    }
+
+    const exportData = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      survey: {
+        title: survey.title,
+        description: survey.description,
+        questions: survey.questions.map((q) => ({
+          type: q.type,
+          title: q.title,
+          description: q.description || "",
+          isRequired: q.isRequired || false,
+          options: (q.options || []).map((o) => ({ text: o.text })),
+          scaleMin: q.scaleMin,
+          scaleMax: q.scaleMax,
+          scaleMinLabel: q.scaleMinLabel,
+          scaleMaxLabel: q.scaleMaxLabel,
+          maxFiles: q.maxFiles,
+          maxFileSize: q.maxFileSize,
+        })),
+        settings: {
+          isAnonymous: survey.settings.isAnonymous,
+          showResults: survey.settings.showResults,
+          allowModify: survey.settings.allowModify,
+        },
+      },
+    };
+
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(survey.title || "survey")}.json"`
+    );
+    return res.status(200).send(exportData);
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -455,7 +544,7 @@ function validateAnswers(questions, answers) {
 /**
  * 결과 조회 권한 확인
  */
-async function canViewResults(user, post) {
+async function canViewResults(user, post, survey) {
   const isAuthor = post.author.equals(user._id);
   const isManager = user.auth === "admin" || user.auth === "manager";
 
@@ -463,9 +552,10 @@ async function canViewResults(user, post) {
   if (isAuthor || isManager) return true;
 
   // afterResponse인 경우 응답한 사용자만 조회 가능
-  if (post.survey.settings.showResults === "afterResponse") {
+  if (survey.settings.showResults === "afterResponse") {
     const myResponse = await SurveyResponse(user.academyId).findOne({
       post: post._id,
+      surveyId: survey._id,
       respondent: user._id,
     });
     return !!myResponse;

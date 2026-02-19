@@ -271,7 +271,7 @@ const BoardPid = () => {
           post.postType === "survey" ? "[설문]" : "",
           post.postType === "reservation" ? "[예약]" : "",
           post.title,
-          post.postType !== "survey" && post.survey?.questions?.length
+          post.postType !== "survey" && post.surveys?.some(s => s.questions?.length)
             ? "[설문]"
             : "",
         ].filter(Boolean).join(" "),

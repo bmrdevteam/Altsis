@@ -155,16 +155,13 @@ const surveySettingsSchema = mongoose.Schema(
  * @memberof Models.Post
  * @typedef TSurvey
  */
-const surveySchema = mongoose.Schema(
-  {
-    title: { type: String, default: "" },
-    description: { type: String, default: "" },
-    questions: { type: [surveyQuestionSchema], required: true },
-    settings: { type: surveySettingsSchema, default: () => ({}) },
-    responseCount: { type: Number, default: 0 },
-  },
-  { _id: false }
-);
+const surveySchema = mongoose.Schema({
+  title: { type: String, default: "" },
+  description: { type: String, default: "" },
+  questions: { type: [surveyQuestionSchema], required: true },
+  settings: { type: surveySettingsSchema, default: () => ({}) },
+  responseCount: { type: Number, default: 0 },
+});
 
 /**
  * @memberof Models.Post
@@ -341,10 +338,10 @@ const postSchema = mongoose.Schema(
     // 기존 알림 마이그레이션용 참조
     legacyNotificationId: mongoose.Types.ObjectId,
 
-    // 설문 (선택사항)
-    survey: {
-      type: surveySchema,
-      default: null,
+    // 설문 (첨부파일처럼 여러 개 가능)
+    surveys: {
+      type: [surveySchema],
+      default: [],
     },
   },
   { timestamps: true }

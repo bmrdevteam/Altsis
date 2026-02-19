@@ -47,6 +47,7 @@ export type TSurveySettings = {
 };
 
 export type TSurvey = {
+  _id?: string;
   title?: string;
   description?: string;
   questions: TSurveyQuestion[];
@@ -63,12 +64,36 @@ export type TSurveyAnswer = {
 export type TSurveyResponse = {
   _id: string;
   post: string;
+  surveyId: string;
   respondent?: string;
   respondentId?: string;
   respondentName?: string;
   answers: TSurveyAnswer[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type TSurveyExportData = {
+  version: string;
+  exportedAt: string;
+  survey: {
+    title: string;
+    description: string;
+    questions: Array<{
+      type: TSurveyQuestionType;
+      title: string;
+      description: string;
+      isRequired: boolean;
+      options?: Array<{ text: string }>;
+      scaleMin?: number;
+      scaleMax?: number;
+      scaleMinLabel?: string;
+      scaleMaxLabel?: string;
+      maxFiles?: number;
+      maxFileSize?: number;
+    }>;
+    settings: Partial<TSurveySettings>;
+  };
 };
 
 export type TSurveyOptionCount = {

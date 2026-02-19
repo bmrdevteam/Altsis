@@ -37,7 +37,7 @@ const PostPid = () => {
   const navigate = useAppNavigate();
   const { boardId, postId } = useParams<{ boardId: string; postId: string }>();
   const { currentUser, currentRegistration } = useAuth();
-  const { PostAPI, CommentAPI } = useAPIv2();
+  const { PostAPI, CommentAPI, SurveyResponseAPI } = useAPIv2();
 
   const [post, setPost] = useState<TPost | null>(null);
   const [board, setBoard] = useState<TBoard | null>(null);
@@ -50,7 +50,7 @@ const PostPid = () => {
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
-  const [showSurveyPopup, setShowSurveyPopup] = useState(false);
+  const [activeSurveyIndex, setActiveSurveyIndex] = useState<number | null>(null);
   const [showReservationPopup, setShowReservationPopup] = useState(false);
 
   // 서명 URL 캐시 (다운로드/새 탭 열기용)
@@ -368,171 +368,140 @@ const PostPid = () => {
           <MarkdownViewer content={processedContent} />
         </div>
 
-        {post.attachments && post.attachments.length > 0 && (
-          <div
-            style={{
-              marginTop: "24px",
-              padding: "16px",
-              backgroundColor: "var(--background-color-2)",
-              borderRadius: "8px",
-            }}
-          >
+        {/* 첨부 (파일 + 설문 통합) */}
+        {((post.attachments && post.attachments.length > 0) ||
+          (post.surveys && post.surveys.length > 0)) && (
+          <div style={{ marginTop: "24px" }}>
             <div
-              style={{ fontWeight: 500, marginBottom: "12px", fontSize: "14px" }}
+              style={{ fontWeight: 500, marginBottom: "10px", fontSize: "14px" }}
             >
-              첨부파일 ({post.attachments.length})
+              첨부 (
+              {(post.attachments?.length || 0) +
+                (post.surveys?.length || 0)}
+              )
             </div>
-
-            {/* 이미지 미리보기 */}
-            {post.attachments.filter((f) => f.mimeType?.startsWith("image/"))
-              .length > 0 && (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fill, minmax(120px, 1fr))",
-                  gap: "8px",
-                  marginBottom: "12px",
-                }}
-              >
-                {post.attachments
-                  .filter((f) => f.mimeType?.startsWith("image/"))
-                  .map((file, idx) => {
-                    const imageUrl = file.key
-                      ? `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`
-                      : file.url;
-                    return (
-                      <div
-                        key={idx}
-                        style={{
-                          cursor: "pointer",
-                          borderRadius: "6px",
-                          overflow: "hidden",
-                          aspectRatio: "1",
-                          backgroundColor: "var(--component-color)",
-                        }}
-                        onClick={async () => {
-                          const url = await getSignedUrl(file, true);
-                          window.open(url, "_blank");
-                        }}
-                      >
+            <div className={surveyStyle.attachList}>
+              {post.attachments?.map((file, idx) => {
+                const isImage = file.mimeType?.startsWith("image/");
+                const imageUrl = isImage && file.key
+                  ? `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`
+                  : null;
+                return (
+                  <div
+                    key={idx}
+                    className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
+                    onClick={async () => {
+                      const url = await getSignedUrl(file, true);
+                      window.open(url, "_blank");
+                    }}
+                  >
+                    <div className={surveyStyle.attachItemThumbArea}>
+                      {imageUrl ? (
                         <img
                           src={imageUrl}
                           alt={file.fileName}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
+                          className={surveyStyle.attachItemThumb}
                         />
+                      ) : (
+                        <div className={surveyStyle.attachItemIconLarge}>
+                          <Svg type="paperclip" width="24px" height="24px" />
+                        </div>
+                      )}
+                    </div>
+                    <div className={surveyStyle.attachItemBody}>
+                      <div className={surveyStyle.attachItemInfo}>
+                        <span className={surveyStyle.attachItemTitle}>
+                          {file.fileName}
+                        </span>
+                        <span className={surveyStyle.attachItemMeta}>
+                          {formatFileSize(file.fileSize)}
+                        </span>
                       </div>
-                    );
-                  })}
-              </div>
-            )}
-
-            {/* 파일 목록 */}
-            {post.attachments.map((file, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "6px 0",
-                  fontSize: "14px",
-                }}
-              >
-                <Svg
-                  type={
-                    file.mimeType?.startsWith("image/")
-                      ? "image"
-                      : "paperclip"
-                  }
-                  width="16px"
-                  height="16px"
-                  style={{ flexShrink: 0 }}
-                />
-                <span
-                  style={{
-                    flex: 1,
-                    cursor: "pointer",
-                    color: "var(--accent-1)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  onClick={async () => {
-                    const url = await getSignedUrl(file, true);
-                    window.open(url, "_blank");
-                  }}
+                      <span
+                        className={surveyStyle.attachItemBtn}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const url = await getSignedUrl(file, false);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = file.fileName;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                        }}
+                        style={{ display: "flex", alignItems: "center" }}
+                      >
+                        <Svg type="download" width="18px" height="18px" />
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              {post.surveys?.map((survey, idx) => (
+                <div
+                  key={survey._id || `survey-${idx}`}
+                  className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
+                  onClick={() => setActiveSurveyIndex(idx)}
                 >
-                  {file.fileName}
-                </span>
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: "var(--text-color-2)",
-                    flexShrink: 0,
-                  }}
-                >
-                  {formatFileSize(file.fileSize)}
-                </span>
-                <span
-                  style={{
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    flexShrink: 0,
-                  }}
-                  onClick={async () => {
-                    const url = await getSignedUrl(file, false);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = file.fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                  }}
-                >
-                  <Svg type="download" width="16px" height="16px" />
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 설문 섹션 */}
-        {post.survey && post.survey.questions.length > 0 && (
-          <div
-            className={surveyStyle.surveyActionCard}
-            style={
-              post.postType === "survey"
-                ? { borderColor: "var(--accent-1)", borderWidth: "2px" }
-                : undefined
-            }
-          >
-            <div className={surveyStyle.surveyActionLeft}>
-              <span className={surveyStyle.surveyActionIcon}>
-                {post.postType === "survey" ? "📝" : "📋"}
-              </span>
-              <div className={surveyStyle.surveyActionInfo}>
-                <span className={surveyStyle.surveyActionTitle}>
-                  {post.survey.title || "설문조사"}
-                </span>
-                <span className={surveyStyle.surveyActionMeta}>
-                  {post.survey.questions.length}문항 ·{" "}
-                  {post.survey.responseCount}명 응답
-                  {post.survey.settings.isAnonymous && " · 익명"}
-                  {post.survey.settings.deadline &&
-                    new Date() > new Date(post.survey.settings.deadline) &&
-                    " · 마감됨"}
-                </span>
-              </div>
+                  <div className={surveyStyle.attachItemThumbArea}>
+                    <div className={surveyStyle.attachItemIconLarge}>
+                      <Svg type="description" width="24px" height="24px" />
+                    </div>
+                  </div>
+                  <div className={surveyStyle.attachItemBody}>
+                    <div className={surveyStyle.attachItemInfo}>
+                      <span className={surveyStyle.attachItemTitle}>
+                        {survey.title || `설문 ${idx + 1}`}
+                      </span>
+                      <span className={surveyStyle.attachItemMeta}>
+                        {survey.questions.length}문항 ·{" "}
+                        {survey.responseCount}명 응답
+                        {survey.settings.isAnonymous && " · 익명"}
+                        {survey.settings.deadline &&
+                          new Date() > new Date(survey.settings.deadline) &&
+                          " · 마감됨"}
+                      </span>
+                    </div>
+                    <div
+                      className={surveyStyle.attachItemActions}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        type="hover"
+                        onClick={async () => {
+                          try {
+                            const data =
+                              await SurveyResponseAPI.ExportSurveyJSON({
+                                params: {
+                                  postId: post._id,
+                                  surveyId: survey._id!,
+                                },
+                              });
+                            const blob = new Blob(
+                              [JSON.stringify(data, null, 2)],
+                              { type: "application/json" }
+                            );
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.href = url;
+                            link.download = `${
+                              survey.title || "survey"
+                            }.json`;
+                            link.click();
+                            URL.revokeObjectURL(url);
+                          } catch (err) {
+                            ALERT_ERROR(err);
+                          }
+                        }}
+                        style={{ fontSize: "13px" }}
+                      >
+                        JSON
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <Button type="ghost" onClick={() => setShowSurveyPopup(true)}>
-              설문 참여
-            </Button>
           </div>
         )}
 
@@ -761,15 +730,18 @@ const PostPid = () => {
         />
       )}
 
-      {showSurveyPopup && post.survey && (
-        <SurveyViewPopup
-          setState={setShowSurveyPopup}
-          post={post}
-          currentUserId={currentUser?._id || ""}
-          isAuthor={isAuthor}
-          isManager={isManager}
-        />
-      )}
+      {activeSurveyIndex !== null &&
+        post.surveys &&
+        post.surveys[activeSurveyIndex] && (
+          <SurveyViewPopup
+            setState={() => setActiveSurveyIndex(null)}
+            post={post}
+            surveyIndex={activeSurveyIndex}
+            currentUserId={currentUser?._id || ""}
+            isAuthor={isAuthor}
+            isManager={isManager}
+          />
+        )}
 
       {showReservationPopup &&
         post.postType === "reservation" &&

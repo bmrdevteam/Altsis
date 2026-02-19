@@ -1351,6 +1351,449 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+/* ─── Unified Attach Section (Google Classroom style) ─── */
+
+.attachList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.attachItem {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--background-color-1);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.15s;
+  overflow: hidden;
+  position: relative;
+  min-height: 72px;
+
+  &:hover {
+    border-color: rgba(var(--accent-1-rgb, 55, 53, 47), 0.4);
+  }
+}
+
+.attachItemThumbArea {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-color-2);
+  border-right: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.attachItemThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachItemIconLarge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-2);
+}
+
+.attachItemBody {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  min-width: 0;
+  gap: 12px;
+}
+
+.attachItemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.attachItemTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachItemMeta {
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.attachItemActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.attachItemBtn {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: var(--text-color-2);
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--text-color-1);
+    background: var(--background-color-2);
+  }
+}
+
+.attachItemClose {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--background-color-2);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--text-color-2);
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.15s;
+  opacity: 0;
+
+  .attachItem:hover & {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: var(--background-color-1);
+    color: var(--text-color-1);
+  }
+}
+
+/* View mode card (PostPid) — clickable */
+.attachItemClickable {
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-1);
+  }
+}
+
+/* ─── Attach Card Grid (Google Classroom icon cards) ─── */
+
+.attachCardGrid {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.attachCardGridDragging {
+  border-color: var(--accent-1);
+  border-style: dashed;
+  background: rgba(var(--accent-1-rgb, 55, 53, 47), 0.03);
+}
+
+.attachCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  gap: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--background-color-1);
+  color: var(--text-color-2);
+  transition: all 0.15s;
+  padding: 0;
+
+  span {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  &:hover {
+    border-color: var(--accent-1);
+    color: var(--accent-1);
+    background: var(--background-color-2);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+
+    &:hover {
+      border-color: var(--border-color);
+      color: var(--text-color-2);
+      background: var(--background-color-1);
+    }
+  }
+}
+
+.attachCardWrapper {
+  position: relative;
+}
+
+.attachCardMenu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--background-color-1);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  z-index: 10;
+  min-width: 120px;
+}
+
+.attachCardMenuItem {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-color-1);
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.1s;
+
+  &:hover {
+    background: var(--background-color-2);
+    color: var(--accent-1);
+  }
+
+  & + & {
+    border-top: 1px solid var(--border-color);
+  }
+}
+
+/* ─── Survey Attach List (PostCreate) ─── */
+
+.surveyAttachList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.surveyAttachItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--background-color-2);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: rgba(var(--accent-1-rgb, 55, 53, 47), 0.3);
+  }
+}
+
+.surveyAttachIcon {
+  flex-shrink: 0;
+  color: var(--text-color-2);
+}
+
+.surveyAttachInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.surveyAttachTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.surveyAttachMeta {
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.surveyAttachActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.surveyAttachBtn {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: var(--text-color-2);
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--text-color-1);
+    background: var(--background-color-1);
+  }
+}
+
+/* ─── Survey Import Popup ─── */
+
+.importContent {
+  padding: 4px 0;
+}
+
+.importDropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 16px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--accent-1);
+    background: rgba(var(--accent-1-rgb, 55, 53, 47), 0.03);
+  }
+}
+
+.importDropzoneText {
+  font-size: 14px;
+  color: var(--text-color-1);
+  font-weight: 500;
+}
+
+.importDropzoneHint {
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.importPreview {
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color-2);
+}
+
+.importPreviewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.importPreviewTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.importChangeBtn {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: var(--accent-1);
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--background-color-1);
+  }
+}
+
+.importPreviewDesc {
+  font-size: 13px;
+  color: var(--text-color-2);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.importPreviewMeta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-color-2);
+  margin-bottom: 12px;
+}
+
+.importQuestionList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.importQuestionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--background-color-1);
+}
+
+.importQuestionNum {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-1);
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.importQuestionTitle {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-color-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.importQuestionType {
+  font-size: 11px;
+  color: var(--text-color-2);
+  flex-shrink: 0;
+}
+
+.importError {
+  font-size: 13px;
+  color: var(--status-error);
+  margin-top: 10px;
+}
+
 /* ─── Responsive ─── */
 
 @media (max-width: 768px) {
@@ -1402,6 +1845,35 @@
   .questionItem,
   .resultQuestion {
     padding: 16px;
+  }
+
+  .surveyAttachItem {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .surveyAttachActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .attachItem {
+    min-height: 60px;
+  }
+
+  .attachItemThumbArea {
+    width: 60px;
+    height: 60px;
+  }
+
+  .attachCard {
+    width: 68px;
+    height: 68px;
+  }
+
+  .attachCardGrid {
+    gap: 8px;
+    padding: 12px;
   }
 
   .averageDisplay {

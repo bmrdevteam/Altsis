@@ -9,6 +9,7 @@ router.post("/", isLoggedIn, surveyResponses.create);
 router.get("/my", isLoggedIn, surveyResponses.findMy);
 router.get("/stats", isLoggedIn, surveyResponses.stats);
 router.get("/file/signed", isLoggedIn, surveyResponses.signFile);
+router.get("/export/:postId/:surveyId", isLoggedIn, surveyResponses.exportSurvey);
 router.get("/", isLoggedIn, surveyResponses.findAll);
 router.put("/:_id", isLoggedIn, surveyResponses.update);
 

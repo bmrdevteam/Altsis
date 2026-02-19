@@ -9,6 +9,7 @@ import { TPost } from "types/post";
 type Props = {
   setState: (state: boolean) => void;
   post: TPost;
+  surveyIndex: number;
   currentUserId: string;
   isAuthor: boolean;
   isManager: boolean;
@@ -17,13 +18,17 @@ type Props = {
 const SurveyViewPopup = ({
   setState,
   post,
+  surveyIndex,
   currentUserId,
   isAuthor,
   isManager,
 }: Props) => {
   const [showResults, setShowResults] = useState(false);
-  const survey = post.survey!;
+  const survey = post.surveys[surveyIndex];
 
+  if (!survey) return null;
+
+  const surveyId = survey._id!;
   const canViewResults =
     isAuthor ||
     isManager ||
@@ -75,9 +80,19 @@ const SurveyViewPopup = ({
         </div>
 
         {showResults ? (
-          <SurveyResults post={post} canViewResults={canViewResults} />
+          <SurveyResults
+            post={post}
+            survey={survey}
+            surveyId={surveyId}
+            canViewResults={canViewResults}
+          />
         ) : (
-          <SurveyRenderer post={post} currentUserId={currentUserId} />
+          <SurveyRenderer
+            post={post}
+            survey={survey}
+            surveyId={surveyId}
+            currentUserId={currentUserId}
+          />
         )}
       </div>
     </Popup>

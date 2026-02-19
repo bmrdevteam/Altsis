@@ -31,6 +31,7 @@ import { TPost, TPostAttachment } from "types/post";
 import { TPostType, TSlotMode, TApplicationFormField } from "types/reservation";
 import { TSurvey } from "types/survey";
 import SurveyBuilderPopup from "./survey/SurveyBuilderPopup";
+import SurveyImportPopup from "./survey/SurveyImportPopup";
 import surveyStyle from "./survey/survey.module.scss";
 import resStyle from "./reservation/reservation.module.scss";
 
@@ -55,8 +56,14 @@ const PostCreate = () => {
   });
 
   const [userList, setUserList] = useState<any[]>([]);
-  const [survey, setSurvey] = useState<TSurvey | null>(null);
+  const [surveys, setSurveys] = useState<TSurvey[]>([]);
+  const [editingSurveyIndex, setEditingSurveyIndex] = useState<number | null>(
+    null
+  );
   const [showSurveyBuilderPopup, setShowSurveyBuilderPopup] = useState(false);
+  const [showSurveyImportPopup, setShowSurveyImportPopup] = useState(false);
+  const [showSurveyMenu, setShowSurveyMenu] = useState(false);
+  const surveyMenuRef = useRef<HTMLDivElement>(null);
 
   // 게시글 유형 (일반/예약)
   const [postType, setPostType] = useState<TPostType>("general");
@@ -94,24 +101,6 @@ const PostCreate = () => {
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
 
   const isEditMode = !!postId;
-
-  // postType이 "survey"로 변경되면 설문 자동 초기화
-  useEffect(() => {
-    if (postType === "survey" && !survey) {
-      setSurvey({
-        title: "",
-        description: "",
-        questions: [],
-        settings: {
-          isAnonymous: false,
-          showResults: "afterResponse",
-          deadline: null,
-          allowModify: false,
-        },
-        responseCount: 0,
-      });
-    }
-  }, [postType]);
 
   useEffect(() => {
     if (isLoading && boardId) {
@@ -198,8 +187,8 @@ const PostCreate = () => {
               });
             }
             // 설문 데이터 로드
-            if (post.survey) {
-              setSurvey(post.survey);
+            if (post.surveys && post.surveys.length > 0) {
+              setSurveys(post.surveys);
             }
             // 설문 게시글 데이터 로드
             if (post.postType === "survey") {
@@ -248,6 +237,21 @@ const PostCreate = () => {
         });
     }
   }, [isLoading, boardId, postId]);
+
+  // 설문 메뉴 외부 클릭 닫기
+  useEffect(() => {
+    if (!showSurveyMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        surveyMenuRef.current &&
+        !surveyMenuRef.current.contains(e.target as Node)
+      ) {
+        setShowSurveyMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showSurveyMenu]);
 
   // 첨부파일 업로드
   const handleFileSelect = async (files: FileList | null) => {
@@ -386,8 +390,11 @@ const PostCreate = () => {
 
     // 설문 게시글 유효성 검증
     if (postType === "survey") {
-      if (!survey || survey.questions.length === 0) {
-        alert("설문 게시글은 최소 1개의 질문이 필요합니다.");
+      if (
+        surveys.length === 0 ||
+        !surveys.some((s) => s.questions.length > 0)
+      ) {
+        alert("설문 게시글은 최소 1개의 설문이 필요합니다.");
         return;
       }
     }
@@ -426,7 +433,7 @@ const PostCreate = () => {
             content: content.trim(),
             attachments,
             permissionRead: useSpecificPermission ? permissionRead : null,
-            survey,
+            surveys,
             ...(postType === "reservation" && {
               reservationConfig: resConfig,
             }),
@@ -442,7 +449,7 @@ const PostCreate = () => {
             content: content.trim(),
             attachments,
             permissionRead: postPermissionRead,
-            survey,
+            surveys,
             postType,
             ...(postType === "reservation" && {
               reservationConfig: resConfig,
@@ -558,14 +565,6 @@ const PostCreate = () => {
                 onClick={() => setPostType("reservation")}
               >
                 예약
-              </button>
-              <button
-                className={`${resStyle.postTypeOption} ${
-                  postType === "survey" ? resStyle.postTypeActive : ""
-                }`}
-                onClick={() => setPostType("survey")}
-              >
-                설문
               </button>
             </div>
           </div>
@@ -946,7 +945,7 @@ const PostCreate = () => {
           />
         </div>
 
-        {/* 첨부파일 */}
+        {/* 첨부 */}
         <div style={{ marginBottom: "24px" }}>
           <label
             style={{
@@ -956,95 +955,129 @@ const PostCreate = () => {
               fontWeight: 500,
             }}
           >
-            첨부파일
+            첨부
+            {postType === "survey" && (
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--status-error)",
+                  marginLeft: "4px",
+                }}
+              >
+                설문 필수
+              </span>
+            )}
           </label>
 
-          {/* 첨부 목록 */}
-          {attachments.length > 0 && (
-            <div
-              style={{
-                marginBottom: "12px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "6px",
-              }}
-            >
+          {/* 첨부된 항목 리스트 (파일 + 설문 통합) */}
+          {(attachments.length > 0 || surveys.length > 0) && (
+            <div className={surveyStyle.attachList}>
               {attachments.map((file) => {
                 const isImage = file.mimeType?.startsWith("image/");
+                const imageUrl = isImage && file.key
+                  ? (previewUrls[file.key] || `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`)
+                  : null;
                 return (
-                  <div
-                    key={file.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      backgroundColor: "var(--background-color-2)",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {isImage && previewUrls[file.key!] ? (
-                      <img
-                        src={previewUrls[file.key!]}
-                        alt={file.fileName}
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          objectFit: "cover",
-                          borderRadius: "4px",
-                          flexShrink: 0,
-                        }}
-                      />
-                    ) : (
-                      <Svg
-                        type="paperclip"
-                        width="16px"
-                        height="16px"
-                        style={{ flexShrink: 0 }}
-                      />
-                    )}
-                    <span
-                      style={{
-                        flex: 1,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {file.fileName}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--text-color-2)",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {formatFileSize(file.fileSize)}
-                    </span>
+                  <div key={file.key} className={surveyStyle.attachItem}>
+                    <div className={surveyStyle.attachItemThumbArea}>
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={file.fileName}
+                          className={surveyStyle.attachItemThumb}
+                        />
+                      ) : (
+                        <div className={surveyStyle.attachItemIconLarge}>
+                          <Svg type="paperclip" width="24px" height="24px" />
+                        </div>
+                      )}
+                    </div>
+                    <div className={surveyStyle.attachItemBody}>
+                      <div className={surveyStyle.attachItemInfo}>
+                        <span className={surveyStyle.attachItemTitle}>
+                          {file.fileName}
+                        </span>
+                        <span className={surveyStyle.attachItemMeta}>
+                          {formatFileSize(file.fileSize)}
+                        </span>
+                      </div>
+                    </div>
                     <button
+                      type="button"
+                      className={surveyStyle.attachItemClose}
                       onClick={() => handleRemoveAttachment(file.key!)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--text-color-2)",
-                        fontSize: "18px",
-                        padding: "0 4px",
-                        lineHeight: 1,
-                        flexShrink: 0,
-                      }}
                     >
                       ×
                     </button>
                   </div>
                 );
               })}
+              {surveys.map((s, idx) => (
+                <div key={`survey-${idx}`} className={surveyStyle.attachItem}>
+                  <div className={surveyStyle.attachItemThumbArea}>
+                    <div className={surveyStyle.attachItemIconLarge}>
+                      <Svg type="description" width="24px" height="24px" />
+                    </div>
+                  </div>
+                  <div className={surveyStyle.attachItemBody}>
+                    <div className={surveyStyle.attachItemInfo}>
+                      <span className={surveyStyle.attachItemTitle}>
+                        {s.title || `설문 ${idx + 1}`}
+                      </span>
+                      <span className={surveyStyle.attachItemMeta}>
+                        {s.questions.length}개 질문
+                        {s.settings.isAnonymous && " · 익명"}
+                        {s.responseCount > 0 &&
+                          ` · ${s.responseCount}명 응답`}
+                      </span>
+                    </div>
+                    <div className={surveyStyle.attachItemActions}>
+                      <button
+                        type="button"
+                        className={surveyStyle.attachItemBtn}
+                        onClick={() => {
+                          setEditingSurveyIndex(idx);
+                          setShowSurveyBuilderPopup(true);
+                        }}
+                      >
+                        편집
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={surveyStyle.attachItemClose}
+                    onClick={() => {
+                      if (
+                        s.responseCount > 0 &&
+                        !window.confirm(
+                          "이 설문에 응답이 있습니다. 삭제하시겠습니까?"
+                        )
+                      ) {
+                        return;
+                      }
+                      if (
+                        postType === "survey" &&
+                        surveys.length <= 1
+                      ) {
+                        alert(
+                          "설문 게시글은 최소 1개의 설문이 필요합니다."
+                        );
+                        return;
+                      }
+                      setSurveys((prev) =>
+                        prev.filter((_, i) => i !== idx)
+                      );
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* 업로드 영역 */}
+          {/* 아이콘 카드 그리드 (Google Classroom 스타일) */}
           <input
             ref={fileInputRef}
             type="file"
@@ -1053,113 +1086,71 @@ const PostCreate = () => {
             onChange={(e) => handleFileSelect(e.target.files)}
           />
           <div
+            className={`${surveyStyle.attachCardGrid} ${
+              isDragging ? surveyStyle.attachCardGridDragging : ""
+            }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => !isUploading && fileInputRef.current?.click()}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              padding: "20px",
-              border: `2px dashed ${
-                isDragging ? "var(--accent-1)" : "var(--border-color)"
-              }`,
-              borderRadius: "8px",
-              cursor: isUploading ? "default" : "pointer",
-              backgroundColor: isDragging
-                ? "var(--background-hover-color)"
-                : "transparent",
-              transition: "all 0.2s",
-            }}
           >
-            <Svg type="upload" width="24px" height="24px" />
-            <span style={{ fontSize: "13px", color: "var(--text-color-2)" }}>
-              {isUploading
-                ? "업로드 중..."
-                : "파일을 드래그하거나 클릭하여 첨부"}
-            </span>
-            <span style={{ fontSize: "11px", color: "var(--text-color-2)" }}>
-              최대 20MB
-            </span>
-          </div>
-        </div>
-
-        {/* 설문 설정 */}
-        <div style={{ marginBottom: "24px" }}>
-          {/* 일반/예약 게시글일 때만 토글 표시 (설문 게시글은 설문 필수) */}
-          {postType !== "survey" && (
-            <div className={surveyStyle.surveyToggle}>
-              <ToggleSwitch
-                checked={!!survey}
-                onChange={(checked: boolean) => {
-                  if (checked) {
-                    setSurvey({
-                      title: "",
-                      description: "",
-                      questions: [],
-                      settings: {
-                        isAnonymous: false,
-                        showResults: "afterResponse",
-                        deadline: null,
-                        allowModify: false,
-                      },
-                      responseCount: 0,
-                    });
-                  } else {
-                    setSurvey(null);
-                  }
-                }}
-              />
-              <span className={surveyStyle.surveyToggleLabel}>설문 추가</span>
-            </div>
-          )}
-
-          {postType === "survey" && (
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                fontWeight: 500,
-                marginBottom: "8px",
-              }}
+            <button
+              type="button"
+              className={surveyStyle.attachCard}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+              disabled={isUploading}
             >
-              설문 설정 (필수)
-            </label>
-          )}
-
-          {survey && (
-            <div className={surveyStyle.surveyBuilderCard}>
-              <div className={surveyStyle.surveyBuilderInfo}>
-                <span>
-                  {survey.title
-                    ? `${survey.title} · ${survey.questions.length}개 질문`
-                    : survey.questions.length > 0
-                    ? `${survey.questions.length}개 질문 구성됨`
-                    : "질문을 추가해주세요"}
-                </span>
-                {survey.settings.isAnonymous && (
-                  <span className={surveyStyle.anonymousBadge}>익명</span>
-                )}
-                {survey.settings.deadline && (
-                  <span className={surveyStyle.deadlineText}>
-                    마감:{" "}
-                    {new Date(survey.settings.deadline).toLocaleDateString(
-                      "ko-KR"
-                    )}
-                  </span>
-                )}
-              </div>
-              <Button
-                type="ghost"
-                onClick={() => setShowSurveyBuilderPopup(true)}
+              <Svg type="upload" width="24px" height="24px" />
+              <span>{isUploading ? "업로드 중..." : "업로드"}</span>
+            </button>
+            <div className={surveyStyle.attachCardWrapper} ref={surveyMenuRef}>
+              <button
+                type="button"
+                className={surveyStyle.attachCard}
+                onClick={() => setShowSurveyMenu((prev) => !prev)}
               >
-                설문 편집
-              </Button>
+                <Svg type="postAdd" width="24px" height="24px" />
+                <span>설문</span>
+              </button>
+              {showSurveyMenu && (
+                <div className={surveyStyle.attachCardMenu}>
+                  <button
+                    type="button"
+                    className={surveyStyle.attachCardMenuItem}
+                    onClick={() => {
+                      setShowSurveyMenu(false);
+                      const newSurvey: TSurvey = {
+                        title: "",
+                        description: "",
+                        questions: [],
+                        settings: {
+                          isAnonymous: false,
+                          showResults: "afterResponse",
+                          deadline: null,
+                          allowModify: false,
+                        },
+                        responseCount: 0,
+                      };
+                      setSurveys((prev) => [...prev, newSurvey]);
+                      setEditingSurveyIndex(surveys.length);
+                      setShowSurveyBuilderPopup(true);
+                    }}
+                  >
+                    새로 만들기
+                  </button>
+                  <button
+                    type="button"
+                    className={surveyStyle.attachCardMenuItem}
+                    onClick={() => {
+                      setShowSurveyMenu(false);
+                      setShowSurveyImportPopup(true);
+                    }}
+                  >
+                    가져오기
+                  </button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: "12px" }}>
@@ -1176,12 +1167,29 @@ const PostCreate = () => {
         </div>
       </div>
 
-      {showSurveyBuilderPopup && (
+      {showSurveyBuilderPopup && editingSurveyIndex !== null && (
         <SurveyBuilderPopup
-          setState={setShowSurveyBuilderPopup}
-          survey={survey}
-          onChange={setSurvey}
+          setState={(open) => {
+            setShowSurveyBuilderPopup(open);
+            if (!open) setEditingSurveyIndex(null);
+          }}
+          survey={surveys[editingSurveyIndex] ?? null}
+          onChange={(updated) => {
+            if (updated && editingSurveyIndex !== null) {
+              setSurveys((prev) =>
+                prev.map((s, i) => (i === editingSurveyIndex ? updated : s))
+              );
+            }
+          }}
           postId={postId}
+        />
+      )}
+      {showSurveyImportPopup && (
+        <SurveyImportPopup
+          setState={setShowSurveyImportPopup}
+          onImport={(imported) => {
+            setSurveys((prev) => [...prev, imported]);
+          }}
         />
       )}
     </>

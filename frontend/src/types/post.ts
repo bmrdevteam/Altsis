@@ -45,7 +45,7 @@ export type TPost = {
   targetAudience?: TPostTargetAudience;
   legacyNotificationId?: string;
   isLegacyNotification?: boolean;
-  survey?: TSurvey | null;
+  surveys: TSurvey[];
   createdAt: string;
   updatedAt: string;
 };

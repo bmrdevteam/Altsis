@@ -43,6 +43,7 @@ import {
   TSurveyResponse,
   TSurveyStats,
   TSurveyFileInfo,
+  TSurveyExportData,
   TSurveyAnswer,
 } from "types/survey";
 
@@ -3129,7 +3130,7 @@ export default function useAPIv2() {
       category?: string;
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers;
-      survey?: TSurvey | null;
+      surveys?: TSurvey[];
     };
   }) {
     const { post } = await database.C({
@@ -3185,7 +3186,7 @@ export default function useAPIv2() {
       category?: string;
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers | null;
-      survey?: TSurvey | null;
+      surveys?: TSurvey[];
     };
   }) {
     const { post } = await database.U({
@@ -3297,6 +3298,7 @@ export default function useAPIv2() {
   async function CSurveyResponse(props: {
     data: {
       post: string;
+      surveyId: string;
       answers: TSurveyAnswer[];
     };
   }) {
@@ -3314,7 +3316,7 @@ export default function useAPIv2() {
    * @auth user
    */
   async function RSurveyResponseMy(props: {
-    query: { post: string };
+    query: { post: string; surveyId: string };
   }) {
     const { surveyResponse } = await database.R({
       location: "survey-responses/my" + QUERY_BUILDER(props.query),
@@ -3329,7 +3331,7 @@ export default function useAPIv2() {
    * @auth user
    */
   async function RSurveyResponses(props: {
-    query: { post: string };
+    query: { post: string; surveyId: string };
   }) {
     const { surveyResponses } = await database.R({
       location: "survey-responses" + QUERY_BUILDER(props.query),
@@ -3344,7 +3346,7 @@ export default function useAPIv2() {
    * @auth user
    */
   async function RSurveyStats(props: {
-    query: { post: string };
+    query: { post: string; surveyId: string };
   }) {
     const { stats } = await database.R({
       location: "survey-responses/stats" + QUERY_BUILDER(props.query),
@@ -3367,6 +3369,21 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { surveyResponse: surveyResponse as TSurveyResponse };
+  }
+
+  /**
+   * ExportSurveyJSON API
+   * @description 설문 JSON 내보내기 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function ExportSurveyJSON(props: {
+    params: { postId: string; surveyId: string };
+  }) {
+    const result = await database.R({
+      location: `survey-responses/export/${props.params.postId}/${props.params.surveyId}`,
+    });
+    return result as TSurveyExportData;
   }
 
   /**
@@ -4309,6 +4326,7 @@ export default function useAPIv2() {
       RSurveyResponses,
       RSurveyStats,
       USurveyResponse,
+      ExportSurveyJSON,
       CSurveyFileUpload,
       RSurveyFileSignedUrl,
     },

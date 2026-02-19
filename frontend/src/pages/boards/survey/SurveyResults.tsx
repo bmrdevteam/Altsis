@@ -4,6 +4,7 @@ import Button from "components/button/Button";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TPost } from "types/post";
 import {
+  TSurvey,
   TSurveyStats,
   TSurveyResponse,
   TSurveyQuestion,
@@ -12,17 +13,17 @@ import {
 
 type Props = {
   post: TPost;
+  survey: TSurvey;
+  surveyId: string;
   canViewResults: boolean;
 };
 
-const SurveyResults = ({ post, canViewResults }: Props) => {
+const SurveyResults = ({ post, survey, surveyId, canViewResults }: Props) => {
   const { SurveyResponseAPI } = useAPIv2();
   const [stats, setStats] = useState<TSurveyStats | null>(null);
   const [responses, setResponses] = useState<TSurveyResponse[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showTextFor, setShowTextFor] = useState<string | null>(null);
-
-  const survey = post.survey!;
 
   useEffect(() => {
     if (!canViewResults) {
@@ -31,7 +32,7 @@ const SurveyResults = ({ post, canViewResults }: Props) => {
     }
 
     setIsLoading(true);
-    SurveyResponseAPI.RSurveyStats({ query: { post: post._id } })
+    SurveyResponseAPI.RSurveyStats({ query: { post: post._id, surveyId } })
       .then(({ stats }) => {
         setStats(stats);
         setIsLoading(false);
@@ -49,7 +50,7 @@ const SurveyResults = ({ post, canViewResults }: Props) => {
     }
 
     if (!responses) {
-      SurveyResponseAPI.RSurveyResponses({ query: { post: post._id } })
+      SurveyResponseAPI.RSurveyResponses({ query: { post: post._id, surveyId } })
         .then(({ surveyResponses }) => {
           setResponses(surveyResponses);
           setShowTextFor(questionId);
@@ -62,7 +63,7 @@ const SurveyResults = ({ post, canViewResults }: Props) => {
 
   const loadAllResponses = () => {
     if (responses) return Promise.resolve(responses);
-    return SurveyResponseAPI.RSurveyResponses({ query: { post: post._id } })
+    return SurveyResponseAPI.RSurveyResponses({ query: { post: post._id, surveyId } })
       .then(({ surveyResponses }) => {
         setResponses(surveyResponses);
         return surveyResponses as TSurveyResponse[];

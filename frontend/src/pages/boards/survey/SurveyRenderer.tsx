@@ -4,6 +4,7 @@ import Button from "components/button/Button";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TPost } from "types/post";
 import {
+  TSurvey,
   TSurveyAnswer,
   TSurveyQuestion,
   TSurveyResponse,
@@ -12,12 +13,14 @@ import {
 
 type Props = {
   post: TPost;
+  survey: TSurvey;
+  surveyId: string;
   currentUserId: string;
 };
 
 type ToastState = { message: string; type: "success" | "error" } | null;
 
-const SurveyRenderer = ({ post, currentUserId }: Props) => {
+const SurveyRenderer = ({ post, survey, surveyId, currentUserId }: Props) => {
   const { SurveyResponseAPI } = useAPIv2();
   const [myResponse, setMyResponse] = useState<TSurveyResponse | null>(null);
   const [answers, setAnswers] = useState<Record<string, TSurveyAnswer>>({});
@@ -25,13 +28,11 @@ const SurveyRenderer = ({ post, currentUserId }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<ToastState>(null);
-
-  const survey = post.survey!;
   const isClosed =
     survey.settings.deadline && new Date() > new Date(survey.settings.deadline);
 
   useEffect(() => {
-    SurveyResponseAPI.RSurveyResponseMy({ query: { post: post._id } })
+    SurveyResponseAPI.RSurveyResponseMy({ query: { post: post._id, surveyId } })
       .then(({ surveyResponse }) => {
         setMyResponse(surveyResponse);
         if (surveyResponse) {
@@ -114,7 +115,7 @@ const SurveyRenderer = ({ post, currentUserId }: Props) => {
         showToast("응답이 수정되었습니다.");
       } else {
         const { surveyResponse } = await SurveyResponseAPI.CSurveyResponse({
-          data: { post: post._id, answers: answerList },
+          data: { post: post._id, surveyId, answers: answerList },
         });
         setMyResponse(surveyResponse);
         showToast("응답이 제출되었습니다.");

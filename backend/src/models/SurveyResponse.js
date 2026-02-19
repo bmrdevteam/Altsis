@@ -6,9 +6,9 @@
  * @description 설문 응답
  * | Indexes                      | Properties        |
  * | :-----                       | ----------        |
- * | _id                          | UNIQUE            |
- * | post_1_respondent_1          | UNIQUE; COMPOUND  |
- * | post_1_createdAt_-1          | COMPOUND          |
+ * | _id                                    | UNIQUE            |
+ * | post_1_surveyId_1_respondent_1        | UNIQUE; COMPOUND  |
+ * | post_1_surveyId_1_createdAt_-1        | COMPOUND          |
  */
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
@@ -50,6 +50,10 @@ const surveyResponseSchema = mongoose.Schema(
       required: true,
       index: true,
     },
+    surveyId: {
+      type: mongoose.Types.ObjectId,
+      required: true,
+    },
 
     // 응답자 정보
     respondent: {
@@ -74,8 +78,11 @@ const surveyResponseSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-surveyResponseSchema.index({ post: 1, respondent: 1 }, { unique: true });
-surveyResponseSchema.index({ post: 1, createdAt: -1 });
+surveyResponseSchema.index(
+  { post: 1, surveyId: 1, respondent: 1 },
+  { unique: true }
+);
+surveyResponseSchema.index({ post: 1, surveyId: 1, createdAt: -1 });
 
 export const SurveyResponse = (dbName) => {
   return conn[dbName].model("SurveyResponse", surveyResponseSchema);

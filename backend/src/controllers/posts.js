@@ -91,9 +91,10 @@ export const create = async (req, res) => {
     }
 
     // 설문 게시글 검증
+    const surveys = req.body.surveys || [];
     if (postType === "survey") {
-      if (!req.body.survey?.questions?.length) {
-        return res.status(400).send({ message: "설문 게시글은 최소 1개의 질문이 필요합니다." });
+      if (!surveys.length || !surveys.some((s) => s.questions?.length)) {
+        return res.status(400).send({ message: "설문 게시글은 최소 1개의 설문이 필요합니다." });
       }
     }
 
@@ -112,7 +113,7 @@ export const create = async (req, res) => {
       category: req.body.category || "",
       attachments: req.body.attachments || [],
       ...(permissionRead && { permissionRead }),
-      ...(req.body.survey && { survey: req.body.survey }),
+      ...(surveys.length > 0 && { surveys }),
     });
 
     // 게시글 수 증가
@@ -456,31 +457,32 @@ export const update = async (req, res) => {
     if (req.body.targetAudience) post.targetAudience = req.body.targetAudience;
 
     // 설문 수정
-    if ("survey" in req.body) {
-      if (req.body.survey) {
-        // 응답이 있으면 질문 구조 변경 차단
-        if (post.survey && post.survey.responseCount > 0) {
-          return res.status(400).send({
-            message: "이미 응답이 있는 설문의 질문을 수정할 수 없습니다.",
-          });
+    if ("surveys" in req.body) {
+      const newSurveys = req.body.surveys || [];
+
+      // 응답이 있는 설문 삭제 차단
+      for (const existing of post.surveys || []) {
+        if (existing.responseCount > 0) {
+          const stillExists = newSurveys.find(
+            (s) => s._id?.toString() === existing._id.toString()
+          );
+          if (!stillExists) {
+            return res.status(400).send({
+              message: `이미 응답이 있는 설문("${existing.title || "설문"}")을 삭제할 수 없습니다.`,
+            });
+          }
         }
-        // 설문 게시글이면 질문 1개 이상 필수
-        if (post.postType === "survey" && !req.body.survey.questions?.length) {
-          return res.status(400).send({
-            message: "설문 게시글은 최소 1개의 질문이 필요합니다.",
-          });
-        }
-        post.survey = req.body.survey;
-      } else {
-        // 설문 게시글에서는 설문 삭제 불가
-        if (post.postType === "survey") {
-          return res.status(400).send({
-            message: "설문 게시글에서는 설문을 제거할 수 없습니다.",
-          });
-        }
-        post.survey = null;
       }
-      post.markModified("survey");
+
+      // 설문 게시글이면 최소 1개 필수
+      if (post.postType === "survey" && newSurveys.length === 0) {
+        return res.status(400).send({
+          message: "설문 게시글은 최소 1개의 설문이 필요합니다.",
+        });
+      }
+
+      post.surveys = newSurveys;
+      post.markModified("surveys");
     }
 
     await post.save();
@@ -608,7 +610,7 @@ export const remove = async (req, res) => {
     }
 
     // 설문 응답 정리
-    if (post.survey) {
+    if (post.surveys && post.surveys.length > 0) {
       await SurveyResponse(req.user.academyId).deleteMany({ post: post._id });
     }
 
