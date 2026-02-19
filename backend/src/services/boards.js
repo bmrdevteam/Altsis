@@ -104,7 +104,8 @@ const resolveBoardWriters = (board) => {
  * @returns {boolean}
  */
 export const isBoardMember = (board, user, role) => {
-  if (user.auth === "admin") return true;
+  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (board.creator && board.creator.equals(user._id)) return true;
 
   const members = resolveBoardMembers(board);
 
@@ -131,7 +132,8 @@ export const isBoardMember = (board, user, role) => {
  * @returns {boolean}
  */
 export const isBoardWriter = (board, user, role) => {
-  if (user.auth === "admin") return true;
+  if (user.auth === "admin" || user.auth === "manager") return true;
+  if (board.creator && board.creator.equals(user._id)) return true;
 
   const writers = resolveBoardWriters(board);
 

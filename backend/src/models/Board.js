@@ -131,7 +131,7 @@ const boardSchema = mongoose.Schema(
     members: {
       type: boardMemberSchema,
       default: {
-        groups: { manager: true, teacher: true, student: true },
+        groups: { manager: false, teacher: false, student: false },
         users: [],
       },
     },
@@ -140,7 +140,7 @@ const boardSchema = mongoose.Schema(
     writers: {
       type: boardMemberSchema,
       default: {
-        groups: { manager: true, teacher: true, student: false },
+        groups: { manager: false, teacher: false, student: false },
         users: [],
       },
     },
@@ -172,7 +172,7 @@ const boardSchema = mongoose.Schema(
     contentViewMode: {
       type: String,
       enum: ["table", "blog"],
-      default: "table",
+      default: "blog",
     },
 
     // 보드 유형 (official: 관리자 생성, user: 일반 사용자 생성)

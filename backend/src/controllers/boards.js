@@ -86,16 +86,8 @@ export const create = async (req, res) => {
       creatorId: req.user.userId,
       creatorName: req.user.userName,
       boardType,
-      contentViewMode: req.body.contentViewMode || "table",
+      contentViewMode: req.body.contentViewMode || "blog",
       ...(req.body.coverColor && { coverColor: req.body.coverColor }),
-      members: req.body.members || {
-        groups: { manager: true, teacher: true, student: true },
-        users: [],
-      },
-      writers: req.body.writers || {
-        groups: { manager: true, teacher: true, student: false },
-        users: [],
-      },
     });
 
     return res.status(200).send({ board });

@@ -19,7 +19,6 @@ import Input from "components/input/Input";
 import Button from "components/button/Button";
 import Textarea from "components/textarea/Textarea";
 import CourseCoverImageEditor from "pages/courses/view/CourseCoverImageEditor";
-import { TBoardContentViewMode } from "types/board";
 
 type Props = {
   setState: (state: boolean) => void;
@@ -32,8 +31,6 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [contentViewMode, setContentViewMode] =
-    useState<TBoardContentViewMode>("table");
   const [coverColor, setCoverColor] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,7 +57,6 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
           school: currentSchool._id,
           name: name.trim(),
           description: description.trim(),
-          contentViewMode,
           coverColor: coverColor || undefined,
         },
       });
@@ -125,47 +121,6 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
             placeholder="보드에 대한 설명을 입력하세요"
             onChange={(e: any) => setDescription(e.target.value)}
           />
-        </div>
-        <div style={{ marginBottom: "16px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: 500,
-              marginBottom: "6px",
-            }}
-          >
-            콘텐츠 뷰 모드
-          </label>
-          <select
-            value={contentViewMode}
-            onChange={(e) =>
-              setContentViewMode(e.target.value as TBoardContentViewMode)
-            }
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: "1px solid var(--border-color)",
-              borderRadius: "6px",
-              fontSize: "14px",
-              backgroundColor: "var(--background-color-1)",
-              color: "var(--accent-1)",
-              cursor: "pointer",
-            }}
-          >
-            <option value="table">테이블</option>
-            <option value="gallery">갤러리</option>
-            <option value="blog">블로그</option>
-          </select>
-          <p
-            style={{
-              fontSize: "12px",
-              color: "var(--text-color-2)",
-              marginTop: "4px",
-            }}
-          >
-            보드 내 게시글이 표시되는 방식입니다.
-          </p>
         </div>
         <div>
           <label
