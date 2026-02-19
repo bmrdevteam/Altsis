@@ -2,7 +2,35 @@ import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import DOMPurify from "dompurify";
 import style from "./markdown.module.scss";
+
+// @[이름](id) 멘션 패턴을 React 요소로 변환
+const renderMentions = (text: string): (string | JSX.Element)[] => {
+  const parts: (string | JSX.Element)[] = [];
+  const regex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <span key={match.index} className="mention-chip">
+        @{match[1]}
+      </span>
+    );
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : [text];
+};
 
 // YouTube URL에서 비디오 ID 추출
 const extractYouTubeId = (url: string): string | null => {
@@ -194,7 +222,17 @@ const markdownComponents = {
         }
       }
     }
-    return <p {...props}>{children}</p>;
+    // 멘션 패턴 처리: @[이름](id)
+    const processed = Array.isArray(children)
+      ? children.map((child: any) =>
+          typeof child === "string" && child.includes("@[")
+            ? renderMentions(child)
+            : child
+        )
+      : typeof children === "string" && children.includes("@[")
+      ? renderMentions(children)
+      : children;
+    return <p {...props}>{processed}</p>;
   },
   // ```html-app / ```html-app:HEIGHT 코드 블록을 임베드로 렌더링
   code: ({ className, children, ...props }: any) => {
@@ -230,10 +268,29 @@ const MarkdownViewer = ({ content, className }: Props) => {
   return (
     <div className={`${style.markdown} ${className || ""}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeRaw, rehypeKatex] as any}
         components={markdownComponents}
       >
-        {content}
+        {DOMPurify.sanitize(content, {
+          ADD_TAGS: ["iframe", "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation"],
+          ADD_ATTR: [
+            "allow",
+            "allowfullscreen",
+            "frameborder",
+            "scrolling",
+            "sandbox",
+            "srcdoc",
+            "data-youtube-video",
+            "data-html-embed",
+            "data-embed-type",
+            "data-embed-content",
+            "data-embed-height",
+            "data-mention",
+            "data-id",
+            "data-color",
+          ],
+        })}
       </ReactMarkdown>
     </div>
   );

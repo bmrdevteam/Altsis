@@ -33,6 +33,7 @@ import {
   TReservationConfig,
 } from "types/reservation";
 import { TSurvey } from "types/survey";
+import Popup from "components/popup/Popup";
 import SurveyBuilderPopup from "./survey/SurveyBuilderPopup";
 import SurveyImportPopup from "./survey/SurveyImportPopup";
 import ReservationConfigPopup from "./reservation/ReservationConfigPopup";
@@ -46,7 +47,7 @@ const PostCreate = () => {
     postId?: string;
   }>();
   const { currentUser, currentSchool } = useAuth();
-  const { BoardAPI, PostAPI, UserAPI } = useAPIv2();
+  const { BoardAPI, PostAPI, UserAPI, ChatAPI } = useAPIv2();
 
   const [board, setBoard] = useState<TBoard | null>(null);
   const [title, setTitle] = useState("");
@@ -60,6 +61,7 @@ const PostCreate = () => {
   });
 
   const [userList, setUserList] = useState<any[]>([]);
+  const [showPermissionPopup, setShowPermissionPopup] = useState(false);
   const [surveys, setSurveys] = useState<TSurvey[]>([]);
   const [editingSurveyIndex, setEditingSurveyIndex] = useState<number | null>(
     null
@@ -427,6 +429,10 @@ const PostCreate = () => {
           },
         });
         alert("수정되었습니다.");
+        // 드래프트 클리어
+        if (boardId) {
+          localStorage.removeItem(`editor-draft-${boardId}-${postId || "new"}`);
+        }
         navigate(`/boards/${boardId}/post/${postId}`);
       } else {
         const { post } = await PostAPI.CPost({
@@ -444,6 +450,10 @@ const PostCreate = () => {
           },
         });
         alert("작성되었습니다.");
+        // 드래프트 클리어
+        if (boardId) {
+          localStorage.removeItem(`editor-draft-${boardId}-new`);
+        }
         navigate(`/boards/${boardId}/post/${post._id}`);
       }
     } catch (err) {
@@ -514,207 +524,72 @@ const PostCreate = () => {
           </div>
         </div>
 
-        <div style={{ marginBottom: "16px" }}>
-          <Input
-            label="제목"
-            placeholder="제목을 입력하세요"
-            value={title}
-            onChange={(e: any) => setTitle(e.target.value)}
-          />
-        </div>
-
-        {/* 읽기 권한 설정 */}
-        <div style={{ marginBottom: "16px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "8px",
-            }}
-          >
-            <label
-              style={{
-                fontSize: "14px",
-                fontWeight: 500,
-              }}
-            >
-              읽기 권한 지정
-            </label>
-            <ToggleSwitch
-              defaultChecked={useSpecificPermission}
-              onChange={(checked: boolean) => {
-                setUseSpecificPermission(checked);
-                if (!checked) {
-                  // 해제 시 보드 멤버 전체로 초기화
-                  setPermissionRead({
-                    groups: {
-                      manager: board?.members?.groups?.manager ?? true,
-                      teacher: board?.members?.groups?.teacher ?? true,
-                      student: board?.members?.groups?.student ?? true,
-                    },
-                    users: [],
-                  });
-                }
-              }}
+        <div
+          style={{
+            marginBottom: "16px",
+            display: "flex",
+            alignItems: "flex-end",
+            gap: "8px",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <Input
+              label="제목"
+              placeholder="제목을 입력하세요"
+              value={title}
+              onChange={(e: any) => setTitle(e.target.value)}
             />
           </div>
-          <p
+          <button
+            type="button"
+            onClick={() => setShowPermissionPopup(true)}
             style={{
-              fontSize: "12px",
-              color: "var(--text-color-2)",
-              marginBottom: useSpecificPermission ? "12px" : "0",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 12px",
+              border: "1px solid var(--border-color)",
+              borderRadius: "8px",
+              background: useSpecificPermission
+                ? "var(--status-info-bg)"
+                : "var(--background-color-2)",
+              cursor: "pointer",
+              fontSize: "13px",
+              color: "var(--accent-1)",
+              whiteSpace: "nowrap",
+              height: "38px",
             }}
+            title="대상 설정"
           >
-            {useSpecificPermission
-              ? "선택한 대상만 이 게시글을 볼 수 있으며 알림을 받습니다."
-              : "보드 멤버 전체가 이 게시글을 볼 수 있으며 알림을 받습니다."}
-          </p>
-
-          {useSpecificPermission && board && (
-            <div
-              style={{
-                padding: "12px",
-                border: "1px solid var(--border-color)",
-                borderRadius: "8px",
-                backgroundColor: "var(--background-color-2)",
-              }}
-            >
-              {/* 역할 그룹 토글 (보드 멤버에서 활성화된 그룹만 표시) */}
-              <div
+            <Svg type="profileList" width="18px" height="18px" />
+            <span>대상</span>
+            {useSpecificPermission && (
+              <span
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: "20px",
+                  height: "20px",
+                  padding: "0 6px",
+                  borderRadius: "10px",
+                  backgroundColor: "var(--btn-color-1)",
+                  color: "#fff",
+                  fontSize: "11px",
+                  fontWeight: 600,
                 }}
               >
-                {board.members?.groups?.manager && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px" }}>관리자</span>
-                    <ToggleSwitch
-                      defaultChecked={permissionRead.groups.manager}
-                      onChange={(checked: boolean) =>
-                        setPermissionRead((prev) => ({
-                          ...prev,
-                          groups: { ...prev.groups, manager: checked },
-                        }))
-                      }
-                    />
-                  </div>
-                )}
-                {board.members?.groups?.teacher && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px" }}>교사</span>
-                    <ToggleSwitch
-                      defaultChecked={permissionRead.groups.teacher}
-                      onChange={(checked: boolean) =>
-                        setPermissionRead((prev) => ({
-                          ...prev,
-                          groups: { ...prev.groups, teacher: checked },
-                        }))
-                      }
-                    />
-                  </div>
-                )}
-                {board.members?.groups?.student && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: "14px" }}>학생</span>
-                    <ToggleSwitch
-                      defaultChecked={permissionRead.groups.student}
-                      onChange={(checked: boolean) =>
-                        setPermissionRead((prev) => ({
-                          ...prev,
-                          groups: { ...prev.groups, student: checked },
-                        }))
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* 개별 사용자 선택 */}
-              <div style={{ marginTop: "12px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    marginBottom: "6px",
-                  }}
-                >
-                  개별 사용자 지정
-                </label>
-                <Autofill
-                  appearence="flat"
-                  placeholder="이름 또는 아이디로 검색"
-                  options={getUserOptions()}
-                  setState={(val: string) => handleAddUser(val)}
-                  resetOnClick
-                />
-                {permissionRead.users.length > 0 && (
-                  <div
-                    style={{
-                      marginTop: "8px",
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "8px",
-                    }}
-                  >
-                    {permissionRead.users.map((u) => (
-                      <div
-                        key={u.userId}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "4px 10px",
-                          backgroundColor: "var(--component-color)",
-                          borderRadius: "16px",
-                          fontSize: "13px",
-                        }}
-                      >
-                        <span>
-                          {u.userName}({u.userId})
-                        </span>
-                        <button
-                          onClick={() => handleRemoveUser(u.userId)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: "0",
-                            fontSize: "14px",
-                            color: "var(--text-color-2)",
-                            lineHeight: 1,
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                {(() => {
+                  let count = 0;
+                  if (permissionRead.groups.manager) count++;
+                  if (permissionRead.groups.teacher) count++;
+                  if (permissionRead.groups.student) count++;
+                  count += permissionRead.users.length;
+                  return count;
+                })()}
+              </span>
+            )}
+          </button>
         </div>
 
         <div style={{ marginBottom: "24px" }}>
@@ -734,6 +609,30 @@ const PostCreate = () => {
             placeholder="마크다운 형식으로 작성할 수 있습니다."
             minHeight="400px"
             onImageUpload={handleEditorImageUpload}
+            onFileDrop={(files) => {
+              const dt = new DataTransfer();
+              files.forEach((f) => dt.items.add(f));
+              handleFileSelect(dt.files);
+            }}
+            draftKey={boardId ? `${boardId}-${postId || "new"}` : undefined}
+            title={title}
+            onDraftRestore={(data) => {
+              setContent(data.content);
+              if (data.title) setTitle(data.title);
+            }}
+            searchMentionUsers={async (query: string) => {
+              try {
+                const { users } = await ChatAPI.RChatUsers({
+                  query: {
+                    q: query,
+                    sid: currentSchool?.school,
+                  },
+                });
+                return users?.slice(0, 8) || [];
+              } catch {
+                return [];
+              }
+            }}
           />
         </div>
 
@@ -1068,6 +967,208 @@ const PostCreate = () => {
           setState={setShowReservationImportPopup}
           onImport={(config) => setReservationConfig(config)}
         />
+      )}
+      {showPermissionPopup && (
+        <Popup
+          setState={setShowPermissionPopup}
+          title="대상"
+          closeBtn
+          contentScroll
+          style={{ maxWidth: "480px", width: "100%" }}
+          footer={
+            <Button
+              type="ghost"
+              onClick={() => setShowPermissionPopup(false)}
+            >
+              완료
+            </Button>
+          }
+        >
+          <div style={{ padding: "16px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "8px",
+              }}
+            >
+              <label style={{ fontSize: "14px", fontWeight: 500 }}>
+                읽기 권한 지정
+              </label>
+              <ToggleSwitch
+                defaultChecked={useSpecificPermission}
+                onChange={(checked: boolean) => {
+                  setUseSpecificPermission(checked);
+                  if (!checked) {
+                    setPermissionRead({
+                      groups: {
+                        manager: board?.members?.groups?.manager ?? true,
+                        teacher: board?.members?.groups?.teacher ?? true,
+                        student: board?.members?.groups?.student ?? true,
+                      },
+                      users: [],
+                    });
+                  }
+                }}
+              />
+            </div>
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginBottom: useSpecificPermission ? "12px" : "0",
+              }}
+            >
+              {useSpecificPermission
+                ? "선택한 대상만 이 게시글을 볼 수 있으며 알림을 받습니다."
+                : "보드 멤버 전체가 이 게시글을 볼 수 있으며 알림을 받습니다."}
+            </p>
+
+            {useSpecificPermission && board && (
+              <div
+                style={{
+                  padding: "12px",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "8px",
+                  backgroundColor: "var(--background-color-2)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  {board.members?.groups?.manager && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={{ fontSize: "14px" }}>관리자</span>
+                      <ToggleSwitch
+                        defaultChecked={permissionRead.groups.manager}
+                        onChange={(checked: boolean) =>
+                          setPermissionRead((prev) => ({
+                            ...prev,
+                            groups: { ...prev.groups, manager: checked },
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                  {board.members?.groups?.teacher && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={{ fontSize: "14px" }}>교사</span>
+                      <ToggleSwitch
+                        defaultChecked={permissionRead.groups.teacher}
+                        onChange={(checked: boolean) =>
+                          setPermissionRead((prev) => ({
+                            ...prev,
+                            groups: { ...prev.groups, teacher: checked },
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                  {board.members?.groups?.student && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={{ fontSize: "14px" }}>학생</span>
+                      <ToggleSwitch
+                        defaultChecked={permissionRead.groups.student}
+                        onChange={(checked: boolean) =>
+                          setPermissionRead((prev) => ({
+                            ...prev,
+                            groups: { ...prev.groups, student: checked },
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: "12px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      marginBottom: "6px",
+                    }}
+                  >
+                    개별 사용자 지정
+                  </label>
+                  <Autofill
+                    appearence="flat"
+                    placeholder="이름 또는 아이디로 검색"
+                    options={getUserOptions()}
+                    setState={(val: string) => handleAddUser(val)}
+                    resetOnClick
+                  />
+                  {permissionRead.users.length > 0 && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                      }}
+                    >
+                      {permissionRead.users.map((u) => (
+                        <div
+                          key={u.userId}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            padding: "4px 10px",
+                            backgroundColor: "var(--component-color)",
+                            borderRadius: "16px",
+                            fontSize: "13px",
+                          }}
+                        >
+                          <span>
+                            {u.userName}({u.userId})
+                          </span>
+                          <button
+                            onClick={() => handleRemoveUser(u.userId)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "0",
+                              fontSize: "14px",
+                              color: "var(--text-color-2)",
+                              lineHeight: 1,
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </Popup>
       )}
     </>
   );

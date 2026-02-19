@@ -39,13 +39,13 @@ export const transformSpecialNodes = (editor: Editor): void => {
   const { doc, schema } = editor.state;
   const youtubeType = schema.nodes.youtube;
   const htmlEmbedType = schema.nodes.htmlEmbed;
-
-  if (!youtubeType && !htmlEmbedType) return;
+  const mathInlineType = schema.nodes.mathInline;
+  const mathBlockType = schema.nodes.mathBlock;
 
   type Transform = {
     from: number;
     to: number;
-    node: ReturnType<typeof schema.nodes.youtube.create>;
+    node: any;
   };
 
   const transforms: Transform[] = [];
@@ -111,6 +111,23 @@ export const transformSpecialNodes = (editor: Editor): void => {
             content: node.textContent,
             height,
           }),
+        });
+      }
+    }
+
+    // $$...$$ 블록 수식 → MathBlock 노드 (paragraph 내 텍스트)
+    if (
+      mathBlockType &&
+      node.type.name === "paragraph" &&
+      node.textContent.trim().startsWith("$$") &&
+      node.textContent.trim().endsWith("$$")
+    ) {
+      const latex = node.textContent.trim().slice(2, -2).trim();
+      if (latex) {
+        transforms.push({
+          from: pos,
+          to: pos + node.nodeSize,
+          node: mathBlockType.create({ latex }),
         });
       }
     }

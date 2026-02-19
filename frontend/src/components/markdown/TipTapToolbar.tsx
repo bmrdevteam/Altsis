@@ -1,17 +1,19 @@
+import { useState } from "react";
 import { Editor } from "@tiptap/react";
 import Svg from "assets/svg/Svg";
 import { extractYouTubeId } from "./extensions/youtube";
+import ColorDropdown from "./ColorDropdown";
 import style from "./markdown.module.scss";
 
 type Props = {
   editor: Editor | null;
-  isSourceMode: boolean;
-  onSourceToggle: () => void;
   onEmbedClick: () => void;
   onImageClick: () => void;
 };
 
-const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick, onImageClick }: Props) => {
+const TipTapToolbar = ({ editor, onEmbedClick, onImageClick }: Props) => {
+  const [activeDropdown, setActiveDropdown] = useState<"textColor" | "highlight" | null>(null);
+
   if (!editor) return null;
 
   const handleLinkInsert = () => {
@@ -57,6 +59,19 @@ const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick, onI
 
   const toolbarButtons = [
     {
+      icon: "undo",
+      title: "실행 취소",
+      action: () => editor.chain().focus().undo().run(),
+      isDisabled: () => !editor.can().undo(),
+    },
+    {
+      icon: "redo",
+      title: "다시 실행",
+      action: () => editor.chain().focus().redo().run(),
+      isDisabled: () => !editor.can().redo(),
+    },
+    { divider: true },
+    {
       icon: "heading",
       title: "제목",
       action: () =>
@@ -87,12 +102,33 @@ const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick, onI
       action: () => editor.chain().focus().toggleCode().run(),
       isActive: () => editor.isActive("code"),
     },
+    { divider: true },
+    {
+      icon: "alignLeft",
+      title: "왼쪽 정렬",
+      action: () => editor.chain().focus().setTextAlign("left").run(),
+      isActive: () => editor.isActive({ textAlign: "left" }),
+    },
+    {
+      icon: "alignCenter",
+      title: "가운데 정렬",
+      action: () => editor.chain().focus().setTextAlign("center").run(),
+      isActive: () => editor.isActive({ textAlign: "center" }),
+    },
+    {
+      icon: "alignRight",
+      title: "오른쪽 정렬",
+      action: () => editor.chain().focus().setTextAlign("right").run(),
+      isActive: () => editor.isActive({ textAlign: "right" }),
+    },
+    { divider: true },
     {
       icon: "link",
       title: "링크",
       action: handleLinkInsert,
       isActive: () => editor.isActive("link"),
     },
+    { divider: true },
     {
       icon: "image",
       title: "이미지",
@@ -143,34 +179,121 @@ const TipTapToolbar = ({ editor, isSourceMode, onSourceToggle, onEmbedClick, onI
       title: "앱 임베드",
       action: onEmbedClick,
     },
+    {
+      icon: "math",
+      title: "수식 삽입",
+      action: () => {
+        const latex = prompt(
+          "LaTeX 수식을 입력하세요:\n(인라인: 텍스트 안에 삽입, 블록: 별도 줄에 표시)",
+          "E = mc^2"
+        );
+        if (latex) {
+          editor
+            .chain()
+            .focus()
+            .insertContent({ type: "mathInline", attrs: { latex } })
+            .run();
+        }
+      },
+    },
+    {
+      icon: "mention",
+      title: "멘션 (@)",
+      action: () => editor.chain().focus().insertContent("@").run(),
+    },
   ];
 
   return (
     <div className={style.toolbarButtons}>
-      {toolbarButtons.map((btn, idx) => (
+      {toolbarButtons.map((btn: any, idx: number) =>
+        btn.divider ? (
+          <span key={idx} className={style.divider} />
+        ) : (
+          <button
+            key={idx}
+            type="button"
+            title={btn.title}
+            onClick={btn.action}
+            className={`${style.toolbarBtn} ${
+              btn.isActive?.() ? style.toolbarBtnActive : ""
+            } ${btn.isDisabled?.() ? style.toolbarBtnDisabled : ""}`}
+          >
+            <Svg type={btn.icon} width="18px" height="18px" />
+          </button>
+        )
+      )}
+      {/* 텍스트 색상 */}
+      <div className={style.colorBtnWrapper}>
         <button
-          key={idx}
           type="button"
-          title={btn.title}
-          onClick={btn.action}
+          title="텍스트 색상"
+          onClick={() =>
+            setActiveDropdown(activeDropdown === "textColor" ? null : "textColor")
+          }
+          className={style.toolbarBtn}
+        >
+          <Svg type="textColor" width="18px" height="18px" />
+          <span
+            className={style.colorIndicator}
+            style={{
+              backgroundColor:
+                editor.getAttributes("textStyle").color || "var(--accent-1)",
+            }}
+          />
+        </button>
+        {activeDropdown === "textColor" && (
+          <ColorDropdown
+            currentColor={editor.getAttributes("textStyle").color}
+            onSelect={(color) => {
+              if (color) {
+                editor.chain().focus().setColor(color).run();
+              } else {
+                editor.chain().focus().unsetColor().run();
+              }
+              setActiveDropdown(null);
+            }}
+            onClose={() => setActiveDropdown(null)}
+          />
+        )}
+      </div>
+      {/* 하이라이트 색상 */}
+      <div className={style.colorBtnWrapper}>
+        <button
+          type="button"
+          title="하이라이트"
+          onClick={() =>
+            setActiveDropdown(
+              activeDropdown === "highlight" ? null : "highlight"
+            )
+          }
           className={`${style.toolbarBtn} ${
-            btn.isActive?.() ? style.toolbarBtnActive : ""
+            editor.isActive("highlight") ? style.toolbarBtnActive : ""
           }`}
         >
-          <Svg type={btn.icon} width="18px" height="18px" />
+          <Svg type="highlightColor" width="18px" height="18px" />
+          <span
+            className={style.colorIndicator}
+            style={{
+              backgroundColor:
+                editor.getAttributes("highlight").color || "#EAB308",
+            }}
+          />
         </button>
-      ))}
-      <span className={style.divider} />
-      <button
-        type="button"
-        title={isSourceMode ? "편집 모드" : "소스 모드"}
-        onClick={onSourceToggle}
-        className={`${style.toolbarBtn} ${
-          isSourceMode ? style.toolbarBtnActive : ""
-        }`}
-      >
-        <Svg type="editNote" width="18px" height="18px" />
-      </button>
+        {activeDropdown === "highlight" && (
+          <ColorDropdown
+            currentColor={editor.getAttributes("highlight").color}
+            onSelect={(color) => {
+              if (color) {
+                editor.chain().focus().toggleHighlight({ color }).run();
+              } else {
+                editor.chain().focus().unsetHighlight().run();
+              }
+              setActiveDropdown(null);
+            }}
+            onClose={() => setActiveDropdown(null)}
+          />
+        )}
+      </div>
     </div>
   );
 };

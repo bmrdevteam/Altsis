@@ -170,6 +170,45 @@
   overflow: hidden;
 }
 
+.draftBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--status-info-bg, #e0f2fe);
+  border-bottom: var(--border-default);
+  font-size: 13px;
+  color: var(--accent-1);
+}
+
+.draftBannerActions {
+  display: flex;
+  gap: 8px;
+
+  button {
+    padding: 4px 12px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:first-child {
+      background-color: var(--btn-color-1, #3b82f6);
+      color: var(--btn-text-color-1, #fff);
+    }
+
+    &:last-child {
+      background-color: transparent;
+      color: var(--accent-3);
+
+      &:hover {
+        color: var(--status-error, #ef4444);
+      }
+    }
+  }
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -258,6 +297,12 @@
   color: white !important;
 }
 
+.toolbarBtnDisabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
 .divider {
   display: inline-block;
   width: 1px;
@@ -266,22 +311,162 @@
   background-color: var(--border-default-color);
 }
 
-.textarea {
-  display: block;
+.colorBtnWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.colorIndicator {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+.colorDropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 8px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+}
+
+.colorGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.colorSwatch {
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+  padding: 0;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+}
+
+.colorSwatchActive {
+  border-color: var(--accent-1);
+  box-shadow: 0 0 0 1px var(--accent-1);
+}
+
+.colorRemoveBtn {
   width: 100%;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--accent-3);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-default-color);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent-1);
+  }
+}
+
+.splitView {
+  display: flex;
+  height: 100%;
+}
+
+.splitTextarea {
+  flex: 1;
+  min-width: 0;
   padding: 16px;
   font-size: 14px;
   line-height: 1.6;
-  font-family: inherit;
+  font-family: "Consolas", "Monaco", monospace;
   border: none;
-  resize: vertical;
+  resize: none;
   outline: none;
   background-color: var(--background-color);
   color: var(--accent-1);
+  overflow: auto;
 
   &::placeholder {
     color: var(--accent-3);
   }
+}
+
+// 이미지 리사이즈 핸들 (global - ProseMirror DOM 내부)
+:global(.image-resize-handle) {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--btn-color-1, #3b82f6);
+  border-radius: 2px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+:global(.image-resizing) {
+  user-select: none;
+
+  .image-resize-handle {
+    opacity: 1 !important;
+  }
+}
+
+.tiptapContent {
+  :global(div:hover > .image-resize-handle) {
+    opacity: 0.7;
+  }
+}
+
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.08);
+  border: 2px dashed var(--btn-color-1, #3b82f6);
+  border-radius: 4px;
+  z-index: 10;
+  pointer-events: none;
+
+  span {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--btn-color-1, #3b82f6);
+    padding: 8px 16px;
+    background: var(--background-color);
+    border-radius: 8px;
+  }
+}
+
+.splitDivider {
+  width: 1px;
+  flex-shrink: 0;
+  background-color: var(--border-default-color);
+}
+
+.splitPreview {
+  flex: 1;
+  min-width: 0;
+  padding: 16px;
+  overflow: auto;
+  background-color: var(--background-color);
 }
 
 .preview {
@@ -289,9 +474,162 @@
   background-color: var(--background-color);
 }
 
+// 테이블 BubbleMenu
+.tableBubbleMenu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tableBubbleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--accent-3);
+  padding: 0;
+
+  &:hover {
+    background-color: var(--background-hover-color);
+    color: var(--accent-1);
+  }
+}
+
+.tableBubbleDivider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background-color: var(--border-default-color);
+}
+
+// 테이블 컬럼 리사이즈 핸들 (ProseMirror table plugin)
+:global(.column-resize-handle) {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--btn-color-1, #3b82f6);
+  pointer-events: none;
+}
+
+:global(.tableWrapper) {
+  overflow-x: auto;
+}
+
+:global(.resize-cursor) {
+  cursor: col-resize;
+}
+
 .placeholder {
   color: var(--accent-3);
   font-style: italic;
+}
+
+// 멘션 칩 (에디터 + 뷰어)
+:global(.mention-chip) {
+  padding: 2px 6px;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  color: var(--btn-color-1, #3b82f6);
+  font-weight: 500;
+  cursor: default;
+}
+
+// 멘션 드롭다운
+.mentionList {
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.mentionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--accent-1);
+
+  &:hover {
+    background-color: var(--background-hover-color);
+  }
+}
+
+.mentionItemActive {
+  background-color: var(--background-hover-color);
+}
+
+.mentionAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--btn-color-1, #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  span {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+.mentionInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mentionName {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mentionId {
+  font-size: 11px;
+  color: var(--accent-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mentionEmpty {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--accent-3);
+  text-align: center;
 }
 
 .tiptapContent {
