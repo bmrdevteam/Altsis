@@ -7,6 +7,9 @@ import * as posts from "../controllers/posts.js";
 // 게시글 CRUD
 router.post("/", isLoggedIn, posts.create);
 
+// 게시물 검색 (CommandPalette용, /:_id? 위에 배치)
+router.get("/search", isLoggedIn, posts.search);
+
 // 게시글 첨부파일 업로드/조회 (/:_id? 위에 배치)
 router.post("/upload", isLoggedIn, posts.uploadFile);
 router.get("/file/view", posts.viewFile);

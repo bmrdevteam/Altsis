@@ -175,7 +175,9 @@ const CommandPalette = ({ onClose }: Props) => {
                         ? "페이지"
                         : recent.category === "user"
                           ? "사용자"
-                          : "수업"}
+                          : recent.category === "post"
+                            ? "게시물"
+                            : "수업"}
                     </span>
                   </div>
                 );

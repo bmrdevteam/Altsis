@@ -1,4 +1,4 @@
-export type CommandCategory = "page" | "user" | "course";
+export type CommandCategory = "page" | "user" | "course" | "post";
 
 export interface CommandItem {
   id: string;

@@ -207,12 +207,13 @@ const CoursePid = (props: Props) => {
     if (
       currentUser?._id &&
       currentSeason?.formEvaluation &&
-      currentRegistration
+      currentRegistration &&
+      pid
     ) {
       setIsLoadingSyllabus(true);
     }
     return () => {};
-  }, [currentUser, currentSeason, currentRegistration]);
+  }, [currentUser, currentSeason, currentRegistration, pid]);
 
   useEffect(() => {
     if (isLoadingSyllabus && pid) {

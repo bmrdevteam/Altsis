@@ -4,6 +4,7 @@ import { useAppNavigate } from "hooks/useAppNavigate";
 import useAPIv2 from "hooks/useAPIv2";
 import { SidebarData, INavLink } from "layout/sidebar/SidebarData";
 import { TSyllabus } from "types/syllabuses";
+import { TPost } from "types/post";
 import { CommandItem, CommandGroup, RecentItem } from "./types";
 
 const STORAGE_KEY = "commandPaletteRecent";
@@ -47,10 +48,13 @@ export function clearRecentSearches() {
 
 const useCommandPaletteSearch = (query: string) => {
   const { currentUser, currentRegistration, currentSeason } = useAuth();
-  const { SyllabusAPI } = useAPIv2();
+  const { SyllabusAPI, PostAPI } = useAPIv2();
   const navigate = useAppNavigate();
 
   const [courseResults, setCourseResults] = useState<TSyllabus[]>([]);
+  const [postResults, setPostResults] = useState<
+    (TPost & { boardName: string })[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const syllabusCache = useRef<TSyllabus[] | null>(null);
 
@@ -152,6 +156,31 @@ const useCommandPaletteSearch = (query: string) => {
     return () => clearTimeout(debounce);
   }, [query, currentRegistration]);
 
+  // Post search (debounced API call)
+  useEffect(() => {
+    if (query.length < 2) {
+      setPostResults([]);
+      return;
+    }
+
+    const debounce = setTimeout(async () => {
+      if (!currentRegistration?.school) return;
+
+      setIsLoading(true);
+      try {
+        const { posts } = await PostAPI.SearchPosts({
+          query: { school: currentRegistration.school, q: query },
+        });
+        setPostResults(posts);
+      } catch {
+        setPostResults([]);
+      }
+      setIsLoading(false);
+    }, 300);
+
+    return () => clearTimeout(debounce);
+  }, [query, currentRegistration]);
+
   // Build course CommandItems
   const courseItems = useMemo((): CommandItem[] => {
     return courseResults.map((s) => {
@@ -170,10 +199,26 @@ const useCommandPaletteSearch = (query: string) => {
         label: s.classTitle,
         description: parts.join(" · "),
         icon: "menuBook",
-        action: () => navigate(`/courses/list`),
+        action: () => navigate(`/courses/mentoring/${s._id}`),
       };
     });
   }, [courseResults, navigate]);
+
+  // Build post CommandItems
+  const postItems = useMemo((): CommandItem[] => {
+    return postResults.map((post) => {
+      const parts = [post.boardName, post.authorName].filter(Boolean);
+
+      return {
+        id: `post-${post._id}`,
+        category: "post" as const,
+        label: post.title,
+        description: parts.join(" · "),
+        icon: "article",
+        action: () => navigate(`/boards/${post.board}/post/${post._id}`),
+      };
+    });
+  }, [postResults, navigate]);
 
   // Filter and group results
   const results = useMemo((): CommandGroup[] => {
@@ -232,8 +277,18 @@ const useCommandPaletteSearch = (query: string) => {
       });
     }
 
+    // Posts (already filtered via API)
+    const limitedPosts = postItems.slice(0, MAX_RESULTS_PER_CATEGORY);
+    if (limitedPosts.length > 0) {
+      groups.push({
+        category: "post",
+        label: "게시물",
+        items: limitedPosts,
+      });
+    }
+
     return groups;
-  }, [query, pageItems, userItems, courseItems]);
+  }, [query, pageItems, userItems, courseItems, postItems]);
 
   const flatResults = useMemo(
     () => results.flatMap((group) => group.items),

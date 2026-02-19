@@ -3248,6 +3248,23 @@ export default function useAPIv2() {
   }
 
   /**
+   * SearchPosts API
+   * @description 게시물 검색 API (CommandPalette용)
+   * @version 1.0.0
+   * @auth user
+   */
+  async function SearchPosts(props: {
+    query: { school: string; q: string };
+  }) {
+    const { posts } = await database.R({
+      location: "posts/search" + QUERY_BUILDER(props.query),
+    });
+    return {
+      posts: posts as (TPost & { boardName: string })[],
+    };
+  }
+
+  /**
    * CUploadPostFile API
    * @description 게시글 첨부파일 업로드 API
    * @version 1.0.0
@@ -4339,6 +4356,7 @@ export default function useAPIv2() {
       CUploadPostFile,
       RSignedUrlPostFile,
       ExportReservationJSON,
+      SearchPosts,
     },
     SurveyResponseAPI: {
       CSurveyResponse,

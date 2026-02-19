@@ -30,6 +30,92 @@ import { signUrl, signUrlForView, fileS3, fileBucket } from "../_s3/fileBucket.j
 
 /**
  * @memberof APIs.PostAPI
+ * @function SearchPosts API
+ * @description 게시물 검색 API (CommandPalette용)
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ * @param {"GET"} req.method
+ * @param {"/posts/search"} req.url
+ *
+ * @param {Object} req.query
+ * @param {string} req.query.school - school._id
+ * @param {string} req.query.q - 검색 키워드
+ *
+ * @param {Object} res
+ * @param {Object[]} res.posts - 검색 결과 게시글 목록 (boardName 포함)
+ */
+export const search = async (req, res) => {
+  try {
+    const { school, q } = req.query;
+    if (!school || !q || q.trim().length < 2) {
+      return res.status(200).send({ posts: [] });
+    }
+
+    const keyword = q.trim();
+
+    // 해당 학교의 활성 보드 조회
+    const boards = await Board(req.user.academyId).find({
+      school,
+      isActive: { $ne: false },
+    });
+
+    if (!boards.length) {
+      return res.status(200).send({ posts: [] });
+    }
+
+    // 사용자가 멤버인 보드만 필터
+    const accessibleBoards = [];
+    const boardMap = new Map();
+    for (const board of boards) {
+      const role = await getUserRoleInSeason(
+        req.user.academyId,
+        board.schoolId,
+        req.user
+      );
+      if (isBoardMember(board, req.user, role)) {
+        accessibleBoards.push(board);
+        boardMap.set(board._id.toString(), { board, role });
+      }
+    }
+
+    if (!accessibleBoards.length) {
+      return res.status(200).send({ posts: [] });
+    }
+
+    // 접근 가능한 보드에서 제목으로 검색
+    const boardIds = accessibleBoards.map((b) => b._id);
+    const posts = await Post(req.user.academyId)
+      .find({
+        board: { $in: boardIds },
+        isActive: true,
+        title: { $regex: keyword, $options: "i" },
+      })
+      .select("-content")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    // 열람 권한 필터링 + board 정보 추가
+    const results = [];
+    for (const post of posts) {
+      if (results.length >= 10) break;
+      const { board, role } = boardMap.get(post.board.toString());
+      if (canUserSeePost(post, req.user, role)) {
+        const postObj = post.toObject();
+        postObj.boardName = board.name;
+        results.push(postObj);
+      }
+    }
+
+    return res.status(200).send({ posts: results });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.PostAPI
  * @function CPost API
  * @description 게시글 생성 API
  * @version 2.0.0
