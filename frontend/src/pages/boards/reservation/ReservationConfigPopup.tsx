@@ -8,6 +8,7 @@ import {
   TSlotRuleTemplate,
   TApplicationFormField,
   TApplicationFieldType,
+  TAdvanceBooking,
 } from "types/reservation";
 import style from "./reservation.module.scss";
 
@@ -32,6 +33,11 @@ const defaultConfig: TReservationConfig = {
   applicationForm: [],
 };
 
+const defaultAdvanceBooking: TAdvanceBooking = {
+  openBefore: { value: 3, unit: "days" },
+  closeBefore: { value: 1, unit: "hours" },
+};
+
 const ReservationConfigPopup = ({
   setState,
   config: initialConfig,
@@ -53,16 +59,36 @@ const ReservationConfigPopup = ({
     }
   );
 
+  // 아이템 입력 (쉼표 구분 텍스트)
+  const [itemsText, setItemsText] = useState(
+    (initialConfig?.items || []).join(", ")
+  );
+
+  // 사전 예약 제한
+  const [enableAdvanceBooking, setEnableAdvanceBooking] = useState(
+    !!config.advanceBooking
+  );
+  const [advanceBooking, setAdvanceBooking] = useState<TAdvanceBooking>(
+    config.advanceBooking || defaultAdvanceBooking
+  );
+
   const handleComplete = () => {
     if (!config.resource.trim()) {
       alert("예약 대상을 입력해주세요.");
       return;
     }
 
+    const parsedItems = itemsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     onChange({
       ...config,
       resource: config.resource.trim(),
       resourceDescription: config.resourceDescription.trim(),
+      items: parsedItems.length > 0 ? parsedItems : undefined,
+      advanceBooking: enableAdvanceBooking ? advanceBooking : undefined,
       applicationForm: (config.applicationForm || []).filter(
         (f) => f.label.trim()
       ),
@@ -175,6 +201,21 @@ const ReservationConfigPopup = ({
           </select>
         </div>
 
+        {/* 아이템 (개별 자원) */}
+        <div className={style.configRow}>
+          <label>아이템</label>
+          <input
+            className={style.configInput}
+            placeholder="예: 101호, 102호, 103호 (쉼표로 구분)"
+            value={itemsText}
+            onChange={(e) => setItemsText(e.target.value)}
+          />
+        </div>
+        <p className={style.configHint}>
+          개별 자원을 쉼표로 구분하여 입력하세요. 비워두면 아이템 구분 없이
+          운영됩니다.
+        </p>
+
         <div className={style.configRow}>
           <label>기본 정원</label>
           <input
@@ -206,6 +247,22 @@ const ReservationConfigPopup = ({
           {config.requireApproval
             ? "관리자 승인 후 예약이 확정됩니다."
             : "신청 즉시 예약이 확정됩니다."}
+        </p>
+
+        <div className={style.configToggleRow}>
+          <label style={{ fontSize: "13px", fontWeight: 500 }}>
+            일괄 신청 허용
+          </label>
+          <ToggleSwitch
+            defaultChecked={config.allowBulkApply || false}
+            onChange={(checked: boolean) =>
+              setConfig((prev) => ({ ...prev, allowBulkApply: checked }))
+            }
+          />
+        </div>
+        <p className={style.configHint}>
+          활성화하면 사용자가 요일/시간 조건으로 여러 슬롯에 한 번에 신청할 수
+          있습니다.
         </p>
 
         <div className={style.configRow}>
@@ -265,6 +322,109 @@ const ReservationConfigPopup = ({
         <p className={style.configHint}>
           비워두면 기간 제한 없이 예약 가능합니다.
         </p>
+
+        {/* 사전 예약 제한 */}
+        <div className={style.configToggleRow}>
+          <label style={{ fontSize: "13px", fontWeight: 500 }}>
+            사전 예약 제한
+          </label>
+          <ToggleSwitch
+            defaultChecked={enableAdvanceBooking}
+            onChange={(checked: boolean) => {
+              setEnableAdvanceBooking(checked);
+              if (checked && !config.advanceBooking) {
+                setAdvanceBooking(defaultAdvanceBooking);
+              }
+            }}
+          />
+        </div>
+        {enableAdvanceBooking && (
+          <div
+            className={style.configSection}
+            style={{ marginTop: "8px", marginBottom: "4px" }}
+          >
+            <div
+              className={style.configRow}
+              style={{ alignItems: "center" }}
+            >
+              <label>예약 오픈</label>
+              <span style={{ fontSize: "13px" }}>슬롯</span>
+              <input
+                type="number"
+                className={style.configNumberInput}
+                min={0}
+                value={advanceBooking.openBefore.value}
+                onChange={(e) =>
+                  setAdvanceBooking((prev) => ({
+                    ...prev,
+                    openBefore: {
+                      ...prev.openBefore,
+                      value: parseInt(e.target.value) || 0,
+                    },
+                  }))
+                }
+              />
+              <select
+                className={style.configSelect}
+                value={advanceBooking.openBefore.unit}
+                onChange={(e) =>
+                  setAdvanceBooking((prev) => ({
+                    ...prev,
+                    openBefore: {
+                      ...prev.openBefore,
+                      unit: e.target.value as "hours" | "days",
+                    },
+                  }))
+                }
+              >
+                <option value="days">일 전부터</option>
+                <option value="hours">시간 전부터</option>
+              </select>
+            </div>
+            <div
+              className={style.configRow}
+              style={{ alignItems: "center" }}
+            >
+              <label>예약 마감</label>
+              <span style={{ fontSize: "13px" }}>슬롯</span>
+              <input
+                type="number"
+                className={style.configNumberInput}
+                min={0}
+                value={advanceBooking.closeBefore.value}
+                onChange={(e) =>
+                  setAdvanceBooking((prev) => ({
+                    ...prev,
+                    closeBefore: {
+                      ...prev.closeBefore,
+                      value: parseInt(e.target.value) || 0,
+                    },
+                  }))
+                }
+              />
+              <select
+                className={style.configSelect}
+                value={advanceBooking.closeBefore.unit}
+                onChange={(e) =>
+                  setAdvanceBooking((prev) => ({
+                    ...prev,
+                    closeBefore: {
+                      ...prev.closeBefore,
+                      unit: e.target.value as "hours" | "days",
+                    },
+                  }))
+                }
+              >
+                <option value="days">일 전까지</option>
+                <option value="hours">시간 전까지</option>
+              </select>
+            </div>
+            <p className={style.configHint}>
+              슬롯 시간 기준으로 예약 오픈/마감 시점을 설정합니다. 0이면 해당
+              제한을 적용하지 않습니다.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 슬롯 규칙 템플릿 */}
@@ -411,56 +571,43 @@ const ReservationConfigPopup = ({
               <div className={style.bulkFormRow}>
                 <span className={style.bulkFormLabel}>라벨</span>
                 <div className={style.timeSlotGroup}>
-                  {(templateState.labels || [""]).map((label, idx) => (
-                    <div key={idx} className={style.timeSlotRow}>
-                      <input
-                        className={style.labelInput}
-                        placeholder={`라벨 ${idx + 1}`}
-                        value={label}
-                        onChange={(e) => {
-                          const updated = [
-                            ...(templateState.labels || [""]),
-                          ];
-                          updated[idx] = e.target.value;
-                          setTemplateState((prev) => ({
-                            ...prev,
-                            labels: updated,
-                          }));
-                        }}
-                      />
-                      {(templateState.labels || [""]).length > 1 && (
-                        <button
-                          type="button"
-                          className={style.removeBtn}
-                          onClick={() => {
-                            setTemplateState((prev) => ({
-                              ...prev,
-                              labels: (prev.labels || [""]).filter(
-                                (_, i) => i !== idx
-                              ),
-                            }));
-                          }}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    className={style.addSlotBtn}
-                    onClick={() => {
+                  <input
+                    className={style.configInput}
+                    placeholder="예: 1교시, 2교시, 3교시 (쉼표로 구분)"
+                    value={(templateState.labels || []).join(", ")}
+                    onChange={(e) => {
                       setTemplateState((prev) => ({
                         ...prev,
-                        labels: [...(prev.labels || [""]), ""],
+                        labels: e.target.value
+                          .split(",")
+                          .map((s) => s.trim()),
                       }));
                     }}
-                  >
-                    + 라벨 추가
-                  </button>
+                  />
                 </div>
               </div>
             )}
+
+            {/* 템플릿 아이템 */}
+            <div className={style.bulkFormRow}>
+              <span className={style.bulkFormLabel}>아이템</span>
+              <div className={style.timeSlotGroup}>
+                <input
+                  className={style.configInput}
+                  placeholder="예: 101호, 102호 (쉼표로 구분, 선택)"
+                  value={(templateState.items || []).join(", ")}
+                  onChange={(e) => {
+                    setTemplateState((prev) => ({
+                      ...prev,
+                      items: e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    }));
+                  }}
+                />
+              </div>
+            </div>
 
             {/* 정원 */}
             <div className={style.configRow}>
@@ -506,57 +653,79 @@ const ReservationConfigPopup = ({
                 key={idx}
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
+                  flexDirection: "column",
+                  gap: "6px",
                 }}
               >
-                <input
-                  className={style.configInput}
-                  placeholder="필드명"
-                  value={field.label}
-                  onChange={(e) =>
-                    updateFormField(idx, "label", e.target.value)
-                  }
-                />
-                <select
-                  className={style.configSelect}
-                  value={field.type}
-                  onChange={(e) =>
-                    updateFormField(
-                      idx,
-                      "type",
-                      e.target.value as TApplicationFieldType
-                    )
-                  }
-                >
-                  <option value="text">텍스트</option>
-                  <option value="textarea">장문</option>
-                  <option value="select">선택</option>
-                </select>
-                <label
+                <div
                   style={{
-                    fontSize: "12px",
                     display: "flex",
                     alignItems: "center",
-                    gap: "4px",
-                    whiteSpace: "nowrap",
+                    gap: "8px",
                   }}
                 >
                   <input
-                    type="checkbox"
-                    checked={field.required}
+                    className={style.configInput}
+                    placeholder="필드명"
+                    value={field.label}
                     onChange={(e) =>
-                      updateFormField(idx, "required", e.target.checked)
+                      updateFormField(idx, "label", e.target.value)
                     }
                   />
-                  필수
-                </label>
-                <button
-                  className={style.removeBtn}
-                  onClick={() => removeFormField(idx)}
-                >
-                  ×
-                </button>
+                  <select
+                    className={style.configSelect}
+                    value={field.type}
+                    onChange={(e) =>
+                      updateFormField(
+                        idx,
+                        "type",
+                        e.target.value as TApplicationFieldType
+                      )
+                    }
+                  >
+                    <option value="text">텍스트</option>
+                    <option value="textarea">장문</option>
+                    <option value="select">선택</option>
+                  </select>
+                  <label
+                    style={{
+                      fontSize: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={field.required}
+                      onChange={(e) =>
+                        updateFormField(idx, "required", e.target.checked)
+                      }
+                    />
+                    필수
+                  </label>
+                  <button
+                    className={style.removeBtn}
+                    onClick={() => removeFormField(idx)}
+                  >
+                    ×
+                  </button>
+                </div>
+                {field.type === "select" && (
+                  <input
+                    className={style.configInput}
+                    placeholder="옵션을 쉼표로 구분 (예: 옵션1, 옵션2, 옵션3)"
+                    value={(field.options || []).join(", ")}
+                    onChange={(e) => {
+                      const options = e.target.value
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                      updateFormField(idx, "options", options);
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>

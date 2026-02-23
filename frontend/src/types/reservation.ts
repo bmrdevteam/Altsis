@@ -23,7 +23,17 @@ export type TSlotRuleTemplate = {
   days: number[];
   timeSlots?: { startTime: string; endTime: string }[];
   labels?: string[];
+  items?: string[];
   capacity: number;
+};
+
+// 사전 예약 제한 단위
+export type TAdvanceBookingUnit = "hours" | "days";
+
+// 사전 예약 제한
+export type TAdvanceBooking = {
+  openBefore: { value: number; unit: TAdvanceBookingUnit };
+  closeBefore: { value: number; unit: TAdvanceBookingUnit };
 };
 
 // 예약 게시글 설정
@@ -37,6 +47,10 @@ export type TReservationConfig = {
   reservationOpenAt?: string | null;
   reservationCloseAt?: string | null;
   totalSlots?: number;
+  isReservationActive?: boolean;
+  allowBulkApply?: boolean;
+  items?: string[];
+  advanceBooking?: TAdvanceBooking | null;
   applicationForm?: TApplicationFormField[];
   slotRuleTemplate?: TSlotRuleTemplate;
 };
@@ -53,6 +67,7 @@ export type TReservationExportData = {
     defaultCapacity: number;
     requireApproval: boolean;
     maxReservationsPerUser: number;
+    items?: string[];
     applicationForm?: TApplicationFormField[];
   };
   slotRuleTemplate?: TSlotRuleTemplate;
@@ -74,6 +89,7 @@ export type TReservationSlot = {
   startTime?: string;
   endTime?: string;
   label?: string;
+  item?: string;
   dayOfWeek: number;
   capacity: number;
   currentCount: number;
@@ -105,6 +121,7 @@ export type TReservation = {
   startTime?: string;
   endTime?: string;
   label?: string;
+  item?: string;
   // 지정 승인자
   approver?: string;
   approverId?: string;
@@ -129,6 +146,7 @@ export type TSlotBulkRule = {
   days: number[];
   timeSlots?: { startTime: string; endTime: string }[];
   labels?: string[];
+  items?: string[];
   capacity: number;
   excludeDates?: string[];
 };

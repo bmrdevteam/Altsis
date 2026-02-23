@@ -62,6 +62,12 @@ const reservationSlotSchema = mongoose.Schema(
     // 라벨 모드 (slotMode === "label") - 임의 텍스트 (예: "1교시", "오전 A")
     label: String,
 
+    // 아이템 (예: "101호", "102호") - 개별 자원 구분
+    item: {
+      type: String,
+      default: null,
+    },
+
     // 요일 (date에서 파생, 일괄 조회/필터용)
     dayOfWeek: {
       type: Number,
@@ -101,6 +107,8 @@ const reservationSlotSchema = mongoose.Schema(
 
 reservationSlotSchema.index({ post: 1, date: 1, startTime: 1 });
 reservationSlotSchema.index({ post: 1, date: 1, label: 1 });
+reservationSlotSchema.index({ post: 1, date: 1, startTime: 1, item: 1 });
+reservationSlotSchema.index({ post: 1, date: 1, label: 1, item: 1 });
 reservationSlotSchema.index({ post: 1, status: 1 });
 reservationSlotSchema.index({ post: 1, dayOfWeek: 1 });
 

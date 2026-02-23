@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 
@@ -24,6 +24,8 @@ type Props = {
   board: TBoard;
 };
 
+const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
 const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
   const { currentUser } = useAuth();
   const { ReservationSlotAPI, ReservationAPI, UserAPI } = useAPIv2();
@@ -32,7 +34,9 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
   const [myReservations, setMyReservations] = useState<TReservation[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"calendar" | "my">("calendar");
+  const [activeTab, setActiveTab] = useState<"calendar" | "my" | "bulk">(
+    "calendar"
+  );
 
   // 신청 팝업
   const [applySlot, setApplySlot] = useState<TReservationSlot | null>(null);
@@ -51,6 +55,13 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
   // 내 예약 상세 보기
   const [detailReservation, setDetailReservation] =
     useState<TReservation | null>(null);
+
+  // 일괄 신청 상태
+  const [bulkDays, setBulkDays] = useState<number[]>([]);
+  const [bulkLabel, setBulkLabel] = useState("");
+  const [bulkTimeSlot, setBulkTimeSlot] = useState("");
+  const [bulkItem, setBulkItem] = useState("");
+  const [bulkMemo, setBulkMemo] = useState("");
 
   const loadData = () => {
     setIsLoading(true);
@@ -76,7 +87,6 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
     if (config.requireApproval) {
       UserAPI.RUsers({ query: { sid: schoolId } })
         .then(({ users }) => {
-          // 교사/관리자만 필터
           setTeacherList(
             users.filter(
               (u: any) => u.auth === "manager" || u.auth === "admin"
@@ -91,11 +101,69 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
     loadData();
   }, [postId]);
 
+  // 슬롯 예약 가능 여부 (사전 예약 제한)
+  const isSlotBookable = (slot: TReservationSlot): boolean => {
+    if (!config.advanceBooking) return true;
+
+    const { openBefore, closeBefore } = config.advanceBooking;
+    const slotTime = slot.startTime
+      ? new Date(`${slot.date}T${slot.startTime}:00`)
+      : new Date(`${slot.date}T00:00:00`);
+    const now = new Date();
+
+    if (openBefore && openBefore.value > 0) {
+      const openTime = new Date(slotTime);
+      if (openBefore.unit === "days")
+        openTime.setDate(openTime.getDate() - openBefore.value);
+      else openTime.setHours(openTime.getHours() - openBefore.value);
+      if (now < openTime) return false;
+    }
+
+    if (closeBefore && closeBefore.value > 0) {
+      const closeTime = new Date(slotTime);
+      if (closeBefore.unit === "days")
+        closeTime.setDate(closeTime.getDate() - closeBefore.value);
+      else closeTime.setHours(closeTime.getHours() - closeBefore.value);
+      if (now > closeTime) return false;
+    }
+
+    return true;
+  };
+
+  const getSlotBookableStatus = (
+    slot: TReservationSlot
+  ): null | "not-open" | "closed" => {
+    if (!config.advanceBooking) return null;
+
+    const { openBefore, closeBefore } = config.advanceBooking;
+    const slotTime = slot.startTime
+      ? new Date(`${slot.date}T${slot.startTime}:00`)
+      : new Date(`${slot.date}T00:00:00`);
+    const now = new Date();
+
+    if (openBefore && openBefore.value > 0) {
+      const openTime = new Date(slotTime);
+      if (openBefore.unit === "days")
+        openTime.setDate(openTime.getDate() - openBefore.value);
+      else openTime.setHours(openTime.getHours() - openBefore.value);
+      if (now < openTime) return "not-open";
+    }
+
+    if (closeBefore && closeBefore.value > 0) {
+      const closeTime = new Date(slotTime);
+      if (closeBefore.unit === "days")
+        closeTime.setDate(closeTime.getDate() - closeBefore.value);
+      else closeTime.setHours(closeTime.getHours() - closeBefore.value);
+      if (now > closeTime) return "closed";
+    }
+
+    return null;
+  };
+
   const openApplyPopup = (slot: TReservationSlot) => {
     setApplySlot(slot);
     setApplyMemo("");
     setApplyApprover(null);
-    // 신청 양식 초기화
     if (config.applicationForm && config.applicationForm.length > 0) {
       setApplyFormResponses(
         config.applicationForm.map((f) => ({ label: f.label, value: "" }))
@@ -108,7 +176,6 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
   const handleApply = async () => {
     if (!applySlot) return;
 
-    // 양식 필수 항목 검증
     if (config.applicationForm && config.applicationForm.length > 0) {
       for (let i = 0; i < config.applicationForm.length; i++) {
         const field = config.applicationForm[i];
@@ -179,11 +246,17 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
     ? slots.filter((s) => s.date === selectedDate)
     : [];
 
-  const formatSlotLabel = (slot: TReservationSlot) => {
+  const formatSlotLabel = (slot: { startTime?: string; endTime?: string; label?: string; item?: string }) => {
+    let text = "";
     if (config.slotMode === "time") {
-      return `${slot.startTime} ~ ${slot.endTime}`;
+      text = `${slot.startTime} ~ ${slot.endTime}`;
+    } else {
+      text = slot.label || "";
     }
-    return slot.label || "";
+    if (slot.item) {
+      text += ` · ${slot.item}`;
+    }
+    return text;
   };
 
   const formatDate = (dateStr: string) => {
@@ -193,6 +266,82 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
       day: "2-digit",
     });
   };
+
+  // 일괄 신청 - 고유 값 목록
+  const uniqueLabels = useMemo(
+    () => Array.from(new Set(slots.map((s) => s.label).filter(Boolean))) as string[],
+    [slots]
+  );
+  const uniqueTimeSlots = useMemo(() => {
+    const set = new Set(
+      slots
+        .filter((s) => s.startTime && s.endTime)
+        .map((s) => `${s.startTime}~${s.endTime}`)
+    );
+    return Array.from(set);
+  }, [slots]);
+  const uniqueItems = useMemo(
+    () => Array.from(new Set(slots.map((s) => s.item).filter(Boolean))) as string[],
+    [slots]
+  );
+
+  // 일괄 신청 매칭 슬롯
+  const bulkMatchingSlots = useMemo(() => {
+    const now = new Date();
+    return slots.filter((s) => {
+      if (new Date(s.date) < now) return false;
+      if (s.status !== "open") return false;
+      if (reservedSlotIds.has(s._id)) return false;
+      if (bulkDays.length > 0 && !bulkDays.includes(s.dayOfWeek)) return false;
+      if (config.slotMode === "time" && bulkTimeSlot) {
+        if (`${s.startTime}~${s.endTime}` !== bulkTimeSlot) return false;
+      }
+      if (config.slotMode === "label" && bulkLabel) {
+        if (s.label !== bulkLabel) return false;
+      }
+      if (bulkItem && s.item !== bulkItem) return false;
+      if (!isSlotBookable(s)) return false;
+      return true;
+    });
+  }, [slots, bulkDays, bulkLabel, bulkTimeSlot, bulkItem, reservedSlotIds]);
+
+  const handleBulkApply = async () => {
+    const slotIds = bulkMatchingSlots.map((s) => s._id);
+    if (slotIds.length === 0) {
+      alert("조건에 맞는 예약 가능한 슬롯이 없습니다.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `${slotIds.length}건을 일괄 신청하시겠습니까?`
+      )
+    )
+      return;
+
+    setIsSubmitting(true);
+    try {
+      const { reservations, errors } = await ReservationAPI.CReservationsBulk({
+        data: { slots: slotIds, memo: bulkMemo },
+      });
+      alert(
+        `${reservations.length}건 신청 완료${
+          errors.length > 0 ? `, ${errors.length}건 실패` : ""
+        }`
+      );
+      loadData();
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 예약 비활성화 상태
+  if (config.isReservationActive === false) {
+    return (
+      <div className={style.emptyState}>예약이 비활성화되었습니다.</div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -221,6 +370,16 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
           내 예약 (
           {myReservations.filter((r) => r.status !== "cancelled").length})
         </button>
+        {config.allowBulkApply && (
+          <button
+            className={`${style.tab} ${
+              activeTab === "bulk" ? style.tabActive : ""
+            }`}
+            onClick={() => setActiveTab("bulk")}
+          >
+            일괄 신청
+          </button>
+        )}
       </div>
 
       {activeTab === "calendar" && (
@@ -239,14 +398,19 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
               {selectedSlots
                 .sort((a, b) =>
                   config.slotMode === "time"
-                    ? (a.startTime || "").localeCompare(b.startTime || "")
-                    : (a.label || "").localeCompare(b.label || "")
+                    ? (a.startTime || "").localeCompare(b.startTime || "") ||
+                      (a.item || "").localeCompare(b.item || "")
+                    : (a.label || "").localeCompare(b.label || "") ||
+                      (a.item || "").localeCompare(b.item || "")
                 )
                 .map((slot) => {
                   const isReserved = reservedSlotIds.has(slot._id);
                   const isFull = slot.status === "full";
                   const isClosed = slot.status === "closed";
-                  const canApply = !isReserved && !isFull && !isClosed;
+                  const bookable = isSlotBookable(slot);
+                  const bookableStatus = getSlotBookableStatus(slot);
+                  const canApply =
+                    !isReserved && !isFull && !isClosed && bookable;
 
                   return (
                     <div
@@ -264,7 +428,27 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
                         </span>
                       </div>
                       <div className={style.slotActions}>
-                        <SlotStatusBadge status={slot.status} />
+                        {bookableStatus === "not-open" ? (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "var(--text-color-2)",
+                            }}
+                          >
+                            예약 오픈 전
+                          </span>
+                        ) : bookableStatus === "closed" ? (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "var(--text-color-2)",
+                            }}
+                          >
+                            예약 마감
+                          </span>
+                        ) : (
+                          <SlotStatusBadge status={slot.status} />
+                        )}
                         {canApply && (
                           <Button
                             type="ghost"
@@ -318,9 +502,7 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
                       <span className={style.slotTime}>
                         {formatDate(reservation.date)}
                         {" · "}
-                        {config.slotMode === "time"
-                          ? `${reservation.startTime} ~ ${reservation.endTime}`
-                          : reservation.label}
+                        {formatSlotLabel(reservation)}
                       </span>
                       <span className={style.slotCapacity}>
                         {reservation.approverName &&
@@ -350,6 +532,188 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
             </div>
           )}
         </>
+      )}
+
+      {/* 일괄 신청 탭 */}
+      {activeTab === "bulk" && config.allowBulkApply && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {/* 요일 선택 */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "13px",
+                fontWeight: 500,
+                marginBottom: "8px",
+              }}
+            >
+              요일
+            </label>
+            <div className={style.dayCheckboxGroup}>
+              {DAY_LABELS.map((label, idx) => (
+                <label
+                  key={idx}
+                  className={`${style.dayCheckbox} ${
+                    bulkDays.includes(idx) ? style.dayCheckboxChecked : ""
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={bulkDays.includes(idx)}
+                    onChange={(e) => {
+                      setBulkDays((prev) =>
+                        e.target.checked
+                          ? [...prev, idx].sort()
+                          : prev.filter((d) => d !== idx)
+                      );
+                    }}
+                    style={{ display: "none" }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 시간/라벨 선택 */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "13px",
+                fontWeight: 500,
+                marginBottom: "8px",
+              }}
+            >
+              {config.slotMode === "time" ? "시간대" : "라벨"}
+            </label>
+            <select
+              className={style.configSelect}
+              style={{ width: "100%" }}
+              value={
+                config.slotMode === "time" ? bulkTimeSlot : bulkLabel
+              }
+              onChange={(e) => {
+                if (config.slotMode === "time") {
+                  setBulkTimeSlot(e.target.value);
+                } else {
+                  setBulkLabel(e.target.value);
+                }
+              }}
+            >
+              <option value="">전체</option>
+              {config.slotMode === "time"
+                ? uniqueTimeSlots.map((ts) => (
+                    <option key={ts} value={ts}>
+                      {ts.replace("~", " ~ ")}
+                    </option>
+                  ))
+                : uniqueLabels.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
+            </select>
+          </div>
+
+          {/* 아이템 선택 */}
+          {uniqueItems.length > 0 && (
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  marginBottom: "8px",
+                }}
+              >
+                아이템
+              </label>
+              <select
+                className={style.configSelect}
+                style={{ width: "100%" }}
+                value={bulkItem}
+                onChange={(e) => setBulkItem(e.target.value)}
+              >
+                <option value="">전체</option>
+                {uniqueItems.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* 메모 */}
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: "13px",
+                fontWeight: 500,
+                marginBottom: "8px",
+              }}
+            >
+              메모 (선택)
+            </label>
+            <textarea
+              className={style.configInput}
+              style={{
+                width: "100%",
+                minHeight: "60px",
+                resize: "vertical",
+              }}
+              placeholder="일괄 신청 메모"
+              value={bulkMemo}
+              onChange={(e) => setBulkMemo(e.target.value)}
+            />
+          </div>
+
+          {/* 매칭 결과 미리보기 */}
+          <div
+            style={{
+              padding: "12px 16px",
+              borderRadius: "8px",
+              background: "var(--background-color-2)",
+            }}
+          >
+            <div style={{ fontWeight: 500, fontSize: "14px" }}>
+              매칭 슬롯: {bulkMatchingSlots.length}건
+            </div>
+            {bulkMatchingSlots.length > 0 && (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-color-2)",
+                  marginTop: "4px",
+                  maxHeight: "120px",
+                  overflow: "auto",
+                }}
+              >
+                {bulkMatchingSlots.slice(0, 20).map((s) => (
+                  <div key={s._id}>
+                    {s.date} · {formatSlotLabel(s)}
+                  </div>
+                ))}
+                {bulkMatchingSlots.length > 20 && (
+                  <div>... 외 {bulkMatchingSlots.length - 20}건</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Button
+            type="ghost"
+            onClick={handleBulkApply}
+            disabled={isSubmitting || bulkMatchingSlots.length === 0}
+            style={{ alignSelf: "flex-end" }}
+          >
+            {isSubmitting
+              ? "신청 중..."
+              : `${bulkMatchingSlots.length}건 일괄 신청`}
+          </Button>
+        </div>
       )}
 
       {/* 신청 팝업 */}
@@ -504,7 +868,10 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
                       value={applyFormResponses[idx]?.value || ""}
                       onChange={(e) => {
                         const next = [...applyFormResponses];
-                        next[idx] = { label: field.label, value: e.target.value };
+                        next[idx] = {
+                          label: field.label,
+                          value: e.target.value,
+                        };
                         setApplyFormResponses(next);
                       }}
                     >
@@ -518,12 +885,19 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
                   ) : field.type === "textarea" ? (
                     <textarea
                       className={style.configInput}
-                      style={{ width: "100%", minHeight: "80px", resize: "vertical" }}
+                      style={{
+                        width: "100%",
+                        minHeight: "80px",
+                        resize: "vertical",
+                      }}
                       placeholder={`${field.label}을(를) 입력하세요`}
                       value={applyFormResponses[idx]?.value || ""}
                       onChange={(e) => {
                         const next = [...applyFormResponses];
-                        next[idx] = { label: field.label, value: e.target.value };
+                        next[idx] = {
+                          label: field.label,
+                          value: e.target.value,
+                        };
                         setApplyFormResponses(next);
                       }}
                     />
@@ -535,7 +909,10 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
                       value={applyFormResponses[idx]?.value || ""}
                       onChange={(e) => {
                         const next = [...applyFormResponses];
-                        next[idx] = { label: field.label, value: e.target.value };
+                        next[idx] = {
+                          label: field.label,
+                          value: e.target.value,
+                        };
                         setApplyFormResponses(next);
                       }}
                     />
@@ -621,6 +998,12 @@ const ReservationApplyPanel = ({ postId, config, schoolId, board }: Props) => {
                     : detailReservation.label}
                 </span>
               </div>
+              {detailReservation.item && (
+                <div className={style.configRow}>
+                  <label>아이템</label>
+                  <span>{detailReservation.item}</span>
+                </div>
+              )}
               <div className={style.configRow}>
                 <label>상태</label>
                 <ReservationStatusBadge status={detailReservation.status} />

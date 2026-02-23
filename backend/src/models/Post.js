@@ -210,6 +210,38 @@ const reservationConfigSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // 예약 활성화 여부
+    isReservationActive: {
+      type: Boolean,
+      default: true,
+    },
+    // 일괄 신청 허용 여부
+    allowBulkApply: {
+      type: Boolean,
+      default: false,
+    },
+    // 아이템 목록 (개별 자원, 예: "101호", "102호")
+    items: {
+      type: [String],
+      default: [],
+    },
+    // 사전 예약 제한 (슬롯 기준 상대 제한)
+    advanceBooking: {
+      type: mongoose.Schema(
+        {
+          openBefore: {
+            value: { type: Number, default: 0 },
+            unit: { type: String, enum: ["hours", "days"], default: "days" },
+          },
+          closeBefore: {
+            value: { type: Number, default: 0 },
+            unit: { type: String, enum: ["hours", "days"], default: "hours" },
+          },
+        },
+        { _id: false }
+      ),
+      default: null,
+    },
     // 신청 양식 (신청자가 작성해야 할 폼 필드)
     applicationForm: {
       type: [
@@ -234,6 +266,7 @@ const reservationConfigSchema = mongoose.Schema(
             },
           ],
           labels: [String],
+          items: [String],
           capacity: { type: Number, default: 1 },
         },
         { _id: false }

@@ -3153,6 +3153,7 @@ export default function useAPIv2() {
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers | null;
       surveys?: TSurvey[];
+      reservationConfig?: TReservationConfig | null;
     };
   }) {
     const { post } = await database.U({
@@ -3708,7 +3709,9 @@ export default function useAPIv2() {
    * @version 1.0.0
    * @auth user
    */
-  async function RChatUsers(props: { query?: { q?: string; sid?: string } }) {
+  async function RChatUsers(props: {
+    query?: { q?: string; sid?: string; seasonId?: string };
+  }) {
     const { users } = await database.R({
       location: "chats/users" + QUERY_BUILDER(props.query),
     });

@@ -80,6 +80,7 @@ export const create = async (req, res) => {
       ...(slotMode === "time"
         ? { startTime: req.body.startTime, endTime: req.body.endTime }
         : { label: req.body.label }),
+      ...(req.body.item ? { item: req.body.item } : {}),
       capacity: req.body.capacity ?? post.reservationConfig?.defaultCapacity ?? 1,
       memo: req.body.memo || "",
     });
@@ -166,35 +167,39 @@ export const createBulk = async (req, res) => {
     const existingKeys = new Set(
       existingSlots.map((s) =>
         slotMode === "time"
-          ? `${s.date}_${s.startTime}_${s.endTime}`
-          : `${s.date}_${s.label}`
+          ? `${s.date}_${s.startTime}_${s.endTime}_${s.item || ""}`
+          : `${s.date}_${s.label}_${s.item || ""}`
       )
     );
 
-    // 슬롯 데이터 생성
+    // 슬롯 데이터 생성 (dates × timeSlots/labels × items 데카르트 곱)
     const slotsToCreate = [];
-    const items = slotMode === "time" ? rule.timeSlots : rule.labels;
+    const slotItems = slotMode === "time" ? rule.timeSlots : rule.labels;
+    const resourceItems = rule.items && rule.items.length > 0 ? rule.items : [null];
 
     for (const { date, dayOfWeek } of dates) {
-      for (const item of items) {
-        const key =
-          slotMode === "time"
-            ? `${date}_${item.startTime}_${item.endTime}`
-            : `${date}_${item}`;
+      for (const slotItem of slotItems) {
+        for (const resourceItem of resourceItems) {
+          const key =
+            slotMode === "time"
+              ? `${date}_${slotItem.startTime}_${slotItem.endTime}_${resourceItem || ""}`
+              : `${date}_${slotItem}_${resourceItem || ""}`;
 
-        if (existingKeys.has(key)) continue;
+          if (existingKeys.has(key)) continue;
 
-        slotsToCreate.push({
-          post: post._id,
-          board: board._id,
-          school: board.school,
-          date,
-          dayOfWeek,
-          ...(slotMode === "time"
-            ? { startTime: item.startTime, endTime: item.endTime }
-            : { label: item }),
-          capacity,
-        });
+          slotsToCreate.push({
+            post: post._id,
+            board: board._id,
+            school: board.school,
+            date,
+            dayOfWeek,
+            ...(slotMode === "time"
+              ? { startTime: slotItem.startTime, endTime: slotItem.endTime }
+              : { label: slotItem }),
+            ...(resourceItem ? { item: resourceItem } : {}),
+            capacity,
+          });
+        }
       }
     }
 
@@ -209,12 +214,11 @@ export const createBulk = async (req, res) => {
       await post.save();
     }
 
+    const totalPossible = dates.length * slotItems.length * resourceItems.length;
     return res.status(200).send({
       reservationSlots: created,
       created: created.length,
-      skipped: slotsToCreate.length === 0
-        ? dates.length * items.length
-        : dates.length * items.length - slotsToCreate.length - (dates.length * items.length - slotsToCreate.length - created.length),
+      skipped: totalPossible - created.length,
     });
   } catch (err) {
     logger.error(err.message);
@@ -269,10 +273,11 @@ export const find = async (req, res) => {
     if (req.query.status) query.status = req.query.status;
     if (req.query.date) query.date = req.query.date;
     if (req.query.dayOfWeek !== undefined) query.dayOfWeek = parseInt(req.query.dayOfWeek);
+    if (req.query.item) query.item = req.query.item;
 
     const slots = await ReservationSlot(req.user.academyId)
       .find(query)
-      .sort({ date: 1, startTime: 1, label: 1 });
+      .sort({ date: 1, startTime: 1, label: 1, item: 1 });
 
     return res.status(200).send({ reservationSlots: slots });
   } catch (err) {

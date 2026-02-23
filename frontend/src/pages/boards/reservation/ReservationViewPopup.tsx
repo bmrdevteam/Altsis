@@ -16,7 +16,7 @@ type Props = {
 };
 
 const ReservationViewPopup = ({ setState, post, board, canManage }: Props) => {
-  const config = post.reservationConfig!;
+  const [config, setConfig] = useState(post.reservationConfig!);
   const [activeView, setActiveView] = useState<"apply" | "manage">(
     canManage ? "manage" : "apply"
   );
@@ -95,6 +95,7 @@ const ReservationViewPopup = ({ setState, post, board, canManage }: Props) => {
             postId={post._id}
             config={config}
             board={board}
+            onConfigUpdate={setConfig}
           />
         ) : (
           <ReservationApplyPanel

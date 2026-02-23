@@ -99,10 +99,16 @@ const SlotCalendarView = ({
   const selectedSlots = selectedDate ? slotsByDate[selectedDate] || [] : [];
 
   const formatSlotLabel = (slot: TReservationSlot) => {
+    let text = "";
     if (slotMode === "time") {
-      return `${slot.startTime} ~ ${slot.endTime}`;
+      text = `${slot.startTime} ~ ${slot.endTime}`;
+    } else {
+      text = slot.label || "";
     }
-    return slot.label || "";
+    if (slot.item) {
+      text += ` · ${slot.item}`;
+    }
+    return text;
   };
 
   return (
@@ -196,11 +202,14 @@ const SlotCalendarView = ({
           ) : (
             <div className={style.slotList}>
               {selectedSlots
-                .sort((a, b) =>
-                  slotMode === "time"
-                    ? (a.startTime || "").localeCompare(b.startTime || "")
-                    : (a.label || "").localeCompare(b.label || "")
-                )
+                .sort((a, b) => {
+                  const primary =
+                    slotMode === "time"
+                      ? (a.startTime || "").localeCompare(b.startTime || "")
+                      : (a.label || "").localeCompare(b.label || "");
+                  if (primary !== 0) return primary;
+                  return (a.item || "").localeCompare(b.item || "");
+                })
                 .map((slot) => (
                   <div key={slot._id} className={style.slotCard}>
                     <div className={style.slotInfo}>

@@ -90,6 +90,7 @@
   .chat_list_items {
     flex: 1;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 8px;
 
     .empty {
@@ -733,6 +734,14 @@
           height: 18px;
           cursor: pointer;
         }
+      }
+
+      .user_avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
       }
 
       .user_info {
@@ -1624,6 +1633,7 @@
   .sidebar_list {
     flex: 1;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 8px;
   }
 

@@ -61,6 +61,13 @@ const execCreateReservation = async (req, slotId) => {
   const config = post.reservationConfig;
   const requireApproval = config?.requireApproval ?? true;
 
+  // 예약 활성화 확인
+  if (config?.isReservationActive === false) {
+    const err = new Error("예약이 비활성화되었습니다.");
+    err.status = 409;
+    throw err;
+  }
+
   // 정원 확인 (자동 승인 모드에서만 즉시 체크)
   if (!requireApproval && slot.currentCount >= slot.capacity) {
     const err = new Error("정원이 초과되었습니다.");
@@ -109,6 +116,44 @@ const execCreateReservation = async (req, slotId) => {
     throw err;
   }
 
+  // 사전 예약 제한 확인 (슬롯 기준 상대 제한)
+  if (config?.advanceBooking) {
+    const { openBefore, closeBefore } = config.advanceBooking;
+
+    // 슬롯 날짜/시간 기준점 계산
+    const slotDateTime = slot.startTime
+      ? new Date(`${slot.date}T${slot.startTime}:00`)
+      : new Date(`${slot.date}T00:00:00`);
+
+    if (openBefore && openBefore.value > 0) {
+      const openTime = new Date(slotDateTime);
+      if (openBefore.unit === "days") {
+        openTime.setDate(openTime.getDate() - openBefore.value);
+      } else {
+        openTime.setHours(openTime.getHours() - openBefore.value);
+      }
+      if (now < openTime) {
+        const err = new Error("아직 예약 오픈 전입니다.");
+        err.status = 409;
+        throw err;
+      }
+    }
+
+    if (closeBefore && closeBefore.value > 0) {
+      const closeTime = new Date(slotDateTime);
+      if (closeBefore.unit === "days") {
+        closeTime.setDate(closeTime.getDate() - closeBefore.value);
+      } else {
+        closeTime.setHours(closeTime.getHours() - closeBefore.value);
+      }
+      if (now > closeTime) {
+        const err = new Error("예약 마감 시간이 지났습니다.");
+        err.status = 409;
+        throw err;
+      }
+    }
+  }
+
   // 예약 생성
   const status = requireApproval ? "pending" : "approved";
   const reservationData = {
@@ -123,6 +168,7 @@ const execCreateReservation = async (req, slotId) => {
     startTime: slot.startTime,
     endTime: slot.endTime,
     label: slot.label,
+    item: slot.item,
     status,
     memo: req.body.memo || "",
   };
@@ -310,7 +356,7 @@ export const find = async (req, res) => {
 
     const reservations = await Reservation(req.user.academyId)
       .find(query)
-      .sort({ date: 1, startTime: 1, label: 1, createdAt: -1 });
+      .sort({ date: 1, startTime: 1, label: 1, item: 1, createdAt: -1 });
 
     return res.status(200).send({ reservations });
   } catch (err) {
@@ -341,7 +387,7 @@ export const findMy = async (req, res) => {
 
     const reservations = await Reservation(req.user.academyId)
       .find(query)
-      .sort({ date: 1, startTime: 1, label: 1 });
+      .sort({ date: 1, startTime: 1, label: 1, item: 1 });
 
     return res.status(200).send({ reservations });
   } catch (err) {

@@ -78,6 +78,7 @@ const reservationSchema = mongoose.Schema(
     startTime: String,
     endTime: String,
     label: String,
+    item: String,
 
     // 상태
     status: {

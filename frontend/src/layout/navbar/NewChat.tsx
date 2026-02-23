@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TChatRoom, TChatUser } from "types/chat";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
+import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./chat.module.scss";
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
 };
 
 const NewChat = ({ onClose, onChatCreated }: Props) => {
-  const { currentUser, currentSchool } = useAuth();
+  const { currentUser, currentSchool, currentRegistration } = useAuth();
   const { ChatAPI } = useAPIv2();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,32 +23,32 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
-  const searchUsers = async (query: string) => {
-    setIsLoading(true);
-    try {
-      const { users } = await ChatAPI.RChatUsers({
-        query: {
-          q: query || undefined,
-          sid: currentSchool?.school || undefined,
-        },
-      });
-      setUsers(users);
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    searchUsers("");
-  }, []);
+  const searchUsers = useCallback(
+    async (query: string) => {
+      setIsLoading(true);
+      try {
+        const { users } = await ChatAPI.RChatUsers({
+          query: {
+            q: query || undefined,
+            sid: currentSchool?.school || undefined,
+            seasonId: currentRegistration?.season || undefined,
+          },
+        });
+        setUsers(users);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
+      setIsLoading(false);
+    },
+    [currentSchool?.school, currentRegistration?.season]
+  );
 
   useEffect(() => {
     const debounce = setTimeout(() => {
       searchUsers(searchQuery);
     }, 300);
     return () => clearTimeout(debounce);
-  }, [searchQuery]);
+  }, [searchQuery, searchUsers]);
 
   useEffect(() => {
     if (currentUser) {
@@ -86,16 +87,17 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
 
     setIsCreating(true);
     try {
+      const isDirect = selectedUsers.length === 1;
       const { room } = await ChatAPI.CChatRoom({
         data: {
-          type: "group",
+          type: isDirect ? "direct" : "group",
           participants: selectedUsers.map((user) => ({
             user: user._id,
             userId: user.userId,
             userName: user.userName,
             profile: user.profile,
           })),
-          name: groupName || undefined,
+          name: isDirect ? undefined : groupName || undefined,
         },
       });
       onChatCreated(room);
@@ -165,6 +167,11 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
                     onChange={() => {}}
                   />
                 </div>
+                <img
+                  src={user.profile || defaultProfilePic}
+                  alt={user.userName}
+                  className={style.user_avatar}
+                />
                 <div className={style.user_info}>
                   <div className={style.user_name}>{user.userName}</div>
                   <div className={style.user_id}>{user.userId}</div>

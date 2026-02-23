@@ -14,6 +14,7 @@ type Props = {
   defaultCapacity: number;
   onCreated: () => void;
   template?: TSlotRuleTemplate;
+  configItems?: string[];
 };
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -25,6 +26,7 @@ const SlotBulkCreateForm = ({
   defaultCapacity,
   onCreated,
   template,
+  configItems,
 }: Props) => {
   const { ReservationSlotAPI } = useAPIv2();
 
@@ -48,9 +50,14 @@ const SlotBulkCreateForm = ({
       : [{ startTime: "09:00", endTime: "10:00" }]
   );
 
-  // 라벨 모드
-  const [labels, setLabels] = useState<string[]>(
-    template?.labels?.length ? template.labels : [""]
+  // 라벨 모드 (쉼표 구분 입력)
+  const [labelsText, setLabelsText] = useState(
+    template?.labels?.length ? template.labels.join(", ") : ""
+  );
+
+  // 아이템 (쉼표 구분 입력)
+  const [itemsText, setItemsText] = useState(
+    (template?.items || configItems || []).join(", ")
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,19 +91,6 @@ const SlotBulkCreateForm = ({
     setTimeSlots((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const addLabel = () => {
-    setLabels([...labels, ""]);
-  };
-
-  const updateLabel = (idx: number, value: string) => {
-    setLabels((prev) => prev.map((l, i) => (i === idx ? value : l)));
-  };
-
-  const removeLabel = (idx: number) => {
-    if (labels.length <= 1) return;
-    setLabels((prev) => prev.filter((_, i) => i !== idx));
-  };
-
   const addExcludeDate = () => {
     if (!excludeDateInput) return;
     if (excludeDates.includes(excludeDateInput)) return;
@@ -118,6 +112,15 @@ const SlotBulkCreateForm = ({
       return;
     }
 
+    const parsedLabels = labelsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const parsedItems = itemsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     if (slotMode === "time") {
       const invalid = timeSlots.some((ts) => !ts.startTime || !ts.endTime);
       if (invalid) {
@@ -125,9 +128,8 @@ const SlotBulkCreateForm = ({
         return;
       }
     } else {
-      const invalid = labels.some((l) => !l.trim());
-      if (invalid) {
-        alert("모든 라벨을 입력해주세요.");
+      if (parsedLabels.length === 0) {
+        alert("최소 하나의 라벨을 입력해주세요.");
         return;
       }
     }
@@ -145,7 +147,11 @@ const SlotBulkCreateForm = ({
       if (slotMode === "time") {
         rule.timeSlots = timeSlots;
       } else {
-        rule.labels = labels.map((l) => l.trim());
+        rule.labels = parsedLabels;
+      }
+
+      if (parsedItems.length > 0) {
+        rule.items = parsedItems;
       }
 
       const res = await ReservationSlotAPI.CReservationSlotsBulk({
@@ -265,35 +271,32 @@ const SlotBulkCreateForm = ({
           </div>
         )}
 
-        {/* 슬롯 (라벨 모드) */}
+        {/* 슬롯 (라벨 모드) - 쉼표 구분 입력 */}
         {slotMode === "label" && (
           <div className={style.bulkFormRow}>
             <span className={style.bulkFormLabel}>슬롯 라벨</span>
-            <div className={style.timeSlotGroup}>
-              {labels.map((label, idx) => (
-                <div key={idx} className={style.timeSlotRow}>
-                  <input
-                    className={style.labelInput}
-                    placeholder={`예: ${idx + 1}교시`}
-                    value={label}
-                    onChange={(e) => updateLabel(idx, e.target.value)}
-                  />
-                  {labels.length > 1 && (
-                    <button
-                      className={style.removeBtn}
-                      onClick={() => removeLabel(idx)}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button className={style.addSlotBtn} onClick={addLabel}>
-                + 라벨 추가
-              </button>
-            </div>
+            <input
+              className={style.configInput}
+              placeholder="예: 1교시, 2교시, 3교시 (쉼표로 구분)"
+              value={labelsText}
+              onChange={(e) => setLabelsText(e.target.value)}
+            />
           </div>
         )}
+
+        {/* 아이템 (쉼표 구분 입력) */}
+        <div className={style.bulkFormRow}>
+          <span className={style.bulkFormLabel}>아이템</span>
+          <input
+            className={style.configInput}
+            placeholder="예: 101호, 102호 (쉼표로 구분, 선택)"
+            value={itemsText}
+            onChange={(e) => setItemsText(e.target.value)}
+          />
+          <p className={style.configHint} style={{ marginTop: "4px" }}>
+            비워두면 아이템 구분 없이 슬롯을 생성합니다.
+          </p>
+        </div>
 
         {/* 정원 */}
         <div className={style.bulkFormRow}>

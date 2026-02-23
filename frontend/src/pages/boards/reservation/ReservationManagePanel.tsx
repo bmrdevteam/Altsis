@@ -3,6 +3,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
+import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
 import {
   TReservationSlot,
@@ -23,10 +24,11 @@ type Props = {
   postId: string;
   config: TReservationConfig;
   board: TBoard;
+  onConfigUpdate?: (config: TReservationConfig) => void;
 };
 
-const ReservationManagePanel = ({ postId, config, board }: Props) => {
-  const { ReservationSlotAPI, ReservationAPI } = useAPIv2();
+const ReservationManagePanel = ({ postId, config, board, onConfigUpdate }: Props) => {
+  const { ReservationSlotAPI, ReservationAPI, PostAPI } = useAPIv2();
 
   const [slots, setSlots] = useState<TReservationSlot[]>([]);
   const [reservations, setReservations] = useState<TReservation[]>([]);
@@ -48,6 +50,10 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
   // 예약 상세 팝업
   const [detailReservation, setDetailReservation] =
     useState<TReservation | null>(null);
+  // 예약 활성화 상태
+  const [isReservationActive, setIsReservationActive] = useState(
+    config.isReservationActive !== false
+  );
 
   const loadData = () => {
     setIsLoading(true);
@@ -69,6 +75,24 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
   useEffect(() => {
     loadData();
   }, [postId]);
+
+  // 예약 활성화/비활성화 토글
+  const handleToggleActive = async (active: boolean) => {
+    try {
+      await PostAPI.UPost({
+        params: { _id: postId },
+        data: {
+          reservationConfig: { ...config, isReservationActive: active },
+        },
+      });
+      setIsReservationActive(active);
+      if (onConfigUpdate) {
+        onConfigUpdate({ ...config, isReservationActive: active });
+      }
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
 
   // 슬롯 삭제
   const handleDeleteSlot = async (slotId: string) => {
@@ -186,11 +210,17 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
       ? reservations
       : reservations.filter((r) => r.status === statusFilter);
 
-  const formatSlotLabel = (slot: { startTime?: string; endTime?: string; label?: string }) => {
+  const formatSlotLabel = (slot: { startTime?: string; endTime?: string; label?: string; item?: string }) => {
+    let text = "";
     if (config.slotMode === "time") {
-      return `${slot.startTime} ~ ${slot.endTime}`;
+      text = `${slot.startTime} ~ ${slot.endTime}`;
+    } else {
+      text = slot.label || "";
     }
-    return slot.label || "";
+    if (slot.item) {
+      text += ` · ${slot.item}`;
+    }
+    return text;
   };
 
   const formatDate = (dateStr: string) => {
@@ -222,23 +252,56 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
 
   return (
     <div className={style.manageContainer}>
-      {/* 통계 */}
-      <div className={style.statsRow}>
-        <div className={style.statCard}>
-          <span className={style.statValue}>{stats.totalSlots}</span>
-          <span className={style.statLabel}>전체 슬롯</span>
+      {/* 예약 활성화 토글 + 통계 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "12px",
+        }}
+      >
+        <div className={style.statsRow} style={{ marginBottom: 0 }}>
+          <div className={style.statCard}>
+            <span className={style.statValue}>{stats.totalSlots}</span>
+            <span className={style.statLabel}>전체 슬롯</span>
+          </div>
+          <div className={style.statCard}>
+            <span className={style.statValue}>{stats.openSlots}</span>
+            <span className={style.statLabel}>예약 가능</span>
+          </div>
+          <div className={style.statCard}>
+            <span className={style.statValue}>{stats.pending}</span>
+            <span className={style.statLabel}>대기</span>
+          </div>
+          <div className={style.statCard}>
+            <span className={style.statValue}>{stats.approved}</span>
+            <span className={style.statLabel}>승인</span>
+          </div>
         </div>
-        <div className={style.statCard}>
-          <span className={style.statValue}>{stats.openSlots}</span>
-          <span className={style.statLabel}>예약 가능</span>
-        </div>
-        <div className={style.statCard}>
-          <span className={style.statValue}>{stats.pending}</span>
-          <span className={style.statLabel}>대기</span>
-        </div>
-        <div className={style.statCard}>
-          <span className={style.statValue}>{stats.approved}</span>
-          <span className={style.statLabel}>승인</span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              fontSize: "13px",
+              color: isReservationActive
+                ? "var(--status-success)"
+                : "var(--text-color-2)",
+              fontWeight: 500,
+            }}
+          >
+            {isReservationActive ? "예약 활성화" : "예약 비활성화"}
+          </span>
+          <ToggleSwitch
+            defaultChecked={isReservationActive}
+            onChange={handleToggleActive}
+          />
         </div>
       </div>
 
@@ -329,11 +392,14 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
           {selectedDate && (
             <div>
               {getSlotsForDate(selectedDate)
-                .sort((a, b) =>
-                  config.slotMode === "time"
-                    ? (a.startTime || "").localeCompare(b.startTime || "")
-                    : (a.label || "").localeCompare(b.label || "")
-                )
+                .sort((a, b) => {
+                  const primary =
+                    config.slotMode === "time"
+                      ? (a.startTime || "").localeCompare(b.startTime || "")
+                      : (a.label || "").localeCompare(b.label || "");
+                  if (primary !== 0) return primary;
+                  return (a.item || "").localeCompare(b.item || "");
+                })
                 .map((slot) => (
                   <div
                     key={slot._id}
@@ -455,6 +521,7 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
                   <th>신청자</th>
                   <th>날짜</th>
                   <th>{config.slotMode === "time" ? "시간" : "슬롯"}</th>
+                  {config.items && config.items.length > 0 && <th>아이템</th>}
                   {config.requireApproval && <th>지정 승인자</th>}
                   <th>상태</th>
                   <th style={{ width: "120px" }}>관리</th>
@@ -484,7 +551,14 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
                         {reservation.userName} ({reservation.userId})
                       </td>
                       <td>{formatDate(reservation.date)}</td>
-                      <td>{formatSlotLabel(reservation)}</td>
+                      <td>
+                        {config.slotMode === "time"
+                          ? `${reservation.startTime} ~ ${reservation.endTime}`
+                          : reservation.label}
+                      </td>
+                      {config.items && config.items.length > 0 && (
+                        <td>{reservation.item || "-"}</td>
+                      )}
                       {config.requireApproval && (
                         <td>
                           {reservation.approverName || (
@@ -546,6 +620,7 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
           defaultCapacity={config.defaultCapacity}
           onCreated={loadData}
           template={config.slotRuleTemplate}
+          configItems={config.items}
         />
       )}
 
@@ -622,11 +697,14 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
               </div>
             ) : (
               getSlotsForDate(detailDate)
-                .sort((a, b) =>
-                  config.slotMode === "time"
-                    ? (a.startTime || "").localeCompare(b.startTime || "")
-                    : (a.label || "").localeCompare(b.label || "")
-                )
+                .sort((a, b) => {
+                  const primary =
+                    config.slotMode === "time"
+                      ? (a.startTime || "").localeCompare(b.startTime || "")
+                      : (a.label || "").localeCompare(b.label || "");
+                  if (primary !== 0) return primary;
+                  return (a.item || "").localeCompare(b.item || "");
+                })
                 .map((slot) => {
                   const slotReservations = reservations.filter(
                     (r) =>
@@ -855,6 +933,12 @@ const ReservationManagePanel = ({ postId, config, board }: Props) => {
                     : detailReservation.label}
                 </span>
               </div>
+              {detailReservation.item && (
+                <div className={style.configRow}>
+                  <label>아이템</label>
+                  <span>{detailReservation.item}</span>
+                </div>
+              )}
               <div className={style.configRow}>
                 <label>상태</label>
                 <ReservationStatusBadge status={detailReservation.status} />

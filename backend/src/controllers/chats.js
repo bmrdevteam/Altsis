@@ -6,7 +6,13 @@
  */
 
 import { logger } from "../log/logger.js";
-import { ChatRoom, ChatMessage, ChatFile, User } from "../models/index.js";
+import {
+  ChatRoom,
+  ChatMessage,
+  ChatFile,
+  User,
+  Registration,
+} from "../models/index.js";
 import { getIoChat } from "../utils/webSocket.js";
 import { chatMulter, isImageFile } from "../_s3/chatMulter.js";
 import { signUrl, signUrlForView } from "../_s3/fileBucket.js";
@@ -872,6 +878,7 @@ export const markAsRead = async (req, res) => {
  * @param {Object} req.query
  * @param {string?} req.query.q - search query (userId or userName)
  * @param {string?} req.query.sid - filter by school ObjectId
+ * @param {string?} req.query.seasonId - filter by season (only users registered in this season)
  *
  * @param {Object} req.user - logged in user
  *
@@ -880,10 +887,20 @@ export const markAsRead = async (req, res) => {
  */
 export const searchUsers = async (req, res) => {
   try {
-    const { q, sid } = req.query;
+    const { q, sid, seasonId } = req.query;
 
     const escapeRegex = (str) =>
       str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // If seasonId is provided, get user IDs from registrations
+    let seasonUserIds = null;
+    if (seasonId) {
+      const registrations = await Registration(req.user.academyId)
+        .find({ season: seasonId })
+        .select("user")
+        .lean();
+      seasonUserIds = registrations.map((r) => r.user);
+    }
 
     const query = {};
     if (q) {
@@ -895,6 +912,9 @@ export const searchUsers = async (req, res) => {
     }
     if (sid) {
       query["schools.school"] = sid;
+    }
+    if (seasonUserIds) {
+      query._id = { $in: seasonUserIds };
     }
 
     const users = await User(req.user.academyId)
