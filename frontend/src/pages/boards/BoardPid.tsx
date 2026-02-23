@@ -29,6 +29,7 @@ import { TPost } from "types/post";
 import BoardManagePopup from "./popup/BoardManage";
 import UserListPopup from "./popup/UserListPopup";
 import PostBlogView from "./views/PostBlogView";
+import AltBoardView from "./altBoard/AltBoardView";
 
 type TPostWithSelection = TPost & { tableRowChecked?: boolean };
 
@@ -92,7 +93,10 @@ const BoardPid = () => {
       .then(({ board }) => {
         setBoard(board);
         setIsLoading(false);
-        setIsPostsLoading(true);
+        // Alt 모드 보드는 게시글 로드 불필요
+        if (board.boardMode !== "alt") {
+          setIsPostsLoading(true);
+        }
       })
       .catch((err) => {
         ALERT_ERROR(err);
@@ -446,102 +450,109 @@ const BoardPid = () => {
           </div>
         </div>
 
-        {/* 툴바: 뷰 모드 전환 + 글쓰기/액션 버튼 */}
-        <div className={bStyle.detailToolbar}>
-          <div />
+        {/* Alt Board 모드 */}
+        {board.boardMode === "alt" ? (
+          <AltBoardView board={board} />
+        ) : (
+          <>
+            {/* 툴바: 뷰 모드 전환 + 글쓰기/액션 버튼 */}
+            <div className={bStyle.detailToolbar}>
+              <div />
 
-          {/* 글쓰기/액션 버튼 */}
-          <div className={bStyle.actionBtns}>
-            {canManageBoard(board) && selectedPosts.length === 0 && (
-              <Button
-                type="ghost"
-                onClick={() =>
-                  handleViewModeChange(
-                    (board.contentViewMode || "table") === "table"
-                      ? "blog"
-                      : "table"
-                  )
-                }
-              >
-                <>
-                  <Svg
-                    type={
-                      (board.contentViewMode || "table") === "table"
-                        ? "article"
-                        : "list"
-                    }
-                    width="16px"
-                    height="16px"
-                  />
-                  보기
-                </>
-              </Button>
-            )}
-            {selectedPosts.length === 0 ? (
-              canWrite() && (
-                <Button
-                  type="ghost"
-                  onClick={() => navigate(`/boards/${board._id}/create`)}
-                >
-                  <>
-                    <Svg type="edit" width="16px" height="16px" />
-                    글쓰기
-                  </>
-                </Button>
-              )
-            ) : (
-              <>
-                {canEditSelected() && selectedPosts.length === 1 && (
-                  <Button type="ghost" onClick={handleEditSelected}>
-                    <>
-                      <Svg type="edit" width="16px" height="16px" />
-                      수정
-                    </>
-                  </Button>
-                )}
-                {canDeleteSelected() && (
+              {/* 글쓰기/액션 버튼 */}
+              <div className={bStyle.actionBtns}>
+                {canManageBoard(board) && selectedPosts.length === 0 && (
                   <Button
                     type="ghost"
-                    onClick={handleDeleteSelected}
-                    style={{ color: "var(--red-1)" }}
+                    onClick={() =>
+                      handleViewModeChange(
+                        (board.contentViewMode || "table") === "table"
+                          ? "blog"
+                          : "table"
+                      )
+                    }
                   >
                     <>
-                      <Svg type="trash" width="16px" height="16px" />
-                      삭제
+                      <Svg
+                        type={
+                          (board.contentViewMode || "table") === "table"
+                            ? "article"
+                            : "list"
+                        }
+                        width="16px"
+                        height="16px"
+                      />
+                      보기
                     </>
                   </Button>
                 )}
-                {canPinSelected() &&
-                  selectedPosts.some((p) => !p.isPinned) && (
+                {selectedPosts.length === 0 ? (
+                  canWrite() && (
                     <Button
                       type="ghost"
-                      onClick={() => handlePinSelected(true)}
+                      onClick={() => navigate(`/boards/${board._id}/create`)}
                     >
                       <>
-                        <Svg type="pin" width="16px" height="16px" />
-                        고정
+                        <Svg type="edit" width="16px" height="16px" />
+                        글쓰기
                       </>
                     </Button>
-                  )}
-                {canPinSelected() &&
-                  selectedPosts.some((p) => p.isPinned) && (
-                    <Button
-                      type="ghost"
-                      onClick={() => handlePinSelected(false)}
-                    >
-                      <>
-                        <Svg type="pinOff" width="16px" height="16px" />
-                        고정해제
-                      </>
-                    </Button>
-                  )}
-              </>
-            )}
-          </div>
-        </div>
+                  )
+                ) : (
+                  <>
+                    {canEditSelected() && selectedPosts.length === 1 && (
+                      <Button type="ghost" onClick={handleEditSelected}>
+                        <>
+                          <Svg type="edit" width="16px" height="16px" />
+                          수정
+                        </>
+                      </Button>
+                    )}
+                    {canDeleteSelected() && (
+                      <Button
+                        type="ghost"
+                        onClick={handleDeleteSelected}
+                        style={{ color: "var(--red-1)" }}
+                      >
+                        <>
+                          <Svg type="trash" width="16px" height="16px" />
+                          삭제
+                        </>
+                      </Button>
+                    )}
+                    {canPinSelected() &&
+                      selectedPosts.some((p) => !p.isPinned) && (
+                        <Button
+                          type="ghost"
+                          onClick={() => handlePinSelected(true)}
+                        >
+                          <>
+                            <Svg type="pin" width="16px" height="16px" />
+                            고정
+                          </>
+                        </Button>
+                      )}
+                    {canPinSelected() &&
+                      selectedPosts.some((p) => p.isPinned) && (
+                        <Button
+                          type="ghost"
+                          onClick={() => handlePinSelected(false)}
+                        >
+                          <>
+                            <Svg type="pinOff" width="16px" height="16px" />
+                            고정해제
+                          </>
+                        </Button>
+                      )}
+                  </>
+                )}
+              </div>
+            </div>
 
-        {/* 게시글 목록 */}
-        {renderPostView()}
+            {/* 게시글 목록 */}
+            {renderPostView()}
+          </>
+        )}
       </div>
 
       {/* 팝업 */}

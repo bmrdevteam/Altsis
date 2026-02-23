@@ -46,6 +46,7 @@ import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
+import AltBoardTab from "./AltBoardTab";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
@@ -651,6 +652,12 @@ const CoursePid = (props: Props) => {
                         }}
                         header={evaluationHeader()}
                       />
+                    </div>
+                  ),
+                  보드: (
+                    <div style={{ marginTop: "16px" }}>
+                      <div className={style.title} style={{ marginBottom: "12px" }}>Alt Board</div>
+                      <AltBoardTab syllabusId={syllabus._id} />
                     </div>
                   ),
                 }}
