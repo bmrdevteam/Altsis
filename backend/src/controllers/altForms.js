@@ -4,7 +4,7 @@
  * @see TAltForm in {@link Models.AltForm}
  */
 import { logger } from "../log/logger.js";
-import { AltForm, AltSheet, AltSheetRow, Board } from "../models/index.js";
+import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
 import { canManageForm, getAltBoardRole } from "../services/altForms.js";
 import {
   FIELD_REQUIRED,
@@ -62,12 +62,54 @@ export const create = async (req, res) => {
     form.sheet = sheet._id;
     await form.save();
 
+    // 캘린더 마감일 동기화
+    syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
+      logger.error(`Form calendar sync failed: ${err.message}`)
+    );
+
     return res.status(200).send({ form, sheet });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
+
+/**
+ * Form 마감일 → CalendarEvent 동기화
+ */
+async function syncFormCalendar(academyId, form, board, user) {
+  const sourceId = `altForm-${form._id}`;
+
+  if (!form.settings?.closeAt) {
+    // closeAt 없으면 기존 이벤트 삭제
+    await CalendarEvent(academyId).deleteMany({
+      sourceType: "altForm",
+      sourceId,
+    });
+    return;
+  }
+
+  const closeAt = new Date(form.settings.closeAt);
+  const eventData = {
+    title: `${board.name} - ${form.title} 마감`,
+    description: "",
+    start: closeAt,
+    end: closeAt,
+    isAllDay: true,
+    scope: "school",
+    school: board.school,
+    user: user._id,
+    sourceType: "altForm",
+    sourceId,
+    color: "#ea4335",
+  };
+
+  await CalendarEvent(academyId).findOneAndUpdate(
+    { sourceType: "altForm", sourceId },
+    eventData,
+    { upsert: true, new: true }
+  );
+}
 
 /**
  * @memberof APIs.AltFormAPI
@@ -187,6 +229,11 @@ export const update = async (req, res) => {
         { $unset: unsetObj }
       );
     }
+
+    // 캘린더 마감일 동기화
+    syncFormCalendar(req.user.academyId, form, board, req.user).catch((err) =>
+      logger.error(`Form calendar sync failed: ${err.message}`)
+    );
 
     return res.status(200).send({ form });
   } catch (err) {

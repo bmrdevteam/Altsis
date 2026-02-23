@@ -2076,6 +2076,21 @@ export default function useAPIv2() {
     });
   }
 
+  async function CSyllabusAltBoard(props: { params: { _id: string } }) {
+    const { board } = await database.C({
+      location: `syllabuses/${props.params._id}/alt-board`,
+      data: {},
+    });
+    return { board: board as TBoard };
+  }
+
+  async function RSyllabusAltBoard(props: { params: { _id: string } }) {
+    const { board } = await database.R({
+      location: `syllabuses/${props.params._id}/alt-board`,
+    });
+    return { board: board as TBoard | null };
+  }
+
   /**
    * ##########################################################################
    * Enrollment API
@@ -3133,11 +3148,16 @@ export default function useAPIv2() {
    * @version 1.0.0
    * @auth user
    */
-  async function RPost(props: { params: { _id: string } }) {
+  async function RPost(props: {
+    params: { _id: string };
+    query?: { merge?: "true"; userId?: string };
+  }) {
     const { post, board } = await database.R({
-      location: `posts/${props.params._id}`,
+      location:
+        `posts/${props.params._id}` +
+        (props.query ? QUERY_BUILDER(props.query) : ""),
     });
-    return { post: post as TPost, board: board as TBoard };
+    return { post: post as TPost & { _mergeApplied?: boolean }, board: board as TBoard };
   }
 
   /**
@@ -4366,6 +4386,8 @@ export default function useAPIv2() {
       USyllabusCoverImage,
       DSyllabusCoverImage,
       DSyllabus,
+      CSyllabusAltBoard,
+      RSyllabusAltBoard,
     },
     EnrollmentAPI: {
       CEnrollment,

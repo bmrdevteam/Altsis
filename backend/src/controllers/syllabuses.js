@@ -16,7 +16,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { courseMulter } from "../_s3/courseMulter.js";
-import { Registration, Syllabus, Enrollment } from "../models/index.js";
+import { Board, Enrollment, Registration, Syllabus } from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
 import _ from "lodash";
 
@@ -1121,6 +1121,143 @@ export const deleteCoverImage = async (req, res) => {
     syllabus.coverImage = undefined;
     await syllabus.save();
     return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function CSyllabusAltBoard API
+ * @description 수업 계획서에서 Alt Board 생성 API (교사가 명시적으로 요청)
+ * @version 1.0.0
+ */
+export const createAltBoard = async (req, res) => {
+  try {
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
+
+    // 교사/관리자만 생성 가능
+    const isCreator = req.user._id.equals(syllabus.user);
+    const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
+    const isManager =
+      req.user.auth === "admin" || req.user.auth === "manager";
+    if (!isCreator && !isMentor && !isManager) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // 이미 생성된 경우
+    if (syllabus.altBoard) {
+      const existingBoard = await Board(req.user.academyId).findById(
+        syllabus.altBoard
+      );
+      if (existingBoard && existingBoard.isActive) {
+        return res.status(200).send({ board: existingBoard });
+      }
+    }
+
+    // slug 생성
+    const baseSlug = `alt-${syllabus.classTitle
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || `class-${Date.now()}`}`;
+
+    let slug = baseSlug;
+    let slugSuffix = 1;
+    while (
+      await Board(req.user.academyId).findOne({
+        school: syllabus.school,
+        slug,
+      })
+    ) {
+      slugSuffix++;
+      slug = `${baseSlug}-${slugSuffix}`;
+    }
+
+    // Alt Board 생성
+    const altBoardRole = new Map();
+    // 교사 → admin
+    for (const teacher of syllabus.teachers) {
+      altBoardRole.set(teacher._id.toString(), "admin");
+    }
+    altBoardRole.set(syllabus.user.toString(), "admin");
+
+    // 수강생 → respondent
+    const enrollments = await Enrollment(req.user.academyId).find({
+      syllabus: syllabus._id,
+    });
+    for (const enrollment of enrollments) {
+      if (!altBoardRole.has(enrollment.student.toString())) {
+        altBoardRole.set(enrollment.student.toString(), "respondent");
+      }
+    }
+
+    const board = await Board(req.user.academyId).create({
+      school: syllabus.school,
+      schoolId: syllabus.schoolId,
+      schoolName: syllabus.schoolName,
+      name: syllabus.classTitle,
+      slug,
+      description: `${syllabus.classTitle} Alt Board`,
+      creator: req.user._id,
+      creatorId: req.user.userId,
+      creatorName: req.user.userName,
+      boardMode: "alt",
+      boardType: "official",
+      syllabus: syllabus._id,
+      altBoardRole,
+      members: {
+        groups: { manager: false, teacher: false, student: false },
+        users: [],
+      },
+      writers: {
+        groups: { manager: false, teacher: false, student: false },
+        users: [],
+      },
+    });
+
+    // Syllabus에 참조 저장
+    syllabus.altBoard = board._id;
+    await syllabus.save();
+
+    return res.status(200).send({ board });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function RSyllabusAltBoard API
+ * @description 수업 계획서의 Alt Board 조회 API
+ * @version 1.0.0
+ */
+export const findAltBoard = async (req, res) => {
+  try {
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
+
+    if (!syllabus.altBoard) {
+      return res.status(200).send({ board: null });
+    }
+
+    const board = await Board(req.user.academyId).findById(syllabus.altBoard);
+    if (!board || !board.isActive) {
+      return res.status(200).send({ board: null });
+    }
+
+    return res.status(200).send({ board });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

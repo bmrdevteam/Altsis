@@ -24,4 +24,8 @@ router.put("/:_id/show", isLoggedIn, syllabuses.showOnCalendar);
 
 router.delete("/:_id", isLoggedIn, syllabuses.remove);
 
+// Alt Board
+router.post("/:_id/alt-board", isLoggedIn, syllabuses.createAltBoard);
+router.get("/:_id/alt-board", isLoggedIn, syllabuses.findAltBoard);
+
 export { router };

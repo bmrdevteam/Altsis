@@ -5,7 +5,9 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { Board, Post, Notification, User, Registration, SurveyResponse, ReservationSlot, Reservation } from "../models/index.js";
+import { AltForm, AltSheet, AltSheetRow, Board, Post, Notification, User, Registration, SurveyResponse, ReservationSlot, Reservation } from "../models/index.js";
+import { parseSheetDeclaration, renderMerge } from "../utils/mergeEngine.js";
+import { getAltBoardRole } from "../services/altForms.js";
 import {
   isBoardMember,
   isBoardWriter,
@@ -355,6 +357,45 @@ export const find = async (req, res) => {
       // 조회수 증가
       post.viewCount = (post.viewCount || 0) + 1;
       await post.save();
+
+      // 머지 렌더링: content에 {{#sheet 시트명}}이 있으면 처리
+      if (req.query.merge === "true" && post.content) {
+        const { sheetName, body } = parseSheetDeclaration(post.content);
+        if (sheetName) {
+          const sheet = await AltSheet(req.user.academyId).findOne({
+            board: board._id,
+            name: sheetName,
+            isActive: true,
+          });
+
+          if (sheet) {
+            const form = await AltForm(req.user.academyId).findById(sheet.form);
+            if (form) {
+              // 열람 대상 행 결정
+              let rowQuery = { sheet: sheet._id, isActive: true };
+              const altRole = getAltBoardRole(board, req.user);
+
+              if (req.query.userId && (altRole === "admin" || altRole === "writer")) {
+                // 교사: 특정 사용자의 행 조회
+                rowQuery._respondent = req.query.userId;
+              } else if (altRole === "respondent") {
+                // 학생: 본인 행만
+                rowQuery._respondent = req.user._id;
+              }
+
+              const rows = await AltSheetRow(req.user.academyId)
+                .find(rowQuery)
+                .sort({ createdAt: 1 })
+                .lean();
+
+              const postObj = post.toObject();
+              postObj.content = renderMerge(body, rows, form.fields);
+              postObj._mergeApplied = true;
+              return res.status(200).send({ post: postObj, board });
+            }
+          }
+        }
+      }
 
       return res.status(200).send({ post, board });
     }
