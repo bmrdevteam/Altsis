@@ -8,6 +8,7 @@ import AltFormList from "./AltFormList";
 import AltFormBuilder from "./AltFormBuilder";
 import AltFormRenderer from "./AltFormRenderer";
 import AltSheetView from "./AltSheetView";
+import AltDocsView from "./AltDocsView";
 
 type Tab = "forms" | "sheet" | "docs";
 
@@ -149,9 +150,7 @@ const AltBoardView = ({ board }: Props) => {
       )}
 
       {activeTab === "docs" && (
-        <div className={style.emptyState}>
-          문서 기능은 게시글 작성 시 병합 태그를 사용하여 이용할 수 있습니다.
-        </div>
+        <AltDocsView board={board} />
       )}
     </div>
   );
