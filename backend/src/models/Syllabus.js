@@ -137,6 +137,9 @@ const syllabusSchema = mongoose.Schema(
     temp: Object,
     coverImage: String,
     coverColor: String,
+
+    // Alt Board 참조
+    altBoard: mongoose.Types.ObjectId,
   },
   { timestamps: true }
 );

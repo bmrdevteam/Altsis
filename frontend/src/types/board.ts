@@ -32,6 +32,8 @@ export type TBoardPermission = {
 export type TBoardContentViewMode = "table" | "blog";
 export type TBoardListViewMode = "table" | "gallery";
 export type TBoardType = "official" | "user";
+export type TBoardMode = "classic" | "alt";
+export type TAltBoardRole = "admin" | "writer" | "respondent";
 
 export type TBoard = {
   _id: string;
@@ -61,6 +63,10 @@ export type TBoard = {
   coverImage?: string;
   coverColor?: string;
   isFavorited?: boolean;
+  // Alt Board 확장 필드
+  boardMode: TBoardMode;
+  syllabus?: string;
+  altBoardRole?: Record<string, TAltBoardRole>;
   createdAt: string;
   updatedAt: string;
 };

@@ -185,6 +185,21 @@ const boardSchema = mongoose.Schema(
     // 커버 이미지/색상
     coverImage: String,
     coverColor: String,
+
+    // Alt Board 확장 필드
+    boardMode: {
+      type: String,
+      enum: ["classic", "alt"],
+      default: "classic",
+    },
+    syllabus: mongoose.Types.ObjectId,
+    altBoardRole: {
+      type: Map,
+      of: {
+        type: String,
+        enum: ["admin", "writer", "respondent"],
+      },
+    },
   },
   { timestamps: true }
 );
