@@ -46,6 +46,8 @@ import {
   TSurveyExportData,
   TSurveyAnswer,
 } from "types/survey";
+import { TAltForm, TAltFormField, TAltFormSettings } from "types/altForm";
+import { TAltSheet, TAltSheetRow } from "types/altSheet";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -4128,6 +4130,132 @@ export default function useAPIv2() {
     return { reservation: reservation as TReservation };
   }
 
+  /**
+   * ##########################################################################
+   * Alt Form API
+   * ##########################################################################
+   */
+
+  async function CAltForm(props: {
+    data: {
+      board: string;
+      title: string;
+      description?: string;
+      fields?: TAltFormField[];
+      settings?: Partial<TAltFormSettings>;
+    };
+  }) {
+    const { form, sheet } = await database.C({
+      location: "alt-forms",
+      data: props.data,
+    });
+    return { form: form as TAltForm, sheet: sheet as TAltSheet };
+  }
+
+  async function RAltForms(props: { query: { board: string } }) {
+    const { forms } = await database.R({
+      location: "alt-forms" + QUERY_BUILDER(props.query),
+    });
+    return { forms: forms as TAltForm[] };
+  }
+
+  async function RAltForm(props: { params: { _id: string } }) {
+    const { form } = await database.R({
+      location: `alt-forms/${props.params._id}`,
+    });
+    return { form: form as TAltForm };
+  }
+
+  async function UAltForm(props: {
+    params: { _id: string };
+    data: {
+      title?: string;
+      description?: string;
+      fields?: TAltFormField[];
+      settings?: Partial<TAltFormSettings>;
+    };
+  }) {
+    const { form } = await database.U({
+      location: `alt-forms/${props.params._id}`,
+      data: props.data,
+    });
+    return { form: form as TAltForm };
+  }
+
+  async function DAltForm(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `alt-forms/${props.params._id}`,
+    });
+  }
+
+  /**
+   * ##########################################################################
+   * Alt Sheet Row API
+   * ##########################################################################
+   */
+
+  async function CAltSheetRow(props: {
+    data: {
+      form: string;
+      data: Record<string, any>;
+    };
+  }) {
+    const { row } = await database.C({
+      location: "alt-sheet-rows",
+      data: props.data,
+    });
+    return { row: row as TAltSheetRow };
+  }
+
+  async function RAltSheetRows(props: { query: { form: string } }) {
+    const { rows } = await database.R({
+      location: "alt-sheet-rows" + QUERY_BUILDER(props.query),
+    });
+    return { rows: rows as TAltSheetRow[] };
+  }
+
+  async function RAltSheetRowMy(props: { query: { form: string } }) {
+    const { row } = await database.R({
+      location: "alt-sheet-rows/my" + QUERY_BUILDER(props.query),
+    });
+    return { row: row as TAltSheetRow | null };
+  }
+
+  async function UAltSheetRow(props: {
+    params: { _id: string };
+    data: { data: Record<string, any> };
+  }) {
+    const { row } = await database.U({
+      location: `alt-sheet-rows/${props.params._id}`,
+      data: props.data,
+    });
+    return { row: row as TAltSheetRow };
+  }
+
+  async function DAltSheetRow(props: { params: { _id: string } }) {
+    return await database.D({
+      location: `alt-sheet-rows/${props.params._id}`,
+    });
+  }
+
+  async function CAltSheetRowsBulk(props: {
+    data: {
+      form: string;
+      rows: {
+        _respondent?: string;
+        _respondentId?: string;
+        _respondentName?: string;
+        data: Record<string, any>;
+      }[];
+    };
+  }) {
+    const { rows, created } = await database.C({
+      location: "alt-sheet-rows/bulk",
+      data: props.data,
+    });
+    return { rows: rows as TAltSheetRow[], created: created as number };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -4387,6 +4515,21 @@ export default function useAPIv2() {
       UReservationsBulkApprove,
       UReservationsBulkReject,
       DReservation,
+    },
+    AltFormAPI: {
+      CAltForm,
+      RAltForms,
+      RAltForm,
+      UAltForm,
+      DAltForm,
+    },
+    AltSheetRowAPI: {
+      CAltSheetRow,
+      RAltSheetRows,
+      RAltSheetRowMy,
+      UAltSheetRow,
+      DAltSheetRow,
+      CAltSheetRowsBulk,
     },
   };
 }

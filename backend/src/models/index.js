@@ -5,6 +5,9 @@
 
 import { Academy } from "../models/Academy.js";
 import { AIUsageLog } from "../models/AIUsageLog.js";
+import { AltForm } from "../models/AltForm.js";
+import { AltSheet } from "../models/AltSheet.js";
+import { AltSheetRow } from "../models/AltSheetRow.js";
 import { Archive } from "../models/Archive.js";
 import { Board } from "../models/Board.js";
 import { BoardFavorite } from "../models/BoardFavorite.js";
@@ -34,6 +37,9 @@ import { UserCalendar } from "../models/UserCalendar.js";
 export {
   Academy,
   AIUsageLog,
+  AltForm,
+  AltSheet,
+  AltSheetRow,
   Archive,
   Board,
   BoardFavorite,

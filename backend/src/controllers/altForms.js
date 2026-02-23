@@ -1,0 +1,240 @@
+/**
+ * AltFormAPI namespace
+ * @namespace APIs.AltFormAPI
+ * @see TAltForm in {@link Models.AltForm}
+ */
+import { logger } from "../log/logger.js";
+import { AltForm, AltSheet, AltSheetRow, Board } from "../models/index.js";
+import { canManageForm, getAltBoardRole } from "../services/altForms.js";
+import {
+  FIELD_REQUIRED,
+  PERMISSION_DENIED,
+  __NOT_FOUND,
+} from "../messages/index.js";
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function CAltForm API
+ * @description Alt Form 생성 API (+ AltSheet 자동 생성)
+ * @version 1.0.0
+ */
+export const create = async (req, res) => {
+  try {
+    for (let field of ["board", "title"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    const board = await Board(req.user.academyId).findById(req.body.board);
+    if (!board || !board.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (board.boardMode !== "alt") {
+      return res.status(400).send({ message: "Alt Board에서만 Form을 생성할 수 있습니다." });
+    }
+
+    if (!canManageForm(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const form = await AltForm(req.user.academyId).create({
+      board: board._id,
+      school: board.school,
+      creator: req.user._id,
+      creatorId: req.user.userId,
+      creatorName: req.user.userName,
+      title: req.body.title,
+      description: req.body.description || "",
+      fields: req.body.fields || [],
+      settings: req.body.settings || { allowResubmit: false },
+    });
+
+    // AltSheet 자동 생성
+    const sheet = await AltSheet(req.user.academyId).create({
+      form: form._id,
+      board: board._id,
+      school: board.school,
+      name: form.title,
+    });
+
+    form.sheet = sheet._id;
+    await form.save();
+
+    return res.status(200).send({ form, sheet });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function RAltForms/RAltForm API
+ * @description Alt Form 목록/상세 조회 API
+ * @version 1.0.0
+ */
+export const find = async (req, res) => {
+  try {
+    /* RAltForm */
+    if (req.params._id) {
+      const form = await AltForm(req.user.academyId).findById(req.params._id);
+      if (!form || !form.isActive) {
+        return res.status(404).send({ message: __NOT_FOUND("form") });
+      }
+
+      const board = await Board(req.user.academyId).findById(form.board);
+      if (!board) {
+        return res.status(404).send({ message: __NOT_FOUND("board") });
+      }
+
+      const role = getAltBoardRole(board, req.user);
+      if (!role) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+
+      return res.status(200).send({ form });
+    }
+
+    /* RAltForms */
+    if (!("board" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("board") });
+    }
+
+    const board = await Board(req.user.academyId).findById(req.query.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const role = getAltBoardRole(board, req.user);
+    if (!role) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const forms = await AltForm(req.user.academyId)
+      .find({ board: board._id, isActive: true })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).send({ forms });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function UAltForm API
+ * @description Alt Form 수정 API
+ * @version 1.0.0
+ */
+export const update = async (req, res) => {
+  try {
+    const form = await AltForm(req.user.academyId).findById(req.params._id);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(form.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageForm(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // 삭제된 필드 추적 (data에서 해당 키 제거용)
+    const deletedFieldIds = [];
+    if (req.body.fields) {
+      const newFieldIds = new Set(
+        req.body.fields.filter((f) => f._id).map((f) => f._id.toString())
+      );
+      for (const oldField of form.fields) {
+        if (!newFieldIds.has(oldField._id.toString())) {
+          deletedFieldIds.push(oldField._id.toString());
+        }
+      }
+    }
+
+    if ("title" in req.body) form.title = req.body.title;
+    if ("description" in req.body) form.description = req.body.description;
+    if ("fields" in req.body) form.fields = req.body.fields;
+    if ("settings" in req.body) {
+      Object.assign(form.settings, req.body.settings);
+      form.markModified("settings");
+    }
+
+    await form.save();
+
+    // Sheet 이름 동기화
+    if ("title" in req.body) {
+      await AltSheet(req.user.academyId).updateOne(
+        { form: form._id },
+        { name: form.title }
+      );
+    }
+
+    // 삭제된 필드의 데이터를 SheetRow에서 제거
+    if (deletedFieldIds.length > 0) {
+      const unsetObj = {};
+      for (const fieldId of deletedFieldIds) {
+        unsetObj[`data.${fieldId}`] = "";
+      }
+      await AltSheetRow(req.user.academyId).updateMany(
+        { form: form._id },
+        { $unset: unsetObj }
+      );
+    }
+
+    return res.status(200).send({ form });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function DAltForm API
+ * @description Alt Form 삭제 API (soft delete, Sheet도 함께)
+ * @version 1.0.0
+ */
+export const remove = async (req, res) => {
+  try {
+    const form = await AltForm(req.user.academyId).findById(req.params._id);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(form.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageForm(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    form.isActive = false;
+    await form.save();
+
+    // Sheet도 비활성화
+    await AltSheet(req.user.academyId).updateOne(
+      { form: form._id },
+      { isActive: false }
+    );
+
+    // SheetRow도 비활성화
+    await AltSheetRow(req.user.academyId).updateMany(
+      { form: form._id },
+      { isActive: false }
+    );
+
+    return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
