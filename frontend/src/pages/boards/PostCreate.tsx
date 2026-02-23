@@ -804,92 +804,97 @@ const PostCreate = () => {
               <Svg type="upload" width="24px" height="24px" />
               <span>{isUploading ? "업로드 중..." : "업로드"}</span>
             </button>
-            <div className={surveyStyle.attachCardWrapper} ref={surveyMenuRef}>
-              <button
-                type="button"
-                className={surveyStyle.attachCard}
-                onClick={() => setShowSurveyMenu((prev) => !prev)}
-              >
-                <Svg type="postAdd" width="24px" height="24px" />
-                <span>설문</span>
-              </button>
-              {showSurveyMenu && (
-                <div className={surveyStyle.attachCardMenu}>
+            {/* Alt Board에서는 설문/예약 첨부 숨김 (자체 양식 시스템 사용) */}
+            {board?.boardMode !== "alt" && (
+              <>
+                <div className={surveyStyle.attachCardWrapper} ref={surveyMenuRef}>
                   <button
                     type="button"
-                    className={surveyStyle.attachCardMenuItem}
-                    onClick={() => {
-                      setShowSurveyMenu(false);
-                      const newSurvey: TSurvey = {
-                        title: "",
-                        description: "",
-                        questions: [],
-                        settings: {
-                          isAnonymous: false,
-                          showResults: "afterResponse",
-                          deadline: null,
-                          allowModify: false,
-                        },
-                        responseCount: 0,
-                      };
-                      setSurveys((prev) => [...prev, newSurvey]);
-                      setEditingSurveyIndex(surveys.length);
-                      setShowSurveyBuilderPopup(true);
-                    }}
+                    className={surveyStyle.attachCard}
+                    onClick={() => setShowSurveyMenu((prev) => !prev)}
                   >
-                    새로 만들기
+                    <Svg type="postAdd" width="24px" height="24px" />
+                    <span>설문</span>
                   </button>
-                  <button
-                    type="button"
-                    className={surveyStyle.attachCardMenuItem}
-                    onClick={() => {
-                      setShowSurveyMenu(false);
-                      setShowSurveyImportPopup(true);
-                    }}
-                  >
-                    가져오기
-                  </button>
+                  {showSurveyMenu && (
+                    <div className={surveyStyle.attachCardMenu}>
+                      <button
+                        type="button"
+                        className={surveyStyle.attachCardMenuItem}
+                        onClick={() => {
+                          setShowSurveyMenu(false);
+                          const newSurvey: TSurvey = {
+                            title: "",
+                            description: "",
+                            questions: [],
+                            settings: {
+                              isAnonymous: false,
+                              showResults: "afterResponse",
+                              deadline: null,
+                              allowModify: false,
+                            },
+                            responseCount: 0,
+                          };
+                          setSurveys((prev) => [...prev, newSurvey]);
+                          setEditingSurveyIndex(surveys.length);
+                          setShowSurveyBuilderPopup(true);
+                        }}
+                      >
+                        새로 만들기
+                      </button>
+                      <button
+                        type="button"
+                        className={surveyStyle.attachCardMenuItem}
+                        onClick={() => {
+                          setShowSurveyMenu(false);
+                          setShowSurveyImportPopup(true);
+                        }}
+                      >
+                        가져오기
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            {!reservationConfig && (
-              <div
-                className={surveyStyle.attachCardWrapper}
-                ref={reservationMenuRef}
-              >
-                <button
-                  type="button"
-                  className={surveyStyle.attachCard}
-                  onClick={() => setShowReservationMenu((prev) => !prev)}
-                >
-                  <Svg type="eventCalendar" width="24px" height="24px" />
-                  <span>예약</span>
-                </button>
-                {showReservationMenu && (
-                  <div className={surveyStyle.attachCardMenu}>
+                {!reservationConfig && (
+                  <div
+                    className={surveyStyle.attachCardWrapper}
+                    ref={reservationMenuRef}
+                  >
                     <button
                       type="button"
-                      className={surveyStyle.attachCardMenuItem}
-                      onClick={() => {
-                        setShowReservationMenu(false);
-                        setShowReservationConfigPopup(true);
-                      }}
+                      className={surveyStyle.attachCard}
+                      onClick={() => setShowReservationMenu((prev) => !prev)}
                     >
-                      새로 만들기
+                      <Svg type="eventCalendar" width="24px" height="24px" />
+                      <span>예약</span>
                     </button>
-                    <button
-                      type="button"
-                      className={surveyStyle.attachCardMenuItem}
-                      onClick={() => {
-                        setShowReservationMenu(false);
-                        setShowReservationImportPopup(true);
-                      }}
-                    >
-                      가져오기
-                    </button>
+                    {showReservationMenu && (
+                      <div className={surveyStyle.attachCardMenu}>
+                        <button
+                          type="button"
+                          className={surveyStyle.attachCardMenuItem}
+                          onClick={() => {
+                            setShowReservationMenu(false);
+                            setShowReservationConfigPopup(true);
+                          }}
+                        >
+                          새로 만들기
+                        </button>
+                        <button
+                          type="button"
+                          className={surveyStyle.attachCardMenuItem}
+                          onClick={() => {
+                            setShowReservationMenu(false);
+                            setShowReservationImportPopup(true);
+                          }}
+                        >
+                          가져오기
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>
