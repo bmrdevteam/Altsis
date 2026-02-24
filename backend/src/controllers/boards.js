@@ -5,7 +5,18 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { Board, BoardFavorite, School } from "../models/index.js";
+import {
+  AltForm,
+  AltSheet,
+  AltSheetRow,
+  Board,
+  BoardFavorite,
+  CalendarEvent,
+  Post,
+  School,
+  SurveyResponse,
+  Syllabus,
+} from "../models/index.js";
 import {
   canManageBoard,
   isBoardMember,
@@ -76,6 +87,9 @@ export const create = async (req, res) => {
     const isAdminOrManager = req.user.auth === "admin" || req.user.auth === "manager";
     const boardType = isAdminOrManager ? "official" : "user";
 
+    const altBoardRole = new Map();
+    altBoardRole.set(req.user._id.toString(), "admin");
+
     const board = await Board(req.user.academyId).create({
       school: school._id,
       schoolId: school.schoolId,
@@ -86,7 +100,9 @@ export const create = async (req, res) => {
       creator: req.user._id,
       creatorId: req.user.userId,
       creatorName: req.user.userName,
+      boardMode: "alt",
       boardType,
+      altBoardRole,
       contentViewMode: req.body.contentViewMode || "blog",
       ...(req.body.coverColor && { coverColor: req.body.coverColor }),
     });
@@ -268,6 +284,16 @@ export const addMemberUser = async (req, res) => {
       });
     }
 
+    // altBoardRole 동기화 (이미 더 높은 역할이면 스킵)
+    if (!board.altBoardRole) board.altBoardRole = new Map();
+    const existingRole = board.altBoardRole.get(req.body.user.toString());
+    if (!existingRole || existingRole === "respondent") {
+      if (!existingRole) {
+        board.altBoardRole.set(req.body.user.toString(), "respondent");
+      }
+    }
+    board.markModified("altBoardRole");
+
     board.markModified("members");
     await board.save();
 
@@ -324,6 +350,11 @@ export const removeMemberUser = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("userId") });
     }
 
+    // 제거할 사용자의 user ObjectId 찾기
+    const removedUser = board.members?.users?.find(
+      (u) => u.userId === req.query.userId
+    );
+
     if (board.members?.users) {
       board.members.users = board.members.users.filter(
         (u) => u.userId !== req.query.userId
@@ -337,6 +368,12 @@ export const removeMemberUser = async (req, res) => {
         (u) => u.userId !== req.query.userId
       );
       board.markModified("writers");
+    }
+
+    // altBoardRole에서도 제거
+    if (removedUser && board.altBoardRole) {
+      board.altBoardRole.delete(removedUser.user.toString());
+      board.markModified("altBoardRole");
     }
 
     await board.save();
@@ -383,6 +420,11 @@ export const addWriterUser = async (req, res) => {
       });
     }
 
+    // altBoardRole을 writer로 승격
+    if (!board.altBoardRole) board.altBoardRole = new Map();
+    board.altBoardRole.set(req.body.user.toString(), "writer");
+    board.markModified("altBoardRole");
+
     board.markModified("writers");
     await board.save();
 
@@ -414,13 +456,32 @@ export const removeWriterUser = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("userId") });
     }
 
+    // 제거할 작성자의 user ObjectId 찾기
+    const removedWriter = board.writers?.users?.find(
+      (u) => u.userId === req.query.userId
+    );
+
     if (board.writers?.users) {
       board.writers.users = board.writers.users.filter(
         (u) => u.userId !== req.query.userId
       );
       board.markModified("writers");
-      await board.save();
     }
+
+    // altBoardRole: 여전히 멤버면 respondent로 강등, 아니면 삭제
+    if (removedWriter && board.altBoardRole) {
+      const isMember = board.members?.users?.some(
+        (u) => u.userId === req.query.userId
+      );
+      if (isMember) {
+        board.altBoardRole.set(removedWriter.user.toString(), "respondent");
+      } else {
+        board.altBoardRole.delete(removedWriter.user.toString());
+      }
+      board.markModified("altBoardRole");
+    }
+
+    await board.save();
 
     return res.status(200).send({ board });
   } catch (err) {
@@ -497,8 +558,45 @@ export const remove = async (req, res) => {
       return res.status(400).send({ message: "기본 보드는 삭제할 수 없습니다." });
     }
 
-    board.isActive = false;
-    await board.save();
+    const academyId = req.user.academyId;
+    const boardId = board._id;
+
+    // 1. 게시글 관련 데이터 삭제
+    const posts = await Post(academyId).find({ board: boardId }).select("_id");
+    const postIds = posts.map((p) => p._id);
+    if (postIds.length > 0) {
+      await SurveyResponse(academyId).deleteMany({ post: { $in: postIds } });
+      await Post(academyId).deleteMany({ board: boardId });
+    }
+
+    // 2. Alt Board 관련 데이터 삭제
+    const altForms = await AltForm(academyId)
+      .find({ board: boardId })
+      .select("_id");
+    const altFormIds = altForms.map((f) => f._id);
+    if (altFormIds.length > 0) {
+      await AltSheetRow(academyId).deleteMany({ board: boardId });
+      await AltSheet(academyId).deleteMany({ board: boardId });
+      await AltForm(academyId).deleteMany({ board: boardId });
+      await CalendarEvent(academyId).deleteMany({
+        sourceType: "altForm",
+        sourceId: { $in: altFormIds.map((id) => `altForm-${id}`) },
+      });
+    }
+
+    // 3. 즐겨찾기 삭제
+    await BoardFavorite(academyId).deleteMany({ board: boardId });
+
+    // 4. Syllabus 참조 해제 (Alt Board인 경우)
+    if (board.syllabus) {
+      await Syllabus(academyId).updateOne(
+        { _id: board.syllabus },
+        { $unset: { altBoard: 1 } }
+      );
+    }
+
+    // 5. 보드 삭제
+    await board.deleteOne();
 
     return res.status(200).send();
   } catch (err) {
@@ -530,6 +628,7 @@ export const createDefaultBoard = async (academyId, school) => {
     slug: "announcements",
     description: "학교 공지사항입니다.",
     isDefault: true,
+    boardMode: "alt",
     members: {
       groups: { manager: true, teacher: true, student: true },
       users: [],

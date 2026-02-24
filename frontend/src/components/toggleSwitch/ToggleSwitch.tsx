@@ -6,16 +6,18 @@ type Props = {
   defaultChecked?: boolean;
   checked?: boolean;
   value?: any;
+  disabled?: boolean;
 };
 
 const ToggleSwitch = (props: Props) => {
   const isControlled = props.checked !== undefined;
 
   return (
-    <label className={style.switch}>
+    <label className={`${style.switch} ${props.disabled ? style.disabled : ""}`}>
       <input
         type="checkbox"
         value={props.value}
+        disabled={props.disabled}
         onChange={(e) => {
           props.onChange && props.onChange(e.target.checked);
         }}

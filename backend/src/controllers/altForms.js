@@ -3,6 +3,7 @@
  * @namespace APIs.AltFormAPI
  * @see TAltForm in {@link Models.AltForm}
  */
+import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
 import { canManageForm, getAltBoardRole } from "../services/altForms.js";
@@ -11,6 +12,13 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+
+/** 필드 배열에 _id가 없는 항목에 자동 생성 */
+const ensureFieldIds = (fields) =>
+  (fields || []).map((f) => ({
+    ...f,
+    _id: f._id || crypto.randomUUID(),
+  }));
 
 /**
  * @memberof APIs.AltFormAPI
@@ -31,10 +39,6 @@ export const create = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (board.boardMode !== "alt") {
-      return res.status(400).send({ message: "Alt Board에서만 Form을 생성할 수 있습니다." });
-    }
-
     if (!canManageForm(board, req.user)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
@@ -47,7 +51,7 @@ export const create = async (req, res) => {
       creatorName: req.user.userName,
       title: req.body.title,
       description: req.body.description || "",
-      fields: req.body.fields || [],
+      fields: ensureFieldIds(req.body.fields),
       settings: req.body.settings || { allowResubmit: false },
     });
 
@@ -133,7 +137,21 @@ export const find = async (req, res) => {
 
       const role = getAltBoardRole(board, req.user);
       if (!role) {
-        return res.status(403).send({ message: PERMISSION_DENIED });
+        // 역할 없지만 승인자로 지정된 경우 접근 허용
+        const approvalFieldIds = form.fields
+          .filter((f) => f.type === "approval")
+          .map((f) => f._id.toString());
+        if (approvalFieldIds.length === 0) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
+        const approverQuery = { form: form._id, isActive: true };
+        approverQuery.$or = approvalFieldIds.map((fid) => ({
+          [`data.${fid}.approver.userId`]: req.user.userId,
+        }));
+        const approverRowCount = await AltSheetRow(req.user.academyId).countDocuments(approverQuery);
+        if (approverRowCount === 0) {
+          return res.status(403).send({ message: PERMISSION_DENIED });
+        }
       }
 
       return res.status(200).send({ form });
@@ -150,13 +168,31 @@ export const find = async (req, res) => {
     }
 
     const role = getAltBoardRole(board, req.user);
-    if (!role) {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
 
     const forms = await AltForm(req.user.academyId)
       .find({ board: board._id, isActive: true })
       .sort({ createdAt: -1 });
+
+    if (!role) {
+      // 역할 없지만 승인자로 지정된 양식만 반환
+      const approverForms = [];
+      for (const form of forms) {
+        const approvalFieldIds = form.fields
+          .filter((f) => f.type === "approval")
+          .map((f) => f._id.toString());
+        if (approvalFieldIds.length === 0) continue;
+        const approverQuery = { form: form._id, isActive: true };
+        approverQuery.$or = approvalFieldIds.map((fid) => ({
+          [`data.${fid}.approver.userId`]: req.user.userId,
+        }));
+        const count = await AltSheetRow(req.user.academyId).countDocuments(approverQuery);
+        if (count > 0) approverForms.push(form);
+      }
+      if (approverForms.length === 0) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+      return res.status(200).send({ forms: approverForms });
+    }
 
     return res.status(200).send({ forms });
   } catch (err) {
@@ -202,7 +238,7 @@ export const update = async (req, res) => {
 
     if ("title" in req.body) form.title = req.body.title;
     if ("description" in req.body) form.description = req.body.description;
-    if ("fields" in req.body) form.fields = req.body.fields;
+    if ("fields" in req.body) form.fields = ensureFieldIds(req.body.fields);
     if ("settings" in req.body) {
       Object.assign(form.settings, req.body.settings);
       form.markModified("settings");
@@ -280,6 +316,174 @@ export const remove = async (req, res) => {
     );
 
     return res.status(200).send();
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function ExportAltForm API
+ * @description Alt Form JSON 내보내기 (구조만, 데이터 제외)
+ */
+export const exportForm = async (req, res) => {
+  try {
+    const form = await AltForm(req.user.academyId).findById(req.params._id);
+    if (!form || !form.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const exported = {
+      title: form.title,
+      description: form.description,
+      fields: form.fields.map((f) => ({
+        label: f.label,
+        type: f.type,
+        permission: f.permission,
+        visibleToRespondent: f.visibleToRespondent,
+        required: f.required,
+        options: f.options,
+        validation: f.validation,
+        order: f.order,
+        displayCondition: f.displayCondition,
+        correctAnswer: f.correctAnswer,
+        points: f.points,
+        duplicateCheck: f.duplicateCheck,
+      })),
+      settings: {
+        allowResubmit: form.settings?.allowResubmit,
+        quizMode: form.settings?.quizMode,
+        quizSettings: form.settings?.quizSettings,
+        directInputMode: form.settings?.directInputMode,
+      },
+    };
+
+    return res.status(200).send({ formData: exported });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function ImportAltForm API
+ * @description Alt Form JSON 가져오기 (새 Form+Sheet 생성)
+ */
+export const importForm = async (req, res) => {
+  try {
+    for (let field of ["board", "formData"]) {
+      if (!(field in req.body)) {
+        return res.status(400).send({ message: FIELD_REQUIRED(field) });
+      }
+    }
+
+    const board = await Board(req.user.academyId).findById(req.body.board);
+    if (!board || !board.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageForm(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const fd = req.body.formData;
+    const form = await AltForm(req.user.academyId).create({
+      board: board._id,
+      school: board.school,
+      creator: req.user._id,
+      creatorId: req.user.userId,
+      creatorName: req.user.userName,
+      title: fd.title || "가져온 양식",
+      description: fd.description || "",
+      fields: ensureFieldIds(fd.fields),
+      settings: fd.settings || { allowResubmit: false },
+    });
+
+    const sheet = await AltSheet(req.user.academyId).create({
+      form: form._id,
+      board: board._id,
+      school: board.school,
+      name: form.title,
+    });
+
+    form.sheet = sheet._id;
+    await form.save();
+
+    return res.status(200).send({ form, sheet });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltFormAPI
+ * @function DuplicateAltForm API
+ * @description Alt Form 복제 (구조만, 데이터 없음)
+ */
+export const duplicate = async (req, res) => {
+  try {
+    const original = await AltForm(req.user.academyId).findById(req.params._id);
+    if (!original || !original.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const board = await Board(req.user.academyId).findById(original.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    if (!canManageForm(board, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // 필드 복제 (새 _id 생성)
+    const clonedFields = original.fields.map((f) => ({
+      _id: crypto.randomUUID(),
+      label: f.label,
+      type: f.type,
+      permission: f.permission,
+      visibleToRespondent: f.visibleToRespondent,
+      required: f.required,
+      options: f.options ? [...f.options] : undefined,
+      validation: f.validation,
+      order: f.order,
+      displayCondition: f.displayCondition,
+      correctAnswer: f.correctAnswer,
+      points: f.points,
+      duplicateCheck: f.duplicateCheck,
+    }));
+
+    const form = await AltForm(req.user.academyId).create({
+      board: original.board,
+      school: original.school,
+      creator: req.user._id,
+      creatorId: req.user.userId,
+      creatorName: req.user.userName,
+      title: `${original.title} (복사)`,
+      description: original.description,
+      fields: clonedFields,
+      settings: {
+        allowResubmit: original.settings?.allowResubmit,
+        quizMode: original.settings?.quizMode,
+        quizSettings: original.settings?.quizSettings,
+        directInputMode: original.settings?.directInputMode,
+      },
+    });
+
+    const sheet = await AltSheet(req.user.academyId).create({
+      form: form._id,
+      board: form.board,
+      school: form.school,
+      name: form.title,
+    });
+
+    form.sheet = sheet._id;
+    await form.save();
+
+    return res.status(200).send({ form, sheet });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

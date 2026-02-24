@@ -190,7 +190,7 @@ const boardSchema = mongoose.Schema(
     boardMode: {
       type: String,
       enum: ["classic", "alt"],
-      default: "classic",
+      default: "alt",
     },
     syllabus: mongoose.Types.ObjectId,
     altBoardRole: {

@@ -1,6 +1,7 @@
 import { TBoardMembers } from "./board";
-import { TPostType, TReservationConfig } from "./reservation";
 import { TSurvey } from "./survey";
+
+export type TPostType = "general" | "survey";
 
 export type TPostAttachment = {
   url: string;
@@ -34,7 +35,6 @@ export type TPost = {
   title: string;
   content: string;
   postType: TPostType;
-  reservationConfig?: TReservationConfig | null;
   category?: string;
   isPinned: boolean;
   isActive: boolean;
@@ -48,4 +48,6 @@ export type TPost = {
   surveys: TSurvey[];
   createdAt: string;
   updatedAt: string;
+  _mergeApplied?: boolean;
+  _mergeFields?: { label: string; type: string }[];
 };

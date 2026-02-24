@@ -1182,19 +1182,39 @@ export const createAltBoard = async (req, res) => {
 
     // Alt Board 생성
     const altBoardRole = new Map();
-    // 교사 → admin
+    const memberUsers = [];
+    const writerUsers = [];
+
+    // 교사 → admin (멤버 + 작성자)
     for (const teacher of syllabus.teachers) {
       altBoardRole.set(teacher._id.toString(), "admin");
+      memberUsers.push({
+        user: teacher._id,
+        userId: teacher.userId,
+        userName: teacher.userName,
+      });
+      writerUsers.push({
+        user: teacher._id,
+        userId: teacher.userId,
+        userName: teacher.userName,
+      });
     }
-    altBoardRole.set(syllabus.user.toString(), "admin");
+    if (!altBoardRole.has(syllabus.user.toString())) {
+      altBoardRole.set(syllabus.user.toString(), "admin");
+    }
 
-    // 수강생 → respondent
+    // 수강생 → respondent (멤버)
     const enrollments = await Enrollment(req.user.academyId).find({
       syllabus: syllabus._id,
     });
     for (const enrollment of enrollments) {
       if (!altBoardRole.has(enrollment.student.toString())) {
         altBoardRole.set(enrollment.student.toString(), "respondent");
+        memberUsers.push({
+          user: enrollment.student,
+          userId: enrollment.studentId,
+          userName: enrollment.studentName,
+        });
       }
     }
 
@@ -1214,11 +1234,11 @@ export const createAltBoard = async (req, res) => {
       altBoardRole,
       members: {
         groups: { manager: false, teacher: false, student: false },
-        users: [],
+        users: memberUsers,
       },
       writers: {
         groups: { manager: false, teacher: false, student: false },
-        users: [],
+        users: writerUsers,
       },
     });
 

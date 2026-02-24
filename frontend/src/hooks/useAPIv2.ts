@@ -31,13 +31,7 @@ import { TNotification, TNotificationSettings } from "types/notification";
 import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
 import { TBoard, TBoardFavorite, TBoardMembers } from "types/board";
 import { TPost, TPostAttachment } from "types/post";
-import {
-  TReservationSlot,
-  TReservation,
-  TSlotBulkRule,
-  TReservationConfig,
-  TPostType,
-} from "types/reservation";
+
 import {
   TSurvey,
   TSurveyResponse,
@@ -3108,8 +3102,7 @@ export default function useAPIv2() {
       board: string;
       title: string;
       content: string;
-      postType?: TPostType;
-      reservationConfig?: TReservationConfig;
+      postType?: string;
       category?: string;
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers;
@@ -3150,7 +3143,7 @@ export default function useAPIv2() {
    */
   async function RPost(props: {
     params: { _id: string };
-    query?: { merge?: "true"; userId?: string };
+    query?: { merge?: "true"; userId?: string; filters?: string };
   }) {
     const { post, board } = await database.R({
       location:
@@ -3175,7 +3168,6 @@ export default function useAPIv2() {
       attachments?: TPostAttachment[];
       permissionRead?: TBoardMembers | null;
       surveys?: TSurvey[];
-      reservationConfig?: TReservationConfig | null;
     };
   }) {
     const { post } = await database.U({
@@ -3230,10 +3222,31 @@ export default function useAPIv2() {
     });
   }
 
-  async function ExportReservationJSON(props: { params: { _id: string } }) {
-    return await database.R({
-      location: `posts/${props.params._id}/export-reservation`,
+  async function RPostMergeBatch(props: {
+    params: { _id: string };
+    query?: { userIds?: string };
+  }) {
+    const { results, title } = await database.R({
+      location:
+        `posts/${props.params._id}/merge-batch` +
+        QUERY_BUILDER(props.query),
     });
+    return {
+      results: results as {
+        userId: string;
+        userName: string;
+        content: string;
+      }[],
+      title: title as string,
+    };
+  }
+
+  async function DuplicatePost(props: { params: { _id: string } }) {
+    const { post } = await database.C({
+      location: `posts/${props.params._id}/duplicate`,
+      data: {},
+    });
+    return { post: post as TPost };
   }
 
   /**
@@ -3961,197 +3974,6 @@ export default function useAPIv2() {
 
   /**
    * ##########################################################################
-   * ReservationSlot API
-   * ##########################################################################
-   */
-
-  async function CReservationSlot(props: {
-    data: {
-      post: string;
-      date: string;
-      startTime?: string;
-      endTime?: string;
-      label?: string;
-      capacity?: number;
-      memo?: string;
-    };
-  }) {
-    const { reservationSlot } = await database.C({
-      location: "reservation-slots",
-      data: props.data,
-    });
-    return { reservationSlot: reservationSlot as TReservationSlot };
-  }
-
-  async function CReservationSlotsBulk(props: {
-    data: { post: string; rule: TSlotBulkRule };
-  }) {
-    const { reservationSlots, created } = await database.C({
-      location: "reservation-slots/bulk",
-      data: props.data,
-    });
-    return {
-      reservationSlots: reservationSlots as TReservationSlot[],
-      created: created as number,
-    };
-  }
-
-  async function RReservationSlots(props: {
-    query: {
-      post: string;
-      status?: string;
-      date?: string;
-      dayOfWeek?: number;
-    };
-  }) {
-    const { reservationSlots } = await database.R({
-      location: "reservation-slots" + QUERY_BUILDER(props.query),
-    });
-    return { reservationSlots: reservationSlots as TReservationSlot[] };
-  }
-
-  async function RReservationSlot(props: { params: { _id: string } }) {
-    const { reservationSlot } = await database.R({
-      location: `reservation-slots/${props.params._id}`,
-    });
-    return { reservationSlot: reservationSlot as TReservationSlot };
-  }
-
-  async function UReservationSlot(props: {
-    params: { _id: string };
-    data: {
-      capacity?: number;
-      memo?: string;
-      status?: string;
-    };
-  }) {
-    const { reservationSlot } = await database.U({
-      location: `reservation-slots/${props.params._id}`,
-      data: props.data,
-    });
-    return { reservationSlot: reservationSlot as TReservationSlot };
-  }
-
-  async function DReservationSlot(props: { params: { _id: string } }) {
-    return await database.D({
-      location: `reservation-slots/${props.params._id}`,
-    });
-  }
-
-  async function DReservationSlotsBulk(props: {
-    data: { ids: string[] };
-  }) {
-    return await database.D({
-      location: "reservation-slots/bulk",
-      ...({ data: props.data } as any),
-    });
-  }
-
-  /**
-   * ##########################################################################
-   * Reservation API
-   * ##########################################################################
-   */
-
-  async function CReservation(props: {
-    data: { slot: string; memo?: string };
-  }) {
-    const { reservation } = await database.C({
-      location: "reservations",
-      data: props.data,
-    });
-    return { reservation: reservation as TReservation };
-  }
-
-  async function CReservationsBulk(props: {
-    data: { slots: string[]; memo?: string };
-  }) {
-    const { reservations, errors } = await database.C({
-      location: "reservations/bulk",
-      data: props.data,
-    });
-    return {
-      reservations: reservations as TReservation[],
-      errors: errors as { slot: string; message: string }[],
-    };
-  }
-
-  async function RReservations(props: {
-    query: { post: string; status?: string; slot?: string };
-  }) {
-    const { reservations } = await database.R({
-      location: "reservations" + QUERY_BUILDER(props.query),
-    });
-    return { reservations: reservations as TReservation[] };
-  }
-
-  async function RMyReservations(props: {
-    query: { school: string; post?: string; status?: string };
-  }) {
-    const { reservations } = await database.R({
-      location: "reservations/my" + QUERY_BUILDER(props.query),
-    });
-    return { reservations: reservations as TReservation[] };
-  }
-
-  async function RReservation(props: { params: { _id: string } }) {
-    const { reservation } = await database.R({
-      location: `reservations/${props.params._id}`,
-    });
-    return { reservation: reservation as TReservation };
-  }
-
-  async function UReservationApprove(props: { params: { _id: string } }) {
-    const { reservation } = await database.U({
-      location: `reservations/${props.params._id}/approve`,
-      data: {},
-    });
-    return { reservation: reservation as TReservation };
-  }
-
-  async function UReservationReject(props: {
-    params: { _id: string };
-    data: { reason?: string };
-  }) {
-    const { reservation } = await database.U({
-      location: `reservations/${props.params._id}/reject`,
-      data: props.data,
-    });
-    return { reservation: reservation as TReservation };
-  }
-
-  async function UReservationsBulkApprove(props: {
-    data: { ids: string[] };
-  }) {
-    const { reservations, errors } = await database.U({
-      location: "reservations/bulk-approve",
-      data: props.data,
-    });
-    return {
-      reservations: reservations as TReservation[],
-      errors: errors as { id: string; message: string }[],
-    };
-  }
-
-  async function UReservationsBulkReject(props: {
-    data: { ids: string[]; reason?: string };
-  }) {
-    const { rejected } = await database.U({
-      location: "reservations/bulk-reject",
-      data: props.data,
-    });
-    return { rejected: rejected as number };
-  }
-
-  async function DReservation(props: { params: { _id: string } }) {
-    const { reservation } = await database.D({
-      location: `reservations/${props.params._id}`,
-    });
-    return { reservation: reservation as TReservation };
-  }
-
-  /**
-   * ##########################################################################
    * Alt Form API
    * ##########################################################################
    */
@@ -4206,6 +4028,31 @@ export default function useAPIv2() {
     return await database.D({
       location: `alt-forms/${props.params._id}`,
     });
+  }
+
+  async function ExportAltForm(props: { params: { _id: string } }) {
+    const { formData } = await database.R({
+      location: `alt-forms/${props.params._id}/export`,
+    });
+    return { formData };
+  }
+
+  async function ImportAltForm(props: {
+    data: { board: string; formData: any };
+  }) {
+    const { form, sheet } = await database.C({
+      location: "alt-forms/import",
+      data: props.data,
+    });
+    return { form: form as TAltForm, sheet: sheet as TAltSheet };
+  }
+
+  async function DuplicateAltForm(props: { params: { _id: string } }) {
+    const { form, sheet } = await database.C({
+      location: `alt-forms/${props.params._id}/duplicate`,
+      data: {},
+    });
+    return { form: form as TAltForm, sheet: sheet as TAltSheet };
   }
 
   /**
@@ -4271,6 +4118,52 @@ export default function useAPIv2() {
   }) {
     const { rows, created } = await database.C({
       location: "alt-sheet-rows/bulk",
+      data: props.data,
+    });
+    return { rows: rows as TAltSheetRow[], created: created as number };
+  }
+
+  async function RAltSheetRowSubmissionStatus(props: {
+    query: { form: string };
+  }) {
+    return await database.R({
+      location:
+        "alt-sheet-rows/submission-status" + QUERY_BUILDER(props.query),
+    });
+  }
+
+  async function CAltSheetRowSendReminder(props: {
+    data: { form: string; userIds: string[] };
+  }) {
+    return await database.C({
+      location: "alt-sheet-rows/send-reminder",
+      data: props.data,
+    });
+  }
+
+  async function RAltSheetRowCount(props: { query: { form: string } }) {
+    const { count } = await database.R({
+      location: "alt-sheet-rows/count" + QUERY_BUILDER(props.query),
+    });
+    return { count: count as number };
+  }
+
+  async function RAltSheetRowAvailableCombinations(props: {
+    query: { form: string; filters?: Record<string, any> };
+  }) {
+    const { combinations } = await database.R({
+      location:
+        "alt-sheet-rows/available-combinations" +
+        QUERY_BUILDER(props.query),
+    });
+    return { combinations };
+  }
+
+  async function CAltSheetRowImportCsv(props: {
+    data: { form: string; rows: Record<string, any>[] };
+  }) {
+    const { rows, created } = await database.C({
+      location: "alt-sheet-rows/import-csv",
       data: props.data,
     });
     return { rows: rows as TAltSheetRow[], created: created as number };
@@ -4473,7 +4366,8 @@ export default function useAPIv2() {
       DPost,
       CUploadPostFile,
       RSignedUrlPostFile,
-      ExportReservationJSON,
+      RPostMergeBatch,
+      DuplicatePost,
       SearchPosts,
     },
     SurveyResponseAPI: {
@@ -4517,33 +4411,16 @@ export default function useAPIv2() {
       TestAiApiKey,
       ListAiModels,
     },
-    ReservationSlotAPI: {
-      CReservationSlot,
-      CReservationSlotsBulk,
-      RReservationSlots,
-      RReservationSlot,
-      UReservationSlot,
-      DReservationSlot,
-      DReservationSlotsBulk,
-    },
-    ReservationAPI: {
-      CReservation,
-      CReservationsBulk,
-      RReservations,
-      RMyReservations,
-      RReservation,
-      UReservationApprove,
-      UReservationReject,
-      UReservationsBulkApprove,
-      UReservationsBulkReject,
-      DReservation,
-    },
+
     AltFormAPI: {
       CAltForm,
       RAltForms,
       RAltForm,
       UAltForm,
       DAltForm,
+      ExportAltForm,
+      ImportAltForm,
+      DuplicateAltForm,
     },
     AltSheetRowAPI: {
       CAltSheetRow,
@@ -4552,6 +4429,11 @@ export default function useAPIv2() {
       UAltSheetRow,
       DAltSheetRow,
       CAltSheetRowsBulk,
+      RAltSheetRowSubmissionStatus,
+      CAltSheetRowSendReminder,
+      RAltSheetRowCount,
+      RAltSheetRowAvailableCombinations,
+      CAltSheetRowImportCsv,
     },
   };
 }

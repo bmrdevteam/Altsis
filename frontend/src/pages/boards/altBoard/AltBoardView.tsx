@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
-import style from "./altBoard.module.scss";
 import { TBoard, TAltBoardRole } from "types/board";
 import { TAltForm } from "types/altForm";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import Tab from "components/tab/Tab";
 import AltFormList from "./AltFormList";
 import AltFormBuilder from "./AltFormBuilder";
 import AltFormRenderer from "./AltFormRenderer";
 import AltSheetView from "./AltSheetView";
 import AltDocsView from "./AltDocsView";
-
-type Tab = "forms" | "sheet" | "docs";
 
 type Props = {
   board: TBoard;
@@ -20,20 +18,15 @@ const AltBoardView = ({ board }: Props) => {
   const { currentUser } = useAuth();
   const { AltFormAPI } = useAPIv2();
 
-  const [activeTab, setActiveTab] = useState<Tab>("forms");
   const [forms, setForms] = useState<TAltForm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // 현재 유저의 Alt Board 역할
   const myRole: TAltBoardRole | null = (() => {
     if (!currentUser) return null;
-    if (
-      currentUser.auth === "admin" ||
-      currentUser.auth === "manager"
-    )
-      return "admin";
+    if (currentUser.auth === "admin") return "admin";
     if (board.creator === currentUser._id) return "admin";
-    return (board.altBoardRole?.[currentUser.userId] as TAltBoardRole) || null;
+    return (board.altBoardRole?.[currentUser._id] as TAltBoardRole) || null;
   })();
 
   const canManage = myRole === "admin" || myRole === "writer";
@@ -109,50 +102,35 @@ const AltBoardView = ({ board }: Props) => {
     );
   }
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "forms", label: "양식" },
-    { key: "sheet", label: "시트" },
-    { key: "docs", label: "문서" },
-  ];
-
   return (
-    <div>
-      {/* 탭 네비게이션 */}
-      <div className={style.tabContainer}>
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={`${style.tab} ${activeTab === t.key ? style.tabActive : ""}`}
-            onClick={() => setActiveTab(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 탭 콘텐츠 */}
-      {activeTab === "forms" && (
-        <AltFormList
-          forms={forms}
-          isLoading={isLoading}
-          canManage={canManage}
-          onFormClick={handleFormClick}
-          onCreateForm={() => handleOpenBuilder()}
-        />
-      )}
-
-      {activeTab === "sheet" && (
-        <AltSheetView
-          board={board}
-          forms={forms}
-          canManage={canManage}
-        />
-      )}
-
-      {activeTab === "docs" && (
-        <AltDocsView board={board} />
-      )}
-    </div>
+    <Tab
+      items={{
+        "문서": <div style={{ paddingTop: 20 }}><AltDocsView board={board} /></div>,
+        "양식": (
+          <div style={{ paddingTop: 20 }}>
+            <AltFormList
+              board={board}
+              forms={forms}
+              isLoading={isLoading}
+              canManage={canManage}
+              onFormClick={handleFormClick}
+              onCreateForm={() => handleOpenBuilder()}
+              onRefresh={loadForms}
+            />
+          </div>
+        ),
+        "기록": (
+          <div style={{ paddingTop: 20 }}>
+            <AltSheetView
+              board={board}
+              forms={forms}
+              canManage={canManage}
+            />
+          </div>
+        ),
+      }}
+      align="center"
+    />
   );
 };
 

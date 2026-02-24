@@ -3,6 +3,8 @@ export type TAltFormFieldType =
   | "textarea"
   | "number"
   | "date"
+  | "multiDate"
+  | "time"
   | "file"
   | "select"
   | "multiSelect"
@@ -16,6 +18,31 @@ export type TAltFormFieldType =
 
 export type TAltFormFieldPermission = "respondent" | "owner";
 
+export type TDisplayConditionOperator =
+  | "equals"
+  | "notEquals"
+  | "contains"
+  | "isEmpty"
+  | "isNotEmpty"
+  | "before"
+  | "after";
+
+export type TDisplayCondition = {
+  enabled: boolean;
+  logic: "and" | "or";
+  conditions: {
+    fieldId: string;
+    operator: TDisplayConditionOperator;
+    value: any;
+  }[];
+};
+
+export type TDuplicateCheck = {
+  enabled: boolean;
+  mode: "free" | "preRegistration";
+  allowedCount: number;
+};
+
 export type TAltFormField = {
   _id: string;
   label: string;
@@ -26,12 +53,29 @@ export type TAltFormField = {
   options?: string[];
   validation?: Record<string, any>;
   order: number;
+  displayCondition?: TDisplayCondition;
+  correctAnswer?: any;
+  points?: number;
+  duplicateCheck?: TDuplicateCheck;
+};
+
+export type TQuizSettings = {
+  scoreReveal: "immediately" | "afterDeadline" | "never";
+  answerReveal: "immediately" | "afterDeadline" | "never";
+  showWrongMarks: boolean;
 };
 
 export type TAltFormSettings = {
   openAt?: string;
   closeAt?: string;
   allowResubmit: boolean;
+  allowMultipleResponses?: boolean;
+  quizMode?: boolean;
+  quizSettings?: TQuizSettings;
+  directInputMode?: boolean;
+  shareResponses?: boolean;
+  showOwnerFields?: boolean;
+  showOwnResponse?: boolean;
 };
 
 export type TAltForm = {

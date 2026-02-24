@@ -110,6 +110,12 @@ export const isBoardMember = (board, user, role) => {
   // 기본 보드(공지사항)는 전체 접근 허용
   if (board.isDefault) return true;
 
+  // Alt Board: altBoardRole 확인
+  if (board.altBoardRole) {
+    const altRole = board.altBoardRole.get(user._id.toString());
+    if (altRole) return true;
+  }
+
   const members = resolveBoardMembers(board);
 
   // 개별 초대 사용자 확인
@@ -132,6 +138,12 @@ export const isBoardMember = (board, user, role) => {
 export const isBoardWriter = (board, user, role) => {
   if (user.auth === "admin" || user.auth === "manager") return true;
   if (board.creator && board.creator.equals(user._id)) return true;
+
+  // Alt Board: altBoardRole의 admin/writer는 작성 권한
+  if (board.altBoardRole) {
+    const altRole = board.altBoardRole.get(user._id.toString());
+    if (altRole === "admin" || altRole === "writer") return true;
+  }
 
   const writers = resolveBoardWriters(board);
 
@@ -184,11 +196,26 @@ export const getBoardMembers = async (academyId, board) => {
     return users;
   }
 
-  // 일반 보드: 개별 초대 사용자만 반환 (admin/manager는 자동 접근 권한이 있으므로 목록에 미포함)
+  // Alt Board: altBoardRole에서 멤버 해석
+  if (board.altBoardRole && board.altBoardRole.size > 0) {
+    const userOids = Array.from(board.altBoardRole.keys());
+    const userData = await User(academyId)
+      .find({ _id: { $in: userOids } })
+      .select("_id userId userName")
+      .lean();
+
+    for (const u of userData) {
+      users.push({ user: u._id, userId: u.userId, userName: u.userName });
+    }
+  }
+
+  // 일반 멤버도 포함 (altBoardRole과 중복 제거)
   const members = resolveBoardMembers(board);
 
   for (const u of members.users || []) {
-    users.push({ user: u.user, userId: u.userId, userName: u.userName });
+    if (!users.some((x) => x.userId === u.userId)) {
+      users.push({ user: u.user, userId: u.userId, userName: u.userName });
+    }
   }
 
   return users;

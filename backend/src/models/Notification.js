@@ -39,7 +39,7 @@ const relatedEntitySchema = mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["enrollment", "syllabus", "calendarEvent", "post", "reminder", "board"],
+      enum: ["enrollment", "syllabus", "calendarEvent", "post", "reminder", "board", "altSheetRow"],
     },
     id: mongoose.Types.ObjectId,
   },
@@ -116,6 +116,7 @@ const notificationSchema = mongoose.Schema(
         "newPost",
         "reminder",
         "boardInvitation",
+        "altFormApprovalRequest",
       ],
       default: "direct",
     },

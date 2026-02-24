@@ -10,7 +10,6 @@ import Svg from "assets/svg/Svg";
 import style from "./postBlogView.module.scss";
 import surveyStyle from "../survey/survey.module.scss";
 import SurveyViewPopup from "../survey/SurveyViewPopup";
-import ReservationViewPopup from "../reservation/ReservationViewPopup";
 
 const PAGE_SIZE = 10;
 const CONTENT_TRUNCATE_HEIGHT = 200;
@@ -100,7 +99,6 @@ const PostStreamCard = ({
   const [activeSurveyIndex, setActiveSurveyIndex] = useState<number | null>(
     null
   );
-  const [showReservationPopup, setShowReservationPopup] = useState(false);
 
   const processedContent = useMemo(
     () => processContent(post.content),
@@ -162,8 +160,7 @@ const PostStreamCard = ({
 
   const hasAttachments =
     (post.attachments && post.attachments.length > 0) ||
-    (post.surveys && post.surveys.length > 0) ||
-    post.reservationConfig;
+    (post.surveys && post.surveys.length > 0);
 
   return (
     <div className={style.card}>
@@ -294,40 +291,6 @@ const PostStreamCard = ({
             </div>
           ))}
 
-          {/* 예약 첨부 */}
-          {post.reservationConfig && (
-            <div
-              className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
-              onClick={() => setShowReservationPopup(true)}
-            >
-              <div className={surveyStyle.attachItemThumbArea}>
-                <div className={surveyStyle.attachItemIconLarge}>
-                  <Svg type="eventCalendar" width="24px" height="24px" />
-                </div>
-              </div>
-              <div className={surveyStyle.attachItemBody}>
-                <div className={surveyStyle.attachItemInfo}>
-                  <span className={surveyStyle.attachItemTitle}>
-                    {post.reservationConfig.resource}
-                  </span>
-                  <span className={surveyStyle.attachItemMeta}>
-                    {post.reservationConfig.totalSlots || 0}개 슬롯
-                    {post.reservationConfig.requireApproval
-                      ? " · 승인 필요"
-                      : " · 자동 승인"}
-                    {post.reservationConfig.slotMode === "label"
-                      ? " · 라벨 모드"
-                      : " · 시간 모드"}
-                  </span>
-                </div>
-                <div className={surveyStyle.attachItemActions}>
-                  <span className={surveyStyle.attachItemBtn}>
-                    {canManage ? "관리" : "예약"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -441,15 +404,6 @@ const PostStreamCard = ({
           />
         )}
 
-      {/* 예약 팝업 */}
-      {showReservationPopup && post.reservationConfig && (
-        <ReservationViewPopup
-          setState={setShowReservationPopup}
-          post={post}
-          board={board}
-          canManage={canManage}
-        />
-      )}
     </div>
   );
 };

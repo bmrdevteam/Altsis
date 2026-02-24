@@ -104,7 +104,43 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
         query: { season: currentRegistration.season },
       })
         .then(({ registrations }) => {
-          setRegistrationList(_.uniqBy(registrations, "userId"));
+          const list = _.uniqBy(registrations, "userId");
+          setRegistrationList(list);
+
+          // altBoardRole에서 멤버 자동 복원 (기존 보드 마이그레이션)
+          if (board.altBoardRole && initialMembers.users.length === 0) {
+            const altMembers: { user: string; userId: string; userName: string }[] = [];
+            const altWriters: { user: string; userId: string; userName: string }[] = [];
+            for (const [userOid, role] of Object.entries(board.altBoardRole)) {
+              const reg = list.find((r: any) => r.user === userOid);
+              if (reg) {
+                altMembers.push({
+                  user: reg.user,
+                  userId: reg.userId,
+                  userName: reg.userName,
+                });
+                if (role === "admin" || role === "writer") {
+                  altWriters.push({
+                    user: reg.user,
+                    userId: reg.userId,
+                    userName: reg.userName,
+                  });
+                }
+              }
+            }
+            if (altMembers.length > 0) {
+              setMembers((prev) => ({
+                ...prev,
+                users: _.uniqBy([...prev.users, ...altMembers], (x) => x.userId),
+              }));
+            }
+            if (altWriters.length > 0) {
+              setWriters((prev) => ({
+                ...prev,
+                users: _.uniqBy([...prev.users, ...altWriters], (x) => x.userId),
+              }));
+            }
+          }
         })
         .catch(() => {});
     }

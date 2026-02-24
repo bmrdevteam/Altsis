@@ -1,3 +1,8 @@
+/* 인쇄 전용 제목: 화면에서는 숨김 */
+.print_title {
+  display: none;
+}
+
 @media print {
   .section {
     height: auto !important;
@@ -7,6 +12,13 @@
 
   .print_actions {
     display: none !important;
+  }
+
+  .print_title {
+    display: block !important;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
   }
 
   @page {

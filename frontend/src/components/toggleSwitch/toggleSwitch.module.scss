@@ -54,3 +54,8 @@
     -ms-transform: translateX(16px);
     transform: translateX(16px);
   }
+
+  .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }

@@ -15,7 +15,8 @@ router.post("/upload", isLoggedIn, posts.uploadFile);
 router.get("/file/view", posts.viewFile);
 router.get("/file/signed", isLoggedIn, posts.signPostFile);
 
-router.get("/:_id/export-reservation", isLoggedIn, posts.exportReservation);
+router.get("/:_id/merge-batch", isLoggedIn, posts.mergeBatch);
+router.post("/:_id/duplicate", isLoggedIn, posts.duplicate);
 router.get("/:_id?", isLoggedIn, posts.find);
 router.put("/:_id", isLoggedIn, posts.update);
 router.delete("/:_id", isLoggedIn, posts.remove);

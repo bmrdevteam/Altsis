@@ -32,7 +32,7 @@ export type TBoardPermission = {
 export type TBoardContentViewMode = "table" | "blog";
 export type TBoardListViewMode = "table" | "gallery";
 export type TBoardType = "official" | "user";
-export type TBoardMode = "classic" | "alt";
+export type TBoardMode = "alt";
 export type TAltBoardRole = "admin" | "writer" | "respondent";
 
 export type TBoard = {

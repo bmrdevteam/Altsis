@@ -45,6 +45,7 @@ type Props = {
   title?: string;
   onDraftRestore?: (data: { content: string; title?: string }) => void;
   searchMentionUsers?: (query: string) => Promise<any[]>;
+  toolbarExtra?: React.ReactNode;
 };
 
 type ViewMode = "wysiwyg" | "split";
@@ -68,6 +69,7 @@ const MarkdownEditor = ({
   title,
   onDraftRestore,
   searchMentionUsers,
+  toolbarExtra,
 }: Props) => {
   const [viewMode, setViewMode] = useState<ViewMode>("wysiwyg");
   const [showEmbedDialog, setShowEmbedDialog] = useState(false);
@@ -351,11 +353,14 @@ const MarkdownEditor = ({
             분할
           </button>
         </div>
-        <TipTapToolbar
-          editor={editor}
-          onEmbedClick={() => setShowEmbedDialog(true)}
-          onImageClick={() => setShowImageDialog(true)}
-        />
+        <div className={style.toolbarRight}>
+          <TipTapToolbar
+            editor={editor}
+            onEmbedClick={() => setShowEmbedDialog(true)}
+            onImageClick={() => setShowImageDialog(true)}
+          />
+          {toolbarExtra}
+        </div>
       </div>
 
       {viewMode === "wysiwyg" ? (

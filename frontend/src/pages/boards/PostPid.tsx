@@ -10,7 +10,7 @@
  * -------------------------------------------------------
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
@@ -30,8 +30,6 @@ import { TComment } from "types/comment";
 import UserListPopup from "./popup/UserListPopup";
 import SurveyViewPopup from "./survey/SurveyViewPopup";
 import surveyStyle from "./survey/survey.module.scss";
-import ReservationViewPopup from "./reservation/ReservationViewPopup";
-
 const PostPid = () => {
   const navigate = useAppNavigate();
   const { boardId, postId } = useParams<{ boardId: string; postId: string }>();
@@ -50,7 +48,9 @@ const PostPid = () => {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [activeSurveyIndex, setActiveSurveyIndex] = useState<number | null>(null);
-  const [showReservationPopup, setShowReservationPopup] = useState(false);
+
+  // 머지 필터
+  const [mergeFilters, setMergeFilters] = useState<Record<string, string>>({});
 
   // 서명 URL 캐시 (다운로드/새 탭 열기용)
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
@@ -111,23 +111,30 @@ const PostPid = () => {
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
   const canEdit = isAuthor || isManager;
 
-  // 보드 관리 권한 (예약 관리용): 게시글 작성자 또는 보드 관리자
-  const canManageBoard = () => {
-    if (isAuthor) return true;
-    if (isManager) return true;
-    if (board?.creator && board.creator === currentUser?._id) return true;
-    return false;
-  };
-
   // 댓글 작성 권한: 멤버는 댓글 가능
   const canComment = () => {
     // 보드 멤버이면 댓글 가능 (새 구조에서는 permissionComment 삭제)
     return true;
   };
 
+  const buildMergeQuery = (filters: Record<string, string>) => {
+    const query: Record<string, string> = { merge: "true" };
+    const activeFilters: Record<string, string> = {};
+    for (const [key, value] of Object.entries(filters)) {
+      if (value) activeFilters[key] = value;
+    }
+    if (Object.keys(activeFilters).length > 0) {
+      query.filters = JSON.stringify(activeFilters);
+    }
+    return query;
+  };
+
   useEffect(() => {
     if (isLoading && postId) {
-      PostAPI.RPost({ params: { _id: postId } })
+      PostAPI.RPost({
+        params: { _id: postId },
+        query: buildMergeQuery(mergeFilters),
+      })
         .then(({ post, board }) => {
           setPost(post);
           setBoard(board);
@@ -140,6 +147,27 @@ const PostPid = () => {
         });
     }
   }, [isLoading, postId]);
+
+  // 필터 변경 시 머지 재조회
+  const mergeFilterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleMergeFilterChange = (label: string, value: string) => {
+    const next = { ...mergeFilters, [label]: value };
+    setMergeFilters(next);
+    if (mergeFilterTimerRef.current) clearTimeout(mergeFilterTimerRef.current);
+    mergeFilterTimerRef.current = setTimeout(() => {
+      if (!postId) return;
+      PostAPI.RPost({
+        params: { _id: postId },
+        query: buildMergeQuery(next),
+      })
+        .then(({ post: updatedPost }) => {
+          setPost((prev) =>
+            prev ? { ...prev, content: updatedPost.content } : prev
+          );
+        })
+        .catch((err) => ALERT_ERROR(err));
+    }, 400);
+  };
 
   // 댓글 로드
   useEffect(() => {
@@ -265,6 +293,7 @@ const PostPid = () => {
     <>
       <div className={style.section}>
         <div
+          className={style.print_actions}
           style={{
             display: "flex",
             alignItems: "center",
@@ -287,6 +316,7 @@ const PostPid = () => {
         </div>
 
         <div
+          className={style.print_actions}
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -339,44 +369,145 @@ const PostPid = () => {
             )}
           </div>
 
-          {canEdit && (
-            <div style={{ display: "flex", gap: "8px" }}>
-              {isManager && !post.isLegacyNotification && (
-                <Button type="hover" onClick={handlePin}>
-                  {post.isPinned ? "고정 해제" : "고정"}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <Button
+              type="hover"
+              onClick={() => {
+                const raw = (post as any)._rawContent || post.content || "";
+                const blob = new Blob([raw], {
+                  type: "text/markdown;charset=utf-8",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${(post.title || "document").replace(/[/\\?%*:|"<>]/g, "_")}.md`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              다운로드
+            </Button>
+            <Button type="hover" onClick={() => window.print()}>
+              인쇄
+            </Button>
+            {canEdit && (
+              <>
+                {isManager && !post.isLegacyNotification && (
+                  <Button type="hover" onClick={handlePin}>
+                    {post.isPinned ? "고정 해제" : "고정"}
+                  </Button>
+                )}
+                {!post.isLegacyNotification && (
+                  <Button
+                    type="hover"
+                    onClick={() => navigate(`/boards/${boardId}/edit/${postId}`)}
+                  >
+                    수정
+                  </Button>
+                )}
+                <Button type="hover" onClick={handleDelete}>
+                  삭제
                 </Button>
-              )}
-              {!post.isLegacyNotification && (
-                <Button
-                  type="hover"
-                  onClick={() => navigate(`/boards/${boardId}/edit/${postId}`)}
-                >
-                  수정
-                </Button>
-              )}
-              <Button type="hover" onClick={handleDelete}>
-                삭제
-              </Button>
-            </div>
-          )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* 머지 필터 */}
+        {post._mergeApplied && post._mergeFields && post._mergeFields.length > 0 && (
+          <div
+            className={style.print_actions}
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "8px",
+              marginBottom: "16px",
+              padding: "10px 12px",
+              background: "var(--background-color-2)",
+              borderRadius: "6px",
+              fontSize: "13px",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ color: "var(--text-color-2)", fontSize: "12px", marginRight: "4px" }}>
+              필터:
+            </span>
+            <input
+              type="text"
+              placeholder="응답자"
+              value={mergeFilters["_respondentName"] || ""}
+              onChange={(e) => handleMergeFilterChange("_respondentName", e.target.value)}
+              style={{
+                padding: "4px 8px",
+                border: "1px solid var(--border-color)",
+                borderRadius: "4px",
+                background: "var(--background-color-1)",
+                color: "var(--text-color-1)",
+                fontSize: "12px",
+                width: "100px",
+              }}
+            />
+            {post._mergeFields.map((field) => (
+              <input
+                key={field.label}
+                type="text"
+                placeholder={field.label}
+                value={mergeFilters[field.label] || ""}
+                onChange={(e) => handleMergeFilterChange(field.label, e.target.value)}
+                style={{
+                  padding: "4px 8px",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "4px",
+                  background: "var(--background-color-1)",
+                  color: "var(--text-color-1)",
+                  fontSize: "12px",
+                  width: "100px",
+                }}
+              />
+            ))}
+            {Object.values(mergeFilters).some((v) => v) && (
+              <span
+                style={{ color: "var(--accent-1)", cursor: "pointer", fontSize: "12px" }}
+                onClick={() => {
+                  setMergeFilters({});
+                  if (!postId) return;
+                  PostAPI.RPost({
+                    params: { _id: postId },
+                    query: { merge: "true" },
+                  })
+                    .then(({ post: updatedPost }) => {
+                      setPost((prev) =>
+                        prev ? { ...prev, content: updatedPost.content } : prev
+                      );
+                    })
+                    .catch((err) => ALERT_ERROR(err));
+                }}
+              >
+                초기화
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* 인쇄 전용 제목 (화면에서는 숨김) */}
+        <div className={style.print_title}>
+          {post.title}
         </div>
 
         <div style={{ minHeight: "300px" }}>
           <MarkdownViewer content={processedContent} />
         </div>
 
-        {/* 첨부 (파일 + 설문 + 예약 통합) */}
+        {/* 첨부 (파일 + 설문) */}
         {((post.attachments && post.attachments.length > 0) ||
-          (post.surveys && post.surveys.length > 0) ||
-          post.reservationConfig) && (
-          <div style={{ marginTop: "24px" }}>
+          (post.surveys && post.surveys.length > 0)) && (
+          <div className={style.print_actions} style={{ marginTop: "24px" }}>
             <div
               style={{ fontWeight: 500, marginBottom: "10px", fontSize: "14px" }}
             >
               첨부 (
               {(post.attachments?.length || 0) +
-                (post.surveys?.length || 0) +
-                (post.reservationConfig ? 1 : 0)}
+                (post.surveys?.length || 0)}
               )
             </div>
             <div className={surveyStyle.attachList}>
@@ -500,79 +631,13 @@ const PostPid = () => {
                   </div>
                 </div>
               ))}
-              {/* 예약 첨부 항목 */}
-              {post.reservationConfig && (
-                <div
-                  className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
-                  onClick={() => setShowReservationPopup(true)}
-                >
-                  <div className={surveyStyle.attachItemThumbArea}>
-                    <div className={surveyStyle.attachItemIconLarge}>
-                      <Svg type="eventCalendar" width="24px" height="24px" />
-                    </div>
-                  </div>
-                  <div className={surveyStyle.attachItemBody}>
-                    <div className={surveyStyle.attachItemInfo}>
-                      <span className={surveyStyle.attachItemTitle}>
-                        {post.reservationConfig.resource}
-                      </span>
-                      <span className={surveyStyle.attachItemMeta}>
-                        {post.reservationConfig.totalSlots || 0}개 슬롯
-                        {post.reservationConfig.requireApproval
-                          ? " · 승인 필요"
-                          : " · 자동 승인"}
-                        {post.reservationConfig.slotMode === "label"
-                          ? " · 라벨 모드"
-                          : " · 시간 모드"}
-                      </span>
-                    </div>
-                    <div
-                      className={surveyStyle.attachItemActions}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className={surveyStyle.attachItemBtn}>
-                        {canManageBoard() ? "관리" : "예약"}
-                      </span>
-                      {canManageBoard() && (
-                        <Button
-                          type="hover"
-                          onClick={async () => {
-                            try {
-                              const data =
-                                await PostAPI.ExportReservationJSON({
-                                  params: { _id: post._id },
-                                });
-                              const blob = new Blob(
-                                [JSON.stringify(data, null, 2)],
-                                { type: "application/json" }
-                              );
-                              const url = URL.createObjectURL(blob);
-                              const link = document.createElement("a");
-                              link.href = url;
-                              link.download = `${
-                                post.reservationConfig!.resource || "reservation"
-                              }.json`;
-                              link.click();
-                              URL.revokeObjectURL(url);
-                            } catch (err) {
-                              ALERT_ERROR(err);
-                            }
-                          }}
-                          style={{ fontSize: "13px" }}
-                        >
-                          JSON
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
 
         {/* 댓글 섹션 */}
         <div
+          className={style.print_actions}
           style={{
             marginTop: "32px",
             paddingTop: "24px",
@@ -750,7 +815,7 @@ const PostPid = () => {
           )}
         </div>
 
-        <div style={{ marginTop: "24px" }}>
+        <div className={style.print_actions} style={{ marginTop: "24px" }}>
           <Button type="ghost" onClick={() => navigate(`/boards/${boardId}`)}>
             목록으로
           </Button>
@@ -780,16 +845,6 @@ const PostPid = () => {
           />
         )}
 
-      {showReservationPopup &&
-        post.reservationConfig &&
-        board && (
-          <ReservationViewPopup
-            setState={setShowReservationPopup}
-            post={post}
-            board={board}
-            canManage={canManageBoard()}
-          />
-        )}
     </>
   );
 };

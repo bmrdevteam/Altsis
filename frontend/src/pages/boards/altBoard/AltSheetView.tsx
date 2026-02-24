@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
 import { TBoard } from "types/board";
 import { TAltForm, TAltFormField } from "types/altForm";
 import { TAltSheetRow } from "types/altSheet";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { useAuth } from "contexts/authContext";
+import Button from "components/button/Button";
 
 type Props = {
   board: TBoard;
@@ -11,12 +13,16 @@ type Props = {
   canManage: boolean;
 };
 
+type SortConfig = {
+  fieldId: string;
+  direction: "asc" | "desc";
+} | null;
+
 const AltSheetView = ({ board, forms, canManage }: Props) => {
   const { AltSheetRowAPI } = useAPIv2();
+  const { currentUser } = useAuth();
 
-  const [selectedFormId, setSelectedFormId] = useState<string>(
-    forms[0]?._id || ""
-  );
+  const [selectedFormId, setSelectedFormId] = useState<string>("");
   const [rows, setRows] = useState<TAltSheetRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,25 +33,73 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
   } | null>(null);
   const [editValue, setEditValue] = useState("");
 
+  // Phase 3: 필터, 정렬, 컬럼 숨기기
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<SortConfig>(null);
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
+
+  // 승인 사유 입력
+  const [approvalReason, setApprovalReason] = useState<
+    Record<string, string>
+  >({});
+
   const selectedForm = forms.find((f) => f._id === selectedFormId);
 
-  // 표시할 필드: 관리자는 전체, 응답자는 respondent + visibleToRespondent
-  const visibleFields: TAltFormField[] = selectedForm
+  // 표시할 필드: 관리자는 전체, 응답자는 respondent + visibleToRespondent (또는 showOwnerFields)
+  const allVisibleFields: TAltFormField[] = selectedForm
     ? canManage
       ? selectedForm.fields
       : selectedForm.fields.filter(
           (f) =>
             f.permission === "respondent" ||
-            (f.permission === "owner" && f.visibleToRespondent)
+            (f.permission === "owner" &&
+              (f.visibleToRespondent || selectedForm.settings.showOwnerFields))
         )
     : [];
+
+  // 숨김 컬럼 적용
+  const visibleFields = allVisibleFields.filter(
+    (f) => !hiddenColumns.has(f._id)
+  );
+
+  // 퀴즈 모드 여부
+  const isQuiz = selectedForm?.settings.quizMode;
+
+  // localStorage에서 숨김 컬럼 복원
+  useEffect(() => {
+    if (!selectedFormId) return;
+    const stored = localStorage.getItem(
+      `altSheet_${selectedFormId}_hiddenColumns`
+    );
+    if (stored) {
+      try {
+        setHiddenColumns(new Set(JSON.parse(stored)));
+      } catch {
+        /* ignore */
+      }
+    } else {
+      setHiddenColumns(new Set());
+    }
+    setFilters({});
+    setSortConfig(null);
+  }, [selectedFormId]);
+
+  // 숨김 컬럼 저장
+  useEffect(() => {
+    if (!selectedFormId) return;
+    localStorage.setItem(
+      `altSheet_${selectedFormId}_hiddenColumns`,
+      JSON.stringify(Array.from(hiddenColumns))
+    );
+  }, [hiddenColumns, selectedFormId]);
 
   useEffect(() => {
     if (!selectedFormId) return;
     setIsLoading(true);
     AltSheetRowAPI.RAltSheetRows({ query: { form: selectedFormId } })
-      .then(({ rows }) => {
-        setRows(rows);
+      .then(({ rows: loadedRows }) => {
+        setRows(loadedRows);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -54,8 +108,161 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
       });
   }, [selectedFormId]);
 
-  const handleCellClick = (rowId: string, field: TAltFormField, currentValue: string) => {
-    if (!canManage || field.permission !== "owner") return;
+  const formatCellValue = (value: any, field?: TAltFormField): string => {
+    if (value === null || value === undefined) return "";
+
+    if (field?.type === "userSelect" && typeof value === "object") {
+      return value.userName
+        ? `${value.userName}(${value.userId || ""})`
+        : "";
+    }
+
+    if (field?.type === "approval" && typeof value === "object") {
+      const statusLabels: Record<string, string> = {
+        pending: "대기",
+        approved: "승인",
+        rejected: "반려",
+      };
+      const approverName = value.approver?.userName || "";
+      return `${statusLabels[value.status] || value.status || ""} (${approverName})`;
+    }
+
+    if (field?.type === "rating") {
+      return value ? `${"★".repeat(Number(value))}` : "";
+    }
+
+    if (field?.type === "date" && value) {
+      const d = new Date(value + "T00:00:00");
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString("ko-KR", {
+          year: "numeric", month: "2-digit", day: "2-digit", weekday: "short",
+        });
+      }
+    }
+
+    if (field?.type === "multiDate" && Array.isArray(value)) {
+      const thisYear = new Date().getFullYear();
+      return value
+        .map((v: string) => {
+          const d = new Date(v + "T00:00:00");
+          if (!isNaN(d.getTime())) {
+            const opts: Intl.DateTimeFormatOptions = {
+              month: "2-digit", day: "2-digit", weekday: "short",
+            };
+            if (d.getFullYear() !== thisYear) {
+              opts.year = "numeric";
+            }
+            return d.toLocaleDateString("ko-KR", opts);
+          }
+          return v;
+        })
+        .join(", ");
+    }
+
+    if (field?.type === "time" && value) {
+      return value;
+    }
+
+    if (Array.isArray(value)) return value.join(", ");
+    if (typeof value === "boolean") return value ? "Y" : "N";
+    return String(value);
+  };
+
+  // 필터링된 행
+  const filteredRows = useMemo(() => {
+    let result = rows;
+
+    // 필터 적용
+    for (const [fieldId, filterValue] of Object.entries(filters)) {
+      if (!filterValue) continue;
+
+      result = result.filter((row) => {
+        const lower = filterValue.toLowerCase();
+
+        if (fieldId === "_respondent") {
+          return (
+            (row._respondentName || "").toLowerCase().includes(lower) ||
+            (row._respondentId || "").toLowerCase().includes(lower)
+          );
+        }
+
+        if (fieldId === "_submittedAt") {
+          const dateStr = row._submittedAt
+            ? new Date(row._submittedAt).toLocaleString("ko-KR", {
+                year: "numeric", month: "2-digit", day: "2-digit",
+                weekday: "short", hour: "2-digit", minute: "2-digit",
+              })
+            : "";
+          return dateStr.includes(lower);
+        }
+
+        const field = allVisibleFields.find((f) => f._id === fieldId);
+        if (!field) return true;
+
+        const cellValue = row.data[fieldId];
+        if (cellValue === null || cellValue === undefined) return false;
+        return String(formatCellValue(cellValue, field))
+          .toLowerCase()
+          .includes(lower);
+      });
+    }
+
+    // 정렬 적용
+    if (sortConfig) {
+      const { fieldId, direction } = sortConfig;
+      result = [...result].sort((a, b) => {
+        let aVal: any;
+        let bVal: any;
+
+        if (fieldId === "_respondent") {
+          aVal = a._respondentName || "";
+          bVal = b._respondentName || "";
+        } else if (fieldId === "_submittedAt") {
+          aVal = a._submittedAt || "";
+          bVal = b._submittedAt || "";
+        } else if (fieldId === "_quiz_score") {
+          aVal = a.data?._quiz_score ?? 0;
+          bVal = b.data?._quiz_score ?? 0;
+        } else {
+          aVal = a.data[fieldId] ?? "";
+          bVal = b.data[fieldId] ?? "";
+        }
+
+        if (typeof aVal === "number" && typeof bVal === "number") {
+          return direction === "asc" ? aVal - bVal : bVal - aVal;
+        }
+        const strA = String(aVal);
+        const strB = String(bVal);
+        return direction === "asc"
+          ? strA.localeCompare(strB)
+          : strB.localeCompare(strA);
+      });
+    }
+
+    return result;
+  }, [rows, filters, sortConfig, allVisibleFields]);
+
+  const handleColumnSort = (fieldId: string) => {
+    setSortConfig((prev) => {
+      if (prev?.fieldId === fieldId) {
+        if (prev.direction === "asc") return { fieldId, direction: "desc" };
+        return null;
+      }
+      return { fieldId, direction: "asc" };
+    });
+  };
+
+  const getSortIndicator = (fieldId: string) => {
+    if (sortConfig?.fieldId !== fieldId) return " ↕";
+    return sortConfig.direction === "asc" ? " ↑" : " ↓";
+  };
+
+  const handleCellClick = (
+    rowId: string,
+    field: TAltFormField,
+    currentValue: string
+  ) => {
+    if (!canManage) return;
     setEditingCell({ rowId, fieldId: field._id });
     setEditValue(currentValue || "");
   };
@@ -70,7 +277,10 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
       setRows((prev) =>
         prev.map((r) =>
           r._id === editingCell.rowId
-            ? { ...r, data: { ...r.data, [editingCell.fieldId]: editValue } }
+            ? {
+                ...r,
+                data: { ...r.data, [editingCell.fieldId]: editValue },
+              }
             : r
         )
       );
@@ -88,56 +298,495 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
     }
   };
 
-  const formatCellValue = (value: any): string => {
-    if (value === null || value === undefined) return "";
-    if (Array.isArray(value)) return value.join(", ");
-    if (typeof value === "boolean") return value ? "Y" : "N";
-    return String(value);
+  // 관리자 빈 행 추가 (Bulk API 사용 — 응답 중복 체크 우회)
+  const handleAddRow = async () => {
+    if (!selectedForm) return;
+    try {
+      const emptyData: Record<string, any> = {};
+      for (const field of selectedForm.fields) {
+        emptyData[field._id] = null;
+      }
+      const { rows: newRows } = await AltSheetRowAPI.CAltSheetRowsBulk({
+        data: {
+          form: selectedForm._id,
+          rows: [
+            {
+              _respondent: currentUser?._id,
+              _respondentId: currentUser?.userId,
+              _respondentName: currentUser?.userName,
+              data: emptyData,
+            },
+          ],
+        },
+      });
+      if (newRows.length > 0) {
+        setRows((prev) => [...prev, newRows[0]]);
+      }
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
   };
 
-  if (forms.length === 0) {
-    return <div className={style.emptyState}>양식을 먼저 생성해주세요.</div>;
+  // 승인/반려 처리
+  const handleApproval = async (
+    rowId: string,
+    fieldId: string,
+    status: "approved" | "rejected"
+  ) => {
+    const reason = approvalReason[`${rowId}_${fieldId}`] || "";
+    try {
+      await AltSheetRowAPI.UAltSheetRow({
+        params: { _id: rowId },
+        data: {
+          data: {
+            [fieldId]: {
+              ...rows.find((r) => r._id === rowId)?.data[fieldId],
+              status,
+              reason,
+              approvedAt: new Date().toISOString(),
+            },
+          },
+        },
+      });
+      setRows((prev) =>
+        prev.map((r) =>
+          r._id === rowId
+            ? {
+                ...r,
+                data: {
+                  ...r.data,
+                  [fieldId]: {
+                    ...r.data[fieldId],
+                    status,
+                    reason,
+                    approvedAt: new Date().toISOString(),
+                  },
+                },
+              }
+            : r
+        )
+      );
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  // 행 삭제
+  const handleDeleteRow = async (rowId: string) => {
+    if (!window.confirm("이 응답을 삭제하시겠습니까?")) return;
+    try {
+      await AltSheetRowAPI.DAltSheetRow({ params: { _id: rowId } });
+      setRows((prev) => prev.filter((r) => r._id !== rowId));
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const csvFileRef = useRef<HTMLInputElement>(null);
+
+  // CSV 다운로드 (BOM 포함으로 한글 Excel 호환)
+  const handleCsvDownload = () => {
+    if (!selectedForm || filteredRows.length === 0) return;
+
+    const headers = ["#", "응답자"];
+    for (const field of visibleFields) headers.push(field.label);
+    if (isQuiz) { headers.push("점수"); headers.push("총점"); }
+    headers.push("제출일");
+
+    const escapeCsv = (val: string) => {
+      if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const lines = [headers.map(escapeCsv).join(",")];
+    for (let i = 0; i < filteredRows.length; i++) {
+      const row = filteredRows[i];
+      const cells: string[] = [
+        String(i + 1),
+        row._respondentName
+          ? `${row._respondentName}(${row._respondentId || ""})`
+          : "",
+      ];
+      for (const field of visibleFields) {
+        cells.push(formatCellValue(row.data[field._id], field));
+      }
+      if (isQuiz) {
+        cells.push(row.data?._quiz_score != null ? String(row.data._quiz_score) : "");
+        cells.push(row.data?._quiz_total != null ? String(row.data._quiz_total) : "");
+      }
+      cells.push(
+        row._submittedAt
+          ? new Date(row._submittedAt).toLocaleString("ko-KR", {
+              year: "numeric", month: "2-digit", day: "2-digit",
+              weekday: "short", hour: "2-digit", minute: "2-digit",
+            })
+          : ""
+      );
+      lines.push(cells.map(escapeCsv).join(","));
+    }
+
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + lines.join("\r\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${selectedForm.title}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // CSV 업로드
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedForm) return;
+    e.target.value = "";
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const text = ev.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length < 2) {
+        alert("CSV 파일에 데이터가 없습니다.");
+        return;
+      }
+
+      // 헤더 파싱
+      const headers = parseCsvLine(lines[0]);
+      const dataRows: Record<string, any>[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCsvLine(lines[i]);
+        const obj: Record<string, any> = {};
+        for (let j = 0; j < headers.length; j++) {
+          const header = headers[j].trim();
+          if (header && header !== "#" && header !== "응답자" && header !== "제출일") {
+            obj[header] = values[j]?.trim() ?? "";
+          }
+        }
+        if (Object.keys(obj).length > 0) {
+          dataRows.push(obj);
+        }
+      }
+
+      if (dataRows.length === 0) {
+        alert("가져올 데이터가 없습니다.");
+        return;
+      }
+
+      try {
+        const { rows: newRows, created } =
+          await AltSheetRowAPI.CAltSheetRowImportCsv({
+            data: { form: selectedForm._id, rows: dataRows },
+          });
+        setRows((prev) => [...prev, ...newRows]);
+        alert(`${created}개 행을 가져왔습니다.`);
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  };
+
+  // CSV 라인 파싱 (쌍따옴표 처리)
+  const parseCsvLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          current += ch;
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ",") {
+          result.push(current);
+          current = "";
+        } else {
+          current += ch;
+        }
+      }
+    }
+    result.push(current);
+    return result;
+  };
+
+  // 승인 필드인지 + 현재 사용자가 승인자인지 판별
+  const isApproverForField = (row: TAltSheetRow, field: TAltFormField) => {
+    if (field.type !== "approval") return false;
+    const approvalData = row.data[field._id];
+    if (!approvalData?.approver) return false;
+    return currentUser?.userId === approvalData.approver.userId;
+  };
+
+  // 승인 필드 셀 렌더링
+  const renderApprovalCell = (row: TAltSheetRow, field: TAltFormField) => {
+    const approvalData = row.data[field._id];
+    if (!approvalData) return "-";
+
+    const status = approvalData.status || "pending";
+    const isApprover = isApproverForField(row, field);
+    const statusClass =
+      status === "approved"
+        ? style.badgeApproved
+        : status === "rejected"
+          ? style.badgeRejected
+          : style.badgePending;
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <span
+          className={`${style.approvalBadge} ${statusClass}`}
+          style={{ fontSize: "11px", padding: "1px 6px" }}
+        >
+          {status === "approved"
+            ? "승인"
+            : status === "rejected"
+              ? "반려"
+              : "대기"}
+        </span>
+        {approvalData.approver && (
+          <span style={{ fontSize: "11px", color: "var(--text-color-2)" }}>
+            {approvalData.approver.userName}
+          </span>
+        )}
+        {isApprover && status === "pending" && (
+          <div
+            style={{ display: "flex", gap: "4px", flexDirection: "column" }}
+          >
+            <input
+              className={style.cellInput}
+              placeholder="사유 (선택)"
+              value={approvalReason[`${row._id}_${field._id}`] || ""}
+              onChange={(e) =>
+                setApprovalReason((p) => ({
+                  ...p,
+                  [`${row._id}_${field._id}`]: e.target.value,
+                }))
+              }
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontSize: "11px", minWidth: "60px" }}
+            />
+            <div style={{ display: "flex", gap: "2px" }}>
+              <button
+                className={style.approvalActionBtn}
+                style={{
+                  color: "var(--status-success)",
+                  background: "var(--status-success-bg)",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleApproval(row._id, field._id, "approved");
+                }}
+              >
+                승인
+              </button>
+              <button
+                className={style.approvalActionBtn}
+                style={{
+                  color: "var(--status-error)",
+                  background: "var(--status-error-bg)",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleApproval(row._id, field._id, "rejected");
+                }}
+              >
+                반려
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 응답자: shareResponses(전체 공유) 또는 showOwnResponse(본인 기록) 켜진 양식
+  const availableForms = canManage
+    ? forms
+    : forms.filter(
+        (f) => f.settings.shareResponses || f.settings.showOwnResponse
+      );
+
+  if (availableForms.length === 0) {
+    return (
+      <div className={style.emptyState}>
+        {canManage ? "양식을 먼저 생성해주세요." : "공개된 기록이 없습니다."}
+      </div>
+    );
+  }
+
+  // 시트 목록 (양식 미선택 시)
+  if (!selectedFormId) {
+    return (
+      <div className={style.formList}>
+        {availableForms.map((form) => (
+          <div
+            key={form._id}
+            className={style.formCard}
+            onClick={() => setSelectedFormId(form._id)}
+            style={{ cursor: "pointer" }}
+          >
+            <div className={style.formCardLeft}>
+              <div className={style.formCardTitle}>{form.title}</div>
+              <div className={style.formCardMeta}>
+                <span>{form.fields.length}개 항목</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
     <div className={style.sheetContainer}>
-      {/* 양식 선택 */}
-      {forms.length > 1 && (
-        <div className={style.sheetFormSelector}>
-          <span className={style.sheetFormLabel}>양식:</span>
-          <select
-            className={style.selectInput}
-            style={{ minWidth: "160px", padding: "6px 10px", fontSize: "13px" }}
-            value={selectedFormId}
-            onChange={(e) => setSelectedFormId(e.target.value)}
-          >
-            {forms.map((f) => (
-              <option key={f._id} value={f._id}>
-                {f.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* 목록으로 돌아가기 */}
+      <div style={{ marginBottom: "12px" }}>
+        <Button
+          type="ghost"
+          onClick={() => {
+            setSelectedFormId("");
+            setRows([]);
+            setFilters({});
+            setSortConfig(null);
+          }}
+          style={{ padding: "4px 10px", fontSize: "12px" }}
+        >
+          ← 목록
+        </Button>
+      </div>
 
       {/* 툴바 */}
       <div className={style.sheetToolbar}>
         <span className={style.sheetCount}>
-          {isLoading ? "로딩 중..." : `${rows.length}개 응답`}
+          {isLoading
+            ? "로딩 중..."
+            : (() => {
+                const uniqueUsers = new Set(
+                  filteredRows
+                    .map((r) => r._respondent)
+                    .filter(Boolean)
+                ).size;
+                const totalUniqueUsers = new Set(
+                  rows.map((r) => r._respondent).filter(Boolean)
+                ).size;
+                const userLabel = `${uniqueUsers}명 제출`;
+                const filtered =
+                  filteredRows.length !== rows.length
+                    ? ` (전체 ${totalUniqueUsers}명)`
+                    : "";
+                const rowExtra =
+                  filteredRows.length !== uniqueUsers
+                    ? ` · ${filteredRows.length}개 응답`
+                    : "";
+                return userLabel + filtered + rowExtra;
+              })()}
         </span>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          {canManage && (
+            <Button
+              type="ghost"
+              onClick={handleAddRow}
+              style={{ padding: "4px 10px", fontSize: "12px" }}
+            >
+              + 행 추가
+            </Button>
+          )}
+          <div style={{ position: "relative" }}>
+            <Button
+              type="ghost"
+              onClick={() => setShowColumnSettings(!showColumnSettings)}
+              style={{ padding: "4px 10px", fontSize: "12px" }}
+            >
+              컬럼 설정
+            </Button>
+            {showColumnSettings && (
+              <div className={style.columnSettingsDropdown}>
+                {allVisibleFields.map((f) => (
+                  <label key={f._id} className={style.columnSettingsItem}>
+                    <input
+                      type="checkbox"
+                      checked={!hiddenColumns.has(f._id)}
+                      onChange={(e) => {
+                        setHiddenColumns((prev) => {
+                          const next = new Set(prev);
+                          if (e.target.checked) {
+                            next.delete(f._id);
+                          } else {
+                            next.add(f._id);
+                          }
+                          return next;
+                        });
+                      }}
+                    />
+                    {f.label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          {canManage && (
+            <>
+              <Button
+                type="ghost"
+                onClick={handleCsvDownload}
+                style={{ padding: "4px 10px", fontSize: "12px" }}
+              >
+                CSV 다운로드
+              </Button>
+              <Button
+                type="ghost"
+                onClick={() => csvFileRef.current?.click()}
+                style={{ padding: "4px 10px", fontSize: "12px" }}
+              >
+                CSV 업로드
+              </Button>
+              <input
+                ref={csvFileRef}
+                type="file"
+                accept=".csv"
+                style={{ display: "none" }}
+                onChange={handleCsvUpload}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* 테이블 */}
       {!isLoading && rows.length === 0 ? (
         <div className={style.sheetEmpty}>아직 응답이 없습니다.</div>
       ) : !isLoading ? (
+        <div className={style.sheetTableWrap}>
         <table className={style.sheetTable}>
           <thead>
             <tr>
-              <th>#</th>
-              <th>응답자</th>
+              <th className={style.rowNumCell}>#</th>
+              <th
+                onClick={() => handleColumnSort("_respondent")}
+              >
+                응답자{getSortIndicator("_respondent")}
+              </th>
               {visibleFields.map((f) => (
-                <th key={f._id}>
+                <th
+                  key={f._id}
+                  onClick={() => handleColumnSort(f._id)}
+                >
                   {f.label}
                   {f.permission === "owner" && (
                     <span
@@ -150,17 +799,129 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
                       (관리자)
                     </span>
                   )}
+                  {getSortIndicator(f._id)}
                 </th>
               ))}
-              <th>제출일</th>
+              {isQuiz && (
+                <th
+                  onClick={() => handleColumnSort("_quiz_score")}
+                >
+                  점수{getSortIndicator("_quiz_score")}
+                </th>
+              )}
+              <th
+                onClick={() => handleColumnSort("_submittedAt")}
+              >
+                제출일{getSortIndicator("_submittedAt")}
+              </th>
+              {canManage && <th className={style.actionCell} />}
+            </tr>
+            {/* 필터 행 */}
+            <tr>
+              <th className={style.rowNumCell} />
+              <th>
+                <input
+                  className={style.filterInput}
+                  placeholder="필터..."
+                  value={filters["_respondent"] || ""}
+                  onChange={(e) =>
+                    setFilters((p) => ({
+                      ...p,
+                      _respondent: e.target.value,
+                    }))
+                  }
+                />
+              </th>
+              {visibleFields.map((f) => (
+                <th key={f._id}>
+                  {f.type === "select" ||
+                  f.type === "radio" ? (
+                    <select
+                      className={style.filterInput}
+                      value={filters[f._id] || ""}
+                      onChange={(e) =>
+                        setFilters((p) => ({
+                          ...p,
+                          [f._id]: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">전체</option>
+                      {f.options?.map((opt, i) => (
+                        <option key={i} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  ) : f.type === "checkbox" ? (
+                    <select
+                      className={style.filterInput}
+                      value={filters[f._id] || ""}
+                      onChange={(e) =>
+                        setFilters((p) => ({
+                          ...p,
+                          [f._id]: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">전체</option>
+                      <option value="Y">Y</option>
+                      <option value="N">N</option>
+                    </select>
+                  ) : f.type === "approval" ? (
+                    <select
+                      className={style.filterInput}
+                      value={filters[f._id] || ""}
+                      onChange={(e) =>
+                        setFilters((p) => ({
+                          ...p,
+                          [f._id]: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">전체</option>
+                      <option value="대기">대기</option>
+                      <option value="승인">승인</option>
+                      <option value="반려">반려</option>
+                    </select>
+                  ) : (
+                    <input
+                      className={style.filterInput}
+                      placeholder="필터..."
+                      value={filters[f._id] || ""}
+                      onChange={(e) =>
+                        setFilters((p) => ({
+                          ...p,
+                          [f._id]: e.target.value,
+                        }))
+                      }
+                    />
+                  )}
+                </th>
+              ))}
+              {isQuiz && <th />}
+              <th>
+                <input
+                  className={style.filterInput}
+                  placeholder="필터..."
+                  value={filters["_submittedAt"] || ""}
+                  onChange={(e) =>
+                    setFilters((p) => ({
+                      ...p,
+                      _submittedAt: e.target.value,
+                    }))
+                  }
+                />
+              </th>
+              {canManage && <th className={style.actionCell} />}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
+            {filteredRows.map((row, index) => (
               <tr key={row._id}>
-                <td>{index + 1}</td>
+                <td className={style.rowNumCell}>{index + 1}</td>
                 <td>
-                  {row._respondentName || "-"}
+                  {row._respondentName || ""}
                   {row._respondentId && (
                     <span
                       style={{
@@ -174,14 +935,30 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
                   )}
                 </td>
                 {visibleFields.map((field) => {
-                  const cellValue = formatCellValue(row.data[field._id]);
+                  // 승인 필드 특별 렌더링
+                  if (field.type === "approval") {
+                    return (
+                      <td key={field._id}>
+                        {renderApprovalCell(row, field)}
+                      </td>
+                    );
+                  }
+
+                  const cellValue = formatCellValue(
+                    row.data[field._id],
+                    field
+                  );
                   const isEditing =
                     editingCell?.rowId === row._id &&
                     editingCell?.fieldId === field._id;
-                  const isOwnerField = field.permission === "owner";
+                  const canEdit = canManage;
 
                   return (
-                    <td key={field._id}>
+                    <td
+                      key={field._id}
+                      onClick={canEdit && !isEditing ? () => handleCellClick(row._id, field, cellValue) : undefined}
+                      className={canEdit ? style.cellEditable : undefined}
+                    >
                       {isEditing ? (
                         <input
                           className={style.cellInput}
@@ -191,30 +968,43 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
                           onKeyDown={handleCellKeyDown}
                           autoFocus
                         />
-                      ) : canManage && isOwnerField ? (
-                        <span
-                          className={style.cellEditable}
-                          onClick={() =>
-                            handleCellClick(row._id, field, cellValue)
-                          }
-                        >
-                          {cellValue || "-"}
-                        </span>
                       ) : (
-                        cellValue || "-"
+                        cellValue || ""
                       )}
                     </td>
                   );
                 })}
+                {isQuiz && (
+                  <td>
+                    {row.data?._quiz_score != null
+                      ? `${row.data._quiz_score} / ${row.data._quiz_total || 0}`
+                      : "-"}
+                  </td>
+                )}
                 <td>
                   {row._submittedAt
-                    ? new Date(row._submittedAt).toLocaleDateString("ko-KR")
+                    ? new Date(row._submittedAt).toLocaleString("ko-KR", {
+                        year: "numeric", month: "2-digit", day: "2-digit",
+                        weekday: "short", hour: "2-digit", minute: "2-digit",
+                      })
                     : "-"}
                 </td>
+                {canManage && (
+                  <td className={style.actionCell}>
+                    <button
+                      className={style.removeBtn}
+                      onClick={() => handleDeleteRow(row._id)}
+                      title="삭제"
+                    >
+                      ×
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       ) : null}
     </div>
   );

@@ -6,7 +6,12 @@ import * as altSheetRows from "../controllers/altSheetRows.js";
 
 // 특수 경로 먼저
 router.get("/my", isLoggedIn, altSheetRows.findMy);
+router.get("/submission-status", isLoggedIn, altSheetRows.findSubmissionStatus);
+router.get("/count", isLoggedIn, altSheetRows.findCount);
+router.get("/available-combinations", isLoggedIn, altSheetRows.findAvailableCombinations);
 router.post("/bulk", isLoggedIn, altSheetRows.createBulk);
+router.post("/send-reminder", isLoggedIn, altSheetRows.sendReminder);
+router.post("/import-csv", isLoggedIn, altSheetRows.importCsv);
 
 // 일반 CRUD
 router.post("/", isLoggedIn, altSheetRows.create);

@@ -14,8 +14,7 @@ import { router as notifications } from "./notifications.js";
 import { router as posts } from "./posts.js";
 import { router as reminders } from "./reminders.js";
 import { router as registrations } from "./registrations.js";
-import { router as reservations } from "./reservations.js";
-import { router as reservationSlots } from "./reservationSlots.js";
+
 import { router as schools } from "./schools.js";
 import { router as seasons } from "./seasons.js";
 import { router as surveyResponses } from "./surveyResponses.js";
@@ -46,8 +45,7 @@ export const routers = [
   { label: "posts", routes: posts },
   { label: "reminders", routes: reminders },
   { label: "registrations", routes: registrations },
-  { label: "reservations", routes: reservations },
-  { label: "reservation-slots", routes: reservationSlots },
+
   { label: "schools", routes: schools },
   { label: "seasons", routes: seasons },
   { label: "survey-responses", routes: surveyResponses },

@@ -5,8 +5,8 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { AltForm, AltSheet, AltSheetRow, Board, Post, Notification, User, Registration, SurveyResponse, ReservationSlot, Reservation } from "../models/index.js";
-import { parseSheetDeclaration, renderMerge } from "../utils/mergeEngine.js";
+import { AltForm, AltSheet, AltSheetRow, Board, Post, Notification, User, Registration, SurveyResponse } from "../models/index.js";
+import { parseSheetDeclaration, renderMerge, stripMergeTags } from "../utils/mergeEngine.js";
 import { getAltBoardRole } from "../services/altForms.js";
 import {
   isBoardMember,
@@ -171,22 +171,9 @@ export const create = async (req, res) => {
 
     // postType 자동 결정 (첨부 기반)
     const surveys = req.body.surveys || [];
-    let postType = "general";
-    if (req.body.reservationConfig?.resource) {
-      postType = "reservation";
-    } else if (surveys.length > 0 && surveys.some((s) => s.questions?.length)) {
+    let postType = req.body.postType || "general";
+    if (surveys.length > 0 && surveys.some((s) => s.questions?.length)) {
       postType = "survey";
-    }
-    // 하위 호환: 명시적 postType 허용
-    if (req.body.postType && !req.body.reservationConfig?.resource) {
-      postType = req.body.postType;
-    }
-
-    // 예약 게시글 검증
-    if (postType === "reservation") {
-      if (!req.body.reservationConfig?.resource) {
-        return res.status(400).send({ message: FIELD_REQUIRED("reservationConfig.resource") });
-      }
     }
 
     // 설문 게시글 검증
@@ -205,9 +192,6 @@ export const create = async (req, res) => {
       title: req.body.title,
       content: req.body.content,
       postType,
-      ...(postType === "reservation" && {
-        reservationConfig: req.body.reservationConfig,
-      }),
       category: req.body.category || "",
       attachments: req.body.attachments || [],
       ...(permissionRead && { permissionRead }),
@@ -362,11 +346,32 @@ export const find = async (req, res) => {
       if (req.query.merge === "true" && post.content) {
         const { sheetName, body } = parseSheetDeclaration(post.content);
         if (sheetName) {
-          const sheet = await AltSheet(req.user.academyId).findOne({
+          // AltForm에서 제목으로 직접 검색 (AltSheet 이름 동기화 누락 대비)
+          let sheet = await AltSheet(req.user.academyId).findOne({
             board: board._id,
             name: sheetName,
             isActive: true,
           });
+
+          // AltSheet에서 못 찾으면 AltForm 제목으로 fallback
+          if (!sheet) {
+            const formByTitle = await AltForm(req.user.academyId).findOne({
+              board: board._id,
+              title: sheetName,
+              isActive: true,
+            });
+            if (formByTitle) {
+              sheet = await AltSheet(req.user.academyId).findOne({
+                form: formByTitle._id,
+                isActive: true,
+              });
+              // 이름 동기화
+              if (sheet && sheet.name !== sheetName) {
+                sheet.name = sheetName;
+                await sheet.save();
+              }
+            }
+          }
 
           if (sheet) {
             const form = await AltForm(req.user.academyId).findById(sheet.form);
@@ -375,11 +380,33 @@ export const find = async (req, res) => {
               let rowQuery = { sheet: sheet._id, isActive: true };
               const altRole = getAltBoardRole(board, req.user);
 
-              if (req.query.userId && (altRole === "admin" || altRole === "writer")) {
-                // 교사: 특정 사용자의 행 조회
-                rowQuery._respondent = req.query.userId;
-              } else if (altRole === "respondent") {
-                // 학생: 본인 행만
+              if (altRole === "admin" || altRole === "writer") {
+                // 관리자: 필터 적용
+                if (req.query.userId) {
+                  rowQuery._respondent = req.query.userId;
+                }
+                // 필드 필터
+                if (req.query.filters) {
+                  try {
+                    const filters = JSON.parse(req.query.filters);
+                    const labelMap = new Map(
+                      form.fields.map((f) => [f.label, f._id.toString()])
+                    );
+                    for (const [label, value] of Object.entries(filters)) {
+                      if (!value) continue;
+                      if (label === "_respondentName") {
+                        rowQuery._respondentName = { $regex: value, $options: "i" };
+                      } else {
+                        const fieldId = labelMap.get(label);
+                        if (fieldId) {
+                          rowQuery[`data.${fieldId}`] = { $regex: value, $options: "i" };
+                        }
+                      }
+                    }
+                  } catch (e) { /* ignore parse error */ }
+                }
+              } else {
+                // respondent 또는 역할 미지정: 본인 행만
                 rowQuery._respondent = req.user._id;
               }
 
@@ -389,11 +416,31 @@ export const find = async (req, res) => {
                 .lean();
 
               const postObj = post.toObject();
+              postObj._rawContent = postObj.content;
               postObj.content = renderMerge(body, rows, form.fields);
               postObj._mergeApplied = true;
+
+              // 관리자에게 필터용 필드 정보 제공
+              if (altRole === "admin" || altRole === "writer") {
+                postObj._mergeFields = form.fields.map((f) => ({
+                  label: f.label,
+                  type: f.type,
+                }));
+              }
+
               return res.status(200).send({ post: postObj, board });
+            } else {
+              logger.warn(`Merge: AltForm not found for sheet ${sheet._id}`);
             }
+          } else {
+            logger.warn(`Merge: AltSheet "${sheetName}" not found for board ${board._id}`);
           }
+
+          // 시트/폼을 찾지 못했어도 템플릿 태그 정리 후 반환
+          const postObj = post.toObject();
+          postObj.content = stripMergeTags(body);
+          postObj._mergeApplied = false;
+          return res.status(200).send({ post: postObj, board });
         }
       }
 
@@ -580,42 +627,6 @@ export const update = async (req, res) => {
       post.markModified("permissionRead");
     }
 
-    // 예약 설정 수정 (첨부 방식: postType 조건 제거)
-    if ("reservationConfig" in req.body) {
-      if (req.body.reservationConfig) {
-        // totalSlots는 외부에서 변경 불가 (슬롯 생성/삭제 시 자동 관리)
-        const { totalSlots, ...configUpdate } = req.body.reservationConfig;
-        if (post.reservationConfig) {
-          Object.assign(post.reservationConfig, configUpdate);
-        } else {
-          post.reservationConfig = configUpdate;
-          post.postType = "reservation";
-        }
-      } else {
-        // null 전송 → 예약 설정 제거
-        if (post.reservationConfig) {
-          // 슬롯 및 대기 중인 예약 정리
-          await ReservationSlot(req.user.academyId).updateMany(
-            { post: post._id },
-            { isActive: false }
-          );
-          await Reservation(req.user.academyId).updateMany(
-            { post: post._id, status: "pending" },
-            { status: "cancelled" }
-          );
-          post.reservationConfig = null;
-          // postType 재결정
-          const newSurveys = req.body.surveys ?? post.surveys ?? [];
-          if (newSurveys.length > 0 && newSurveys.some((s) => s.questions?.length)) {
-            post.postType = "survey";
-          } else {
-            post.postType = "general";
-          }
-        }
-      }
-      post.markModified("reservationConfig");
-    }
-
     // 하위호환: targetAudience
     if (req.body.targetAudience) post.targetAudience = req.body.targetAudience;
 
@@ -777,18 +788,6 @@ export const remove = async (req, res) => {
       await SurveyResponse(req.user.academyId).deleteMany({ post: post._id });
     }
 
-    // 예약 데이터 비활성화
-    if (post.reservationConfig) {
-      await ReservationSlot(req.user.academyId).updateMany(
-        { post: post._id },
-        { isActive: false }
-      );
-      await Reservation(req.user.academyId).updateMany(
-        { post: post._id, status: "pending" },
-        { status: "cancelled" }
-      );
-    }
-
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
@@ -924,57 +923,121 @@ export const signPostFile = async (req, res) => {
 
 /**
  * @memberof APIs.PostAPI
- * @function exportReservation API
- * @description 예약 설정을 JSON으로 내보내기
+ * @function mergeBatch API
+ * @description 머지 문서 일괄 렌더링 (사용자별)
  */
-export const exportReservation = async (req, res) => {
+export const mergeBatch = async (req, res) => {
   try {
     const post = await Post(req.user.academyId).findById(req.params._id);
     if (!post || !post.isActive) {
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
-    if (!post.reservationConfig) {
-      return res.status(400).send({ message: "이 게시글에 예약 설정이 없습니다." });
+
+    const board = await Board(req.user.academyId).findById(post.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    const config = post.reservationConfig;
-    const exportData = {
-      version: "1.0",
-      exportedAt: new Date().toISOString(),
-      type: "reservation",
-      config: {
-        resource: config.resource,
-        resourceDescription: config.resourceDescription || "",
-        slotMode: config.slotMode,
-        defaultCapacity: config.defaultCapacity,
-        requireApproval: config.requireApproval,
-        maxReservationsPerUser: config.maxReservationsPerUser,
-        ...(config.applicationForm?.length > 0 && {
-          applicationForm: config.applicationForm.map((f) => ({
-            label: f.label,
-            type: f.type,
-            options: f.options || [],
-            required: f.required,
-          })),
-        }),
-      },
-      ...(config.slotRuleTemplate && {
-        slotRuleTemplate: {
-          days: config.slotRuleTemplate.days,
-          ...(config.slotRuleTemplate.timeSlots?.length > 0 && {
-            timeSlots: config.slotRuleTemplate.timeSlots,
-          }),
-          ...(config.slotRuleTemplate.labels?.length > 0 && {
-            labels: config.slotRuleTemplate.labels,
-          }),
-          capacity: config.slotRuleTemplate.capacity,
-        },
-      }),
-    };
+    const altRole = getAltBoardRole(board, req.user);
+    if (altRole !== "admin" && altRole !== "writer") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
 
-    return res.status(200).send(exportData);
+    if (!post.content) {
+      return res.status(400).send({ message: "게시글에 내용이 없습니다." });
+    }
+
+    const { sheetName, body } = parseSheetDeclaration(post.content);
+    if (!sheetName) {
+      return res.status(400).send({ message: "머지 시트가 지정되지 않았습니다." });
+    }
+
+    const sheet = await AltSheet(req.user.academyId).findOne({
+      board: board._id,
+      name: sheetName,
+      isActive: true,
+    });
+    if (!sheet) {
+      return res.status(404).send({ message: __NOT_FOUND("sheet") });
+    }
+
+    const form = await AltForm(req.user.academyId).findById(sheet.form);
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    // userIds 파라미터로 필터링 (없으면 전체)
+    let rowQuery = { sheet: sheet._id, isActive: true };
+    if (req.query.userIds) {
+      const userIdList = req.query.userIds.split(",");
+      const users = await User(req.user.academyId)
+        .find({ userId: { $in: userIdList } })
+        .lean();
+      const userOids = users.map((u) => u._id);
+      rowQuery._respondent = { $in: userOids };
+    }
+
+    const rows = await AltSheetRow(req.user.academyId)
+      .find(rowQuery)
+      .sort({ createdAt: 1 })
+      .lean();
+
+    // 사용자별로 그룹핑하여 렌더링
+    const grouped = {};
+    for (const row of rows) {
+      const key = row._respondent?.toString() || "unknown";
+      if (!grouped[key]) {
+        grouped[key] = {
+          userId: row._respondentId || "",
+          userName: row._respondentName || "",
+          rows: [],
+        };
+      }
+      grouped[key].rows.push(row);
+    }
+
+    const results = Object.values(grouped).map((group) => ({
+      userId: group.userId,
+      userName: group.userName,
+      content: renderMerge(body, group.rows, form.fields),
+    }));
+
+    return res.status(200).send({ results, title: post.title });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
   }
 };
+
+/**
+ * @memberof APIs.PostAPI
+ * @function duplicate API
+ * @description 게시글 복제 (내용 복사, 데이터 없음)
+ */
+export const duplicate = async (req, res) => {
+  try {
+    const post = await Post(req.user.academyId)
+      .findById(req.params._id)
+      .lean();
+    if (!post || !post.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("post") });
+    }
+
+    const newPost = await Post(req.user.academyId).create({
+      board: post.board,
+      author: req.user._id,
+      authorId: req.user.userId,
+      authorName: req.user.userName,
+      authorProfile: req.user.profile,
+      title: `${post.title} (복사)`,
+      content: post.content || "",
+      isActive: true,
+    });
+
+    return res.status(200).send({ post: newPost });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+

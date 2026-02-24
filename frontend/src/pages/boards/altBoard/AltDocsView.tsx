@@ -9,6 +9,7 @@ import Table from "components/tableV2/Table";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 import PostBlogView from "../views/PostBlogView";
+import BatchPrintView from "./BatchPrintView";
 
 import { TBoard, TBoardContentViewMode } from "types/board";
 import { TPost } from "types/post";
@@ -43,13 +44,15 @@ const formatPermissionRead = (post: TPost): string => {
 const AltDocsView = ({ board }: Props) => {
   const navigate = useAppNavigate();
   const { currentUser } = useAuth();
-  const { PostAPI, BoardAPI } = useAPIv2();
+  const { PostAPI } = useAPIv2();
 
   const [posts, setPosts] = useState<TPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPosts, setSelectedPosts] = useState<TPostWithSelection[]>([]);
-  const [contentViewMode, setContentViewMode] = useState<TBoardContentViewMode>(
-    board.contentViewMode || "table"
+  const [contentViewMode, setContentViewMode] =
+    useState<TBoardContentViewMode>(board.contentViewMode || "table");
+  const [batchPrintPostId, setBatchPrintPostId] = useState<string | null>(
+    null
   );
 
   const isManager =
@@ -61,34 +64,51 @@ const AltDocsView = ({ board }: Props) => {
     if (currentUser?.auth === "manager") return true;
     if (board.creator && board.creator === currentUser?._id) return true;
     if (
-      board.writers?.users?.some(
-        (u) => u.userId === currentUser?.userId
-      )
+      board.writers?.users?.some((u) => u.userId === currentUser?.userId)
     )
       return true;
-    // Alt Board의 admin/writer 역할도 글쓰기 가능
     const role = board.altBoardRole?.[currentUser?.userId || ""];
     if (role === "admin" || role === "writer") return true;
     return false;
   };
 
-  const loadPosts = () => {
+  const loadPosts = async () => {
     setIsLoading(true);
-    const needsContent = contentViewMode === "blog";
-    PostAPI.RPosts({
-      query: {
-        board: board._id,
-        ...(needsContent && { includeContent: "true" }),
-      },
-    })
-      .then(({ posts }) => {
-        setPosts(posts);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        ALERT_ERROR(err);
-        setIsLoading(false);
+    try {
+      const needsContent = contentViewMode === "blog";
+      const { posts: loadedPosts } = await PostAPI.RPosts({
+        query: {
+          board: board._id,
+          ...(needsContent && { includeContent: "true" }),
+        },
       });
+
+      // 블로그 뷰: 템플릿 변수가 있는 게시글은 merge 적용
+      if (needsContent) {
+        const merged = await Promise.all(
+          loadedPosts.map(async (p) => {
+            if (p.content?.includes("{{#sheet")) {
+              try {
+                const { post: mergedPost } = await PostAPI.RPost({
+                  params: { _id: p._id },
+                  query: { merge: "true" },
+                });
+                return { ...p, content: mergedPost.content };
+              } catch {
+                return p;
+              }
+            }
+            return p;
+          })
+        );
+        setPosts(merged);
+      } else {
+        setPosts(loadedPosts);
+      }
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -132,6 +152,34 @@ const AltDocsView = ({ board }: Props) => {
     }
   };
 
+  const handleDuplicate = async (postId: string) => {
+    try {
+      await PostAPI.DuplicatePost({ params: { _id: postId } });
+      loadPosts();
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleDownloadMd = async (post: TPost) => {
+    try {
+      const { post: fullPost } = await PostAPI.RPost({
+        params: { _id: post._id },
+        query: { merge: "true" },
+      });
+      const content = fullPost.content || "";
+      const blob = new Blob([content], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${post.title || "문서"}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const handleClickPost = (post: TPost) => {
     navigate(`/boards/${board._id}/post/${post._id}`);
   };
@@ -160,6 +208,16 @@ const AltDocsView = ({ board }: Props) => {
 
   if (isLoading) return null;
 
+  // 일괄 인쇄 모드
+  if (batchPrintPostId) {
+    return (
+      <BatchPrintView
+        postId={batchPrintPostId}
+        onClose={() => setBatchPrintPostId(null)}
+      />
+    );
+  }
+
   return (
     <div>
       {/* 툴바 */}
@@ -183,19 +241,41 @@ const AltDocsView = ({ board }: Props) => {
           ) : (
             <>
               {canEditSelected() && selectedPosts.length === 1 && (
-                <Button
-                  type="ghost"
-                  onClick={() =>
-                    navigate(
-                      `/boards/${board._id}/edit/${selectedPosts[0]._id}`
-                    )
-                  }
-                >
-                  <>
-                    <Svg type="edit" width="16px" height="16px" />
-                    수정
-                  </>
-                </Button>
+                <>
+                  <Button
+                    type="ghost"
+                    onClick={() =>
+                      navigate(
+                        `/boards/${board._id}/edit/${selectedPosts[0]._id}`
+                      )
+                    }
+                  >
+                    <>
+                      <Svg type="edit" width="16px" height="16px" />
+                      수정
+                    </>
+                  </Button>
+                  <Button
+                    type="ghost"
+                    onClick={() => handleDuplicate(selectedPosts[0]._id)}
+                  >
+                    복제
+                  </Button>
+                  <Button
+                    type="ghost"
+                    onClick={() => handleDownloadMd(selectedPosts[0])}
+                  >
+                    .md 다운로드
+                  </Button>
+                  <Button
+                    type="ghost"
+                    onClick={() =>
+                      setBatchPrintPostId(selectedPosts[0]._id)
+                    }
+                  >
+                    일괄 인쇄
+                  </Button>
+                </>
               )}
               {canDeleteSelected() && (
                 <Button

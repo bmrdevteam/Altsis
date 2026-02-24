@@ -27,17 +27,9 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import { MarkdownEditor } from "components/markdown";
 
 import { TBoard, TBoardMembers, TMemberUser } from "types/board";
+import { TAltForm } from "types/altForm";
 import { TPost, TPostAttachment } from "types/post";
-import {
-  TPostType,
-  TReservationConfig,
-} from "types/reservation";
-import { TSurvey } from "types/survey";
 import Popup from "components/popup/Popup";
-import SurveyBuilderPopup from "./survey/SurveyBuilderPopup";
-import SurveyImportPopup from "./survey/SurveyImportPopup";
-import ReservationConfigPopup from "./reservation/ReservationConfigPopup";
-import ReservationImportPopup from "./reservation/ReservationImportPopup";
 import surveyStyle from "./survey/survey.module.scss";
 
 const PostCreate = () => {
@@ -47,9 +39,11 @@ const PostCreate = () => {
     postId?: string;
   }>();
   const { currentUser, currentSchool } = useAuth();
-  const { BoardAPI, PostAPI, UserAPI, ChatAPI } = useAPIv2();
+  const { BoardAPI, PostAPI, UserAPI, ChatAPI, AltFormAPI } = useAPIv2();
 
   const [board, setBoard] = useState<TBoard | null>(null);
+  const [altForms, setAltForms] = useState<TAltForm[]>([]);
+  const [showTemplateGuide, setShowTemplateGuide] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
@@ -62,31 +56,6 @@ const PostCreate = () => {
 
   const [userList, setUserList] = useState<any[]>([]);
   const [showPermissionPopup, setShowPermissionPopup] = useState(false);
-  const [surveys, setSurveys] = useState<TSurvey[]>([]);
-  const [editingSurveyIndex, setEditingSurveyIndex] = useState<number | null>(
-    null
-  );
-  const [showSurveyBuilderPopup, setShowSurveyBuilderPopup] = useState(false);
-  const [showSurveyImportPopup, setShowSurveyImportPopup] = useState(false);
-  const [showSurveyMenu, setShowSurveyMenu] = useState(false);
-  const surveyMenuRef = useRef<HTMLDivElement>(null);
-
-  // 예약 설정 (첨부 방식)
-  const [reservationConfig, setReservationConfig] =
-    useState<TReservationConfig | null>(null);
-  const [showReservationMenu, setShowReservationMenu] = useState(false);
-  const [showReservationConfigPopup, setShowReservationConfigPopup] =
-    useState(false);
-  const [showReservationImportPopup, setShowReservationImportPopup] =
-    useState(false);
-  const reservationMenuRef = useRef<HTMLDivElement>(null);
-
-  // postType 자동 결정
-  const postType: TPostType = reservationConfig?.resource
-    ? "reservation"
-    : surveys.length > 0
-    ? "survey"
-    : "general";
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,6 +65,7 @@ const PostCreate = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mdFileInputRef = useRef<HTMLInputElement>(null);
   // 첨부파일 미리보기 URL 캐시 (서명 URL)
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
 
@@ -181,33 +151,6 @@ const PostCreate = () => {
                 users: [],
               });
             }
-            // 설문 데이터 로드
-            if (post.surveys && post.surveys.length > 0) {
-              setSurveys(post.surveys);
-            }
-            // 예약 데이터 로드
-            if (post.reservationConfig) {
-              setReservationConfig({
-                resource: post.reservationConfig.resource || "",
-                resourceDescription:
-                  post.reservationConfig.resourceDescription || "",
-                slotMode: post.reservationConfig.slotMode || "time",
-                defaultCapacity: post.reservationConfig.defaultCapacity || 1,
-                requireApproval:
-                  post.reservationConfig.requireApproval ?? true,
-                maxReservationsPerUser:
-                  post.reservationConfig.maxReservationsPerUser || 0,
-                reservationOpenAt:
-                  post.reservationConfig.reservationOpenAt || "",
-                reservationCloseAt:
-                  post.reservationConfig.reservationCloseAt || "",
-                totalSlots: post.reservationConfig.totalSlots || 0,
-                applicationForm:
-                  post.reservationConfig.applicationForm || [],
-                slotRuleTemplate:
-                  post.reservationConfig.slotRuleTemplate || undefined,
-              });
-            }
           } else {
             // 신규 작성: 전체 멤버 대상 (기본값)
             setPermissionRead({
@@ -225,28 +168,14 @@ const PostCreate = () => {
     }
   }, [isLoading, boardId, postId]);
 
-  // 설문/예약 메뉴 외부 클릭 닫기
+  // Alt Board: 양식 목록 로드 (템플릿 변수 안내용)
   useEffect(() => {
-    if (!showSurveyMenu && !showReservationMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        showSurveyMenu &&
-        surveyMenuRef.current &&
-        !surveyMenuRef.current.contains(e.target as Node)
-      ) {
-        setShowSurveyMenu(false);
-      }
-      if (
-        showReservationMenu &&
-        reservationMenuRef.current &&
-        !reservationMenuRef.current.contains(e.target as Node)
-      ) {
-        setShowReservationMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showSurveyMenu, showReservationMenu]);
+    if (board?.boardMode === "alt" && boardId) {
+      AltFormAPI.RAltForms({ query: { board: boardId } })
+        .then(({ forms }) => setAltForms(forms))
+        .catch(() => {});
+    }
+  }, [board]);
 
   // 첨부파일 업로드
   const handleFileSelect = async (files: FileList | null) => {
@@ -376,30 +305,6 @@ const PostCreate = () => {
     try {
       const postPermissionRead = useSpecificPermission ? permissionRead : undefined;
 
-      // 예약 설정 데이터 구성
-      const resConfig =
-        reservationConfig?.resource
-          ? {
-              resource: reservationConfig.resource.trim(),
-              resourceDescription:
-                reservationConfig.resourceDescription?.trim() || "",
-              slotMode: reservationConfig.slotMode,
-              defaultCapacity: reservationConfig.defaultCapacity,
-              requireApproval: reservationConfig.requireApproval,
-              maxReservationsPerUser:
-                reservationConfig.maxReservationsPerUser,
-              ...(reservationConfig.reservationOpenAt
-                ? { reservationOpenAt: reservationConfig.reservationOpenAt }
-                : {}),
-              ...(reservationConfig.reservationCloseAt
-                ? { reservationCloseAt: reservationConfig.reservationCloseAt }
-                : {}),
-              ...(reservationConfig.slotRuleTemplate
-                ? { slotRuleTemplate: reservationConfig.slotRuleTemplate }
-                : {}),
-            }
-          : undefined;
-
       if (isEditMode && postId) {
         await PostAPI.UPost({
           params: { _id: postId },
@@ -408,10 +313,6 @@ const PostCreate = () => {
             content: content.trim(),
             attachments,
             permissionRead: useSpecificPermission ? permissionRead : null,
-            surveys,
-            ...(resConfig
-              ? { reservationConfig: resConfig }
-              : { reservationConfig: null }),
           },
         });
         alert("수정되었습니다.");
@@ -428,11 +329,6 @@ const PostCreate = () => {
             content: content.trim(),
             attachments,
             permissionRead: postPermissionRead,
-            surveys,
-            postType,
-            ...(resConfig && {
-              reservationConfig: resConfig,
-            }),
           },
         });
         alert("작성되었습니다.");
@@ -519,8 +415,17 @@ const PostCreate = () => {
           }}
         >
           <div style={{ flex: 1 }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "8px",
+                fontSize: "14px",
+                fontWeight: 500,
+              }}
+            >
+              제목
+            </label>
             <Input
-              label="제목"
               placeholder="제목을 입력하세요"
               value={title}
               onChange={(e: any) => setTitle(e.target.value)}
@@ -540,7 +445,7 @@ const PostCreate = () => {
                 ? "var(--status-info-bg)"
                 : "var(--background-color-2)",
               cursor: "pointer",
-              fontSize: "13px",
+              fontSize: "14px",
               color: "var(--accent-1)",
               whiteSpace: "nowrap",
               height: "38px",
@@ -612,8 +517,304 @@ const PostCreate = () => {
                 return [];
               }
             }}
+            toolbarExtra={
+              <>
+                <span
+                  style={{
+                    display: "inline-block",
+                    width: 1,
+                    height: 20,
+                    margin: "0 4px",
+                    backgroundColor: "var(--border-default-color)",
+                  }}
+                />
+                <input
+                  ref={mdFileInputRef}
+                  type="file"
+                  accept=".md,.markdown,.txt"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      const text = ev.target?.result;
+                      if (typeof text === "string") {
+                        setContent(text);
+                      }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  title="마크다운 파일 가져오기 (.md)"
+                  onClick={() => mdFileInputRef.current?.click()}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 32,
+                    height: 32,
+                    padding: 0,
+                    background: "none",
+                    border: "none",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    color: "var(--accent-3)",
+                  }}
+                >
+                  <Svg type="upload" width="18px" height="18px" />
+                </button>
+                {board?.boardMode === "alt" && altForms.length > 0 && (
+                  <button
+                    type="button"
+                    title="시트 데이터 연결 (템플릿 변수)"
+                    onClick={() => setShowTemplateGuide(true)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 32,
+                      height: 32,
+                      padding: 0,
+                      background: "none",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      color: "var(--accent-3)",
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: 20 }}
+                    >
+                      data_object
+                    </span>
+                  </button>
+                )}
+              </>
+            }
           />
         </div>
+
+        {/* 템플릿 변수 안내 모달 */}
+        {showTemplateGuide && (
+          <Popup
+            title="시트 데이터 연결 (템플릿 변수)"
+            setState={setShowTemplateGuide}
+            closeBtn
+            contentScroll
+            style={{ maxWidth: "640px", width: "100%" }}
+          >
+            <div style={{ padding: "20px", fontSize: "13px", lineHeight: 1.8 }}>
+              <p style={{ marginBottom: "16px", color: "var(--text-color-2)" }}>
+                문서 내용에 아래 문법을 사용하면 시트 데이터가 자동으로 삽입됩니다.
+              </p>
+
+              <div style={{ marginBottom: "16px" }}>
+                <strong>1. 시트 선언</strong>
+                <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: 8 }}>문서 상단에 작성</span>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+                  {`{{#sheet 양식이름}}`}
+                </pre>
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <strong>2. 변수 삽입</strong>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+{`{{필드이름}}              — 필드 값
+{{필드|date:YYYY.MM.DD}} — 날짜 포맷
+{{필드|number:,}}        — 숫자 천 단위 쉼표
+{{_respondentName}}      — 응답자 이름
+{{_respondentId}}        — 응답자 ID
+{{_submittedAt}}         — 제출일
+{{_count}}               — 전체 응답 수`}
+                </pre>
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <strong>3. 반복/테이블</strong>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+{`{{#each}}
+  {{_index}}. {{이름}}: {{점수}}점
+{{/each}}
+
+{{#table _index, 이름, 점수, 상태}}`}
+                </pre>
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <strong>4. 필터/정렬</strong>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+{`{{#filter 학년 == "10학년"}}
+{{#filter 점수 > 80}}
+{{#sort 이름 asc}}
+{{#sort 점수 desc}}`}
+                </pre>
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <strong>5. 집계</strong>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+{`{{#sum 필드}}   — 합계
+{{#avg 필드}}   — 평균
+{{#min 필드}}   — 최솟값
+{{#max 필드}}   — 최댓값
+{{#unique 필드}} — 고유값 목록`}
+                </pre>
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <strong>6. 조건부 표시</strong>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+{`{{#if 상태 == "승인"}}승인됨{{#else}}미승인{{/if}}
+
+연산자: == != > < >= <= contains isEmpty isNotEmpty`}
+                </pre>
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <strong>7. 그룹핑</strong>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+{`{{#group 학년}}
+### {{_groupValue}} ({{_groupCount}}명)
+{{#table 이름, 점수}}
+{{/group}}`}
+                </pre>
+              </div>
+
+              {/* 양식별 사용 가능한 변수 목록 */}
+              <div
+                style={{
+                  marginTop: "20px",
+                  paddingTop: "16px",
+                  borderTop: "1px solid var(--border-color)",
+                }}
+              >
+                <strong>사용 가능한 양식/필드</strong>
+                <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: 8 }}>
+                  클릭하여 복사
+                </span>
+                {altForms.map((form) => (
+                  <div
+                    key={form._id}
+                    style={{
+                      marginTop: "10px",
+                      padding: "10px 12px",
+                      background: "var(--background-color-2)",
+                      borderRadius: "6px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        marginBottom: "6px",
+                        fontSize: "12px",
+                        color: "var(--text-color-2)",
+                      }}
+                    >
+                      {`{{#sheet ${form.title}}}`}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "4px",
+                      }}
+                    >
+                      {form.fields.map((f) => (
+                        <span
+                          key={f._id}
+                          onClick={() => {
+                            navigator.clipboard.writeText(`{{${f.label}}}`);
+                          }}
+                          style={{
+                            padding: "3px 10px",
+                            background: "var(--background-color-1)",
+                            border: "1px solid var(--border-color)",
+                            borderRadius: "4px",
+                            fontSize: "12px",
+                            cursor: "pointer",
+                            color: "var(--text-color-1)",
+                            transition: "background 0.15s",
+                          }}
+                          title={`{{${f.label}}} 복사`}
+                        >
+                          {`{{${f.label}}}`}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Popup>
+        )}
 
         {/* 첨부 */}
         <div style={{ marginBottom: "24px" }}>
@@ -628,8 +829,8 @@ const PostCreate = () => {
             첨부
           </label>
 
-          {/* 첨부된 항목 리스트 (파일 + 설문 + 예약 통합) */}
-          {(attachments.length > 0 || surveys.length > 0 || reservationConfig) && (
+          {/* 첨부된 파일 리스트 */}
+          {attachments.length > 0 && (
             <div className={surveyStyle.attachList}>
               {attachments.map((file) => {
                 const isImage = file.mimeType?.startsWith("image/");
@@ -671,115 +872,10 @@ const PostCreate = () => {
                   </div>
                 );
               })}
-              {surveys.map((s, idx) => (
-                <div key={`survey-${idx}`} className={surveyStyle.attachItem}>
-                  <div className={surveyStyle.attachItemThumbArea}>
-                    <div className={surveyStyle.attachItemIconLarge}>
-                      <Svg type="description" width="24px" height="24px" />
-                    </div>
-                  </div>
-                  <div className={surveyStyle.attachItemBody}>
-                    <div className={surveyStyle.attachItemInfo}>
-                      <span className={surveyStyle.attachItemTitle}>
-                        {s.title || `설문 ${idx + 1}`}
-                      </span>
-                      <span className={surveyStyle.attachItemMeta}>
-                        {s.questions.length}개 질문
-                        {s.settings.isAnonymous && " · 익명"}
-                        {s.responseCount > 0 &&
-                          ` · ${s.responseCount}명 응답`}
-                      </span>
-                    </div>
-                    <div className={surveyStyle.attachItemActions}>
-                      <button
-                        type="button"
-                        className={surveyStyle.attachItemBtn}
-                        onClick={() => {
-                          setEditingSurveyIndex(idx);
-                          setShowSurveyBuilderPopup(true);
-                        }}
-                      >
-                        편집
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={surveyStyle.attachItemClose}
-                    onClick={() => {
-                      if (
-                        s.responseCount > 0 &&
-                        !window.confirm(
-                          "이 설문에 응답이 있습니다. 삭제하시겠습니까?"
-                        )
-                      ) {
-                        return;
-                      }
-                      setSurveys((prev) =>
-                        prev.filter((_, i) => i !== idx)
-                      );
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {/* 예약 첨부 항목 */}
-              {reservationConfig && (
-                <div className={surveyStyle.attachItem}>
-                  <div className={surveyStyle.attachItemThumbArea}>
-                    <div className={surveyStyle.attachItemIconLarge}>
-                      <Svg type="eventCalendar" width="24px" height="24px" />
-                    </div>
-                  </div>
-                  <div className={surveyStyle.attachItemBody}>
-                    <div className={surveyStyle.attachItemInfo}>
-                      <span className={surveyStyle.attachItemTitle}>
-                        {reservationConfig.resource || "예약"}
-                      </span>
-                      <span className={surveyStyle.attachItemMeta}>
-                        {reservationConfig.slotMode === "time"
-                          ? "시간 모드"
-                          : "라벨 모드"}
-                        {" · "}정원 {reservationConfig.defaultCapacity}명
-                        {reservationConfig.requireApproval
-                          ? " · 승인 필요"
-                          : " · 즉시 확정"}
-                      </span>
-                    </div>
-                    <div className={surveyStyle.attachItemActions}>
-                      <button
-                        type="button"
-                        className={surveyStyle.attachItemBtn}
-                        onClick={() => setShowReservationConfigPopup(true)}
-                      >
-                        편집
-                      </button>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={surveyStyle.attachItemClose}
-                    onClick={() => {
-                      if (
-                        isEditMode &&
-                        !window.confirm(
-                          "예약 설정을 제거하면 관련 슬롯과 예약이 모두 삭제됩니다. 계속하시겠습니까?"
-                        )
-                      ) {
-                        return;
-                      }
-                      setReservationConfig(null);
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
-          {/* 아이콘 카드 그리드 (Google Classroom 스타일) */}
+          {/* 업로드 버튼 */}
           <input
             ref={fileInputRef}
             type="file"
@@ -804,98 +900,6 @@ const PostCreate = () => {
               <Svg type="upload" width="24px" height="24px" />
               <span>{isUploading ? "업로드 중..." : "업로드"}</span>
             </button>
-            {/* Alt Board에서는 설문/예약 첨부 숨김 (자체 양식 시스템 사용) */}
-            {board?.boardMode !== "alt" && (
-              <>
-                <div className={surveyStyle.attachCardWrapper} ref={surveyMenuRef}>
-                  <button
-                    type="button"
-                    className={surveyStyle.attachCard}
-                    onClick={() => setShowSurveyMenu((prev) => !prev)}
-                  >
-                    <Svg type="postAdd" width="24px" height="24px" />
-                    <span>설문</span>
-                  </button>
-                  {showSurveyMenu && (
-                    <div className={surveyStyle.attachCardMenu}>
-                      <button
-                        type="button"
-                        className={surveyStyle.attachCardMenuItem}
-                        onClick={() => {
-                          setShowSurveyMenu(false);
-                          const newSurvey: TSurvey = {
-                            title: "",
-                            description: "",
-                            questions: [],
-                            settings: {
-                              isAnonymous: false,
-                              showResults: "afterResponse",
-                              deadline: null,
-                              allowModify: false,
-                            },
-                            responseCount: 0,
-                          };
-                          setSurveys((prev) => [...prev, newSurvey]);
-                          setEditingSurveyIndex(surveys.length);
-                          setShowSurveyBuilderPopup(true);
-                        }}
-                      >
-                        새로 만들기
-                      </button>
-                      <button
-                        type="button"
-                        className={surveyStyle.attachCardMenuItem}
-                        onClick={() => {
-                          setShowSurveyMenu(false);
-                          setShowSurveyImportPopup(true);
-                        }}
-                      >
-                        가져오기
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {!reservationConfig && (
-                  <div
-                    className={surveyStyle.attachCardWrapper}
-                    ref={reservationMenuRef}
-                  >
-                    <button
-                      type="button"
-                      className={surveyStyle.attachCard}
-                      onClick={() => setShowReservationMenu((prev) => !prev)}
-                    >
-                      <Svg type="eventCalendar" width="24px" height="24px" />
-                      <span>예약</span>
-                    </button>
-                    {showReservationMenu && (
-                      <div className={surveyStyle.attachCardMenu}>
-                        <button
-                          type="button"
-                          className={surveyStyle.attachCardMenuItem}
-                          onClick={() => {
-                            setShowReservationMenu(false);
-                            setShowReservationConfigPopup(true);
-                          }}
-                        >
-                          새로 만들기
-                        </button>
-                        <button
-                          type="button"
-                          className={surveyStyle.attachCardMenuItem}
-                          onClick={() => {
-                            setShowReservationMenu(false);
-                            setShowReservationImportPopup(true);
-                          }}
-                        >
-                          가져오기
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
           </div>
         </div>
 
@@ -913,45 +917,6 @@ const PostCreate = () => {
         </div>
       </div>
 
-      {showSurveyBuilderPopup && editingSurveyIndex !== null && (
-        <SurveyBuilderPopup
-          setState={(open) => {
-            setShowSurveyBuilderPopup(open);
-            if (!open) setEditingSurveyIndex(null);
-          }}
-          survey={surveys[editingSurveyIndex] ?? null}
-          onChange={(updated) => {
-            if (updated && editingSurveyIndex !== null) {
-              setSurveys((prev) =>
-                prev.map((s, i) => (i === editingSurveyIndex ? updated : s))
-              );
-            }
-          }}
-          postId={postId}
-        />
-      )}
-      {showSurveyImportPopup && (
-        <SurveyImportPopup
-          setState={setShowSurveyImportPopup}
-          onImport={(imported) => {
-            setSurveys((prev) => [...prev, imported]);
-          }}
-        />
-      )}
-      {showReservationConfigPopup && (
-        <ReservationConfigPopup
-          setState={setShowReservationConfigPopup}
-          config={reservationConfig}
-          onChange={(config) => setReservationConfig(config)}
-          isEditMode={isEditMode}
-        />
-      )}
-      {showReservationImportPopup && (
-        <ReservationImportPopup
-          setState={setShowReservationImportPopup}
-          onImport={(config) => setReservationConfig(config)}
-        />
-      )}
       {showPermissionPopup && (
         <Popup
           setState={setShowPermissionPopup}

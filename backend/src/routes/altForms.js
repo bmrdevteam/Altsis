@@ -4,6 +4,11 @@ import { isLoggedIn } from "../middleware/auth.js";
 
 import * as altForms from "../controllers/altForms.js";
 
+// 특수 경로 먼저
+router.post("/import", isLoggedIn, altForms.importForm);
+router.get("/:_id/export", isLoggedIn, altForms.exportForm);
+router.post("/:_id/duplicate", isLoggedIn, altForms.duplicate);
+
 // Alt Form CRUD
 router.post("/", isLoggedIn, altForms.create);
 router.get("/:_id?", isLoggedIn, altForms.find);

@@ -28,6 +28,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {number} order - 정렬 순서
  */
 const altFormFieldSchema = mongoose.Schema({
+  _id: { type: String, required: true },
   label: { type: String, required: true },
   type: {
     type: String,
@@ -36,6 +37,8 @@ const altFormFieldSchema = mongoose.Schema({
       "textarea",
       "number",
       "date",
+      "multiDate",
+      "time",
       "file",
       "select",
       "multiSelect",
@@ -59,6 +62,45 @@ const altFormFieldSchema = mongoose.Schema({
   options: { type: [String], default: undefined },
   validation: { type: mongoose.Schema.Types.Mixed },
   order: { type: Number, default: 0 },
+
+  // Phase 2: 조건부 표시
+  displayCondition: {
+    type: {
+      enabled: { type: Boolean, default: false },
+      logic: { type: String, enum: ["and", "or"], default: "and" },
+      conditions: [
+        {
+          fieldId: String,
+          operator: {
+            type: String,
+            enum: [
+              "equals",
+              "notEquals",
+              "contains",
+              "isEmpty",
+              "isNotEmpty",
+            ],
+          },
+          value: mongoose.Schema.Types.Mixed,
+        },
+      ],
+    },
+    default: undefined,
+  },
+
+  // Phase 2: 퀴즈 모드
+  correctAnswer: { type: mongoose.Schema.Types.Mixed },
+  points: { type: Number, default: 0 },
+
+  // Phase 2: 중복 검사
+  duplicateCheck: {
+    type: {
+      enabled: { type: Boolean, default: false },
+      mode: { type: String, enum: ["free", "preRegistration"], default: "free" },
+      allowedCount: { type: Number, default: 1 },
+    },
+    default: undefined,
+  },
 });
 
 /**
@@ -74,6 +116,34 @@ const altFormSettingsSchema = mongoose.Schema(
     openAt: { type: Date },
     closeAt: { type: Date },
     allowResubmit: { type: Boolean, default: false },
+    allowMultipleResponses: { type: Boolean, default: false },
+
+    // Phase 2: 퀴즈 모드
+    quizMode: { type: Boolean, default: false },
+    quizSettings: {
+      type: {
+        scoreReveal: {
+          type: String,
+          enum: ["immediately", "afterDeadline", "never"],
+          default: "immediately",
+        },
+        answerReveal: {
+          type: String,
+          enum: ["immediately", "afterDeadline", "never"],
+          default: "afterDeadline",
+        },
+        showWrongMarks: { type: Boolean, default: true },
+      },
+      default: undefined,
+    },
+
+    // Phase 2: 직접 입력 모드
+    directInputMode: { type: Boolean, default: false },
+
+    // Phase 3: 응답 공개 설정
+    shareResponses: { type: Boolean, default: false },
+    showOwnerFields: { type: Boolean, default: false },
+    showOwnResponse: { type: Boolean, default: true },
   },
   { _id: false }
 );

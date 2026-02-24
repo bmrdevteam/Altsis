@@ -257,6 +257,13 @@
   }
 }
 
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
 .toolbarButtons {
   display: flex;
   align-items: center;
