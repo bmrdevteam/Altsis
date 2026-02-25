@@ -17,6 +17,7 @@ type Props = {
   onRespondForm?: (formId: string) => void;
   onCreateForm: () => void;
   onRefresh: () => void;
+  onCopyFormLink?: (formId: string) => void;
 };
 
 const AltFormList = ({
@@ -28,6 +29,7 @@ const AltFormList = ({
   onRespondForm,
   onCreateForm,
   onRefresh,
+  onCopyFormLink,
 }: Props) => {
   const { AltFormAPI } = useAPIv2();
 
@@ -182,81 +184,95 @@ const AltFormList = ({
                 )}
               </div>
             </div>
-            {canManage && (
-              <div
-                className={style.formCardRight}
-                style={{ position: "relative" }}
-              >
-                {onRespondForm && (
-                  <Button
-                    type="ghost"
-                    onClick={() => onRespondForm(form._id)}
-                    style={{ padding: "4px 10px", fontSize: "12px" }}
-                  >
-                    응답하기
-                  </Button>
-                )}
+            <div
+              className={style.formCardRight}
+              style={{ position: "relative" }}
+            >
+              {onCopyFormLink && (
                 <Button
                   type="ghost"
-                  onClick={() => setTrackerForm(form)}
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    onCopyFormLink(form._id);
+                  }}
                   style={{ padding: "4px 10px", fontSize: "12px" }}
                 >
-                  제출현황
+                  링크 복사
                 </Button>
-                <div style={{ position: "relative" }}>
+              )}
+              {canManage && (
+                <>
+                  {onRespondForm && (
+                    <Button
+                      type="ghost"
+                      onClick={() => onRespondForm(form._id)}
+                      style={{ padding: "4px 10px", fontSize: "12px" }}
+                    >
+                      응답하기
+                    </Button>
+                  )}
                   <Button
                     type="ghost"
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      setActionMenu(
-                        actionMenu === form._id ? null : form._id
-                      );
-                    }}
-                    style={{
-                      padding: "4px 8px",
-                      fontSize: "16px",
-                      lineHeight: 1,
-                    }}
+                    onClick={() => setTrackerForm(form)}
+                    style={{ padding: "4px 10px", fontSize: "12px" }}
                   >
-                    ⋮
+                    제출현황
                   </Button>
-                  {actionMenu === form._id && (
-                    <div className={style.formActionMenu}>
-                      <div
-                        className={style.formActionItem}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExport(form._id);
-                        }}
-                      >
-                        JSON 내보내기
-                      </div>
-                      <div
-                        className={style.formActionItem}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDuplicate(form._id);
-                        }}
-                      >
-                        복제
-                      </div>
-                      {hasPreRegFields(form) && (
+                  <div style={{ position: "relative" }}>
+                    <Button
+                      type="ghost"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setActionMenu(
+                          actionMenu === form._id ? null : form._id
+                        );
+                      }}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "16px",
+                        lineHeight: 1,
+                      }}
+                    >
+                      ⋮
+                    </Button>
+                    {actionMenu === form._id && (
+                      <div className={style.formActionMenu}>
                         <div
                           className={style.formActionItem}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setComboForm(form);
-                            setActionMenu(null);
+                            handleExport(form._id);
                           }}
                         >
-                          조합 생성
+                          JSON 내보내기
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+                        <div
+                          className={style.formActionItem}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicate(form._id);
+                          }}
+                        >
+                          복제
+                        </div>
+                        {hasPreRegFields(form) && (
+                          <div
+                            className={style.formActionItem}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setComboForm(form);
+                              setActionMenu(null);
+                            }}
+                          >
+                            조합 생성
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         );
       })}

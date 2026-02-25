@@ -11,6 +11,10 @@ type Props = {
   board: TBoard;
   forms: TAltForm[];
   canManage: boolean;
+  initialFormId?: string;
+  onFormSelect?: (formId: string) => void;
+  onFormDeselect?: () => void;
+  onCopySheetLink?: (formId: string) => void;
 };
 
 type SortConfig = {
@@ -18,11 +22,21 @@ type SortConfig = {
   direction: "asc" | "desc";
 } | null;
 
-const AltSheetView = ({ board, forms, canManage }: Props) => {
+const AltSheetView = ({
+  board,
+  forms,
+  canManage,
+  initialFormId,
+  onFormSelect,
+  onFormDeselect,
+  onCopySheetLink,
+}: Props) => {
   const { AltSheetRowAPI } = useAPIv2();
   const { currentUser } = useAuth();
 
-  const [selectedFormId, setSelectedFormId] = useState<string>("");
+  const [selectedFormId, setSelectedFormId] = useState<string>(
+    initialFormId || ""
+  );
   const [rows, setRows] = useState<TAltSheetRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -644,7 +658,10 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
           <div
             key={form._id}
             className={style.formCard}
-            onClick={() => setSelectedFormId(form._id)}
+            onClick={() => {
+              setSelectedFormId(form._id);
+              onFormSelect?.(form._id);
+            }}
             style={{ cursor: "pointer" }}
           >
             <div className={style.formCardLeft}>
@@ -670,6 +687,7 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
             setRows([]);
             setFilters({});
             setSortConfig(null);
+            onFormDeselect?.();
           }}
           style={{ padding: "4px 10px", fontSize: "12px" }}
         >
@@ -704,6 +722,15 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
               })()}
         </span>
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          {onCopySheetLink && (
+            <Button
+              type="ghost"
+              onClick={() => onCopySheetLink(selectedFormId)}
+              style={{ padding: "4px 10px", fontSize: "12px" }}
+            >
+              링크 복사
+            </Button>
+          )}
           {canManage && (
             <Button
               type="ghost"

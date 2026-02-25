@@ -72,6 +72,7 @@ const Tab = (props: {
   items: object;
   align?: "flex-start" | "center" | "flex-end";
   dontUsePaths?: boolean;
+  defaultTab?: string;
 }) => {
   /**
    * import hooks
@@ -89,7 +90,12 @@ const Tab = (props: {
   useEffect(() => {
     if (!props.dontUsePaths) {
       if (location.hash === "") {
-        navigate(`#${Object.keys(props.items)[0]}`);
+        const keys = Object.keys(props.items);
+        const defaultKey =
+          props.defaultTab && keys.includes(props.defaultTab)
+            ? props.defaultTab
+            : keys[0];
+        navigate(`#${defaultKey}`, { replace: true });
       } else {
         setActiveKey(decodeURI(location.hash).replace("#", ""));
       }
