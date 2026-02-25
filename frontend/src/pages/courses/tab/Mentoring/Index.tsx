@@ -656,7 +656,6 @@ const CoursePid = (props: Props) => {
                   ),
                   보드: (
                     <div style={{ marginTop: "16px" }}>
-                      <div className={style.title} style={{ marginBottom: "12px" }}>Alt Board</div>
                       <AltBoardTab syllabusId={syllabus._id} />
                     </div>
                   ),

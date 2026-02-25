@@ -23,8 +23,9 @@ export type TChatRoomSettings = {
 
 export type TChatRoom = {
   _id: string;
-  type: "direct" | "group";
+  type: "direct" | "group" | "board";
   name?: string;
+  board?: string;
   creator?: string;
   creatorId?: string;
   creatorName?: string;

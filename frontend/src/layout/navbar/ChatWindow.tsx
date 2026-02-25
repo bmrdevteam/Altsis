@@ -5,8 +5,6 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TChatRoom, TChatMessage } from "types/chat";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
-import InviteUsers from "./InviteUsers";
-import RoomSettings from "./RoomSettings";
 import NewChat from "./NewChat";
 import ChatMessageContent from "./ChatMessageContent";
 import ImageLightbox from "./ImageLightbox";
@@ -49,8 +47,6 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showInvite, setShowInvite] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showChatList, setShowChatList] = useState(!initialRoom);
   const [showNewChat, setShowNewChat] = useState(false);
@@ -86,9 +82,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const isCreator = room?.creator === currentUser?._id;
-  const canInvite = isCreator || room?.settings?.allowInvites !== false;
-  const canChat = isCreator || room?.settings?.allowChat !== false;
+  const canChat = true;
 
   // Update room when initialRoom changes
   useEffect(() => {
@@ -161,60 +155,15 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
       }
     };
 
-    const handleParticipantsAdded = (data: {
-      room: string;
-      newParticipants: any[];
-      addedBy: string;
-    }) => {
-      if (data.room === room._id) {
-        // Reload room data
-        loadRoomData();
-      }
-    };
-
-    const handleParticipantRemoved = (data: {
-      room: string;
-      removedUserId: string;
-      removedBy: string;
-    }) => {
-      if (data.room === room._id) {
-        // If current user was removed, close the chat window
-        if (data.removedUserId === currentUser?.userId) {
-          alert("채팅방에서 내보내졌습니다.");
-          onClose();
-        } else {
-          // Otherwise, reload room data
-          loadRoomData();
-        }
-      }
-    };
-
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
-    socket.on("participants_added", handleParticipantsAdded);
-    socket.on("participant_removed", handleParticipantRemoved);
 
     return () => {
       socket.emit("leave_room", { roomId: room._id });
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
-      socket.off("participants_added", handleParticipantsAdded);
-      socket.off("participant_removed", handleParticipantRemoved);
     };
   }, [socket, room?._id, currentUser?.userId]);
-
-  const loadRoomData = async () => {
-    if (!room) return;
-    try {
-      const { room: updatedRoom } = await ChatAPI.RChatRoom({
-        params: { roomId: room._id },
-      });
-      setRoom(updatedRoom);
-      onRoomUpdated?.(updatedRoom);
-    } catch (err) {
-      console.error("Failed to reload room data", err);
-    }
-  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -459,20 +408,15 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
     setShowChatList(false);
   };
 
-  const handleInviteComplete = () => {
-    setShowInvite(false);
-    loadRoomData();
-  };
-
-  const handleSettingsUpdate = (updatedRoom: TChatRoom) => {
-    setRoom(updatedRoom);
-    setShowSettings(false);
-    onRoomUpdated?.(updatedRoom);
-  };
-
   const getRoomDisplayName = (targetRoom?: TChatRoom | null) => {
     const r = targetRoom ?? room;
-    return r?.name || "그룹 채팅";
+    if (r?.type === "direct") {
+      const other = r.participants.find(
+        (p) => p.user !== currentUser?._id
+      );
+      return other?.userName || r?.name || "채팅";
+    }
+    return r?.name || "채팅";
   };
 
   const formatMessageTime = (dateString: string) => {
@@ -606,30 +550,6 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
             </button>
             {showMenu && (
               <div className={style.menu_dropdown}>
-                {canInvite && (
-                  <div
-                    className={style.menu_item}
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowInvite(true);
-                    }}
-                  >
-                    <Svg type="userPlus" width="16px" height="16px" />
-                    <span>사용자 초대</span>
-                  </div>
-                )}
-                {isCreator && (
-                  <div
-                    className={style.menu_item}
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowSettings(true);
-                    }}
-                  >
-                    <Svg type="settings" width="16px" height="16px" />
-                    <span>채팅방 설정</span>
-                  </div>
-                )}
                 <div
                   className={style.menu_item}
                   onClick={() => {
@@ -900,7 +820,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
                   >
                     <Svg type="arrowLeft" width="14px" height="14px" style={{ fill: "var(--accent-2)" }} />
                   </button>
-                  <span className={style.sidebar_title}>채팅</span>
+                  <span className={style.sidebar_title}>메시지</span>
                   <button
                     className={style.new_chat_btn}
                     onClick={() => setShowNewChat(true)}
@@ -1028,20 +948,6 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
           </div>
         </div>
 
-        {showInvite && room && (
-          <InviteUsers
-            room={room}
-            onClose={() => setShowInvite(false)}
-            onInvited={handleInviteComplete}
-          />
-        )}
-        {showSettings && room && (
-          <RoomSettings
-            room={room}
-            onClose={() => setShowSettings(false)}
-            onUpdated={handleSettingsUpdate}
-          />
-        )}
         {showNewChat && (
           <NewChat
             onClose={() => setShowNewChat(false)}
@@ -1084,7 +990,7 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
             ) : (
               <>
                 <Svg type="chat" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
-                <span className={style.chat_panel_title}>채팅</span>
+                <span className={style.chat_panel_title}>메시지</span>
               </>
             )}
           </div>
@@ -1106,22 +1012,6 @@ const ChatWindow = ({ room: initialRoom, rooms, socket, onClose, onRoomSelect, o
         </div>
         {chatContent}
       </div>
-
-      {showInvite && room && (
-        <InviteUsers
-          room={room}
-          onClose={() => setShowInvite(false)}
-          onInvited={handleInviteComplete}
-        />
-      )}
-
-      {showSettings && room && (
-        <RoomSettings
-          room={room}
-          onClose={() => setShowSettings(false)}
-          onUpdated={handleSettingsUpdate}
-        />
-      )}
 
       {showNewChat && (
         <NewChat

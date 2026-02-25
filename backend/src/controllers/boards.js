@@ -24,6 +24,10 @@ import {
   getBoardMembers,
 } from "../services/boards.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
+import {
+  syncBoardChatParticipants,
+  deactivateBoardChatRoom,
+} from "../services/boardChat.js";
 
 import {
   FIELD_REQUIRED,
@@ -331,6 +335,13 @@ export const addMemberUser = async (req, res) => {
       }
     }
 
+    // 보드 채팅방 참여자 동기화
+    try {
+      await syncBoardChatParticipants(req.user.academyId, board);
+    } catch (syncErr) {
+      logger.error(`Board chat sync failed: ${syncErr.message}`);
+    }
+
     return res.status(200).send({ board });
   } catch (err) {
     logger.error(err.message);
@@ -389,6 +400,13 @@ export const removeMemberUser = async (req, res) => {
     }
 
     await board.save();
+
+    // 보드 채팅방 참여자 동기화
+    try {
+      await syncBoardChatParticipants(req.user.academyId, board);
+    } catch (syncErr) {
+      logger.error(`Board chat sync failed: ${syncErr.message}`);
+    }
 
     return res.status(200).send({ board });
   } catch (err) {
@@ -542,6 +560,14 @@ export const leaveBoard = async (req, res) => {
     }
 
     await board.save();
+
+    // 보드 채팅방 참여자 동기화
+    try {
+      await syncBoardChatParticipants(req.user.academyId, board);
+    } catch (syncErr) {
+      logger.error(`Board chat sync failed: ${syncErr.message}`);
+    }
+
     return res.status(200).send({});
   } catch (err) {
     logger.error(err.message);
@@ -596,10 +622,13 @@ export const remove = async (req, res) => {
       });
     }
 
-    // 3. 즐겨찾기 삭제
+    // 3. 보드 채팅방 비활성화
+    await deactivateBoardChatRoom(academyId, boardId);
+
+    // 4. 즐겨찾기 삭제
     await BoardFavorite(academyId).deleteMany({ board: boardId });
 
-    // 4. Syllabus 참조 해제 (Alt Board인 경우)
+    // 5. Syllabus 참조 해제 (Alt Board인 경우)
     if (board.syllabus) {
       await Syllabus(academyId).updateOne(
         { _id: board.syllabus },
@@ -607,7 +636,7 @@ export const remove = async (req, res) => {
       );
     }
 
-    // 5. 보드 삭제
+    // 6. 보드 삭제
     await board.deleteOne();
 
     return res.status(200).send();

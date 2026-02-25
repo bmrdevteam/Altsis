@@ -81,5 +81,20 @@
 
     }
 
+    .tab_badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        margin-left: 6px;
+        border-radius: 9px;
+        background-color: var(--status-error, #e53935);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1;
+    }
 
 }

@@ -4,6 +4,8 @@
  */
 
 import { Academy } from "../models/Academy.js";
+import { AIChatMessage } from "../models/AIChatMessage.js";
+import { AIChatSession } from "../models/AIChatSession.js";
 import { AIUsageLog } from "../models/AIUsageLog.js";
 import { AltForm } from "../models/AltForm.js";
 import { AltSheet } from "../models/AltSheet.js";
@@ -35,6 +37,8 @@ import { UserCalendar } from "../models/UserCalendar.js";
 
 export {
   Academy,
+  AIChatMessage,
+  AIChatSession,
   AIUsageLog,
   AltForm,
   AltSheet,

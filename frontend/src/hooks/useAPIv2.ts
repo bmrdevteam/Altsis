@@ -43,6 +43,7 @@ import {
 } from "types/survey";
 import { TAltForm, TAltFormField, TAltFormSettings } from "types/altForm";
 import { TAltSheet, TAltSheetRow } from "types/altSheet";
+import { TAIChatSession, TAIChatMessage } from "types/aiChat";
 
 function QUERY_BUILDER(params?: object) {
   let query = "";
@@ -3892,6 +3893,161 @@ export default function useAPIv2() {
 
   /**
    * ##########################################################################
+   * Board Chat API
+   * ##########################################################################
+   */
+
+  /**
+   * RBoardChatRoom API
+   * @description 보드 채팅방 조회 (없으면 생성 + 참여자 동기화)
+   */
+  async function RBoardChatRoom(props: { params: { boardId: string } }) {
+    const { room } = await database.R({
+      location: `boards/${props.params.boardId}/chat/room`,
+    });
+    return { room: room as TChatRoom };
+  }
+
+  /**
+   * RBoardChatMessages API
+   * @description 보드 채팅 메시지 목록 조회
+   */
+  async function RBoardChatMessages(props: {
+    params: { boardId: string };
+    query?: { limit?: number; before?: string };
+  }) {
+    const { messages } = await database.R({
+      location:
+        `boards/${props.params.boardId}/chat/messages` +
+        QUERY_BUILDER(props.query),
+    });
+    return { messages: messages as TChatMessage[] };
+  }
+
+  /**
+   * CBoardChatMessage API
+   * @description 보드 채팅 메시지 전송
+   */
+  async function CBoardChatMessage(props: {
+    params: { boardId: string };
+    data: {
+      content: string;
+      messageType?: "text" | "image" | "file";
+      attachment?: {
+        url: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        key?: string;
+      };
+    };
+  }) {
+    const { message } = await database.C({
+      location: `boards/${props.params.boardId}/chat/messages`,
+      data: props.data,
+    });
+    return { message: message as TChatMessage };
+  }
+
+  /**
+   * UBoardChatRead API
+   * @description 보드 채팅 읽음 처리
+   */
+  async function UBoardChatRead(props: { params: { boardId: string } }) {
+    return await database.U({
+      location: `boards/${props.params.boardId}/chat/read`,
+      data: {},
+    });
+  }
+
+  /**
+   * CBoardChatFileUpload API
+   * @description 보드 채팅 파일 업로드
+   */
+  async function CBoardChatFileUpload(props: {
+    params: { boardId: string };
+    data: FormData;
+  }) {
+    const { attachment } = await database.C({
+      location: `boards/${props.params.boardId}/chat/upload`,
+      data: props.data,
+    });
+    return {
+      attachment: attachment as {
+        url: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        key?: string;
+      },
+    };
+  }
+
+  /**
+   * ##########################################################################
+   * AI Chat API
+   * ##########################################################################
+   */
+
+  /**
+   * RAIChatSettings API
+   * @description AI 채팅 설정 조회
+   */
+  async function RAIChatSettings(props: {
+    params: { _id: string };
+  }) {
+    const { enabled } = await database.R({
+      location: `boards/${props.params._id}/ai-chat/settings`,
+    });
+    return { enabled: enabled as boolean };
+  }
+
+  /**
+   * RAIChatSessions API
+   * @description AI 채팅 세션 목록 조회
+   */
+  async function RAIChatSessions(props: {
+    params: { _id: string };
+  }) {
+    const { sessions } = await database.R({
+      location: `boards/${props.params._id}/ai-chat/sessions`,
+    });
+    return { sessions: sessions as TAIChatSession[] };
+  }
+
+  /**
+   * RAIChatMessages API
+   * @description AI 채팅 메시지 목록 조회
+   */
+  async function RAIChatMessages(props: {
+    params: { _id: string; sessionId: string };
+    query?: { limit?: number; before?: string };
+  }) {
+    const { messages } = await database.R({
+      location:
+        `boards/${props.params._id}/ai-chat/sessions/${props.params.sessionId}/messages` +
+        QUERY_BUILDER(props.query),
+    });
+    return { messages: messages as TAIChatMessage[] };
+  }
+
+  /**
+   * CAIChatMessage API
+   * @description AI 채팅 메시지 전송
+   */
+  async function CAIChatMessage(props: {
+    params: { _id: string };
+    data: { content: string; sessionId?: string };
+  }) {
+    const result = await database.C({
+      location: `boards/${props.params._id}/ai-chat/messages`,
+      data: props.data,
+    });
+    return result as { messages: TAIChatMessage[] };
+  }
+
+  /**
+   * ##########################################################################
    * AI API
    * ##########################################################################
    */
@@ -4474,6 +4630,19 @@ export default function useAPIv2() {
       RChatFiles,
       DChatFile,
       RChatFileSignedUrl,
+    },
+    BoardChatAPI: {
+      RBoardChatRoom,
+      RBoardChatMessages,
+      CBoardChatMessage,
+      UBoardChatRead,
+      CBoardChatFileUpload,
+    },
+    AIChatAPI: {
+      RAIChatSettings,
+      RAIChatSessions,
+      RAIChatMessages,
+      CAIChatMessage,
     },
     AIAPI: {
       GenerateSyllabusContent,

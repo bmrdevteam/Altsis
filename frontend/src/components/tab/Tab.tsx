@@ -73,6 +73,8 @@ const Tab = (props: {
   align?: "flex-start" | "center" | "flex-end";
   dontUsePaths?: boolean;
   defaultTab?: string;
+  badges?: Record<string, number>;
+  onTabChange?: (tabKey: string) => void;
 }) => {
   /**
    * import hooks
@@ -123,14 +125,18 @@ const Tab = (props: {
                     activeKey === value && style.active
                   }`}
                   onClick={() => {
-
-                    
                     setActiveKey(value);
+                    props.onTabChange?.(value);
                     !props.dontUsePaths &&
                       navigate(`${location.search}#${value}`, { replace: true });
                   }}
                 >
                   {value}
+                  {props.badges?.[value] != null && props.badges[value] > 0 && (
+                    <span className={style.tab_badge}>
+                      {props.badges[value] > 99 ? "99+" : props.badges[value]}
+                    </span>
+                  )}
                 </div>
               );
             })

@@ -77,11 +77,12 @@ const chatRoomSettingsSchema = mongoose.Schema(
  * @typedef TChatRoom
  *
  * @prop {ObjectId} _id
- * @prop {"direct"|"group"} type - room type
- * @prop {string?} name - room name (for group chats)
+ * @prop {"direct"|"group"|"board"} type - room type
+ * @prop {string?} name - room name (for group/board chats)
  * @prop {ObjectId?} creator - ObjectId of room creator
  * @prop {string?} creatorId
  * @prop {string?} creatorName
+ * @prop {ObjectId?} board - 연결된 보드 (type: "board"일 때만 사용)
  * @prop {TChatParticipant[]} participants - room participants
  * @prop {TLastMessage?} lastMessage - last message preview
  * @prop {boolean} isActive=true - whether room is active
@@ -91,11 +92,15 @@ const chatRoomSchema = mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["direct", "group"],
+      enum: ["direct", "group", "board"],
       required: true,
     },
     name: String,
     creator: mongoose.Types.ObjectId,
+    board: {
+      type: mongoose.Types.ObjectId,
+      default: null,
+    },
     creatorId: String,
     creatorName: String,
     participants: [chatParticipantSchema],
@@ -108,6 +113,8 @@ const chatRoomSchema = mongoose.Schema(
 
 // Index for efficient querying by participant
 chatRoomSchema.index({ "participants.user": 1 });
+// Index for board chat room lookup
+chatRoomSchema.index({ board: 1 });
 
 export const ChatRoom = (dbName) => {
   return conn[dbName].model("ChatRoom", chatRoomSchema);

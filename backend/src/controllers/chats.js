@@ -54,6 +54,14 @@ export const createRoom = async (req, res) => {
     if (!type) {
       return res.status(400).send({ message: FIELD_REQUIRED("type") });
     }
+
+    // 그룹 채팅 생성 차단 — 그룹 채팅은 보드 내에서만 사용
+    if (type === "group") {
+      return res.status(400).send({
+        message: "그룹 채팅은 보드 내에서만 사용할 수 있습니다.",
+      });
+    }
+
     if (!participants || !Array.isArray(participants) || participants.length === 0) {
       return res.status(400).send({ message: FIELD_REQUIRED("participants") });
     }
@@ -153,6 +161,7 @@ export const findRooms = async (req, res) => {
       .find({
         "participants.user": req.user._id,
         isActive: true,
+        type: { $ne: "board" }, // 보드 채팅은 보드 UI에서만 접근
       })
       .sort({ "lastMessage.sentAt": -1, updatedAt: -1 });
 
