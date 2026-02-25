@@ -18,7 +18,13 @@ const ChatRoomListItem = ({
   currentUserObjId,
   onClick,
 }: Props) => {
-  const displayName = room.name || "그룹 채팅";
+  const displayName = (() => {
+    if (room.name) return room.name;
+    // Show participant names instead of "그룹 채팅"
+    const others = room.participants.filter((p) => p.userId !== currentUserId);
+    if (others.length === 0) return "채팅";
+    return others.map((p) => p.userName).join(", ");
+  })();
 
   const formatTime = (dateString?: string) => {
     if (!dateString) return "";

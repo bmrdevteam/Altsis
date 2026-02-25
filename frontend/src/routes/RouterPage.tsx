@@ -49,9 +49,6 @@ import BoardPid from "pages/boards/BoardPid";
 import PostPid from "pages/boards/PostPid";
 import PostCreate from "pages/boards/PostCreate";
 
-// chat pages
-import ChatPage from "pages/chat/Index";
-
 //error pages
 import Http404 from "../pages/error/404";
 
@@ -556,15 +553,6 @@ function RouterPage() {
                 element={
                   <RequireAuth>
                     <Notifications />
-                  </RequireAuth>
-                }
-              ></Route>
-
-              <Route
-                path="chat"
-                element={
-                  <RequireAuth>
-                    <ChatPage />
                   </RequireAuth>
                 }
               ></Route>

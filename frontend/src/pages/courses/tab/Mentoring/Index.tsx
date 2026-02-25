@@ -57,7 +57,7 @@ type Props = {};
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
   const { currentSeason, currentUser, currentRegistration } = useAuth();
-  const { SeasonAPI, SyllabusAPI, EnrollmentAPI, ChatAPI } = useAPIv2();
+  const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
   const navigate = useAppNavigate();
 
   const [isLoadingSyllabus, setIsLoadingSyllabus] = useState<boolean>(false);
@@ -75,8 +75,6 @@ const CoursePid = (props: Props) => {
   const [isChecked, setIsChecked] = useState<boolean>(false);
 
   const [enrollBulkPopupActive, setEnrollBulkPopupActive] =
-    useState<boolean>(false);
-  const [isCreatingChatRoom, setIsCreatingChatRoom] =
     useState<boolean>(false);
 
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
@@ -163,44 +161,6 @@ const CoursePid = (props: Props) => {
       } finally {
         setRatio((i + 1) / enrollmentsToRemove.length);
       }
-    }
-  };
-
-  const handleCreateChatRoom = async () => {
-    const selectedStudents = _.filter(enrollmentListRef.current, {
-      tableRowChecked: true,
-    });
-
-    if (selectedStudents.length === 0) return;
-
-    setIsCreatingChatRoom(true);
-    try {
-      const participants = selectedStudents
-        .filter((e: any) => e.student !== currentUser?._id)
-        .map((e: any) => ({
-          user: e.student,
-          userId: e.studentId,
-          userName: e.studentName,
-        }));
-
-      if (participants.length === 0) {
-        alert("본인 외 다른 참가자를 선택해주세요.");
-        return;
-      }
-
-      const { room } = await ChatAPI.CChatRoom({
-        data: {
-          type: "group",
-          participants,
-          name: syllabus?.classTitle || "수업 채팅방",
-        },
-      });
-
-      navigate("/chat", { state: { roomId: room._id } });
-    } catch (err: any) {
-      ALERT_ERROR(err);
-    } finally {
-      setIsCreatingChatRoom(false);
     }
   };
 
@@ -582,14 +542,6 @@ const CoursePid = (props: Props) => {
                               >
                                 <Svg type="user_check" width="24px" height="24px" />
                                 초대 취소
-                              </div>
-                              <div
-                                className={style.icon}
-                                onClick={handleCreateChatRoom}
-                                style={{ display: "flex", gap: "4px", alignItems: "center" }}
-                              >
-                                <Svg type="chat" width="20px" height="20px" />
-                                {isCreatingChatRoom ? "생성 중..." : "채팅방 만들기"}
                               </div>
                             </>
                           )}

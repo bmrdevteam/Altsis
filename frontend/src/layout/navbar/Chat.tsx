@@ -15,6 +15,7 @@ const Chat = () => {
 
   const [socket, setSocket] = useState<Socket>();
   const [rooms, setRooms] = useState<TChatRoom[]>([]);
+  const [archivedRooms, setArchivedRooms] = useState<TChatRoom[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<TChatRoom | null>(null);
   const [chatWindowActive, setChatWindowActive] = useState(false);
@@ -52,6 +53,12 @@ const Chat = () => {
         0
       );
       setUnreadCount(count);
+
+      // Load archived rooms
+      const { rooms: archived } = await ChatAPI.RChatRooms({
+        query: { archived: "true" },
+      });
+      setArchivedRooms(archived);
     } catch (err: any) {
       // Chat may not be enabled
       if (err?.response?.data?.message === "CHAT_NOT_ENABLED") {
@@ -147,6 +154,7 @@ const Chat = () => {
         <ChatWindow
           room={selectedRoom}
           rooms={rooms}
+          archivedRooms={archivedRooms}
           socket={socket}
           onClose={() => {
             setChatWindowActive(false);
