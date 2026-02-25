@@ -54,7 +54,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 type Props = {};
 
 const CourseAdd = (props: Props) => {
-  const { currentUser, currentSeason, currentRegistration } = useAuth();
+  const { currentUser, currentSeason, currentRegistration, currentSchool } = useAuth();
   const navigate = useAppNavigate();
   const { SyllabusAPI } = useAPIv2();
 
@@ -88,8 +88,10 @@ const CourseAdd = (props: Props) => {
   const [pastePopupActive, setPastePopupActive] = useState<boolean>(false);
   const [aiPopupActive, setAIPopupActive] = useState<boolean>(false);
 
-  // AI enabled check
-  const aiEnabled = currentSeason?.aiSettings?.enabled &&
+  // AI enabled check (academy + school + season level)
+  const aiEnabled = currentSchool?.aiEnabled !== false &&
+    currentSchool?.academyFeatures?.aiEnabled !== false &&
+    currentSeason?.aiSettings?.enabled &&
     (currentRegistration?.role === "teacher"
       ? currentSeason?.aiSettings?.permission?.teacher
       : currentSeason?.aiSettings?.permission?.student);

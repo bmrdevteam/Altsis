@@ -13,6 +13,7 @@
 import { logger } from "../log/logger.js";
 import _ from "lodash";
 import {
+  Academy,
   AIUsageLog,
   Archive,
   Board,
@@ -159,8 +160,22 @@ export const find = async (req, res) => {
         return res.status(404).send({ message: __NOT_FOUND("school") });
       }
 
+      // Include academy-level feature flags for frontend visibility
+      let academyFeatures;
+      try {
+        const academy = await Academy.findOne({ academyId });
+        if (academy) {
+          academyFeatures = {
+            chatEnabled: academy.chatEnabled ?? false,
+            boardEnabled: academy.boardEnabled ?? true,
+            aiEnabled: academy.aiEnabled ?? false,
+          };
+        }
+      } catch (_) {}
+
       return res.status(200).send({
         school,
+        academyFeatures,
       });
     }
 
@@ -293,6 +308,55 @@ export const updateFormArchive = async (req, res) => {
  * @param {TLink[]} res.links - updated links
  *
  */
+/**
+ * @memberof APIs.SchoolAPI
+ * @function USchoolFeatureFlags API
+ * @description 학교 기능 활성화 설정 API
+ * @version 1.0.0
+ */
+export const updateFeatureFlags = async (req, res) => {
+  try {
+    const updateData = {};
+    if (typeof req.body.chatEnabled === "boolean") {
+      updateData.chatEnabled = req.body.chatEnabled;
+    }
+    if (typeof req.body.boardEnabled === "boolean") {
+      updateData.boardEnabled = req.body.boardEnabled;
+    }
+    if (typeof req.body.aiEnabled === "boolean") {
+      updateData.aiEnabled = req.body.aiEnabled;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res
+        .status(400)
+        .send({ message: FIELD_REQUIRED("chatEnabled|boardEnabled|aiEnabled") });
+    }
+
+    const school = await School(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      updateData,
+      { new: true }
+    );
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    return res.status(200).send({
+      features: {
+        chatEnabled: school.chatEnabled,
+        boardEnabled: school.boardEnabled,
+        aiEnabled: school.aiEnabled,
+      },
+    });
+  } catch (err) {
+    logger.error(err.message);
+    return res
+      .status(500)
+      .send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
 export const updateBoardNotificationEvents = async (req, res) => {
   try {
     if (!("boardNotificationEvents" in req.body)) {

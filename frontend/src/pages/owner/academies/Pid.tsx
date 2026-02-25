@@ -44,6 +44,7 @@ import School from "./tab/School/Index";
 import Backup from "./tab/Backup/Index";
 import Remove from "./tab/Remove/Index";
 import ChatSettings from "./tab/ChatSettings/Index";
+import BoardSettings from "./tab/BoardSettings/Index";
 import AISettings from "./tab/AISettings/Index";
 
 // import Setting from "./tab/Setting";
@@ -134,6 +135,12 @@ const Academy = (props: Props) => {
                 사용자: <User />,
                 채팅: (
                   <ChatSettings
+                    academyData={academyData}
+                    setAcademyData={setAcademyData}
+                  />
+                ),
+                보드: (
+                  <BoardSettings
                     academyData={academyData}
                     setAcademyData={setAcademyData}
                   />

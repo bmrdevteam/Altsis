@@ -10,7 +10,7 @@ import ChatWindow from "./ChatWindow";
 import audioURL from "assets/audio/notification-a.mp3";
 
 const Chat = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   const { ChatAPI, NotificationAPI } = useAPIv2();
 
   const [socket, setSocket] = useState<Socket>();
@@ -119,6 +119,14 @@ const Chat = () => {
   const handleChatIconClick = () => {
     setChatWindowActive((prev) => !prev);
   };
+
+  // Don't render if chat is not enabled at school or academy level
+  if (
+    currentSchool?.chatEnabled === false ||
+    currentSchool?.academyFeatures?.chatEnabled === false
+  ) {
+    return null;
+  }
 
   // Don't render if chat is not enabled or still checking
   if (chatEnabled === false || chatEnabled === null) {

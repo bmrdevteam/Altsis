@@ -163,13 +163,18 @@ export const SidebarData = (auth: string, role?: string): any => {
       path: "/docs",
       icon: <Svg type="article" />,
     });
-    data.push({
-      title: "boards",
-      name: "보드",
-      path: "/boards",
-      icon: <Svg type="dashboard" />,
-      matchPaths: ["boards"],
-    });
+    if (
+      currentSchool?.boardEnabled !== false &&
+      currentSchool?.academyFeatures?.boardEnabled !== false
+    ) {
+      data.push({
+        title: "boards",
+        name: "보드",
+        path: "/boards",
+        icon: <Svg type="dashboard" />,
+        matchPaths: ["boards"],
+      });
+    }
   }
 
   if (auth === "manager") {

@@ -77,10 +77,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (user.schools.length > schoolIdx) {
-      const { school } = await SchoolAPI.RSchool({
+      const { school, academyFeatures } = await SchoolAPI.RSchool({
         params: { _id: user.schools[schoolIdx].school },
       });
-      setCurrentSchool({ ...school, school: school._id });
+      setCurrentSchool({ ...school, school: school._id, academyFeatures });
       setCookie("currentSchool", school._id);
       document.title = school.schoolName;
     }
@@ -121,8 +121,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [loading]);
 
   async function changeSchool(to: string) {
-    const { school } = await SchoolAPI.RSchool({ params: { _id: to } });
-    setCurrentSchool({ ...school, school: school._id });
+    const { school, academyFeatures } = await SchoolAPI.RSchool({ params: { _id: to } });
+    setCurrentSchool({ ...school, school: school._id, academyFeatures });
     setCookie("currentSchool", school._id);
     removeCookie("currentRegistration");
     document.title = school.schoolName;

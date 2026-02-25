@@ -39,6 +39,12 @@ export type TBoardNotificationEventsSchool = {
   altFormApprovalResult: boolean;
 };
 
+export type TAcademyFeatures = {
+  chatEnabled: boolean;
+  boardEnabled: boolean;
+  aiEnabled: boolean;
+};
+
 export type TSchool = {
   _id: string;
   school: string;
@@ -50,7 +56,11 @@ export type TSchool = {
     url: string;
     title: string;
   }[];
+  chatEnabled?: boolean;
+  boardEnabled?: boolean;
+  aiEnabled?: boolean;
   boardNotificationEvents?: TBoardNotificationEventsSchool;
+  academyFeatures?: TAcademyFeatures;
 };
 
 export const authTeacherTextMap: Map<TAuthTeacher, string> = new Map([

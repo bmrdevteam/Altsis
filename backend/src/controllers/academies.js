@@ -427,6 +427,52 @@ export const updateChatEnabled = async (req, res) => {
 
 /**
  * @memberof APIs.AcademyAPI
+ * @function UAcademyBoardEnabled API
+ * @description 아카데미 보드 기능 활성화/비활성화 API
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/academies/:academyId/board"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.academyId
+ *
+ * @param {Object} req.user - "owner"
+ *
+ * @param {Object} req.body
+ * @param {boolean} req.body.boardEnabled
+ *
+ * @param {Object} res
+ * @param {TAcademy} res.academy - updated academy
+ */
+export const updateBoardEnabled = async (req, res) => {
+  try {
+    /* find document */
+    const academy = await Academy.findOne({
+      academyId: req.params.academyId,
+    });
+    if (!academy)
+      return res.status(404).send({ message: __NOT_FOUND("academy") });
+
+    /* toggle or set boardEnabled */
+    if (typeof req.body.boardEnabled === "boolean") {
+      academy.boardEnabled = req.body.boardEnabled;
+    } else {
+      academy.boardEnabled = !academy.boardEnabled;
+    }
+    await academy.save();
+
+    return res.status(200).send({ academy });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AcademyAPI
  * @function UAcademyAiEnabled API
  * @description 아카데미 AI 기능 활성화/비활성화 API
  * @version 1.0.0

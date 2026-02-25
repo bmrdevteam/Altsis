@@ -11,6 +11,7 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
 import { TBoard, TBoardNotificationEvents } from "types/board";
 import { TSchool } from "types/schools";
+import SchoolFeatureToggle from "./FeatureSettings";
 
 const NOTIFICATION_EVENT_LABELS: Record<
   keyof TBoardNotificationEvents,
@@ -48,8 +49,10 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
   const [showManagePopup, setShowManagePopup] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<TBoard | null>(null);
 
+  const boardEnabled = schoolData.boardEnabled !== false;
+
   useEffect(() => {
-    if (isLoading && schoolData?._id) {
+    if (isLoading && schoolData?._id && boardEnabled) {
       BoardAPI.RBoards({ query: { school: schoolData._id } })
         .then(({ boards }) => {
           setBoards(boards);
@@ -60,7 +63,7 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
           setIsLoading(false);
         });
     }
-  }, [isLoading, schoolData]);
+  }, [isLoading, schoolData, boardEnabled]);
 
   const handleManageClick = (tableBoard: TBoard) => {
     const board = boards.find((b) => b._id === tableBoard._id);
@@ -97,7 +100,13 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
   };
 
   return (
-    <div style={{ marginTop: "24px" }}>
+    <SchoolFeatureToggle
+      featureKey="boardEnabled"
+      label="보드 기능 활성화"
+      description="이 학교에서 보드 및 게시글 기능을 활성화합니다."
+      schoolData={schoolData}
+      setSchoolData={setSchoolData}
+    >
       {/* 학교 수준 보드 알림 설정 */}
       <div
         style={{
@@ -280,7 +289,7 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
           onSuccess={() => setIsLoading(true)}
         />
       )}
-    </div>
+    </SchoolFeatureToggle>
   );
 };
 

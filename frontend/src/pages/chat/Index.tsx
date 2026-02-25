@@ -10,7 +10,7 @@ import ChatWindow from "layout/navbar/ChatWindow";
 import style from "./chat.module.scss";
 
 const ChatPage = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   const { ChatAPI } = useAPIv2();
   const location = useLocation();
 
@@ -83,7 +83,11 @@ const ChatPage = () => {
     }
   }, [currentUser?._id]);
 
-  if (chatEnabled === false) {
+  if (
+    chatEnabled === false ||
+    currentSchool?.chatEnabled === false ||
+    currentSchool?.academyFeatures?.chatEnabled === false
+  ) {
     return (
       <div className={style.container}>
         <div className={style.disabled}>채팅이 활성화되지 않았습니다.</div>

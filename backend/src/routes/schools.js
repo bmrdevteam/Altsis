@@ -13,6 +13,7 @@ router.get("/:_id/dashboard", isAdManager, schools.dashboard);
 router.get("/:_id?", isLoggedIn, schools.find);
 
 router.put("/:_id/formArchive", isAdManager, schools.updateFormArchive);
+router.put("/:_id/features", isAdManager, schools.updateFeatureFlags);
 router.put("/:_id/boardNotificationEvents", isAdManager, schools.updateBoardNotificationEvents);
 router.put("/:_id/links", isAdManager, schools.updateLinks);
 

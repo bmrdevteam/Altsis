@@ -17,6 +17,7 @@ import {
   TSchool,
   TSchoolFormArchive,
   TDeletedSchoolFormArchive,
+  TAcademyFeatures,
 } from "types/schools";
 import { TDashboard } from "types/dashboard";
 import {
@@ -415,6 +416,27 @@ export default function useAPIv2() {
   }) {
     const { academy } = await database.U({
       location: `academies/${props.params.academyId}/chat`,
+      data: props.data,
+    });
+    return { academy: academy as TAcademy };
+  }
+
+  /**
+   * UAcademyBoardEnabled API
+   * @description 아카데미 보드 기능 활성화/비활성화 API
+   * @version 1.0.0
+   * @auth owner
+   */
+  async function UAcademyBoardEnabled(props: {
+    params: {
+      academyId: string;
+    };
+    data: {
+      boardEnabled: boolean;
+    };
+  }) {
+    const { academy } = await database.U({
+      location: `academies/${props.params.academyId}/board`,
       data: props.data,
     });
     return { academy: academy as TAcademy };
@@ -957,11 +979,12 @@ export default function useAPIv2() {
       _id: string;
     };
   }) {
-    const { school } = await database.R({
+    const { school, academyFeatures } = await database.R({
       location: `schools/${props.params._id}`,
     });
     return {
       school: school as TSchool,
+      academyFeatures: academyFeatures as TAcademyFeatures | undefined,
     };
   }
 
@@ -1042,6 +1065,33 @@ export default function useAPIv2() {
     });
     return {
       boardNotificationEvents: boardNotificationEvents as TBoardNotificationEvents,
+    };
+  }
+
+  /**
+   * USchoolFeatureFlags API
+   * @description 학교 기능 활성화 설정 API
+   * @version 1.0.0
+   * @auth admin|manager
+   */
+  async function USchoolFeatureFlags(props: {
+    params: { _id: string };
+    data: {
+      chatEnabled?: boolean;
+      boardEnabled?: boolean;
+      aiEnabled?: boolean;
+    };
+  }) {
+    const { features } = await database.U({
+      location: `schools/${props.params._id}/features`,
+      data: props.data,
+    });
+    return {
+      features: features as {
+        chatEnabled: boolean;
+        boardEnabled: boolean;
+        aiEnabled: boolean;
+      },
     };
   }
 
@@ -4193,6 +4243,7 @@ export default function useAPIv2() {
       UAcademyEmail,
       UAcademyTel,
       UAcademyChatEnabled,
+      UAcademyBoardEnabled,
       UAcademyAiEnabled,
       UAcademyAiApiKey,
       RAcademyAiApiKey,
@@ -4236,6 +4287,7 @@ export default function useAPIv2() {
       RSchoolDashboard,
       USchoolFormArchive,
       USchoolLinks,
+      USchoolFeatureFlags,
       USchoolBoardNotificationEvents,
       RestoreFormArchive,
       RemoveFormArchive,

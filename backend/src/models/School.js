@@ -145,6 +145,9 @@ const deletedFormArchiveItemSchema = mongoose.Schema(
  * @prop {TFormArchiveItem[]} formArchive - 기록 양식
  * @prop {TDeletedFormArchiveItem[]} deletedFormArchive - 삭제된 기록 양식 (휴지통)
  * @prop {TLink[]} links - 링크 목록
+ * @prop {boolean} chatEnabled=true - 채팅 기능 활성화 상태 (학교 수준)
+ * @prop {boolean} boardEnabled=true - 보드 기능 활성화 상태 (학교 수준)
+ * @prop {boolean} aiEnabled=true - AI 기능 활성화 상태 (학교 수준)
  *
  */
 const schoolSchema = mongoose.Schema(
@@ -161,6 +164,9 @@ const schoolSchema = mongoose.Schema(
     formArchive: { type: [formArchiveItemSchema] },
     deletedFormArchive: { type: [deletedFormArchiveItemSchema], default: [] },
     links: { type: [LinkSchema] },
+    chatEnabled: { type: Boolean, default: true },
+    boardEnabled: { type: Boolean, default: true },
+    aiEnabled: { type: Boolean, default: true },
     boardNotificationEvents: {
       type: {
         newPost: { type: Boolean, default: false },

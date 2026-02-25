@@ -8,5 +8,6 @@ export type TAcademy = {
   tel?: string;
   isActivated?: boolean;
   chatEnabled?: boolean;
+  boardEnabled?: boolean;
   aiEnabled?: boolean;
 };

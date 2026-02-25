@@ -34,6 +34,7 @@ const Boards = () => {
 
   const [boards, setBoards] = useState<TBoard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [boardEnabled, setBoardEnabled] = useState<boolean | null>(null);
 
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [boardListViewMode, setBoardListViewMode] =
@@ -63,10 +64,15 @@ const Boards = () => {
       })
         .then(({ boards }) => {
           setBoards(boards);
+          setBoardEnabled(true);
           setIsLoading(false);
         })
-        .catch((err) => {
-          ALERT_ERROR(err);
+        .catch((err: any) => {
+          if (err?.response?.data?.message === "BOARD_NOT_ENABLED") {
+            setBoardEnabled(false);
+          } else {
+            ALERT_ERROR(err);
+          }
           setIsLoading(false);
         });
     }
@@ -122,6 +128,24 @@ const Boards = () => {
         : boards,
     [boards, showFavoritesOnly]
   );
+
+  if (boardEnabled === false) {
+    return (
+      <div className={`${style.section} ${bStyle.page}`}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "200px",
+            color: "var(--accent-3)",
+          }}
+        >
+          보드가 활성화되지 않았습니다.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

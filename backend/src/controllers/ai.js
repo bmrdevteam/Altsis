@@ -10,7 +10,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { Academy } from "../models/Academy.js";
-import { Season, Registration, Enrollment, Syllabus, AIUsageLog } from "../models/index.js";
+import { Season, School, Registration, Enrollment, Syllabus, AIUsageLog } from "../models/index.js";
 
 /**
  * Extract input field names from formSyllabus editor data
@@ -215,6 +215,15 @@ export const generateSyllabusContent = async (req, res) => {
     if (!season.aiSettings?.enabled) {
       sendEvent("error", { message: "AI_NOT_ENABLED_FOR_SEASON" });
       return res.end();
+    }
+
+    // 2.5 Check School-level AI enabled
+    if (season.school) {
+      const school = await School(req.user.academyId).findById(season.school);
+      if (school && school.aiEnabled === false) {
+        sendEvent("error", { message: "AI_NOT_ENABLED" });
+        return res.end();
+      }
     }
 
     // 3. Check user permission

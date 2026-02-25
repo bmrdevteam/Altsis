@@ -45,6 +45,7 @@ import Links from "./tab/Links";
 import Remove from "./tab/Remove";
 import Notifications from "./tab/Notifications";
 import BoardManagement from "./tab/BoardManagement";
+import SchoolFeatureToggle from "./tab/FeatureSettings";
 
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
@@ -98,8 +99,8 @@ const School = (props: Props) => {
         return navigate("/admin/schools/" + currentSchool._id);
       }
       SchoolAPI.RSchool({ params: { _id: pid } })
-        .then(({ school }) => {
-          setSchoolData(school);
+        .then(({ school, academyFeatures }) => {
+          setSchoolData({ ...school, academyFeatures });
           SeasonAPI.RSeasons({ query: { school: school._id } }).then(
             ({ seasons }) => {
               setSeasonList(seasons);
@@ -166,7 +167,42 @@ const School = (props: Props) => {
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
                     알림: <Notifications />,
-                    보드: <BoardManagement schoolData={schoolData} setSchoolData={setSchoolData} />,
+                    ...(schoolData.academyFeatures?.chatEnabled !== false
+                      ? {
+                          채팅: (
+                            <SchoolFeatureToggle
+                              featureKey="chatEnabled"
+                              label="채팅 기능 활성화"
+                              description="이 학교에서 실시간 채팅 기능을 활성화합니다."
+                              schoolData={schoolData}
+                              setSchoolData={setSchoolData}
+                            />
+                          ),
+                        }
+                      : {}),
+                    ...(schoolData.academyFeatures?.boardEnabled !== false
+                      ? {
+                          보드: (
+                            <BoardManagement
+                              schoolData={schoolData}
+                              setSchoolData={setSchoolData}
+                            />
+                          ),
+                        }
+                      : {}),
+                    ...(schoolData.academyFeatures?.aiEnabled !== false
+                      ? {
+                          AI: (
+                            <SchoolFeatureToggle
+                              featureKey="aiEnabled"
+                              label="AI 기능 활성화"
+                              description="이 학교에서 AI 기능을 활성화합니다."
+                              schoolData={schoolData}
+                              setSchoolData={setSchoolData}
+                            />
+                          ),
+                        }
+                      : {}),
                     링크: (
                       <Links
                         schoolData={schoolData}
@@ -189,7 +225,42 @@ const School = (props: Props) => {
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
                     알림: <Notifications />,
-                    보드: <BoardManagement schoolData={schoolData} setSchoolData={setSchoolData} />,
+                    ...(schoolData.academyFeatures?.chatEnabled !== false
+                      ? {
+                          채팅: (
+                            <SchoolFeatureToggle
+                              featureKey="chatEnabled"
+                              label="채팅 기능 활성화"
+                              description="이 학교에서 실시간 채팅 기능을 활성화합니다."
+                              schoolData={schoolData}
+                              setSchoolData={setSchoolData}
+                            />
+                          ),
+                        }
+                      : {}),
+                    ...(schoolData.academyFeatures?.boardEnabled !== false
+                      ? {
+                          보드: (
+                            <BoardManagement
+                              schoolData={schoolData}
+                              setSchoolData={setSchoolData}
+                            />
+                          ),
+                        }
+                      : {}),
+                    ...(schoolData.academyFeatures?.aiEnabled !== false
+                      ? {
+                          AI: (
+                            <SchoolFeatureToggle
+                              featureKey="aiEnabled"
+                              label="AI 기능 활성화"
+                              description="이 학교에서 AI 기능을 활성화합니다."
+                              schoolData={schoolData}
+                              setSchoolData={setSchoolData}
+                            />
+                          ),
+                        }
+                      : {}),
                     링크: (
                       <Links
                         schoolData={schoolData}
