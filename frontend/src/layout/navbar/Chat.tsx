@@ -56,9 +56,16 @@ const Chat = () => {
     }
   };
 
-  // Socket setup
+  // Check if chat is enabled first
   useEffect(() => {
-    if (!currentUser?._id) return;
+    if (currentUser?._id) {
+      loadRooms();
+    }
+  }, [currentUser?._id]);
+
+  // Socket setup - only connect after confirming chat is enabled
+  useEffect(() => {
+    if (!currentUser?._id || !chatEnabled) return;
 
     const newSocket = io(`${process.env.REACT_APP_SERVER_URL}`, {
       path: "/io/chat",
@@ -89,13 +96,7 @@ const Chat = () => {
     return () => {
       newSocket.close();
     };
-  }, [currentUser?._id]);
-
-  useEffect(() => {
-    if (currentUser?._id) {
-      loadRooms();
-    }
-  }, [currentUser?._id]);
+  }, [currentUser?._id, chatEnabled]);
 
   const handleRoomSelect = (room: TChatRoom) => {
     setSelectedRoom(room);
