@@ -101,6 +101,15 @@ const Notification = () => {
   const [reminderDate, setReminderDate] = useState("");
   const [reminderTime, setReminderTime] = useState("");
 
+  // 알림 상세 보기 상태
+  const [expandedNotificationId, setExpandedNotificationId] = useState<
+    string | null
+  >(null);
+  const [expandedDescription, setExpandedDescription] = useState<
+    string | null
+  >(null);
+  const [loadingDescription, setLoadingDescription] = useState(false);
+
   // ref로 관리하여 socket 이벤트 핸들러에서 항상 최신 값/함수 참조
   const audioRef = useRef(new Audio(audioURL));
   const soundEnabledRef = useRef(soundEnabled);
@@ -220,76 +229,100 @@ const Notification = () => {
     }
   }, [notificationContentActive, activeTab]);
 
+  const isNavigableNotification = (
+    notification: TNotificationReceived
+  ): boolean => {
+    if (!notification.relatedEntity) return false;
+    const navigableTypes = [
+      "post",
+      "enrollment",
+      "syllabus",
+      "calendarEvent",
+      "reminder",
+    ];
+    return navigableTypes.includes(notification.relatedEntity.type);
+  };
+
   const handleNotificationClick = async (
     notification: TNotificationReceived
   ) => {
-    // 알림을 확인 처리
-    try {
-      await NotificationAPI.UCheckNotification({
-        params: { _id: notification._id },
-      });
-      setNotifications((prev) =>
-        prev.filter((n) => n._id !== notification._id)
-      );
-    } catch (err) {
-      ALERT_ERROR(err);
+    // navigable 알림: 기존 동작 (확인 처리 + 페이지 이동)
+    if (isNavigableNotification(notification)) {
+      try {
+        await NotificationAPI.UCheckNotification({
+          params: { _id: notification._id },
+        });
+        setNotifications((prev) =>
+          prev.filter((n) => n._id !== notification._id)
+        );
+      } catch (err) {
+        ALERT_ERROR(err);
+      }
+
+      if (notification.relatedEntity?.type === "post") {
+        try {
+          const { post } = await PostAPI.RPost({
+            params: { _id: notification.relatedEntity.id },
+          });
+          setNotificationContentActive(false);
+          navigate(`/boards/${post.board}/post/${post._id}`);
+        } catch (err) {
+          setNotificationContentActive(false);
+          navigate("/boards");
+        }
+      } else if (notification.relatedEntity?.type === "enrollment") {
+        try {
+          const { enrollment } = await EnrollmentAPI.REnrollment({
+            params: { _id: notification.relatedEntity.id },
+          });
+          setNotificationContentActive(false);
+          navigate(`/courses/enrolled/${enrollment.syllabus}`);
+        } catch (err) {
+          setNotificationContentActive(false);
+          navigate("/courses");
+        }
+      } else if (notification.relatedEntity?.type === "syllabus") {
+        setNotificationContentActive(false);
+        if (notification.notificationType === "classCancellation") {
+          navigate("/courses");
+        } else if (
+          notification.notificationType === "classApproval" ||
+          notification.notificationType === "classApprovalCancel"
+        ) {
+          navigate(`/courses/created/${notification.relatedEntity.id}`);
+        } else {
+          navigate(`/courses/${notification.relatedEntity.id}`);
+        }
+      } else if (
+        notification.relatedEntity?.type === "calendarEvent" ||
+        notification.relatedEntity?.type === "reminder"
+      ) {
+        setNotificationContentActive(false);
+        navigate("/");
+      }
+      return;
     }
 
-    // 관련 게시글이 있으면 해당 게시글로 이동
-    if (notification.relatedEntity?.type === "post") {
-      try {
-        const { post } = await PostAPI.RPost({
-          params: { _id: notification.relatedEntity.id },
-        });
-        setNotificationContentActive(false);
-        navigate(`/boards/${post.board}/post/${post._id}`);
-      } catch (err) {
-        // 게시글을 찾을 수 없으면 게시판 목록으로 이동
-        setNotificationContentActive(false);
-        navigate("/boards");
-      }
-    }
-    // 수업 관련 알림 (수업 초대)
-    else if (notification.relatedEntity?.type === "enrollment") {
-      try {
-        const { enrollment } = await EnrollmentAPI.REnrollment({
-          params: { _id: notification.relatedEntity.id },
-        });
-        setNotificationContentActive(false);
-        navigate(`/courses/enrolled/${enrollment.syllabus}`);
-      } catch (err) {
-        // 수강 정보를 찾을 수 없으면 수업 목록으로 이동
-        setNotificationContentActive(false);
-        navigate("/courses");
-      }
-    }
-    // 수업 관련 알림 (수업 취소, 승인, 승인 취소)
-    else if (notification.relatedEntity?.type === "syllabus") {
-      setNotificationContentActive(false);
-      // 수업 취소 알림은 학생이 받으므로 enrolled 경로로
-      if (notification.notificationType === "classCancellation") {
-        navigate("/courses");
-      }
-      // 승인/승인취소 알림은 교사가 받으므로 created 경로로
-      else if (
-        notification.notificationType === "classApproval" ||
-        notification.notificationType === "classApprovalCancel"
-      ) {
-        navigate(`/courses/created/${notification.relatedEntity.id}`);
-      } else {
-        navigate(`/courses/${notification.relatedEntity.id}`);
-      }
-    }
-    // 일정 시작 알림 또는 리마인더 알림
-    else if (
-      notification.relatedEntity?.type === "calendarEvent" ||
-      notification.relatedEntity?.type === "reminder"
-    ) {
-      setNotificationContentActive(false);
-      navigate("/");
+    // non-navigable 알림: 인라인 상세 보기 토글
+    if (expandedNotificationId === notification._id) {
+      setExpandedNotificationId(null);
+      setExpandedDescription(null);
     } else {
-      setNotificationContentActive(false);
-      navigate("/boards");
+      setExpandedNotificationId(notification._id);
+      setExpandedDescription(null);
+      setLoadingDescription(true);
+      try {
+        const { notification: full } = await NotificationAPI.RNotification({
+          params: { _id: notification._id },
+        });
+        setExpandedDescription(
+          (full as TNotificationReceived).description || null
+        );
+      } catch {
+        setExpandedDescription(null);
+      } finally {
+        setLoadingDescription(false);
+      }
     }
   };
 
@@ -371,35 +404,71 @@ const Notification = () => {
   const notificationItems = () => {
     return notifications.map(
       (notification: TNotificationReceived, idx: number) => {
+        const isExpanded = expandedNotificationId === notification._id;
+        const navigable = isNavigableNotification(notification);
+
         return (
           <div
             key={`notificationItem-${idx}`}
-            className={style.item}
+            className={`${style.item} ${isExpanded ? style.itemExpanded : ""}`}
             onClick={() => handleNotificationClick(notification)}
           >
-            <div className={style.description}>
-              {notification.category && (
-                <span className={style.type}>[{notification.category}]</span>
+            <div className={style.itemHeader}>
+              <div className={style.description}>
+                {notification.category && (
+                  <span className={style.type}>[{notification.category}]</span>
+                )}
+                {notification.title}
+              </div>
+              <div className={style.time}>
+                {formatNotificationTime(notification.date)}
+              </div>
+              {!navigable && (
+                <div className={style.expandIndicator}>
+                  <Svg
+                    type={isExpanded ? "chevronUp" : "chevronDown"}
+                    width="12px"
+                    height="12px"
+                  />
+                </div>
               )}
-              {notification.title}
+              <div
+                onClick={(e) => handleCheckNotification(e, notification)}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  padding: "2px",
+                  cursor: "pointer",
+                  color: "gray",
+                  flexShrink: 0,
+                }}
+                title="확인"
+              >
+                <Svg type="check" width="14px" height="14px" />
+              </div>
             </div>
-            <div className={style.time}>
-              {formatNotificationTime(notification.date)}
-            </div>
-            <div
-              onClick={(e) => handleCheckNotification(e, notification)}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                padding: "2px",
-                cursor: "pointer",
-                color: "gray",
-                flexShrink: 0,
-              }}
-              title="확인"
-            >
-              <Svg type="check" width="14px" height="14px" />
-            </div>
+            {isExpanded && (
+              <div className={style.notificationDetail}>
+                {loadingDescription ? (
+                  <div className={style.notificationDetailLoading}>
+                    로딩 중...
+                  </div>
+                ) : expandedDescription ? (
+                  <div className={style.notificationDetailContent}>
+                    {expandedDescription}
+                  </div>
+                ) : (
+                  <div className={style.notificationDetailEmpty}>
+                    상세 내용이 없습니다
+                  </div>
+                )}
+                {notification.fromUserName && (
+                  <div className={style.notificationDetailMeta}>
+                    보낸 사람: {notification.fromUserName}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       }

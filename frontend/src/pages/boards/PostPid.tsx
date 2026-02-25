@@ -356,17 +356,13 @@ const PostPid = () => {
             </span>
             <span style={{ margin: "0 8px" }}>|</span>
             <span>{formatDate(post.createdAt)}</span>
-            {!post.isLegacyNotification && (
-              <>
-                <span style={{ margin: "0 8px" }}>|</span>
-                <span
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
-                  onClick={() => setShowReadersPopup(true)}
-                >
-                  열람 대상
-                </span>
-              </>
-            )}
+            <span style={{ margin: "0 8px" }}>|</span>
+            <span
+              style={{ cursor: "pointer", textDecoration: "underline" }}
+              onClick={() => setShowReadersPopup(true)}
+            >
+              열람 대상
+            </span>
           </div>
 
           <div style={{ display: "flex", gap: "8px" }}>
@@ -392,19 +388,17 @@ const PostPid = () => {
             </Button>
             {canEdit && (
               <>
-                {isManager && !post.isLegacyNotification && (
+                {isManager && (
                   <Button type="hover" onClick={handlePin}>
                     {post.isPinned ? "고정 해제" : "고정"}
                   </Button>
                 )}
-                {!post.isLegacyNotification && (
-                  <Button
-                    type="hover"
-                    onClick={() => navigate(`/boards/${boardId}/edit/${postId}`)}
-                  >
-                    수정
-                  </Button>
-                )}
+                <Button
+                  type="hover"
+                  onClick={() => navigate(`/boards/${boardId}/edit/${postId}`)}
+                >
+                  수정
+                </Button>
                 <Button type="hover" onClick={handleDelete}>
                   삭제
                 </Button>

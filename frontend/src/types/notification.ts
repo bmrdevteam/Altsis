@@ -5,10 +5,20 @@ export type TNotificationType =
   | "classApprovalCancel"
   | "scheduleStart"
   | "newPost"
-  | "reminder";
+  | "reminder"
+  | "boardInvitation"
+  | "altFormApprovalRequest";
 
 export type TRelatedEntity = {
-  type: "enrollment" | "syllabus" | "calendarEvent" | "post" | "reminder";
+  type:
+    | "enrollment"
+    | "syllabus"
+    | "calendarEvent"
+    | "post"
+    | "reminder"
+    | "board"
+    | "altSheetRow"
+    | "altForm";
   id: string;
 };
 

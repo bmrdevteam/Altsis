@@ -127,7 +127,6 @@ const AltDocsView = ({ board }: Props) => {
 
   const canEditSelected = () => {
     if (selectedPosts.length === 0) return false;
-    if (selectedPosts.some((post) => post.isLegacyNotification)) return false;
     if (isManager) return true;
     return selectedPosts.every((post) => post.author === currentUser?._id);
   };

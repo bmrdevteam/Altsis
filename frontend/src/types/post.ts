@@ -43,8 +43,6 @@ export type TPost = {
   permissionRead?: TBoardMembers;
   /** @deprecated 하위호환용 */
   targetAudience?: TPostTargetAudience;
-  legacyNotificationId?: string;
-  isLegacyNotification?: boolean;
   surveys: TSurvey[];
   createdAt: string;
   updatedAt: string;

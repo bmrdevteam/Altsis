@@ -601,7 +601,6 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 | `attachments[].fileSize` | `Number` | - | - | 파일 크기 (bytes) |
 | `attachments[].mimeType` | `String` | - | - | MIME 타입 |
 | `attachments[].key` | `String` | - | - | S3 키 |
-| `legacyNotificationId` | `ObjectId` | X | - | 기존 알림 마이그레이션용 참조 |
 | `createdAt` | `Date` | 자동 | - | 생성 시각 |
 | `updatedAt` | `Date` | 자동 | - | 수정 시각 |
 
