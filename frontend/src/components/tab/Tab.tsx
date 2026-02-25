@@ -95,7 +95,7 @@ const Tab = (props: {
           props.defaultTab && keys.includes(props.defaultTab)
             ? props.defaultTab
             : keys[0];
-        navigate(`#${defaultKey}`, { replace: true });
+        navigate(`${location.search}#${defaultKey}`, { replace: true });
       } else {
         setActiveKey(decodeURI(location.hash).replace("#", ""));
       }
@@ -127,7 +127,7 @@ const Tab = (props: {
                     
                     setActiveKey(value);
                     !props.dontUsePaths &&
-                      navigate(`#${value}`, { replace: true });
+                      navigate(`${location.search}#${value}`, { replace: true });
                   }}
                 >
                   {value}

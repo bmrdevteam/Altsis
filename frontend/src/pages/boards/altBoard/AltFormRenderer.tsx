@@ -1132,7 +1132,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
                 u.userName.includes(approverQuery) ||
                 u.userId.toLowerCase().includes(approverQuery.toLowerCase())
             )
-          : writerUsers;
+          : [];
 
         return (
           <div className={style.userSelectContainer}>

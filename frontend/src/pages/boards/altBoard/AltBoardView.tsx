@@ -44,6 +44,7 @@ const AltBoardView = ({ board }: Props) => {
   // URL search params
   const urlFormId = searchParams.get("form");
   const urlSheetId = searchParams.get("sheet");
+  const urlMode = searchParams.get("mode"); // "respond" | "edit" | null
 
   const loadForms = () => {
     setIsLoading(true);
@@ -62,7 +63,7 @@ const AltBoardView = ({ board }: Props) => {
     loadForms();
   }, [board._id]);
 
-  // URL → State 동기화: ?form=<id> 처리
+  // URL → State 동기화: ?form=<id>&mode=<respond|edit> 처리
   useEffect(() => {
     if (isLoading || !urlFormId) return;
 
@@ -74,7 +75,11 @@ const AltBoardView = ({ board }: Props) => {
 
     const formExists = forms.some((f) => f._id === urlFormId);
     if (formExists) {
-      if (canManage) {
+      if (urlMode === "respond") {
+        // 명시적 응답 모드
+        setRendererFormId(urlFormId);
+        setBuilderFormId(null);
+      } else if (canManage) {
         setBuilderFormId(urlFormId);
         setRendererFormId(null);
       } else {
@@ -86,12 +91,13 @@ const AltBoardView = ({ board }: Props) => {
       setSearchParams(
         (prev) => {
           prev.delete("form");
+          prev.delete("mode");
           return prev;
         },
         { replace: true }
       );
     }
-  }, [isLoading, urlFormId]);
+  }, [isLoading, urlFormId, urlMode]);
 
   // 탭 전환 시 관련 없는 파라미터 정리
   useEffect(() => {
@@ -112,14 +118,14 @@ const AltBoardView = ({ board }: Props) => {
     const id = formId || "new";
     setBuilderFormId(id);
     setRendererFormId(null);
-    setSearchParams({ form: id }, { replace: true });
+    setSearchParams({ form: id, mode: "edit" }, { replace: true });
   };
 
   // Form renderer 열기
   const handleOpenRenderer = (formId: string) => {
     setRendererFormId(formId);
     setBuilderFormId(null);
-    setSearchParams({ form: formId }, { replace: true });
+    setSearchParams({ form: formId, mode: "respond" }, { replace: true });
   };
 
   // 빌더/렌더러에서 목록으로 복귀
