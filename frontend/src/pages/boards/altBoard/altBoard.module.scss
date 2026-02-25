@@ -1793,6 +1793,47 @@
   border-bottom: 1px solid var(--border-color);
 }
 
+/* ─── Day-of-Week Bulk Select ─── */
+
+.dayOfWeekBar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.dayOfWeekBtn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-1);
+    color: var(--text-color-1);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.dayOfWeekBtnActive {
+  background: var(--accent-1);
+  border-color: var(--accent-1);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    opacity: 0.85;
+    color: #fff;
+  }
+}
+
 /* ─── Responsive ─── */
 
 @media (max-width: 900px) {

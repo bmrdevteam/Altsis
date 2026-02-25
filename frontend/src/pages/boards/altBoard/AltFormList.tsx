@@ -14,6 +14,7 @@ type Props = {
   isLoading: boolean;
   canManage: boolean;
   onFormClick: (form: TAltForm) => void;
+  onRespondForm?: (formId: string) => void;
   onCreateForm: () => void;
   onRefresh: () => void;
 };
@@ -24,6 +25,7 @@ const AltFormList = ({
   isLoading,
   canManage,
   onFormClick,
+  onRespondForm,
   onCreateForm,
   onRefresh,
 }: Props) => {
@@ -185,6 +187,15 @@ const AltFormList = ({
                 className={style.formCardRight}
                 style={{ position: "relative" }}
               >
+                {onRespondForm && (
+                  <Button
+                    type="ghost"
+                    onClick={() => onRespondForm(form._id)}
+                    style={{ padding: "4px 10px", fontSize: "12px" }}
+                  >
+                    응답하기
+                  </Button>
+                )}
                 <Button
                   type="ghost"
                   onClick={() => setTrackerForm(form)}

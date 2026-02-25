@@ -128,9 +128,13 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       .then(([{ form: loadedForm }, { row }]) => {
         setForm(loadedForm);
         if (row) {
-          setMyRow(row);
-          setData(row.data || {});
-          setIsSubmitted(true);
+          if (loadedForm.settings.allowMultipleResponses) {
+            // 다중 응답: 항상 빈 폼 유지 (이전 응답 불러오지 않음)
+          } else {
+            setMyRow(row);
+            setData(row.data || {});
+            setIsSubmitted(true);
+          }
         }
 
         // counter 필드 카운트 로드
@@ -343,10 +347,11 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       });
 
       if (form.settings.allowMultipleResponses) {
-        // 복수 응답: 폼 초기화하여 새 응답 준비
-        setMyRow(row);
+        // 다중 응답: 제출 후 완전 초기화
+        alert("응답이 제출되었습니다.");
+        setMyRow(null);
         setData({});
-        setIsSubmitted(true);
+        setIsSubmitted(false);
       } else {
         setMyRow(row);
         setData(row.data || data);
@@ -642,8 +647,67 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
         const mSelectableDates = mHasWindow ? Array.from(mSelectableSet).sort() : [];
 
+        // 요일별 일괄 선택용 날짜 풀 계산
+        const dayPool: string[] = (() => {
+          if (mHasWindow) return mSelectableDates;
+          if (mv.minDate && mv.maxDate) {
+            const dates: string[] = [];
+            const cur = new Date(mv.minDate + "T00:00:00");
+            const end = new Date(mv.maxDate + "T00:00:00");
+            while (cur <= end) {
+              const y = cur.getFullYear();
+              const mo = String(cur.getMonth() + 1).padStart(2, "0");
+              const dd = String(cur.getDate()).padStart(2, "0");
+              dates.push(`${y}-${mo}-${dd}`);
+              cur.setDate(cur.getDate() + 1);
+            }
+            return dates;
+          }
+          return [];
+        })();
+
+        const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+        const getDatesForDay = (dayIndex: number) =>
+          dayPool.filter((d) => new Date(d + "T00:00:00").getDay() === dayIndex);
+
+        const handleToggleDay = (dayIndex: number) => {
+          const datesForDay = getDatesForDay(dayIndex);
+          if (datesForDay.length === 0) return;
+          const allSelected = datesForDay.every((d) => selected.includes(d));
+          if (allSelected) {
+            const removeSet = new Set(datesForDay);
+            setValue(field._id, selected.filter((d) => !removeSet.has(d)));
+          } else {
+            const merged = Array.from(new Set([...selected, ...datesForDay])).sort();
+            setValue(field._id, merged);
+          }
+        };
+
         return (
           <div>
+            {!disabled && dayPool.length > 0 && (
+              <div className={style.dayOfWeekBar}>
+                {DAY_LABELS.map((label, i) => {
+                  const datesForDay = getDatesForDay(i);
+                  const isDayDisabled = datesForDay.length === 0 ||
+                    (mAllowedDays && mAllowedDays.length < 7 && !mAllowedDays.includes(i));
+                  const allSelected = datesForDay.length > 0 &&
+                    datesForDay.every((d) => selected.includes(d));
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`${style.dayOfWeekBtn} ${allSelected ? style.dayOfWeekBtnActive : ""}`}
+                      disabled={!!isDayDisabled}
+                      onClick={() => handleToggleDay(i)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {selected.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "6px" }}>
                 {selected.map((d) => (
@@ -1058,10 +1122,17 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
           );
         }
 
-        // 제출 전: 승인자 선택
+        // 제출 전: 승인자 선택 (보드 작성자 목록에서 검색)
         const approverQuery = userSearchQuery[field._id] || "";
-        const approverResults = userSearchResults[field._id] || [];
         const selectedApprover = approvalData?.approver;
+        const writerUsers = board.writers?.users || [];
+        const approverCandidates = approverQuery.trim()
+          ? writerUsers.filter(
+              (u) =>
+                u.userName.includes(approverQuery) ||
+                u.userId.toLowerCase().includes(approverQuery.toLowerCase())
+            )
+          : writerUsers;
 
         return (
           <div className={style.userSelectContainer}>
@@ -1103,16 +1174,16 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
                   }
                   disabled={disabled}
                 />
-                {approverResults.length > 0 && (
+                {approverCandidates.length > 0 && (
                   <div className={style.userSearchDropdown}>
-                    {approverResults.map((u) => (
+                    {approverCandidates.map((u) => (
                       <div
-                        key={u._id}
+                        key={u.user}
                         className={style.userSearchItem}
                         onClick={() => {
                           setValue(field._id, {
                             approver: {
-                              user: u._id,
+                              user: u.user,
                               userId: u.userId,
                               userName: u.userName,
                             },
@@ -1121,10 +1192,6 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
                           setUserSearchQuery((p) => ({
                             ...p,
                             [field._id]: "",
-                          }));
-                          setUserSearchResults((p) => ({
-                            ...p,
-                            [field._id]: [],
                           }));
                         }}
                       >
@@ -1232,15 +1299,6 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
           </div>
         </div>
       )}
-      {isSubmitted && form?.settings.allowMultipleResponses && (
-        <div className={style.successBanner}>
-          <div className={style.successIcon}>✓</div>
-          <div className={style.successText}>
-            <strong>응답이 제출되었습니다. 추가 응답을 입력할 수 있습니다.</strong>
-          </div>
-        </div>
-      )}
-
       {/* 응답자 필드 */}
       {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible) &&
         respondentFields.map((field) => {
@@ -1322,7 +1380,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
       {/* 제출/수정 버튼 */}
       <div className={style.submitArea}>
-        {isSubmitted && myRow && canSubmit && (
+        {isSubmitted && myRow && canSubmit && !form?.settings.allowMultipleResponses && (
           <Button type="ghost" onClick={handleWithdraw}>
             응답 철회
           </Button>

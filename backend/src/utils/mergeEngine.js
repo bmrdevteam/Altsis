@@ -161,6 +161,43 @@ function getFieldValue(row, label, labelMap) {
   return "";
 }
 
+/**
+ * 복합 값을 표시용 문자열로 변환
+ * userSelect: {user, userId, userName} → userName
+ * approval: {approver, approverName, status, ...} → approverName
+ * array: ["a", "b"] → "a, b"
+ * boolean: true/false → "Y" / "N"
+ * primitive: String(value)
+ */
+function stringifyValue(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "boolean") return value ? "Y" : "N";
+  if (typeof value !== "object") return String(value);
+
+  // 배열 (multiSelect, multiDate 등)
+  if (Array.isArray(value)) {
+    return value.map((v) => stringifyValue(v)).join(", ");
+  }
+
+  // userSelect 객체 {user, userId, userName}
+  if (value.userName !== undefined) return value.userName;
+
+  // approval 객체 {approver: {user, userId, userName}, status, reason, approvedAt}
+  if (value.approver !== undefined) {
+    const name = value.approver?.userName || "";
+    const statusMap = { approved: "승인", rejected: "반려", pending: "대기" };
+    const status = statusMap[value.status] || value.status || "";
+    return status ? `${name} (${status})` : name;
+  }
+
+  // 기타 객체 — JSON fallback
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 // ─── Format Pipes ────────────────────────────────────────
 
 function formatDate(value, fmt) {
@@ -215,7 +252,7 @@ function applyPipe(value, pipeExpr) {
     case "number":
       return formatNumber(value, arg);
     default:
-      return String(value ?? "");
+      return stringifyValue(value ?? "");
   }
 }
 
@@ -224,7 +261,7 @@ function applyPipes(value, pipes) {
   for (const p of pipes) {
     result = applyPipe(result, p.trim());
   }
-  return String(result);
+  return stringifyValue(result);
 }
 
 // ─── Condition ───────────────────────────────────────────
@@ -261,8 +298,8 @@ function parseCondition(expr) {
 }
 
 function evaluateCondition(leftValue, operator, rightValue) {
-  const left = String(leftValue ?? "");
-  const right = String(rightValue ?? "");
+  const left = stringifyValue(leftValue ?? "");
+  const right = stringifyValue(rightValue ?? "");
 
   switch (operator) {
     case "==":
@@ -333,7 +370,7 @@ function applySorts(rows, sorts, labelMap) {
       const cmp =
         !isNaN(na) && !isNaN(nb)
           ? na - nb
-          : String(va).localeCompare(String(vb), "ko");
+          : stringifyValue(va).localeCompare(stringifyValue(vb), "ko");
       if (cmp !== 0) return direction === "desc" ? -cmp : cmp;
     }
     return 0;
@@ -422,7 +459,7 @@ function processUnique(template, rows, labelMap) {
   return template.replace(/\{\{#unique\s+(.+?)\}\}/g, (_, label) => {
     const seen = new Set();
     for (const row of rows) {
-      const v = String(getFieldValue(row, label.trim(), labelMap));
+      const v = stringifyValue(getFieldValue(row, label.trim(), labelMap));
       if (v) seen.add(v);
     }
     return [...seen].join(", ");
@@ -442,7 +479,7 @@ function processGroups(template, rows, labelMap) {
       // 그룹핑 (등장 순서 유지)
       const groupMap = new Map();
       for (const row of rows) {
-        const key = String(getFieldValue(row, trimmed, labelMap));
+        const key = stringifyValue(getFieldValue(row, trimmed, labelMap));
         if (!groupMap.has(key)) groupMap.set(key, []);
         groupMap.get(key).push(row);
       }
@@ -496,7 +533,7 @@ function processTables(template, rows, labelMap) {
       rows.forEach((row, idx) => {
         const cells = cols.map((col) => {
           if (col === "_index") return String(idx + 1);
-          return String(getFieldValue(row, col, labelMap));
+          return stringifyValue(getFieldValue(row, col, labelMap));
         });
         table += "| " + cells.join(" | ") + " |\n";
       });
@@ -557,7 +594,7 @@ function replaceVariables(template, row, labelMap, index) {
       const value = getFieldValue(row, varName, labelMap);
       return parts.length > 1
         ? applyPipes(value, parts.slice(1))
-        : String(value);
+        : stringifyValue(value);
     }
 
     return match; // 알 수 없는 변수 → 원본 유지

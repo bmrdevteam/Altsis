@@ -10,7 +10,7 @@
  * @returns {string|null} "admin" | "writer" | "respondent" | null
  */
 export const getAltBoardRole = (board, user) => {
-  if (user.auth === "admin" || user.auth === "manager") return "admin";
+  if (user.auth === "admin") return "admin";
   if (board.creator && board.creator.equals(user._id)) return "admin";
 
   if (board.altBoardRole) {

@@ -263,6 +263,12 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
     currentValue: string
   ) => {
     if (!canManage) return;
+    // 복합 타입은 텍스트 입력으로 편집 불가 (데이터 손상 방지)
+    const nonEditableTypes = [
+      "multiDate", "multiSelect", "userSelect", "file",
+      "checkbox", "rating", "scale", "counter", "approval",
+    ];
+    if (nonEditableTypes.includes(field.type)) return;
     setEditingCell({ rowId, fieldId: field._id });
     setEditValue(currentValue || "");
   };
@@ -814,7 +820,7 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
               >
                 제출일{getSortIndicator("_submittedAt")}
               </th>
-              {canManage && <th className={style.actionCell} />}
+              <th className={style.actionCell} />
             </tr>
             {/* 필터 행 */}
             <tr>
@@ -913,7 +919,7 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
                   }
                 />
               </th>
-              {canManage && <th className={style.actionCell} />}
+              <th className={style.actionCell} />
             </tr>
           </thead>
           <tbody>
@@ -989,8 +995,8 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
                       })
                     : "-"}
                 </td>
-                {canManage && (
-                  <td className={style.actionCell}>
+                <td className={style.actionCell}>
+                  {(canManage || row._respondent === currentUser?._id) && (
                     <button
                       className={style.removeBtn}
                       onClick={() => handleDeleteRow(row._id)}
@@ -998,8 +1004,8 @@ const AltSheetView = ({ board, forms, canManage }: Props) => {
                     >
                       ×
                     </button>
-                  </td>
-                )}
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
