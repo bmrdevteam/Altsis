@@ -42,8 +42,8 @@ const AltBoardView = ({ board }: Props) => {
         setForms(forms);
         setIsLoading(false);
       })
-      .catch((err) => {
-        ALERT_ERROR(err);
+      .catch(() => {
+        setForms([]);
         setIsLoading(false);
       });
   };
@@ -114,6 +114,7 @@ const AltBoardView = ({ board }: Props) => {
               isLoading={isLoading}
               canManage={canManage}
               onFormClick={handleFormClick}
+              onRespondForm={canManage ? handleOpenRenderer : undefined}
               onCreateForm={() => handleOpenBuilder()}
               onRefresh={loadForms}
             />

@@ -3,9 +3,37 @@
  * @namespace Services.NotificationService
  */
 
-import { Notification, NotificationSetting } from "../models/index.js";
+import { Notification, NotificationSetting, School } from "../models/index.js";
 import { getIoNotification } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
+
+/**
+ * 학교/보드 수준 알림 이벤트 활성화 여부 확인
+ * @param {string} academyId
+ * @param {string} schoolId - school._id
+ * @param {Object} board - board document (또는 null)
+ * @param {string} notificationType - 알림 유형
+ * @returns {Promise<boolean>} true면 발송 가능
+ */
+export const isBoardNotificationEnabled = async (
+  academyId,
+  schoolId,
+  board,
+  notificationType
+) => {
+  // 1. 학교 수준 확인
+  const school = await School(academyId).findById(schoolId);
+  if (school?.boardNotificationEvents?.[notificationType] !== true) {
+    return false;
+  }
+
+  // 2. 보드 수준 확인
+  if (board?.notificationEvents?.[notificationType] !== true) {
+    return false;
+  }
+
+  return true;
+};
 
 /**
  * 자동 알림 발송

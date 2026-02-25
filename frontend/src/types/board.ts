@@ -35,6 +35,13 @@ export type TBoardType = "official" | "user";
 export type TBoardMode = "alt";
 export type TAltBoardRole = "admin" | "writer" | "respondent";
 
+export type TBoardNotificationEvents = {
+  newPost: boolean;
+  boardInvitation: boolean;
+  altFormApprovalRequest: boolean;
+  altFormApprovalResult: boolean;
+};
+
 export type TBoard = {
   _id: string;
   school: string;
@@ -67,6 +74,7 @@ export type TBoard = {
   boardMode: TBoardMode;
   syllabus?: string;
   altBoardRole?: Record<string, TAltBoardRole>;
+  notificationEvents?: TBoardNotificationEvents;
   createdAt: string;
   updatedAt: string;
 };

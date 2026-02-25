@@ -166,7 +166,7 @@ const School = (props: Props) => {
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
                     알림: <Notifications />,
-                    보드: <BoardManagement schoolData={schoolData} />,
+                    보드: <BoardManagement schoolData={schoolData} setSchoolData={setSchoolData} />,
                     링크: (
                       <Links
                         schoolData={schoolData}
@@ -189,7 +189,7 @@ const School = (props: Props) => {
                     기록: <Archive school={schoolData._id} />,
                     사용자: <User schoolData={schoolData} />,
                     알림: <Notifications />,
-                    보드: <BoardManagement schoolData={schoolData} />,
+                    보드: <BoardManagement schoolData={schoolData} setSchoolData={setSchoolData} />,
                     링크: (
                       <Links
                         schoolData={schoolData}

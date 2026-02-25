@@ -14,7 +14,7 @@ import {
   gradeQuizRow,
   getDuplicateCheckFields,
 } from "../services/altForms.js";
-import { sendAutoNotification } from "../services/notifications.js";
+import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -373,23 +373,31 @@ export const create = async (req, res) => {
     });
 
     // approval 필드가 있으면 승인자에게 알림
-    for (const field of form.fields) {
-      if (field.type !== "approval") continue;
-      const approvalData = data[field._id.toString()];
-      if (approvalData?.approver?.user) {
-        try {
-          await sendAutoNotification({
-            academyId: req.user.academyId,
-            toUserList: [approvalData.approver],
-            notificationType: "altFormApprovalRequest",
-            category: "Alt Board",
-            title: `${form.title} - 승인 요청`,
-            description: `${req.user.userName}님이 승인을 요청했습니다.`,
-            relatedEntity: { type: "altSheetRow", id: row._id },
-            fromUser: req.user,
-          });
-        } catch (e) {
-          // 알림 실패는 응답에 영향 없음
+    const approvalNotifEnabled = await isBoardNotificationEnabled(
+      req.user.academyId,
+      board.school,
+      board,
+      "altFormApprovalRequest"
+    );
+    if (approvalNotifEnabled) {
+      for (const field of form.fields) {
+        if (field.type !== "approval") continue;
+        const approvalData = data[field._id.toString()];
+        if (approvalData?.approver?.user) {
+          try {
+            await sendAutoNotification({
+              academyId: req.user.academyId,
+              toUserList: [approvalData.approver],
+              notificationType: "altFormApprovalRequest",
+              category: "Alt Board",
+              title: `${form.title} - 승인 요청`,
+              description: `${req.user.userName}님이 승인을 요청했습니다.`,
+              relatedEntity: { type: "altSheetRow", id: row._id },
+              fromUser: req.user,
+            });
+          } catch (e) {
+            // 알림 실패는 응답에 영향 없음
+          }
         }
       }
     }
@@ -592,22 +600,30 @@ export const update = async (req, res) => {
             row._respondent
           ) {
             try {
-              await sendAutoNotification({
-                academyId: req.user.academyId,
-                toUserList: [
-                  {
-                    user: row._respondent,
-                    userId: row._respondentId,
-                    userName: row._respondentName,
-                  },
-                ],
-                notificationType: "altFormApprovalResult",
-                category: "Alt Board",
-                title: `${form.title} - ${value.status === "approved" ? "승인됨" : "반려됨"}`,
-                description: value.reason || "",
-                relatedEntity: { type: "altSheetRow", id: row._id },
-                fromUser: req.user,
-              });
+              const resultNotifEnabled = await isBoardNotificationEnabled(
+                req.user.academyId,
+                board.school,
+                board,
+                "altFormApprovalResult"
+              );
+              if (resultNotifEnabled) {
+                await sendAutoNotification({
+                  academyId: req.user.academyId,
+                  toUserList: [
+                    {
+                      user: row._respondent,
+                      userId: row._respondentId,
+                      userName: row._respondentName,
+                    },
+                  ],
+                  notificationType: "altFormApprovalResult",
+                  category: "Alt Board",
+                  title: `${form.title} - ${value.status === "approved" ? "승인됨" : "반려됨"}`,
+                  description: value.reason || "",
+                  relatedEntity: { type: "altSheetRow", id: row._id },
+                  fromUser: req.user,
+                });
+              }
             } catch (e) {
               // 알림 실패는 응답에 영향 없음
             }
@@ -653,8 +669,7 @@ export const remove = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    row.isActive = false;
-    await row.save();
+    await row.deleteOne();
 
     return res.status(200).send();
   } catch (err) {

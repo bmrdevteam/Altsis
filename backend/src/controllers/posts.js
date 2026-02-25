@@ -5,7 +5,7 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
-import { AltForm, AltSheet, AltSheetRow, Board, Post, Notification, User, Registration, SurveyResponse } from "../models/index.js";
+import { AltForm, AltSheet, AltSheetRow, Board, Post, User, SurveyResponse } from "../models/index.js";
 import { parseSheetDeclaration, renderMerge, stripMergeTags } from "../utils/mergeEngine.js";
 import { getAltBoardRole } from "../services/altForms.js";
 import {
@@ -17,7 +17,7 @@ import {
   validatePostPermission,
   canUserSeePost,
 } from "../services/boards.js";
-import { sendAutoNotification } from "../services/notifications.js";
+import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 
 import {
   FIELD_REQUIRED,
@@ -204,34 +204,43 @@ export const create = async (req, res) => {
 
     // 열람 권한 대상에게 알림 발송 (작성자 제외)
     try {
-      const usersWithPermission = await getPostReaders(
+      const notifEnabled = await isBoardNotificationEnabled(
         req.user.academyId,
+        board.school,
         board,
-        post
+        "newPost"
       );
 
-      const notifyUsers = usersWithPermission.filter(
-        (u) => u.userId !== req.user.userId
-      );
-
-      logger.info(
-        `Sending notifications to ${notifyUsers.length} users for new post: ${post.title}`
-      );
-
-      if (notifyUsers.length > 0) {
-        const result = await sendAutoNotification({
-          academyId: req.user.academyId,
-          toUserList: notifyUsers.slice(0, 100), // 최대 100명까지
-          notificationType: "newPost",
-          category: board.name,
-          title: `[새 게시글] ${post.title}`,
-          description: `${board.name}에 새 게시글이 등록되었습니다.`,
-          relatedEntity: { type: "post", id: post._id },
-          fromUser: req.user,
-        });
-        logger.info(
-          `Notifications created: ${result?.length || 0} notifications`
+      if (notifEnabled) {
+        const usersWithPermission = await getPostReaders(
+          req.user.academyId,
+          board,
+          post
         );
+
+        const notifyUsers = usersWithPermission.filter(
+          (u) => u.userId !== req.user.userId
+        );
+
+        logger.info(
+          `Sending notifications to ${notifyUsers.length} users for new post: ${post.title}`
+        );
+
+        if (notifyUsers.length > 0) {
+          const result = await sendAutoNotification({
+            academyId: req.user.academyId,
+            toUserList: notifyUsers.slice(0, 100), // 최대 100명까지
+            notificationType: "newPost",
+            category: board.name,
+            title: `[새 게시글] ${post.title}`,
+            description: `${board.name}에 새 게시글이 등록되었습니다.`,
+            relatedEntity: { type: "post", id: post._id },
+            fromUser: req.user,
+          });
+          logger.info(
+            `Notifications created: ${result?.length || 0} notifications`
+          );
+        }
       }
     } catch (notifyErr) {
       // 알림 실패는 게시글 생성 성공에 영향을 주지 않음
@@ -256,65 +265,9 @@ export const find = async (req, res) => {
   try {
     /* RPost */
     if (req.params._id) {
-      let post = await Post(req.user.academyId).findById(req.params._id);
-      let isLegacyNotification = false;
+      const post = await Post(req.user.academyId).findById(req.params._id);
 
-      // Post를 찾지 못하면 기존 알림(Notification)에서 찾기
       if (!post || !post.isActive) {
-        const notification = await Notification(req.user.academyId).findOne({
-          _id: req.params._id,
-          type: "sent",
-        });
-
-        if (notification) {
-          isLegacyNotification = true;
-          const defaultBoard = await Board(req.user.academyId).findOne({
-            isDefault: true,
-          });
-
-          if (!defaultBoard) {
-            return res.status(404).send({ message: __NOT_FOUND("board") });
-          }
-
-          // 알림을 게시글 형태로 변환
-          post = {
-            _id: notification._id,
-            board: defaultBoard._id,
-            author: notification.user,
-            authorId: notification.userId,
-            authorName: notification.userName,
-            title: notification.title,
-            content: notification.description || "",
-            category: notification.category || "",
-            createdAt: notification.createdAt,
-            updatedAt: notification.updatedAt,
-            viewCount: 0,
-            isPinned: false,
-            isActive: true,
-            isLegacyNotification: true,
-            targetAudience: notification.toUserList?.length > 0
-              ? { type: "custom", users: notification.toUserList }
-              : { type: "all" },
-          };
-
-          // 멤버 확인
-          const role = await getUserRoleInSeason(
-            req.user.academyId,
-            defaultBoard.schoolId,
-            req.user
-          );
-          if (!isBoardMember(defaultBoard, req.user, role)) {
-            return res.status(403).send({ message: PERMISSION_DENIED });
-          }
-
-          // 열람 권한 확인
-          if (!canUserSeePost(post, req.user, role)) {
-            return res.status(403).send({ message: PERMISSION_DENIED });
-          }
-
-          return res.status(200).send({ post, board: defaultBoard });
-        }
-
         return res.status(404).send({ message: __NOT_FOUND("post") });
       }
 
@@ -490,93 +443,7 @@ export const find = async (req, res) => {
       canUserSeePost(post, req.user, role)
     );
 
-    // 기본 게시판(공지사항)인 경우 기존 알림(Notification)도 포함
-    let combinedPosts = filteredPosts;
-    if (board.isDefault) {
-      const notificationQuery = { type: "sent" };
-      if (req.query.before) {
-        notificationQuery.createdAt = { $lt: new Date(req.query.before) };
-      }
-
-      const oldNotifications = await Notification(req.user.academyId)
-        .find(notificationQuery)
-        .sort({ createdAt: -1 })
-        .limit(limit);
-
-      // 알림을 게시글 형태로 변환
-      const notificationAsPosts = oldNotifications.map((n) => ({
-        _id: n._id,
-        board: board._id,
-        author: n.user,
-        authorId: n.userId,
-        authorName: n.userName,
-        title: n.title,
-        category: n.category || "",
-        createdAt: n.createdAt,
-        updatedAt: n.updatedAt,
-        viewCount: 0,
-        isPinned: false,
-        isActive: true,
-        isLegacyNotification: true,
-        targetAudience: n.toUserList?.length > 0
-          ? { type: "custom", users: n.toUserList }
-          : { type: "all" },
-      }));
-
-      // 작성자의 보드 작성 권한 확인
-      const authorIds = [
-        ...new Set(
-          oldNotifications.map((n) => n.user?.toString()).filter(Boolean)
-        ),
-      ];
-      const [authorUsers, authorRegs] = await Promise.all([
-        User(req.user.academyId)
-          .find({ _id: { $in: authorIds } })
-          .select("_id auth"),
-        Registration(req.user.academyId)
-          .find({
-            user: { $in: authorIds },
-            schoolId: board.schoolId,
-            isActivated: true,
-          })
-          .select("user role"),
-      ]);
-      const authMap = new Map(
-        authorUsers.map((u) => [u._id.toString(), u.auth])
-      );
-      const roleMap = new Map(
-        authorRegs.map((r) => [r.user.toString(), r.role])
-      );
-
-      const writePermittedNotifications = notificationAsPosts.filter((n) => {
-        const aid = n.author?.toString();
-        const auth = authMap.get(aid);
-        if (auth === "admin") return true;
-        // 레거시: permissionWrite 기반 체크
-        const writerGroups = board.writers?.groups || board.permissionWrite || {};
-        if (auth === "manager" && writerGroups.manager) return true;
-        const authorRole = roleMap.get(aid);
-        if (authorRole === "teacher" && writerGroups.teacher) return true;
-        if (authorRole === "student" && writerGroups.student) return true;
-        return false;
-      });
-
-      // 열람 권한 필터링 (레거시 알림)
-      const filteredNotifications = writePermittedNotifications.filter((post) =>
-        canUserSeePost(post, req.user, role)
-      );
-
-      // 게시글과 알림을 합쳐서 날짜순 정렬
-      combinedPosts = [...filteredPosts, ...filteredNotifications]
-        .sort((a, b) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        })
-        .slice(0, limit);
-    }
-
-    return res.status(200).send({ posts: combinedPosts, board });
+    return res.status(200).send({ posts: filteredPosts, board });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -741,29 +608,7 @@ export const remove = async (req, res) => {
   try {
     const post = await Post(req.user.academyId).findById(req.params._id);
 
-    // Post를 찾지 못하면 기존 알림(Notification)에서 찾기
     if (!post || !post.isActive) {
-      const notification = await Notification(req.user.academyId).findOne({
-        _id: req.params._id,
-        type: "sent",
-      });
-
-      if (notification) {
-        const isAuthor = notification.user?.equals(req.user._id);
-        const isManager =
-          req.user.auth === "admin" || req.user.auth === "manager";
-
-        if (!isAuthor && !isManager) {
-          return res.status(403).send({ message: PERMISSION_DENIED });
-        }
-
-        await Notification(req.user.academyId).deleteOne({
-          _id: req.params._id,
-        });
-
-        return res.status(200).send();
-      }
-
       return res.status(404).send({ message: __NOT_FOUND("post") });
     }
 

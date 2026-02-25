@@ -29,7 +29,7 @@ import { TSyllabus } from "types/syllabuses";
 import { TEnrollment } from "types/enrollments";
 import { TNotification, TNotificationSettings } from "types/notification";
 import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
-import { TBoard, TBoardFavorite, TBoardMembers } from "types/board";
+import { TBoard, TBoardFavorite, TBoardMembers, TBoardNotificationEvents } from "types/board";
 import { TPost, TPostAttachment } from "types/post";
 
 import {
@@ -1027,6 +1027,21 @@ export default function useAPIv2() {
     });
     return {
       links: links as { title: string; url: string }[],
+    };
+  }
+
+  async function USchoolBoardNotificationEvents(props: {
+    params: { _id: string };
+    data: {
+      boardNotificationEvents: TBoardNotificationEvents;
+    };
+  }) {
+    const { boardNotificationEvents } = await database.U({
+      location: `schools/${props.params._id}/boardNotificationEvents`,
+      data: props.data,
+    });
+    return {
+      boardNotificationEvents: boardNotificationEvents as TBoardNotificationEvents,
     };
   }
 
@@ -2878,6 +2893,7 @@ export default function useAPIv2() {
       order?: number;
       contentViewMode?: "table" | "gallery" | "blog";
       coverColor?: string;
+      notificationEvents?: TBoardNotificationEvents;
     };
   }) {
     const { board } = await database.U({
@@ -4220,6 +4236,7 @@ export default function useAPIv2() {
       RSchoolDashboard,
       USchoolFormArchive,
       USchoolLinks,
+      USchoolBoardNotificationEvents,
       RestoreFormArchive,
       RemoveFormArchive,
       DSchool,

@@ -7,16 +7,40 @@ import Popup from "components/popup/Popup";
 import Input from "components/input/Input";
 import Textarea from "components/textarea/Textarea";
 import Svg from "assets/svg/Svg";
+import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
-import { TBoard } from "types/board";
+import { TBoard, TBoardNotificationEvents } from "types/board";
 import { TSchool } from "types/schools";
+
+const NOTIFICATION_EVENT_LABELS: Record<
+  keyof TBoardNotificationEvents,
+  { label: string; description: string }
+> = {
+  newPost: {
+    label: "새 게시글 알림",
+    description: "보드에 새 게시글이 등록되면 멤버에게 알림",
+  },
+  boardInvitation: {
+    label: "보드 초대 알림",
+    description: "보드에 새 멤버가 초대되면 알림",
+  },
+  altFormApprovalRequest: {
+    label: "승인 요청 알림",
+    description: "양식 제출 시 승인자에게 알림",
+  },
+  altFormApprovalResult: {
+    label: "승인 결과 알림",
+    description: "승인/반려 시 제출자에게 알림",
+  },
+};
 
 type Props = {
   schoolData: TSchool;
+  setSchoolData?: (data: TSchool) => void;
 };
 
-const BoardManagement = ({ schoolData }: Props) => {
-  const { BoardAPI } = useAPIv2();
+const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
+  const { BoardAPI, SchoolAPI } = useAPIv2();
 
   const [boards, setBoards] = useState<TBoard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,8 +70,103 @@ const BoardManagement = ({ schoolData }: Props) => {
     }
   };
 
+  const handleSchoolNotifToggle = async (
+    key: keyof TBoardNotificationEvents,
+    value: boolean
+  ) => {
+    const current = schoolData.boardNotificationEvents || {
+      newPost: false,
+      boardInvitation: false,
+      altFormApprovalRequest: false,
+      altFormApprovalResult: false,
+    };
+    const updated = { ...current, [key]: value };
+
+    try {
+      await SchoolAPI.USchoolBoardNotificationEvents({
+        params: { _id: schoolData._id },
+        data: { boardNotificationEvents: updated },
+      });
+      setSchoolData?.({
+        ...schoolData,
+        boardNotificationEvents: updated,
+      });
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   return (
     <div style={{ marginTop: "24px" }}>
+      {/* 학교 수준 보드 알림 설정 */}
+      <div
+        style={{
+          marginBottom: "24px",
+          padding: "16px",
+          border: "1px solid var(--border-color)",
+          borderRadius: "8px",
+          backgroundColor: "var(--background-color-2)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "14px",
+            fontWeight: 600,
+            marginBottom: "12px",
+            color: "var(--text-color)",
+          }}
+        >
+          보드 알림 설정 (학교 전체)
+        </div>
+        <p
+          style={{
+            fontSize: "12px",
+            color: "var(--text-color-2)",
+            marginBottom: "12px",
+          }}
+        >
+          학교 전체에서 비활성화하면 개별 보드 설정과 무관하게 해당 알림이
+          발송되지 않습니다.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {(
+            Object.keys(NOTIFICATION_EVENT_LABELS) as Array<
+              keyof TBoardNotificationEvents
+            >
+          ).map((key) => (
+            <div
+              key={key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                  {NOTIFICATION_EVENT_LABELS[key].label}
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--text-color-2)",
+                    marginTop: "2px",
+                  }}
+                >
+                  {NOTIFICATION_EVENT_LABELS[key].description}
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={
+                  schoolData.boardNotificationEvents?.[key] ?? false
+                }
+                onChange={(v) => handleSchoolNotifToggle(key, v)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div
         style={{
           display: "flex",

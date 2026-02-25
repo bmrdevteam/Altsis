@@ -200,6 +200,22 @@ const boardSchema = mongoose.Schema(
         enum: ["admin", "writer", "respondent"],
       },
     },
+
+    // 보드 알림 이벤트 설정
+    notificationEvents: {
+      type: {
+        newPost: { type: Boolean, default: false },
+        boardInvitation: { type: Boolean, default: false },
+        altFormApprovalRequest: { type: Boolean, default: false },
+        altFormApprovalResult: { type: Boolean, default: false },
+      },
+      default: {
+        newPost: false,
+        boardInvitation: false,
+        altFormApprovalRequest: false,
+        altFormApprovalResult: false,
+      },
+    },
   },
   { timestamps: true }
 );

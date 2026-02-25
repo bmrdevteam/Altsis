@@ -174,6 +174,10 @@ export const find = async (req, res) => {
       .sort({ createdAt: -1 });
 
     if (!role) {
+      // 양식이 없으면 빈 배열 반환 (공지사항 등 alt-form이 없는 보드)
+      if (forms.length === 0) {
+        return res.status(200).send({ forms: [] });
+      }
       // 역할 없지만 승인자로 지정된 양식만 반환
       const approverForms = [];
       for (const form of forms) {
@@ -188,9 +192,7 @@ export const find = async (req, res) => {
         const count = await AltSheetRow(req.user.academyId).countDocuments(approverQuery);
         if (count > 0) approverForms.push(form);
       }
-      if (approverForms.length === 0) {
-        return res.status(403).send({ message: PERMISSION_DENIED });
-      }
+      // 승인자 양식도 없으면 빈 배열 반환 (403 대신)
       return res.status(200).send({ forms: approverForms });
     }
 

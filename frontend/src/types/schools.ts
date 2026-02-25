@@ -32,6 +32,13 @@ export type TDeletedSchoolFormArchiveItem = TSchoolFormArchiveItem & {
 
 export type TDeletedSchoolFormArchive = TDeletedSchoolFormArchiveItem[];
 
+export type TBoardNotificationEventsSchool = {
+  newPost: boolean;
+  boardInvitation: boolean;
+  altFormApprovalRequest: boolean;
+  altFormApprovalResult: boolean;
+};
+
 export type TSchool = {
   _id: string;
   school: string;
@@ -43,6 +50,7 @@ export type TSchool = {
     url: string;
     title: string;
   }[];
+  boardNotificationEvents?: TBoardNotificationEventsSchool;
 };
 
 export const authTeacherTextMap: Map<TAuthTeacher, string> = new Map([

@@ -23,7 +23,7 @@ import {
   getUserRoleInSeason,
   getBoardMembers,
 } from "../services/boards.js";
-import { sendAutoNotification } from "../services/notifications.js";
+import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 
 import {
   FIELD_REQUIRED,
@@ -231,6 +231,9 @@ export const update = async (req, res) => {
     }
     if ("coverColor" in req.body)
       board.coverColor = req.body.coverColor || undefined;
+    if ("notificationEvents" in req.body) {
+      board.notificationEvents = req.body.notificationEvents;
+    }
 
     await board.save();
 
@@ -300,20 +303,29 @@ export const addMemberUser = async (req, res) => {
     // 초대 알림 발송
     if (isNew) {
       try {
-        await sendAutoNotification({
-          academyId: req.user.academyId,
-          toUserList: [{
-            user: req.body.user,
-            userId: req.body.userId,
-            userName: req.body.userName,
-          }],
-          notificationType: "boardInvitation",
-          category: "보드",
-          title: `${board.name} 보드에 초대되었습니다`,
-          description: `${req.user.userName}님이 "${board.name}" 보드에 초대했습니다.`,
-          relatedEntity: { type: "board", id: board._id },
-          fromUser: req.user,
-        });
+        const notifEnabled = await isBoardNotificationEnabled(
+          req.user.academyId,
+          board.school,
+          board,
+          "boardInvitation"
+        );
+
+        if (notifEnabled) {
+          await sendAutoNotification({
+            academyId: req.user.academyId,
+            toUserList: [{
+              user: req.body.user,
+              userId: req.body.userId,
+              userName: req.body.userName,
+            }],
+            notificationType: "boardInvitation",
+            category: "보드",
+            title: `${board.name} 보드에 초대되었습니다`,
+            description: `${req.user.userName}님이 "${board.name}" 보드에 초대했습니다.`,
+            relatedEntity: { type: "board", id: board._id },
+            fromUser: req.user,
+          });
+        }
       } catch (notifErr) {
         logger.error(`Board invitation notification failed: ${notifErr.message}`);
       }

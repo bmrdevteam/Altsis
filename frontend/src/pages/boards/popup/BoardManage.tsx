@@ -21,9 +21,12 @@ import Button from "components/button/Button";
 import Textarea from "components/textarea/Textarea";
 import CourseCoverImageEditor from "pages/courses/view/CourseCoverImageEditor";
 
+import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
+
 import {
   TBoard,
   TBoardMembers,
+  TBoardNotificationEvents,
   TMemberUser,
 } from "types/board";
 
@@ -72,6 +75,16 @@ const resolveWriters = (board: TBoard): TBoardMembers => {
   };
 };
 
+const NOTIF_LABELS: Record<
+  keyof TBoardNotificationEvents,
+  { label: string; desc: string }
+> = {
+  newPost: { label: "새 게시글 알림", desc: "새 게시글 등록 시 멤버에게 알림" },
+  boardInvitation: { label: "보드 초대 알림", desc: "새 멤버 초대 시 알림" },
+  altFormApprovalRequest: { label: "승인 요청 알림", desc: "양식 제출 시 승인자에게 알림" },
+  altFormApprovalResult: { label: "승인 결과 알림", desc: "승인/반려 시 제출자에게 알림" },
+};
+
 const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
   const { currentRegistration } = useAuth();
   const { BoardAPI, RegistrationAPI } = useAPIv2();
@@ -84,6 +97,15 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
   const initialWriters = resolveWriters(board);
   const [members, setMembers] = useState<TBoardMembers>(initialMembers);
   const [writers, setWriters] = useState<TBoardMembers>(initialWriters);
+
+  const [notifEvents, setNotifEvents] = useState<TBoardNotificationEvents>(
+    board.notificationEvents || {
+      newPost: false,
+      boardInvitation: false,
+      altFormApprovalRequest: false,
+      altFormApprovalResult: false,
+    }
+  );
 
   const [coverColor, setCoverColor] = useState(board.coverColor || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -265,6 +287,7 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
           name: name.trim(),
           description: description.trim(),
           coverColor: coverColor || undefined,
+          notificationEvents: notifEvents,
         },
       });
 
@@ -775,6 +798,71 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
               먼저 멤버를 선택해주세요.
             </p>
           )}
+        </div>
+
+        {/* 알림 설정 */}
+        <div style={{ marginTop: "24px" }}>
+          <h4
+            style={{
+              marginBottom: "4px",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            알림 설정
+          </h4>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              marginBottom: "12px",
+            }}
+          >
+            이 보드에서 발송할 알림 이벤트를 설정합니다.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+            }}
+          >
+            {(
+              Object.keys(NOTIF_LABELS) as Array<
+                keyof TBoardNotificationEvents
+              >
+            ).map((key) => (
+              <div
+                key={key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                    {NOTIF_LABELS[key].label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-color-2)",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {NOTIF_LABELS[key].desc}
+                  </div>
+                </div>
+                <ToggleSwitch
+                  checked={notifEvents[key]}
+                  onChange={(v) =>
+                    setNotifEvents((prev) => ({ ...prev, [key]: v }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </Popup>

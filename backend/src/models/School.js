@@ -161,6 +161,20 @@ const schoolSchema = mongoose.Schema(
     formArchive: { type: [formArchiveItemSchema] },
     deletedFormArchive: { type: [deletedFormArchiveItemSchema], default: [] },
     links: { type: [LinkSchema] },
+    boardNotificationEvents: {
+      type: {
+        newPost: { type: Boolean, default: false },
+        boardInvitation: { type: Boolean, default: false },
+        altFormApprovalRequest: { type: Boolean, default: false },
+        altFormApprovalResult: { type: Boolean, default: false },
+      },
+      default: {
+        newPost: false,
+        boardInvitation: false,
+        altFormApprovalRequest: false,
+        altFormApprovalResult: false,
+      },
+    },
   },
   { timestamps: true }
 );
