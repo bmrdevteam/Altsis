@@ -35,12 +35,13 @@ Altsis(Alternative School Information System)의 프로젝트 역사, 기술 스
 | **React Router v6** | 라우팅 | 중첩 라우트, 인증 보호 라우트 |
 | **Socket.io-client** | 실시간 통신 | 알림, 수강신청, 채팅 |
 | **Axios** | HTTP 클라이언트 | `useAPIv2` 커스텀 훅으로 래핑 |
+| **TipTap** | WYSIWYG 에디터 | 게시글·문서 작성에 사용 |
 
 ### 백엔드
 
 | 기술 | 용도 | 비고 |
 |------|------|------|
-| **Node.js** | 런타임 | JavaScript 서버 실행 환경 |
+| **Node.js 20 LTS** | 런타임 | JavaScript 서버 실행 환경 |
 | **Express.js** | 웹 프레임워크 | REST API 서버 |
 | **Mongoose** | ODM | MongoDB 객체 모델링 |
 | **Passport.js** | 인증 | Local 전략 + Google OAuth 2.0 |
@@ -144,7 +145,42 @@ Altsis 시스템
    ▼           ▼          ▼        ▼      ▼      ▼
 강의계획서  수강 등록   시간표/    성적   학생   생활
   작성      처리      캘린더    입력   기록   기록부
+                        │
+                        ▼
+                   Alt Board
+                (과제/설문/채팅)
 ```
+
+### 5. Alt Board 시스템
+
+Alt Board는 수업 활동의 중심 허브로, 문서(Docs)·양식(Form)·시트(Sheet)·채팅을 통합 관리합니다.
+
+| 모듈 | 설명 |
+|------|------|
+| Alt Docs | 게시글 + 머지 문법({{변수}}) 기반 동적 문서 |
+| Alt Form | 양식 빌더 (17+ 필드 타입, 퀴즈, 중복 검사, 조건부 표시) |
+| Alt Sheet | Form 응답 데이터의 테이블 뷰/편집 |
+| 보드 채팅 | 보드 멤버 간 그룹 채팅 |
+| 설문 | 게시글 내 임베디드 설문 |
+
+### 6. AI 통합
+
+Google Generative AI(Gemini)를 활용한 AI 기능을 제공합니다.
+
+- AI 강의계획서 생성 (SSE 스트리밍)
+- AI 채팅 (Alter) — 보드 단위 학습 보조 AI
+- 아카데미/학기별 AI 모델 선택 및 API 키 관리
+- 참고자료 업로드를 통한 컨텍스트 제공
+
+### 7. 기능 활성화 시스템
+
+아카데미 단위로 기능을 선택적으로 활성화할 수 있습니다.
+
+| 기능 | 설명 |
+|------|------|
+| `chatEnabled` | 채팅 기능 ON/OFF |
+| `boardEnabled` | 보드 기능 ON/OFF |
+| `aiEnabled` | AI 기능 ON/OFF |
 
 ---
 

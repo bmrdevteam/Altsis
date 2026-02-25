@@ -56,10 +56,10 @@ Altsis를 처음 접하는 사용자를 위한 가이드입니다.
 | [평가](user-guide/evaluation.md) | 평가 입력, 동기화, 조회 |
 | [학생 기록](user-guide/archive.md) | 누적 기록, 단일 기록 관리 |
 | [캘린더](user-guide/calendar.md) | 일정 관리, 이벤트, 캘린더 설정 |
-| [게시판](user-guide/boards.md) | 게시판, 게시글, 댓글 |
-| [채팅](user-guide/chat.md) | 실시간 채팅, 파일 공유 |
+| [보드](user-guide/boards.md) | Alt Board, 게시글, 양식(Form), 시트(Sheet), 설문, 즐겨찾기 |
+| [채팅](user-guide/chat.md) | DM, 그룹채팅, 보드채팅, AI 채팅(Alter) |
 | [알림](user-guide/notifications.md) | 알림 수신, 설정, 관리 |
-| [설정](user-guide/settings.md) | 개인 설정, 테마, 보안 |
+| [설정](user-guide/settings.md) | 개인 설정, 테마, 보안, 기능 활성화 |
 
 ### 5. [개발자 가이드](developer-guide/README.md)
 Altsis 개발에 참여하고자 하는 개발자를 위한 가이드입니다.
@@ -86,11 +86,12 @@ Altsis 개발에 참여하고자 하는 개발자를 위한 가이드입니다.
 | [수업 API](api-reference/courses.md) | 강의계획서 및 수강 |
 | [등록 API](api-reference/registrations.md) | 학기 등록 관리 |
 | [수강 API](api-reference/enrollments.md) | 수강 등록, 평가, 메모 |
-| [게시판 API](api-reference/boards.md) | 게시판, 게시글, 댓글 |
+| [보드 API](api-reference/boards.md) | Alt Board, 게시글, 댓글, 즐겨찾기 |
+| [Alt Form API](api-reference/forms.md) | Alt Form CRUD, 시트 행, 설문 |
 | [캘린더 API](api-reference/calendar.md) | 일정 및 사용자 캘린더 |
-| [채팅 API](api-reference/chat.md) | 실시간 채팅, 파일 공유 |
+| [채팅 API](api-reference/chat.md) | DM, 그룹채팅, 보드채팅, AI 채팅 |
 | [알림 API](api-reference/notifications.md) | 알림 및 알림 설정 |
-| [양식 API](api-reference/forms.md) | 양식 관리 및 권한 설정 |
+| [AI API](api-reference/ai.md) | AI 강의계획서 생성, AI 채팅(Alter) |
 | [학생 기록 API](api-reference/archives.md) | 학생 기록 조회 및 수정 |
 | [파일 API](api-reference/files.md) | 파일 업로드, 다운로드, Pre-Signed URL |
 | [데이터 모델](api-reference/data-models.md) | MongoDB 스키마 정의 |

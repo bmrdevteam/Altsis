@@ -61,12 +61,17 @@ backend/src/
 ├── app.js                    # Express 앱 설정
 ├── env.js                    # 환경 변수 로더
 │
-├── controllers/              # 요청 처리기 (24개)
+├── controllers/              # 요청 처리기 (30개)
 │   ├── index.js              # 컨트롤러 통합 내보내기
 │   ├── academies.js          # 아카데미 CRUD
 │   ├── ai.js                 # AI 기능 (Gemini 연동)
+│   ├── aiChat.js             # AI 채팅 세션
+│   ├── altForms.js           # Alt Form CRUD
+│   ├── altSheetRows.js       # Alt Sheet Row CRUD
 │   ├── apps.js               # 외부 앱 연동
 │   ├── archives.js           # 기록물 관리
+│   ├── boardChats.js         # 보드 채팅
+│   ├── boardFavorites.js     # 보드 즐겨찾기
 │   ├── boards.js             # 게시판 관리
 │   ├── calendarEvents.js     # 캘린더 이벤트
 │   ├── chats.js              # 채팅
@@ -81,18 +86,22 @@ backend/src/
 │   ├── reminders.js          # 리마인더
 │   ├── schools.js            # 학교 관리
 │   ├── seasons.js            # 학기 관리
+│   ├── surveyResponses.js    # 설문 응답
 │   ├── syllabuses.js         # 강의계획서
 │   ├── test.js               # 테스트용
 │   ├── themeSettings.js      # 테마 설정
 │   ├── userCalendars.js      # 사용자 캘린더
 │   └── users.js              # 사용자 관리
 │
-├── routes/                   # API 엔드포인트 (24개)
+├── routes/                   # API 엔드포인트 (28개)
 │   ├── index.js              # 라우터 통합 등록
 │   ├── academies.js          # /api/academies
 │   ├── ai.js                 # /api/ai
+│   ├── altForms.js           # /api/alt-forms
+│   ├── altSheetRows.js       # /api/alt-sheet-rows
 │   ├── apps.js               # /api/apps
 │   ├── archives.js           # /api/archives
+│   ├── boardFavorites.js     # /api/board-favorites
 │   ├── boards.js             # /api/boards
 │   ├── calendarEvents.js     # /api/calendar-events
 │   ├── chats.js              # /api/chats
@@ -107,18 +116,26 @@ backend/src/
 │   ├── reminders.js          # /api/reminders
 │   ├── schools.js            # /api/schools
 │   ├── seasons.js            # /api/seasons
+│   ├── surveyResponses.js    # /api/survey-responses
 │   ├── syllabuses.js         # /api/syllabuses
 │   ├── test.js               # /api/test
 │   ├── themeSettings.js      # /api/theme-settings
 │   ├── userCalendars.js      # /api/user-calendars
 │   └── users.js              # /api/users
 │
-├── models/                   # MongoDB 스키마 (24개)
+├── models/                   # MongoDB 스키마 (33개)
 │   ├── index.js              # 모델 통합 내보내기
 │   ├── Academy.js            # 아카데미
+│   ├── AIChatMessage.js      # AI 채팅 메시지
+│   ├── AIChatSession.js      # AI 채팅 세션
+│   ├── AIUsageLog.js         # AI 사용량 로그
+│   ├── AltForm.js            # Alt Form (양식)
+│   ├── AltSheet.js           # Alt Sheet (시트)
+│   ├── AltSheetRow.js        # Alt Sheet Row (시트 행)
 │   ├── Apps.js               # 외부 앱
 │   ├── Archive.js            # 기록물
 │   ├── Board.js              # 게시판
+│   ├── BoardFavorite.js      # 보드 즐겨찾기
 │   ├── CalendarEvent.js      # 캘린더 이벤트
 │   ├── ChatFile.js           # 채팅 파일
 │   ├── ChatMessage.js        # 채팅 메시지
@@ -131,19 +148,25 @@ backend/src/
 │   ├── Post.js               # 게시글
 │   ├── Registration.js       # 학기 등록
 │   ├── Reminder.js           # 리마인더
+│   ├── RequestStat.js        # API 요청 통계
 │   ├── School.js             # 학교
 │   ├── Season.js             # 학기
+│   ├── SurveyResponse.js     # 설문 응답
 │   ├── Syllabus.js           # 강의계획서
 │   ├── ThemeSetting.js       # 테마 설정
 │   ├── TimeBlock.js          # 시간 블록
 │   ├── User.js               # 사용자
 │   └── UserCalendar.js       # 사용자 캘린더
 │
-├── services/                 # 비즈니스 로직 (7개)
+├── services/                 # 비즈니스 로직 (11개)
+│   ├── aiChat.js             # AI 채팅 서비스
+│   ├── altForms.js           # Alt Form 서비스
+│   ├── boardChat.js          # 보드 채팅 서비스
 │   ├── boards.js             # 게시판 서비스
 │   ├── notifications.js      # 알림 발송 서비스
 │   ├── registrations.js      # 등록 권한/처리 서비스
 │   ├── scheduler.js          # 스케줄러 (cron 작업)
+│   ├── schedulerQueue.js     # 스케줄러 큐
 │   ├── seasons.js            # 학기 관련 비즈니스 로직
 │   ├── themeSettings.js      # 테마 설정 서비스
 │   └── users.js              # 사용자 서비스
@@ -169,14 +192,18 @@ backend/src/
 │   ├── fileBucket.js         # 일반 파일 버킷
 │   ├── profileBucket.js      # 프로필 이미지 버킷
 │   ├── archiveMulter.js      # 기록물 파일 업로드
+│   ├── boardMulter.js        # 보드 파일 업로드
 │   ├── chatMulter.js         # 채팅 파일 업로드
 │   ├── courseMulter.js       # 수업 파일 업로드
+│   ├── postMulter.js         # 게시글 파일 업로드
 │   ├── profileMulter.js      # 프로필 이미지 업로드
+│   ├── surveyMulter.js       # 설문 파일 업로드
 │   └── aiRefMulter.js        # AI 참고자료 업로드
 │
-├── utils/                    # 유틸리티 함수 (7개)
+├── utils/                    # 유틸리티 함수 (8개)
 │   ├── date.js               # 날짜 처리
 │   ├── errorHandler.js       # 에러 핸들러
+│   ├── mergeEngine.js        # 머지 엔진 (Docs 템플릿 바인딩)
 │   ├── password.js           # 비밀번호 해싱 (bcrypt)
 │   ├── payload.js            # 페이로드 검증
 │   ├── textExtractor.js      # 텍스트 추출 (PDF, DOCX)
@@ -265,6 +292,8 @@ frontend/src/
 │   │   ├── tab/              #   수업 탭 (Created/Enrolled/Mentoring)
 │   │   └── view/             #   수업 상세 뷰
 │   ├── boards/               # 게시판
+│   │   ├── altBoard/         #   Alt 보드 (양식/시트 기반 보드)
+│   │   └── survey/           #   설문 관리
 │   ├── notifications/        # 알림
 │   ├── chat/                 # 채팅
 │   ├── archive/              # 기록물 (교사용)
@@ -344,8 +373,11 @@ frontend/src/
 │   │   └── useEditorStore.ts # Zustand 에디터 스토어
 │   └── types/                # 에디터 타입 정의
 │
-├── types/                    # TypeScript 타입 정의 (14개)
+├── types/                    # TypeScript 타입 정의 (18개)
 │   ├── academies.ts          # TAcademy
+│   ├── aiChat.ts             # TAIChatSession, TAIChatMessage
+│   ├── altForm.ts            # TAltForm, TAltFormField
+│   ├── altSheet.ts           # TAltSheet, TAltSheetRow
 │   ├── auth.ts               # TCurrentUser, TCurrentRegistration, TCurrentSeason
 │   ├── board.ts              # TBoard
 │   ├── chat.ts               # TChatRoom, TChatMessage, TChatUser
@@ -357,6 +389,7 @@ frontend/src/
 │   ├── reminder.ts           # TReminder
 │   ├── schools.ts            # TSchool, TSchoolFormArchive
 │   ├── seasons.ts            # TSeason, TSeasonWithRegistrations
+│   ├── survey.ts             # TSurveyQuestion, TSurveyResponse
 │   ├── syllabuses.ts         # TSyllabus
 │   └── users.ts              # TUser
 │

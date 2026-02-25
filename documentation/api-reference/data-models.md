@@ -15,7 +15,7 @@ Altsis 학교 정보 시스템의 MongoDB 스키마(Mongoose) 전체 명세입�
 7. [Enrollment (수강)](#enrollment-수강)
 8. [Archive (기록)](#archive-기록)
 9. [Form (양식)](#form-양식)
-10. [Board (게시판)](#board-게시판)
+10. [Board (보드)](#board-보드)
 11. [Post (게시글)](#post-게시글)
 12. [Comment (댓글)](#comment-댓글)
 13. [Notification (알림)](#notification-알림)
@@ -29,6 +29,15 @@ Altsis 학교 정보 시스템의 MongoDB 스키마(Mongoose) 전체 명세입�
 21. [ThemeSetting (테마 설정)](#themesetting-테마-설정)
 22. [Apps (앱)](#apps-앱)
 23. [TimeBlock (시간 블록)](#timeblock-시간-블록)
+24. [AltForm (양식 빌더)](#altform-양식-빌더)
+25. [AltSheet (시트)](#altsheet-시트)
+26. [AltSheetRow (시트 행)](#altsheetrow-시트-행)
+27. [AIChatSession (AI 채팅 세션)](#aichatsession-ai-채팅-세션)
+28. [AIChatMessage (AI 채팅 메시지)](#aichatmessage-ai-채팅-메시지)
+29. [AIUsageLog (AI 사용량 로그)](#aiusagelog-ai-사용량-로그)
+30. [BoardFavorite (보드 즐겨찾기)](#boardfavorite-보드-즐겨찾기)
+31. [SurveyResponse (설문 응답)](#surveyresponse-설문-응답)
+32. [RequestStat (요청 통계)](#requeststat-요청-통계)
 
 ---
 
@@ -60,6 +69,7 @@ Altsis 학교 정보 시스템의 MongoDB 스키마(Mongoose) 전체 명세입�
 | `dbName` | `String` | 자동 | - | 아카데미 DB명 (`{academyId}-db`). **API 응답에서 제외** (`select: false`) |
 | `isActivated` | `Boolean` | X | `true` | 활성화 상태. `false`이면 로그인 불가 |
 | `chatEnabled` | `Boolean` | X | `false` | 채팅 기능 활성화 상태 |
+| `boardEnabled` | `Boolean` | X | `false` | 보드 기능 활성화 상태 |
 | `aiEnabled` | `Boolean` | X | `false` | AI 기능 활성화 상태 |
 | `aiApiKey` | `String` | X | - | AI API 키. **API 응답에서 제외** (`select: false`) |
 | `aiModel` | `String` | X | `"gemini-2.5-flash"` | 사용 AI 모델명 |
@@ -510,9 +520,9 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 
 ---
 
-## Board (게시판)
+## Board (보드)
 
-학교별 게시판을 관리합니다. 작성/읽기/댓글 권한을 역할별로 세밀하게 설정할 수 있습니다.
+학교별 보드를 관리합니다. Alt Board 모드에서는 양식(Form), 시트(Sheet), 보드 채팅을 지원합니다. 작성/읽기/댓글 권한을 역할별로 세밀하게 설정할 수 있습니다.
 
 > **파일**: `backend/src/models/Board.js`
 > **DB**: 아카데미 데이터베이스
@@ -1049,6 +1059,322 @@ FormArchiveItem과 동일한 구조에 `deletedAt` 필드가 추가됩니다.
 
 ---
 
+## AltForm (양식 빌더)
+
+Alt Board의 양식 빌더로, 데이터 수집용 Form을 관리합니다. Form 생성 시 연결된 AltSheet가 자동 생성됩니다.
+
+> **파일**: `backend/src/models/AltForm.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `board_1` | INDEX |
+| `board_1, createdAt_-1` | COMPOUND |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `board` | `ObjectId` | O | - | 보드 `_id` |
+| `school` | `ObjectId` | X | - | 학교 `_id` |
+| `creator` | `ObjectId` | X | - | 생성자 `_id` |
+| `creatorId` | `String` | X | - | 생성자 사용자 ID |
+| `creatorName` | `String` | X | - | 생성자 이름 |
+| `title` | `String` | O | - | 양식 제목 |
+| `description` | `String` | X | `""` | 양식 설명 |
+| `fields` | `Array` | X | `[]` | 필드 정의 배열 |
+| `fields[].label` | `String` | O | - | 필드명 |
+| `fields[].type` | `String` | O | - | 필드 타입 (text, textarea, number, date, file, select, multiSelect, checkbox, radio, userSelect, approval, rating, scale, counter) |
+| `fields[].permission` | `String` | X | `"respondent"` | respondent 또는 owner |
+| `fields[].visibleToRespondent` | `Boolean` | X | `false` | owner 필드를 응답자에게 공개 |
+| `fields[].required` | `Boolean` | X | `false` | 필수 입력 여부 |
+| `fields[].options` | `[String]` | X | `[]` | 선택지 (select/radio/checkbox용) |
+| `fields[].validation` | `Mixed` | X | - | 타입별 유효성 검사 규칙 |
+| `fields[].order` | `Number` | X | - | 표시 순서 |
+| `settings` | `Object` | X | - | Form 설정 |
+| `settings.openAt` | `Date` | X | - | 공개 시작 시각 |
+| `settings.closeAt` | `Date` | X | - | 공개 종료 시각 |
+| `settings.allowResubmit` | `Boolean` | X | `false` | 재제출 허용 |
+| `settings.quizMode` | `Boolean` | X | `false` | 퀴즈 모드 |
+| `settings.shareResponses` | `Boolean` | X | `false` | 응답 공유 |
+| `sheet` | `ObjectId` | X | - | 연결된 AltSheet `_id` |
+| `isActive` | `Boolean` | X | `true` | 활성화 상태 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+---
+
+## AltSheet (시트)
+
+AltForm에 1:1로 연결되는 데이터 시트입니다. Form 생성 시 자동 생성됩니다.
+
+> **파일**: `backend/src/models/AltSheet.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `form_1` | UNIQUE |
+| `board_1` | INDEX |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `form` | `ObjectId` | O | - | AltForm `_id` (1:1) |
+| `board` | `ObjectId` | X | - | 보드 `_id` |
+| `school` | `ObjectId` | X | - | 학교 `_id` |
+| `name` | `String` | X | - | 시트 이름 (= Form 제목) |
+| `isActive` | `Boolean` | X | `true` | 활성화 상태 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+---
+
+## AltSheetRow (시트 행)
+
+AltSheet의 개별 행 데이터입니다. Form 응답 제출 시 또는 교사 직접 입력으로 생성됩니다.
+
+> **파일**: `backend/src/models/AltSheetRow.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `sheet_1, _respondent_1` | COMPOUND |
+| `sheet_1, createdAt_-1` | COMPOUND |
+| `form_1` | INDEX |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `sheet` | `ObjectId` | O | - | AltSheet `_id` |
+| `form` | `ObjectId` | X | - | AltForm `_id` |
+| `board` | `ObjectId` | X | - | 보드 `_id` |
+| `_respondent` | `ObjectId` | X | - | 응답자 `_id` |
+| `_respondentId` | `String` | X | - | 응답자 사용자 ID |
+| `_respondentName` | `String` | X | - | 응답자 이름 |
+| `data` | `Map<String, Mixed>` | X | - | 필드 `_id` → 값 매핑 |
+| `_submittedAt` | `Date` | X | - | 응답 시각 |
+| `_updatedAt` | `Date` | X | - | 수정 시각 |
+| `isActive` | `Boolean` | X | `true` | 활성화 상태 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+---
+
+## AIChatSession (AI 채팅 세션)
+
+AI 채팅(Alter)의 세션 정보를 관리합니다. 보드당 학생 1인 1세션 구조입니다.
+
+> **파일**: `backend/src/models/AIChatSession.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `board_1, student_1` | UNIQUE, COMPOUND |
+| `board_1, lastMessageAt_-1` | COMPOUND |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `board` | `ObjectId` | O | - | 보드 `_id` |
+| `student` | `ObjectId` | O | - | 학생 `_id` |
+| `studentId` | `String` | O | - | 학생 사용자 ID |
+| `studentName` | `String` | O | - | 학생 이름 |
+| `isActive` | `Boolean` | X | `true` | 세션 활성 여부 |
+| `lastMessageAt` | `Date` | X | - | 마지막 메시지 시각 |
+| `lastMessagePreview` | `String` | X | - | 마지막 메시지 미리보기 |
+| `messageCount` | `Number` | X | `0` | 메시지 수 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+---
+
+## AIChatMessage (AI 채팅 메시지)
+
+AI 채팅 세션의 개별 메시지입니다. 학생, AI, 교사 3가지 발신자 유형을 지원합니다.
+
+> **파일**: `backend/src/models/AIChatMessage.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `session_1, createdAt_-1` | COMPOUND |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `session` | `ObjectId` | O | - | AIChatSession `_id` |
+| `board` | `ObjectId` | O | - | 보드 `_id` |
+| `senderType` | `String` | O | - | 발신자 유형. enum: `"student"`, `"ai"`, `"teacher"` |
+| `sender` | `ObjectId` | X | `null` | 발신자 `_id` (AI인 경우 null) |
+| `senderId` | `String` | X | `null` | 발신자 사용자 ID |
+| `senderName` | `String` | O | - | 발신자 이름 |
+| `content` | `String` | O | - | 메시지 내용 |
+| `tokenUsage` | `Object` | X | - | 토큰 사용량 (AI 응답 시) |
+| `tokenUsage.promptTokens` | `Number` | X | - | 프롬프트 토큰 수 |
+| `tokenUsage.candidatesTokens` | `Number` | X | - | 응답 토큰 수 |
+| `tokenUsage.totalTokens` | `Number` | X | - | 총 토큰 수 |
+| `isDeleted` | `Boolean` | X | `false` | 소프트 삭제 여부 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+> **참고**: `tokenUsage`는 `_id`가 없는 서브 도큐먼트입니다 (`{ _id: false }`).
+
+---
+
+## AIUsageLog (AI 사용량 로그)
+
+AI 기능 사용량을 추적하는 로그입니다. 요청별 토큰 사용량을 기록합니다.
+
+> **파일**: `backend/src/models/AIUsageLog.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `createdAt_1` | INDEX |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `user` | `ObjectId` | O | - | 사용자 `_id` |
+| `userId` | `String` | O | - | 사용자 ID |
+| `userName` | `String` | O | - | 사용자 이름 |
+| `model` | `String` | O | - | AI 모델명 |
+| `promptTokens` | `Number` | X | `0` | 프롬프트 토큰 수 |
+| `candidatesTokens` | `Number` | X | `0` | 응답 토큰 수 |
+| `thoughtsTokens` | `Number` | X | `0` | 사고 토큰 수 |
+| `totalTokens` | `Number` | X | `0` | 총 토큰 수 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+---
+
+## BoardFavorite (보드 즐겨찾기)
+
+사용자의 보드 즐겨찾기 정보입니다. 사용자당 보드 1개의 즐겨찾기를 보장합니다.
+
+> **파일**: `backend/src/models/BoardFavorite.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `user_1, school_1` | COMPOUND |
+| `user_1, board_1` | UNIQUE, COMPOUND |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `user` | `ObjectId` | O | - | 사용자 `_id` |
+| `board` | `ObjectId` | O | - | 보드 `_id` |
+| `school` | `ObjectId` | O | - | 학교 `_id` |
+| `order` | `Number` | X | `0` | 정렬 순서 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+---
+
+## SurveyResponse (설문 응답)
+
+게시글에 첨부된 설문의 개별 응답입니다. 설문당 응답자 1인 1응답을 보장합니다.
+
+> **파일**: `backend/src/models/SurveyResponse.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `post_1` | INDEX |
+| `post_1, surveyId_1, respondent_1` | UNIQUE, COMPOUND |
+| `post_1, surveyId_1, createdAt_-1` | COMPOUND |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `post` | `ObjectId` | O | - | 게시글 `_id` |
+| `surveyId` | `ObjectId` | O | - | 설문 `_id` |
+| `respondent` | `ObjectId` | O | - | 응답자 `_id` |
+| `respondentId` | `String` | O | - | 응답자 사용자 ID |
+| `respondentName` | `String` | O | - | 응답자 이름 |
+| `answers` | `Array` | O | - | 답변 배열 |
+| `answers[].questionId` | `String` | O | - | 질문 ID |
+| `answers[].value` | `Mixed` | X | - | 답변 값 |
+| `answers[].files` | `Array` | X | `[]` | 첨부 파일 목록 |
+| `answers[].files[].fileName` | `String` | X | - | 파일 이름 |
+| `answers[].files[].fileSize` | `Number` | X | - | 파일 크기 (bytes) |
+| `answers[].files[].mimeType` | `String` | X | - | MIME 타입 |
+| `answers[].files[].key` | `String` | X | - | S3 키 |
+| `createdAt` | `Date` | 자동 | - | 생성 시각 |
+| `updatedAt` | `Date` | 자동 | - | 수정 시각 |
+
+> **참고**: `answers[]` 및 `answers[].files[]`는 `_id`가 없는 서브 도큐먼트입니다 (`{ _id: false }`).
+
+---
+
+## RequestStat (요청 통계)
+
+일별 API 요청 통계를 집계하는 모델입니다. 날짜별 1개의 문서로 관리됩니다.
+
+> **파일**: `backend/src/models/RequestStat.js`
+> **DB**: 아카데미 데이터베이스
+
+### 인덱스
+
+| 인덱스 | 속성 |
+|--------|------|
+| `_id` | UNIQUE |
+| `date_1` | UNIQUE |
+
+### 필드
+
+| 필드 | 타입 | 필수 | 기본값 | 설명 |
+|------|------|------|--------|------|
+| `_id` | `ObjectId` | 자동 | - | MongoDB 기본 키 |
+| `date` | `String` | O | - | 날짜 식별자 (YYYY-MM-DD) |
+| `requests` | `Number` | X | `0` | 총 요청 수 |
+| `totalResponseTime` | `Number` | X | `0` | 응답 시간 합계 (ms) |
+| `dataIn` | `Number` | X | `0` | 수신 데이터량 (bytes) |
+| `dataOut` | `Number` | X | `0` | 송신 데이터량 (bytes) |
+| `uniqueUsers` | `[String]` | X | `[]` | 고유 사용자 ID 목록 |
+
+---
+
 ## 모델 관계도
 
 ```
@@ -1099,6 +1425,13 @@ Academy (루트 DB)
         |     +-- data (암호화)
         |
         +-- Board --> Post --> Comment
+        |     |
+        |     +-- AltForm --> AltSheet --> AltSheetRow
+        |     +-- BoardFavorite
+        |     +-- SurveyResponse (via Post)
+        |
+        +-- AIChatSession --> AIChatMessage
+        +-- AIUsageLog
         |
         +-- Notification, NotificationSetting
         |
@@ -1107,4 +1440,6 @@ Academy (루트 DB)
         +-- ChatRoom --> ChatMessage, ChatFile
         |
         +-- Reminder, ThemeSetting, Form, Apps
+        |
+        +-- RequestStat
 ```

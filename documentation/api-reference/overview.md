@@ -32,20 +32,24 @@ Altsis API는 REST 아키텍처 스타일을 따르며, 다음 원칙을 준수�
 | `/api/registrations` | 학기 등록 |
 | `/api/syllabuses` | 강의계획서 |
 | `/api/enrollments` | 수강 관리 |
-| `/api/boards` | 게시판 |
+| `/api/boards` | 보드 (Alt Board) |
 | `/api/posts` | 게시글 |
 | `/api/comments` | 댓글 |
 | `/api/notifications` | 알림 |
 | `/api/reminders` | 리마인더 |
 | `/api/calendar-events` | 캘린더 일정 |
 | `/api/user-calendars` | 사용자 캘린더 |
-| `/api/chats` | 채팅 |
+| `/api/chats` | 채팅 (DM, 그룹, 보드채팅) |
 | `/api/forms` | 양식 |
 | `/api/archives` | 기록 |
 | `/api/files` | 파일 업로드/다운로드 |
 | `/api/ai` | AI 기능 |
 | `/api/theme-settings` | 테마 설정 |
 | `/api/memos` | 메모 |
+| `/api/alt-forms` | Alt Form (양식 빌더) |
+| `/api/alt-sheet-rows` | Alt Sheet Row (시트 행 데이터) |
+| `/api/board-favorites` | 보드 즐겨찾기 |
+| `/api/survey-responses` | 설문 응답 |
 
 ---
 
