@@ -23,7 +23,7 @@
 
 @media (max-width: 800px) {
     .nav_container {
-        position: absolute;
+        position: fixed;
         z-index: 2000;
         border: none !important;
         background-color: var(--background-color) !important;
