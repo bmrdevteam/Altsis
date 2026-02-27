@@ -196,16 +196,11 @@ const CurrentTime = () => {
   const [, update] = useState({});
   const currentTimeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const el = currentTimeRef.current;
-    if (el) {
-      const scrollContainer = el.parentElement;
-      if (scrollContainer) {
-        const today = new Date();
-        const targetTop = (today.getHours() + today.getMinutes() / 60) * 80;
-        scrollContainer.scrollTop =
-          targetTop - scrollContainer.clientHeight / 2;
-      }
-    }
+    currentTimeRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest",
+    });
 
     const timer = setInterval(() => {
       update({});
