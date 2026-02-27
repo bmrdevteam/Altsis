@@ -124,6 +124,8 @@
 
     .viewer_container {
       color: var(--accent-1);
+      position: relative;
+      z-index: 0;
 
       max-height: 75vh;
       -ms-overflow-style: none;
