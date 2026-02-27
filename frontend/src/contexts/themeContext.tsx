@@ -61,7 +61,7 @@ function applyPresetTheme(theme: PresetTheme) {
 }
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<ThemeMode>("light");
+  const [theme, setThemeState] = useState<ThemeMode>("high-contrast");
   const [customColors, setCustomColorsState] =
     useState<CustomThemeColors>(DEFAULT_CUSTOM_COLORS);
   const [loading, setLoading] = useState(true);
