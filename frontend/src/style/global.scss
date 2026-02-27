@@ -84,9 +84,6 @@ svg {
   scrollbar-width: none;
   /* Firefox */
 
-  @media (max-width: 800px) {
-    padding-top: 56px;
-  }
 }
 
 .content::-webkit-scrollbar {
