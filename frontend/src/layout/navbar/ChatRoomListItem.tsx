@@ -9,6 +9,7 @@ type Props = {
   isActive: boolean;
   currentUserId: string;
   currentUserObjId: string;
+  isArchived?: boolean;
   onClick: (room: TChatRoom) => void;
   onPin?: (room: TChatRoom) => void;
   onShowStorage?: (room: TChatRoom) => void;
@@ -21,6 +22,7 @@ const ChatRoomListItem = ({
   isActive,
   currentUserId,
   currentUserObjId,
+  isArchived = false,
   onClick,
   onPin,
   onShowStorage,
@@ -177,16 +179,18 @@ const ChatRoomListItem = ({
         </button>
         {showMenu && (
           <div className={style.chat_list_menu_dropdown}>
-            <div
-              className={style.menu_item}
-              onClick={() => {
-                setShowMenu(false);
-                onPin?.(room);
-              }}
-            >
-              <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
-              <span>{room.isPinned ? "고정 해제" : "고정"}</span>
-            </div>
+            {!isArchived && (
+              <div
+                className={style.menu_item}
+                onClick={() => {
+                  setShowMenu(false);
+                  onPin?.(room);
+                }}
+              >
+                <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
+                <span>{room.isPinned ? "고정 해제" : "고정"}</span>
+              </div>
+            )}
             <div
               className={style.menu_item}
               onClick={() => {
@@ -204,8 +208,8 @@ const ChatRoomListItem = ({
                 onArchive?.(room);
               }}
             >
-              <Svg type="archive" width="16px" height="16px" />
-              <span>보관</span>
+              <Svg type={isArchived ? "unarchive" : "archive"} width="16px" height="16px" />
+              <span>{isArchived ? "보관 해제" : "보관"}</span>
             </div>
             <div
               className={`${style.menu_item} ${style.danger}`}

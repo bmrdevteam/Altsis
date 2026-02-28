@@ -45,7 +45,6 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showParticipants, setShowParticipants] = useState(false);
   const [showChatList, setShowChatList] = useState(!initialRoom);
   const [showNewChat, setShowNewChat] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
@@ -64,8 +63,21 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const canChat = true;
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMenu]);
 
   // Update room when initialRoom changes
   useEffect(() => {
@@ -104,6 +116,13 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
       loadMessages();
     }
   }, [room?._id]);
+
+  // Scroll to bottom after messages render (isLoading → false)
+  useEffect(() => {
+    if (!isLoading && messages.length > 0) {
+      scrollToBottom(true);
+    }
+  }, [isLoading]);
 
   // Socket events
   useEffect(() => {
@@ -148,10 +167,14 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
     };
   }, [socket, room?._id, currentUser?.userId]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (instant?: boolean) => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+      if (instant) {
+        messagesEndRef.current?.scrollIntoView(false);
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 50);
   };
 
   const adjustTextareaHeight = () => {
@@ -490,106 +513,57 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
             />
           ))
         )}
+        {showArchived && archivedRooms.length > 0 && (
+          <div className={style.archived_list}>
+            {archivedRooms.map((r) => (
+              <ChatRoomListItem
+                key={r._id}
+                room={r}
+                isActive={room?._id === r._id}
+                isArchived
+                currentUserId={currentUser?.userId ?? ""}
+                currentUserObjId={currentUser?._id ?? ""}
+                onClick={handleRoomClick}
+                onShowStorage={handleListShowStorage}
+                onArchive={handleListArchiveRoom}
+                onLeave={handleListLeaveRoom}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      {rooms.length > 0 && (
-        <div className={style.chat_list_footer}>
-          <Button type="ghost" onClick={() => setShowNewChat(true)} style={{ width: "100%" }}>
-            새 채팅
+      <div className={style.chat_list_footer}>
+        <Button type="ghost" onClick={() => setShowNewChat(true)} style={{ width: "100%" }}>
+          새 채팅
+        </Button>
+        {archivedRooms.length > 0 && (
+          <Button
+            type="ghost"
+            onClick={() => setShowArchived(!showArchived)}
+            style={{ width: "100%" }}
+          >
+            <div className={style.archived_toggle}>
+              <Svg type="archive" width="14px" height="14px" />
+              <span>보관함 ({archivedRooms.length})</span>
+              <Svg
+                type="chevronDown"
+                width="14px"
+                height="14px"
+                style={{
+                  transform: showArchived ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s",
+                }}
+              />
+            </div>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 
   // Chat conversation view
   const chatConversationContent = room ? (
     <>
-      {/* Chat Header with Menu */}
-      <div className={style.room_header}>
-        <div className={style.room_header_top}>
-          <div
-            className={style.room_title}
-            onClick={() => setShowParticipants(!showParticipants)}
-          >
-            {room.participants.length}명 참여 중
-            <span className={`${style.expand_icon} ${showParticipants ? style.expanded : ""}`}>
-              ▼
-            </span>
-          </div>
-          <div className={style.room_actions}>
-            <button
-              className={style.menu_button}
-              onClick={() => setShowMenu(!showMenu)}
-            >
-              <Svg type="verticalDots" width="18px" height="18px" style={{ fill: "var(--accent-1, #333)" }} />
-            </button>
-            {showMenu && (
-              <div className={style.menu_dropdown}>
-                <div
-                  className={style.menu_item}
-                  onClick={() => {
-                    setShowMenu(false);
-                    handlePinRoom();
-                  }}
-                >
-                  <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
-                  <span>{room.isPinned ? "고정 해제" : "고정"}</span>
-                </div>
-                <div
-                  className={style.menu_item}
-                  onClick={() => {
-                    setShowMenu(false);
-                    setShowStorage(true);
-                  }}
-                >
-                  <Svg type="file" width="16px" height="16px" />
-                  <span>내 파일</span>
-                </div>
-                <div
-                  className={style.menu_item}
-                  onClick={() => {
-                    setShowMenu(false);
-                    handleArchiveRoom();
-                  }}
-                >
-                  <Svg type="archive" width="16px" height="16px" />
-                  <span>보관</span>
-                </div>
-                <div
-                  className={`${style.menu_item} ${style.danger}`}
-                  onClick={() => {
-                    setShowMenu(false);
-                    handleLeaveRoom();
-                  }}
-                >
-                  <Svg type="logout" width="16px" height="16px" />
-                  <span>채팅방 나가기</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        {showParticipants && (
-          <div className={style.participants_list}>
-            {room.participants.map((participant) => (
-              <div key={participant.userId} className={style.participant_item}>
-                <img
-                  src={participant.profile || defaultProfilePic}
-                  alt={participant.userName}
-                  className={style.participant_avatar}
-                />
-                <span className={style.participant_name}>
-                  {participant.userName}
-                  <span className={style.participant_id}>({participant.userId})</span>
-                </span>
-                {participant.user === room.creator && (
-                  <span className={style.creator_badge}>방장</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
       <div className={style.messages_container}>
         {isLoading ? (
           <div className={style.loading}>메시지를 불러오는 중...</div>
@@ -764,6 +738,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   // === Modal (navbar panel) layout ===
   return (
     <>
+      <div className={style.chat_panel_overlay} onClick={onClose} />
       <div className={style.chat_panel_container}>
         <div className={style.chat_panel_header}>
           <div className={style.chat_panel_title_area}>
@@ -779,7 +754,12 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                 >
                   <Svg type="arrowLeft" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
                 </button>
-                <span className={style.chat_panel_title}>{getRoomDisplayName()}</span>
+                <div className={style.chat_panel_title_info}>
+                  <span className={style.chat_panel_title}>{getRoomDisplayName()}</span>
+                  <span className={style.chat_panel_participants}>
+                    {room.participants.map((p) => p.userName).join(", ")}
+                  </span>
+                </div>
               </>
             ) : (
               <>
@@ -789,6 +769,61 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
             )}
           </div>
           <div className={style.chat_panel_actions}>
+            {!showChatList && room && (
+              <div ref={menuRef} className={style.room_actions}>
+                <button
+                  className={style.chat_panel_btn}
+                  onClick={() => setShowMenu(!showMenu)}
+                  title="메뉴"
+                >
+                  <Svg type="verticalDots" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
+                </button>
+                {showMenu && (
+                  <div className={style.menu_dropdown}>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        setShowMenu(false);
+                        handlePinRoom();
+                      }}
+                    >
+                      <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
+                      <span>{room.isPinned ? "고정 해제" : "고정"}</span>
+                    </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowStorage(true);
+                      }}
+                    >
+                      <Svg type="file" width="16px" height="16px" />
+                      <span>내 파일</span>
+                    </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleArchiveRoom();
+                      }}
+                    >
+                      <Svg type="archive" width="16px" height="16px" />
+                      <span>보관</span>
+                    </div>
+                    <div
+                      className={`${style.menu_item} ${style.danger}`}
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleLeaveRoom();
+                      }}
+                    >
+                      <Svg type="logout" width="16px" height="16px" />
+                      <span>채팅방 나가기</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <button className={style.chat_panel_btn} onClick={onClose} title="닫기">
               <Svg type="x" width="16px" height="16px" style={{ fill: "var(--accent-1, #333)" }} />
             </button>
