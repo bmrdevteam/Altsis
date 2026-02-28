@@ -184,12 +184,28 @@
 
 // Input area
 .input_area {
-  border-top: 1px solid var(--border-color);
-  padding: 12px 16px;
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-color);
   background-color: var(--bg-color);
+
+  .input_bar {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    background-color: var(--bg-color-hover, #f1f3f4);
+    border-radius: 24px;
+    padding: 4px 4px 4px 12px;
+    transition: background-color 0.15s;
+
+    &:focus-within {
+      background-color: var(--bg-color, #ffffff);
+      box-shadow: 0 0 0 1px var(--text-color);
+    }
+  }
 }
 
 .attach_btn {
@@ -197,35 +213,34 @@
   border: none;
   cursor: pointer;
   padding: 6px;
-  color: var(--text-color-secondary);
-  border-radius: 6px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-color-secondary);
+  transition: all 0.15s;
 
   &:hover {
     background-color: var(--bg-color-hover);
+    color: var(--text-color);
   }
 }
 
 .text_input {
   flex: 1;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
   resize: none;
-  max-height: 120px;
-  min-height: 36px;
-  line-height: 1.4;
-  background-color: var(--bg-color);
-  color: var(--text-color);
+  border: none;
+  background: transparent;
+  padding: 6px 0;
+  font-size: 14px;
   outline: none;
   font-family: inherit;
-
-  &:focus {
-    border-color: var(--highlight-color);
-  }
+  line-height: 1.4;
+  min-height: 32px;
+  max-height: 100px;
+  overflow-y: auto;
+  color: var(--text-color);
 
   &::placeholder {
     color: var(--text-color-secondary);
@@ -233,22 +248,33 @@
 }
 
 .send_btn {
-  background-color: var(--highlight-color);
-  color: #fff;
+  background: none;
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
   cursor: pointer;
-  white-space: nowrap;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s;
 
-  &:hover {
-    opacity: 0.9;
+  svg {
+    fill: var(--text-color-secondary);
+    transition: fill 0.15s;
+  }
+
+  &.active svg {
+    fill: var(--highlight-color);
   }
 
   &:disabled {
-    opacity: 0.5;
     cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-color-hover);
   }
 }
 

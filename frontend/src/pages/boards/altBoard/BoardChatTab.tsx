@@ -474,35 +474,41 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
 
       {/* Input */}
       <div className={style.input_area}>
-        <button
-          className={style.attach_btn}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Svg type="clip" width="20px" height="20px" />
-        </button>
         <input
           ref={fileInputRef}
           type="file"
           style={{ display: "none" }}
           onChange={handleFileSelect}
         />
-        <textarea
-          className={style.text_input}
-          value={newMessage}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          placeholder="메시지를 입력하세요..."
-          rows={1}
-          disabled={isSending}
-        />
-        <button
-          className={style.send_btn}
-          onClick={handleSend}
-          disabled={isSending || (!newMessage.trim() && !pendingFile)}
-        >
-          전송
-        </button>
+        <div className={style.input_bar}>
+          <button
+            className={style.attach_btn}
+            onClick={() => fileInputRef.current?.click()}
+            title="파일 첨부"
+          >
+            <Svg type="paperclip" width="20px" height="20px" />
+          </button>
+          <textarea
+            className={style.text_input}
+            value={newMessage}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            placeholder="메시지를 입력하세요..."
+            rows={1}
+            disabled={isSending}
+          />
+          <button
+            className={`${style.send_btn} ${
+              newMessage.trim() || pendingFile ? style.active : ""
+            }`}
+            onClick={handleSend}
+            disabled={isSending || (!newMessage.trim() && !pendingFile)}
+            title="전송"
+          >
+            <Svg type="send" width="20px" height="20px" />
+          </button>
+        </div>
       </div>
 
       {/* Image lightbox */}
