@@ -278,33 +278,89 @@
   }
 }
 
-// File upload
-.file_preview {
-  border-top: 1px solid var(--border-color);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--bg-color-hover);
+// File preview modal
+.file_preview_modal {
+  background: var(--bg-color);
+  border-radius: 12px;
+  margin: 0 12px;
+  padding: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08);
 
-  .file_preview_name {
-    flex: 1;
-    font-size: 13px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .preview_image {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+    display: block;
+    margin: 0 auto;
   }
 
-  .file_preview_cancel {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-color-secondary);
-    font-size: 18px;
-    padding: 2px 6px;
+  .file_info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-color-hover);
+    border-radius: 8px;
 
-    &:hover {
-      color: var(--status-error);
+    .file_details {
+      flex: 1;
+      min-width: 0;
+
+      .file_name {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-color);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .file_size {
+        display: block;
+        font-size: 12px;
+        color: var(--text-color-secondary);
+        margin-top: 2px;
+      }
+    }
+  }
+
+  .preview_actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+
+    .preview_cancel_btn,
+    .preview_send_btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-color);
+
+      &:hover:not(:disabled) {
+        background-color: var(--bg-color-hover);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .preview_send_btn {
+      background-color: var(--highlight-color);
+      border-color: var(--highlight-color);
+      color: #fff;
+
+      &:hover:not(:disabled) {
+        opacity: 0.9;
+        background-color: var(--highlight-color);
+      }
     }
   }
 }

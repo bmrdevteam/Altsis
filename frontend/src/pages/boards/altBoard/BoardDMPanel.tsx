@@ -309,6 +309,12 @@ const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: 
     }
   };
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
   // Helpers
   const formatTime = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -476,16 +482,42 @@ const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: 
         </div>
       )}
 
-      {/* File preview */}
+      {/* File preview modal */}
       {pendingFile && (
-        <div className={style.file_preview}>
-          <span className={style.file_preview_name}>{pendingFile.name}</span>
-          <button
-            className={style.file_preview_cancel}
-            onClick={() => setPendingFile(null)}
-          >
-            ×
-          </button>
+        <div className={style.file_preview_modal}>
+          {pendingFile.type.startsWith("image/") ? (
+            <img
+              src={URL.createObjectURL(pendingFile)}
+              alt="Preview"
+              className={style.preview_image}
+            />
+          ) : (
+            <div className={style.file_info}>
+              <Svg type="file" width="32px" height="32px" />
+              <div className={style.file_details}>
+                <span className={style.file_name}>{pendingFile.name}</span>
+                <span className={style.file_size}>
+                  {formatFileSize(pendingFile.size)}
+                </span>
+              </div>
+            </div>
+          )}
+          <div className={style.preview_actions}>
+            <button
+              className={style.preview_cancel_btn}
+              onClick={() => setPendingFile(null)}
+              disabled={isSending}
+            >
+              취소
+            </button>
+            <button
+              className={style.preview_send_btn}
+              onClick={handleSend}
+              disabled={isSending}
+            >
+              {isSending ? "업로드 중..." : "전송"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -494,6 +526,7 @@ const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: 
         <input
           ref={fileInputRef}
           type="file"
+          accept="image/*,.pdf,.hwp,.hwpx,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.zip,.txt,.csv,.json,.md"
           style={{ display: "none" }}
           onChange={handleFileSelect}
         />

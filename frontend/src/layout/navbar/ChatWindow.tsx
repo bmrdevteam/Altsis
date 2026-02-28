@@ -676,7 +676,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
               type="file"
               ref={fileInputRef}
               style={{ display: "none" }}
-              accept="image/*,.pdf,.hwp,.docx,.xlsx,.zip,.txt"
+              accept="image/*,.pdf,.hwp,.hwpx,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.zip,.txt,.csv,.json,.md"
               onChange={(e) => {
                 if (e.target.files?.[0]) {
                   handleFileSelect(e.target.files[0]);

@@ -68,7 +68,9 @@ export const chatMulter = (roomId) =>
       s3: fileS3,
       bucket: fileBucket,
       acl: "private",
-      contentType: multerS3.AUTO_CONTENT_TYPE,
+      contentType: function (req, file, cb) {
+        cb(null, file.mimetype);
+      },
       key: function (req, file, cb) {
         cb(null, req.tmp.key);
       },
