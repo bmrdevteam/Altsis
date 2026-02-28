@@ -424,6 +424,58 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
     }
   };
 
+  // List item menu actions (operate on a specific room)
+  const handleListPin = async (targetRoom: TChatRoom) => {
+    try {
+      const { isPinned } = await ChatAPI.UChatRoomPin({
+        params: { roomId: targetRoom._id },
+      });
+      const updated = { ...targetRoom, isPinned };
+      if (room?._id === targetRoom._id) setRoom(updated);
+      onRoomUpdated?.(updated);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleListArchive = async (targetRoom: TChatRoom) => {
+    try {
+      await ChatAPI.UChatRoomArchive({
+        params: { roomId: targetRoom._id },
+      });
+      if (room?._id === targetRoom._id) {
+        setRoom(null);
+        setShowChatList(true);
+      }
+      onRoomLeft();
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleListLeave = async (targetRoom: TChatRoom) => {
+    if (!window.confirm("정말 채팅방을 나가시겠습니까?")) return;
+    try {
+      await ChatAPI.DChatRoom({ params: { roomId: targetRoom._id } });
+      if (room?._id === targetRoom._id) {
+        setRoom(null);
+        setShowChatList(true);
+      }
+      onRoomLeft();
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  const handleListSettings = (targetRoom: TChatRoom) => {
+    setRoom(targetRoom);
+    setShowSettings(true);
+  };
+
+  const handleListStorage = (_targetRoom: TChatRoom) => {
+    setShowStorage(true);
+  };
+
   const handleRoomClick = (selectedRoom: TChatRoom) => {
     onRoomSelect(selectedRoom);
     setRoom(selectedRoom);
@@ -514,6 +566,11 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
               currentUserId={currentUser?.userId ?? ""}
               currentUserObjId={currentUser?._id ?? ""}
               onClick={handleRoomClick}
+              onPin={handleListPin}
+              onStorage={handleListStorage}
+              onArchive={handleListArchive}
+              onSettings={handleListSettings}
+              onLeave={handleListLeave}
             />
           ))
         )}
@@ -547,6 +604,11 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                   currentUserId={currentUser?.userId ?? ""}
                   currentUserObjId={currentUser?._id ?? ""}
                   onClick={handleRoomClick}
+                  onPin={handleListPin}
+                  onStorage={handleListStorage}
+                  onArchive={handleListArchive}
+                  onSettings={handleListSettings}
+                  onLeave={handleListLeave}
                 />
               ))}
             </div>

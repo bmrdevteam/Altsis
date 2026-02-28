@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import { TChatRoom } from "types/chat";
 import Svg from "assets/svg/Svg";
 import style from "./chat.module.scss";
@@ -9,6 +10,11 @@ type Props = {
   currentUserId: string;
   currentUserObjId: string;
   onClick: (room: TChatRoom) => void;
+  onPin?: (room: TChatRoom) => void;
+  onArchive?: (room: TChatRoom) => void;
+  onLeave?: (room: TChatRoom) => void;
+  onSettings?: (room: TChatRoom) => void;
+  onStorage?: (room: TChatRoom) => void;
 };
 
 const ChatRoomListItem = ({
@@ -17,7 +23,15 @@ const ChatRoomListItem = ({
   currentUserId,
   currentUserObjId,
   onClick,
+  onPin,
+  onArchive,
+  onLeave,
+  onSettings,
+  onStorage,
 }: Props) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const displayName = (() => {
     if (room.name) return room.name;
     // Show participant names instead of "그룹 채팅"
@@ -50,6 +64,18 @@ const ChatRoomListItem = ({
       });
     }
   };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMenu]);
 
   const unreadCount = room.unreadCount ?? 0;
 
@@ -117,6 +143,8 @@ const ChatRoomListItem = ({
     );
   };
 
+  const hasMenuActions = onPin || onArchive || onLeave || onSettings || onStorage;
+
   return (
     <div
       className={`${style.chat_list_item} ${isActive ? style.active : ""}`}
@@ -142,6 +170,84 @@ const ChatRoomListItem = ({
         </div>
         {renderPreview()}
       </div>
+      {hasMenuActions && room._id && (
+        <div
+          className={style.list_item_menu}
+          ref={menuRef}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className={style.list_item_menu_button}
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            <Svg type="verticalDots" width="16px" height="16px" style={{ fill: "var(--accent-3)" }} />
+          </button>
+          {showMenu && (
+            <div className={style.list_item_menu_dropdown}>
+              {onPin && (
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    setShowMenu(false);
+                    onPin(room);
+                  }}
+                >
+                  <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
+                  <span>{room.isPinned ? "고정 해제" : "고정"}</span>
+                </div>
+              )}
+              {onStorage && (
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    setShowMenu(false);
+                    onStorage(room);
+                  }}
+                >
+                  <Svg type="file" width="16px" height="16px" />
+                  <span>내 파일</span>
+                </div>
+              )}
+              {onArchive && (
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    setShowMenu(false);
+                    onArchive(room);
+                  }}
+                >
+                  <Svg type="archive" width="16px" height="16px" />
+                  <span>{room.isArchived ? "보관 해제" : "보관"}</span>
+                </div>
+              )}
+              {onSettings && (
+                <div
+                  className={style.menu_item}
+                  onClick={() => {
+                    setShowMenu(false);
+                    onSettings(room);
+                  }}
+                >
+                  <Svg type="settings" width="16px" height="16px" />
+                  <span>설정</span>
+                </div>
+              )}
+              {onLeave && (
+                <div
+                  className={`${style.menu_item} ${style.danger}`}
+                  onClick={() => {
+                    setShowMenu(false);
+                    onLeave(room);
+                  }}
+                >
+                  <Svg type="logout" width="16px" height="16px" />
+                  <span>채팅방 나가기</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -175,6 +175,84 @@
     }
   }
 
+  .list_item_menu {
+    position: relative;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+
+    .list_item_menu_button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s;
+
+      &:hover {
+        background-color: var(--background-secondary, #f5f5f5);
+      }
+    }
+
+    .list_item_menu_dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      min-width: 140px;
+      background-color: var(--component-color, #ffffff);
+      border: var(--border-default, 1px solid #e0e0e0);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      overflow: hidden;
+      padding: 4px 0;
+
+      .menu_item {
+        padding: 8px 14px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--accent-1);
+
+        svg {
+          fill: var(--accent-2);
+          flex-shrink: 0;
+        }
+
+        &:hover {
+          background-color: var(--background-secondary, #f5f5f5);
+
+          svg {
+            fill: var(--accent-1);
+          }
+        }
+
+        &.danger {
+          color: var(--color-r3, #f44336);
+
+          svg {
+            fill: var(--color-r3, #f44336);
+          }
+        }
+      }
+    }
+  }
+
+  &:hover .list_item_menu {
+    opacity: 1;
+  }
+
+  // Keep menu visible when dropdown is open
+  .list_item_menu:has(.list_item_menu_dropdown) {
+    opacity: 1;
+  }
+
   .chat_list_info {
     flex: 1;
     min-width: 0;
