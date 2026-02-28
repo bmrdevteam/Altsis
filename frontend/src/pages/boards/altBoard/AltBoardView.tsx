@@ -44,6 +44,15 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
   const canManage = myRole === "admin" || myRole === "writer";
 
+  // 특정 양식의 수정/삭제 가능 여부 (작성자 본인, 보드 admin, 시스템 manager)
+  const canModifyForm = (form: TAltForm) => {
+    if (!currentUser) return false;
+    if (myRole === "admin") return true;
+    if (currentUser.auth === "manager") return true;
+    if (form.creator === currentUser._id) return true;
+    return false;
+  };
+
   // Form builder/renderer 상태
   const [builderFormId, setBuilderFormId] = useState<string | null>(null);
   const [rendererFormId, setRendererFormId] = useState<string | null>(null);
@@ -123,13 +132,13 @@ const AltBoardView = ({ board, embedded }: Props) => {
       return;
     }
 
-    const formExists = forms.some((f) => f._id === urlFormId);
-    if (formExists) {
+    const targetForm = forms.find((f) => f._id === urlFormId);
+    if (targetForm) {
       if (urlMode === "respond") {
         // 명시적 응답 모드
         setRendererFormId(urlFormId);
         setBuilderFormId(null);
-      } else if (canManage) {
+      } else if (canModifyForm(targetForm)) {
         setBuilderFormId(urlFormId);
         setRendererFormId(null);
       } else {
@@ -189,7 +198,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
   // Form 클릭 핸들러
   const handleFormClick = (form: TAltForm) => {
-    if (canManage) {
+    if (canModifyForm(form)) {
       handleOpenBuilder(form._id);
     } else {
       handleOpenRenderer(form._id);

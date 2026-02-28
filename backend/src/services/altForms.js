@@ -22,7 +22,7 @@ export const getAltBoardRole = (board, user) => {
 };
 
 /**
- * Form 관리 권한 확인 (admin 또는 writer)
+ * Form 관리 권한 확인 (admin 또는 writer) — 양식 생성 등에 사용
  * @param {Object} board - Board 문서
  * @param {Object} user - 사용자 객체
  * @returns {boolean}
@@ -30,6 +30,20 @@ export const getAltBoardRole = (board, user) => {
 export const canManageForm = (board, user) => {
   const role = getAltBoardRole(board, user);
   return role === "admin" || role === "writer";
+};
+
+/**
+ * Form 수정/삭제 권한 확인 (양식 작성자, 보드 admin, 시스템 manager)
+ * @param {Object} form - AltForm 문서 (creator 필드 포함)
+ * @param {Object} board - Board 문서
+ * @param {Object} user - 사용자 객체
+ * @returns {boolean}
+ */
+export const canModifyForm = (form, board, user) => {
+  if (form.creator && form.creator.equals(user._id)) return true;
+  if (getAltBoardRole(board, user) === "admin") return true;
+  if (user.auth === "manager") return true;
+  return false;
 };
 
 /**

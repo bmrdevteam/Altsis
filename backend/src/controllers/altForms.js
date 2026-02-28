@@ -6,7 +6,7 @@
 import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
-import { canManageForm, getAltBoardRole } from "../services/altForms.js";
+import { canManageForm, canModifyForm, getAltBoardRole } from "../services/altForms.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -221,7 +221,7 @@ export const update = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user)) {
+    if (!canModifyForm(form, board, req.user)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -298,7 +298,7 @@ export const remove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    if (!canManageForm(board, req.user)) {
+    if (!canModifyForm(form, board, req.user)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
