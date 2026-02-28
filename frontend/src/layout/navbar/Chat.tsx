@@ -101,6 +101,10 @@ const Chat = () => {
       loadRooms();
     });
 
+    newSocket.on("participant_left", () => {
+      loadRooms();
+    });
+
     setSocket(newSocket);
 
     return () => {

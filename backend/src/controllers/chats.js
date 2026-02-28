@@ -546,19 +546,51 @@ export const deleteRoom = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    // For direct chats, soft delete the room
-    if (room.type === "direct") {
-      room.isActive = false;
-      await room.save();
+    // Remove the participant from the room
+    room.participants = room.participants.filter(
+      (p) => p.user.toString() !== req.user._id.toString()
+    );
+
+    if (room.participants.length === 0) {
+      // No participants left - hard delete room, messages, and files
+      await ChatMessage(req.user.academyId).deleteMany({ room: room._id });
+      await ChatFile(req.user.academyId).deleteMany({ room: room._id });
+      await ChatRoom(req.user.academyId).findByIdAndDelete(room._id);
     } else {
-      // For group chats, remove participant
-      room.participants = room.participants.filter(
-        (p) => p.user.toString() !== req.user._id.toString()
-      );
-      if (room.participants.length === 0) {
-        room.isActive = false;
-      }
+      // Create a system message that user left
+      const systemMessage = await ChatMessage(req.user.academyId).create({
+        room: room._id,
+        sender: req.user._id,
+        senderId: req.user.userId,
+        senderName: req.user.userName,
+        content: `${req.user.userName}님이 나갔습니다.`,
+        messageType: "system",
+        readBy: [],
+      });
+
+      // Update last message
+      room.lastMessage = {
+        content: `${req.user.userName}님이 나갔습니다.`,
+        sender: req.user._id,
+        senderName: req.user.userName,
+        sentAt: new Date(),
+      };
       await room.save();
+
+      // Emit socket event to remaining participants
+      const ioChat = getIoChat();
+      if (ioChat) {
+        room.participants.forEach((participant) => {
+          ioChat
+            .to(`chat:${req.user.academyId}:${participant.userId}`)
+            .emit("participant_left", {
+              room: room._id,
+              leftUserId: req.user.userId,
+              leftUserName: req.user.userName,
+              message: systemMessage.toObject(),
+            });
+        });
+      }
     }
 
     return res.status(200).send({});

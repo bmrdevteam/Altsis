@@ -102,12 +102,15 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
     if (room?._id) {
       setIsLoading(true);
       loadMessages();
+    } else {
+      setIsLoading(false);
+      setMessages([]);
     }
   }, [room?._id]);
 
   // Socket events
   useEffect(() => {
-    if (!socket || !room) return;
+    if (!socket || !room || !room._id) return;
 
     socket.emit("join_room", { roomId: room._id });
 
@@ -138,13 +141,38 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
       }
     };
 
+    const handleParticipantLeft = (data: {
+      room: string;
+      leftUserId: string;
+      leftUserName: string;
+      message: TChatMessage;
+    }) => {
+      if (data.room === room._id) {
+        // Add system message
+        setMessages((prev) => [...prev, data.message]);
+        scrollToBottom();
+        // Update room participants
+        setRoom((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            participants: prev.participants.filter(
+              (p) => p.userId !== data.leftUserId
+            ),
+          };
+        });
+      }
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
+    socket.on("participant_left", handleParticipantLeft);
 
     return () => {
       socket.emit("leave_room", { roomId: room._id });
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
+      socket.off("participant_left", handleParticipantLeft);
     };
   }, [socket, room?._id, currentUser?.userId]);
 
@@ -162,13 +190,46 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
     textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
   };
 
+  const createRoomIfPending = async (): Promise<TChatRoom | null> => {
+    if (!room || room._id) return room;
+
+    const otherParticipant = room.participants.find(
+      (p) => p.user !== currentUser?._id
+    );
+    if (!otherParticipant) return null;
+
+    const { room: createdRoom } = await ChatAPI.CChatRoom({
+      data: {
+        type: "direct",
+        participants: [
+          {
+            user: otherParticipant.user,
+            userId: otherParticipant.userId,
+            userName: otherParticipant.userName,
+            profile: otherParticipant.profile,
+          },
+        ],
+      },
+    });
+
+    setRoom(createdRoom);
+    onNewChatCreated(createdRoom);
+    return createdRoom;
+  };
+
   const handleSend = async () => {
     if (!room || !newMessage.trim() || isSending || !canChat) return;
 
     setIsSending(true);
     try {
+      const targetRoom = await createRoomIfPending();
+      if (!targetRoom) {
+        setIsSending(false);
+        return;
+      }
+
       const { message } = await ChatAPI.CChatMessage({
-        params: { roomId: room._id },
+        params: { roomId: targetRoom._id },
         data: { content: newMessage },
       });
       setMessages((prev) => [...prev, message]);
@@ -185,7 +246,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   };
 
   const handleTyping = () => {
-    if (socket && room) {
+    if (socket && room && room._id) {
       socket.emit("typing", {
         roomId: room._id,
         userId: currentUser?.userId,
@@ -277,16 +338,22 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
 
     setIsUploading(true);
     try {
+      const targetRoom = await createRoomIfPending();
+      if (!targetRoom) {
+        setIsUploading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", previewFile.file);
 
       const { attachment } = await ChatAPI.CChatFileUpload({
-        params: { roomId: room._id },
+        params: { roomId: targetRoom._id },
         data: formData,
       });
 
       const { message } = await ChatAPI.CChatMessage({
-        params: { roomId: room._id },
+        params: { roomId: targetRoom._id },
         data: {
           content: previewFile.file.name,
           messageType: previewFile.type,
@@ -410,6 +477,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
     if (shouldShowDate(index)) return true;
     const current = messages[index];
     const prev = messages[index - 1];
+    if (prev.messageType === "system") return true;
     if (current.sender !== prev.sender) return true;
     // Break group if more than 2 minutes apart
     const timeDiff = new Date(current.createdAt).getTime() - new Date(prev.createdAt).getTime();
@@ -455,6 +523,34 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
           </Button>
         </div>
       )}
+      {archivedRooms.length > 0 && (
+        <>
+          <div
+            className={style.archived_toggle}
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <Svg type="archive" width="14px" height="14px" style={{ fill: "var(--accent-3, #999)" }} />
+            <span>보관함 ({archivedRooms.length})</span>
+            <span className={`${style.expand_icon} ${showArchived ? style.expanded : ""}`}>
+              ▼
+            </span>
+          </div>
+          {showArchived && (
+            <div className={style.archived_list}>
+              {archivedRooms.map((r) => (
+                <ChatRoomListItem
+                  key={r._id}
+                  room={r}
+                  isActive={room?._id === r._id}
+                  currentUserId={currentUser?.userId ?? ""}
+                  currentUserObjId={currentUser?._id ?? ""}
+                  onClick={handleRoomClick}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 
@@ -474,55 +570,59 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
             </span>
           </div>
           <div className={style.room_actions}>
-            <button
-              className={style.menu_button}
-              onClick={() => setShowMenu(!showMenu)}
-            >
-              <Svg type="verticalDots" width="18px" height="18px" style={{ fill: "var(--accent-1, #333)" }} />
-            </button>
-            {showMenu && (
-              <div className={style.menu_dropdown}>
-                <div
-                  className={style.menu_item}
-                  onClick={() => {
-                    setShowMenu(false);
-                    handlePinRoom();
-                  }}
+            {room._id && (
+              <>
+                <button
+                  className={style.menu_button}
+                  onClick={() => setShowMenu(!showMenu)}
                 >
-                  <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
-                  <span>{room.isPinned ? "고정 해제" : "고정"}</span>
-                </div>
-                <div
-                  className={style.menu_item}
-                  onClick={() => {
-                    setShowMenu(false);
-                    setShowStorage(true);
-                  }}
-                >
-                  <Svg type="file" width="16px" height="16px" />
-                  <span>내 파일</span>
-                </div>
-                <div
-                  className={style.menu_item}
-                  onClick={() => {
-                    setShowMenu(false);
-                    handleArchiveRoom();
-                  }}
-                >
-                  <Svg type="archive" width="16px" height="16px" />
-                  <span>보관</span>
-                </div>
-                <div
-                  className={`${style.menu_item} ${style.danger}`}
-                  onClick={() => {
-                    setShowMenu(false);
-                    handleLeaveRoom();
-                  }}
-                >
-                  <Svg type="logout" width="16px" height="16px" />
-                  <span>채팅방 나가기</span>
-                </div>
-              </div>
+                  <Svg type="verticalDots" width="18px" height="18px" style={{ fill: "var(--accent-1, #333)" }} />
+                </button>
+                {showMenu && (
+                  <div className={style.menu_dropdown}>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        setShowMenu(false);
+                        handlePinRoom();
+                      }}
+                    >
+                      <Svg type={room.isPinned ? "pinOff" : "pin"} width="16px" height="16px" />
+                      <span>{room.isPinned ? "고정 해제" : "고정"}</span>
+                    </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowStorage(true);
+                      }}
+                    >
+                      <Svg type="file" width="16px" height="16px" />
+                      <span>내 파일</span>
+                    </div>
+                    <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleArchiveRoom();
+                      }}
+                    >
+                      <Svg type="archive" width="16px" height="16px" />
+                      <span>{room.isArchived ? "보관 해제" : "보관"}</span>
+                    </div>
+                    <div
+                      className={`${style.menu_item} ${style.danger}`}
+                      onClick={() => {
+                        setShowMenu(false);
+                        handleLeaveRoom();
+                      }}
+                    >
+                      <Svg type="logout" width="16px" height="16px" />
+                      <span>채팅방 나가기</span>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -558,6 +658,22 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
           </div>
         ) : (
           messages.map((msg, index) => {
+            // System messages (e.g., "OOO님이 나갔습니다")
+            if (msg.messageType === "system") {
+              return (
+                <div key={msg._id}>
+                  {shouldShowDate(index) && (
+                    <div className={style.date_divider}>
+                      <span>{formatMessageDate(msg.createdAt)}</span>
+                    </div>
+                  )}
+                  <div className={style.system_message_wrapper}>
+                    <ChatMessageContent message={msg} />
+                  </div>
+                </div>
+              );
+            }
+
             const groupStart = isGroupStart(index);
             const isOwn = msg.sender === currentUser?._id;
             return (
@@ -756,6 +872,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
 
       {showNewChat && (
         <NewChat
+          rooms={rooms}
           onClose={() => setShowNewChat(false)}
           onChatCreated={handleNewChatComplete}
         />

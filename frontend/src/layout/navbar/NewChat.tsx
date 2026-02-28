@@ -8,11 +8,12 @@ import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./chat.module.scss";
 
 type Props = {
+  rooms: TChatRoom[];
   onClose: () => void;
   onChatCreated: (room: TChatRoom) => void;
 };
 
-const NewChat = ({ onClose, onChatCreated }: Props) => {
+const NewChat = ({ rooms, onClose, onChatCreated }: Props) => {
   const { currentUser, currentSchool, currentRegistration } = useAuth();
   const { ChatAPI } = useAPIv2();
 
@@ -20,7 +21,6 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
   const [users, setUsers] = useState<TChatUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<TChatUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
 
   const searchUsers = useCallback(
     async (query: string) => {
@@ -53,29 +53,47 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
     setSelectedUser((prev) => (prev?._id === user._id ? null : user));
   };
 
-  const handleCreateChat = async () => {
-    if (!selectedUser) return;
+  const handleCreateChat = () => {
+    if (!selectedUser || !currentUser) return;
 
-    setIsCreating(true);
-    try {
-      const { room } = await ChatAPI.CChatRoom({
-        data: {
-          type: "direct",
-          participants: [
-            {
-              user: selectedUser._id,
-              userId: selectedUser.userId,
-              userName: selectedUser.userName,
-              profile: selectedUser.profile,
-            },
-          ],
-        },
-      });
-      onChatCreated(room);
-    } catch (err) {
-      ALERT_ERROR(err);
-      setIsCreating(false);
+    // Check if a direct room already exists with this user
+    const existingRoom = rooms.find(
+      (r) =>
+        r.type === "direct" &&
+        r.participants.some((p) => p.user === selectedUser._id)
+    );
+
+    if (existingRoom) {
+      onChatCreated(existingRoom);
+      return;
     }
+
+    // Create a pending room (not yet saved to DB - will be created on first message)
+    const pendingRoom: TChatRoom = {
+      _id: "",
+      type: "direct",
+      participants: [
+        {
+          user: currentUser._id,
+          userId: currentUser.userId,
+          userName: currentUser.userName,
+          profile: currentUser.profile,
+          joinedAt: new Date().toISOString(),
+        },
+        {
+          user: selectedUser._id,
+          userId: selectedUser.userId,
+          userName: selectedUser.userName,
+          profile: selectedUser.profile,
+          joinedAt: new Date().toISOString(),
+        },
+      ],
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    onChatCreated(pendingRoom);
   };
 
   return (
@@ -132,10 +150,10 @@ const NewChat = ({ onClose, onChatCreated }: Props) => {
         <div className={style.action_buttons}>
           <Button
             type="solid"
-            disabled={!selectedUser || isCreating}
+            disabled={!selectedUser}
             onClick={handleCreateChat}
           >
-            {isCreating ? "생성 중..." : "채팅 시작"}
+            채팅 시작
           </Button>
         </div>
       </div>
