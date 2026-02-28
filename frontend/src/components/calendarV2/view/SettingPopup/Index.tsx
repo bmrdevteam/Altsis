@@ -7,9 +7,17 @@ import CalendarTab from "./tab/CalendarTab";
 import { useState } from "react";
 import { useAuth } from "contexts/authContext";
 
+type CalendarSettings = {
+  visibleDays: number[];
+  referenceTime: string | null;
+  categoryColors: Record<string, string>;
+};
+
 type Props = {
   setPopupActive: any;
   onVisibilityChange?: () => void;
+  onSettingsChange?: (settings: CalendarSettings) => void;
+  calendarSettings?: CalendarSettings;
   userId?: string;
 };
 
@@ -58,6 +66,8 @@ const Index = (props: Props) => {
           캘린더: (
             <CalendarTab
               onVisibilityChange={props.onVisibilityChange}
+              onSettingsChange={props.onSettingsChange}
+              calendarSettings={props.calendarSettings}
             />
           ),
           ...courseItems,

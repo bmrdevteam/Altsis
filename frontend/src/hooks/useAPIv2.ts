@@ -2792,6 +2792,69 @@ export default function useAPIv2() {
   }
 
   // ============================================================
+  // CalendarSettings API
+  // ============================================================
+
+  /**
+   * RCalendarSettings API
+   * @description 캘린더 설정 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RCalendarSettings() {
+    const { visibleDays, referenceTime, categoryColors } = await database.R({
+      location: "calendar-settings/settings",
+    });
+    return {
+      visibleDays: visibleDays as number[],
+      referenceTime: referenceTime as string | null,
+      categoryColors: categoryColors as Partial<{
+        schoolCalendar: string;
+        personalCalendar: string;
+        enrollments: string;
+        mentorings: string;
+        memos: string;
+      }>,
+    };
+  }
+
+  /**
+   * UCalendarSettings API
+   * @description 캘린더 설정 수정 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function UCalendarSettings(props: {
+    data: {
+      visibleDays?: number[];
+      referenceTime?: string | null;
+      categoryColors?: Partial<{
+        schoolCalendar: string | null;
+        personalCalendar: string | null;
+        enrollments: string | null;
+        mentorings: string | null;
+        memos: string | null;
+      }>;
+    };
+  }) {
+    const { visibleDays, referenceTime, categoryColors } = await database.U({
+      location: "calendar-settings/settings",
+      data: props.data,
+    });
+    return {
+      visibleDays: visibleDays as number[],
+      referenceTime: referenceTime as string | null,
+      categoryColors: categoryColors as Partial<{
+        schoolCalendar: string;
+        personalCalendar: string;
+        enrollments: string;
+        mentorings: string;
+        memos: string;
+      }>,
+    };
+  }
+
+  // ============================================================
   // ThemeSettings API
   // ============================================================
 
@@ -4556,6 +4619,10 @@ export default function useAPIv2() {
       UReminder,
       UCompleteReminder,
       DReminder,
+    },
+    CalendarSettingAPI: {
+      RCalendarSettings,
+      UCalendarSettings,
     },
     ThemeSettingsAPI: {
       RThemeSettings,

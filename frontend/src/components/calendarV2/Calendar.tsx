@@ -107,6 +107,9 @@ const Viewer = memo(
     setEvent,
     setIsEventPopupActive,
     onClickCreate,
+    customCategoryColors,
+    referenceTime,
+    visibleDays,
   }: {
     mode: Mode;
     calendar: Calendar;
@@ -115,6 +118,9 @@ const Viewer = memo(
     setEvent: React.Dispatch<React.SetStateAction<EventItem | undefined>>;
     setIsEventPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
     onClickCreate?: (date: string, time?: string) => void;
+    customCategoryColors?: Record<string, string>;
+    referenceTime?: string | null;
+    visibleDays?: number[];
   }) => {
     const onClickEventHandler = (event: EventItem) => {
       setEvent(event);
@@ -132,11 +138,22 @@ const Viewer = memo(
     const viewerEventMap = useMemo(() => {
       if (!calendar) return undefined;
       if (mode === "day") return calendar.getEventMap(dateItem, dateItem);
-      if (mode === "week")
-        return calendar.getEventMap(dateItem, dateItem.getDateItemAfter(6));
+      if (mode === "week") {
+        const fullMap = calendar.getEventMap(dateItem, dateItem.getDateItemAfter(6));
+        if (!fullMap || !visibleDays || visibleDays.length === 7) return fullMap;
+        // Filter out hidden days
+        const filtered = new Map<string, EventItem[]>();
+        Array.from(fullMap.entries()).forEach(([dateStr, events]) => {
+          const day = new Date(dateStr).getDay();
+          if (visibleDays.includes(day)) {
+            filtered.set(dateStr, events);
+          }
+        });
+        return filtered;
+      }
       if (mode === "month") return calendar.getFullMonthlyEventMap(dateItem);
       return undefined;
-    }, [calendar, mode, dateItem]);
+    }, [calendar, mode, dateItem, visibleDays]);
 
     if (mode === "day") {
       return (
@@ -146,18 +163,28 @@ const Viewer = memo(
           dayList={[dateItem.getDayString()]}
           onClickEvent={onClickEventHandler}
           onClickCreate={handleClickCreateWeekly}
+          customCategoryColors={customCategoryColors}
+          referenceTime={referenceTime}
         />
       );
     }
 
     if (mode === "week") {
+      const allDays = ["일", "월", "화", "수", "목", "금", "토"];
+      const filteredDayList =
+        visibleDays && visibleDays.length < 7
+          ? allDays.filter((_, idx) => visibleDays.includes(idx))
+          : allDays;
+
       return (
         <WeeklyView
           eventMap={viewerEventMap}
           isMounted={isMounted}
-          dayList={["일", "월", "화", "수", "목", "금", "토"]}
+          dayList={filteredDayList}
           onClickEvent={onClickEventHandler}
           onClickCreate={handleClickCreateWeekly}
+          customCategoryColors={customCategoryColors}
+          referenceTime={referenceTime}
         />
       );
     }
@@ -169,6 +196,7 @@ const Viewer = memo(
           eventMap={viewerEventMap}
           onClickEvent={onClickEventHandler}
           onClickCreate={handleClickCreateMonthly}
+          customCategoryColors={customCategoryColors}
         />
       );
     }
@@ -176,12 +204,44 @@ const Viewer = memo(
   }
 );
 
+const CALENDAR_SETTINGS_KEY = "calendarSettings";
+
+const getCalendarSettings = (): {
+  visibleDays: number[];
+  referenceTime: string | null;
+  categoryColors: Record<string, string>;
+} => {
+  try {
+    const stored = window.localStorage.getItem(CALENDAR_SETTINGS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return {
+    visibleDays: [0, 1, 2, 3, 4, 5, 6],
+    referenceTime: null,
+    categoryColors: {},
+  };
+};
+
+const saveCalendarSettings = (settings: {
+  visibleDays: number[];
+  referenceTime: string | null;
+  categoryColors: Record<string, string>;
+}) => {
+  window.localStorage.setItem(
+    CALENDAR_SETTINGS_KEY,
+    JSON.stringify(settings)
+  );
+};
+
 const Calender = (props: Props) => {
   const { currentRegistration, currentSchool, currentUser, currentSeason } = useAuth();
-  const { CalendarEventAPI } = useAPIv2();
+  const { CalendarEventAPI, CalendarSettingAPI } = useAPIv2();
   const [hasSynced, setHasSynced] = useState(false);
 
   const [mode, setMode] = useState<Mode>("week");
+
+  // Calendar settings (visibleDays, referenceTime, categoryColors)
+  const [calendarSettings, setCalendarSettings] = useState(getCalendarSettings());
 
   const [calendar, setCalendar] = useState<Calendar>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -607,6 +667,20 @@ const Calender = (props: Props) => {
 
     currentModeRef.current = initialMode;
     updateCalendar(dateItem, initialMode);
+
+    // Load calendar settings from backend
+    CalendarSettingAPI.RCalendarSettings()
+      .then((settings) => {
+        const newSettings = {
+          visibleDays: settings.visibleDays,
+          referenceTime: settings.referenceTime,
+          categoryColors: (settings.categoryColors ?? {}) as Record<string, string>,
+        };
+        setCalendarSettings(newSettings);
+        saveCalendarSettings(newSettings);
+      })
+      .catch(() => {});
+
     return () => {};
   }, []);
 
@@ -720,6 +794,9 @@ const Calender = (props: Props) => {
                 setEvent={setEvent}
                 setIsEventPopupActive={setIsEventPopupActive}
                 onClickCreate={props.readOnly ? undefined : handleClickCreate}
+                customCategoryColors={calendarSettings.categoryColors}
+                referenceTime={calendarSettings.referenceTime}
+                visibleDays={calendarSettings.visibleDays}
               />
             ) : (
               <Loading height={"calc(100vh - 200px)"} />
@@ -734,6 +811,7 @@ const Calender = (props: Props) => {
           onDelete={props.readOnly ? undefined : handleEventDelete}
           onEdit={props.readOnly ? undefined : handleEventEdit}
           readOnly={props.readOnly}
+          customCategoryColors={calendarSettings.categoryColors}
         />
       )}
       {isSettingPopupActive && (
@@ -751,6 +829,20 @@ const Calender = (props: Props) => {
               updateCalendar(dateItem, mode, true);
             }
           }}
+          onSettingsChange={(newSettings) => {
+            setCalendarSettings(newSettings);
+            saveCalendarSettings(newSettings);
+            // Rebuild calendar if colors changed (to re-render with new colors)
+            if (rawEventsRef.current.length > 0 && cachedRangeRef.current) {
+              const cal = buildCalendarFromEvents(
+                rawEventsRef.current,
+                cachedRangeRef.current.start,
+                cachedRangeRef.current.end
+              );
+              setCalendar(cal);
+            }
+          }}
+          calendarSettings={calendarSettings}
           userId={props.userId}
         />
       )}

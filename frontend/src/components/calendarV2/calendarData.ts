@@ -136,8 +136,16 @@ export const DEFAULT_CATEGORY_COLORS: Record<string, string> = {
   memos: "#ff9800",
 };
 
-export function resolveEventColor(event: EventItem): string {
-  return event.color || DEFAULT_CATEGORY_COLORS[event.from] || "#4285f4";
+export function resolveEventColor(
+  event: EventItem,
+  customCategoryColors?: Record<string, string>
+): string {
+  return (
+    event.color ||
+    customCategoryColors?.[event.from] ||
+    DEFAULT_CATEGORY_COLORS[event.from] ||
+    "#4285f4"
+  );
 }
 
 export class EventItem {

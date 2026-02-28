@@ -153,7 +153,14 @@ const Index = (props: Props) => {
     if (isManager) {
       options.push({ text: "학교 캘린더", value: "__school" });
     }
-    for (const cal of userCalendars) {
+    const schoolCalendars = userCalendars.filter((c) => c.scope === "school");
+    const personalCalendars = userCalendars.filter(
+      (c) => c.scope === "personal"
+    );
+    for (const cal of schoolCalendars) {
+      options.push({ text: `[학교] ${cal.name}`, value: cal._id });
+    }
+    for (const cal of personalCalendars) {
       options.push({ text: cal.name, value: cal._id });
     }
     return options;

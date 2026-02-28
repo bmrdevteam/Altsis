@@ -6,6 +6,7 @@ import { router as archives } from "./archives.js";
 import { router as boardFavorites } from "./boardFavorites.js";
 import { router as boards } from "./boards.js";
 import { router as calendarEvents } from "./calendarEvents.js";
+import { router as calendarSettings } from "./calendarSettings.js";
 import { router as comments } from "./comments.js";
 import { router as chats } from "./chats.js";
 import { router as enrollments } from "./enrollments.js";
@@ -37,6 +38,7 @@ export const routers = [
   { label: "board-favorites", routes: boardFavorites },
   { label: "boards", routes: boards },
   { label: "calendar-events", routes: calendarEvents },
+  { label: "calendar-settings", routes: calendarSettings },
   { label: "chats", routes: chats },
   { label: "comments", routes: comments },
   { label: "enrollments", routes: enrollments },

@@ -91,10 +91,12 @@ const Event = ({
   data,
   isMounted,
   onClickEvent,
+  customCategoryColors,
 }: {
   data: EventItem;
   isMounted: boolean;
   onClickEvent: any;
+  customCategoryColors?: Record<string, string>;
 }) => {
   const startTime = data.startTimeText.split(" ")[1];
   const endTime = data.endTimeText.split(" ")[1];
@@ -105,7 +107,7 @@ const Event = ({
     parseInt(endTime.split(":")[0]) + parseInt(endTime.split(":")[1]) / 60;
   const height = end - start;
 
-  const color = resolveEventColor(data);
+  const color = resolveEventColor(data, customCategoryColors);
 
   return (
     <div
@@ -139,11 +141,13 @@ const MoreEventsDropdown = ({
   startHour,
   onClickEvent,
   onClose,
+  customCategoryColors,
 }: {
   group: OverlapGroup;
   startHour: number;
   onClickEvent: (event: EventItem) => void;
   onClose: () => void;
+  customCategoryColors?: Record<string, string>;
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -164,7 +168,7 @@ const MoreEventsDropdown = ({
       style={{ top: `${startHour * 80}px` }}
     >
       {group.events.map((event, idx) => {
-        const color = resolveEventColor(event);
+        const color = resolveEventColor(event, customCategoryColors);
         const startTime = event.startTimeText.split(" ")[1] ?? "";
         const endTime = event.endTimeText.split(" ")[1] ?? "";
         return (
@@ -195,13 +199,8 @@ const MoreEventsDropdown = ({
 const CurrentTime = () => {
   const [, update] = useState({});
   const currentTimeRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    currentTimeRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-      inline: "nearest",
-    });
 
+  useEffect(() => {
     const timer = setInterval(() => {
       update({});
     }, 10000);
@@ -241,6 +240,8 @@ type Props = {
   dayList: string[];
   onClickEvent: any;
   onClickCreate?: (date: string, time: string) => void;
+  customCategoryColors?: Record<string, string>;
+  referenceTime?: string | null;
 };
 
 const TimeLabels = () => {
@@ -279,6 +280,40 @@ function WeeklyView(props: Props) {
   }, [props.eventMap]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to reference time or current time after layout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (props.referenceTime) {
+        // Find the actual scroll container (.viewer_container)
+        // DOM: .calendar -> .viewer -> .viewer_container
+        const scrollContainer =
+          calendarRef.current?.parentElement?.parentElement;
+        if (scrollContainer) {
+          const [hh, mm] = props.referenceTime.split(":").map(Number);
+          const timeOffset = (hh + mm / 60) * 80;
+          // scrollTop = timeOffset positions the reference time right below
+          // the sticky header, because the header height is accounted for
+          // by the layout offset between .viewer top and .calendar top
+          scrollContainer.scrollTo({ top: timeOffset, behavior: "smooth" });
+        }
+      } else {
+        // Scroll to current time indicator
+        const indicator = calendarRef.current?.querySelector(
+          `.${style.current_time}`
+        );
+        if (indicator) {
+          (indicator as HTMLElement).scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "nearest",
+          });
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [props.referenceTime, props.eventMap]);
 
   const allDaySpans = useMemo(() => {
     if (!eventMapKeys || !props.eventMap)
@@ -331,6 +366,7 @@ function WeeklyView(props: Props) {
                 data={group.events[0]}
                 isMounted={props.isMounted}
                 onClickEvent={props.onClickEvent}
+                customCategoryColors={props.customCategoryColors}
               />
             );
           }
@@ -342,6 +378,7 @@ function WeeklyView(props: Props) {
                 data={firstEvent}
                 isMounted={props.isMounted}
                 onClickEvent={props.onClickEvent}
+                customCategoryColors={props.customCategoryColors}
               />
               <div
                 className={style.more_badge}
@@ -359,6 +396,7 @@ function WeeklyView(props: Props) {
                   startHour={group.startHour}
                   onClickEvent={props.onClickEvent}
                   onClose={() => setOpenGroupIdx(null)}
+                  customCategoryColors={props.customCategoryColors}
                 />
               )}
             </React.Fragment>
@@ -406,7 +444,7 @@ function WeeklyView(props: Props) {
           >
             {/* Spanning all-day events */}
             {allDaySpans.spans.map((span, idx) => {
-              const color = resolveEventColor(span.event);
+              const color = resolveEventColor(span.event, props.customCategoryColors);
               const totalCols = eventMapKeys!.length;
               const colsInSpan = span.endCol - span.startCol + 1;
               const isContinued = span.event.sequence > 1;
@@ -463,7 +501,7 @@ function WeeklyView(props: Props) {
                     />
                   )}
                   {singleEvents.map((event, eventIdx) => {
-                    const color = resolveEventColor(event);
+                    const color = resolveEventColor(event, props.customCategoryColors);
                     return (
                       <div
                         key={`allday-event-${eventIdx}`}
@@ -485,7 +523,7 @@ function WeeklyView(props: Props) {
         </div>
       </div>
 
-      <div className={style.calendar}>
+      <div className={style.calendar} ref={calendarRef}>
         {TimeLabels()}
         <CurrentTime />
         <div className={style.grid} ref={scrollRef}>
@@ -506,7 +544,7 @@ function WeeklyView(props: Props) {
           })}
           {/* Timed spanning events (recurring events across consecutive days) */}
           {timedSpans.spans.map((span, idx) => {
-            const color = resolveEventColor(span.event);
+            const color = resolveEventColor(span.event, props.customCategoryColors);
             const totalCols = eventMapKeys!.length;
             const colsInSpan = span.endCol - span.startCol + 1;
             const startTime = parseTimeToHours(span.event.startTimeText);

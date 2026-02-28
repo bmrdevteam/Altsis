@@ -20,6 +20,7 @@ type Props = {
   onDelete?: (eventId: string) => void;
   onEdit?: (event: EventItem) => void;
   readOnly?: boolean;
+  customCategoryColors?: Record<string, string>;
 };
 
 const getSourceLink = (
@@ -124,7 +125,7 @@ const Index = (props: Props) => {
     !isSyncedEvent &&
     (isOwner || (props.event.scope === "school" && isManager));
 
-  const eventColor = resolveEventColor(props.event);
+  const eventColor = resolveEventColor(props.event, props.customCategoryColors);
 
   return (
     <Popup

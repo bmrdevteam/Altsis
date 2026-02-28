@@ -16,6 +16,7 @@ type Props = {
   eventMap?: Map<string, EventItem[]>;
   onClickEvent: any;
   onClickCreate?: (date: string) => void;
+  customCategoryColors?: Record<string, string>;
 };
 
 const SPAN_HEIGHT = 20;
@@ -128,7 +129,7 @@ const MonthlyView = (props: Props) => {
                       {isCurrent && (
                         <div className={style.itemList}>
                           {singleEvents.map((item, itemIdx) => {
-                            const color = resolveEventColor(item);
+                            const color = resolveEventColor(item, props.customCategoryColors);
                             return (
                               <div
                                 className={style.item}
@@ -154,7 +155,7 @@ const MonthlyView = (props: Props) => {
               </div>
               {/* Spanning events overlay */}
               {spans.map((span, spanIdx) => {
-                const color = resolveEventColor(span.event);
+                const color = resolveEventColor(span.event, props.customCategoryColors);
                 const isContinued = span.event.sequence > 1;
                 const colsInSpan = span.endCol - span.startCol + 1;
                 const isContinuing =

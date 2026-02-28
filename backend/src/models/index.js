@@ -14,6 +14,7 @@ import { Archive } from "../models/Archive.js";
 import { Board } from "../models/Board.js";
 import { BoardFavorite } from "../models/BoardFavorite.js";
 import { CalendarEvent } from "../models/CalendarEvent.js";
+import { CalendarSetting } from "../models/CalendarSetting.js";
 import { Comment } from "../models/Comment.js";
 import { ChatFile } from "../models/ChatFile.js";
 import { ChatMessage } from "../models/ChatMessage.js";
@@ -47,6 +48,7 @@ export {
   Board,
   BoardFavorite,
   CalendarEvent,
+  CalendarSetting,
   ChatFile,
   Comment,
   ChatMessage,
