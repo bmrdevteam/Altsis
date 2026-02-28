@@ -240,7 +240,65 @@ export const gradeQuizRow = (form, data) => {
  * @returns {Array} duplicateCheck.enabled인 필드 목록
  */
 export const getDuplicateCheckFields = (form) => {
-  return form.fields.filter(
-    (f) => f.duplicateCheck?.enabled
-  );
+  return form.fields.filter((f) => f.duplicateCheck?.enabled);
+};
+
+/**
+ * 중복 검사 카운터 키 생성
+ *
+ * dupCheck 필드들의 값 조합을 직렬화하여 카운터 키 배열을 반환한다.
+ * - 단일 값 필드: 1개 키
+ * - multiDate 필드: 날짜 수만큼 키
+ * - 배열(multiSelect) 필드: 개별 요소별 키 (Cartesian product)
+ *
+ * @param {Array} dupFields - duplicateCheck.enabled인 필드 목록
+ * @param {Function} getDupValue - (fieldId) => 해당 필드의 제출 값
+ * @param {Object|null} multiDateDupField - multiDate 타입인 dupField (없으면 null)
+ * @returns {string[]} 카운터 키 배열
+ */
+export const buildDupCounterKeys = (dupFields, getDupValue, multiDateDupField) => {
+  const mdId = multiDateDupField?._id?.toString();
+
+  // 1. base 필드 (multiDate 제외) 값 수집
+  const baseEntries = [];
+  for (const df of dupFields) {
+    const fieldId = df._id.toString();
+    if (mdId && fieldId === mdId) continue;
+    const val = getDupValue(fieldId);
+    baseEntries.push({ fieldId, value: val });
+  }
+
+  // 2. base 필드의 Cartesian product 생성 (배열 값 확장)
+  const expandEntries = (entries) => {
+    if (entries.length === 0) return [{}];
+    const [first, ...rest] = entries;
+    const restVariants = expandEntries(rest);
+    const values = Array.isArray(first.value) ? first.value : [first.value];
+    const result = [];
+    for (const v of values) {
+      for (const rv of restVariants) {
+        result.push({ [first.fieldId]: v, ...rv });
+      }
+    }
+    return result;
+  };
+
+  const baseVariants = expandEntries(baseEntries);
+
+  // 3. multiDate 필드가 있으면 각 날짜별로 키 생성
+  if (multiDateDupField) {
+    const rawDates = getDupValue(mdId);
+    const dates = Array.isArray(rawDates) ? rawDates : [rawDates];
+    const keys = [];
+    for (const base of baseVariants) {
+      for (const date of dates) {
+        if (!date) continue;
+        keys.push(JSON.stringify({ ...base, [mdId]: date }));
+      }
+    }
+    return keys;
+  }
+
+  // 4. multiDate 없으면 base 조합만
+  return baseVariants.map((base) => JSON.stringify(base));
 };

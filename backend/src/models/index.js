@@ -8,6 +8,7 @@ import { AIChatMessage } from "../models/AIChatMessage.js";
 import { AIChatSession } from "../models/AIChatSession.js";
 import { AIUsageLog } from "../models/AIUsageLog.js";
 import { AltForm } from "../models/AltForm.js";
+import { AltFormDupCounter } from "../models/AltFormDupCounter.js";
 import { AltSheet } from "../models/AltSheet.js";
 import { AltSheetRow } from "../models/AltSheetRow.js";
 import { Archive } from "../models/Archive.js";
@@ -42,6 +43,7 @@ export {
   AIChatSession,
   AIUsageLog,
   AltForm,
+  AltFormDupCounter,
   AltSheet,
   AltSheetRow,
   Archive,

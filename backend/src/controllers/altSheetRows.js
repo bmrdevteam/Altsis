@@ -4,7 +4,7 @@
  * @see TAltSheetRow in {@link Models.AltSheetRow}
  */
 import { logger } from "../log/logger.js";
-import { AltForm, AltSheet, AltSheetRow, Board, User } from "../models/index.js";
+import { AltForm, AltFormDupCounter, AltSheet, AltSheetRow, Board, User } from "../models/index.js";
 import {
   getAltBoardRole,
   canManageForm,
@@ -13,6 +13,7 @@ import {
   isFieldVisible,
   gradeQuizRow,
   getDuplicateCheckFields,
+  buildDupCounterKeys,
 } from "../services/altForms.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import {
@@ -20,6 +21,51 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+
+/**
+ * 자유 모드 중복 검사 카운터 atomic claim
+ * @param {string} academyId
+ * @param {ObjectId} formId
+ * @param {string} key - 직렬화된 필드값 조합 키
+ * @param {number} allowedCount - 허용 수
+ * @returns {boolean} true면 claim 성공
+ */
+async function claimDupCounter(academyId, formId, key, allowedCount) {
+  try {
+    const counter = await AltFormDupCounter(academyId).findOneAndUpdate(
+      { form: formId, key, count: { $lt: allowedCount } },
+      { $inc: { count: 1 } },
+      { upsert: true, new: true }
+    );
+    return !!counter;
+  } catch (err) {
+    if (err.code === 11000) {
+      // upsert 충돌: upsert 없이 재시도
+      const counter = await AltFormDupCounter(academyId).findOneAndUpdate(
+        { form: formId, key, count: { $lt: allowedCount } },
+        { $inc: { count: 1 } },
+        { new: true }
+      );
+      return !!counter;
+    }
+    throw err;
+  }
+}
+
+/**
+ * 자유 모드 중복 검사 카운터 롤백 (claim된 키들의 count를 -1)
+ * @param {string} academyId
+ * @param {ObjectId} formId
+ * @param {string[]} keys - 롤백할 키 배열
+ */
+async function rollbackDupCounters(academyId, formId, keys) {
+  for (const key of keys) {
+    await AltFormDupCounter(academyId).findOneAndUpdate(
+      { form: formId, key, count: { $gt: 0 } },
+      { $inc: { count: -1 } }
+    );
+  }
+}
 
 /**
  * @memberof APIs.AltSheetRowAPI
@@ -186,6 +232,7 @@ export const create = async (req, res) => {
     }
 
     // 중복 검사
+    let claimedCounterKeys = [];
     const dupFields = getDuplicateCheckFields(form);
     if (dupFields.length > 0) {
       const dupMode = dupFields[0].duplicateCheck?.mode || "free";
@@ -268,21 +315,21 @@ export const create = async (req, res) => {
           }
           return res.status(200).send({ row: claimedSlots[0] });
         } else {
-          // 자유 모드: 각 날짜를 개별적으로 중복 검사
-          for (const singleDate of dates) {
-            if (!singleDate) continue;
-            const singleQuery = {
-              ...buildBaseQuery(),
-              [`data.${mdFieldId}`]: singleDate,
-            };
-            const existingCount = await AltSheetRow(
-              req.user.academyId
-            ).countDocuments(singleQuery);
-            if (existingCount >= allowedCount) {
-              return res
-                .status(409)
-                .send({ message: `이미 선택된 조합입니다. (${singleDate})` });
+          // 자유 모드: atomic 카운터로 각 날짜 중복 검사
+          const keys = buildDupCounterKeys(dupFields, getDupValue, multiDateDupField);
+          for (const key of keys) {
+            const claimed = await claimDupCounter(
+              req.user.academyId, form._id, key, allowedCount
+            );
+            if (!claimed) {
+              await rollbackDupCounters(req.user.academyId, form._id, claimedCounterKeys);
+              const keyObj = JSON.parse(key);
+              const failedDate = keyObj[multiDateDupField._id.toString()];
+              return res.status(409).send({
+                message: `이미 선택된 조합입니다. (${failedDate})`,
+              });
             }
+            claimedCounterKeys.push(key);
           }
         }
       } else if (dupMode === "preRegistration") {
@@ -336,15 +383,19 @@ export const create = async (req, res) => {
 
         return res.status(200).send({ row: emptySlot });
       } else {
-        // === 자유 모드 (단일 값) ===
-        const dupQuery = buildBaseQuery();
-        const existingCount = await AltSheetRow(
-          req.user.academyId
-        ).countDocuments(dupQuery);
-        if (existingCount >= allowedCount) {
-          return res
-            .status(409)
-            .send({ message: "이미 선택된 조합입니다." });
+        // === 자유 모드 (단일 값): atomic 카운터 ===
+        const keys = buildDupCounterKeys(dupFields, getDupValue, null);
+        for (const key of keys) {
+          const claimed = await claimDupCounter(
+            req.user.academyId, form._id, key, allowedCount
+          );
+          if (!claimed) {
+            await rollbackDupCounters(req.user.academyId, form._id, claimedCounterKeys);
+            return res
+              .status(409)
+              .send({ message: "이미 선택된 조합입니다." });
+          }
+          claimedCounterKeys.push(key);
         }
       }
     }
@@ -360,17 +411,26 @@ export const create = async (req, res) => {
       rowData._quiz_fieldResults = quizResult.fieldResults;
     }
 
-    const row = await AltSheetRow(req.user.academyId).create({
-      sheet: form.sheet,
-      form: form._id,
-      board: form.board,
-      _respondent: req.user._id,
-      _respondentId: req.user.userId,
-      _respondentName: req.user.userName,
-      data: rowData,
-      _submittedAt: now,
-      _updatedAt: now,
-    });
+    let row;
+    try {
+      row = await AltSheetRow(req.user.academyId).create({
+        sheet: form.sheet,
+        form: form._id,
+        board: form.board,
+        _respondent: req.user._id,
+        _respondentId: req.user.userId,
+        _respondentName: req.user.userName,
+        data: rowData,
+        _submittedAt: now,
+        _updatedAt: now,
+      });
+    } catch (createErr) {
+      // Row 생성 실패 시 카운터 롤백
+      if (claimedCounterKeys.length > 0) {
+        await rollbackDupCounters(req.user.academyId, form._id, claimedCounterKeys);
+      }
+      throw createErr;
+    }
 
     // approval 필드가 있으면 승인자에게 알림
     const approvalNotifEnabled = await isBoardNotificationEnabled(
@@ -667,6 +727,29 @@ export const remove = async (req, res) => {
 
     if (role !== "admin" && role !== "writer" && !isOwner) {
       return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // 자유 모드 중복 검사 카운터 감소
+    const form = await AltForm(req.user.academyId).findById(row.form);
+    if (form) {
+      const dupFields = getDuplicateCheckFields(form);
+      const dupMode = dupFields[0]?.duplicateCheck?.mode;
+      if (dupFields.length > 0 && dupMode === "free") {
+        const fieldTypeMap = new Map(
+          form.fields.map((f) => [
+            f._id.toString(),
+            f.toObject ? f.toObject().type : f.type,
+          ])
+        );
+        const multiDateDupField = dupFields.find(
+          (df) => fieldTypeMap.get(df._id.toString()) === "multiDate"
+        );
+        const rowData =
+          row.data instanceof Map ? Object.fromEntries(row.data) : row.data;
+        const getDupValue = (fieldId) => rowData[fieldId];
+        const keys = buildDupCounterKeys(dupFields, getDupValue, multiDateDupField);
+        await rollbackDupCounters(req.user.academyId, form._id, keys);
+      }
     }
 
     await row.deleteOne();
