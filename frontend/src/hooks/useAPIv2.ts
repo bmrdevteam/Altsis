@@ -2910,7 +2910,7 @@ export default function useAPIv2() {
    * @version 1.0.0
    * @auth user
    */
-  async function RBoards(props: { query: { school: string } }) {
+  async function RBoards(props: { query: { school: string; mode?: string } }) {
     const { boards } = await database.R({
       location: "boards" + QUERY_BUILDER(props.query),
     });

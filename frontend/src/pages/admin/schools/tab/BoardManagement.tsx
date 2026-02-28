@@ -53,7 +53,7 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
 
   useEffect(() => {
     if (isLoading && schoolData?._id && boardEnabled) {
-      BoardAPI.RBoards({ query: { school: schoolData._id } })
+      BoardAPI.RBoards({ query: { school: schoolData._id, mode: "manage" } })
         .then(({ boards }) => {
           setBoards(boards);
           setIsLoading(false);

@@ -103,6 +103,31 @@ const resolveBoardWriters = (board) => {
  *
  * @returns {boolean}
  */
+export const isBoardMemberAsUser = (board, user, role) => {
+  if (board.creator && board.creator.equals(user._id)) return true;
+
+  // 기본 보드(공지사항)는 전체 접근 허용
+  if (board.isDefault) return true;
+
+  // Alt Board: altBoardRole 확인
+  if (board.altBoardRole) {
+    const altRole = board.altBoardRole.get(user._id.toString());
+    if (altRole) return true;
+  }
+
+  const members = resolveBoardMembers(board);
+
+  // 개별 초대 사용자 확인
+  if (members.users?.some((u) => u.userId === user.userId)) return true;
+
+  // 그룹 멤버십 확인
+  if (user.auth === "manager" && members.groups?.manager) return true;
+  if (role === "teacher" && members.groups?.teacher) return true;
+  if (role === "student" && members.groups?.student) return true;
+
+  return false;
+};
+
 export const isBoardMember = (board, user, role) => {
   if (user.auth === "admin" || user.auth === "manager") return true;
   if (board.creator && board.creator.equals(user._id)) return true;

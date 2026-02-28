@@ -20,6 +20,7 @@ import {
 import {
   canManageBoard,
   isBoardMember,
+  isBoardMemberAsUser,
   getUserRoleInSeason,
   getBoardMembers,
 } from "../services/boards.js";
@@ -176,8 +177,16 @@ export const find = async (req, res) => {
       .sort({ isDefault: -1, boardType: 1, order: 1, createdAt: 1 });
 
     // 멤버인 게시판만 필터링
+    const isManageMode = req.query.mode === "manage";
+
+    if (isManageMode && !canManageBoard({ creator: null }, req.user)) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
     const accessibleBoards = boards.filter((board) =>
-      isBoardMember(board, req.user, role)
+      isManageMode
+        ? canManageBoard(board, req.user)
+        : isBoardMemberAsUser(board, req.user, role)
     );
 
     // 즐겨찾기 정보 조회
