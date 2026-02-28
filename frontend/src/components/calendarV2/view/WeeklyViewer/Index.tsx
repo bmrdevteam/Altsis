@@ -119,7 +119,7 @@ const Event = ({
       style={{
         top: `${start * 80}px`,
         height: `${height * 80}px`,
-        backgroundColor: `${color}25`,
+        background: `linear-gradient(${color}25, ${color}25), var(--background-color)`,
         borderLeft: `3px solid ${color}`,
       }}
       onClick={(e) => {
@@ -560,7 +560,7 @@ function WeeklyView(props: Props) {
                   height: `${height * 80}px`,
                   left: `calc(${span.startCol} / ${totalCols} * 100%)`,
                   width: `calc(${colsInSpan} / ${totalCols} * 100%)`,
-                  backgroundColor: `${color}25`,
+                  background: `linear-gradient(${color}25, ${color}25), var(--background-color)`,
                   borderLeft: `3px solid ${color}`,
                 }}
                 onClick={() => props.onClickEvent(span.event)}

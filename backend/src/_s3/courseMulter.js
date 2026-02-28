@@ -13,7 +13,7 @@ const whitelist = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 export const courseMulter = multer({
   limits: {
     files: 1,
-    fileSize: 2 * 1024 * 1024,
+    fileSize: 5 * 1024 * 1024,
   },
   storage: multerS3({
     s3: profileS3,

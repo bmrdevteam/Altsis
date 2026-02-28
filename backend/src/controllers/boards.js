@@ -60,6 +60,20 @@ import { boardMulter } from "../_s3/boardMulter.js";
  * @param {Object} res
  * @param {Object} res.board - 생성된 게시판
  */
+
+const boardPresetColors = [
+  "#6366f1", "#8b5cf6", "#ec4899", "#14b8a6", "#f59e0b",
+  "#3b82f6", "#10b981", "#ef4444", "#78716c", "#0ea5e9",
+];
+
+function hashStringToIndex(str, max) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  return Math.abs(hash) % max;
+}
+
 export const create = async (req, res) => {
   try {
     for (let field of ["school", "name"]) {
@@ -109,7 +123,7 @@ export const create = async (req, res) => {
       boardType,
       altBoardRole,
       contentViewMode: req.body.contentViewMode || "blog",
-      ...(req.body.coverColor && { coverColor: req.body.coverColor }),
+      coverColor: req.body.coverColor || boardPresetColors[hashStringToIndex(req.body.name, boardPresetColors.length)],
     });
 
     return res.status(200).send({ board });
@@ -751,10 +765,7 @@ export const updateCoverImage = async (req, res) => {
         return res.status(403).send({ message: PERMISSION_DENIED });
       }
 
-      board.coverImage = req.file.location.replace(
-        "/original/",
-        "/thumb/"
-      );
+      board.coverImage = req.file.location;
       await board.save();
       return res.status(200).send({ coverImage: board.coverImage });
     } catch (err) {

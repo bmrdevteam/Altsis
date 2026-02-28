@@ -54,8 +54,8 @@ const CourseCoverImageEditor = ({
       alert("지원되지 않는 파일 형식입니다.");
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      alert("크기가 2MB 이하인 사진만 등록할 수 있습니다.");
+    if (file.size > 5 * 1024 * 1024) {
+      alert("크기가 5MB 이하인 사진만 등록할 수 있습니다.");
       return;
     }
 
