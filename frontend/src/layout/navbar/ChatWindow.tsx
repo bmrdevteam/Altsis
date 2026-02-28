@@ -10,6 +10,7 @@ import ChatMessageContent from "./ChatMessageContent";
 import ImageLightbox from "./ImageLightbox";
 import ChatFileStorage from "./ChatFileStorage";
 import ChatRoomListItem from "./ChatRoomListItem";
+import RoomSettings from "./RoomSettings";
 import style from "./chat.module.scss";
 import defaultProfilePic from "assets/img/default_profile.png";
 
@@ -49,6 +50,7 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   const [showChatList, setShowChatList] = useState(!initialRoom);
   const [showNewChat, setShowNewChat] = useState(false);
   const [showStorage, setShowStorage] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   // File upload states
   const [isDragging, setIsDragging] = useState(false);
@@ -611,6 +613,16 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                       <span>{room.isArchived ? "보관 해제" : "보관"}</span>
                     </div>
                     <div
+                      className={style.menu_item}
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowSettings(true);
+                      }}
+                    >
+                      <Svg type="settings" width="16px" height="16px" />
+                      <span>설정</span>
+                    </div>
+                    <div
                       className={`${style.menu_item} ${style.danger}`}
                       onClick={() => {
                         setShowMenu(false);
@@ -880,6 +892,18 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
 
       {showStorage && (
         <ChatFileStorage onClose={() => setShowStorage(false)} />
+      )}
+
+      {showSettings && room && (
+        <RoomSettings
+          room={room}
+          onClose={() => setShowSettings(false)}
+          onUpdated={(updatedRoom) => {
+            setRoom(updatedRoom);
+            onRoomUpdated?.(updatedRoom);
+            setShowSettings(false);
+          }}
+        />
       )}
 
       {lightboxImage && (
