@@ -199,21 +199,7 @@ const Index = (props: Props) => {
     let effectiveEndDate = endDate;
 
     if (recurrenceType === "weekly") {
-      // Use the earliest selected day from today as the start date
-      const today = new Date();
-      const currentDay = today.getDay();
-      const firstDay = daysOfWeek.sort((a, b) => a - b)[0];
-      const diff = (firstDay - currentDay + 7) % 7;
-      const firstOccurrence = new Date(today);
-      firstOccurrence.setDate(firstOccurrence.getDate() + diff);
-      const dateStr = `${firstOccurrence.getFullYear()}-${String(
-        firstOccurrence.getMonth() + 1
-      ).padStart(2, "0")}-${String(firstOccurrence.getDate()).padStart(
-        2,
-        "0"
-      )}`;
-      effectiveStartDate = dateStr;
-      effectiveEndDate = dateStr;
+      effectiveEndDate = effectiveStartDate;
     } else if (recurrenceType === "daily") {
       effectiveEndDate = effectiveStartDate;
     }
@@ -254,6 +240,7 @@ const Index = (props: Props) => {
         flexDirection: "column",
       }}
       closeBtn
+      contentScroll
       title={props.mode === "edit" ? "일정 수정" : "일정 추가"}
       footer={
         <div className={style.footer}>
@@ -444,14 +431,24 @@ const Index = (props: Props) => {
         )}
 
         {recurrenceType !== "none" && (
-          <div className={style.row}>
-            <Input
-              label="반복 종료일"
-              type="date"
-              value={recurrenceEndDate}
-              onChange={(e: any) => setRecurrenceEndDate(e.target.value)}
-            />
-          </div>
+          <>
+            <div className={style.row}>
+              <Input
+                label="반복 시작일"
+                type="date"
+                defaultValue={startDate}
+                onChange={(e: any) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className={style.row}>
+              <Input
+                label="반복 종료일"
+                type="date"
+                value={recurrenceEndDate}
+                onChange={(e: any) => setRecurrenceEndDate(e.target.value)}
+              />
+            </div>
+          </>
         )}
 
         {!isAllDay && (

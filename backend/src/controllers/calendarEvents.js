@@ -136,6 +136,7 @@ export const find = async (req, res) => {
     const queryEnd = new Date(endDate);
 
     const query = {
+      dismissed: { $ne: true },
       $or: [
         // Non-recurring events within range
         {
@@ -320,7 +321,13 @@ export const remove = async (req, res) => {
       logger.error(`Failed to remove event reminder: ${err.message}`)
     );
 
-    await event.deleteOne();
+    // 동기화된 이벤트는 소프트 삭제 (다음 동기화 시 재생성 방지)
+    if (event.sourceType && event.sourceType !== "manual") {
+      event.dismissed = true;
+      await event.save();
+    } else {
+      await event.deleteOne();
+    }
     return res.status(200).send();
   } catch (err) {
     logger.error(err.message);
@@ -615,8 +622,12 @@ function expandRecurringEvent(event, queryStart, queryEnd) {
   if (event.recurrence.type === "weekly" && event.recurrence.days?.length > 0) {
     const days = event.recurrence.days;
 
+    // Compare dates without time for start boundary
+    const eventStartDateOnly = new Date(eventStart);
+    eventStartDateOnly.setHours(0, 0, 0, 0);
+
     // Start from the beginning of the week containing max(eventStart, queryStart)
-    let weekStart = new Date(Math.max(eventStart.getTime(), queryStart.getTime()));
+    let weekStart = new Date(Math.max(eventStartDateOnly.getTime(), queryStart.getTime()));
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
 
@@ -625,7 +636,7 @@ function expandRecurringEvent(event, queryStart, queryEnd) {
         const instanceDate = new Date(weekStart);
         instanceDate.setDate(instanceDate.getDate() + dayOfWeek);
 
-        if (instanceDate < eventStart || instanceDate > effectiveEnd) continue;
+        if (instanceDate < eventStartDateOnly || instanceDate > effectiveEnd) continue;
 
         const instanceStart = new Date(instanceDate);
         instanceStart.setHours(

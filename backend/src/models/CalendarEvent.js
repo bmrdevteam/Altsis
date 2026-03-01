@@ -83,6 +83,7 @@ const calendarEventSchema = mongoose.Schema(
     sourceId: { type: String },
     syllabusId: { type: mongoose.Types.ObjectId },
     calendarId: { type: mongoose.Types.ObjectId },
+    dismissed: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

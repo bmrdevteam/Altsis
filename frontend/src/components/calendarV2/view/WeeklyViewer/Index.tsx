@@ -44,6 +44,61 @@ function groupOverlappingEvents(events: EventItem[]): OverlapGroup[] {
   return groups;
 }
 
+interface ColumnAssignment {
+  event: EventItem;
+  column: number;
+  totalColumns: number;
+}
+
+function assignEventColumns(events: EventItem[]): ColumnAssignment[] {
+  if (events.length === 0) return [];
+  if (events.length === 1) {
+    return [{ event: events[0], column: 0, totalColumns: 1 }];
+  }
+
+  const sorted = [...events].sort((a, b) => {
+    const startCmp = a.startTimeText.localeCompare(b.startTimeText);
+    if (startCmp !== 0) return startCmp;
+    const aDur =
+      parseTimeToHours(a.endTimeText) - parseTimeToHours(a.startTimeText);
+    const bDur =
+      parseTimeToHours(b.endTimeText) - parseTimeToHours(b.startTimeText);
+    return bDur - aDur;
+  });
+
+  const columns: { start: number; end: number }[][] = [];
+  const assignments: { event: EventItem; column: number }[] = [];
+
+  for (const event of sorted) {
+    const start = parseTimeToHours(event.startTimeText);
+    const end = parseTimeToHours(event.endTimeText);
+
+    let placed = false;
+    for (let col = 0; col < columns.length; col++) {
+      const hasConflict = columns[col].some(
+        (existing) => start < existing.end && end > existing.start
+      );
+      if (!hasConflict) {
+        columns[col].push({ start, end });
+        assignments.push({ event, column: col });
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      columns.push([{ start, end }]);
+      assignments.push({ event, column: columns.length - 1 });
+    }
+  }
+
+  const totalColumns = columns.length;
+  return assignments.map((a) => ({
+    event: a.event,
+    column: a.column,
+    totalColumns,
+  }));
+}
+
 interface ICalendarState {
   events: EventItem[];
   setEvents: (events: EventItem[]) => void;
@@ -92,11 +147,15 @@ const Event = ({
   isMounted,
   onClickEvent,
   customCategoryColors,
+  column = 0,
+  totalColumns = 1,
 }: {
   data: EventItem;
   isMounted: boolean;
   onClickEvent: any;
   customCategoryColors?: Record<string, string>;
+  column?: number;
+  totalColumns?: number;
 }) => {
   const startTime = data.startTimeText.split(" ")[1];
   const endTime = data.endTimeText.split(" ")[1];
@@ -109,6 +168,9 @@ const Event = ({
 
   const color = resolveEventColor(data, customCategoryColors);
 
+  const widthPercent = 100 / totalColumns;
+  const leftPercent = column * widthPercent;
+
   return (
     <div
       className={
@@ -119,6 +181,8 @@ const Event = ({
       style={{
         top: `${start * 80}px`,
         height: `${height * 80}px`,
+        left: `calc(${leftPercent}% + 2px)`,
+        width: `calc(${widthPercent}% - 4px)`,
         background: `linear-gradient(${color}25, ${color}25), var(--background-color)`,
         borderLeft: `3px solid ${color}`,
       }}
@@ -132,66 +196,6 @@ const Event = ({
       {data.description && (
         <div className={style.room}>{data.description}</div>
       )}
-    </div>
-  );
-};
-
-const MoreEventsDropdown = ({
-  group,
-  startHour,
-  onClickEvent,
-  onClose,
-  customCategoryColors,
-}: {
-  group: OverlapGroup;
-  startHour: number;
-  onClickEvent: (event: EventItem) => void;
-  onClose: () => void;
-  customCategoryColors?: Record<string, string>;
-}) => {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
-
-  return (
-    <div
-      ref={ref}
-      className={style.more_dropdown}
-      style={{ top: `${startHour * 80}px` }}
-    >
-      {group.events.map((event, idx) => {
-        const color = resolveEventColor(event, customCategoryColors);
-        const startTime = event.startTimeText.split(" ")[1] ?? "";
-        const endTime = event.endTimeText.split(" ")[1] ?? "";
-        return (
-          <div
-            key={idx}
-            className={style.more_dropdown_item}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClickEvent(event);
-              onClose();
-            }}
-          >
-            <span
-              className={style.color_dot}
-              style={{ backgroundColor: color }}
-            />
-            <span className={style.event_title}>{event.title ?? "제목 없음"}</span>
-            <span className={style.event_time}>
-              {startTime} ~ {endTime}
-            </span>
-          </div>
-        );
-      })}
     </div>
   );
 };
@@ -337,7 +341,6 @@ function WeeklyView(props: Props) {
 
   const EventContainer = (props2: { dateText: string }) => {
     const { events } = useStore();
-    const [openGroupIdx, setOpenGroupIdx] = useState<number | null>(null);
 
     const filteredEvents: EventItem[] = [];
     for (let val of events) {
@@ -359,46 +362,20 @@ function WeeklyView(props: Props) {
     return (
       <div className={style.event_container}>
         {groups.map((group, gIdx) => {
-          if (group.events.length === 1) {
-            return (
-              <Event
-                key={`${group.events[0].eventId || group.events[0].id}-${gIdx}`}
-                data={group.events[0]}
-                isMounted={props.isMounted}
-                onClickEvent={props.onClickEvent}
-                customCategoryColors={props.customCategoryColors}
-              />
-            );
-          }
-
-          const firstEvent = group.events[0];
+          const assignments = assignEventColumns(group.events);
           return (
             <React.Fragment key={`group-${gIdx}`}>
-              <Event
-                data={firstEvent}
-                isMounted={props.isMounted}
-                onClickEvent={props.onClickEvent}
-                customCategoryColors={props.customCategoryColors}
-              />
-              <div
-                className={style.more_badge}
-                style={{ top: `${group.startHour * 80}px` }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenGroupIdx(openGroupIdx === gIdx ? null : gIdx);
-                }}
-              >
-                +{group.events.length - 1} 더보기
-              </div>
-              {openGroupIdx === gIdx && (
-                <MoreEventsDropdown
-                  group={group}
-                  startHour={group.startHour}
+              {assignments.map((a, idx) => (
+                <Event
+                  key={`${a.event.eventId || a.event.id}-${gIdx}-${idx}`}
+                  data={a.event}
+                  isMounted={props.isMounted}
                   onClickEvent={props.onClickEvent}
-                  onClose={() => setOpenGroupIdx(null)}
                   customCategoryColors={props.customCategoryColors}
+                  column={a.column}
+                  totalColumns={a.totalColumns}
                 />
-              )}
+              ))}
             </React.Fragment>
           );
         })}

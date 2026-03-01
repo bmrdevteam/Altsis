@@ -165,7 +165,7 @@
 
       .timedSpanEvent {
         position: absolute;
-        z-index: 10;
+        z-index: 9;
         padding: 4px;
         padding-left: 6px;
         border-radius: 4px;
@@ -182,10 +182,6 @@
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
-        }
-
-        &:hover {
-          opacity: 0.8;
         }
       }
 
@@ -214,10 +210,8 @@
           height: 0px;
 
           .event {
-            margin: 0 4px;
             cursor: pointer;
             position: absolute;
-            width: calc(100% - 8px);
             font-size: 12px;
             padding: 4px;
             padding-left: 6px;
@@ -242,82 +236,10 @@
           }
         }
 
-        .more_badge {
-          position: absolute;
-          right: 4px;
-          z-index: 11;
-          padding: 2px 6px;
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--accent-1);
-          background-color: var(--background-color);
-          border: var(--border-default);
-          border-radius: 10px;
-          cursor: pointer;
-          white-space: nowrap;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .more_badge:hover {
-          background-color: var(--component-hover-color);
-        }
-
-        .more_dropdown {
-          position: absolute;
-          right: 0;
-          z-index: 20;
-          min-width: 200px;
-          max-width: 280px;
-          background-color: var(--background-color);
-          border: var(--border-default);
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          padding: 4px;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-
-          .more_dropdown_item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-
-            .color_dot {
-              min-width: 8px;
-              min-height: 8px;
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-            }
-
-            .event_title {
-              flex: 1;
-              font-weight: 600;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            }
-
-            .event_time {
-              font-size: 11px;
-              color: var(--accent-3);
-              white-space: nowrap;
-            }
-          }
-
-          .more_dropdown_item:hover {
-            background-color: var(--component-hover-color);
-          }
-        }
-
         .row_function {
           position: absolute;
           top: 0;
-          z-index: 9;
+          z-index: 8;
           height: 100%;
           width: 100%;
           display: flex;
