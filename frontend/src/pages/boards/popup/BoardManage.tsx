@@ -83,10 +83,11 @@ const NOTIF_LABELS: Record<
   boardInvitation: { label: "보드 초대 알림", desc: "새 멤버 초대 시 알림" },
   altFormApprovalRequest: { label: "승인 요청 알림", desc: "양식 제출 시 승인자에게 알림" },
   altFormApprovalResult: { label: "승인 결과 알림", desc: "승인/반려 시 제출자에게 알림" },
+  formDeadlineCalendar: { label: "양식 마감 일정 등록", desc: "양식 마감일을 멤버 캘린더에 등록" },
 };
 
 const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
-  const { currentRegistration } = useAuth();
+  const { currentRegistration, currentSeason } = useAuth();
   const { BoardAPI, RegistrationAPI } = useAPIv2();
 
   const [name, setName] = useState(board.name);
@@ -104,6 +105,7 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
       boardInvitation: false,
       altFormApprovalRequest: false,
       altFormApprovalResult: false,
+      formDeadlineCalendar: false,
     }
   );
 
@@ -121,9 +123,10 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
   const [coverRemoved, setCoverRemoved] = useState(false);
 
   useEffect(() => {
-    if (currentRegistration?.season) {
+    const seasonId = currentRegistration?.season || currentSeason?._id;
+    if (seasonId) {
       RegistrationAPI.RRegistrations({
-        query: { season: currentRegistration.season },
+        query: { season: seasonId },
       })
         .then(({ registrations }) => {
           const list = _.uniqBy(registrations, "userId");

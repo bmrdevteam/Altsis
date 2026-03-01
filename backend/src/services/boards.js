@@ -185,10 +185,11 @@ export const isBoardWriter = (board, user, role) => {
  *
  * @param {string} academyId - 아카데미 ID
  * @param {Object} board - 게시판 문서
+ * @param {string} [seasonId] - 특정 학기 ID (전달 시 해당 학기 사용자만 반환)
  *
  * @returns {Promise<Array>} 멤버 사용자 목록 [{user, userId, userName}]
  */
-export const getBoardMembers = async (academyId, board) => {
+export const getBoardMembers = async (academyId, board, seasonId) => {
   const users = [];
 
   // 기본 보드(공지사항): 전체 학교 구성원 반환
@@ -208,10 +209,9 @@ export const getBoardMembers = async (academyId, board) => {
       }
     }
 
-    const registrations = await Registration(academyId).find({
-      schoolId: board.schoolId,
-      isActivated: true,
-    });
+    const regQuery = { schoolId: board.schoolId, isActivated: true };
+    if (seasonId) regQuery.season = seasonId;
+    const registrations = await Registration(academyId).find(regQuery);
     for (const reg of registrations) {
       if (!users.some((u) => u.userId === reg.userId)) {
         users.push({ user: reg.user, userId: reg.userId, userName: reg.userName });

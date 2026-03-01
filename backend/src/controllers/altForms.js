@@ -7,6 +7,8 @@ import crypto from "crypto";
 import { logger } from "../log/logger.js";
 import { AltForm, AltSheet, AltSheetRow, Board, CalendarEvent } from "../models/index.js";
 import { canManageForm, canModifyForm, getAltBoardRole } from "../services/altForms.js";
+import { isBoardNotificationEnabled } from "../services/notifications.js";
+import { getBoardMembers } from "../services/boards.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -79,40 +81,77 @@ export const create = async (req, res) => {
 };
 
 /**
- * Form 마감일 → CalendarEvent 동기화
+ * Form 마감일 → CalendarEvent 동기화 (멤버별 개인 일정)
  */
 async function syncFormCalendar(academyId, form, board, user) {
-  const sourceId = `altForm-${form._id}`;
+  const sourceIdPrefix = `altForm-${form._id}`;
 
-  if (!form.settings?.closeAt) {
-    // closeAt 없으면 기존 이벤트 삭제
+  // 기존 school-scope 이벤트 정리 (레거시)
+  await CalendarEvent(academyId).deleteMany({
+    sourceType: "altForm",
+    sourceId: sourceIdPrefix,
+  });
+
+  const enabled = await isBoardNotificationEnabled(
+    academyId,
+    board.school,
+    board,
+    "formDeadlineCalendar"
+  );
+
+  if (!enabled || !form.settings?.closeAt) {
+    // 설정 비활성 또는 마감일 없음 → 멤버별 이벤트도 삭제
     await CalendarEvent(academyId).deleteMany({
       sourceType: "altForm",
-      sourceId,
+      sourceId: { $regex: `^${sourceIdPrefix}-` },
     });
     return;
   }
 
   const closeAt = new Date(form.settings.closeAt);
-  const eventData = {
-    title: `${board.name} - ${form.title} 마감`,
-    description: "",
-    start: closeAt,
-    end: closeAt,
-    isAllDay: true,
-    scope: "school",
-    school: board.school,
-    user: user._id,
-    sourceType: "altForm",
-    sourceId,
-    color: "#ea4335",
-  };
+  const members = await getBoardMembers(academyId, board);
 
-  await CalendarEvent(academyId).findOneAndUpdate(
-    { sourceType: "altForm", sourceId },
-    eventData,
-    { upsert: true, new: true }
-  );
+  const currentSourceIds = new Set();
+  const ops = [];
+
+  for (const member of members) {
+    const sourceId = `${sourceIdPrefix}-${member.user}`;
+    currentSourceIds.add(sourceId);
+
+    ops.push({
+      updateOne: {
+        filter: { sourceType: "altForm", sourceId },
+        update: {
+          $set: {
+            title: `${form.title} 마감`,
+            description: "",
+            start: closeAt,
+            end: closeAt,
+            isAllDay: true,
+            scope: "personal",
+            user: member.user,
+            sourceType: "altForm",
+            sourceId,
+            color: "#ea4335",
+          },
+        },
+        upsert: true,
+      },
+    });
+  }
+
+  if (ops.length > 0) {
+    await CalendarEvent(academyId).bulkWrite(ops, { ordered: false });
+  }
+
+  // 탈퇴한 멤버의 이벤트 정리
+  await CalendarEvent(academyId).deleteMany({
+    sourceType: "altForm",
+    $and: [
+      { sourceId: { $regex: `^${sourceIdPrefix}-` } },
+      { sourceId: { $nin: Array.from(currentSourceIds) } },
+    ],
+  });
 }
 
 /**

@@ -5,9 +5,10 @@ type Props = {
 };
 
 const ScheduleTab = (props: Props) => {
+  if (!props.user?._id) return null;
   return (
     <div style={{ backgroundColor: "white" }}>
-      <Calendar userId={props.user?._id} readOnly />
+      <Calendar key={props.user._id} userId={props.user._id} readOnly />
     </div>
   );
 };

@@ -119,19 +119,6 @@ export const find = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("startDate") });
     }
 
-    // IDOR 방지: 타인 캘린더 조회 시 권한 확인
-    if (userId && userId !== req.user._id.toString()) {
-      if (req.user.auth !== "admin" && req.user.auth !== "manager") {
-        const teacherReg = await Registration(req.user.academyId).findOne({
-          user: req.user._id,
-          role: "teacher",
-        });
-        if (!teacherReg) {
-          return res.status(403).send({ message: PERMISSION_DENIED });
-        }
-      }
-    }
-
     const queryStart = new Date(startDate);
     const queryEnd = new Date(endDate);
 
@@ -348,12 +335,9 @@ export const syncEnrollments = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("season") });
     }
 
-    // Allow admin/teacher/manager to sync for another user
+    // 타인 일정 동기화 허용
     let syncUserId = req.user._id;
     if (targetUser && String(targetUser) !== String(req.user._id)) {
-      if (!["admin", "manager", "teacher"].includes(req.user.auth)) {
-        return res.status(403).send({ message: PERMISSION_DENIED });
-      }
       syncUserId = targetUser;
     }
 
@@ -560,6 +544,13 @@ export const syncEnrollments = async (req, res) => {
       });
       removed += dupResult.deletedCount;
     }
+
+    // 3. 레거시 altForm school-scope 이벤트 정리 (개인 일정으로 전환됨)
+    const legacyAltFormResult = await CalendarEvent(req.user.academyId).deleteMany({
+      sourceType: "altForm",
+      scope: "school",
+    });
+    removed += legacyAltFormResult.deletedCount;
 
     return res.status(200).send({ synced: created, removed, total: eventsToCreate.length });
   } catch (err) {

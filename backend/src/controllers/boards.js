@@ -641,7 +641,9 @@ export const remove = async (req, res) => {
       await AltForm(academyId).deleteMany({ board: boardId });
       await CalendarEvent(academyId).deleteMany({
         sourceType: "altForm",
-        sourceId: { $in: altFormIds.map((id) => `altForm-${id}`) },
+        sourceId: {
+          $regex: `^altForm-(${altFormIds.join("|")})`,
+        },
       });
     }
 
@@ -728,7 +730,11 @@ export const findMemberList = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    const users = await getBoardMembers(req.user.academyId, board);
+    const users = await getBoardMembers(
+      req.user.academyId,
+      board,
+      req.query.season
+    );
     return res.status(200).send({ users });
   } catch (err) {
     logger.error(err.message);

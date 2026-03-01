@@ -3114,9 +3114,12 @@ export default function useAPIv2() {
    */
   async function RBoardMemberList(props: {
     params: { _id: string };
+    query?: { season?: string };
   }) {
     const { users } = await database.R({
-      location: `boards/${props.params._id}/members/list`,
+      location:
+        `boards/${props.params._id}/members/list` +
+        QUERY_BUILDER(props.query),
     });
     return {
       users: users as { user: string; userId: string; userName: string }[],

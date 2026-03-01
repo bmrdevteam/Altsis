@@ -37,6 +37,7 @@ export type TBoardNotificationEventsSchool = {
   boardInvitation: boolean;
   altFormApprovalRequest: boolean;
   altFormApprovalResult: boolean;
+  formDeadlineCalendar: boolean;
 };
 
 export type TAcademyFeatures = {

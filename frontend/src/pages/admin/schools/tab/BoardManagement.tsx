@@ -33,6 +33,10 @@ const NOTIFICATION_EVENT_LABELS: Record<
     label: "승인 결과 알림",
     description: "승인/반려 시 제출자에게 알림",
   },
+  formDeadlineCalendar: {
+    label: "양식 마감 일정 등록",
+    description: "양식 마감일을 멤버 캘린더에 등록",
+  },
 };
 
 type Props = {
@@ -82,6 +86,7 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
       boardInvitation: false,
       altFormApprovalRequest: false,
       altFormApprovalResult: false,
+      formDeadlineCalendar: false,
     };
     const updated = { ...current, [key]: value };
 

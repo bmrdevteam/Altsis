@@ -40,6 +40,7 @@ export type TBoardNotificationEvents = {
   boardInvitation: boolean;
   altFormApprovalRequest: boolean;
   altFormApprovalResult: boolean;
+  formDeadlineCalendar: boolean;
 };
 
 export type TBoard = {

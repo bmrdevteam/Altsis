@@ -31,7 +31,7 @@ import AltBoardView from "./altBoard/AltBoardView";
 const BoardPid = () => {
   const navigate = useAppNavigate();
   const { boardId } = useParams<{ boardId: string }>();
-  const { currentUser } = useAuth();
+  const { currentUser, currentRegistration } = useAuth();
   const { BoardAPI } = useAPIv2();
 
   const [board, setBoard] = useState<TBoard | null>(null);
@@ -178,7 +178,10 @@ const BoardPid = () => {
           title="보드 멤버"
           setState={setShowMemberListPopup}
           fetchUsers={() =>
-            BoardAPI.RBoardMemberList({ params: { _id: board._id } })
+            BoardAPI.RBoardMemberList({
+              params: { _id: board._id },
+              query: { season: currentRegistration?.season },
+            })
           }
         />
       )}
