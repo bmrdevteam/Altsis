@@ -1,10 +1,12 @@
 import { TBoard, TAltBoardRole } from "types/board";
+import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChatContainer.module.scss";
 
 type Member = {
   user: string;
   userId: string;
   userName: string;
+  profile?: string;
 };
 
 type Props = {
@@ -72,7 +74,14 @@ const BoardChatMemberSidebar = ({
               title={`${member.userName}에게 메시지`}
             >
               <div className={style.sidebar_avatar}>
-                {member.userName?.[0] || "?"}
+                <img
+                  src={member.profile || defaultProfilePic}
+                  alt=""
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = defaultProfilePic;
+                  }}
+                />
               </div>
               <span className={style.sidebar_name}>{member.userName}</span>
               {roleLabel && (

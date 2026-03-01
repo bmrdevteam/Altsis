@@ -4,6 +4,7 @@ import { TBoard, TAltBoardRole } from "types/board";
 import { TAIChatMessage, TAIChatSession } from "types/aiChat";
 import { useAuth } from "contexts/authContext";
 import useAPIv2 from "hooks/useAPIv2";
+import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChat.module.scss";
 
 type Props = {
@@ -253,7 +254,16 @@ const AIChatPanel = ({ board, socket, sessionId, myRole }: Props) => {
                 >
                   {!(isMine) && (
                     <div className={style.avatar}>
-                      {msg.senderType === "ai" ? "A" : msg.senderName?.[0] || "?"}
+                      {msg.senderType === "ai" ? "A" : (
+                        <img
+                          src={msg.senderProfile || defaultProfilePic}
+                          alt=""
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = defaultProfilePic;
+                          }}
+                        />
+                      )}
                     </div>
                   )}
                   <div className={style.message_content}>

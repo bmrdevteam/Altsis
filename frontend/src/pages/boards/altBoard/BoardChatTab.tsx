@@ -7,6 +7,7 @@ import useAPIv2 from "hooks/useAPIv2";
 import ChatMessageContent from "layout/navbar/ChatMessageContent";
 import ImageLightbox from "layout/navbar/ImageLightbox";
 import Svg from "assets/svg/Svg";
+import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChat.module.scss";
 
 type Props = {
@@ -421,11 +422,14 @@ const BoardChatTab = ({ board, socket, onNewMessage }: Props) => {
                     {!isMine &&
                       (groupStart ? (
                         <div className={style.avatar}>
-                          {msg.senderProfile ? (
-                            <img src={msg.senderProfile} alt="" />
-                          ) : (
-                            msg.senderName?.[0] || "?"
-                          )}
+                          <img
+                            src={msg.senderProfile || defaultProfilePic}
+                            alt=""
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = defaultProfilePic;
+                            }}
+                          />
                         </div>
                       ) : (
                         <div className={style.avatar_space} />

@@ -14,6 +14,7 @@ type Member = {
   user: string;
   userId: string;
   userName: string;
+  profile?: string;
 };
 
 type Props = {

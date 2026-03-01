@@ -218,28 +218,41 @@ export const getBoardMembers = async (academyId, board, seasonId) => {
       }
     }
 
-    return users;
-  }
+  } else {
+    // Alt Board: altBoardRole에서 멤버 해석
+    if (board.altBoardRole && board.altBoardRole.size > 0) {
+      const userOids = Array.from(board.altBoardRole.keys());
+      const userData = await User(academyId)
+        .find({ _id: { $in: userOids } })
+        .select("_id userId userName")
+        .lean();
 
-  // Alt Board: altBoardRole에서 멤버 해석
-  if (board.altBoardRole && board.altBoardRole.size > 0) {
-    const userOids = Array.from(board.altBoardRole.keys());
-    const userData = await User(academyId)
-      .find({ _id: { $in: userOids } })
-      .select("_id userId userName")
-      .lean();
+      for (const u of userData) {
+        users.push({ user: u._id, userId: u.userId, userName: u.userName });
+      }
+    }
 
-    for (const u of userData) {
-      users.push({ user: u._id, userId: u.userId, userName: u.userName });
+    // 일반 멤버도 포함 (altBoardRole과 중복 제거)
+    const members = resolveBoardMembers(board);
+
+    for (const u of members.users || []) {
+      if (!users.some((x) => x.userId === u.userId)) {
+        users.push({ user: u.user, userId: u.userId, userName: u.userName });
+      }
     }
   }
 
-  // 일반 멤버도 포함 (altBoardRole과 중복 제거)
-  const members = resolveBoardMembers(board);
-
-  for (const u of members.users || []) {
-    if (!users.some((x) => x.userId === u.userId)) {
-      users.push({ user: u.user, userId: u.userId, userName: u.userName });
+  // 프로필 이미지 조회
+  if (users.length > 0) {
+    const profileData = await User(academyId)
+      .find({ _id: { $in: users.map((u) => u.user) } })
+      .select("_id profile")
+      .lean();
+    const profileMap = new Map(
+      profileData.map((u) => [u._id.toString(), u.profile || null])
+    );
+    for (const u of users) {
+      u.profile = profileMap.get(u.user.toString()) || null;
     }
   }
 

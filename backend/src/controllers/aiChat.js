@@ -203,6 +203,7 @@ export const sendAIChatMessage = async (req, res) => {
         sender: req.user._id,
         senderId: req.user.userId,
         senderName: req.user.userName,
+        senderProfile: req.user.profile,
         content,
       });
 
@@ -262,6 +263,7 @@ export const sendAIChatMessage = async (req, res) => {
       sender: req.user._id,
       senderId: req.user.userId,
       senderName: req.user.userName,
+      senderProfile: req.user.profile,
       content,
     });
 

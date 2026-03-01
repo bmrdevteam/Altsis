@@ -19,6 +19,7 @@ export type TAIChatMessage = {
   sender?: string;
   senderId?: string;
   senderName: string;
+  senderProfile?: string;
   content: string;
   tokenUsage?: {
     promptTokens: number;

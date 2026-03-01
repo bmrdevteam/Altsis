@@ -3141,7 +3141,7 @@ export default function useAPIv2() {
         QUERY_BUILDER(props.query),
     });
     return {
-      users: users as { user: string; userId: string; userName: string }[],
+      users: users as { user: string; userId: string; userName: string; profile?: string }[],
     };
   }
 
