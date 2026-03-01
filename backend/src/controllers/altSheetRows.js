@@ -642,7 +642,10 @@ export const update = async (req, res) => {
       return approvalData?.approver?.userId === req.user.userId;
     });
 
-    if (!canManageForm(board, req.user) && !isApprover) {
+    const role = getAltBoardRole(board, req.user);
+    const isAdmin = role === "admin" || req.user.auth === "manager";
+
+    if (!isAdmin && !isApprover) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
@@ -721,16 +724,18 @@ export const remove = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    // 교사(admin/writer)이거나 본인 응답 철회
+    // admin 또는 시스템 manager이거나 본인 응답 철회 (재제출 허용 시에만)
     const role = getAltBoardRole(board, req.user);
+    const isAdmin = role === "admin" || req.user.auth === "manager";
     const isOwner = row._respondent && row._respondent.equals(req.user._id);
 
-    if (role !== "admin" && role !== "writer" && !isOwner) {
+    const form = await AltForm(req.user.academyId).findById(row.form);
+    const allowResubmit =
+      form?.settings?.allowResubmit || form?.settings?.allowMultipleResponses;
+
+    if (!isAdmin && !(isOwner && allowResubmit)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
-
-    // 자유 모드 중복 검사 카운터 감소
-    const form = await AltForm(req.user.academyId).findById(row.form);
     if (form) {
       const dupFields = getDuplicateCheckFields(form);
       const dupMode = dupFields[0]?.duplicateCheck?.mode;

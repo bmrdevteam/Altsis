@@ -11,6 +11,7 @@ type Props = {
   board: TBoard;
   forms: TAltForm[];
   canManage: boolean;
+  canDeleteAnyRow: boolean;
   initialFormId?: string;
   onFormSelect?: (formId: string) => void;
   onFormDeselect?: () => void;
@@ -26,6 +27,7 @@ const AltSheetView = ({
   board,
   forms,
   canManage,
+  canDeleteAnyRow,
   initialFormId,
   onFormSelect,
   onFormDeselect,
@@ -276,7 +278,7 @@ const AltSheetView = ({
     field: TAltFormField,
     currentValue: string
   ) => {
-    if (!canManage) return;
+    if (!canDeleteAnyRow) return;
     // 복합 타입은 텍스트 입력으로 편집 불가 (데이터 손상 방지)
     const nonEditableTypes = [
       "multiDate", "multiSelect", "userSelect", "file",
@@ -984,7 +986,7 @@ const AltSheetView = ({
                   const isEditing =
                     editingCell?.rowId === row._id &&
                     editingCell?.fieldId === field._id;
-                  const canEdit = canManage;
+                  const canEdit = canDeleteAnyRow;
 
                   return (
                     <td
@@ -1023,7 +1025,10 @@ const AltSheetView = ({
                     : "-"}
                 </td>
                 <td className={style.actionCell}>
-                  {(canManage || row._respondent === currentUser?._id) && (
+                  {(canDeleteAnyRow ||
+                    (row._respondent === currentUser?._id &&
+                      (selectedForm?.settings?.allowResubmit ||
+                        selectedForm?.settings?.allowMultipleResponses))) && (
                     <button
                       className={style.removeBtn}
                       onClick={() => handleDeleteRow(row._id)}

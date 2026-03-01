@@ -43,6 +43,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
   })();
 
   const canManage = myRole === "admin" || myRole === "writer";
+  const canDeleteAnyRow = myRole === "admin" || currentUser?.auth === "manager";
 
   // 특정 양식의 수정/삭제 가능 여부 (작성자 본인, 보드 admin, 시스템 manager)
   const canModifyForm = (form: TAltForm) => {
@@ -267,6 +268,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
               board={board}
               forms={forms}
               canManage={canManage}
+              canDeleteAnyRow={canDeleteAnyRow}
               initialFormId={urlSheetId || undefined}
               onFormSelect={(formId) => {
                 if (!embedded) setSearchParams({ sheet: formId }, { replace: true });
