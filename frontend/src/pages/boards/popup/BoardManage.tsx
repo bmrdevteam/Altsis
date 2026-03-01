@@ -87,7 +87,7 @@ const NOTIF_LABELS: Record<
 };
 
 const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
-  const { currentRegistration, currentSeason } = useAuth();
+  const { currentRegistration, currentSeason, currentSchool } = useAuth();
   const { BoardAPI, RegistrationAPI } = useAPIv2();
 
   const [name, setName] = useState(board.name);
@@ -109,9 +109,15 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
     }
   );
 
+  const [chatEnabled, setChatEnabled] = useState(board.chatEnabled !== false);
+
   const [coverColor, setCoverColor] = useState(board.coverColor || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const schoolChatEnabled =
+    currentSchool?.chatEnabled !== false &&
+    currentSchool?.academyFeatures?.chatEnabled !== false;
 
   // 쿼터 사용자 목록 (초대용)
   const [registrationList, setRegistrationList] = useState<any[]>([]);
@@ -291,6 +297,7 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
           description: description.trim(),
           coverColor: coverColor || undefined,
           notificationEvents: notifEvents,
+          chatEnabled,
         },
       });
 
@@ -867,6 +874,56 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
             ))}
           </div>
         </div>
+
+        {/* 채팅 설정 */}
+        {schoolChatEnabled && (
+          <div style={{ marginTop: "24px" }}>
+            <h4
+              style={{
+                marginBottom: "4px",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              채팅 설정
+            </h4>
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginBottom: "12px",
+              }}
+            >
+              이 보드의 채팅 기능을 설정합니다.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                  채팅 활성화
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--text-color-2)",
+                    marginTop: "2px",
+                  }}
+                >
+                  보드 채팅 탭을 활성화합니다
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={chatEnabled}
+                onChange={(v) => setChatEnabled(v)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </Popup>
   );

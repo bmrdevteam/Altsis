@@ -77,6 +77,30 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
     }
   };
 
+  const handleBoardCreationPermissionToggle = async (
+    key: "teacher" | "student",
+    value: boolean
+  ) => {
+    const current = schoolData.boardCreationPermission || {
+      teacher: false,
+      student: false,
+    };
+    const updated = { ...current, [key]: value };
+
+    try {
+      await SchoolAPI.USchoolBoardCreationPermission({
+        params: { _id: schoolData._id },
+        data: { boardCreationPermission: updated },
+      });
+      setSchoolData?.({
+        ...schoolData,
+        boardCreationPermission: updated,
+      });
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
   const handleSchoolNotifToggle = async (
     key: keyof TBoardNotificationEvents,
     value: boolean
@@ -112,6 +136,78 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
       schoolData={schoolData}
       setSchoolData={setSchoolData}
     >
+      {/* 보드 생성 권한 설정 */}
+      <div
+        style={{
+          marginBottom: "24px",
+          padding: "16px",
+          border: "1px solid var(--border-color)",
+          borderRadius: "8px",
+          backgroundColor: "var(--background-color-2)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "14px",
+            fontWeight: 600,
+            marginBottom: "12px",
+            color: "var(--text-color)",
+          }}
+        >
+          보드 생성 권한
+        </div>
+        <p
+          style={{
+            fontSize: "12px",
+            color: "var(--text-color-2)",
+            marginBottom: "12px",
+          }}
+        >
+          관리자는 항상 보드를 생성할 수 있습니다. 교사와 학생의 보드 생성
+          권한을 설정합니다.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {(
+            [
+              { key: "teacher" as const, label: "교사", description: "교사가 보드를 생성할 수 있습니다" },
+              { key: "student" as const, label: "학생", description: "학생이 보드를 생성할 수 있습니다" },
+            ]
+          ).map((item) => (
+            <div
+              key={item.key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                  {item.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--text-color-2)",
+                    marginTop: "2px",
+                  }}
+                >
+                  {item.description}
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={
+                  schoolData.boardCreationPermission?.[item.key] ?? false
+                }
+                onChange={(v) =>
+                  handleBoardCreationPermissionToggle(item.key, v)
+                }
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* 학교 수준 보드 알림 설정 */}
       <div
         style={{

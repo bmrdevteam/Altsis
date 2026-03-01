@@ -29,7 +29,7 @@ import BoardGalleryView from "./views/BoardGalleryView";
 
 const Boards = () => {
   const navigate = useAppNavigate();
-  const { currentUser, currentSchool } = useAuth();
+  const { currentUser, currentSchool, currentRegistration } = useAuth();
   const { BoardAPI, BoardFavoriteAPI } = useAPIv2();
 
   const [boards, setBoards] = useState<TBoard[]>([]);
@@ -49,6 +49,16 @@ const Boards = () => {
 
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
+
+  const canCreateBoard = useMemo(() => {
+    if (isManager) return true;
+    const permission = currentSchool?.boardCreationPermission;
+    if (currentRegistration?.role === "teacher" && permission?.teacher)
+      return true;
+    if (currentRegistration?.role === "student" && permission?.student)
+      return true;
+    return false;
+  }, [currentUser, currentSchool, currentRegistration]);
 
   const canManageBoard = (board: TBoard) => {
     if (isManager) return true;
@@ -158,16 +168,18 @@ const Boards = () => {
 
           {/* 툴바 */}
           <div className={bStyle.toolbar}>
-            <Button
-              type="ghost"
-              onClick={() => setShowBoardCreatePopup(true)}
-              style={{ fontSize: "13px" }}
-            >
-              <>
-                <Svg type="plus" width="16px" height="16px" />
-                보드 생성
-              </>
-            </Button>
+            {canCreateBoard && (
+              <Button
+                type="ghost"
+                onClick={() => setShowBoardCreatePopup(true)}
+                style={{ fontSize: "13px" }}
+              >
+                <>
+                  <Svg type="plus" width="16px" height="16px" />
+                  보드 생성
+                </>
+              </Button>
+            )}
 
             <button
               className={`${bStyle.textBtn} ${

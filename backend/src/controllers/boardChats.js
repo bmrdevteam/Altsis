@@ -49,6 +49,10 @@ const getBoardAndVerifyMember = async (req) => {
     return { error: { status: 403, message: PERMISSION_DENIED } };
   }
 
+  if (board.chatEnabled === false) {
+    return { error: { status: 403, message: "BOARD_CHAT_NOT_ENABLED" } };
+  }
+
   return { board };
 };
 

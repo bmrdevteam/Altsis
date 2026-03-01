@@ -1,7 +1,7 @@
 import Table from "components/tableV2/Table";
 import { unflattenObject } from "functions/functions";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import style from "style/pages/archive.module.scss";
 
 type Props = {
@@ -18,6 +18,7 @@ function Links(props: Props) {
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [links, setLinks] = useState<TLink[]>([]);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isLoading) {
@@ -26,6 +27,31 @@ function Links(props: Props) {
     }
     return () => {};
   }, [isLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
+
+  const saveLinks = (linksToSave: TLink[]) => {
+    const isValid = linksToSave.every(
+      (link) => link.title !== "" && link.url !== ""
+    );
+    if (!isValid) return;
+
+    SchoolAPI.USchoolLinks({
+      params: { _id: props.schoolData._id },
+      data: { links: linksToSave },
+    })
+      .then(({ links }) => {
+        props.setSchoolData({ ...props.schoolData, links });
+      })
+      .catch((err) => {
+        ALERT_ERROR(err);
+        setIsLoading(true);
+      });
+  };
 
   return (
     <div className={style.section} style={{ marginTop: "24px" }}>
@@ -36,32 +62,13 @@ function Links(props: Props) {
         type="object-array"
         data={!isLoading ? links : []}
         onChange={(e) => {
-          const links = e.map((v) => {
-            return unflattenObject(v) as TLink;
-          });
-          for (let link of links) {
-            if (link.title === "") {
-              setIsLoading(true);
-              return alert("제목을 입력해주세요");
-            }
-            if (link.url === "") {
-              setIsLoading(true);
-              return alert("주소를 입력해주세요");
-            }
-          }
-          SchoolAPI.USchoolLinks({
-            params: { _id: props.schoolData._id },
-            data: { links },
-          })
-            .then(({ links }) => {
-              alert(SUCCESS_MESSAGE);
-              props.setSchoolData({ ...props.schoolData, links });
-              setLinks(links);
-            })
-            .catch((err) => {
-              ALERT_ERROR(err);
-              setIsLoading(true);
-            });
+          const newLinks = e.map((v) => unflattenObject(v) as TLink);
+          setLinks(newLinks);
+
+          if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+          saveTimeoutRef.current = setTimeout(() => {
+            saveLinks(newLinks);
+          }, 500);
         }}
         header={[
           {
@@ -75,13 +82,13 @@ function Links(props: Props) {
           {
             text: "제목",
             key: "title",
-            type: "text",
+            type: "input",
             textAlign: "center",
           },
           {
             text: "주소",
             key: "url",
-            type: "text",
+            type: "input",
             textAlign: "center",
           },
           {

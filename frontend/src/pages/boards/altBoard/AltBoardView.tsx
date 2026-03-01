@@ -21,7 +21,7 @@ type Props = {
 };
 
 const AltBoardView = ({ board, embedded }: Props) => {
-  const { currentUser } = useAuth();
+  const { currentUser, currentSchool } = useAuth();
   const { AltFormAPI, BoardChatAPI } = useAPIv2();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -44,6 +44,12 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
   const canManage = myRole === "admin" || myRole === "writer";
   const canDeleteAnyRow = myRole === "admin" || currentUser?.auth === "manager";
+
+  // 채팅 활성화 여부 (학교 + 아카데미 + 보드 수준 모두 확인)
+  const isChatEnabled =
+    currentSchool?.chatEnabled !== false &&
+    currentSchool?.academyFeatures?.chatEnabled !== false &&
+    board.chatEnabled !== false;
 
   // 특정 양식의 수정/삭제 가능 여부 (작성자 본인, 보드 admin, 시스템 manager)
   const canModifyForm = (form: TAltForm) => {
@@ -82,7 +88,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
   // 채팅 뱃지: 초기 unread count 로드 + 소켓 리스너
   useEffect(() => {
-    if (!currentUser || !board._id) return;
+    if (!currentUser || !board._id || !isChatEnabled) return;
 
     // 초기 unread count
     BoardChatAPI.RBoardChatRoom({ params: { boardId: board._id } })
@@ -113,7 +119,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
     return () => {
       socket.disconnect();
     };
-  }, [currentUser?.academyId, currentUser?.userId, board._id]);
+  }, [currentUser?.academyId, currentUser?.userId, board._id, isChatEnabled]);
 
   const handleTabChange = useCallback((tabKey: string) => {
     activeTabRef.current = tabKey;
@@ -243,61 +249,70 @@ const AltBoardView = ({ board, embedded }: Props) => {
     );
   }
 
-  return (
-    <Tab
-      items={{
-        "문서": <div style={{ paddingTop: 20 }}><AltDocsView board={board} /></div>,
-        "양식": (
-          <div style={{ paddingTop: 20 }}>
-            <AltFormList
-              board={board}
-              forms={forms}
-              isLoading={isLoading}
-              canManage={canManage}
-              onFormClick={handleFormClick}
-              onRespondForm={canManage ? handleOpenRenderer : undefined}
-              onCreateForm={() => handleOpenBuilder()}
-              onRefresh={loadForms}
-              onCopyFormLink={handleCopyFormLink}
-            />
-          </div>
-        ),
-        "기록": (
-          <div style={{ paddingTop: 20 }}>
-            <AltSheetView
-              board={board}
-              forms={forms}
-              canManage={canManage}
-              canDeleteAnyRow={canDeleteAnyRow}
-              initialFormId={urlSheetId || undefined}
-              onFormSelect={(formId) => {
-                if (!embedded) setSearchParams({ sheet: formId }, { replace: true });
-              }}
-              onFormDeselect={() => {
-                if (!embedded) {
-                  setSearchParams(
-                    (prev) => {
-                      prev.delete("sheet");
-                      return prev;
-                    },
-                    { replace: true }
-                  );
-                }
-              }}
-              onCopySheetLink={handleCopySheetLink}
-            />
-          </div>
-        ),
-        "채팅": <div style={{ paddingTop: 20 }}><BoardChatContainer board={board} onNewMessage={() => {
+  const tabItems: Record<string, React.ReactNode> = {
+    "문서": <div style={{ paddingTop: 20 }}><AltDocsView board={board} /></div>,
+    "양식": (
+      <div style={{ paddingTop: 20 }}>
+        <AltFormList
+          board={board}
+          forms={forms}
+          isLoading={isLoading}
+          canManage={canManage}
+          onFormClick={handleFormClick}
+          onRespondForm={canManage ? handleOpenRenderer : undefined}
+          onCreateForm={() => handleOpenBuilder()}
+          onRefresh={loadForms}
+          onCopyFormLink={handleCopyFormLink}
+        />
+      </div>
+    ),
+    "기록": (
+      <div style={{ paddingTop: 20 }}>
+        <AltSheetView
+          board={board}
+          forms={forms}
+          canManage={canManage}
+          canDeleteAnyRow={canDeleteAnyRow}
+          initialFormId={urlSheetId || undefined}
+          onFormSelect={(formId) => {
+            if (!embedded) setSearchParams({ sheet: formId }, { replace: true });
+          }}
+          onFormDeselect={() => {
+            if (!embedded) {
+              setSearchParams(
+                (prev) => {
+                  prev.delete("sheet");
+                  return prev;
+                },
+                { replace: true }
+              );
+            }
+          }}
+          onCopySheetLink={handleCopySheetLink}
+        />
+      </div>
+    ),
+  };
+
+  if (isChatEnabled) {
+    tabItems["채팅"] = (
+      <div style={{ paddingTop: 20 }}>
+        <BoardChatContainer board={board} onNewMessage={() => {
           if (activeTabRef.current !== "채팅") {
             setChatUnreadCount((prev) => prev + 1);
           }
-        }} /></div>,
-      }}
+        }} />
+      </div>
+    );
+  }
+
+  return (
+    <Tab
+      items={tabItems}
       align="center"
       dontUsePaths={embedded}
       defaultTab={urlSheetId ? "기록" : undefined}
-      badges={{ "채팅": chatUnreadCount }}
+      badges={isChatEnabled ? { "채팅": chatUnreadCount } : undefined}
       onTabChange={handleTabChange}
     />
   );

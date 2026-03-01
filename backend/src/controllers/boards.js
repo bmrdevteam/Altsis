@@ -87,6 +87,16 @@ export const create = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("school") });
     }
 
+    // 관리자가 아닌 경우 생성 권한 체크
+    const isAdminOrManager = req.user.auth === "admin" || req.user.auth === "manager";
+    if (!isAdminOrManager) {
+      const role = await getUserRoleInSeason(req.user.academyId, school.schoolId, req.user);
+      const permission = school.boardCreationPermission || { teacher: false, student: false };
+      if (!role || !permission[role]) {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    }
+
     // slug 생성 (이름을 URL-safe하게 변환)
     let baseSlug = req.body.name
       .toLowerCase()
@@ -103,7 +113,6 @@ export const create = async (req, res) => {
     }
 
     // boardType 결정: admin/manager → official, 그 외 → user
-    const isAdminOrManager = req.user.auth === "admin" || req.user.auth === "manager";
     const boardType = isAdminOrManager ? "official" : "user";
 
     const altBoardRole = new Map();
@@ -260,6 +269,9 @@ export const update = async (req, res) => {
       board.coverColor = req.body.coverColor || undefined;
     if ("notificationEvents" in req.body) {
       board.notificationEvents = req.body.notificationEvents;
+    }
+    if ("chatEnabled" in req.body) {
+      board.chatEnabled = !!req.body.chatEnabled;
     }
 
     await board.save();

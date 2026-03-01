@@ -201,6 +201,12 @@ const boardSchema = mongoose.Schema(
       },
     },
 
+    // 보드 채팅 기능 활성화
+    chatEnabled: {
+      type: Boolean,
+      default: false,
+    },
+
     // 보드 알림 이벤트 설정
     notificationEvents: {
       type: {

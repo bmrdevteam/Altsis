@@ -167,6 +167,16 @@ const schoolSchema = mongoose.Schema(
     chatEnabled: { type: Boolean, default: true },
     boardEnabled: { type: Boolean, default: true },
     aiEnabled: { type: Boolean, default: true },
+    boardCreationPermission: {
+      type: {
+        teacher: { type: Boolean, default: false },
+        student: { type: Boolean, default: false },
+      },
+      default: {
+        teacher: false,
+        student: false,
+      },
+    },
     boardNotificationEvents: {
       type: {
         newPost: { type: Boolean, default: false },

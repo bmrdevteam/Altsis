@@ -1054,6 +1054,24 @@ export default function useAPIv2() {
     };
   }
 
+  async function USchoolBoardCreationPermission(props: {
+    params: { _id: string };
+    data: {
+      boardCreationPermission: { teacher: boolean; student: boolean };
+    };
+  }) {
+    const { boardCreationPermission } = await database.U({
+      location: `schools/${props.params._id}/boardCreationPermission`,
+      data: props.data,
+    });
+    return {
+      boardCreationPermission: boardCreationPermission as {
+        teacher: boolean;
+        student: boolean;
+      },
+    };
+  }
+
   async function USchoolBoardNotificationEvents(props: {
     params: { _id: string };
     data: {
@@ -3008,6 +3026,7 @@ export default function useAPIv2() {
       contentViewMode?: "table" | "gallery" | "blog";
       coverColor?: string;
       notificationEvents?: TBoardNotificationEvents;
+      chatEnabled?: boolean;
     };
   }) {
     const { board } = await database.U({
@@ -4510,6 +4529,7 @@ export default function useAPIv2() {
       USchoolFormArchive,
       USchoolLinks,
       USchoolFeatureFlags,
+      USchoolBoardCreationPermission,
       USchoolBoardNotificationEvents,
       RestoreFormArchive,
       RemoveFormArchive,

@@ -76,6 +76,7 @@ export type TBoard = {
   syllabus?: string;
   altBoardRole?: Record<string, TAltBoardRole>;
   notificationEvents?: TBoardNotificationEvents;
+  chatEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 };

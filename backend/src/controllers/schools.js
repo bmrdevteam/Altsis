@@ -385,6 +385,34 @@ export const updateBoardNotificationEvents = async (req, res) => {
   }
 };
 
+export const updateBoardCreationPermission = async (req, res) => {
+  try {
+    if (!("boardCreationPermission" in req.body)) {
+      return res
+        .status(400)
+        .send({ message: FIELD_REQUIRED("boardCreationPermission") });
+    }
+
+    const school = await School(req.user.academyId).findByIdAndUpdate(
+      req.params._id,
+      { boardCreationPermission: req.body.boardCreationPermission },
+      { new: true }
+    );
+    if (!school) {
+      return res.status(404).send({ message: __NOT_FOUND("school") });
+    }
+
+    return res
+      .status(200)
+      .send({ boardCreationPermission: school.boardCreationPermission });
+  } catch (err) {
+    logger.error(err.message);
+    return res
+      .status(500)
+      .send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
 export const updateLinks = async (req, res) => {
   try {
     if (!("links" in req.body)) {

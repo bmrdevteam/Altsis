@@ -60,6 +60,10 @@ export type TSchool = {
   chatEnabled?: boolean;
   boardEnabled?: boolean;
   aiEnabled?: boolean;
+  boardCreationPermission?: {
+    teacher: boolean;
+    student: boolean;
+  };
   boardNotificationEvents?: TBoardNotificationEventsSchool;
   academyFeatures?: TAcademyFeatures;
 };
