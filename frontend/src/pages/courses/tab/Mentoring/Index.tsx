@@ -80,6 +80,8 @@ const CoursePid = (props: Props) => {
   const [formEvaluationHeader, setFormEvaluationHeader] = useState<any[]>([]);
   const [fieldEvaluationList, setFieldEvaluationList] = useState<any[]>([]);
 
+  const [isMentor, setIsMentor] = useState<boolean>(false);
+
   const [statusPopupActive, setStatusPopupActive] = useState<boolean>(false);
   const [ratio, setRatio] = useState<number>(0);
 
@@ -181,7 +183,7 @@ const CoursePid = (props: Props) => {
       SyllabusAPI.RSyllabus({ params: { _id: pid } })
         .then(({ syllabus }) => {
           if (syllabus.season !== currentSeason?._id) {
-            navigate("/courses#담당%20수업", { replace: true });
+            navigate("/courses/list", { replace: true });
           }
 
           setSyllabus(syllabus);
@@ -189,13 +191,13 @@ const CoursePid = (props: Props) => {
           // is this syllabus fully confirmed?
           // Is this user is mentor of this syllabus?
           let confirmedCnt = 0;
-          let isMentor = false;
+          let isMentorLocal = false;
           for (let teacher of syllabus?.teachers) {
             if (teacher.confirmed) {
               confirmedCnt += 1;
             }
             if (teacher.userId === currentUser?.userId || currentUser.auth === "manager") {
-              isMentor = true;
+              isMentorLocal = true;
             }
           }
           setConfirmedStatus(
@@ -205,15 +207,14 @@ const CoursePid = (props: Props) => {
               ? "fullyConfirmed"
               : "semiConfirmed"
           );
-          if (!isMentor) {
-            navigate("/courses#담당%20수업", { replace: true });
-          }
+          setIsMentor(isMentorLocal);
+          setIsEnrollmentsLoading(true);
 
           SeasonAPI.RSeason({ params: { _id: syllabus.season } }).then(
             ({ season }) => {
               let _formEvaluationHeader: any[] = [];
 
-              if (currentRegistration?.permissionEvaluationV2) {
+              if (currentRegistration?.permissionEvaluationV2 && isMentorLocal) {
                 season.formEvaluation.forEach((val: any) => {
                   const text = val.label;
                   const key = "evaluation." + text;
@@ -269,7 +270,6 @@ const CoursePid = (props: Props) => {
         })
         .then(() => {
           setIsLoadingSyllabus(false);
-          setIsEnrollmentsLoading(true);
         })
         .catch((err) => {
           ALERT_ERROR(err);
@@ -281,9 +281,15 @@ const CoursePid = (props: Props) => {
 
   useEffect(() => {
     if (isEnrollmentsLoading) {
-      EnrollmentAPI.REnrollmentsWithEvaluation({
-        query: { syllabus: pid },
-      }).then(({ enrollments }: any) => {
+      const fetchEnrollments = isMentor
+        ? EnrollmentAPI.REnrollmentsWithEvaluation({
+            query: { syllabus: pid },
+          })
+        : EnrollmentAPI.REnrollments({
+            query: { syllabus: pid! },
+          });
+
+      fetchEnrollments.then(({ enrollments }: any) => {
         setEnrollmentList(
           enrollments.map((enrollment: any) => {
             return { ...enrollment, isModified: false };
@@ -299,7 +305,7 @@ const CoursePid = (props: Props) => {
 
   const studentListHeader = (): TTableHeader[] => {
     const header: TTableHeader[] = [];
-    if (currentRegistration?.permissionEnrollmentV2) {
+    if (currentRegistration?.permissionEnrollmentV2 && isMentor) {
       header.push({
         text: "checkbox",
         key: "checkbox",
@@ -402,7 +408,7 @@ const CoursePid = (props: Props) => {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", flexWrap: "wrap" }}>
                     <div className={style.title} style={{ flex: "1 1 auto", minWidth: 0 }}>{syllabus.classTitle}</div>
                     <div className={style.no_print} style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
-                      {currentRegistration?.permissionSyllabusV2 && (
+                      {currentRegistration?.permissionSyllabusV2 && isMentor && (
                         <>
                           <Button
                             type={"ghost"}
@@ -496,6 +502,7 @@ const CoursePid = (props: Props) => {
                     <div style={{ marginTop: "16px" }} className={"enrollments"}>
                       <div style={{ display: "flex", alignItems: "center", marginBottom: "12px" }}>
                         <div className={style.title} style={{ marginBottom: "0", flex: "auto" }}>사용자</div>
+                        {isMentor && (
                         <div
                           style={{
                             display: "flex",
@@ -546,6 +553,7 @@ const CoursePid = (props: Props) => {
                             </>
                           )}
                         </div>
+                        )}
                       </div>
 
                       <MentoringTable
@@ -565,6 +573,7 @@ const CoursePid = (props: Props) => {
                       />
                     </div>
                   ),
+                  ...(isMentor ? {
                   평가: (
                     <div style={{ marginTop: "16px" }}>
                       <div className={style.title} style={{ marginBottom: "12px" }}>평가</div>
@@ -611,6 +620,7 @@ const CoursePid = (props: Props) => {
                       <AltBoardTab syllabusId={syllabus._id} />
                     </div>
                   ),
+                  } : {}),
                 }}
                 align="flex-start"
               />

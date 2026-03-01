@@ -16,6 +16,7 @@ type Props = {
   onVisibilityChange?: () => void;
   onSettingsChange?: (settings: CalendarSettings) => void;
   calendarSettings?: CalendarSettings;
+  isViewingOther?: boolean;
 };
 
 type TVisibility = {
@@ -206,7 +207,7 @@ const CalendarTab = (props: Props) => {
   };
 
   const filteredCategories = systemCategories.filter((cat) => {
-    if (cat.key === "mentorings" && !isTeacher) return false;
+    if (cat.key === "mentorings" && !isTeacher && !props.isViewingOther) return false;
     return true;
   });
 

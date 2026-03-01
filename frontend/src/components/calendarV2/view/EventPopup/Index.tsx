@@ -13,6 +13,7 @@ import Divider from "components/divider/Divider";
 import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import { useAuth } from "contexts/authContext";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 type Props = {
   setPopupActive: any;
@@ -60,6 +61,7 @@ const Description = ({
   event: EventItem;
   readOnly?: boolean;
 }) => {
+  const navigate = useAppNavigate();
   const sourceLink = getSourceLink(event, readOnly);
 
   if (event.sourceType === "enrollment" || event.from === "enrollments") {
@@ -69,7 +71,7 @@ const Description = ({
         {sourceLink && (
           <div
             className={style.svg}
-            onClick={() => window.open(sourceLink.url, "_blank")}
+            onClick={() => navigate(sourceLink.url)}
           >
             <Svg type={"bookOpen"} style={{ width: "12px", height: "12px" }} />
           </div>
@@ -85,7 +87,7 @@ const Description = ({
         {sourceLink && (
           <div
             className={style.svg}
-            onClick={() => window.open(sourceLink.url, "_blank")}
+            onClick={() => navigate(sourceLink.url)}
           >
             <Svg type={"bookOpen"} style={{ width: "12px", height: "12px" }} />
           </div>

@@ -30,6 +30,7 @@
  */
 import { useEffect, useState } from "react";
 import { useAuth } from "contexts/authContext";
+import { useAppNavigate } from "hooks/useAppNavigate";
 
 // components
 import Select from "components/select/Select";
@@ -37,21 +38,16 @@ import EditorParser from "editor/EditorParser";
 
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
-import CourseView from "pages/courses/view/ViewPopup";
-
 import style from "style/pages/admin/schools.module.scss";
-import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
 type Props = {};
 
 const Index = (props: Props) => {
   const { currentSeason } = useAuth();
   const { SyllabusAPI } = useAPIv2();
+  const navigate = useAppNavigate();
 
   const [syllabusList, setSyllabusList] = useState<any[]>([]);
-
-  const [coursePopupActive, setCoursePoupActive] = useState<boolean>(false);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
 
   const updateSyllabusList = async (classroom: string) => {
     if (!classroom || classroom === "") return setSyllabusList([]);
@@ -128,18 +124,11 @@ const Index = (props: Props) => {
           defaultTimetable={syllabusLabelByTime( syllabusList)}
           idTimetable={syllabusIdByTime(syllabusList)}
           onClickCourse={(id: string) => {
-            setSelectedCourseId(id);
-            setCoursePoupActive(true);
+            navigate(`/courses/mentoring/${id}`);
           }}
           data={currentSeason?.formTimetable}
         />
       </div>
-      {coursePopupActive && selectedCourseId !== "" && (
-        <CourseView
-          setPopupActive={setCoursePoupActive}
-          course={selectedCourseId}
-        />
-      )}
     </>
   );
 };

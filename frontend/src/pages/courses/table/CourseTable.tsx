@@ -191,13 +191,8 @@ const CourseTable = (props: Props) => {
         onClick: props.onClickDetail
           ? props.onClickDetail
           : (e: any) => {
-            if(currentUser.auth === "manager"){
               navigate(`/courses/mentoring/${e._id}`);
-            }else{
-              setCourseId(e._id);
-              setViewPopupActive(true);
-            }
-          },
+            },
       },
       ...defaultHeaderList,
       ...postHeaderList,

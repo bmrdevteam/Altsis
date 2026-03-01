@@ -25,10 +25,11 @@ const Index = (props: Props) => {
   const { currentRegistration } = useAuth();
   const [isReloadRequired, setIsReloadRequired] = useState<boolean>(false);
 
+  const isViewingOther = !!props.userId;
   const courseItems: Record<string, JSX.Element> = {};
 
   if (currentRegistration?._id) {
-    if (currentRegistration?.role === "teacher") {
+    if (currentRegistration?.role === "teacher" || isViewingOther) {
       courseItems["담당 수업"] = (
         <MentoringCourseTab setIsReloadRequired={setIsReloadRequired} userId={props.userId} />
       );
@@ -68,6 +69,7 @@ const Index = (props: Props) => {
               onVisibilityChange={props.onVisibilityChange}
               onSettingsChange={props.onSettingsChange}
               calendarSettings={props.calendarSettings}
+              isViewingOther={isViewingOther}
             />
           ),
           ...courseItems,
