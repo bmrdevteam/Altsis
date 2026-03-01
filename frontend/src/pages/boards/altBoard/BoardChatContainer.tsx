@@ -24,7 +24,7 @@ type Props = {
 
 const BoardChatContainer = ({ board, onNewMessage }: Props) => {
   const { currentUser } = useAuth();
-  const { BoardAPI, ChatAPI, AIChatAPI } = useAPIv2();
+  const { BoardAPI, AIChatAPI } = useAPIv2();
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -87,29 +87,13 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
       .catch(() => setAiEnabled(false));
   }, [board._id]);
 
-  // DM click handler — open inline
-  const handleDMClick = async (member: Member) => {
+  // DM click handler — open inline (room creation deferred until first message)
+  const handleDMClick = (member: Member) => {
     if (member.user === currentUser?._id) return;
-    try {
-      const { room } = await ChatAPI.CChatRoom({
-        data: {
-          type: "direct",
-          participants: [
-            {
-              user: member.user,
-              userId: member.userId,
-              userName: member.userName,
-            },
-          ],
-        },
-      });
-      setDmRoomId(room._id);
-      setDmPartner(member);
-      setChatMode("dm");
-      setSelectedAISessionId(undefined);
-    } catch {
-      // error handled by useAPIv2
-    }
+    setDmRoomId(null);
+    setDmPartner(member);
+    setChatMode("dm");
+    setSelectedAISessionId(undefined);
   };
 
   // Chat mode handlers
@@ -171,12 +155,14 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
         onDMClick={handleDMClick}
       />
       <div className={style.chat_area}>
-        {chatMode === "dm" && dmRoomId && dmPartner ? (
+        {chatMode === "dm" && dmPartner ? (
           <BoardDMPanel
             roomId={dmRoomId}
+            partner={dmPartner}
             partnerName={dmPartner.userName}
             socket={socket}
             onBack={handleDMBack}
+            onRoomCreated={(roomId) => setDmRoomId(roomId)}
             onViewStudentAI={isTeacher && aiEnabled ? handleViewStudentAI : undefined}
           />
         ) : chatMode === "ai" ? (

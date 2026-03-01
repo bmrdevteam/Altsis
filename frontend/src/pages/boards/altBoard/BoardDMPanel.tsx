@@ -9,15 +9,23 @@ import Svg from "assets/svg/Svg";
 import defaultProfilePic from "assets/img/default_profile.png";
 import style from "./boardChat.module.scss";
 
+type Partner = {
+  user: string;
+  userId: string;
+  userName: string;
+};
+
 type Props = {
-  roomId: string;
+  roomId: string | null;
+  partner: Partner;
   partnerName: string;
   socket: Socket | null;
   onBack: () => void;
+  onRoomCreated: (roomId: string) => void;
   onViewStudentAI?: () => void; // 교사: 상대 학생의 AI 대화 보기
 };
 
-const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: Props) => {
+const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCreated, onViewStudentAI }: Props) => {
   const { currentUser } = useAuth();
   const { ChatAPI } = useAPIv2();
 
@@ -54,8 +62,15 @@ const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: 
     []
   );
 
-  // Load room + messages
+  // Load room + messages (only when roomId exists)
   useEffect(() => {
+    if (!roomId) {
+      setIsLoading(false);
+      setRoom(null);
+      setMessages([]);
+      return;
+    }
+
     setIsLoading(true);
     setMessages([]);
     isInitialLoadRef.current = true;
@@ -155,16 +170,16 @@ const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: 
     }
   }, [messages.length, scrollToBottom]);
 
-  // Mark as read
+  // Mark as read (only when room exists)
   useEffect(() => {
-    if (room) {
+    if (room?._id) {
       ChatAPI.UChatRoomRead({ params: { roomId: room._id } }).catch(() => {});
     }
   }, [room?._id]);
 
   // Load older messages
   const loadMoreMessages = async () => {
-    if (!hasMore || messages.length === 0) return;
+    if (!hasMore || messages.length === 0 || !roomId) return;
     const area = messagesAreaRef.current;
     const prevScrollHeight = area?.scrollHeight || 0;
 
@@ -190,22 +205,52 @@ const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: 
     }
   };
 
+  // Ensure room exists (create on first message if needed)
+  const ensureRoom = async (): Promise<TChatRoom | null> => {
+    if (room) return room;
+
+    try {
+      const { room: newRoom } = await ChatAPI.CChatRoom({
+        data: {
+          type: "direct",
+          participants: [
+            {
+              user: partner.user,
+              userId: partner.userId,
+              userName: partner.userName,
+            },
+          ],
+        },
+      });
+      setRoom(newRoom);
+      onRoomCreated(newRoom._id);
+      return newRoom;
+    } catch {
+      return null;
+    }
+  };
+
   // Send message
   const handleSend = async () => {
-    if (isSending || !room) return;
+    if (isSending) return;
 
     if (pendingFile) {
       setIsSending(true);
       try {
+        const activeRoom = await ensureRoom();
+        if (!activeRoom) {
+          setIsSending(false);
+          return;
+        }
         const formData = new FormData();
         formData.append("file", pendingFile);
         const { attachment } = await ChatAPI.CChatFileUpload({
-          params: { roomId: room._id },
+          params: { roomId: activeRoom._id },
           data: formData,
         });
         const isImage = pendingFile.type.startsWith("image/");
         const { message } = await ChatAPI.CChatMessage({
-          params: { roomId: room._id },
+          params: { roomId: activeRoom._id },
           data: {
             content: isImage ? "[이미지]" : pendingFile.name,
             messageType: isImage ? "image" : "file",
@@ -228,8 +273,14 @@ const BoardDMPanel = ({ roomId, partnerName, socket, onBack, onViewStudentAI }: 
     setNewMessage("");
 
     try {
+      const activeRoom = await ensureRoom();
+      if (!activeRoom) {
+        setNewMessage(text);
+        setIsSending(false);
+        return;
+      }
       const { message } = await ChatAPI.CChatMessage({
-        params: { roomId: room._id },
+        params: { roomId: activeRoom._id },
         data: { content: text },
       });
       setMessages((prev) => [...prev, message]);
