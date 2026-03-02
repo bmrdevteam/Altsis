@@ -59,12 +59,10 @@ export const create = async (req, res) => {
       calendarId: req.body.calendarId || undefined,
     };
 
-    if (req.body.scope === "school") {
-      if (!req.body.school) {
-        return res.status(400).send({ message: FIELD_REQUIRED("school") });
-      }
-      eventData.school = req.body.school;
+    if (!req.body.school) {
+      return res.status(400).send({ message: FIELD_REQUIRED("school") });
     }
+    eventData.school = req.body.school;
 
     if (req.body.recurrence) {
       eventData.recurrence = {
@@ -149,6 +147,7 @@ export const find = async (req, res) => {
     if (scope) {
       query.scope = scope;
     }
+
     if (school) {
       query.school = school;
     }
@@ -351,6 +350,7 @@ export const syncEnrollments = async (req, res) => {
 
     const periodStart = new Date(registration.period.start);
     const periodEnd = new Date(registration.period.end);
+    const syncSchool = registration.school;
 
     const eventsToCreate = [];
 
@@ -389,6 +389,7 @@ export const syncEnrollments = async (req, res) => {
           end,
           isAllDay: false,
           scope: "personal",
+          school: syncSchool,
           user: syncUserId,
           recurrence: { type: "weekly", endDate: periodEnd },
           color: "#4285f4",
@@ -435,6 +436,7 @@ export const syncEnrollments = async (req, res) => {
             end,
             isAllDay: false,
             scope: "personal",
+            school: syncSchool,
             user: syncUserId,
             recurrence: { type: "weekly", endDate: periodEnd },
             color: "#34a853",
@@ -469,6 +471,7 @@ export const syncEnrollments = async (req, res) => {
           end,
           isAllDay: false,
           scope: "personal",
+          school: syncSchool,
           user: syncUserId,
           recurrence: { type: "weekly", endDate: periodEnd },
           color: "#ff9800",

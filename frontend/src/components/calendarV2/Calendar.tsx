@@ -357,6 +357,7 @@ const Calender = (props: Props) => {
       query: {
         startDate,
         endDate,
+        ...(currentSchool ? { school: currentSchool._id } : {}),
         ...(props.userId ? { user: props.userId } : {}),
       },
     });
@@ -485,8 +486,7 @@ const Calender = (props: Props) => {
             end: endDateTime,
             isAllDay: formData.isAllDay,
             scope: formData.scope,
-            school:
-              formData.scope === "school" ? currentSchool?._id : undefined,
+            school: currentSchool?._id,
             recurrence: {
               type: formData.recurrenceType,
               endDate:
