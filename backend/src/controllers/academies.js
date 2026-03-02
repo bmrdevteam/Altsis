@@ -241,7 +241,7 @@ export const activate = async (req, res) => {
 
     /* activate academy */
     academy.isActivated = true;
-    await academy.save();
+    await academy.save({ validateModifiedOnly: true });
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
@@ -280,7 +280,7 @@ export const inactivate = async (req, res) => {
 
     /* inactivate academy */
     academy.isActivated = false;
-    await academy.save();
+    await academy.save({ validateModifiedOnly: true });
     return res.status(200).send({ academy });
   } catch (err) {
     logger.error(err.message);
