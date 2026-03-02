@@ -84,6 +84,15 @@ const LegacyRedirect = () => {
     const schoolId =
       currentSchool?.schoolId || currentUser.schools?.[0]?.schoolId;
     if (schoolId) {
+      const homePath = `/${currentUser.academyId}/${schoolId}/`;
+
+      // If path is root "/" or just the academy slug (e.g., "/bmr"),
+      // redirect to home instead of appending to avoid bad paths like /bmr/bmrhs/bmr
+      const trimmedPath = location.pathname.replace(/^\/+|\/+$/g, "");
+      if (!trimmedPath || trimmedPath === currentUser.academyId) {
+        return <Navigate to={homePath} replace />;
+      }
+
       const newPath = `/${currentUser.academyId}/${schoolId}${location.pathname}${location.search}${location.hash}`;
       return <Navigate to={newPath} replace />;
     }
