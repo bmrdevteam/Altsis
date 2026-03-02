@@ -12,7 +12,7 @@ import {
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
-  max: 15, // IP당 최대 15회
+  max: 1000, // IP당 최대 1000회 (학교 네트워크 공유 IP 고려)
   message: { message: "로그인 시도 횟수를 초과했습니다. 15분 후 다시 시도해주세요." },
   standardHeaders: true,
   legacyHeaders: false,
