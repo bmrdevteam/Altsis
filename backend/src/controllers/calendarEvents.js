@@ -307,8 +307,22 @@ export const remove = async (req, res) => {
       logger.error(`Failed to remove event reminder: ${err.message}`)
     );
 
-    // 동기화된 이벤트는 소프트 삭제 (다음 동기화 시 재생성 방지)
-    if (event.sourceType && event.sourceType !== "manual") {
+    // 메모 이벤트는 원본 메모도 함께 삭제하여 완전히 제거
+    if (event.sourceType === "memo" && event.sourceId) {
+      const parts = event.sourceId.split("_");
+      // sourceId format: memo_${registrationId}_${memoId}
+      if (parts.length >= 3) {
+        const registrationId = parts[1];
+        const memoId = parts.slice(2).join("_");
+        await Registration(req.user.academyId).updateOne(
+          { _id: registrationId },
+          { $pull: { memos: { _id: memoId } } }
+        );
+      }
+      await event.deleteOne();
+    }
+    // 다른 동기화된 이벤트는 소프트 삭제 (다음 동기화 시 재생성 방지)
+    else if (event.sourceType && event.sourceType !== "manual") {
       event.dismissed = true;
       await event.save();
     } else {
