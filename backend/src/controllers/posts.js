@@ -5,6 +5,8 @@
  */
 import { logger } from "../log/logger.js";
 import _ from "lodash";
+import https from "https";
+import http from "http";
 import { AltForm, AltSheet, AltSheetRow, Board, Post, User, SurveyResponse } from "../models/index.js";
 import { parseSheetDeclaration, renderMerge, stripMergeTags } from "../utils/mergeEngine.js";
 import { getAltBoardRole } from "../services/altForms.js";
@@ -883,6 +885,152 @@ export const duplicate = async (req, res) => {
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * URL에서 HTML을 가져와 OG 메타태그를 파싱하는 헬퍼
+ */
+function fetchHtml(url, timeout = 8000, maxRedirects = 3) {
+  return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) return reject(new Error("Too many redirects"));
+
+    const client = url.startsWith("https") ? https : http;
+    const req = client.get(
+      url,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; AltsisBot/1.0; +https://altsis.org)",
+          Accept: "text/html",
+        },
+        timeout,
+      },
+      (res) => {
+        if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          const redirectUrl = new URL(res.headers.location, url).href;
+          return fetchHtml(redirectUrl, timeout, maxRedirects - 1)
+            .then(resolve)
+            .catch(reject);
+        }
+
+        if (res.statusCode !== 200) {
+          return reject(new Error(`HTTP ${res.statusCode}`));
+        }
+
+        const chunks = [];
+        let size = 0;
+        const maxSize = 512 * 1024; // 512KB — head 영역만 필요하므로 충분
+        res.on("data", (chunk) => {
+          size += chunk.length;
+          chunks.push(chunk);
+          if (size > maxSize) {
+            res.destroy();
+          }
+        });
+        res.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+        res.on("error", reject);
+      }
+    );
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Timeout"));
+    });
+    req.on("error", reject);
+  });
+}
+
+function parseOgTags(html, baseUrl) {
+  const ogTitle =
+    html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']*?)["']/i)?.[1] ||
+    html.match(/<meta[^>]+content=["']([^"']*?)["'][^>]+property=["']og:title["']/i)?.[1] ||
+    html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ||
+    "";
+
+  const ogDescription =
+    html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*?)["']/i)?.[1] ||
+    html.match(/<meta[^>]+content=["']([^"']*?)["'][^>]+property=["']og:description["']/i)?.[1] ||
+    html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*?)["']/i)?.[1] ||
+    html.match(/<meta[^>]+content=["']([^"']*?)["'][^>]+name=["']description["']/i)?.[1] ||
+    "";
+
+  let ogImage =
+    html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']*?)["']/i)?.[1] ||
+    html.match(/<meta[^>]+content=["']([^"']*?)["'][^>]+property=["']og:image["']/i)?.[1] ||
+    "";
+
+  // 상대 URL → 절대 URL 변환
+  if (ogImage && baseUrl) {
+    try {
+      ogImage = new URL(ogImage, baseUrl).href;
+    } catch {
+      // 변환 실패 시 원본 유지
+    }
+  }
+
+  return {
+    ogTitle: decodeHtmlEntities(ogTitle),
+    ogDescription: decodeHtmlEntities(ogDescription),
+    ogImage,
+  };
+}
+
+function decodeHtmlEntities(str) {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCharCode(parseInt(hex, 16))
+    )
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
+}
+
+/**
+ * @memberof APIs.PostAPI
+ * @function FetchOgMeta API
+ * @description URL의 Open Graph 메타데이터를 가져오는 API
+ *
+ * @param {Object} req
+ * @param {string} req.query.url - 대상 URL
+ */
+export const fetchOgMeta = async (req, res) => {
+  try {
+    if (!req.query.url) {
+      return res.status(400).send({ message: FIELD_REQUIRED("url") });
+    }
+
+    const targetUrl = req.query.url;
+
+    try {
+      const parsed = new URL(targetUrl);
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        return res.status(400).send({ message: FIELD_INVALID("url") });
+      }
+    } catch {
+      return res.status(400).send({ message: FIELD_INVALID("url") });
+    }
+
+    try {
+      const html = await fetchHtml(targetUrl);
+      const meta = parseOgTags(html, targetUrl);
+      return res.status(200).send(meta);
+    } catch {
+      return res.status(200).send({
+        ogTitle: "",
+        ogDescription: "",
+        ogImage: "",
+      });
+    }
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(200).send({
+      ogTitle: "",
+      ogDescription: "",
+      ogImage: "",
+    });
   }
 };
 

@@ -52,6 +52,8 @@ const PostPid = () => {
   // 머지 필터
   const [mergeFilters, setMergeFilters] = useState<Record<string, string>>({});
 
+  // OG 이미지 로드 실패 추적
+  const [brokenOgImages, setBrokenOgImages] = useState<Set<number>>(new Set());
   // 서명 URL 캐시 (다운로드/새 탭 열기용)
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
@@ -506,57 +508,132 @@ const PostPid = () => {
             </div>
             <div className={surveyStyle.attachList}>
               {post.attachments?.map((file, idx) => {
-                const isImage = file.mimeType?.startsWith("image/");
-                const imageUrl = isImage && file.key
-                  ? `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`
-                  : null;
+                const attachType = file.type || "file";
+                const isImage =
+                  attachType === "file" &&
+                  file.mimeType?.startsWith("image/");
+                const isLink = attachType === "link";
+                const isYoutube = attachType === "youtube";
+
+                // 썸네일 결정
+                const ogImageOk =
+                  (isYoutube || isLink) &&
+                  file.ogImage &&
+                  !brokenOgImages.has(idx);
+
+                let thumbnailContent: React.ReactNode;
+                if (ogImageOk) {
+                  thumbnailContent = (
+                    <img
+                      src={file.ogImage}
+                      alt=""
+                      className={surveyStyle.attachItemThumb}
+                      onError={() =>
+                        setBrokenOgImages((prev) => new Set(prev).add(idx))
+                      }
+                    />
+                  );
+                } else if (isImage && file.key) {
+                  const imageUrl = `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`;
+                  thumbnailContent = (
+                    <img
+                      src={imageUrl}
+                      alt={file.fileName}
+                      className={surveyStyle.attachItemThumb}
+                    />
+                  );
+                } else {
+                  const iconType = isYoutube
+                    ? "youtube"
+                    : isLink
+                    ? "linkExternal"
+                    : "paperclip";
+                  thumbnailContent = (
+                    <div className={surveyStyle.attachItemIconLarge}>
+                      <Svg type={iconType} width="24px" height="24px" />
+                    </div>
+                  );
+                }
+
+                // 제목 및 메타 정보
+                const displayTitle = isLink
+                  ? file.ogTitle || file.url
+                  : isYoutube
+                  ? file.ogTitle || file.fileName
+                  : file.fileName;
+
+                let displayMeta: string;
+                if (isLink) {
+                  try {
+                    displayMeta =
+                      file.ogDescription || new URL(file.url).hostname;
+                  } catch {
+                    displayMeta = file.url;
+                  }
+                } else if (isYoutube) {
+                  displayMeta = "YouTube";
+                } else {
+                  displayMeta = formatFileSize(file.fileSize);
+                }
+
+                // 클릭 동작
+                const handleClick = async () => {
+                  if (isLink || isYoutube) {
+                    window.open(file.url, "_blank", "noopener,noreferrer");
+                  } else {
+                    const url = await getSignedUrl(file, true);
+                    window.open(url, "_blank");
+                  }
+                };
+
                 return (
                   <div
                     key={idx}
                     className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
-                    onClick={async () => {
-                      const url = await getSignedUrl(file, true);
-                      window.open(url, "_blank");
-                    }}
+                    onClick={handleClick}
                   >
                     <div className={surveyStyle.attachItemThumbArea}>
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={file.fileName}
-                          className={surveyStyle.attachItemThumb}
-                        />
-                      ) : (
-                        <div className={surveyStyle.attachItemIconLarge}>
-                          <Svg type="paperclip" width="24px" height="24px" />
-                        </div>
-                      )}
+                      {thumbnailContent}
                     </div>
                     <div className={surveyStyle.attachItemBody}>
                       <div className={surveyStyle.attachItemInfo}>
                         <span className={surveyStyle.attachItemTitle}>
-                          {file.fileName}
+                          {displayTitle}
                         </span>
                         <span className={surveyStyle.attachItemMeta}>
-                          {formatFileSize(file.fileSize)}
+                          {displayMeta}
                         </span>
                       </div>
-                      <span
-                        className={surveyStyle.attachItemBtn}
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const url = await getSignedUrl(file, false);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = file.fileName;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                        }}
-                        style={{ display: "flex", alignItems: "center" }}
-                      >
-                        <Svg type="download" width="18px" height="18px" />
-                      </span>
+                      {/* 파일: 다운로드 버튼, 링크/YouTube: 외부 링크 아이콘 */}
+                      {isLink || isYoutube ? (
+                        <span
+                          className={surveyStyle.attachItemBtn}
+                          style={{ display: "flex", alignItems: "center" }}
+                        >
+                          <Svg
+                            type="linkExternal"
+                            width="18px"
+                            height="18px"
+                          />
+                        </span>
+                      ) : (
+                        <span
+                          className={surveyStyle.attachItemBtn}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const url = await getSignedUrl(file, false);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = file.fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}
+                          style={{ display: "flex", alignItems: "center" }}
+                        >
+                          <Svg type="download" width="18px" height="18px" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 );

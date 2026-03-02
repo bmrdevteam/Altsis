@@ -68,6 +68,14 @@ const PostCreate = () => {
   const mdFileInputRef = useRef<HTMLInputElement>(null);
   // 첨부파일 미리보기 URL 캐시 (서명 URL)
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  // OG 이미지 로드 실패 추적
+  const [brokenOgImages, setBrokenOgImages] = useState<Set<number>>(new Set());
+  // 링크/YouTube 첨부 팝업
+  const [showLinkPopup, setShowLinkPopup] = useState(false);
+  const [showYoutubePopup, setShowYoutubePopup] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [isFetchingOg, setIsFetchingOg] = useState(false);
 
   const isEditMode = !!postId;
 
@@ -224,8 +232,8 @@ const PostCreate = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleRemoveAttachment = (key: string) => {
-    setAttachments((prev) => prev.filter((a) => a.key !== key));
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   // 에디터 이미지 업로드 콜백
@@ -284,6 +292,115 @@ const PostCreate = () => {
     e.stopPropagation();
     setIsDragging(false);
     handleFileSelect(e.dataTransfer.files);
+  };
+
+  // YouTube 영상 ID 추출
+  const extractYoutubeVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  // 링크 첨부 추가
+  const handleAddLink = async () => {
+    if (!linkUrl.trim()) return;
+
+    let url = linkUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      url = "https://" + url;
+    }
+
+    try {
+      new URL(url);
+    } catch {
+      alert("올바른 URL을 입력해주세요.");
+      return;
+    }
+
+    setIsFetchingOg(true);
+    try {
+      const ogData = await PostAPI.RPostOgMeta({ query: { url } });
+      setAttachments((prev) => [
+        ...prev,
+        {
+          type: "link",
+          url,
+          fileName: ogData.ogTitle || url,
+          fileSize: 0,
+          mimeType: "text/html",
+          ogTitle: ogData.ogTitle || undefined,
+          ogDescription: ogData.ogDescription || undefined,
+          ogImage: ogData.ogImage || undefined,
+        },
+      ]);
+    } catch {
+      setAttachments((prev) => [
+        ...prev,
+        {
+          type: "link",
+          url,
+          fileName: url,
+          fileSize: 0,
+          mimeType: "text/html",
+        },
+      ]);
+    }
+    setIsFetchingOg(false);
+    setLinkUrl("");
+    setShowLinkPopup(false);
+  };
+
+  // YouTube 첨부 추가
+  const handleAddYoutube = async () => {
+    if (!youtubeUrl.trim()) return;
+
+    const videoId = extractYoutubeVideoId(youtubeUrl.trim());
+    if (!videoId) {
+      alert("올바른 YouTube URL을 입력해주세요.");
+      return;
+    }
+
+    const cleanUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const thumbnail = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+    // noembed oEmbed API로 제목 가져오기 (YouTube OG는 봇 차단됨)
+    let videoTitle = "";
+    setIsFetchingOg(true);
+    try {
+      const resp = await fetch(
+        `https://noembed.com/embed?url=${encodeURIComponent(cleanUrl)}`
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        videoTitle = data.title || "";
+      }
+    } catch {
+      // 실패해도 진행
+    }
+    setIsFetchingOg(false);
+
+    setAttachments((prev) => [
+      ...prev,
+      {
+        type: "youtube",
+        url: cleanUrl,
+        fileName: videoTitle || `YouTube: ${videoId}`,
+        fileSize: 0,
+        mimeType: "video/youtube",
+        ogTitle: videoTitle || undefined,
+        ogImage: thumbnail,
+        youtubeVideoId: videoId,
+      },
+    ]);
+
+    setYoutubeUrl("");
+    setShowYoutubePopup(false);
   };
 
   const handleSubmit = async () => {
@@ -832,40 +949,99 @@ const PostCreate = () => {
           {/* 첨부된 파일 리스트 */}
           {attachments.length > 0 && (
             <div className={surveyStyle.attachList}>
-              {attachments.map((file) => {
-                const isImage = file.mimeType?.startsWith("image/");
-                const imageUrl = isImage && file.key
-                  ? (previewUrls[file.key] || `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`)
-                  : null;
+              {attachments.map((file, idx) => {
+                const attachType = file.type || "file";
+                const isImage =
+                  attachType === "file" &&
+                  file.mimeType?.startsWith("image/");
+                const isLink = attachType === "link";
+                const isYoutube = attachType === "youtube";
+
+                // 썸네일 결정
+                const ogImageOk =
+                  (isYoutube || isLink) &&
+                  file.ogImage &&
+                  !brokenOgImages.has(idx);
+
+                let thumbnailContent: React.ReactNode;
+                if (ogImageOk) {
+                  thumbnailContent = (
+                    <img
+                      src={file.ogImage}
+                      alt=""
+                      className={surveyStyle.attachItemThumb}
+                      onError={() =>
+                        setBrokenOgImages((prev) => new Set(prev).add(idx))
+                      }
+                    />
+                  );
+                } else if (isImage && file.key) {
+                  const imageUrl =
+                    previewUrls[file.key] ||
+                    `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(file.key)}`;
+                  thumbnailContent = (
+                    <img
+                      src={imageUrl}
+                      alt={file.fileName}
+                      className={surveyStyle.attachItemThumb}
+                    />
+                  );
+                } else {
+                  const iconType = isYoutube
+                    ? "youtube"
+                    : isLink
+                    ? "link"
+                    : "paperclip";
+                  thumbnailContent = (
+                    <div className={surveyStyle.attachItemIconLarge}>
+                      <Svg type={iconType} width="24px" height="24px" />
+                    </div>
+                  );
+                }
+
+                // 제목 및 메타 정보
+                const displayTitle = isLink
+                  ? file.ogTitle || file.url
+                  : isYoutube
+                  ? file.ogTitle || file.fileName
+                  : file.fileName;
+
+                let displayMeta: string;
+                if (isLink) {
+                  try {
+                    displayMeta =
+                      file.ogDescription || new URL(file.url).hostname;
+                  } catch {
+                    displayMeta = file.url;
+                  }
+                } else if (isYoutube) {
+                  displayMeta = "YouTube";
+                } else {
+                  displayMeta = formatFileSize(file.fileSize);
+                }
+
                 return (
-                  <div key={file.key} className={surveyStyle.attachItem}>
+                  <div
+                    key={`${file.url}-${idx}`}
+                    className={surveyStyle.attachItem}
+                  >
                     <div className={surveyStyle.attachItemThumbArea}>
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={file.fileName}
-                          className={surveyStyle.attachItemThumb}
-                        />
-                      ) : (
-                        <div className={surveyStyle.attachItemIconLarge}>
-                          <Svg type="paperclip" width="24px" height="24px" />
-                        </div>
-                      )}
+                      {thumbnailContent}
                     </div>
                     <div className={surveyStyle.attachItemBody}>
                       <div className={surveyStyle.attachItemInfo}>
                         <span className={surveyStyle.attachItemTitle}>
-                          {file.fileName}
+                          {displayTitle}
                         </span>
                         <span className={surveyStyle.attachItemMeta}>
-                          {formatFileSize(file.fileSize)}
+                          {displayMeta}
                         </span>
                       </div>
                     </div>
                     <button
                       type="button"
                       className={surveyStyle.attachItemClose}
-                      onClick={() => handleRemoveAttachment(file.key!)}
+                      onClick={() => handleRemoveAttachment(idx)}
                     >
                       ×
                     </button>
@@ -899,6 +1075,22 @@ const PostCreate = () => {
             >
               <Svg type="upload" width="24px" height="24px" />
               <span>{isUploading ? "업로드 중..." : "업로드"}</span>
+            </button>
+            <button
+              type="button"
+              className={surveyStyle.attachCard}
+              onClick={() => setShowLinkPopup(true)}
+            >
+              <Svg type="link" width="24px" height="24px" />
+              <span>링크 추가</span>
+            </button>
+            <button
+              type="button"
+              className={surveyStyle.attachCard}
+              onClick={() => setShowYoutubePopup(true)}
+            >
+              <Svg type="youtube" width="24px" height="24px" />
+              <span>YouTube</span>
             </button>
           </div>
         </div>
@@ -1043,6 +1235,94 @@ const PostCreate = () => {
                 </div>
               </div>
             )}
+          </div>
+        </Popup>
+      )}
+
+      {showLinkPopup && (
+        <Popup
+          setState={setShowLinkPopup}
+          title="링크 추가"
+          closeBtn
+          style={{ maxWidth: "480px", width: "100%" }}
+          footer={
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Button type="ghost" onClick={() => setShowLinkPopup(false)}>
+                취소
+              </Button>
+              <Button
+                type="ghost"
+                onClick={handleAddLink}
+                disabled={!linkUrl.trim() || isFetchingOg}
+              >
+                {isFetchingOg ? "불러오는 중..." : "추가"}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ padding: "20px" }}>
+            <Input
+              placeholder="https://example.com"
+              value={linkUrl}
+              onChange={(e: any) => setLinkUrl(e.target.value)}
+              onKeyDown={(e: any) => {
+                if (e.key === "Enter" && !isFetchingOg) handleAddLink();
+              }}
+              label="URL"
+            />
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginTop: "8px",
+              }}
+            >
+              웹 페이지의 제목과 설명이 자동으로 가져와집니다.
+            </p>
+          </div>
+        </Popup>
+      )}
+
+      {showYoutubePopup && (
+        <Popup
+          setState={setShowYoutubePopup}
+          title="YouTube 추가"
+          closeBtn
+          style={{ maxWidth: "480px", width: "100%" }}
+          footer={
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Button type="ghost" onClick={() => setShowYoutubePopup(false)}>
+                취소
+              </Button>
+              <Button
+                type="ghost"
+                onClick={handleAddYoutube}
+                disabled={!youtubeUrl.trim() || isFetchingOg}
+              >
+                {isFetchingOg ? "불러오는 중..." : "추가"}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ padding: "20px" }}>
+            <Input
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={youtubeUrl}
+              onChange={(e: any) => setYoutubeUrl(e.target.value)}
+              onKeyDown={(e: any) => {
+                if (e.key === "Enter") handleAddYoutube();
+              }}
+              label="YouTube URL"
+            />
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginTop: "8px",
+              }}
+            >
+              YouTube 영상 URL을 입력하세요. (일반 영상, Shorts 지원)
+            </p>
           </div>
         </Popup>
       )}

@@ -3461,6 +3461,23 @@ export default function useAPIv2() {
   }
 
   /**
+   * RPostOgMeta API
+   * @description 링크 OG 메타데이터 조회 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function RPostOgMeta(props: { query: { url: string } }) {
+    const result = await database.R({
+      location: "posts/og-meta" + QUERY_BUILDER(props.query),
+    });
+    return result as {
+      ogTitle: string;
+      ogDescription: string;
+      ogImage: string;
+    };
+  }
+
+  /**
    * ##########################################################################
    * SurveyResponse API
    * ##########################################################################
@@ -4681,6 +4698,7 @@ export default function useAPIv2() {
       DPost,
       CUploadPostFile,
       RSignedUrlPostFile,
+      RPostOgMeta,
       RPostMergeBatch,
       DuplicatePost,
       SearchPosts,

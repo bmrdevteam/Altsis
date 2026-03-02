@@ -17,11 +17,16 @@ import { conn } from "../_database/mongodb/index.js";
  * @memberof Models.Post
  * @typedef TPostAttachment
  *
- * @prop {string} url - 파일 URL
- * @prop {string} fileName - 파일명
- * @prop {number} fileSize - 파일 크기
+ * @prop {string} [type] - 첨부 유형 ("file" | "link" | "youtube"), 기본값 "file"
+ * @prop {string} url - 파일/링크 URL
+ * @prop {string} fileName - 파일명 또는 표시 이름
+ * @prop {number} fileSize - 파일 크기 (링크/YouTube는 0)
  * @prop {string} mimeType - MIME 타입
- * @prop {string} key - S3 key
+ * @prop {string} [key] - S3 key (파일 첨부 전용)
+ * @prop {string} [ogTitle] - OG 제목 (링크/YouTube)
+ * @prop {string} [ogDescription] - OG 설명 (링크)
+ * @prop {string} [ogImage] - OG 이미지 URL (링크/YouTube 썸네일)
+ * @prop {string} [youtubeVideoId] - YouTube 영상 ID
  */
 /**
  * @memberof Models.Post
@@ -57,11 +62,20 @@ const postPermissionReadSchema = mongoose.Schema(
 
 const attachmentSchema = mongoose.Schema(
   {
+    type: {
+      type: String,
+      enum: ["file", "link", "youtube"],
+      default: "file",
+    },
     url: String,
     fileName: String,
     fileSize: Number,
     mimeType: String,
     key: String,
+    ogTitle: String,
+    ogDescription: String,
+    ogImage: String,
+    youtubeVideoId: String,
   },
   { _id: false }
 );

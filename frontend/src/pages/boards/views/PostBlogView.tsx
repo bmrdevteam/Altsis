@@ -224,36 +224,95 @@ const PostStreamCard = ({
       {/* 첨부 카드 */}
       {hasAttachments && (
         <div className={style.attachmentSection}>
-          {/* 파일 첨부 */}
+          {/* 파일/링크/YouTube 첨부 */}
           {post.attachments?.map((file, idx) => {
-            const isImage = file.mimeType?.startsWith("image/");
-            const thumbUrl = isImage ? getProxyUrl(file) : null;
+            const attachType = file.type || "file";
+            const isImage =
+              attachType === "file" &&
+              file.mimeType?.startsWith("image/");
+            const isLink = attachType === "link";
+            const isYoutube = attachType === "youtube";
+
+            // 썸네일
+            let thumbContent: React.ReactNode;
+            if ((isYoutube || isLink) && file.ogImage) {
+              thumbContent = (
+                <img
+                  src={file.ogImage}
+                  alt=""
+                  className={surveyStyle.attachItemThumb}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                    const sibling = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (sibling) sibling.style.display = "flex";
+                  }}
+                />
+              );
+            } else if (isImage) {
+              thumbContent = (
+                <img
+                  src={getProxyUrl(file)}
+                  alt={file.fileName}
+                  className={surveyStyle.attachItemThumb}
+                />
+              );
+            }
+
+            const iconType = isYoutube
+              ? "youtube"
+              : isLink
+              ? "linkExternal"
+              : "paperclip";
+
+            // 제목/메타
+            const displayTitle = isLink
+              ? file.ogTitle || file.url
+              : isYoutube
+              ? file.ogTitle || file.fileName
+              : file.fileName;
+
+            let displayMeta: string;
+            if (isLink) {
+              try {
+                displayMeta =
+                  file.ogDescription || new URL(file.url).hostname;
+              } catch {
+                displayMeta = file.url;
+              }
+            } else if (isYoutube) {
+              displayMeta = "YouTube";
+            } else {
+              displayMeta = formatFileSize(file.fileSize);
+            }
+
             return (
               <div
                 key={idx}
                 className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
-                onClick={() => window.open(getProxyUrl(file), "_blank")}
+                onClick={() => {
+                  if (isLink || isYoutube) {
+                    window.open(file.url, "_blank", "noopener,noreferrer");
+                  } else {
+                    window.open(getProxyUrl(file), "_blank");
+                  }
+                }}
               >
                 <div className={surveyStyle.attachItemThumbArea}>
-                  {thumbUrl ? (
-                    <img
-                      src={thumbUrl}
-                      alt={file.fileName}
-                      className={surveyStyle.attachItemThumb}
-                    />
-                  ) : (
-                    <div className={surveyStyle.attachItemIconLarge}>
-                      <Svg type="paperclip" width="24px" height="24px" />
-                    </div>
-                  )}
+                  {thumbContent}
+                  <div
+                    className={surveyStyle.attachItemIconLarge}
+                    style={thumbContent ? { display: "none" } : undefined}
+                  >
+                    <Svg type={iconType} width="24px" height="24px" />
+                  </div>
                 </div>
                 <div className={surveyStyle.attachItemBody}>
                   <div className={surveyStyle.attachItemInfo}>
                     <span className={surveyStyle.attachItemTitle}>
-                      {file.fileName}
+                      {displayTitle}
                     </span>
                     <span className={surveyStyle.attachItemMeta}>
-                      {formatFileSize(file.fileSize)}
+                      {displayMeta}
                     </span>
                   </div>
                 </div>

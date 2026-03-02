@@ -3,12 +3,19 @@ import { TSurvey } from "./survey";
 
 export type TPostType = "general" | "survey";
 
+export type TPostAttachmentType = "file" | "link" | "youtube";
+
 export type TPostAttachment = {
+  type?: TPostAttachmentType;
   url: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
   key?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  youtubeVideoId?: string;
 };
 
 /** @deprecated 하위호환용 */

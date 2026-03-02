@@ -76,6 +76,8 @@ const MarkdownEditor = ({
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const isInternalUpdate = useRef(false);
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
   const dragCountRef = useRef(0);
   const titleRef = useRef(title);
   titleRef.current = title;
@@ -214,6 +216,9 @@ const MarkdownEditor = ({
   // 외부 value 변경 시 에디터 동기화 (소스 모드에서 편집 후 전환 등)
   useEffect(() => {
     if (!editor) return;
+    // 분할 모드에서는 textarea가 직접 value를 편집하므로
+    // TipTap 동기화를 건너뛴다 (피드백 루프 방지)
+    if (viewModeRef.current !== "wysiwyg") return;
     if (isInternalUpdate.current) {
       isInternalUpdate.current = false;
       return;
