@@ -4,10 +4,11 @@
  * @see TEnrollment in {@link Models.Enrollment}
  */
 
-import { Enrollment, Syllabus, Registration, CalendarEvent } from "../models/index.js";
+import { Enrollment, Syllabus, Registration, CalendarEvent, Board } from "../models/index.js";
 import { getIoEnrollment } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
 import { sendAutoNotification } from "../services/notifications.js";
+import { syncBoardChatParticipants } from "../services/boardChat.js";
 import PQueue from "p-queue";
 import _ from "lodash";
 import {
@@ -203,7 +204,38 @@ const exec = async (req) => {
     syllabus.count = syllabus.count + 1;
     await syllabus.save();
 
-    // 10. 멘토 초대인 경우 알림 발송
+    // 10. 수업 보드(altBoard) 멤버 동기화
+    if (syllabus.altBoard) {
+      try {
+        const board = await Board(req.user.academyId).findById(syllabus.altBoard);
+        if (board && board.isActive) {
+          const studentId = registration.user.toString();
+          if (!board.altBoardRole?.has(studentId)) {
+            board.altBoardRole = board.altBoardRole || new Map();
+            board.altBoardRole.set(studentId, "respondent");
+
+            const alreadyInMembers = board.members?.users?.some(
+              (u) => u.user?.toString() === studentId
+            );
+            if (!alreadyInMembers) {
+              board.members.users.push({
+                user: registration.user,
+                userId: registration.userId,
+                userName: registration.userName,
+              });
+            }
+            board.markModified("altBoardRole");
+            board.markModified("members");
+            await board.save();
+            await syncBoardChatParticipants(req.user.academyId, board);
+          }
+        }
+      } catch (boardErr) {
+        logger.warn(`Failed to sync altBoard member on enroll: ${boardErr.message}`);
+      }
+    }
+
+    // 11. 멘토 초대인 경우 알림 발송
     if (isMentorInvitation) {
       try {
         await sendAutoNotification({
@@ -782,6 +814,29 @@ export const remove = async (req, res) => {
       sourceType: "enrollment",
       sourceId: { $regex: `^enrollment_${enrollment._id}_` },
     });
+
+    // 수업 보드(altBoard) 멤버 제거
+    const syllabus = await Syllabus(req.user.academyId).findById(enrollment.syllabus);
+    if (syllabus?.altBoard) {
+      try {
+        const board = await Board(req.user.academyId).findById(syllabus.altBoard);
+        if (board && board.isActive) {
+          const studentId = enrollment.student.toString();
+          if (board.altBoardRole?.has(studentId)) {
+            board.altBoardRole.delete(studentId);
+            board.members.users = (board.members.users || []).filter(
+              (u) => u.user?.toString() !== studentId
+            );
+            board.markModified("altBoardRole");
+            board.markModified("members");
+            await board.save();
+            await syncBoardChatParticipants(req.user.academyId, board);
+          }
+        }
+      } catch (boardErr) {
+        logger.warn(`Failed to sync altBoard member on unenroll: ${boardErr.message}`);
+      }
+    }
 
     // 멘토가 취소한 경우 학생에게 알림 발송
     if (isMentorCancellation) {

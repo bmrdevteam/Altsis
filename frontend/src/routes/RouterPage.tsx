@@ -99,6 +99,13 @@ const LegacyRedirect = () => {
     }
   }
 
+  // For unauthenticated users: if the path is a single segment (e.g., "/bmr"),
+  // treat it as an academy ID and redirect to its login page
+  const trimmedPath = location.pathname.replace(/^\/+|\/+$/g, "");
+  if (trimmedPath && !trimmedPath.includes("/")) {
+    return <Navigate to={`/${trimmedPath}/login`} replace />;
+  }
+
   return <Navigate to="/login" replace />;
 };
 
