@@ -8,8 +8,8 @@ import _ from "lodash";
 import https from "https";
 import http from "http";
 import { AltForm, AltSheet, AltSheetRow, Board, Post, User, SurveyResponse } from "../models/index.js";
-import { parseSheetDeclaration, renderMerge, stripMergeTags } from "../utils/mergeEngine.js";
-import { getAltBoardRole } from "../services/altForms.js";
+import { parseSheetDeclaration, parseFormDeclaration, renderMerge, renderMergeWithInputs, hasInputTags, stripMergeTags } from "../utils/mergeEngine.js";
+import { getAltBoardRole, canRespondForm } from "../services/altForms.js";
 import {
   isBoardMember,
   isBoardWriter,
@@ -297,18 +297,57 @@ export const find = async (req, res) => {
       post.viewCount = (post.viewCount || 0) + 1;
       await post.save();
 
-      // 머지 렌더링: content에 {{#sheet 시트명}}이 있으면 처리
+      // 머지/입력 렌더링
       if (req.query.merge === "true" && post.content) {
+        const altRole = getAltBoardRole(board, req.user);
+
+        // ── {{#form 양식이름}} — 입력 문서 ──
+        const { formName, body: formBody } = parseFormDeclaration(post.content);
+        if (formName) {
+          const form = await AltForm(req.user.academyId).findOne({
+            board: board._id,
+            title: formName,
+            isActive: true,
+          });
+
+          if (form) {
+            const postObj = post.toObject();
+            postObj._rawContent = postObj.content;
+
+            // 항상 입력 모드 (본인 행)
+            const myRows = await AltSheetRow(req.user.academyId)
+              .find({ sheet: form.sheet, isActive: true, _respondent: req.user._id })
+              .sort({ createdAt: -1 })
+              .limit(1)
+              .lean();
+            const myRow = myRows[0] || null;
+            postObj.content = renderMergeWithInputs(formBody, myRow, form.fields);
+            postObj._mergeApplied = true;
+            postObj._mergeInputMode = true;
+            postObj._mergeFormId = form._id.toString();
+            postObj._mergeExistingRowId = myRow?._id?.toString() || null;
+            postObj._mergeCanSubmit = canRespondForm(form, board, req.user).allowed;
+            postObj._mergeAllowResubmit = form.settings.allowResubmit || form.settings.allowMultipleResponses || false;
+
+            return res.status(200).send({ post: postObj, board });
+          } else {
+            logger.warn(`Merge: AltForm "${formName}" not found for board ${board._id}`);
+            const postObj = post.toObject();
+            postObj.content = stripMergeTags(formBody);
+            postObj._mergeApplied = false;
+            return res.status(200).send({ post: postObj, board });
+          }
+        }
+
+        // ── {{#sheet 시트명}} — 읽기 전용 머지 (기존) ──
         const { sheetName, body } = parseSheetDeclaration(post.content);
         if (sheetName) {
-          // AltForm에서 제목으로 직접 검색 (AltSheet 이름 동기화 누락 대비)
           let sheet = await AltSheet(req.user.academyId).findOne({
             board: board._id,
             name: sheetName,
             isActive: true,
           });
 
-          // AltSheet에서 못 찾으면 AltForm 제목으로 fallback
           if (!sheet) {
             const formByTitle = await AltForm(req.user.academyId).findOne({
               board: board._id,
@@ -320,7 +359,6 @@ export const find = async (req, res) => {
                 form: formByTitle._id,
                 isActive: true,
               });
-              // 이름 동기화
               if (sheet && sheet.name !== sheetName) {
                 sheet.name = sheetName;
                 await sheet.save();
@@ -331,25 +369,17 @@ export const find = async (req, res) => {
           if (sheet) {
             const form = await AltForm(req.user.academyId).findById(sheet.form);
             if (form) {
-              // 열람 대상 행 결정
               let rowQuery = { sheet: sheet._id, isActive: true };
-              const altRole = getAltBoardRole(board, req.user);
 
               if (altRole === "admin" || altRole === "writer") {
-                // 관리자: 필터 적용
                 if (req.query.userId) {
                   rowQuery._respondent = req.query.userId;
                 }
-                // 필드 필터
                 if (req.query.filters) {
                   try {
                     const filters = JSON.parse(req.query.filters);
-                    const labelMap = new Map(
-                      form.fields.map((f) => [f.label, f._id.toString()])
-                    );
-                    const fieldTypeMap = new Map(
-                      form.fields.map((f) => [f.label, f.type])
-                    );
+                    const labelMap = new Map(form.fields.map((f) => [f.label, f._id.toString()]));
+                    const fieldTypeMap = new Map(form.fields.map((f) => [f.label, f.type]));
                     for (const [label, value] of Object.entries(filters)) {
                       if (!value) continue;
                       if (label === "_respondentName") {
@@ -357,19 +387,13 @@ export const find = async (req, res) => {
                       } else {
                         const fieldId = labelMap.get(label);
                         if (fieldId) {
-                          // 날짜 범위 필터 (from/to 객체)
-                          if (
-                            typeof value === "object" &&
-                            (value.from || value.to)
-                          ) {
+                          if (typeof value === "object" && (value.from || value.to)) {
                             const dateQuery = {};
                             if (value.from) dateQuery.$gte = value.from;
                             if (value.to) dateQuery.$lte = value.to;
                             const fieldType = fieldTypeMap.get(label);
                             if (fieldType === "multiDate") {
-                              rowQuery[`data.${fieldId}`] = {
-                                $elemMatch: dateQuery,
-                              };
+                              rowQuery[`data.${fieldId}`] = { $elemMatch: dateQuery };
                             } else {
                               rowQuery[`data.${fieldId}`] = dateQuery;
                             }
@@ -379,29 +403,21 @@ export const find = async (req, res) => {
                         }
                       }
                     }
-                  } catch (e) { /* ignore parse error */ }
+                  } catch (e) { /* ignore */ }
                 }
               } else {
-                // respondent 또는 역할 미지정: 본인 행만
                 rowQuery._respondent = req.user._id;
               }
 
-              const rows = await AltSheetRow(req.user.academyId)
-                .find(rowQuery)
-                .sort({ createdAt: 1 })
-                .lean();
+              const rows = await AltSheetRow(req.user.academyId).find(rowQuery).sort({ createdAt: 1 }).lean();
 
               const postObj = post.toObject();
               postObj._rawContent = postObj.content;
               postObj.content = renderMerge(body, rows, form.fields);
               postObj._mergeApplied = true;
 
-              // 관리자에게 필터용 필드 정보 제공
               if (altRole === "admin" || altRole === "writer") {
-                postObj._mergeFields = form.fields.map((f) => ({
-                  label: f.label,
-                  type: f.type,
-                }));
+                postObj._mergeFields = form.fields.map((f) => ({ label: f.label, type: f.type }));
               }
 
               return res.status(200).send({ post: postObj, board });

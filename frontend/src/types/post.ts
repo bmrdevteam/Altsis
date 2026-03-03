@@ -57,4 +57,9 @@ export type TPost = {
   updatedAt: string;
   _mergeApplied?: boolean;
   _mergeFields?: { label: string; type: string }[];
+  _mergeInputMode?: boolean;
+  _mergeFormId?: string;
+  _mergeExistingRowId?: string | null;
+  _mergeCanSubmit?: boolean;
+  _mergeAllowResubmit?: boolean;
 };

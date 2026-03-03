@@ -164,6 +164,160 @@
   }
 }
 
+// ─── 머지 인라인 입력 (박스 스타일) ───
+
+.mergeInput {
+  display: inline-block;
+  min-width: 120px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 6px;
+  background: var(--background-color);
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent-1);
+  outline: none;
+  vertical-align: baseline;
+
+  &::placeholder {
+    color: var(--accent-3);
+    font-size: 12px;
+  }
+
+  &:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+
+  &:disabled {
+    background: var(--background-color-2);
+    color: var(--accent-1);
+    opacity: 1;
+    cursor: default;
+  }
+}
+
+.mergeInputError {
+  border-color: var(--status-error, #ef4444) !important;
+
+  &:focus {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+  }
+}
+
+.mergeInputErrorMsg {
+  display: block;
+  font-size: 11px;
+  color: var(--status-error, #ef4444);
+  margin-top: 2px;
+}
+
+.mergeInputSelect {
+  display: inline-block;
+  min-width: 120px;
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 6px;
+  background: var(--background-color);
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent-1);
+  outline: none;
+  vertical-align: baseline;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+
+  &:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+
+  &:disabled {
+    background: var(--background-color-2);
+    cursor: default;
+    opacity: 1;
+  }
+}
+
+.mergeInputTextarea {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 6px;
+  background: var(--background-color);
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent-1);
+  resize: vertical;
+  outline: none;
+
+  &::placeholder {
+    color: var(--accent-3);
+    font-size: 12px;
+  }
+
+  &:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  }
+
+  &:disabled {
+    background: var(--background-color-2);
+    cursor: default;
+    opacity: 1;
+  }
+}
+
+.mergeInputRadioGroup {
+  display: inline-flex;
+  gap: 12px;
+  vertical-align: baseline;
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: inherit;
+
+    input[type="radio"] {
+      accent-color: var(--primary-color);
+      cursor: pointer;
+    }
+  }
+}
+
+.mergeInputValue {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 6px;
+  background: var(--background-color-2);
+  font: inherit;
+  font-size: 13px;
+  color: var(--accent-1);
+}
+
+.mergeInputWrapper {
+  display: inline;
+}
+
+@media print {
+  .mergeInput,
+  .mergeInputSelect,
+  .mergeInputTextarea,
+  .mergeInputValue {
+    border: 1px solid #ccc;
+    box-shadow: none;
+  }
+}
+
 .editor {
   border: var(--border-default);
   border-radius: 8px;

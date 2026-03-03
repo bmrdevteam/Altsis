@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -175,8 +175,267 @@ const UrlEmbed = ({ url, height }: { url: string; height?: number }) => {
   );
 };
 
-// 마크다운 컴포넌트 커스터마이징
-const markdownComponents = {
+// ─── 머지 인라인 입력 컴포넌트 ───
+
+type MergeInputProps = {
+  values: Record<string, any>;
+  onChange: (fieldId: string, value: any) => void;
+  errors: Record<string, string>;
+  disabled: boolean;
+};
+
+const MergeInputField = ({
+  fieldId,
+  fieldType,
+  label,
+  defaultValue,
+  required,
+  options,
+  validation,
+  mergeInputPropsRef,
+}: {
+  fieldId: string;
+  fieldType: string;
+  label: string;
+  defaultValue: string;
+  required: boolean;
+  options: string[];
+  validation: Record<string, any>;
+  mergeInputPropsRef: React.RefObject<MergeInputProps | undefined>;
+}) => {
+  const [localValue, setLocalValue] = useState<any>(defaultValue ?? "");
+  const mergeInputProps = mergeInputPropsRef.current;
+
+  if (!mergeInputProps) {
+    return <span className={style.mergeInputValue}>{defaultValue || label}</span>;
+  }
+
+  const { onChange, errors, disabled } = mergeInputProps;
+  const error = errors[fieldId];
+  const errorCls = error ? ` ${style.mergeInputError}` : "";
+  const handleChange = (val: any) => { setLocalValue(val); onChange(fieldId, val); };
+  const value = localValue;
+  const errEl = error ? <span className={style.mergeInputErrorMsg}>{error}</span> : null;
+
+  switch (fieldType) {
+    case "textarea":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <textarea className={`${style.mergeInputTextarea}${errorCls}`} value={value}
+            onChange={(e) => handleChange(e.target.value)} placeholder={label} disabled={disabled} />
+          {errEl}
+        </span>
+      );
+
+    case "date":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <input className={`${style.mergeInput}${errorCls}`} type="date" value={value}
+            onChange={(e) => handleChange(e.target.value)} disabled={disabled}
+            min={validation?.minDate} max={validation?.maxDate} />
+          {errEl}
+        </span>
+      );
+
+    case "multiDate": {
+      const dates: string[] = Array.isArray(value) ? value : value ? [value] : [];
+      return (
+        <span className={style.mergeInputWrapper}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            {dates.map((d, i) => (
+              <div key={i} style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                <input className={style.mergeInput} type="date" value={d}
+                  onChange={(e) => { const next = [...dates]; next[i] = e.target.value; handleChange(next); }}
+                  disabled={disabled} />
+                {!disabled && (
+                  <span style={{ cursor: "pointer", color: "var(--status-error)", fontSize: "18px" }}
+                    onClick={() => handleChange(dates.filter((_, j) => j !== i))}>×</span>
+                )}
+              </div>
+            ))}
+            {!disabled && (
+              <span style={{ cursor: "pointer", color: "var(--primary-color)", fontSize: "12px" }}
+                onClick={() => handleChange([...dates, ""])}>+ 날짜 추가</span>
+            )}
+          </div>
+          {errEl}
+        </span>
+      );
+    }
+
+    case "time":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <input className={`${style.mergeInput}${errorCls}`} type="time" value={value}
+            onChange={(e) => handleChange(e.target.value)} disabled={disabled} />
+          {errEl}
+        </span>
+      );
+
+    case "number":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <input className={`${style.mergeInput}${errorCls}`} type="number" value={value}
+            onChange={(e) => handleChange(e.target.value)} placeholder={label} disabled={disabled} />
+          {errEl}
+        </span>
+      );
+
+    case "select":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <select className={`${style.mergeInputSelect}${errorCls}`} value={value}
+            onChange={(e) => handleChange(e.target.value)} disabled={disabled}>
+            <option value="">{label}</option>
+            {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+          {errEl}
+        </span>
+      );
+
+    case "multiSelect": {
+      const selected: string[] = Array.isArray(value) ? value : [];
+      const toggle = (opt: string) => {
+        handleChange(selected.includes(opt) ? selected.filter((s) => s !== opt) : [...selected, opt]);
+      };
+      return (
+        <span className={style.mergeInputWrapper}>
+          <span className={style.mergeInputRadioGroup}>
+            {options.map((opt) => (
+              <label key={opt}>
+                <input type="checkbox" checked={selected.includes(opt)}
+                  onChange={() => toggle(opt)} disabled={disabled}
+                  style={{ accentColor: "var(--primary-color)" }} />
+                {opt}
+              </label>
+            ))}
+          </span>
+          {errEl}
+        </span>
+      );
+    }
+
+    case "radio":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <span className={style.mergeInputRadioGroup}>
+            {options.map((opt) => (
+              <label key={opt}>
+                <input type="radio" name={`merge-radio-${fieldId}`} value={opt}
+                  checked={value === opt} onChange={(e) => handleChange(e.target.value)} disabled={disabled} />
+                {opt}
+              </label>
+            ))}
+          </span>
+          {errEl}
+        </span>
+      );
+
+    case "checkbox":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <label style={{ cursor: disabled ? "default" : "pointer" }}>
+            <input type="checkbox" checked={value === true || value === "true" || value === "Y"}
+              onChange={(e) => handleChange(e.target.checked)} disabled={disabled}
+              style={{ accentColor: "var(--primary-color)" }} />
+          </label>
+          {errEl}
+        </span>
+      );
+
+    case "rating": {
+      const maxStars = validation?.maxStars || 5;
+      const rating = Number(value) || 0;
+      return (
+        <span className={style.mergeInputWrapper}>
+          <span style={{ display: "inline-flex", gap: "2px", fontSize: "20px", cursor: disabled ? "default" : "pointer" }}>
+            {Array.from({ length: maxStars }, (_, i) => (
+              <span key={i} onClick={() => !disabled && handleChange(i + 1)}
+                style={{ color: i < rating ? "var(--status-warning, #f59e0b)" : "var(--border-default-color)" }}>
+                ★
+              </span>
+            ))}
+          </span>
+          {errEl}
+        </span>
+      );
+    }
+
+    case "scale": {
+      const min = validation?.min ?? 1;
+      const max = validation?.max ?? 5;
+      const minLabel = validation?.minLabel || "";
+      const maxLabel = validation?.maxLabel || "";
+      const scaleOptions = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+      return (
+        <span className={style.mergeInputWrapper}>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "13px" }}>
+            {minLabel && <span style={{ color: "var(--text-color-2)", fontSize: "11px" }}>{minLabel}</span>}
+            {scaleOptions.map((n) => (
+              <label key={n} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", cursor: disabled ? "default" : "pointer" }}>
+                <input type="radio" name={`merge-scale-${fieldId}`} value={n}
+                  checked={Number(value) === n} onChange={() => handleChange(n)} disabled={disabled}
+                  style={{ accentColor: "var(--primary-color)" }} />
+                <span style={{ fontSize: "11px" }}>{n}</span>
+              </label>
+            ))}
+            {maxLabel && <span style={{ color: "var(--text-color-2)", fontSize: "11px" }}>{maxLabel}</span>}
+          </div>
+          {errEl}
+        </span>
+      );
+    }
+
+    case "counter":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <span className={style.mergeInputValue} style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
+            (카운터 — 자동 집계)
+          </span>
+        </span>
+      );
+
+    case "file":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <span className={style.mergeInputValue} style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
+            (파일 첨부는 양식에서 직접 제출해주세요)
+          </span>
+        </span>
+      );
+
+    case "userSelect":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <span className={style.mergeInputValue} style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
+            (사용자 선택은 양식에서 직접 제출해주세요)
+          </span>
+        </span>
+      );
+
+    case "approval":
+      return (
+        <span className={style.mergeInputWrapper}>
+          <span className={style.mergeInputValue} style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
+            (승인은 양식에서 직접 제출해주세요)
+          </span>
+        </span>
+      );
+
+    // text (default)
+    default:
+      return (
+        <span className={style.mergeInputWrapper}>
+          <input className={`${style.mergeInput}${errorCls}`} type="text" value={value}
+            onChange={(e) => handleChange(e.target.value)} placeholder={label} disabled={disabled} />
+          {errEl}
+        </span>
+      );
+  }
+};
+
+// 기본 마크다운 컴포넌트 (merge input 무관)
+const baseComponents = {
   // ![youtube](URL) / ![embed](URL) / ![embed:HEIGHT](URL) 형식 처리
   img: ({ src, alt, ...props }: any) => {
     if (alt === "youtube" && src) {
@@ -259,12 +518,17 @@ const markdownComponents = {
   },
 };
 
-type Props = {
+export type Props = {
   content: string;
   className?: string;
+  mergeInputProps?: MergeInputProps;
 };
 
-const MarkdownViewer = ({ content, className }: Props) => {
+const MarkdownViewer = ({ content, className, mergeInputProps }: Props) => {
+  // ref로 최신 mergeInputProps를 참조 (components 재생성 방지)
+  const mergeInputPropsRef = useRef(mergeInputProps);
+  mergeInputPropsRef.current = mergeInputProps;
+
   const sanitizedContent = useMemo(() => {
     // html-app 코드 블록을 DOMPurify 처리 전에 추출 (script 태그 보존)
     const preserved: string[] = [];
@@ -277,7 +541,11 @@ const MarkdownViewer = ({ content, className }: Props) => {
     );
 
     let sanitized = DOMPurify.sanitize(withPlaceholders, {
-      ADD_TAGS: ["iframe", "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation"],
+      ADD_TAGS: [
+        "iframe",
+        "math", "semantics", "mrow", "mi", "mn", "mo", "msup", "msub", "mfrac", "annotation",
+        "merge-input",
+      ],
       ADD_ATTR: [
         "allow",
         "allowfullscreen",
@@ -293,6 +561,13 @@ const MarkdownViewer = ({ content, className }: Props) => {
         "data-mention",
         "data-id",
         "data-color",
+        "data-field-id",
+        "data-type",
+        "data-label",
+        "data-value",
+        "data-required",
+        "data-options",
+        "data-validation",
       ],
     });
 
@@ -304,12 +579,50 @@ const MarkdownViewer = ({ content, className }: Props) => {
     return sanitized;
   }, [content]);
 
+  // merge-input 커스텀 컴포넌트 (ref로 최신 props 참조 → components 재생성 없음)
+  const hasMergeInput = !!mergeInputProps;
+  const components = useMemo(() => {
+    return {
+      ...baseComponents,
+      "merge-input": (props: any) => {
+        const fieldId = props["data-field-id"] || "";
+        const fieldType = props["data-type"] || "text";
+        const label = props["data-label"] || "";
+        const defaultValue = props["data-value"] || "";
+        const required = props["data-required"] === "true";
+        let options: string[] = [];
+        let validation: Record<string, any> = {};
+        try {
+          if (props["data-options"]) options = JSON.parse(props["data-options"]);
+        } catch { /* ignore */ }
+        try {
+          if (props["data-validation"]) validation = JSON.parse(props["data-validation"]);
+        } catch { /* ignore */ }
+
+        return (
+          <MergeInputField
+            fieldId={fieldId}
+            fieldType={fieldType}
+            label={label}
+            defaultValue={defaultValue}
+            required={required}
+            options={options}
+            validation={validation}
+            mergeInputPropsRef={mergeInputPropsRef}
+          />
+        );
+      },
+    };
+    // hasMergeInput만 의존: 입력 모드 전환 시에만 재생성
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMergeInput]);
+
   return (
     <div className={`${style.markdown} ${className || ""}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeRaw, rehypeKatex] as any}
-        components={markdownComponents}
+        components={components}
       >
         {sanitizedContent}
       </ReactMarkdown>
@@ -318,3 +631,4 @@ const MarkdownViewer = ({ content, className }: Props) => {
 };
 
 export default MarkdownViewer;
+export type { MergeInputProps };

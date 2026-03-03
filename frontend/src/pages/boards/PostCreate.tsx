@@ -960,6 +960,34 @@ const PostCreate = () => {
                 </pre>
               </div>
 
+              <div style={{ marginBottom: "16px" }}>
+                <strong>{`8. 입력 문서 ({{#form}})`}</strong>
+                <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: 8 }}>
+                  문서에서 직접 입력받기
+                </span>
+                <pre
+                  style={{
+                    padding: "8px 12px",
+                    background: "var(--background-color-2)",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    margin: "6px 0",
+                    overflow: "auto",
+                  }}
+                >
+{`{{#form 양식이름}}          — 입력 문서 선언 ({{#sheet}} 대신 사용)
+{{#input 필드이름}}          — 밑줄 스타일 입력 필드
+
+예:
+{{#form 결석계}}
+본인 {{#input 이름}} 은(는) {{#input 날짜}} 에
+{{#input 사유}} 의 사유로 결석합니다.`}
+                </pre>
+                <div style={{ fontSize: "11px", color: "var(--text-color-2)", marginTop: "4px" }}>
+                  모든 사용자에게 입력 필드 표시 / 관리자는 "전체 응답 보기"로 전환 가능
+                </div>
+              </div>
+
               {/* 양식별 사용 가능한 변수 목록 */}
               <div
                 style={{
@@ -984,13 +1012,29 @@ const PostCreate = () => {
                   >
                     <div
                       style={{
+                        display: "flex",
+                        gap: "8px",
                         fontWeight: 600,
                         marginBottom: "6px",
                         fontSize: "12px",
                         color: "var(--text-color-2)",
                       }}
                     >
-                      {`{{#sheet ${form.title}}}`}
+                      <span
+                        style={{ cursor: "pointer" }}
+                        onClick={() => navigator.clipboard.writeText(`{{#sheet ${form.title}}}`)}
+                        title="읽기 전용 머지 문서"
+                      >
+                        {`{{#sheet ${form.title}}}`}
+                      </span>
+                      <span style={{ color: "var(--border-color)" }}>|</span>
+                      <span
+                        style={{ cursor: "pointer", color: "var(--primary-color, #3b82f6)" }}
+                        onClick={() => navigator.clipboard.writeText(`{{#form ${form.title}}}`)}
+                        title="입력 문서"
+                      >
+                        {`{{#form ${form.title}}}`}
+                      </span>
                     </div>
                     <div
                       style={{
@@ -1000,24 +1044,44 @@ const PostCreate = () => {
                       }}
                     >
                       {form.fields.map((f) => (
-                        <span
-                          key={f._id}
-                          onClick={() => {
-                            navigator.clipboard.writeText(`{{${f.label}}}`);
-                          }}
-                          style={{
-                            padding: "3px 10px",
-                            background: "var(--background-color-1)",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "4px",
-                            fontSize: "12px",
-                            cursor: "pointer",
-                            color: "var(--text-color-1)",
-                            transition: "background 0.15s",
-                          }}
-                          title={`{{${f.label}}} 복사`}
-                        >
-                          {`{{${f.label}}}`}
+                        <span key={f._id} style={{ display: "inline-flex", gap: "2px" }}>
+                          <span
+                            onClick={() => {
+                              navigator.clipboard.writeText(`{{${f.label}}}`);
+                            }}
+                            style={{
+                              padding: "3px 10px",
+                              background: "var(--background-color-1)",
+                              border: "1px solid var(--border-color)",
+                              borderRadius: "4px 0 0 4px",
+                              fontSize: "12px",
+                              cursor: "pointer",
+                              color: "var(--text-color-1)",
+                              transition: "background 0.15s",
+                            }}
+                            title={`{{${f.label}}} 복사 (읽기 전용)`}
+                          >
+                            {`{{${f.label}}}`}
+                          </span>
+                          <span
+                            onClick={() => {
+                              navigator.clipboard.writeText(`{{#input ${f.label}}}`);
+                            }}
+                            style={{
+                              padding: "3px 6px",
+                              background: "var(--status-info-bg, #e0f2fe)",
+                              border: "1px solid var(--border-color)",
+                              borderLeft: "none",
+                              borderRadius: "0 4px 4px 0",
+                              fontSize: "11px",
+                              cursor: "pointer",
+                              color: "var(--primary-color, #3b82f6)",
+                              transition: "background 0.15s",
+                            }}
+                            title={`{{#input ${f.label}}} 복사 (입력 필드)`}
+                          >
+                            입력
+                          </span>
                         </span>
                       ))}
                     </div>

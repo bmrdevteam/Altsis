@@ -39,6 +39,12 @@
  *   {{#group 필드}}...{{/group}}              — 필드값 기준 그룹핑
  *   {{_groupValue}}                          — 현재 그룹 값
  *   {{_groupCount}}                          — 현재 그룹 행 수
+ *
+ *   ── 입력 문서 ({{#sheet}}와 별도) ──
+ *   {{#form 양식이름}}                        — 입력 문서 선언 (문서 상단, {{#sheet}}와 택 1)
+ *   {{#input 필드라벨}}                       — 인라인 입력 필드
+ *     기본 뷰: <merge-input> HTML 태그 (프론트엔드가 입력 필드로 렌더링)
+ *     전체 응답 보기 (관리자): {{필드라벨}}과 동일 (값 치환)
  */
 
 // ─── Exports ─────────────────────────────────────────────
@@ -54,6 +60,19 @@ export function parseSheetDeclaration(content) {
   const sheetName = match[1].trim();
   const body = content.replace(/\{\{#sheet\s+.+?\}\}\s*/, "").trim();
   return { sheetName, body };
+}
+
+/**
+ * 템플릿에서 양식명 추출 (입력 문서용)
+ * @param {string} content - 게시글 content
+ * @returns {{ formName: string|null, body: string }}
+ */
+export function parseFormDeclaration(content) {
+  const match = content.match(/\{\{#form\s+(.+?)\}\}/);
+  if (!match) return { formName: null, body: content };
+  const formName = match[1].trim();
+  const body = content.replace(/\{\{#form\s+.+?\}\}\s*/, "").trim();
+  return { formName, body };
 }
 
 /**
@@ -124,8 +143,87 @@ export function stripMergeTags(body) {
   result = result.replace(/\{\{#if\s+.+?\}\}[\s\S]*?\{\{\/if\}\}/g, "");
   result = result.replace(/\{\{#table\s+.+?\}\}/g, "");
   result = result.replace(/\{\{#each\}\}[\s\S]*?\{\{\/each\}\}/g, "");
+  result = result.replace(/\{\{#input\s+.+?\}\}/g, "");
   result = result.replace(/\{\{.+?\}\}/g, "");
   return result.trim();
+}
+
+/**
+ * 본문에 {{#input}} 태그가 있는지 검사
+ * @param {string} body
+ * @returns {boolean}
+ */
+export function hasInputTags(body) {
+  return /\{\{#input\s+.+?\}\}/.test(body);
+}
+
+/**
+ * 응답자용 인라인 입력 머지 렌더링
+ * {{#input 필드라벨}} → <merge-input> HTML 태그로 변환
+ * 나머지 머지 태그(filter, sort, table, group, each 등)는 strip 처리
+ * 단일 변수 {{필드}}와 {{#if}} 조건문은 row 기준으로 처리
+ *
+ * @param {string} body - 시트 선언 제거 후 본문
+ * @param {Object|null} row - 응답자의 기존 AltSheetRow (없으면 null)
+ * @param {Array} fields - AltForm.fields
+ * @returns {string} 렌더링된 문자열
+ */
+export function renderMergeWithInputs(body, row, fields) {
+  const labelMap = buildLabelMap(fields);
+  const fieldByLabel = buildFieldByLabelMap(fields);
+  let result = body;
+
+  // 다중행 전용 태그는 strip (input 모드는 단일 응답자)
+  result = result.replace(/\{\{#filter\s+.+?\}\}\s*/g, "");
+  result = result.replace(/\{\{#sort\s+.+?\}\}\s*/g, "");
+  result = result.replace(/\{\{#(sum|avg|min|max)\s+.+?\}\}/g, "");
+  result = result.replace(/\{\{#unique\s+.+?\}\}/g, "");
+  result = result.replace(/\{\{#group\s+.+?\}\}[\s\S]*?\{\{\/group\}\}/g, "");
+  result = result.replace(/\{\{#table\s+.+?\}\}/g, "");
+  result = result.replace(/\{\{#each\}\}[\s\S]*?\{\{\/each\}\}/g, "");
+  result = result.replace(/\{\{_count\}\}/g, row ? "1" : "0");
+
+  // {{#input 필드라벨}} → <merge-input> 태그
+  result = result.replace(
+    /\{\{#input\s+(.+?)\}\}/g,
+    (match, label) => {
+      const trimmed = label.trim();
+      const field = fieldByLabel.get(trimmed);
+      if (!field) return match;
+
+      const fieldId = field._id.toString();
+      const value = row ? getFieldValue(row, trimmed, labelMap) : "";
+      const strValue = stringifyValue(value);
+
+      const attrs = [
+        `data-field-id="${escapeAttr(fieldId)}"`,
+        `data-type="${escapeAttr(field.type)}"`,
+        `data-label="${escapeAttr(trimmed)}"`,
+        `data-value="${escapeAttr(strValue)}"`,
+        field.required ? `data-required="true"` : "",
+        field.options?.length
+          ? `data-options="${escapeAttr(JSON.stringify(field.options))}"`
+          : "",
+        field.validation
+          ? `data-validation="${escapeAttr(JSON.stringify(field.validation))}"`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      return `<merge-input ${attrs}></merge-input>`;
+    }
+  );
+
+  // {{#if}} 조건문 처리 (row 기준, row 없으면 빈값)
+  const emptyRow = { data: {}, _respondentName: "", _respondentId: "", _submittedAt: "", _updatedAt: "" };
+  const activeRow = row || emptyRow;
+  result = processConditionals(result, activeRow, labelMap);
+
+  // 나머지 단일 변수 치환
+  result = replaceVariables(result, activeRow, labelMap);
+
+  return result;
 }
 
 // ─── Helpers ─────────────────────────────────────────────
@@ -141,6 +239,30 @@ function buildLabelMap(fields) {
     map.set(field.label, field._id.toString());
   }
   return map;
+}
+
+/**
+ * 필드 label → field 객체 매핑 생성
+ * @param {Array} fields - AltForm.fields
+ * @returns {Map<string, Object>} label → field
+ */
+function buildFieldByLabelMap(fields) {
+  const map = new Map();
+  for (const field of fields) {
+    map.set(field.label, field);
+  }
+  return map;
+}
+
+/**
+ * HTML 속성용 문자열 이스케이프
+ */
+function escapeAttr(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 /**
