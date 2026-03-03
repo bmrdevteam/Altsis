@@ -113,6 +113,46 @@
   word-break: break-word;
 }
 
+.bubble_wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delete_btn {
+  opacity: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-secondary);
+  transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
+
+  &:hover {
+    color: var(--status-error, #f44336);
+    background-color: var(--bg-color-hover);
+  }
+}
+
+.message_group:hover .delete_btn {
+  opacity: 1;
+}
+
+.bubble.deleted {
+  opacity: 0.6;
+}
+
+.deleted_text {
+  color: var(--text-color-secondary);
+  font-style: italic;
+  font-size: 13px;
+}
+
 .message_time {
   font-size: 11px;
   color: var(--text-color-secondary);

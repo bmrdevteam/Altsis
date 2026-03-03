@@ -693,6 +693,41 @@
         margin-top: 3px;
         text-align: right;
       }
+
+      &.deleted {
+        opacity: 0.6;
+      }
+    }
+
+    .deleted_text {
+      font-style: italic;
+      color: var(--accent-3);
+      font-size: 13px;
+    }
+
+    .delete_btn {
+      opacity: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-3);
+      transition: opacity 0.15s, color 0.15s;
+      flex-shrink: 0;
+      align-self: center;
+
+      &:hover {
+        color: var(--color-r3, #f44336);
+        background-color: var(--background-secondary, #f5f5f5);
+      }
+    }
+
+    .message_wrapper:hover .delete_btn {
+      opacity: 1;
     }
 
     .typing {

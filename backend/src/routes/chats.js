@@ -35,6 +35,7 @@ router.put("/rooms/:roomId/archive", isLoggedIn, isChatEnabled, chats.archiveRoo
 
 router.post("/rooms/:roomId/messages", isLoggedIn, isChatEnabled, chats.sendMessage);
 router.get("/rooms/:roomId/messages", isLoggedIn, isChatEnabled, chats.findMessages);
+router.delete("/rooms/:roomId/messages/:messageId", isLoggedIn, isChatEnabled, chats.deleteMessage);
 router.put("/rooms/:roomId/read", isLoggedIn, isChatEnabled, chats.markAsRead);
 
 //=================================

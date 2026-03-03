@@ -150,12 +150,27 @@ const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCrea
       }
     };
 
+    const handleMessageDeleted = (data: {
+      room: string;
+      messageId: string;
+    }) => {
+      if (data.room === room._id) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === data.messageId ? { ...m, isDeleted: true } : m
+          )
+        );
+      }
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleTyping);
+    socket.on("message_deleted", handleMessageDeleted);
 
     return () => {
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleTyping);
+      socket.off("message_deleted", handleMessageDeleted);
     };
   }, [socket, room?._id, currentUser?.userId]);
 
@@ -298,6 +313,22 @@ const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCrea
         isTyping: false,
       });
     }
+  };
+
+  // Delete message
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!room) return;
+    if (!window.confirm("메시지를 삭제하시겠습니까?")) return;
+    try {
+      await ChatAPI.DChatMessage({
+        params: { roomId: room._id, messageId },
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId ? { ...m, isDeleted: true } : m
+        )
+      );
+    } catch {}
   };
 
   // Typing
@@ -508,12 +539,33 @@ const BoardDMPanel = ({ roomId, partner, partnerName, socket, onBack, onRoomCrea
                           {msg.senderName}
                         </div>
                       )}
-                      <div className={style.bubble}>
-                        <ChatMessageContent
-                          message={msg}
-                          onImageClick={(url) => setLightboxUrl(url)}
-                          onFileDownload={handleFileDownload}
-                        />
+                      <div className={style.bubble_wrapper}>
+                        {isMine && !msg.isDeleted && (
+                          <button
+                            className={style.delete_btn}
+                            onClick={() => handleDeleteMessage(msg._id)}
+                            title="삭제"
+                          >
+                            <Svg type="trash" width="14px" height="14px" />
+                          </button>
+                        )}
+                        <div
+                          className={`${style.bubble} ${
+                            msg.isDeleted ? style.deleted : ""
+                          }`}
+                        >
+                          {msg.isDeleted ? (
+                            <span className={style.deleted_text}>
+                              삭제된 메시지입니다
+                            </span>
+                          ) : (
+                            <ChatMessageContent
+                              message={msg}
+                              onImageClick={(url) => setLightboxUrl(url)}
+                              onFileDownload={handleFileDownload}
+                            />
+                          )}
+                        </div>
                       </div>
                       {groupStart && (
                         <div className={style.message_time}>

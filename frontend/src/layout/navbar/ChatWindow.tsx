@@ -157,13 +157,28 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
       }
     };
 
+    const handleMessageDeleted = (data: {
+      room: string;
+      messageId: string;
+    }) => {
+      if (data.room === room._id) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === data.messageId ? { ...m, isDeleted: true } : m
+          )
+        );
+      }
+    };
+
     socket.on("new_message", handleNewMessage);
     socket.on("user_typing", handleUserTyping);
+    socket.on("message_deleted", handleMessageDeleted);
 
     return () => {
       socket.emit("leave_room", { roomId: room._id });
       socket.off("new_message", handleNewMessage);
       socket.off("user_typing", handleUserTyping);
+      socket.off("message_deleted", handleMessageDeleted);
     };
   }, [socket, room?._id, currentUser?.userId]);
 
@@ -337,6 +352,21 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
   const handleFileDownload = async (msg: TChatMessage) => {
     if (!msg.attachment?.url) return;
     window.open(msg.attachment.url, "_blank");
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!room) return;
+    if (!window.confirm("메시지를 삭제하시겠습니까?")) return;
+    try {
+      await ChatAPI.DChatMessage({
+        params: { roomId: room._id, messageId },
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId ? { ...m, isDeleted: true } : m
+        )
+      );
+    } catch {}
   };
 
   const handleLeaveRoom = async () => {
@@ -596,7 +626,20 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                       className={style.sender_avatar}
                     />
                   )}
-                  <div className={style.message}>
+                  {isOwn && !msg.isDeleted && (
+                    <button
+                      className={style.delete_btn}
+                      onClick={() => handleDeleteMessage(msg._id)}
+                      title="삭제"
+                    >
+                      <Svg type="trash" width="14px" height="14px" />
+                    </button>
+                  )}
+                  <div
+                    className={`${style.message} ${
+                      msg.isDeleted ? style.deleted : ""
+                    }`}
+                  >
                     {!isOwn && groupStart && (
                       <div className={style.sender}>
                         {msg.senderName}
@@ -604,11 +647,17 @@ const ChatWindow = ({ room: initialRoom, rooms, archivedRooms = [], socket, onCl
                       </div>
                     )}
                     <div className={style.content}>
-                      <ChatMessageContent
-                        message={msg}
-                        onImageClick={(url) => setLightboxImage(url)}
-                        onFileDownload={handleFileDownload}
-                      />
+                      {msg.isDeleted ? (
+                        <span className={style.deleted_text}>
+                          삭제된 메시지입니다
+                        </span>
+                      ) : (
+                        <ChatMessageContent
+                          message={msg}
+                          onImageClick={(url) => setLightboxImage(url)}
+                          onFileDownload={handleFileDownload}
+                        />
+                      )}
                     </div>
                     <div className={style.time}>
                       {formatMessageTime(msg.createdAt)}

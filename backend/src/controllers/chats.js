@@ -892,7 +892,6 @@ export const findMessages = async (req, res) => {
 
     const query = {
       room: room._id,
-      isDeleted: false,
     };
 
     if (before) {
@@ -904,17 +903,21 @@ export const findMessages = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit);
 
-    // Sign attachment URLs for image/file messages
-    const messagesWithSignedUrls = messages.map((msg) => {
+    // Sign attachment URLs and strip deleted message content
+    const processedMessages = messages.map((msg) => {
       const msgObj = msg.toObject();
-      if (msgObj.attachment?.key) {
-        msgObj.attachment.url = signUrlForView(msgObj.attachment.key, 3600); // 1 hour expiry
+      if (msgObj.isDeleted) {
+        msgObj.content = "삭제된 메시지입니다";
+        msgObj.messageType = "text";
+        delete msgObj.attachment;
+      } else if (msgObj.attachment?.key) {
+        msgObj.attachment.url = signUrlForView(msgObj.attachment.key, 3600);
       }
       return msgObj;
     });
 
     // Return messages in chronological order
-    return res.status(200).send({ messages: messagesWithSignedUrls.reverse() });
+    return res.status(200).send({ messages: processedMessages.reverse() });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

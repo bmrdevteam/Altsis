@@ -31,6 +31,7 @@ router.delete("/:_id/writers/users", isLoggedIn, isBoardEnabled, boards.removeWr
 router.get("/:_id/chat/room", isLoggedIn, isBoardEnabled, boardChats.getBoardChatRoom);
 router.get("/:_id/chat/messages", isLoggedIn, isBoardEnabled, boardChats.getBoardChatMessages);
 router.post("/:_id/chat/messages", isLoggedIn, isBoardEnabled, boardChats.sendBoardChatMessage);
+router.delete("/:_id/chat/messages/:messageId", isLoggedIn, isBoardEnabled, boardChats.deleteBoardChatMessage);
 router.put("/:_id/chat/read", isLoggedIn, isBoardEnabled, boardChats.markBoardChatRead);
 router.post("/:_id/chat/upload", isLoggedIn, isBoardEnabled, boardChats.uploadBoardChatFile);
 

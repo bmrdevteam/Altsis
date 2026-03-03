@@ -115,7 +115,6 @@ export const getBoardChatMessages = async (req, res) => {
 
     const query = {
       room: room._id,
-      isDeleted: false,
     };
     if (before) {
       query.createdAt = { $lt: new Date(before) };
@@ -126,16 +125,20 @@ export const getBoardChatMessages = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit);
 
-    // Sign attachment URLs
-    const messagesWithSignedUrls = messages.map((msg) => {
+    // Sign attachment URLs and strip deleted message content
+    const processedMessages = messages.map((msg) => {
       const msgObj = msg.toObject();
-      if (msgObj.attachment?.key) {
+      if (msgObj.isDeleted) {
+        msgObj.content = "삭제된 메시지입니다";
+        msgObj.messageType = "text";
+        delete msgObj.attachment;
+      } else if (msgObj.attachment?.key) {
         msgObj.attachment.url = signUrlForView(msgObj.attachment.key, 3600);
       }
       return msgObj;
     });
 
-    return res.status(200).send({ messages: messagesWithSignedUrls.reverse() });
+    return res.status(200).send({ messages: processedMessages.reverse() });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
@@ -265,6 +268,82 @@ export const markBoardChatRead = async (req, res) => {
 
     room.participants[participantIndex].lastReadAt = new Date();
     await room.save();
+
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * DELETE /boards/:_id/chat/messages/:messageId
+ * 메시지 삭제 (본인 메시지만)
+ */
+export const deleteBoardChatMessage = async (req, res) => {
+  try {
+    const { board, error } = await getBoardAndVerifyMember(req);
+    if (error) return res.status(error.status).send({ message: error.message });
+
+    const room = await ChatRoom(req.user.academyId).findOne({
+      type: "board",
+      board: board._id,
+      isActive: true,
+    });
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    const message = await ChatMessage(req.user.academyId).findById(
+      req.params.messageId
+    );
+    if (!message) {
+      return res.status(404).send({ message: __NOT_FOUND("message") });
+    }
+
+    if (message.room.toString() !== room._id.toString()) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if (message.sender.toString() !== req.user._id.toString()) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if (message.isDeleted) {
+      return res.status(200).send({});
+    }
+
+    if (message.messageType === "system") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    message.isDeleted = true;
+    await message.save();
+
+    // Update room's lastMessage if this was the last message
+    if (
+      room.lastMessage?.sentAt &&
+      message.createdAt.getTime() >=
+        new Date(room.lastMessage.sentAt).getTime()
+    ) {
+      room.lastMessage.content = "삭제된 메시지";
+      await room.save();
+    }
+
+    // Emit via Socket.io
+    const ioChat = getIoChat();
+    if (ioChat) {
+      room.participants.forEach((participant) => {
+        if (participant.user.toString() !== req.user._id.toString()) {
+          ioChat
+            .to(`chat:${req.user.academyId}:${participant.userId}`)
+            .emit("message_deleted", {
+              room: room._id,
+              messageId: message._id,
+            });
+        }
+      });
+    }
 
     return res.status(200).send({});
   } catch (err) {

@@ -3867,6 +3867,20 @@ export default function useAPIv2() {
   }
 
   /**
+   * DChatMessage API
+   * @description 채팅 메시지 삭제 API
+   * @version 1.0.0
+   * @auth user
+   */
+  async function DChatMessage(props: {
+    params: { roomId: string; messageId: string };
+  }) {
+    return await database.D({
+      location: `chats/rooms/${props.params.roomId}/messages/${props.params.messageId}`,
+    });
+  }
+
+  /**
    * UChatRoomRead API
    * @description 채팅방 읽음 처리 API
    * @version 1.0.0
@@ -4049,6 +4063,18 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { message: message as TChatMessage };
+  }
+
+  /**
+   * DBoardChatMessage API
+   * @description 보드 채팅 메시지 삭제 API
+   */
+  async function DBoardChatMessage(props: {
+    params: { boardId: string; messageId: string };
+  }) {
+    return await database.D({
+      location: `boards/${props.params.boardId}/chat/messages/${props.params.messageId}`,
+    });
   }
 
   /**
@@ -4730,6 +4756,7 @@ export default function useAPIv2() {
       DChatRoomParticipant,
       RChatMessages,
       CChatMessage,
+      DChatMessage,
       UChatRoomRead,
       UChatRoomPin,
       UChatRoomArchive,
@@ -4743,6 +4770,7 @@ export default function useAPIv2() {
       RBoardChatRoom,
       RBoardChatMessages,
       CBoardChatMessage,
+      DBoardChatMessage,
       UBoardChatRead,
       CBoardChatFileUpload,
     },
