@@ -205,13 +205,14 @@ const MarkdownEditor = ({
     }
   };
 
-  // 에디터 초기화 후 특수 노드 변환
+  // 에디터 초기화 후 및 WYSIWYG 전환 시 특수 노드 변환
   // ![youtube](URL) → YouTube 노드, ![embed](URL) → HtmlEmbed 노드,
   // ```html-app → HtmlEmbed 노드
+  // useEffect를 사용하여 EditorContent가 DOM에 마운트된 후 실행되도록 보장
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || viewMode !== "wysiwyg") return;
     transformSpecialNodes(editor);
-  }, [editor]);
+  }, [editor, viewMode]);
 
   // 외부 value 변경 시 에디터 동기화 (소스 모드에서 편집 후 전환 등)
   useEffect(() => {
@@ -258,7 +259,8 @@ const MarkdownEditor = ({
         })
         .setContent(value)
         .run();
-      setTimeout(() => transformSpecialNodes(editor), 0);
+      // transformSpecialNodes는 useEffect에서 viewMode 변경 후 실행됨
+      // (EditorContent가 DOM에 마운트된 후 안전하게 실행)
     }
     setViewMode(mode);
   };

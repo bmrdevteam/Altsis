@@ -175,8 +175,8 @@ const TipTapToolbar = ({ editor, onEmbedClick, onImageClick }: Props) => {
       action: handleYouTubeInsert,
     },
     {
-      icon: "app",
-      title: "앱 임베드",
+      icon: "htmlEmbed",
+      title: "HTML 삽입",
       action: onEmbedClick,
     },
     {

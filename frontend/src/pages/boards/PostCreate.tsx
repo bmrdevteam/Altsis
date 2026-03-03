@@ -25,6 +25,7 @@ import Svg from "assets/svg/Svg";
 import Autofill from "components/input/Autofill";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import { MarkdownEditor } from "components/markdown";
+import EmbedDialog from "components/markdown/EmbedDialog";
 
 import { TBoard, TBoardMembers, TMemberUser } from "types/board";
 import { TAltForm } from "types/altForm";
@@ -70,9 +71,10 @@ const PostCreate = () => {
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   // OG 이미지 로드 실패 추적
   const [brokenOgImages, setBrokenOgImages] = useState<Set<number>>(new Set());
-  // 링크/YouTube 첨부 팝업
+  // 링크/YouTube/HTML 임베드 첨부 팝업
   const [showLinkPopup, setShowLinkPopup] = useState(false);
   const [showYoutubePopup, setShowYoutubePopup] = useState(false);
+  const [showHtmlEmbedPopup, setShowHtmlEmbedPopup] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isFetchingOg, setIsFetchingOg] = useState(false);
@@ -401,6 +403,99 @@ const PostCreate = () => {
 
     setYoutubeUrl("");
     setShowYoutubePopup(false);
+  };
+
+  // HTML에서 메타데이터 추출 (title, description, og:image)
+  const extractHtmlMeta = (html: string) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+
+      const title =
+        doc.querySelector("title")?.textContent?.trim() || "";
+      const description =
+        doc
+          .querySelector('meta[property="og:description"]')
+          ?.getAttribute("content") ||
+        doc
+          .querySelector('meta[name="description"]')
+          ?.getAttribute("content") ||
+        "";
+      const ogImage =
+        doc
+          .querySelector('meta[property="og:image"]')
+          ?.getAttribute("content") ||
+        "";
+
+      return { title, description, ogImage };
+    } catch {
+      return { title: "", description: "", ogImage: "" };
+    }
+  };
+
+  // HTML 임베드 첨부 추가
+  const handleAddHtmlEmbed = async (
+    embedType: "code" | "url",
+    content: string
+  ) => {
+    const isCode = embedType === "code";
+    const size = new Blob([content]).size;
+
+    if (isCode) {
+      const meta = extractHtmlMeta(content);
+      setAttachments((prev) => [
+        ...prev,
+        {
+          type: "htmlEmbed",
+          embedType,
+          htmlContent: content,
+          url: "",
+          fileName: meta.title || "HTML 임베드",
+          fileSize: size,
+          mimeType: "text/html",
+          ogTitle: meta.title || undefined,
+          ogDescription: meta.description || undefined,
+          ogImage: meta.ogImage || undefined,
+        },
+      ]);
+    } else {
+      // URL 타입: OG 메타데이터 가져오기
+      setIsFetchingOg(true);
+      try {
+        const ogData = await PostAPI.RPostOgMeta({
+          query: { url: content },
+        });
+        setAttachments((prev) => [
+          ...prev,
+          {
+            type: "htmlEmbed",
+            embedType,
+            url: content,
+            fileName: ogData.ogTitle || content,
+            fileSize: 0,
+            mimeType: "text/html",
+            ogTitle: ogData.ogTitle || undefined,
+            ogDescription: ogData.ogDescription || undefined,
+            ogImage: ogData.ogImage || undefined,
+          },
+        ]);
+      } catch {
+        setAttachments((prev) => [
+          ...prev,
+          {
+            type: "htmlEmbed",
+            embedType,
+            url: content,
+            fileName: content,
+            fileSize: 0,
+            mimeType: "text/html",
+          },
+        ]);
+      }
+      setIsFetchingOg(false);
+    }
+
+    setShowHtmlEmbedPopup(false);
   };
 
   const handleSubmit = async () => {
@@ -956,10 +1051,11 @@ const PostCreate = () => {
                   file.mimeType?.startsWith("image/");
                 const isLink = attachType === "link";
                 const isYoutube = attachType === "youtube";
+                const isHtmlEmbed = attachType === "htmlEmbed";
 
                 // 썸네일 결정
                 const ogImageOk =
-                  (isYoutube || isLink) &&
+                  (isYoutube || isLink || isHtmlEmbed) &&
                   file.ogImage &&
                   !brokenOgImages.has(idx);
 
@@ -987,7 +1083,9 @@ const PostCreate = () => {
                     />
                   );
                 } else {
-                  const iconType = isYoutube
+                  const iconType = isHtmlEmbed
+                    ? "htmlEmbed"
+                    : isYoutube
                     ? "youtube"
                     : isLink
                     ? "link"
@@ -1000,14 +1098,24 @@ const PostCreate = () => {
                 }
 
                 // 제목 및 메타 정보
-                const displayTitle = isLink
+                const displayTitle = isHtmlEmbed
+                  ? file.ogTitle || file.fileName || "HTML 임베드"
+                  : isLink
                   ? file.ogTitle || file.url
                   : isYoutube
                   ? file.ogTitle || file.fileName
                   : file.fileName;
 
                 let displayMeta: string;
-                if (isLink) {
+                if (isHtmlEmbed) {
+                  if (file.ogDescription) {
+                    displayMeta = file.ogDescription;
+                  } else if (file.embedType === "code") {
+                    displayMeta = `HTML 코드 (${formatFileSize(file.fileSize)})`;
+                  } else {
+                    displayMeta = file.url || "HTML URL";
+                  }
+                } else if (isLink) {
                   try {
                     displayMeta =
                       file.ogDescription || new URL(file.url).hostname;
@@ -1091,6 +1199,14 @@ const PostCreate = () => {
             >
               <Svg type="youtube" width="24px" height="24px" />
               <span>YouTube</span>
+            </button>
+            <button
+              type="button"
+              className={surveyStyle.attachCard}
+              onClick={() => setShowHtmlEmbedPopup(true)}
+            >
+              <Svg type="htmlEmbed" width="24px" height="24px" />
+              <span>HTML 삽입</span>
             </button>
           </div>
         </div>
@@ -1325,6 +1441,13 @@ const PostCreate = () => {
             </p>
           </div>
         </Popup>
+      )}
+
+      {showHtmlEmbedPopup && (
+        <EmbedDialog
+          onSubmit={handleAddHtmlEmbed}
+          onClose={() => setShowHtmlEmbedPopup(false)}
+        />
       )}
     </>
   );

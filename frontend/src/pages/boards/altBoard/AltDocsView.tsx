@@ -10,7 +10,6 @@ import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 import PostBlogView from "../views/PostBlogView";
 import BatchPrintView from "./BatchPrintView";
-
 import { TBoard, TBoardContentViewMode } from "types/board";
 import { TPost } from "types/post";
 
@@ -54,7 +53,6 @@ const AltDocsView = ({ board }: Props) => {
   const [batchPrintPostId, setBatchPrintPostId] = useState<string | null>(
     null
   );
-
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
 

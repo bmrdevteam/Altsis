@@ -1,0 +1,127 @@
+.container {
+  position: relative;
+  display: inline-block;
+}
+
+.containerInline {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.trigger {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: left;
+  font-family: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    border-color: var(--accent-1);
+  }
+}
+
+.triggerCompact {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.triggerActive {
+  border-color: var(--accent-1);
+  color: var(--text-color-1);
+}
+
+.dropdown {
+  position: fixed;
+  z-index: 9000;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 10px;
+  min-width: 220px;
+}
+
+.presets {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+
+  button {
+    padding: 4px 8px;
+    font-size: 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-color);
+    color: var(--text-color-2);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+
+    &:hover {
+      border-color: var(--accent-1);
+      color: var(--text-color-1);
+    }
+  }
+}
+
+.presetActive {
+  background: var(--accent-1) !important;
+  border-color: var(--accent-1) !important;
+  color: #fff !important;
+}
+
+.dateInputs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-color-2);
+    white-space: nowrap;
+  }
+
+  input[type="date"] {
+    flex: 1;
+    padding: 4px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 11px;
+    background: var(--background-color);
+    color: var(--text-color-1);
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent-1);
+    }
+  }
+}
+
+.resetBtn {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  color: var(--text-color-2);
+  cursor: pointer;
+  font-family: inherit;
+
+  &:hover {
+    color: var(--status-error);
+  }
+}

@@ -26,6 +26,9 @@ import { MarkdownViewer } from "components/markdown";
 import { TPost, TPostAttachment } from "types/post";
 import { TBoard } from "types/board";
 import { TComment } from "types/comment";
+import DateRangeFilterDropdown, {
+  DateRange,
+} from "components/dateRangeFilter/DateRangeFilterDropdown";
 
 import UserListPopup from "./popup/UserListPopup";
 import SurveyViewPopup from "./survey/SurveyViewPopup";
@@ -51,11 +54,17 @@ const PostPid = () => {
 
   // 머지 필터
   const [mergeFilters, setMergeFilters] = useState<Record<string, string>>({});
+  const [mergeDateFilters, setMergeDateFilters] = useState<
+    Record<string, DateRange>
+  >({});
 
   // OG 이미지 로드 실패 추적
   const [brokenOgImages, setBrokenOgImages] = useState<Set<number>>(new Set());
   // 서명 URL 캐시 (다운로드/새 탭 열기용)
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  // HTML 임베드 미리보기
+  const [htmlEmbedPreview, setHtmlEmbedPreview] = useState<TPostAttachment | null>(null);
 
   const getSignedUrl = async (
     file: TPostAttachment,
@@ -119,11 +128,17 @@ const PostPid = () => {
     return true;
   };
 
-  const buildMergeQuery = (filters: Record<string, string>) => {
+  const buildMergeQuery = (
+    filters: Record<string, string>,
+    dateFilters: Record<string, DateRange>
+  ) => {
     const query: Record<string, string> = { merge: "true" };
-    const activeFilters: Record<string, string> = {};
+    const activeFilters: Record<string, any> = {};
     for (const [key, value] of Object.entries(filters)) {
       if (value) activeFilters[key] = value;
+    }
+    for (const [key, range] of Object.entries(dateFilters)) {
+      if (range.from || range.to) activeFilters[key] = range;
     }
     if (Object.keys(activeFilters).length > 0) {
       query.filters = JSON.stringify(activeFilters);
@@ -135,7 +150,7 @@ const PostPid = () => {
     if (isLoading && postId) {
       PostAPI.RPost({
         params: { _id: postId },
-        query: buildMergeQuery(mergeFilters),
+        query: buildMergeQuery(mergeFilters, mergeDateFilters),
       })
         .then(({ post, board }) => {
           setPost(post);
@@ -152,15 +167,17 @@ const PostPid = () => {
 
   // 필터 변경 시 머지 재조회
   const mergeFilterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleMergeFilterChange = (label: string, value: string) => {
-    const next = { ...mergeFilters, [label]: value };
-    setMergeFilters(next);
+
+  const refetchMerge = (
+    textFilters: Record<string, string>,
+    dateFilters: Record<string, DateRange>
+  ) => {
     if (mergeFilterTimerRef.current) clearTimeout(mergeFilterTimerRef.current);
     mergeFilterTimerRef.current = setTimeout(() => {
       if (!postId) return;
       PostAPI.RPost({
         params: { _id: postId },
-        query: buildMergeQuery(next),
+        query: buildMergeQuery(textFilters, dateFilters),
       })
         .then(({ post: updatedPost }) => {
           setPost((prev) =>
@@ -169,6 +186,18 @@ const PostPid = () => {
         })
         .catch((err) => ALERT_ERROR(err));
     }, 400);
+  };
+
+  const handleMergeFilterChange = (label: string, value: string) => {
+    const next = { ...mergeFilters, [label]: value };
+    setMergeFilters(next);
+    refetchMerge(next, mergeDateFilters);
+  };
+
+  const handleMergeDateFilterChange = (label: string, range: DateRange) => {
+    const next = { ...mergeDateFilters, [label]: range };
+    setMergeDateFilters(next);
+    refetchMerge(mergeFilters, next);
   };
 
   // 댓글 로드
@@ -415,7 +444,6 @@ const PostPid = () => {
             className={style.print_actions}
             style={{
               display: "flex",
-              flexWrap: "wrap",
               gap: "8px",
               marginBottom: "16px",
               padding: "10px 12px",
@@ -423,6 +451,7 @@ const PostPid = () => {
               borderRadius: "6px",
               fontSize: "13px",
               alignItems: "center",
+              overflowX: "auto",
             }}
           >
             <span style={{ color: "var(--text-color-2)", fontSize: "12px", marginRight: "4px" }}>
@@ -443,29 +472,52 @@ const PostPid = () => {
                 width: "100px",
               }}
             />
-            {post._mergeFields.map((field) => (
-              <input
-                key={field.label}
-                type="text"
-                placeholder={field.label}
-                value={mergeFilters[field.label] || ""}
-                onChange={(e) => handleMergeFilterChange(field.label, e.target.value)}
-                style={{
-                  padding: "4px 8px",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "4px",
-                  background: "var(--background-color-1)",
-                  color: "var(--text-color-1)",
-                  fontSize: "12px",
-                  width: "100px",
-                }}
-              />
-            ))}
-            {Object.values(mergeFilters).some((v) => v) && (
+            {post._mergeFields.map((field) =>
+              field.type === "date" || field.type === "multiDate" ? (
+                <DateRangeFilterDropdown
+                  key={field.label}
+                  value={
+                    mergeDateFilters[field.label] || { from: "", to: "" }
+                  }
+                  onChange={(range) =>
+                    handleMergeDateFilterChange(field.label, range)
+                  }
+                  placeholder={field.label}
+                />
+              ) : (
+                <input
+                  key={field.label}
+                  type="text"
+                  placeholder={field.label}
+                  value={mergeFilters[field.label] || ""}
+                  onChange={(e) =>
+                    handleMergeFilterChange(field.label, e.target.value)
+                  }
+                  style={{
+                    padding: "4px 8px",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "4px",
+                    background: "var(--background-color-1)",
+                    color: "var(--text-color-1)",
+                    fontSize: "12px",
+                    width: "100px",
+                  }}
+                />
+              )
+            )}
+            {(Object.values(mergeFilters).some((v) => v) ||
+              Object.values(mergeDateFilters).some(
+                (r) => r.from || r.to
+              )) && (
               <span
-                style={{ color: "var(--accent-1)", cursor: "pointer", fontSize: "12px" }}
+                style={{
+                  color: "var(--accent-1)",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                }}
                 onClick={() => {
                   setMergeFilters({});
+                  setMergeDateFilters({});
                   if (!postId) return;
                   PostAPI.RPost({
                     params: { _id: postId },
@@ -473,7 +525,9 @@ const PostPid = () => {
                   })
                     .then(({ post: updatedPost }) => {
                       setPost((prev) =>
-                        prev ? { ...prev, content: updatedPost.content } : prev
+                        prev
+                          ? { ...prev, content: updatedPost.content }
+                          : prev
                       );
                     })
                     .catch((err) => ALERT_ERROR(err));
@@ -514,10 +568,11 @@ const PostPid = () => {
                   file.mimeType?.startsWith("image/");
                 const isLink = attachType === "link";
                 const isYoutube = attachType === "youtube";
+                const isHtmlEmbed = attachType === "htmlEmbed";
 
                 // 썸네일 결정
                 const ogImageOk =
-                  (isYoutube || isLink) &&
+                  (isYoutube || isLink || isHtmlEmbed) &&
                   file.ogImage &&
                   !brokenOgImages.has(idx);
 
@@ -543,7 +598,9 @@ const PostPid = () => {
                     />
                   );
                 } else {
-                  const iconType = isYoutube
+                  const iconType = isHtmlEmbed
+                    ? "htmlEmbed"
+                    : isYoutube
                     ? "youtube"
                     : isLink
                     ? "linkExternal"
@@ -556,14 +613,24 @@ const PostPid = () => {
                 }
 
                 // 제목 및 메타 정보
-                const displayTitle = isLink
+                const displayTitle = isHtmlEmbed
+                  ? file.ogTitle || file.fileName || "HTML 임베드"
+                  : isLink
                   ? file.ogTitle || file.url
                   : isYoutube
                   ? file.ogTitle || file.fileName
                   : file.fileName;
 
                 let displayMeta: string;
-                if (isLink) {
+                if (isHtmlEmbed) {
+                  if (file.ogDescription) {
+                    displayMeta = file.ogDescription;
+                  } else if (file.embedType === "code") {
+                    displayMeta = `HTML 코드 (${formatFileSize(file.fileSize)})`;
+                  } else {
+                    displayMeta = file.url || "HTML URL";
+                  }
+                } else if (isLink) {
                   try {
                     displayMeta =
                       file.ogDescription || new URL(file.url).hostname;
@@ -578,7 +645,9 @@ const PostPid = () => {
 
                 // 클릭 동작
                 const handleClick = async () => {
-                  if (isLink || isYoutube) {
+                  if (isHtmlEmbed) {
+                    setHtmlEmbedPreview(file);
+                  } else if (isLink || isYoutube) {
                     window.open(file.url, "_blank", "noopener,noreferrer");
                   } else {
                     const url = await getSignedUrl(file, true);
@@ -604,8 +673,19 @@ const PostPid = () => {
                           {displayMeta}
                         </span>
                       </div>
-                      {/* 파일: 다운로드 버튼, 링크/YouTube: 외부 링크 아이콘 */}
-                      {isLink || isYoutube ? (
+                      {/* 파일: 다운로드 버튼, 링크/YouTube: 외부 링크 아이콘, HTML 임베드: 보기 아이콘 */}
+                      {isHtmlEmbed ? (
+                        <span
+                          className={surveyStyle.attachItemBtn}
+                          style={{ display: "flex", alignItems: "center" }}
+                        >
+                          <Svg
+                            type="htmlEmbed"
+                            width="18px"
+                            height="18px"
+                          />
+                        </span>
+                      ) : isLink || isYoutube ? (
                         <span
                           className={surveyStyle.attachItemBtn}
                           style={{ display: "flex", alignItems: "center" }}
@@ -915,6 +995,74 @@ const PostPid = () => {
             isManager={isManager}
           />
         )}
+
+      {/* HTML 임베드 미리보기 오버레이 */}
+      {htmlEmbedPreview && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            backgroundColor: "rgba(0,0,0,0.8)",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "12px 16px",
+              backgroundColor: "var(--background-color)",
+              borderBottom: "1px solid var(--border-color)",
+            }}
+          >
+            <span style={{ fontWeight: 500, fontSize: "14px" }}>
+              {htmlEmbedPreview.embedType === "url"
+                ? htmlEmbedPreview.url
+                : "HTML 임베드"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHtmlEmbedPreview(null)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px 8px",
+                fontSize: "20px",
+                color: "var(--accent-1)",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <iframe
+            sandbox="allow-scripts"
+            style={{
+              flex: 1,
+              width: "100%",
+              border: "none",
+              backgroundColor: "#fff",
+            }}
+            srcDoc={
+              htmlEmbedPreview.embedType === "code" && htmlEmbedPreview.htmlContent
+                ? htmlEmbedPreview.htmlContent
+                : undefined
+            }
+            src={
+              htmlEmbedPreview.embedType === "url"
+                ? htmlEmbedPreview.url
+                : undefined
+            }
+            title="HTML 임베드 미리보기"
+          />
+        </div>
+      )}
 
     </>
   );

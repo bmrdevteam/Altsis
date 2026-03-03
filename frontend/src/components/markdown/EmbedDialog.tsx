@@ -35,7 +35,7 @@ const EmbedDialog = ({ onSubmit, onClose }: Props) => {
 
   return (
     <Popup
-      title="앱 임베드"
+      title="HTML 삽입"
       setState={onClose}
       closeBtn
       style={{ maxWidth: "640px", width: "100%" }}

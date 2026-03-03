@@ -6,6 +6,9 @@ import { TAltSheetRow } from "types/altSheet";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
+import DateRangeFilterDropdown, {
+  DateRange,
+} from "components/dateRangeFilter/DateRangeFilterDropdown";
 
 type Props = {
   board: TBoard;
@@ -51,6 +54,7 @@ const AltSheetView = ({
 
   // Phase 3: 필터, 정렬, 컬럼 숨기기
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [dateFilters, setDateFilters] = useState<Record<string, DateRange>>({});
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -98,6 +102,7 @@ const AltSheetView = ({
       setHiddenColumns(new Set());
     }
     setFilters({});
+    setDateFilters({});
     setSortConfig(null);
   }, [selectedFormId]);
 
@@ -188,7 +193,7 @@ const AltSheetView = ({
   const filteredRows = useMemo(() => {
     let result = rows;
 
-    // 필터 적용
+    // 텍스트 필터 적용
     for (const [fieldId, filterValue] of Object.entries(filters)) {
       if (!filterValue) continue;
 
@@ -202,16 +207,6 @@ const AltSheetView = ({
           );
         }
 
-        if (fieldId === "_submittedAt") {
-          const dateStr = row._submittedAt
-            ? new Date(row._submittedAt).toLocaleString("ko-KR", {
-                year: "numeric", month: "2-digit", day: "2-digit",
-                weekday: "short", hour: "2-digit", minute: "2-digit",
-              })
-            : "";
-          return dateStr.includes(lower);
-        }
-
         const field = allVisibleFields.find((f) => f._id === fieldId);
         if (!field) return true;
 
@@ -220,6 +215,44 @@ const AltSheetView = ({
         return String(formatCellValue(cellValue, field))
           .toLowerCase()
           .includes(lower);
+      });
+    }
+
+    // 날짜 범위 필터 적용
+    for (const [fieldId, range] of Object.entries(dateFilters)) {
+      if (!range.from && !range.to) continue;
+
+      result = result.filter((row) => {
+        if (fieldId === "_submittedAt") {
+          if (!row._submittedAt) return false;
+          const d = new Date(row._submittedAt);
+          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          if (range.from && dateStr < range.from) return false;
+          if (range.to && dateStr > range.to) return false;
+          return true;
+        }
+
+        const field = allVisibleFields.find((f) => f._id === fieldId);
+        if (!field) return true;
+
+        const cellValue = row.data[fieldId];
+        if (cellValue === null || cellValue === undefined) return false;
+
+        if (field.type === "multiDate" && Array.isArray(cellValue)) {
+          return cellValue.some((v: string) => {
+            if (!v) return false;
+            if (range.from && v < range.from) return false;
+            if (range.to && v > range.to) return false;
+            return true;
+          });
+        }
+
+        // date 타입
+        const dateVal = String(cellValue);
+        if (!dateVal) return false;
+        if (range.from && dateVal < range.from) return false;
+        if (range.to && dateVal > range.to) return false;
+        return true;
       });
     }
 
@@ -256,7 +289,7 @@ const AltSheetView = ({
     }
 
     return result;
-  }, [rows, filters, sortConfig, allVisibleFields]);
+  }, [rows, filters, dateFilters, sortConfig, allVisibleFields]);
 
   const handleColumnSort = (fieldId: string) => {
     setSortConfig((prev) => {
@@ -688,6 +721,7 @@ const AltSheetView = ({
             setSelectedFormId("");
             setRows([]);
             setFilters({});
+            setDateFilters({});
             setSortConfig(null);
             onFormDeselect?.();
           }}
@@ -919,6 +953,15 @@ const AltSheetView = ({
                       <option value="승인">승인</option>
                       <option value="반려">반려</option>
                     </select>
+                  ) : f.type === "date" || f.type === "multiDate" ? (
+                    <DateRangeFilterDropdown
+                      compact
+                      value={dateFilters[f._id] || { from: "", to: "" }}
+                      onChange={(range) =>
+                        setDateFilters((p) => ({ ...p, [f._id]: range }))
+                      }
+                      placeholder="날짜 필터"
+                    />
                   ) : (
                     <input
                       className={style.filterInput}
@@ -936,16 +979,13 @@ const AltSheetView = ({
               ))}
               {isQuiz && <th />}
               <th>
-                <input
-                  className={style.filterInput}
-                  placeholder="필터..."
-                  value={filters["_submittedAt"] || ""}
-                  onChange={(e) =>
-                    setFilters((p) => ({
-                      ...p,
-                      _submittedAt: e.target.value,
-                    }))
+                <DateRangeFilterDropdown
+                  compact
+                  value={dateFilters["_submittedAt"] || { from: "", to: "" }}
+                  onChange={(range) =>
+                    setDateFilters((p) => ({ ...p, _submittedAt: range }))
                   }
+                  placeholder="날짜 필터"
                 />
               </th>
               <th className={style.actionCell} />

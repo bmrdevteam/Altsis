@@ -347,6 +347,9 @@ export const find = async (req, res) => {
                     const labelMap = new Map(
                       form.fields.map((f) => [f.label, f._id.toString()])
                     );
+                    const fieldTypeMap = new Map(
+                      form.fields.map((f) => [f.label, f.type])
+                    );
                     for (const [label, value] of Object.entries(filters)) {
                       if (!value) continue;
                       if (label === "_respondentName") {
@@ -354,7 +357,25 @@ export const find = async (req, res) => {
                       } else {
                         const fieldId = labelMap.get(label);
                         if (fieldId) {
-                          rowQuery[`data.${fieldId}`] = { $regex: value, $options: "i" };
+                          // 날짜 범위 필터 (from/to 객체)
+                          if (
+                            typeof value === "object" &&
+                            (value.from || value.to)
+                          ) {
+                            const dateQuery = {};
+                            if (value.from) dateQuery.$gte = value.from;
+                            if (value.to) dateQuery.$lte = value.to;
+                            const fieldType = fieldTypeMap.get(label);
+                            if (fieldType === "multiDate") {
+                              rowQuery[`data.${fieldId}`] = {
+                                $elemMatch: dateQuery,
+                              };
+                            } else {
+                              rowQuery[`data.${fieldId}`] = dateQuery;
+                            }
+                          } else {
+                            rowQuery[`data.${fieldId}`] = { $regex: value, $options: "i" };
+                          }
                         }
                       }
                     }

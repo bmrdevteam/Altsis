@@ -3,7 +3,7 @@ import { TSurvey } from "./survey";
 
 export type TPostType = "general" | "survey";
 
-export type TPostAttachmentType = "file" | "link" | "youtube";
+export type TPostAttachmentType = "file" | "link" | "youtube" | "htmlEmbed";
 
 export type TPostAttachment = {
   type?: TPostAttachmentType;
@@ -16,6 +16,8 @@ export type TPostAttachment = {
   ogDescription?: string;
   ogImage?: string;
   youtubeVideoId?: string;
+  htmlContent?: string;
+  embedType?: "code" | "url";
 };
 
 /** @deprecated 하위호환용 */

@@ -64,7 +64,7 @@ const attachmentSchema = mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["file", "link", "youtube"],
+      enum: ["file", "link", "youtube", "htmlEmbed"],
       default: "file",
     },
     url: String,
@@ -76,6 +76,11 @@ const attachmentSchema = mongoose.Schema(
     ogDescription: String,
     ogImage: String,
     youtubeVideoId: String,
+    htmlContent: String,
+    embedType: {
+      type: String,
+      enum: ["code", "url"],
+    },
   },
   { _id: false }
 );

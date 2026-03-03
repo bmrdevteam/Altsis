@@ -99,6 +99,7 @@ const PostStreamCard = ({
   const [activeSurveyIndex, setActiveSurveyIndex] = useState<number | null>(
     null
   );
+  const [htmlEmbedPreview, setHtmlEmbedPreview] = useState<TPostAttachment | null>(null);
 
   const processedContent = useMemo(
     () => processContent(post.content),
@@ -224,7 +225,7 @@ const PostStreamCard = ({
       {/* 첨부 카드 */}
       {hasAttachments && (
         <div className={style.attachmentSection}>
-          {/* 파일/링크/YouTube 첨부 */}
+          {/* 파일/링크/YouTube/HTML 임베드 첨부 */}
           {post.attachments?.map((file, idx) => {
             const attachType = file.type || "file";
             const isImage =
@@ -232,10 +233,11 @@ const PostStreamCard = ({
               file.mimeType?.startsWith("image/");
             const isLink = attachType === "link";
             const isYoutube = attachType === "youtube";
+            const isHtmlEmbed = attachType === "htmlEmbed";
 
             // 썸네일
             let thumbContent: React.ReactNode;
-            if ((isYoutube || isLink) && file.ogImage) {
+            if ((isYoutube || isLink || isHtmlEmbed) && file.ogImage) {
               thumbContent = (
                 <img
                   src={file.ogImage}
@@ -258,21 +260,33 @@ const PostStreamCard = ({
               );
             }
 
-            const iconType = isYoutube
+            const iconType = isHtmlEmbed
+              ? "htmlEmbed"
+              : isYoutube
               ? "youtube"
               : isLink
               ? "linkExternal"
               : "paperclip";
 
             // 제목/메타
-            const displayTitle = isLink
+            const displayTitle = isHtmlEmbed
+              ? file.ogTitle || file.fileName || "HTML 임베드"
+              : isLink
               ? file.ogTitle || file.url
               : isYoutube
               ? file.ogTitle || file.fileName
               : file.fileName;
 
             let displayMeta: string;
-            if (isLink) {
+            if (isHtmlEmbed) {
+              if (file.ogDescription) {
+                displayMeta = file.ogDescription;
+              } else if (file.embedType === "code") {
+                displayMeta = `HTML 코드 (${formatFileSize(file.fileSize)})`;
+              } else {
+                displayMeta = file.url || "HTML URL";
+              }
+            } else if (isLink) {
               try {
                 displayMeta =
                   file.ogDescription || new URL(file.url).hostname;
@@ -290,7 +304,9 @@ const PostStreamCard = ({
                 key={idx}
                 className={`${surveyStyle.attachItem} ${surveyStyle.attachItemClickable}`}
                 onClick={() => {
-                  if (isLink || isYoutube) {
+                  if (isHtmlEmbed) {
+                    setHtmlEmbedPreview(file);
+                  } else if (isLink || isYoutube) {
                     window.open(file.url, "_blank", "noopener,noreferrer");
                   } else {
                     window.open(getProxyUrl(file), "_blank");
@@ -462,6 +478,74 @@ const PostStreamCard = ({
             isManager={isManager}
           />
         )}
+
+      {/* HTML 임베드 미리보기 오버레이 */}
+      {htmlEmbedPreview && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            backgroundColor: "rgba(0,0,0,0.8)",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "12px 16px",
+              backgroundColor: "var(--background-color)",
+              borderBottom: "1px solid var(--border-color)",
+            }}
+          >
+            <span style={{ fontWeight: 500, fontSize: "14px" }}>
+              {htmlEmbedPreview.embedType === "url"
+                ? htmlEmbedPreview.url
+                : "HTML 임베드"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setHtmlEmbedPreview(null)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px 8px",
+                fontSize: "20px",
+                color: "var(--accent-1)",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          <iframe
+            sandbox="allow-scripts"
+            style={{
+              flex: 1,
+              width: "100%",
+              border: "none",
+              backgroundColor: "#fff",
+            }}
+            srcDoc={
+              htmlEmbedPreview.embedType === "code" && htmlEmbedPreview.htmlContent
+                ? htmlEmbedPreview.htmlContent
+                : undefined
+            }
+            src={
+              htmlEmbedPreview.embedType === "url"
+                ? htmlEmbedPreview.url
+                : undefined
+            }
+            title="HTML 임베드 미리보기"
+          />
+        </div>
+      )}
 
     </div>
   );
