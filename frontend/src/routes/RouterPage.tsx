@@ -5,6 +5,7 @@ import {
   Route,
   Routes,
   useLocation,
+  useParams,
 } from "react-router-dom";
 
 //owner pages
@@ -154,6 +155,10 @@ function RouterPage() {
     children: JSX.Element;
     auth?: string[];
   }) => {
+    const { academyId: urlAcademyId } = useParams<{
+      academyId: string;
+    }>();
+
     if (
       currentUser &&
       auth !== undefined &&
@@ -170,7 +175,15 @@ function RouterPage() {
       return <Navigate to="/login" />;
     }
 
-    return currentUser ? children : <Navigate to="/login" />;
+    if (!currentUser) {
+      // If the URL already contains an academy ID, go directly to its login page
+      if (urlAcademyId) {
+        return <Navigate to={`/${urlAcademyId}/login`} replace />;
+      }
+      return <Navigate to="/login" replace />;
+    }
+
+    return children;
   };
 
   return (
