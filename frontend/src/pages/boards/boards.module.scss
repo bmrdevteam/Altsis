@@ -30,11 +30,10 @@
 .segmentBtn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
+  justify-content: center;
+  padding: 6px 10px;
   border: none;
   cursor: pointer;
-  font-size: 13px;
   font-family: inherit;
   background: transparent;
   color: var(--text-color-2);
@@ -54,7 +53,7 @@
   }
 }
 
-/* Icon button (settings gear, back arrow) */
+/* Icon button (settings gear, back arrow, toolbar icons) */
 .iconBtn {
   display: flex;
   align-items: center;
@@ -65,11 +64,20 @@
   padding: 6px;
   color: var(--text-color-2);
   border-radius: 6px;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
 
   &:hover {
     background: var(--background-color-2);
   }
+
+  &.iconBtnActive {
+    color: var(--accent-1);
+  }
+}
+
+.starIcon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 /* Text + icon button (즐겨찾기, 멤버) */

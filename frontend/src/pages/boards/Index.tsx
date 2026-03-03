@@ -18,7 +18,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import style from "style/pages/enrollment.module.scss";
 import bStyle from "./boards.module.scss";
 
-import Button from "components/button/Button";
+
 import Svg from "assets/svg/Svg";
 
 import { TBoard, TBoardListViewMode } from "types/board";
@@ -169,52 +169,42 @@ const Boards = () => {
           {/* 툴바 */}
           <div className={bStyle.toolbar}>
             {canCreateBoard && (
-              <Button
-                type="ghost"
+              <button
+                className={bStyle.iconBtn}
                 onClick={() => setShowBoardCreatePopup(true)}
-                style={{ fontSize: "13px" }}
+                title="보드 생성"
               >
-                <>
-                  <Svg type="plus" width="16px" height="16px" />
-                  보드 생성
-                </>
-              </Button>
+                <Svg type="plus" width="18px" height="18px" />
+              </button>
             )}
 
             <button
-              className={`${bStyle.textBtn} ${
-                showFavoritesOnly ? bStyle.textBtnActive : ""
+              className={`${bStyle.iconBtn} ${
+                showFavoritesOnly ? bStyle.iconBtnActive : ""
               }`}
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
               title="즐겨찾기만 보기"
             >
-              {showFavoritesOnly ? "★" : "☆"} 즐겨찾기
+              <span className={bStyle.starIcon}>
+                {showFavoritesOnly ? "★" : "☆"}
+              </span>
             </button>
 
-            <div className={bStyle.segmentGroup}>
-              <button
-                className={`${bStyle.segmentBtn} ${
-                  boardListViewMode === "table" ? bStyle.segmentBtnActive : ""
-                }`}
-                onClick={() => handleListViewModeChange("table")}
-                title="탭 보기"
-              >
-                <Svg type="list" width="14px" height="14px" />
-                탭
-              </button>
-              <button
-                className={`${bStyle.segmentBtn} ${
-                  boardListViewMode === "gallery"
-                    ? bStyle.segmentBtnActive
-                    : ""
-                }`}
-                onClick={() => handleListViewModeChange("gallery")}
-                title="갤러리 보기"
-              >
-                <Svg type="dashboard" width="14px" height="14px" />
-                갤러리
-              </button>
-            </div>
+            <button
+              className={bStyle.iconBtn}
+              onClick={() =>
+                handleListViewModeChange(
+                  boardListViewMode === "table" ? "gallery" : "table"
+                )
+              }
+              title={boardListViewMode === "table" ? "갤러리 보기" : "탭 보기"}
+            >
+              <Svg
+                type={boardListViewMode === "table" ? "list" : "dashboard"}
+                width="18px"
+                height="18px"
+              />
+            </button>
           </div>
         </div>
 
