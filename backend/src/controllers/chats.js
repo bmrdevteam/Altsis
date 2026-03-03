@@ -760,6 +760,97 @@ export const sendMessage = async (req, res) => {
 
 /**
  * @memberof APIs.ChatAPI
+ * @function DChatMessage API
+ * @description 메시지 삭제 API (본인 메시지만 삭제 가능)
+ * @version 1.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"DELETE"} req.method
+ * @param {"/chats/rooms/:roomId/messages/:messageId"} req.url
+ *
+ * @param {Object} req.params
+ * @param {string} req.params.roomId
+ * @param {string} req.params.messageId
+ *
+ * @param {Object} req.user - logged in user
+ *
+ * @param {Object} res
+ */
+export const deleteMessage = async (req, res) => {
+  try {
+    const room = await ChatRoom(req.user.academyId).findById(req.params.roomId);
+    if (!room) {
+      return res.status(404).send({ message: __NOT_FOUND("room") });
+    }
+
+    const isParticipant = room.participants.some(
+      (p) => p.user.toString() === req.user._id.toString()
+    );
+    if (!isParticipant) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    const message = await ChatMessage(req.user.academyId).findById(
+      req.params.messageId
+    );
+    if (!message) {
+      return res.status(404).send({ message: __NOT_FOUND("message") });
+    }
+
+    if (message.room.toString() !== req.params.roomId) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if (message.sender.toString() !== req.user._id.toString()) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    if (message.isDeleted) {
+      return res.status(200).send({});
+    }
+
+    if (message.messageType === "system") {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    message.isDeleted = true;
+    await message.save();
+
+    // Update room's lastMessage if this was the last message
+    if (
+      room.lastMessage?.sentAt &&
+      message.createdAt.getTime() >=
+        new Date(room.lastMessage.sentAt).getTime()
+    ) {
+      room.lastMessage.content = "삭제된 메시지";
+      await room.save();
+    }
+
+    // Emit via Socket.io
+    const ioChat = getIoChat();
+    if (ioChat) {
+      room.participants.forEach((participant) => {
+        if (participant.user.toString() !== req.user._id.toString()) {
+          ioChat
+            .to(`chat:${req.user.academyId}:${participant.userId}`)
+            .emit("message_deleted", {
+              room: room._id,
+              messageId: message._id,
+            });
+        }
+      });
+    }
+
+    return res.status(200).send({});
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.ChatAPI
  * @function RChatMessages API
  * @description 메시지 목록 조회 API (페이지네이션)
  * @version 1.0.0

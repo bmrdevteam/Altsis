@@ -43,6 +43,7 @@ import Table from "components/tableV2/Table";
 import Tab from "components/tab/Tab";
 
 import EditorParser from "editor/EditorParser";
+import AltBoardTab from "pages/courses/tab/Mentoring/AltBoardTab";
 
 import _ from "lodash";
 
@@ -56,7 +57,7 @@ type Props = {};
 
 const CourseEnrollment = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentUser, currentRegistration, currentSeason } = useAuth();
+  const { currentUser, currentRegistration, currentSeason, currentSchool } = useAuth();
   const navigate = useAppNavigate();
   const { EnrollmentAPI, SyllabusAPI } = useAPIv2();
 
@@ -389,6 +390,13 @@ const CourseEnrollment = (props: Props) => {
                 )}
               </>
             ),
+            ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false && enrollmentData?.syllabus ? {
+            보드: (
+              <div style={{ marginTop: "16px" }}>
+                <AltBoardTab syllabusId={enrollmentData.syllabus} canCreate={false} />
+              </div>
+            ),
+            } : {}),
           }}
           align="flex-start"
         />

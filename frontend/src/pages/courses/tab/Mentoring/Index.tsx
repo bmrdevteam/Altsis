@@ -56,7 +56,7 @@ type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentSeason, currentUser, currentRegistration } = useAuth();
+  const { currentSeason, currentUser, currentRegistration, currentSchool } = useAuth();
   const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
   const navigate = useAppNavigate();
 
@@ -615,11 +615,13 @@ const CoursePid = (props: Props) => {
                       />
                     </div>
                   ),
+                  ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false ? {
                   보드: (
                     <div style={{ marginTop: "16px" }}>
                       <AltBoardTab syllabusId={syllabus._id} />
                     </div>
                   ),
+                  } : {}),
                   } : {}),
                 }}
                 align="flex-start"
