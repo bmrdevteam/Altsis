@@ -15,6 +15,11 @@ import Button from "components/button/Button";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Svg from "assets/svg/Svg";
 
+const toLocalDatetimeString = (date: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 type Props = {
   board: TBoard;
   formId?: string;
@@ -148,10 +153,10 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
           allowResubmit: form.settings.allowResubmit,
           allowMultipleResponses: form.settings.allowMultipleResponses || false,
           openAt: form.settings.openAt
-            ? new Date(form.settings.openAt).toISOString().slice(0, 16)
+            ? toLocalDatetimeString(new Date(form.settings.openAt))
             : "",
           closeAt: form.settings.closeAt
-            ? new Date(form.settings.closeAt).toISOString().slice(0, 16)
+            ? toLocalDatetimeString(new Date(form.settings.closeAt))
             : "",
           quizMode: form.settings.quizMode || false,
           quizSettings: form.settings.quizSettings || {
@@ -187,8 +192,8 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
         settings: {
           allowResubmit: settings.allowResubmit,
           allowMultipleResponses: settings.allowMultipleResponses,
-          openAt: settings.openAt || undefined,
-          closeAt: settings.closeAt || undefined,
+          openAt: settings.openAt ? new Date(settings.openAt).toISOString() : undefined,
+          closeAt: settings.closeAt ? new Date(settings.closeAt).toISOString() : undefined,
           quizMode: settings.quizMode,
           quizSettings: settings.quizMode ? settings.quizSettings : undefined,
           directInputMode: settings.directInputMode,
