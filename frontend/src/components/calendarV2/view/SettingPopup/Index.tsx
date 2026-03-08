@@ -70,6 +70,7 @@ const Index = (props: Props) => {
               onSettingsChange={props.onSettingsChange}
               calendarSettings={props.calendarSettings}
               isViewingOther={isViewingOther}
+              userId={props.userId}
             />
           ),
           ...courseItems,

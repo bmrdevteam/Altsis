@@ -57,9 +57,10 @@ export const create = async (req, res) => {
  */
 export const find = async (req, res) => {
   try {
+    const targetUserId = req.query.user || req.user._id;
     const query = {
       $or: [
-        { user: req.user._id, scope: "personal" },
+        { user: targetUserId, scope: "personal" },
         { scope: "school" },
       ],
     };

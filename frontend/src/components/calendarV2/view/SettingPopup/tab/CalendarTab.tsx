@@ -17,6 +17,7 @@ type Props = {
   onSettingsChange?: (settings: CalendarSettings) => void;
   calendarSettings?: CalendarSettings;
   isViewingOther?: boolean;
+  userId?: string;
 };
 
 type TVisibility = {
@@ -96,7 +97,10 @@ const CalendarTab = (props: Props) => {
   const loadCalendars = async () => {
     try {
       const { userCalendars } = await UserCalendarAPI.RUserCalendars({
-        query: { school: currentSchool?._id },
+        query: {
+          school: currentSchool?._id,
+          ...(props.userId ? { user: props.userId } : {}),
+        },
       });
       setUserCalendars(userCalendars);
     } catch {}
@@ -441,19 +445,21 @@ const CalendarTab = (props: Props) => {
           }}
         >
           사용자 캘린더
-          <Button
-            type="ghost"
-            onClick={() => {
-              setNewScope("personal");
-              setIsAdding(true);
-            }}
-            style={{ fontSize: "12px", padding: "2px 8px" }}
-          >
-            + 추가
-          </Button>
+          {!props.isViewingOther && (
+            <Button
+              type="ghost"
+              onClick={() => {
+                setNewScope("personal");
+                setIsAdding(true);
+              }}
+              style={{ fontSize: "12px", padding: "2px 8px" }}
+            >
+              + 추가
+            </Button>
+          )}
         </div>
 
-        {personalCalendars.map((cal) => renderCalendarItem(cal, true))}
+        {personalCalendars.map((cal) => renderCalendarItem(cal, !props.isViewingOther))}
 
         {isAdding && (
           <div
