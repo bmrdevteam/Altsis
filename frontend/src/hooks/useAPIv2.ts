@@ -2169,6 +2169,14 @@ export default function useAPIv2() {
     return { board: board as TBoard | null };
   }
 
+  async function USyllabusAltBoardSync(props: { params: { _id: string } }) {
+    const { board, added, removed } = await database.U({
+      location: `syllabuses/${props.params._id}/alt-board/sync`,
+      data: {},
+    });
+    return { board: board as TBoard, added: added as number, removed: removed as number };
+  }
+
   /**
    * ##########################################################################
    * Enrollment API
@@ -4635,6 +4643,7 @@ export default function useAPIv2() {
       DSyllabus,
       CSyllabusAltBoard,
       RSyllabusAltBoard,
+      USyllabusAltBoardSync,
     },
     EnrollmentAPI: {
       CEnrollment,

@@ -18,6 +18,7 @@ import {
 import { courseMulter } from "../_s3/courseMulter.js";
 import { Board, Enrollment, Registration, Syllabus } from "../models/index.js";
 import { sendAutoNotification } from "../services/notifications.js";
+import { syncBoardChatParticipants } from "../services/boardChat.js";
 import _ from "lodash";
 
 const isFullyConfirmed = (syllabus) =>
@@ -1278,6 +1279,105 @@ export const findAltBoard = async (req, res) => {
     }
 
     return res.status(200).send({ board });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SyllabusAPI
+ * @function USyllabusAltBoardSync API
+ * @description 수업 Alt Board의 멤버를 현재 수강생과 동기화하는 API
+ * @version 1.0.0
+ */
+export const syncAltBoard = async (req, res) => {
+  try {
+    const syllabus = await Syllabus(req.user.academyId).findById(
+      req.params._id
+    );
+    if (!syllabus) {
+      return res.status(404).send({ message: __NOT_FOUND("syllabus") });
+    }
+
+    if (!syllabus.altBoard) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const board = await Board(req.user.academyId).findById(syllabus.altBoard);
+    if (!board || !board.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    // 권한 확인: 교사/관리자만 가능
+    const isCreator = req.user._id.equals(syllabus.user);
+    const isMentor = _.find(syllabus.teachers, { _id: req.user._id });
+    const isManager =
+      req.user.auth === "admin" || req.user.auth === "manager";
+    if (!isCreator && !isMentor && !isManager) {
+      return res.status(403).send({ message: PERMISSION_DENIED });
+    }
+
+    // 현재 수강생 조회
+    const enrollments = await Enrollment(req.user.academyId).find({
+      syllabus: syllabus._id,
+    });
+    const enrolledStudentIds = new Set(
+      enrollments.map((e) => e.student.toString())
+    );
+
+    // 교사 ID 집합 (동기화에서 제외)
+    const teacherIds = new Set(
+      syllabus.teachers.map((t) => t._id.toString())
+    );
+    teacherIds.add(syllabus.user.toString());
+
+    let added = 0;
+    let removed = 0;
+
+    // 1. 누락된 수강생 추가
+    for (const enrollment of enrollments) {
+      const studentId = enrollment.student.toString();
+      if (!board.altBoardRole?.has(studentId)) {
+        board.altBoardRole = board.altBoardRole || new Map();
+        board.altBoardRole.set(studentId, "respondent");
+
+        const alreadyInMembers = board.members?.users?.some(
+          (u) => u.user?.toString() === studentId
+        );
+        if (!alreadyInMembers) {
+          board.members.users.push({
+            user: enrollment.student,
+            userId: enrollment.studentId,
+            userName: enrollment.studentName,
+          });
+        }
+        added++;
+      }
+    }
+
+    // 2. 수강 취소된 학생 제거 (교사는 유지)
+    const currentRoleEntries = board.altBoardRole
+      ? [...board.altBoardRole.entries()]
+      : [];
+    for (const [userId, role] of currentRoleEntries) {
+      if (role === "respondent" && !enrolledStudentIds.has(userId) && !teacherIds.has(userId)) {
+        board.altBoardRole.delete(userId);
+        board.members.users = (board.members.users || []).filter(
+          (u) => u.user?.toString() !== userId
+        );
+        removed++;
+      }
+    }
+
+    if (added > 0 || removed > 0) {
+      board.markModified("altBoardRole");
+      board.markModified("members");
+      await board.save();
+      await syncBoardChatParticipants(req.user.academyId, board);
+    }
+
+    return res.status(200).send({ board, added, removed });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

@@ -27,5 +27,6 @@ router.delete("/:_id", isLoggedIn, syllabuses.remove);
 // Alt Board
 router.post("/:_id/alt-board", isLoggedIn, syllabuses.createAltBoard);
 router.get("/:_id/alt-board", isLoggedIn, syllabuses.findAltBoard);
+router.put("/:_id/alt-board/sync", isLoggedIn, syllabuses.syncAltBoard);
 
 export { router };

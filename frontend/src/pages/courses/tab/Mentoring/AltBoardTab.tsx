@@ -15,6 +15,7 @@ const AltBoardTab = ({ syllabusId, canCreate = true }: Props) => {
   const [altBoard, setAltBoard] = useState<TBoard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     SyllabusAPI.RSyllabusAltBoard({ params: { _id: syllabusId } })
@@ -38,6 +39,22 @@ const AltBoardTab = ({ syllabusId, canCreate = true }: Props) => {
       ALERT_ERROR(err);
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const { board, added, removed } =
+        await SyllabusAPI.USyllabusAltBoardSync({
+          params: { _id: syllabusId },
+        });
+      setAltBoard(board);
+      alert(`동기화 완료: ${added}명 추가, ${removed}명 제거`);
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -73,7 +90,23 @@ const AltBoardTab = ({ syllabusId, canCreate = true }: Props) => {
     );
   }
 
-  return <AltBoardView board={altBoard} embedded />;
+  return (
+    <>
+      {canCreate && (
+        <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 12px 0" }}>
+          <Button
+            type="ghost"
+            onClick={handleSync}
+            disabled={isSyncing}
+            style={{ fontSize: "13px" }}
+          >
+            {isSyncing ? "동기화 중..." : "수강생 동기화"}
+          </Button>
+        </div>
+      )}
+      <AltBoardView board={altBoard} embedded />
+    </>
+  );
 };
 
 export default AltBoardTab;
