@@ -19,7 +19,6 @@ router.put("/:academyId/inactivate", isOwner, academies.inactivate);
 
 router.put("/:academyId/email", isOwner, academies.updateEmail);
 router.put("/:academyId/tel", isOwner, academies.updateTel);
-router.put("/:academyId/chat", isOwner, academies.updateChatEnabled);
 
 /* backup */
 router.post("/:academyId/backup", isOwAdmin, academies.createBackup);

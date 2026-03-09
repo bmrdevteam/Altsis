@@ -61,7 +61,6 @@ const academySchema = mongoose.Schema(
       select: false,
     },
     isActivated: { type: Boolean, default: true },
-    chatEnabled: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

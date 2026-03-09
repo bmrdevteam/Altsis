@@ -114,24 +114,10 @@ export const copy = async (req, res) => {
       });
     }
 
-    /* generate unique title */
-    let newTitle = `${formToCopy.title}의 사본`;
-    let counter = 2;
-
-    while (
-      await Form(req.user.academyId).findOne({
-        type: formToCopy.type,
-        title: newTitle,
-      })
-    ) {
-      newTitle = `${formToCopy.title}의 사본 (${counter})`;
-      counter++;
-    }
-
     /* create and save document */
     const form = await Form(req.user.academyId).create({
       type: formToCopy.type,
-      title: newTitle,
+      title: `${formToCopy.title}의 사본`,
       data: formToCopy.data,
       userId: req.user.userId,
       userName: req.user.userName,

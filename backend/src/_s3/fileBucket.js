@@ -31,16 +31,3 @@ export const signUrl = (key, filename, seconds = signedUrlExpireSeconds) => {
 
   return { preSignedUrl, expiryDate };
 };
-
-/**
- * Sign URL for inline viewing (without forced download)
- */
-export const signUrlForView = (key, seconds = signedUrlExpireSeconds) => {
-  const preSignedUrl = fileS3.getSignedUrl("getObject", {
-    Bucket: fileBucket,
-    Key: key,
-    Expires: seconds,
-  });
-
-  return preSignedUrl;
-};
