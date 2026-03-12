@@ -36,7 +36,7 @@ const AltSheetView = ({
   onFormDeselect,
   onCopySheetLink,
 }: Props) => {
-  const { AltSheetRowAPI } = useAPIv2();
+  const { AltSheetRowAPI, FileAPI } = useAPIv2();
   const { currentUser } = useAuth();
 
   const [selectedFormId, setSelectedFormId] = useState<string>(
@@ -178,6 +178,10 @@ const AltSheetView = ({
           return v;
         })
         .join(", ");
+    }
+
+    if (field?.type === "file" && Array.isArray(value)) {
+      return value.map((f: any) => f.originalName || f.key || "").join(", ");
     }
 
     if (field?.type === "time" && value) {
@@ -1010,6 +1014,52 @@ const AltSheetView = ({
                   )}
                 </td>
                 {visibleFields.map((field) => {
+                  // 파일 필드 특별 렌더링
+                  if (
+                    field.type === "file" &&
+                    Array.isArray(row.data[field._id])
+                  ) {
+                    return (
+                      <td key={field._id}>
+                        {(
+                          row.data[field._id] as {
+                            originalName: string;
+                            key: string;
+                          }[]
+                        ).map((f) => (
+                          <span
+                            key={f.key}
+                            style={{
+                              color: "var(--accent-1)",
+                              textDecoration: "underline",
+                              cursor: "pointer",
+                              marginRight: "8px",
+                            }}
+                            onClick={async () => {
+                              try {
+                                const { preSignedUrl } =
+                                  await FileAPI.RSignedUrlDocument({
+                                    query: {
+                                      key: f.key,
+                                      fileName: f.originalName,
+                                    },
+                                  });
+                                const anchor = document.createElement("a");
+                                anchor.href = preSignedUrl;
+                                anchor.download = f.originalName;
+                                anchor.click();
+                              } catch (err) {
+                                ALERT_ERROR(err);
+                              }
+                            }}
+                          >
+                            {f.originalName}
+                          </span>
+                        ))}
+                      </td>
+                    );
+                  }
+
                   // 승인 필드 특별 렌더링
                   if (field.type === "approval") {
                     return (

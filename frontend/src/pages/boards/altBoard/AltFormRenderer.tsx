@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
 import { TBoard } from "types/board";
 import {
@@ -91,7 +91,7 @@ const isFieldVisible = (
 };
 
 const AltFormRenderer = ({ board, formId, onBack }: Props) => {
-  const { AltFormAPI, AltSheetRowAPI, ChatAPI } = useAPIv2();
+  const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI } = useAPIv2();
   const { currentSchool, currentRegistration } = useAuth();
 
   const [form, setForm] = useState<TAltForm | null>(null);
@@ -106,6 +106,12 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   const [counterCounts, setCounterCounts] = useState<Record<string, number>>(
     {}
   );
+
+  // file 필드용
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [uploadingFields, setUploadingFields] = useState<
+    Record<string, boolean>
+  >({});
 
   // userSelect / approval 용 사용자 검색
   const [userSearchQuery, setUserSearchQuery] = useState<
@@ -278,7 +284,12 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       const value = data[field._id];
 
       if (field.required) {
-        if (value === undefined || value === null || value === "") {
+        if (field.type === "file") {
+          if (!Array.isArray(value) || value.length === 0) {
+            newErrors[field._id] = "파일을 업로드해주세요.";
+            continue;
+          }
+        } else if (value === undefined || value === null || value === "") {
           newErrors[field._id] = "필수 항목입니다.";
           continue;
         }
@@ -1200,6 +1211,169 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
                     ))}
                   </div>
                 )}
+              </>
+            )}
+          </div>
+        );
+      }
+
+      case "file": {
+        const files: { originalName: string; key: string }[] = Array.isArray(
+          value
+        )
+          ? value
+          : [];
+        const isUploading = uploadingFields[field._id] || false;
+
+        const handleFileDownload = async (f: {
+          originalName: string;
+          key: string;
+        }) => {
+          try {
+            const { preSignedUrl } = await FileAPI.RSignedUrlDocument({
+              query: { key: f.key, fileName: f.originalName },
+            });
+            const anchor = document.createElement("a");
+            anchor.href = preSignedUrl;
+            anchor.download = f.originalName;
+            anchor.click();
+          } catch (err) {
+            ALERT_ERROR(err);
+          }
+        };
+
+        const handleFileSelect = async (file: File) => {
+          if (file.size > 20 * 1024 * 1024) {
+            alert(`${file.name}: 파일 크기는 20MB 이하여야 합니다.`);
+            return;
+          }
+          setUploadingFields((p) => ({ ...p, [field._id]: true }));
+          try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const result = await FileAPI.CUploadFileArchive({
+              data: formData,
+            });
+            setValue(field._id, [
+              ...files,
+              { originalName: result.originalName, key: result.key },
+            ]);
+          } catch (err) {
+            ALERT_ERROR(err);
+          } finally {
+            setUploadingFields((p) => ({ ...p, [field._id]: false }));
+            const ref = fileRefs.current[field._id];
+            if (ref) ref.value = "";
+          }
+        };
+
+        const handleDrop = (e: React.DragEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const file = e.dataTransfer.files[0];
+          if (file) handleFileSelect(file);
+        };
+
+        return (
+          <div className={style.fileUploadArea}>
+            {files.map((f) => (
+              <div key={f.key} className={style.uploadedFile}>
+                <span
+                  className={`${style.uploadedFileName} ${
+                    disabled ? style.uploadedFileLink : ""
+                  }`}
+                  onClick={disabled ? () => handleFileDownload(f) : undefined}
+                  role={disabled ? "button" : undefined}
+                  tabIndex={disabled ? 0 : undefined}
+                  onKeyDown={
+                    disabled
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ")
+                            handleFileDownload(f);
+                        }
+                      : undefined
+                  }
+                >
+                  {f.originalName}
+                </span>
+                {!disabled && (
+                  <button
+                    type="button"
+                    className={style.fileRemoveBtn}
+                    onClick={() =>
+                      setValue(
+                        field._id,
+                        files.filter((x) => x.key !== f.key)
+                      )
+                    }
+                    aria-label={`${f.originalName} 삭제`}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {isUploading && (
+              <div className={style.uploadProgress}>업로드 중...</div>
+            )}
+
+            {!disabled && !isUploading && (
+              <>
+                <input
+                  ref={(el) => {
+                    fileRefs.current[field._id] = el;
+                  }}
+                  type="file"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                />
+                <div
+                  className={style.fileDropZone}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={handleDrop}
+                  onClick={() => fileRefs.current[field._id]?.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      fileRefs.current[field._id]?.click();
+                    }
+                  }}
+                  aria-label="파일 업로드"
+                >
+                  <span style={{ fontSize: "20px", opacity: 0.5 }}>📎</span>
+                  <span
+                    style={{ fontSize: "13px", color: "var(--text-color-2)" }}
+                  >
+                    파일을 드래그하거나{" "}
+                    <span
+                      style={{
+                        color: "var(--accent-1)",
+                        fontWeight: 500,
+                      }}
+                    >
+                      클릭하여 선택
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-color-2)",
+                      opacity: 0.6,
+                    }}
+                  >
+                    최대 20MB
+                    {files.length > 0 && ` · ${files.length}개 첨부됨`}
+                  </span>
+                </div>
               </>
             )}
           </div>
