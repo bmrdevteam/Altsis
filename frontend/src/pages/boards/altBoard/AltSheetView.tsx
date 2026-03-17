@@ -64,6 +64,13 @@ const AltSheetView = ({
     Record<string, string>
   >({});
 
+  // 뷰 모드: 테이블 or 문서
+  const [viewMode, setViewMode] = useState<"table" | "doc">("table");
+
+  // 문서 뷰 편집 상태
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [docEditData, setDocEditData] = useState<Record<string, any>>({});
+
   const selectedForm = forms.find((f) => f._id === selectedFormId);
 
   // 표시할 필드: 관리자는 전체, 응답자는 respondent + visibleToRespondent (또는 showOwnerFields)
@@ -674,6 +681,202 @@ const AltSheetView = ({
     );
   };
 
+  // 문서 뷰: 편집 불가 필드 타입 (기존 handleCellClick과 동일)
+  const nonEditableTypes = [
+    "multiDate", "multiSelect", "userSelect", "file",
+    "checkbox", "rating", "scale", "counter", "approval",
+  ];
+
+  // 문서 뷰: 행 수정 가능 여부
+  const canEditRowDoc = (row: TAltSheetRow) => {
+    if (canDeleteAnyRow) return true;
+    if (
+      row._respondent === currentUser?._id &&
+      (selectedForm?.settings?.allowResubmit ||
+        selectedForm?.settings?.allowMultipleResponses)
+    )
+      return true;
+    return false;
+  };
+
+  // 문서 뷰: 편집 시작
+  const handleDocEditStart = (row: TAltSheetRow) => {
+    setEditingRowId(row._id);
+    setDocEditData({ ...row.data });
+  };
+
+  // 문서 뷰: 저장
+  const handleDocEditSave = async () => {
+    if (!editingRowId) return;
+    try {
+      // 편집 가능한 필드만 추출
+      const editableData: Record<string, any> = {};
+      for (const field of allVisibleFields) {
+        if (!nonEditableTypes.includes(field.type)) {
+          if (
+            !canDeleteAnyRow &&
+            field.permission === "owner"
+          )
+            continue;
+          editableData[field._id] = docEditData[field._id];
+        }
+      }
+      await AltSheetRowAPI.UAltSheetRow({
+        params: { _id: editingRowId },
+        data: { data: editableData },
+      });
+      setRows((prev) =>
+        prev.map((r) =>
+          r._id === editingRowId
+            ? { ...r, data: { ...r.data, ...editableData } }
+            : r
+        )
+      );
+      setEditingRowId(null);
+    } catch (err) {
+      ALERT_ERROR(err);
+    }
+  };
+
+  // 문서 뷰: 필드 값 렌더링
+  const renderDocFieldValue = (
+    row: TAltSheetRow,
+    field: TAltFormField,
+    isEditing: boolean
+  ) => {
+    const value = isEditing ? docEditData[field._id] : row.data[field._id];
+    const canEditField =
+      isEditing && !nonEditableTypes.includes(field.type) &&
+      (canDeleteAnyRow || field.permission === "respondent");
+
+    // 편집 모드: 입력 필드 렌더링
+    if (canEditField) {
+      switch (field.type) {
+        case "textarea":
+          return (
+            <textarea
+              className={style.docViewTextarea}
+              value={value ?? ""}
+              onChange={(e) =>
+                setDocEditData((p) => ({ ...p, [field._id]: e.target.value }))
+              }
+              rows={4}
+            />
+          );
+        case "number":
+          return (
+            <input
+              className={style.docViewInput}
+              type="number"
+              value={value ?? ""}
+              onChange={(e) =>
+                setDocEditData((p) => ({ ...p, [field._id]: e.target.value }))
+              }
+            />
+          );
+        case "date":
+          return (
+            <input
+              className={style.docViewInput}
+              type="date"
+              value={value ?? ""}
+              onChange={(e) =>
+                setDocEditData((p) => ({ ...p, [field._id]: e.target.value }))
+              }
+            />
+          );
+        case "time":
+          return (
+            <input
+              className={style.docViewInput}
+              type="time"
+              value={value ?? ""}
+              onChange={(e) =>
+                setDocEditData((p) => ({ ...p, [field._id]: e.target.value }))
+              }
+            />
+          );
+        case "select":
+        case "radio":
+          return (
+            <select
+              className={style.docViewInput}
+              value={value ?? ""}
+              onChange={(e) =>
+                setDocEditData((p) => ({ ...p, [field._id]: e.target.value }))
+              }
+            >
+              <option value="">선택하세요</option>
+              {field.options?.map((opt, i) => (
+                <option key={i} value={opt}>{opt}</option>
+              ))}
+            </select>
+          );
+        default: // text
+          return (
+            <input
+              className={style.docViewInput}
+              value={value ?? ""}
+              onChange={(e) =>
+                setDocEditData((p) => ({ ...p, [field._id]: e.target.value }))
+              }
+            />
+          );
+      }
+    }
+
+    // 읽기 전용 렌더링
+    if (value === null || value === undefined || value === "") {
+      return <span style={{ color: "var(--text-color-2)", fontStyle: "italic" }}>—</span>;
+    }
+
+    if (field.type === "textarea") {
+      return (
+        <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.6 }}>
+          {String(value)}
+        </div>
+      );
+    }
+
+    if (field.type === "file" && Array.isArray(value)) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {value.map((f: any) => (
+            <span
+              key={f.key}
+              style={{ color: "var(--accent-1)", textDecoration: "underline", cursor: "pointer" }}
+              onClick={async () => {
+                try {
+                  const { preSignedUrl } = await FileAPI.RSignedUrlDocument({
+                    query: { key: f.key, fileName: f.originalName },
+                  });
+                  const anchor = document.createElement("a");
+                  anchor.href = preSignedUrl;
+                  anchor.download = f.originalName;
+                  anchor.click();
+                } catch (err) {
+                  ALERT_ERROR(err);
+                }
+              }}
+            >
+              {f.originalName}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
+    if (field.type === "approval") {
+      return renderApprovalCell(row, field);
+    }
+
+    if (field.type === "rating") {
+      return <span style={{ fontSize: "18px" }}>{"★".repeat(Number(value))}</span>;
+    }
+
+    return formatCellValue(value, field);
+  };
+
   // 응답자: shareResponses(전체 공유) 또는 showOwnResponse(본인 기록) 켜진 양식
   const availableForms = canManage
     ? forms
@@ -762,6 +965,22 @@ const AltSheetView = ({
               })()}
         </span>
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <div className={style.viewModeToggle}>
+            <button
+              className={viewMode === "table" ? style.viewModeActive : ""}
+              onClick={() => setViewMode("table")}
+              title="테이블 보기"
+            >
+              ☰
+            </button>
+            <button
+              className={viewMode === "doc" ? style.viewModeActive : ""}
+              onClick={() => setViewMode("doc")}
+              title="문서 보기"
+            >
+              ▤
+            </button>
+          </div>
           {onCopySheetLink && (
             <Button
               type="ghost"
@@ -841,10 +1060,157 @@ const AltSheetView = ({
         </div>
       </div>
 
-      {/* 테이블 */}
+      {/* 콘텐츠 */}
       {!isLoading && rows.length === 0 ? (
         <div className={style.sheetEmpty}>아직 응답이 없습니다.</div>
+      ) : !isLoading && viewMode === "doc" ? (
+        /* ── 문서 뷰 ── */
+        <div>
+          {/* 정렬 헤더 (테이블 헤더 스타일) */}
+          <div className={style.docViewSortBar}>
+            <span
+              className={style.docViewSortItem}
+              onClick={() => handleColumnSort("_respondent")}
+            >
+              응답자{getSortIndicator("_respondent")}
+            </span>
+            {visibleFields.map((f) => (
+              <span
+                key={f._id}
+                className={style.docViewSortItem}
+                onClick={() => handleColumnSort(f._id)}
+              >
+                {f.label}{getSortIndicator(f._id)}
+              </span>
+            ))}
+            <span
+              className={style.docViewSortItem}
+              onClick={() => handleColumnSort("_submittedAt")}
+            >
+              제출일{getSortIndicator("_submittedAt")}
+            </span>
+          </div>
+          {/* 필터 바 */}
+          <div className={style.docViewFilterBar}>
+            <input
+              className={style.filterInput}
+              placeholder="응답자 필터..."
+              value={filters["_respondent"] || ""}
+              onChange={(e) =>
+                setFilters((p) => ({ ...p, _respondent: e.target.value }))
+              }
+              style={{ maxWidth: "200px" }}
+            />
+            {visibleFields
+              .filter((f) => !["file", "approval"].includes(f.type))
+              .map((f) => (
+                <input
+                  key={f._id}
+                  className={style.filterInput}
+                  placeholder={`${f.label} 필터...`}
+                  value={filters[f._id] || ""}
+                  onChange={(e) =>
+                    setFilters((p) => ({ ...p, [f._id]: e.target.value }))
+                  }
+                  style={{ maxWidth: "200px" }}
+                />
+              ))}
+          </div>
+          <div className={style.docViewList}>
+          {filteredRows.map((row, index) => {
+            const isEditingThis = editingRowId === row._id;
+            return (
+              <div key={row._id} className={style.docViewCard}>
+                <div className={style.docViewCardHeader}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>
+                      {index + 1}. {row._respondentName || ""}
+                    </span>
+                    {row._respondentId && (
+                      <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: "4px" }}>
+                        ({row._respondentId})
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
+                      {row._submittedAt
+                        ? new Date(row._submittedAt).toLocaleString("ko-KR", {
+                            year: "numeric", month: "2-digit", day: "2-digit",
+                            weekday: "short", hour: "2-digit", minute: "2-digit",
+                          })
+                        : "-"}
+                    </span>
+                    {canEditRowDoc(row) && !isEditingThis && (
+                      <Button
+                        type="ghost"
+                        onClick={() => handleDocEditStart(row)}
+                        style={{ padding: "2px 8px", fontSize: "12px" }}
+                      >
+                        수정
+                      </Button>
+                    )}
+                    {isEditingThis && (
+                      <>
+                        <Button
+                          type="ghost"
+                          onClick={handleDocEditSave}
+                          style={{ padding: "2px 8px", fontSize: "12px" }}
+                        >
+                          저장
+                        </Button>
+                        <Button
+                          type="ghost"
+                          onClick={() => setEditingRowId(null)}
+                          style={{ padding: "2px 8px", fontSize: "12px" }}
+                        >
+                          취소
+                        </Button>
+                      </>
+                    )}
+                    {(canDeleteAnyRow ||
+                      (row._respondent === currentUser?._id &&
+                        (selectedForm?.settings?.allowResubmit ||
+                          selectedForm?.settings?.allowMultipleResponses))) && (
+                      <button
+                        className={style.removeBtn}
+                        onClick={() => handleDeleteRow(row._id)}
+                        title="삭제"
+                        style={{ opacity: 0.5 }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {visibleFields.map((field) => (
+                  <div key={field._id} className={style.docViewField}>
+                    <div className={style.docViewLabel}>
+                      {field.label}
+                      {field.permission === "owner" && (
+                        <span className={style.docViewOwnerBadge}>(관리자)</span>
+                      )}
+                    </div>
+                    <div className={style.docViewValue}>
+                      {renderDocFieldValue(row, field, isEditingThis)}
+                    </div>
+                  </div>
+                ))}
+                {isQuiz && row.data?._quiz_score != null && (
+                  <div className={style.docViewField}>
+                    <div className={style.docViewLabel}>점수</div>
+                    <div className={style.docViewValue}>
+                      {row.data._quiz_score} / {row.data._quiz_total || 0}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          </div>
+        </div>
       ) : !isLoading ? (
+        /* ── 테이블 뷰 ── */
         <div className={style.sheetTableWrap}>
         <table className={style.sheetTable}>
           <thead>
@@ -1082,17 +1448,35 @@ const AltSheetView = ({
                     <td
                       key={field._id}
                       onClick={canEdit && !isEditing ? () => handleCellClick(row._id, field, cellValue) : undefined}
-                      className={canEdit ? style.cellEditable : undefined}
+                      className={[
+                        canEdit ? style.cellEditable : "",
+                        field.type === "textarea" ? style.cellTextarea : "",
+                      ].filter(Boolean).join(" ") || undefined}
                     >
                       {isEditing ? (
-                        <input
-                          className={style.cellInput}
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onBlur={handleCellSave}
-                          onKeyDown={handleCellKeyDown}
-                          autoFocus
-                        />
+                        field.type === "textarea" ? (
+                          <textarea
+                            className={style.cellInput}
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={handleCellSave}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") setEditingCell(null);
+                            }}
+                            autoFocus
+                            rows={4}
+                            style={{ resize: "vertical", minHeight: "60px" }}
+                          />
+                        ) : (
+                          <input
+                            className={style.cellInput}
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={handleCellSave}
+                            onKeyDown={handleCellKeyDown}
+                            autoFocus
+                          />
+                        )
                       ) : (
                         cellValue || ""
                       )}
