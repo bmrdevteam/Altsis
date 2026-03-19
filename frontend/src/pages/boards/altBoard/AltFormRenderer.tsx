@@ -91,7 +91,7 @@ const isFieldVisible = (
 };
 
 const AltFormRenderer = ({ board, formId, onBack }: Props) => {
-  const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI } = useAPIv2();
+  const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentSchool, currentRegistration } = useAuth();
 
   const [form, setForm] = useState<TAltForm | null>(null);
@@ -112,6 +112,12 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   const [uploadingFields, setUploadingFields] = useState<
     Record<string, boolean>
   >({});
+
+  // link 필드용 OG 메타데이터 로딩
+  const [fetchingOg, setFetchingOg] = useState<Record<string, boolean>>({});
+  const ogFetchTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {}
+  );
 
   // userSelect / approval 용 사용자 검색
   const [userSearchQuery, setUserSearchQuery] = useState<
@@ -287,6 +293,11 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
         if (field.type === "file") {
           if (!Array.isArray(value) || value.length === 0) {
             newErrors[field._id] = "파일을 업로드해주세요.";
+            continue;
+          }
+        } else if (field.type === "link") {
+          if (!value || !value.url || !value.url.trim()) {
+            newErrors[field._id] = "링크를 입력해주세요.";
             continue;
           }
         } else if (value === undefined || value === null || value === "") {
@@ -1375,6 +1386,114 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
                   </span>
                 </div>
               </>
+            )}
+          </div>
+        );
+      }
+
+      case "link": {
+        const linkData =
+          typeof value === "object" && value ? value : {};
+        const isFetching = fetchingOg[field._id] || false;
+
+        const handleLinkChange = (url: string) => {
+          setValue(field._id, { ...(data[field._id] || {}), url });
+
+          if (ogFetchTimers.current[field._id]) {
+            clearTimeout(ogFetchTimers.current[field._id]);
+          }
+
+          const trimmed = url.trim();
+          if (trimmed) {
+            ogFetchTimers.current[field._id] = setTimeout(async () => {
+              try {
+                setFetchingOg((p) => ({ ...p, [field._id]: true }));
+                let fetchUrl = trimmed;
+                if (!/^https?:\/\//i.test(fetchUrl)) {
+                  fetchUrl = "https://" + fetchUrl;
+                }
+                const ogData = await PostAPI.RPostOgMeta({
+                  query: { url: fetchUrl },
+                });
+                setValue(field._id, {
+                  ...data[field._id],
+                  url: fetchUrl,
+                  ogTitle: ogData.ogTitle || undefined,
+                  ogDescription: ogData.ogDescription || undefined,
+                  ogImage: ogData.ogImage || undefined,
+                });
+              } catch {
+                setValue(field._id, { ...data[field._id], url: trimmed });
+              } finally {
+                setFetchingOg((p) => ({ ...p, [field._id]: false }));
+              }
+            }, 500);
+          }
+        };
+
+        return (
+          <div className={style.linkFieldArea}>
+            <input
+              type="text"
+              className={style.textInput}
+              placeholder="제목을 입력하세요"
+              value={linkData.title || ""}
+              onChange={(e) =>
+                setValue(field._id, {
+                  ...(data[field._id] || {}),
+                  title: e.target.value,
+                })
+              }
+              disabled={disabled}
+            />
+            <input
+              type="url"
+              className={style.textInput}
+              placeholder="https://example.com"
+              value={linkData.url || ""}
+              onChange={(e) => handleLinkChange(e.target.value)}
+              disabled={disabled}
+            />
+            {isFetching && (
+              <div className={style.linkFetching}>미리보기 로딩 중...</div>
+            )}
+            {!isFetching && linkData.url && (
+              <a
+                href={linkData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={style.linkPreview}
+              >
+                {linkData.ogImage && (
+                  <img
+                    src={linkData.ogImage}
+                    alt=""
+                    className={style.linkPreviewImage}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                )}
+                <div className={style.linkPreviewText}>
+                  <div className={style.linkPreviewTitle}>
+                    {linkData.title || linkData.ogTitle || linkData.url}
+                  </div>
+                  {linkData.ogDescription && (
+                    <div className={style.linkPreviewDesc}>
+                      {linkData.ogDescription}
+                    </div>
+                  )}
+                  <div className={style.linkPreviewUrl}>
+                    {(() => {
+                      try {
+                        return new URL(linkData.url).hostname;
+                      } catch {
+                        return linkData.url;
+                      }
+                    })()}
+                  </div>
+                </div>
+              </a>
             )}
           </div>
         );

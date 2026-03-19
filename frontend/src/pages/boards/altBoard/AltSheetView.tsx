@@ -187,6 +187,10 @@ const AltSheetView = ({
         .join(", ");
     }
 
+    if (field?.type === "link" && typeof value === "object" && value?.url) {
+      return value.title || value.ogTitle || value.url;
+    }
+
     if (field?.type === "file" && Array.isArray(value)) {
       return value.map((f: any) => f.originalName || f.key || "").join(", ");
     }
@@ -325,7 +329,7 @@ const AltSheetView = ({
     if (!canDeleteAnyRow) return;
     // 복합 타입은 텍스트 입력으로 편집 불가 (데이터 손상 방지)
     const nonEditableTypes = [
-      "multiDate", "multiSelect", "userSelect", "file",
+      "multiDate", "multiSelect", "userSelect", "file", "link",
       "checkbox", "rating", "scale", "counter", "approval",
     ];
     if (nonEditableTypes.includes(field.type)) return;
@@ -683,7 +687,7 @@ const AltSheetView = ({
 
   // 문서 뷰: 편집 불가 필드 타입 (기존 handleCellClick과 동일)
   const nonEditableTypes = [
-    "multiDate", "multiSelect", "userSelect", "file",
+    "multiDate", "multiSelect", "userSelect", "file", "link",
     "checkbox", "rating", "scale", "counter", "approval",
   ];
 
@@ -863,6 +867,68 @@ const AltSheetView = ({
             </span>
           ))}
         </div>
+      );
+    }
+
+    if (field.type === "link" && typeof value === "object" && value?.url) {
+      return (
+        <a
+          href={value.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex",
+            gap: "10px",
+            textDecoration: "none",
+            color: "inherit",
+            padding: "8px",
+            border: "1px solid var(--border-color)",
+            borderRadius: "8px",
+            background: "var(--bg-color-2)",
+          }}
+        >
+          {value.ogImage && (
+            <img
+              src={value.ogImage}
+              alt=""
+              style={{
+                width: "60px",
+                height: "60px",
+                objectFit: "cover",
+                borderRadius: "4px",
+                flexShrink: 0,
+              }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: "var(--accent-1)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {value.title || value.ogTitle || value.url}
+            </div>
+            {value.ogDescription && (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-color-2)",
+                  marginTop: "2px",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {value.ogDescription}
+              </div>
+            )}
+            <div style={{ fontSize: "11px", color: "var(--text-color-3)", marginTop: "2px" }}>
+              {(() => {
+                try { return new URL(value.url).hostname; } catch { return value.url; }
+              })()}
+            </div>
+          </div>
+        </a>
       );
     }
 

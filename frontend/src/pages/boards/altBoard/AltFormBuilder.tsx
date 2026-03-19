@@ -43,6 +43,7 @@ const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   scale: "척도",
   counter: "카운터",
   approval: "승인",
+  link: "링크",
 };
 
 const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
@@ -51,7 +52,7 @@ const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
   { label: "날짜/시간", types: ["date", "multiDate", "time"] },
   {
     label: "특수",
-    types: ["rating", "scale", "counter", "file", "userSelect", "approval"],
+    types: ["rating", "scale", "counter", "file", "userSelect", "approval", "link"],
   },
 ];
 

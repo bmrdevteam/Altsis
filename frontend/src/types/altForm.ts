@@ -14,7 +14,8 @@ export type TAltFormFieldType =
   | "rating"
   | "scale"
   | "counter"
-  | "approval";
+  | "approval"
+  | "link";
 
 export type TAltFormFieldPermission = "respondent" | "owner";
 

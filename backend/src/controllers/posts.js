@@ -7,6 +7,7 @@ import { logger } from "../log/logger.js";
 import _ from "lodash";
 import https from "https";
 import http from "http";
+import zlib from "zlib";
 import { AltForm, AltSheet, AltSheetRow, Board, Post, User, SurveyResponse } from "../models/index.js";
 import { parseSheetDeclaration, parseFormDeclaration, renderMerge, renderMergeWithInputs, hasInputTags, stripMergeTags } from "../utils/mergeEngine.js";
 import { getAltBoardRole, canRespondForm } from "../services/altForms.js";
@@ -940,6 +941,7 @@ function fetchHtml(url, timeout = 8000, maxRedirects = 3) {
           "User-Agent":
             "Mozilla/5.0 (compatible; AltsisBot/1.0; +https://altsis.org)",
           Accept: "text/html",
+          "Accept-Encoding": "gzip, deflate",
         },
         timeout,
       },
@@ -955,18 +957,27 @@ function fetchHtml(url, timeout = 8000, maxRedirects = 3) {
           return reject(new Error(`HTTP ${res.statusCode}`));
         }
 
+        // gzip/deflate 디코딩
+        let stream = res;
+        const encoding = res.headers["content-encoding"];
+        if (encoding === "gzip") {
+          stream = res.pipe(zlib.createGunzip());
+        } else if (encoding === "deflate") {
+          stream = res.pipe(zlib.createInflate());
+        }
+
         const chunks = [];
         let size = 0;
         const maxSize = 512 * 1024; // 512KB — head 영역만 필요하므로 충분
-        res.on("data", (chunk) => {
+        stream.on("data", (chunk) => {
           size += chunk.length;
           chunks.push(chunk);
           if (size > maxSize) {
-            res.destroy();
+            stream.destroy();
           }
         });
-        res.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
-        res.on("error", reject);
+        stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+        stream.on("error", reject);
       }
     );
     req.on("timeout", () => {

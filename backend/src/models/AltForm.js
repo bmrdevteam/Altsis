@@ -49,6 +49,7 @@ const altFormFieldSchema = mongoose.Schema({
       "scale",
       "counter",
       "approval",
+      "link",
     ],
     required: true,
   },
