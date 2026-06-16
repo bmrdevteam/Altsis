@@ -14,6 +14,7 @@
 import mongoose from "mongoose";
 import { conn } from "../_database/mongodb/index.js";
 import encrypt from "mongoose-encryption";
+import { isEmptyValue } from "../utils/isEmptyValue.js";
 
 /**
  * @memberof Models.Enrollment
@@ -98,6 +99,12 @@ const enrollmentSchema = mongoose.Schema(
     studentName: String,
     studentGrade: String,
     evaluation: Object,
+    // evaluation은 암호화 필드라 DB에서 내용 조회가 불가능하다.
+    // 평가 데이터 존재 여부를 인덱스로 빠르게 판별하기 위한 비암호화 파생 플래그.
+    hasEvaluation: {
+      type: Boolean,
+      default: false,
+    },
     temp: Object,
     memo: String,
     isHiddenFromCalendar: {
@@ -119,6 +126,24 @@ enrollmentSchema.index(
 enrollmentSchema.index({
   student: 1,
   season: 1,
+});
+
+// 학기별 평가 데이터 존재 여부를 인덱스 조회로 판별하기 위한 복합 인덱스.
+enrollmentSchema.index({
+  season: 1,
+  hasEvaluation: 1,
+});
+
+// evaluation 평문값으로부터 hasEvaluation 플래그를 파생한다.
+// 반드시 encrypt 플러그인 등록 전에 선언해야 한다.
+// (플러그인의 pre-save 훅이 evaluation을 암호화하며 평문을 제거하기 때문)
+// 플러그인이 evaluation을 재암호화하는 조건(isNew || _ct 선택)과 동일하게 동작시켜,
+// evaluation이 메모리에 적재된 저장에서만 플래그를 갱신하고 그 외에는 기존 값을 보존한다.
+enrollmentSchema.pre("save", function (next) {
+  if (this.isNew || this.isSelected("_ct")) {
+    this.hasEvaluation = !isEmptyValue(this.evaluation);
+  }
+  next();
 });
 
 enrollmentSchema.methods.isTimeOverlapped = function (time) {

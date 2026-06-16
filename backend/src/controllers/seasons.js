@@ -19,7 +19,7 @@ import {
   FIELD_IN_USE,
   FIELD_REQUIRED,
   FORM_LABEL_DUPLICATED,
-  SEASON_ALREADY_ACTIVATED_FIRST,
+  SEASON_FORM_HAS_DATA,
   __NOT_FOUND,
 } from "../messages/index.js";
 import { validate } from "../utils/validate.js";
@@ -34,6 +34,14 @@ import {
 import { aiRefMulter } from "../_s3/aiRefMulter.js";
 import { extractText } from "../utils/textExtractor.js";
 import { fileS3, fileBucket, signUrl } from "../_s3/fileBucket.js";
+import {
+  getSeasonFormUsage,
+  hasEvaluationData,
+  hasSyllabusInfoData,
+  hasTimetableData,
+  syncRegistrationFormEvaluation,
+  syncSeasonYearTerm,
+} from "../services/seasonFormValidation.js";
 
 /**
  * @memberof APIs.SeasonAPI
@@ -688,6 +696,74 @@ export const updatePeriod = async (req, res) => {
 
 /**
  * @memberof APIs.SeasonAPI
+ * @function USeasonBasic API
+ * @description 학기 학년도/학기명 수정 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"PUT"} req.method
+ * @param {"/seasons/:_id/basic"} req.url
+ *
+ * @param {Object} req.body
+ * @param {string?} req.body.year
+ * @param {string?} req.body.term
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.season - updated season
+ *
+ */
+export const updateBasic = async (req, res) => {
+  try {
+    if (!("year" in req.body) && !("term" in req.body)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("year_term") });
+    }
+
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    const year = "year" in req.body ? req.body.year?.trim() : season.year;
+    const term = "term" in req.body ? req.body.term?.trim() : season.term;
+
+    if (!year) {
+      return res.status(400).send({ message: FIELD_REQUIRED("year") });
+    }
+    if (!term) {
+      return res.status(400).send({ message: FIELD_REQUIRED("term") });
+    }
+
+    if (
+      await Season(req.user.academyId).findOne({
+        _id: { $ne: season._id },
+        school: season.school,
+        year,
+        term,
+      })
+    ) {
+      return res.status(409).send({ message: FIELD_IN_USE("year_term") });
+    }
+
+    season.year = year;
+    season.term = term;
+    await season.save();
+
+    // 하위 문서(Registration/Syllabus/Enrollment)에 학년도/학기명을 전파한다.
+    // 실패 시 멱등 재시도가 가능하도록 에러를 그대로 전파한다.
+    await syncSeasonYearTerm(req.user.academyId, season._id, year, term);
+
+    return res.status(200).send({ season });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
  * @function USeasonClassrooms API
  * @description 학기 강의실 목록 수정 API
  * @version 2.0.0
@@ -781,6 +857,39 @@ export const updateSubjects = async (req, res) => {
 
 /**
  * @memberof APIs.SeasonAPI
+ * @function RSeasonFormUsage API
+ * @description 학기 양식별 데이터 사용 여부 조회 API
+ * @version 2.0.0
+ *
+ * @param {Object} req
+ *
+ * @param {"GET"} req.method
+ * @param {"/seasons/:_id/form/usage"} req.url
+ *
+ * @param {Object} req.user - "admin"|"manager"
+ *
+ * @param {Object} res
+ * @param {Object} res.usage - form usage status
+ *
+ */
+export const getFormUsage = async (req, res) => {
+  try {
+    const season = await Season(req.user.academyId).findById(req.params._id);
+    if (!season) {
+      return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+
+    const usage = await getSeasonFormUsage(req.user.academyId, season._id);
+
+    return res.status(200).send({ usage });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(err.status || 500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.SeasonAPI
  * @function USeasonFormTimetable API
  * @description 학기 시간표 양식 수정 API
  * @version 2.0.0
@@ -810,9 +919,10 @@ export const updateFormTimetable = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
-    if (season.isActivatedFirst) {
+    if (await hasTimetableData(req.user.academyId, season._id)) {
       return res.status(409).send({
-        message: SEASON_ALREADY_ACTIVATED_FIRST,
+        message: SEASON_FORM_HAS_DATA,
+        formType: "timetable",
       });
     }
 
@@ -866,9 +976,10 @@ export const updateFormSyllabus = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
-    if (season.isActivatedFirst) {
+    if (await hasSyllabusInfoData(req.user.academyId, season._id)) {
       return res.status(409).send({
-        message: SEASON_ALREADY_ACTIVATED_FIRST,
+        message: SEASON_FORM_HAS_DATA,
+        formType: "syllabus",
       });
     }
 
@@ -930,15 +1041,21 @@ export const updateFormEvaluation = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("season") });
     }
 
-    if (season.isActivatedFirst) {
+    if (await hasEvaluationData(req.user.academyId, season._id)) {
       return res.status(409).send({
-        message: SEASON_ALREADY_ACTIVATED_FIRST,
+        message: SEASON_FORM_HAS_DATA,
+        formType: "evaluation",
       });
     }
 
     season["formEvaluation"] = req.body.formEvaluation;
     season.isModified("formEvaluation");
     await season.save();
+    await syncRegistrationFormEvaluation(
+      req.user.academyId,
+      season._id,
+      season.formEvaluation
+    );
 
     return res.status(200).send({ season });
   } catch (err) {

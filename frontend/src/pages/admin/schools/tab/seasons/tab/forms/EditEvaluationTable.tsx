@@ -45,7 +45,7 @@ type Props = {
   formEvaluation: TFormEvaluation;
   setPopupActive: React.Dispatch<React.SetStateAction<boolean>>;
   updateFormData: (seasonData: TSeason) => void;
-  isActivatedFirst: boolean;
+  isLocked: boolean;
 };
 
 const Index = (props: Props) => {
@@ -102,6 +102,7 @@ const Index = (props: Props) => {
             text: "선택 +",
             color: "#8657ff",
             onClick: (row: any) => {
+              if (props.isLocked) return;
               setSelectedItemIdx(row.tableRowIndex - 1);
               setItemOptionPopupActive(true);
             },
@@ -153,7 +154,7 @@ const Index = (props: Props) => {
         textAlign: "center",
       },
     ];
-    if (!props.isActivatedFirst) {
+    if (!props.isLocked) {
       header.push({
         text: "수정",
         type: "rowEdit",
@@ -174,7 +175,7 @@ const Index = (props: Props) => {
         text: "옵션",
       },
     ];
-    if (!props.isActivatedFirst) {
+    if (!props.isLocked) {
       header.push({
         text: "수정",
         type: "rowEdit",
@@ -202,6 +203,7 @@ const Index = (props: Props) => {
         type="object-array"
         data={!refresh ? formEvaluation : []}
         onChange={(e: any[]) => {
+          if (props.isLocked) return;
           const formEvaluation: TFormEvaluation = e.map((_rawItem) => {
             const _item = unflattenObject(_rawItem);
             const item = {
@@ -256,6 +258,7 @@ const Index = (props: Props) => {
             data={!refresh ? formEvaluation[selectedItemIdx].options : []}
             header={getOptionHeader()}
             onChange={(e) => {
+              if (props.isLocked) return;
               formEvaluation[selectedItemIdx].options = e.map((row) =>
                 row["0"]?.trim()
               );

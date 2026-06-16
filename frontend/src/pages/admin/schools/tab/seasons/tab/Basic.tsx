@@ -48,6 +48,8 @@ function Basic(props: Props) {
   const [isActivated, setIsActivated] = useState<boolean>();
   const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>();
   const [undefinedForms, setUndefinedForms] = useState<string[]>([]);
+  const [year, setYear] = useState<string>("");
+  const [term, setTerm] = useState<string>("");
   const [period, setPeriod] = useState<{ start: string; end: string }>({
     start: "",
     end: "",
@@ -56,6 +58,8 @@ function Basic(props: Props) {
   const setSeasonData = (seasonData: any) => {
     setIsActivated(seasonData.isActivated);
     setIsActivatedFirst(seasonData.isActivatedFirst);
+    setYear(seasonData.year ?? "");
+    setTerm(seasonData.term ?? "");
     setPeriod(seasonData.period || { start: "", end: "" });
   };
 
@@ -81,6 +85,63 @@ function Basic(props: Props) {
     <div>
       {!isLoading && (
         <div className={style.popup}>
+          <div className={style.row} style={{ marginTop: "24px" }}>
+            <Input
+              key={`year-${year}`}
+              style={{ maxHeight: "30px" }}
+              type="text"
+              label="학년도"
+              appearence="flat"
+              defaultValue={year}
+              onChange={(e: any) => {
+                setYear(e.target.value);
+              }}
+            />
+            <Input
+              key={`term-${term}`}
+              style={{ maxHeight: "30px" }}
+              type="text"
+              label="학기명"
+              appearence="flat"
+              defaultValue={term}
+              onChange={(e: any) => {
+                setTerm(e.target.value);
+              }}
+            />
+
+            <Button
+              type={"ghost"}
+              style={{
+                borderRadius: "4px",
+                height: "32px",
+                marginTop: "24px",
+              }}
+              onClick={() => {
+                if (
+                  window.confirm("학년도와 학기명을 수정하시겠습니까?") !== true
+                ) {
+                  return;
+                }
+                SeasonAPI.USeasonBasic({
+                  params: { _id: props._id },
+                  data: {
+                    year,
+                    term,
+                  },
+                })
+                  .then(({ season }) => {
+                    alert(SUCCESS_MESSAGE);
+                    setSeasonData(season);
+                    props.setIsLoading(true);
+                  })
+                  .catch((err) => {
+                    ALERT_ERROR(err);
+                  });
+              }}
+            >
+              수정
+            </Button>
+          </div>
           <div className={style.row} style={{ marginTop: "24px" }}>
             <Input
               style={{ maxHeight: "30px" }}
@@ -144,13 +205,13 @@ function Basic(props: Props) {
                   if (
                     undefinedForms.length === 0
                       ? window.confirm(
-                          "정말 활성화하시겠습니까? 처음 활성화 이후에는 양식(시간표, 강의계획서, 평가)을 수정할 수 없습니다."
+                          "정말 활성화하시겠습니까? 평가, 강의계획서, 시간표 데이터가 입력되면 해당 양식은 수정할 수 없습니다."
                         )
                       : window.confirm(
                           `정말 활성화하시겠습니까? 양식(${_.join(
                             undefinedForms,
                             ", "
-                          )})이 설정되지 않은 상태입니다. 처음 활성화 이후에는 양식(시간표, 강의계획서, 평가)을 수정할 수 없습니다.`
+                          )})이 설정되지 않은 상태입니다. 평가, 강의계획서, 시간표 데이터가 입력되면 해당 양식은 수정할 수 없습니다.`
                         )
                   ) {
                     SeasonAPI.UActivateSeason({ params: { _id: props._id } })

@@ -241,6 +241,16 @@ export const SEASON_ALREADY_ACTIVATED_FIRST = "SEASON_ALREADY_ACTIVATED_FIRST";
 /**
  * @tag 409 Conflict
  *
+ * @alias SEASON_FORM_HAS_DATA
+ * @description 입력된 학기 양식 데이터가 있어 양식 변경 불가
+ *
+ * @memberof APIs._MESSAGE
+ */
+export const SEASON_FORM_HAS_DATA = "SEASON_FORM_HAS_DATA";
+
+/**
+ * @tag 409 Conflict
+ *
  * @alias REGISTRATION_IN_USE
  * @description 이미 등록 정보가 있음
  *

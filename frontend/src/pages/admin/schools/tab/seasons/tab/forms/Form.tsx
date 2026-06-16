@@ -26,7 +26,7 @@
  * @version 1.0
  *
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 // components
 import Button from "components/button/Button";
@@ -47,11 +47,18 @@ const Form = (props: Props) => {
   const { SeasonAPI } = useAPIv2();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [isActivatedFirst, setIsActivatedFirst] = useState<boolean>(true);
-
   const [formTimetable, setFormTimetable] = useState<TFormTimetable>();
   const [formSyllabus, setFormSyllabus] = useState<any>();
   const [formEvaluation, setFormEvaluation] = useState<TFormEvaluation>([]);
+  const [formUsage, setFormUsage] = useState<{
+    evaluation: boolean;
+    syllabus: boolean;
+    timetable: boolean;
+  }>({
+    evaluation: false,
+    syllabus: false,
+    timetable: false,
+  });
 
   const [formTimetablePopupActive, setFormTimetablePopupActive] =
     useState<boolean>(false);
@@ -62,14 +69,17 @@ const Form = (props: Props) => {
     setFormSyllabus(seasonData?.formSyllabus);
     setFormTimetable(seasonData?.formTimetable);
     setFormEvaluation(seasonData?.formEvaluation ?? []);
-    setIsActivatedFirst(seasonData.isActivatedFirst);
   };
 
   useEffect(() => {
     if (isLoading) {
-      SeasonAPI.RSeason({ params: { _id: props._id } })
-        .then(({ season }) => {
+      Promise.all([
+        SeasonAPI.RSeason({ params: { _id: props._id } }),
+        SeasonAPI.RSeasonFormUsage({ params: { _id: props._id } }),
+      ])
+        .then(([{ season }, { usage }]) => {
           updateFormData(season);
+          setFormUsage(usage);
         })
         .then(() => setIsLoading(false));
     }
@@ -88,10 +98,15 @@ const Form = (props: Props) => {
               onClick={() => {
                 setFormTimetablePopupActive(true);
               }}
-              disabled={isActivatedFirst}
+              disabled={formUsage.timetable}
             >
-              {formTimetable?.title ?? (isActivatedFirst ? "없음" : "선택")}
+              {formTimetable?.title ?? "선택"}
             </Button>
+            {formUsage.timetable && (
+              <div style={{ marginTop: "8px", fontSize: "12px" }}>
+                시간표 데이터가 있어 수정할 수 없습니다.
+              </div>
+            )}
           </div>
           <div className={style.item}>
             <div className={style.title}>강의계획서 양식</div>
@@ -100,11 +115,15 @@ const Form = (props: Props) => {
               onClick={() => {
                 setFormSyllabusPopupActive(true);
               }}
-              disabled={isActivatedFirst}
+              disabled={formUsage.syllabus}
             >
-              {!isLoading &&
-                (formSyllabus?.title ?? (isActivatedFirst ? "없음" : "선택"))}
+              {!isLoading && (formSyllabus?.title ?? "선택")}
             </Button>
+            {formUsage.syllabus && (
+              <div style={{ marginTop: "8px", fontSize: "12px" }}>
+                강의계획서 데이터가 있어 수정할 수 없습니다.
+              </div>
+            )}
           </div>
         </div>
         <div className={style.form} style={{ marginTop: "24px" }}>
@@ -125,8 +144,13 @@ const Form = (props: Props) => {
               setPopupActive={setFormTimetablePopupActive}
               formEvaluation={formEvaluation}
               updateFormData={updateFormData}
-              isActivatedFirst={isActivatedFirst}
+              isLocked={formUsage.evaluation}
             />
+            {formUsage.evaluation && (
+              <div style={{ marginTop: "8px", fontSize: "12px" }}>
+                평가 데이터가 있어 수정할 수 없습니다.
+              </div>
+            )}
           </div>
         </div>
       </div>

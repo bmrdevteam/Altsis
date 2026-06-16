@@ -1449,6 +1449,29 @@ export default function useAPIv2() {
   }
 
   /**
+   * RSeasonFormUsage API
+   * @description 학기 양식별 데이터 사용 여부 조회 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function RSeasonFormUsage(props: {
+    params: {
+      _id: string;
+    };
+  }) {
+    const { usage } = await database.R({
+      location: `seasons/${props.params._id}/form/usage`,
+    });
+    return {
+      usage: usage as {
+        evaluation: boolean;
+        syllabus: boolean;
+        timetable: boolean;
+      },
+    };
+  }
+
+  /**
    * UActivateSeason API
    * @description 학기 활성화 API
    * @version 2.0.0
@@ -1544,6 +1567,28 @@ export default function useAPIv2() {
   }) {
     const { season } = await database.U({
       location: `seasons/${props.params._id}/period`,
+      data: props.data,
+    });
+    return { season: season as TSeason };
+  }
+
+  /**
+   * USeasonBasic API
+   * @description 학기 기본 정보 수정 API
+   * @version 2.0.0
+   * @auth admin|manager
+   */
+  async function USeasonBasic(props: {
+    params: {
+      _id: string;
+    };
+    data: {
+      year?: string;
+      term?: string;
+    };
+  }) {
+    const { season } = await database.U({
+      location: `seasons/${props.params._id}/basic`,
       data: props.data,
     });
     return { season: season as TSeason };
@@ -4601,8 +4646,10 @@ export default function useAPIv2() {
       CSeason,
       RSeasons,
       RSeason,
+      RSeasonFormUsage,
       UActivateSeason,
       UInactivateSeason,
+      USeasonBasic,
       USeasonPeriod,
       USeasonClassrooms,
       USeasonSubjects,

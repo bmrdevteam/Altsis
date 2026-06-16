@@ -14,10 +14,12 @@ router.get("/:_id?", isLoggedIn, seasons.find);
 router.put("/:_id/activate", isAdManager, seasons.activate);
 router.put("/:_id/inactivate", isAdManager, seasons.inactivate);
 
+router.put("/:_id/basic", isAdManager, seasons.updateBasic);
 router.put("/:_id/period", isAdManager, seasons.updatePeriod);
 router.put("/:_id/classrooms", isAdManager, seasons.updateClassrooms);
 router.put("/:_id/subjects", isAdManager, seasons.updateSubjects);
 
+router.get("/:_id/form/usage", isAdManager, seasons.getFormUsage);
 router.put("/:_id/form/timetable", isAdManager, seasons.updateFormTimetable);
 router.put("/:_id/form/syllabus", isAdManager, seasons.updateFormSyllabus);
 router.put("/:_id/form/evaluation", isAdManager, seasons.updateFormEvaluation);
