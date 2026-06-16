@@ -7,6 +7,8 @@ import { useAppNavigate } from "hooks/useAppNavigate";
 import Popup from "components/popup/Popup";
 import Button from "components/button/Button";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import { clearAuthClientCookies } from "utils/authCookies";
+import { useCookies } from "react-cookie";
 
 const Nav = ({
   children,
@@ -221,6 +223,7 @@ const NavProfile = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { currentUser } = useAuth();
   const [logoutPopupActive, setLogoutPopupActive] = useState(false);
   const { UserAPI } = useAPIv2();
+  const [, , removeCookie] = useCookies();
 
   return (
     <>
@@ -276,11 +279,13 @@ const NavProfile = ({ onNavigate }: { onNavigate?: () => void }) => {
               onClick={() => {
                 UserAPI.Logout()
                   .then(() => {
+                    clearAuthClientCookies(removeCookie);
                     window.location.reload();
                     setLogoutPopupActive(false);
                   })
                   .catch((err: any) => {
                     ALERT_ERROR(err);
+                    clearAuthClientCookies(removeCookie);
                     window.location.reload();
                   });
               }}

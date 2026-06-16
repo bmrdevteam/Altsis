@@ -43,6 +43,9 @@ if (isProduction) {
   app.set("trust proxy", 1);
 }
 
+const SESSION_TTL_SEC = 24 * 60 * 60; // 24 hours
+const SESSION_MAX_AGE_MS = SESSION_TTL_SEC * 1000;
+
 app.use(
   session({
     resave: false,
@@ -52,11 +55,12 @@ app.use(
       httpOnly: true,
       secure: false,
       sameSite: "strict",
+      maxAge: SESSION_MAX_AGE_MS,
     },
     rolling: true,
     store: new RedisStore({
       client: redisClient,
-      ttl: 24 * 60 * 60, //1 day
+      ttl: SESSION_TTL_SEC,
     }),
   })
 );

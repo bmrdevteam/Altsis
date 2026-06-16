@@ -541,7 +541,6 @@ export default function useAPIv2() {
       academyId: string;
       userId: string;
       password: string;
-      persist?: boolean;
     };
   }) {
     return await database.C({
@@ -560,7 +559,6 @@ export default function useAPIv2() {
     data: {
       academyId: string;
       credential: string;
-      persist?: boolean;
     };
   }) {
     return await database.C({

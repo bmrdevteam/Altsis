@@ -54,7 +54,6 @@ import { profileMulter } from "../_s3/profileMulter.js";
  * @param {string} req.body.academyId
  * @param {string} req.body.userId
  * @param {string} req.body.password
- * @param {boolean?} req.body.persist - if true, auto login is set up
  *
  * @param {Object} res
  *
@@ -80,10 +79,6 @@ export const loginLocal = async (req, res) => {
       }
       return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
-        /* set maxAge as 1 year if auto login is requested */
-        if (req.body.persist === true) {
-          req.session.cookie["maxAge"] = 90 * 24 * 60 * 60 * 1000; //90 days
-        }
         return res.status(200).send();
       });
     } catch (err) {
@@ -106,7 +101,6 @@ export const loginLocal = async (req, res) => {
  * @param {Object} req.body
  * @param {string} req.body.academyId
  * @param {string} req.body.credential
- * @param {boolean?} req.body.persist - if true, auto login is set up
  *
  * @param {Object} res
  *
@@ -132,10 +126,6 @@ export const loginGoogle = async (req, res) => {
       }
       return req.login({ user, academyId }, (loginError) => {
         if (loginError) throw loginError;
-        /* set maxAge as 1 year if auto login is requested */
-        if (req.body.persist === true) {
-          req.session.cookie["maxAge"] = 90 * 24 * 60 * 60 * 1000; //90 days
-        }
         return res.status(200).send();
       });
     } catch (err) {

@@ -1,11 +1,9 @@
 import Loading from "components/loading/Loading";
-import useApi from "hooks/useApi";
 import React, {
   createContext,
   useContext,
   useState,
   useEffect,
-  useRef,
 } from "react";
 
 import _ from "lodash";
@@ -14,6 +12,7 @@ import { useCookies } from "react-cookie";
 import { TCurrentUser, TCurrentRegistration, TCurrentSeason } from "types/auth";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
+import { SESSION_COOKIE_OPTS } from "utils/authCookies";
 
 const AuthContext = createContext<any>(null);
 
@@ -55,10 +54,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [loading, setLoading] = useState<boolean>(true);
 
-  /** Date for setting the cookie expire date  */
-  const date = new Date();
-  let cookieData = "";
-
   async function getLoggedInUser() {
     const { user } = await UserAPI.RMySelf();
 
@@ -69,11 +64,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     /* set currentSchool using cookie */
     let schoolIdx = 0;
     if (cookies.currentSchool) {
-      const idx = _.findIndex(user.schools, {
-        school: cookies.currentSchool,
-      });
+      const idx = user.schools.findIndex(
+        (s: { school: string }) =>
+          String(s.school) === String(cookies.currentSchool)
+      );
       if (idx !== -1) schoolIdx = idx;
-      else removeCookie("currentSchool");
+      else removeCookie("currentSchool", SESSION_COOKIE_OPTS);
     }
 
     if (user.schools.length > schoolIdx) {
@@ -81,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         params: { _id: user.schools[schoolIdx].school },
       });
       setCurrentSchool({ ...school, school: school._id, academyFeatures });
-      setCookie("currentSchool", school._id);
+      setCookie("currentSchool", school._id, SESSION_COOKIE_OPTS);
       document.title = school.schoolName;
     }
 
@@ -92,14 +88,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     let registrationIdx = 0;
     if (cookies.currentRegistration) {
-      const idx = _.findIndex(re, { _id: cookies.currentRegistration });
+      const idx = re.findIndex(
+        (r: { _id: string }) =>
+          String(r._id) === String(cookies.currentRegistration)
+      );
       if (idx !== -1) registrationIdx = idx;
-      else removeCookie("currentRegistration");
+      else removeCookie("currentRegistration", SESSION_COOKIE_OPTS);
     }
 
     if (re.length > registrationIdx) {
       setCurrentRegistration(re[registrationIdx]);
-      setCookie("currentRegistration", re[registrationIdx]._id);
+      setCookie(
+        "currentRegistration",
+        re[registrationIdx]._id,
+        SESSION_COOKIE_OPTS
+      );
 
       SeasonAPI.RSeason({ params: { _id: re[registrationIdx].season } }).then(
         ({ season }) => {
@@ -123,8 +126,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   async function changeSchool(to: string) {
     const { school, academyFeatures } = await SchoolAPI.RSchool({ params: { _id: to } });
     setCurrentSchool({ ...school, school: school._id, academyFeatures });
-    setCookie("currentSchool", school._id);
-    removeCookie("currentRegistration");
+    setCookie("currentSchool", school._id, SESSION_COOKIE_OPTS);
+    removeCookie("currentRegistration", SESSION_COOKIE_OPTS);
     document.title = school.schoolName;
 
     const re =
@@ -132,7 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       [];
 
     if (re.length > 0) {
-      setCookie("currentRegistration", re[0]._id);
+      setCookie("currentRegistration", re[0]._id, SESSION_COOKIE_OPTS);
       setCurrentRegistration(re[0]);
       const { season } = await SeasonAPI.RSeason({
         params: { _id: re[0].season },
@@ -152,7 +155,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!registration) return;
 
     setCurrentRegistration(registration);
-    setCookie("currentRegistration", registration._id);
+    setCookie("currentRegistration", registration._id, SESSION_COOKIE_OPTS);
 
     const { season } = await SeasonAPI.RSeason({
       params: { _id: registration.season },
