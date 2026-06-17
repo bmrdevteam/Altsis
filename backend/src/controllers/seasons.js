@@ -252,6 +252,7 @@ export const create = async (req, res) => {
         subjects: sourceData.subjects ?? { label: [], data: [] },
         permissionSyllabusV2: cleanPermission(sourceData.permissionSyllabusV2),
         permissionEnrollmentV2: cleanPermission(sourceData.permissionEnrollmentV2),
+        permissionActivityV2: cleanPermission(sourceData.permissionActivityV2),
         permissionEvaluationV2: cleanPermission(sourceData.permissionEvaluationV2),
         formTimetable: sourceData.formTimetable,
         formSyllabus: sourceData.formSyllabus,
@@ -1071,6 +1072,9 @@ const getPermissionField = (type) => {
   if (type === "enrollment") {
     return "permissionEnrollmentV2";
   }
+  if (type === "activity") {
+    return "permissionActivityV2";
+  }
   if (type === "evaluation") {
     return "permissionEvaluationV2";
   }
@@ -1090,7 +1094,7 @@ const getPermissionField = (type) => {
  *
  * @param {Object} req.params
  * @param {string} req.params._id - season objectId
- * @param {"syllabus"|"enrollment"|"evaluation"} req.params.type
+ * @param {"syllabus"|"enrollment"|"activity"|"evaluation"} req.params.type
  *
  * @param {Object} req.user - "admin"|"manager"
  *
@@ -1112,6 +1116,11 @@ export const updatePermission = async (req, res) => {
     const season = await Season(req.user.academyId).findById(req.params._id);
     if (!season) {
       return res.status(404).send({ message: __NOT_FOUND("season") });
+    }
+    if (!season[permission]) {
+      season[permission] = { teacher: false, student: false, exceptions: [] };
+      season.markModified(permission);
+      await season.save();
     }
 
     if ("teacher" in req.body) {
@@ -1165,7 +1174,7 @@ export const updatePermission = async (req, res) => {
  *
  * @param {Object} req.params
  * @param {string} req.params._id - season objectId
- * @param {"syllabus"|"enrollment"|"evaluation"} req.params.type
+ * @param {"syllabus"|"enrollment"|"activity"|"evaluation"} req.params.type
  *
  * @param {Object} req.user - "admin"|"manager"
  *
@@ -1225,7 +1234,7 @@ export const addPermissionException = async (req, res) => {
  *
  * @param {Object} req.params
  * @param {string} req.params._id - season objectId
- * @param {"syllabus"|"enrollment"|"evaluation"} req.params.type
+ * @param {"syllabus"|"enrollment"|"activity"|"evaluation"} req.params.type
  *
  * @param {Object} req.query
  * @param {string} req.query.registration

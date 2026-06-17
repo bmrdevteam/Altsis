@@ -31,7 +31,7 @@ import { conn } from "../_database/mongodb/index.js";
  * @prop {string} recurrence.type - "none" | "daily" | "weekly" | "monthly"
  * @prop {Date} recurrence.endDate - 반복 종료일
  * @prop {string} color - 일정 색상
- * @prop {string} sourceType - 일정 출처 유형 ("manual" | "enrollment" | "syllabus")
+ * @prop {string} sourceType - 일정 출처 유형 ("manual" | "enrollment" | "syllabus" | "memo" | "altForm" | "activity")
  * @prop {string} sourceId - 출처 ID (enrollment._id + timeIndex)
  */
 const calendarEventSchema = mongoose.Schema(
@@ -77,7 +77,7 @@ const calendarEventSchema = mongoose.Schema(
     },
     sourceType: {
       type: String,
-      enum: ["manual", "enrollment", "syllabus", "memo", "altForm"],
+      enum: ["manual", "enrollment", "syllabus", "memo", "altForm", "activity"],
       default: "manual",
     },
     sourceId: { type: String },

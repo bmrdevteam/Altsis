@@ -36,6 +36,7 @@ import {
 import { generatePassword } from "../utils/password.js";
 import { fileS3, fileBucket } from "../_s3/fileBucket.js";
 import { format } from "date-fns";
+import { ensureBuiltinActivityTemplates } from "../services/activities.js";
 
 /**
  * @memberof APIs.AcademyAPI
@@ -126,6 +127,14 @@ export const create = async (req, res) => {
       password,
       auth: "admin",
     });
+
+    try {
+      await ensureBuiltinActivityTemplates(academy.academyId);
+    } catch (seedErr) {
+      logger.error(
+        `[academies.create] failed to seed activity templates: ${seedErr.message}`
+      );
+    }
 
     return res.status(200).send({
       academy,

@@ -32,6 +32,12 @@ export class RegistrationService {
       userRecord.userId,
       role
     );
+    const permissionActivityV2 = hasPermission(
+      "activity",
+      seasonRecord,
+      userRecord.userId,
+      role
+    );
     const permissionEvaluationV2 = hasPermission(
       "evaluation",
       seasonRecord,
@@ -55,6 +61,7 @@ export class RegistrationService {
       group,
       permissionSyllabusV2,
       permissionEnrollmentV2,
+      permissionActivityV2,
       permissionEvaluationV2,
     });
 
@@ -107,6 +114,9 @@ export const updateRegistrationPermission = async (
       break;
     case "enrollment":
       registrationRecord.permissionEnrollmentV2 = isAllowed;
+      break;
+    case "activity":
+      registrationRecord.permissionActivityV2 = isAllowed;
       break;
     case "evaluation":
       registrationRecord.permissionEvaluationV2 = isAllowed;

@@ -29,8 +29,8 @@ export const getSeasonSubRecord = (seasonRecord) => {
 };
 
 /**
- * @param {"syllabus"|"enrollment"|"evaluation"} type
- * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionEvaluationV2}} seasonRecord
+ * @param {"syllabus"|"enrollment"|"activity"|"evaluation"} type
+ * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionActivityV2,permissionEvaluationV2}} seasonRecord
  * @param {{_id,userId,userName,role}} registrationRecord
  * @param {boolean} isAllowed
  */
@@ -47,6 +47,9 @@ export const addSeasonPermissionException = async (
       break;
     case "enrollment":
       permission = seasonRecord.permissionEnrollmentV2;
+      break;
+    case "activity":
+      permission = seasonRecord.permissionActivityV2;
       break;
     case "evaluation":
       permission = seasonRecord.permissionEvaluationV2;
@@ -95,8 +98,8 @@ const _hasPermission = (permission, userId, role) => {
 };
 
 /**
- * @param {"syllabus"|"enrollment"|"evaluation"} type
- * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionEvaluationV2}} seasonRecord
+ * @param {"syllabus"|"enrollment"|"activity"|"evaluation"} type
+ * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionActivityV2,permissionEvaluationV2}} seasonRecord
  * @param {string} userId
  * @param {"teacher"|"student"} role
  */
@@ -106,6 +109,8 @@ export const hasPermission = (type, seasonRecord, userId, role) => {
       return _hasPermission(seasonRecord.permissionSyllabusV2, userId, role);
     case "enrollment":
       return _hasPermission(seasonRecord.permissionEnrollmentV2, userId, role);
+    case "activity":
+      return _hasPermission(seasonRecord.permissionActivityV2, userId, role);
     case "evaluation":
       return _hasPermission(seasonRecord.permissionEvaluationV2, userId, role);
   }
@@ -113,7 +118,7 @@ export const hasPermission = (type, seasonRecord, userId, role) => {
 };
 
 /**
- * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionEvaluationV2}} seasonRecord
+ * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionActivityV2,permissionEvaluationV2}} seasonRecord
  * @param {string} userId
  */
 export const removePermissionExcepted = async (seasonRecord, userId) => {
@@ -136,6 +141,17 @@ export const removePermissionExcepted = async (seasonRecord, userId) => {
   ) {
     if (seasonRecord.permissionEnrollmentV2.exceptions[i].userId === userId) {
       seasonRecord.permissionEnrollmentV2.exceptions.splice(i, 1);
+      isUpdated = true;
+      break;
+    }
+  }
+  for (
+    let i = 0;
+    i < seasonRecord.permissionActivityV2.exceptions.length;
+    i++
+  ) {
+    if (seasonRecord.permissionActivityV2.exceptions[i].userId === userId) {
+      seasonRecord.permissionActivityV2.exceptions.splice(i, 1);
       isUpdated = true;
       break;
     }

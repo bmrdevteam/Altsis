@@ -29,6 +29,7 @@ export type TRegistration = {
   memos: any[];
   permissionSyllabusV2: boolean;
   permissionEnrollmentV2: boolean;
+  permissionActivityV2: boolean;
   permissionEvaluationV2: boolean;
   formEvaluation: TFormEvaluation;
 };

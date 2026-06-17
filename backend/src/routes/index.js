@@ -1,5 +1,6 @@
 import { router as academies } from "./academies.js";
 import { router as ai } from "./ai.js";
+import { router as activities } from "./activities.js";
 import { router as altForms } from "./altForms.js";
 import { router as altSheetRows } from "./altSheetRows.js";
 import { router as archives } from "./archives.js";
@@ -15,6 +16,7 @@ import { router as notifications } from "./notifications.js";
 import { router as posts } from "./posts.js";
 import { router as reminders } from "./reminders.js";
 import { router as registrations } from "./registrations.js";
+import { router as activityTemplates } from "./activityTemplates.js";
 
 import { router as schools } from "./schools.js";
 import { router as seasons } from "./seasons.js";
@@ -32,6 +34,7 @@ import { router as test } from "./test.js";
 export const routers = [
   { label: "academies", routes: academies },
   { label: "ai", routes: ai },
+  { label: "activities", routes: activities },
   { label: "alt-forms", routes: altForms },
   { label: "alt-sheet-rows", routes: altSheetRows },
   { label: "archives", routes: archives },
@@ -47,6 +50,7 @@ export const routers = [
   { label: "posts", routes: posts },
   { label: "reminders", routes: reminders },
   { label: "registrations", routes: registrations },
+  { label: "activity-templates", routes: activityTemplates },
 
   { label: "schools", routes: schools },
   { label: "seasons", routes: seasons },
