@@ -60,10 +60,15 @@ export const canRespondForm = (form, board, user) => {
   }
 
   const now = new Date();
+  const allowLateSubmission = !!form.settings?.allowLateSubmission;
   if (form.settings?.openAt && now < new Date(form.settings.openAt)) {
     return { allowed: false, message: "양식이 아직 공개되지 않았습니다." };
   }
-  if (form.settings?.closeAt && now > new Date(form.settings.closeAt)) {
+  if (
+    form.settings?.closeAt &&
+    now > new Date(form.settings.closeAt) &&
+    !allowLateSubmission
+  ) {
     return { allowed: false, message: "양식이 마감되었습니다." };
   }
 

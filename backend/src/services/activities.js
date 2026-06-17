@@ -487,6 +487,10 @@ const buildActivityFormPayload = (templatePreset, payload = {}) => {
       "allowResubmit" in payload
         ? !!payload.allowResubmit
         : !!clonedPreset.altFormSchema.settings?.allowResubmit,
+    allowLateSubmission:
+      "allowLateSubmission" in payload
+        ? !!payload.allowLateSubmission
+        : !!clonedPreset.altFormSchema.settings?.allowLateSubmission,
   };
   const openAt = toDateValue(payload.openAt || settings.openAt);
   const dueAt = toDateValue(payload.dueAt || settings.closeAt);
@@ -575,7 +579,7 @@ export const createActivityFromTemplate = async ({
     altBoard: board._id,
     openAt,
     dueAt,
-    allowLateSubmission: !!payload.allowLateSubmission,
+    allowLateSubmission: !!settings.allowLateSubmission,
     allowResubmit: !!settings.allowResubmit,
     evaluationMode: payload.evaluationMode || "feedback",
     rubric: Array.isArray(payload.rubric) ? payload.rubric : preset.rubric || [],
@@ -634,12 +638,16 @@ export const updateActivityWithAltForm = async ({
       if (
         "openAt" in payload ||
         "dueAt" in payload ||
-        "allowResubmit" in payload
+        "allowResubmit" in payload ||
+        "allowLateSubmission" in payload
       ) {
         form.settings = {
           ...(form.settings?.toObject?.() || form.settings || {}),
           ...(typeof payload.allowResubmit === "boolean"
             ? { allowResubmit: payload.allowResubmit }
+            : {}),
+          ...(typeof payload.allowLateSubmission === "boolean"
+            ? { allowLateSubmission: payload.allowLateSubmission }
             : {}),
           ...(payload.openAt !== undefined
             ? { openAt: toDateValue(payload.openAt) }

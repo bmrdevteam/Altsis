@@ -1,4 +1,9 @@
-import { ActivitySubmission, AltSheetRow, Enrollment } from "../models/index.js";
+import {
+  ActivitySubmission,
+  AltForm,
+  AltSheetRow,
+  Enrollment,
+} from "../models/index.js";
 import { FIELD_INVALID, FIELD_REQUIRED, __NOT_FOUND } from "../messages/index.js";
 
 const createHttpError = (status, message) => {
@@ -77,6 +82,66 @@ const getLatestRowMap = (rows) => {
     }
   }
   return map;
+};
+
+const findFeedbackFieldId = (form) => {
+  if (!Array.isArray(form?.fields)) return "";
+
+  const preferredField = form.fields.find(
+    (field) =>
+      field?.permission === "owner" &&
+      field?.visibleToRespondent === true &&
+      field?.type === "textarea"
+  );
+  if (preferredField?._id) return preferredField._id.toString();
+
+  const fallbackField = form.fields.find(
+    (field) => field?.permission === "owner" && field?.visibleToRespondent === true
+  );
+  if (fallbackField?._id) return fallbackField._id.toString();
+
+  return "";
+};
+
+const syncFeedbackToOwnerField = async ({
+  academyId,
+  activity,
+  submission,
+  feedbackEntry,
+}) => {
+  if (!activity?.altForm || !submission?.altSheetRow) return;
+
+  const [form, row] = await Promise.all([
+    AltForm(academyId).findById(activity.altForm),
+    AltSheetRow(academyId).findById(submission.altSheetRow),
+  ]);
+
+  if (!form?.isActive || !row?.isActive) return;
+
+  const feedbackFieldId = findFeedbackFieldId(form);
+  if (!feedbackFieldId) return;
+
+  const existingValue = row.data?.get
+    ? row.data.get(feedbackFieldId)
+    : row.data?.[feedbackFieldId];
+  const author = feedbackEntry.authorName || feedbackEntry.authorId || "교사";
+  const nextLine = `${author}: ${feedbackEntry.message}`;
+  const nextValue =
+    typeof existingValue === "string" && existingValue.trim()
+      ? `${existingValue}\n\n${nextLine}`
+      : nextLine;
+
+  if (row.data?.set) {
+    row.data.set(feedbackFieldId, nextValue);
+  } else {
+    row.data = {
+      ...(row.data || {}),
+      [feedbackFieldId]: nextValue,
+    };
+  }
+  row._updatedAt = new Date(feedbackEntry.createdAt || Date.now());
+  row.markModified("data");
+  await row.save();
 };
 
 export const syncActivitySubmissions = async (academyId, activity) => {
@@ -217,13 +282,14 @@ export const addActivityFeedback = async ({
     submissionId
   );
 
-  submission.feedback.push({
+  const feedbackEntry = {
     author: user._id,
     authorId: user.userId,
     authorName: user.userName,
     message,
     createdAt: new Date(),
-  });
+  };
+  submission.feedback.push(feedbackEntry);
 
   if (status) {
     if (!["submitted", "returned", "completed"].includes(status)) {
@@ -233,6 +299,12 @@ export const addActivityFeedback = async ({
   }
 
   await submission.save();
+  await syncFeedbackToOwnerField({
+    academyId,
+    activity,
+    submission,
+    feedbackEntry,
+  });
   return submission;
 };
 
