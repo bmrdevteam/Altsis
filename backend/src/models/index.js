@@ -4,6 +4,9 @@
  */
 
 import { Academy } from "../models/Academy.js";
+import { Activity } from "../models/Activity.js";
+import { ActivitySubmission } from "../models/ActivitySubmission.js";
+import { ActivityTemplate } from "../models/ActivityTemplate.js";
 import { AIChatMessage } from "../models/AIChatMessage.js";
 import { AIChatSession } from "../models/AIChatSession.js";
 import { AIUsageLog } from "../models/AIUsageLog.js";
@@ -39,6 +42,9 @@ import { UserCalendar } from "../models/UserCalendar.js";
 
 export {
   Academy,
+  Activity,
+  ActivitySubmission,
+  ActivityTemplate,
   AIChatMessage,
   AIChatSession,
   AIUsageLog,

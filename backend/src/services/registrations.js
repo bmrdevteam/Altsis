@@ -38,6 +38,12 @@ export class RegistrationService {
       userRecord.userId,
       role
     );
+    const permissionActivityV2 = hasPermission(
+      "activity",
+      seasonRecord,
+      userRecord.userId,
+      role
+    );
 
     const registrationRecord = await Registration(this.academyId).create({
       ...getSeasonSubRecord(seasonRecord),
@@ -56,6 +62,7 @@ export class RegistrationService {
       permissionSyllabusV2,
       permissionEnrollmentV2,
       permissionEvaluationV2,
+      permissionActivityV2,
     });
 
     return { registration: registrationRecord };
@@ -110,6 +117,9 @@ export const updateRegistrationPermission = async (
       break;
     case "evaluation":
       registrationRecord.permissionEvaluationV2 = isAllowed;
+      break;
+    case "activity":
+      registrationRecord.permissionActivityV2 = isAllowed;
       break;
     default:
       return;

@@ -77,7 +77,7 @@ const calendarEventSchema = mongoose.Schema(
     },
     sourceType: {
       type: String,
-      enum: ["manual", "enrollment", "syllabus", "memo", "altForm"],
+      enum: ["manual", "enrollment", "syllabus", "memo", "altForm", "activity"],
       default: "manual",
     },
     sourceId: { type: String },
