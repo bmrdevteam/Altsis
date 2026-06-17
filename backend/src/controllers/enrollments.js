@@ -4,11 +4,20 @@
  * @see TEnrollment in {@link Models.Enrollment}
  */
 
-import { Enrollment, Syllabus, Registration, CalendarEvent, Board } from "../models/index.js";
+import {
+  Activity,
+  Enrollment,
+  Syllabus,
+  Registration,
+  CalendarEvent,
+  Board,
+} from "../models/index.js";
 import { getIoEnrollment } from "../utils/webSocket.js";
 import { logger } from "../log/logger.js";
 import { sendAutoNotification } from "../services/notifications.js";
 import { syncBoardChatParticipants } from "../services/boardChat.js";
+import { syncActivityCalendar } from "../services/activities.js";
+import { syncActivitySubmissions } from "../services/activitySubmissions.js";
 import PQueue from "p-queue";
 import _ from "lodash";
 import {
@@ -45,6 +54,22 @@ const isTimeOverlapped = (enrollments, syllabus) => {
     .keys()
     .value();
   return unavailableTimeLabels.length != 0;
+};
+
+const syncSyllabusActivitiesAfterEnrollmentChange = async (
+  academyId,
+  syllabusId
+) => {
+  const activities = await Activity(academyId).find({
+    syllabus: syllabusId,
+    isActive: true,
+  });
+  if (activities.length === 0) return;
+
+  for (const activity of activities) {
+    await syncActivitySubmissions(academyId, activity);
+    await syncActivityCalendar(academyId, activity);
+  }
 };
 
 // create a new queue, and pass how many you want to exec at once
@@ -235,7 +260,19 @@ const exec = async (req) => {
       }
     }
 
-    // 11. 멘토 초대인 경우 알림 발송
+    // 11. 기존 활동 제출/캘린더 동기화
+    try {
+      await syncSyllabusActivitiesAfterEnrollmentChange(
+        req.user.academyId,
+        syllabus._id
+      );
+    } catch (activitySyncErr) {
+      logger.warn(
+        `Failed to sync activities on enroll: ${activitySyncErr.message}`
+      );
+    }
+
+    // 12. 멘토 초대인 경우 알림 발송
     if (isMentorInvitation) {
       try {
         await sendAutoNotification({
@@ -836,6 +873,18 @@ export const remove = async (req, res) => {
       } catch (boardErr) {
         logger.warn(`Failed to sync altBoard member on unenroll: ${boardErr.message}`);
       }
+    }
+
+    // 기존 활동 제출/캘린더 동기화
+    try {
+      await syncSyllabusActivitiesAfterEnrollmentChange(
+        req.user.academyId,
+        enrollment.syllabus
+      );
+    } catch (activitySyncErr) {
+      logger.warn(
+        `Failed to sync activities on unenroll: ${activitySyncErr.message}`
+      );
     }
 
     // 멘토가 취소한 경우 학생에게 알림 발송
