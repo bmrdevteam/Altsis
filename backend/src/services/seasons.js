@@ -54,9 +54,6 @@ export const addSeasonPermissionException = async (
     case "evaluation":
       permission = seasonRecord.permissionEvaluationV2;
       break;
-    case "activity":
-      permission = seasonRecord.permissionActivityV2;
-      break;
     default:
       return;
   }
@@ -116,8 +113,6 @@ export const hasPermission = (type, seasonRecord, userId, role) => {
       return _hasPermission(seasonRecord.permissionActivityV2, userId, role);
     case "evaluation":
       return _hasPermission(seasonRecord.permissionEvaluationV2, userId, role);
-    case "activity":
-      return _hasPermission(seasonRecord.permissionActivityV2, userId, role);
   }
   return false;
 };
@@ -168,17 +163,6 @@ export const removePermissionExcepted = async (seasonRecord, userId) => {
   ) {
     if (seasonRecord.permissionEvaluationV2.exceptions[i].userId === userId) {
       seasonRecord.permissionEvaluationV2.exceptions.splice(i, 1);
-      isUpdated = true;
-      break;
-    }
-  }
-  for (
-    let i = 0;
-    i < seasonRecord.permissionActivityV2.exceptions.length;
-    i++
-  ) {
-    if (seasonRecord.permissionActivityV2.exceptions[i].userId === userId) {
-      seasonRecord.permissionActivityV2.exceptions.splice(i, 1);
       isUpdated = true;
       break;
     }
