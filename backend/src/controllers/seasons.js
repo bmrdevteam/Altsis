@@ -1078,6 +1078,9 @@ const getPermissionField = (type) => {
   if (type === "evaluation") {
     return "permissionEvaluationV2";
   }
+  if (type === "activity") {
+    return "permissionActivityV2";
+  }
   return undefined;
 };
 

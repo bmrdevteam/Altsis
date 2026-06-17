@@ -60,6 +60,7 @@ const memoSchema = mongoose.Schema({
  * @prop {boolean} permissionEnrollmentV2=false - 수강신청 권한; season.permissionEnrollmentV2에 의해 설정된다
  * @prop {boolean} permissionActivityV2=false - 교육활동 권한; season.permissionActivityV2에 의해 설정된다
  * @prop {boolean} permissionEvaluationV2=false - 평가 권한; season.permissionEvaluationV2에 의해 설정된다
+ * @prop {boolean} permissionActivityV2=false - 교육활동 권한; season.permissionActivityV2에 의해 설정된다
  * @prop {Object[]} formEvaluation - season.formEvaluation
  *
  */
@@ -115,6 +116,10 @@ const registrationSchema = mongoose.Schema({
     default: false,
   },
   permissionEvaluationV2: {
+    type: Boolean,
+    default: false,
+  },
+  permissionActivityV2: {
     type: Boolean,
     default: false,
   },

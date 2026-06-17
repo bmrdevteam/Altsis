@@ -1,4 +1,6 @@
 import { router as academies } from "./academies.js";
+import { router as activities } from "./activities.js";
+import { router as activityTemplates } from "./activityTemplates.js";
 import { router as ai } from "./ai.js";
 import { router as activities } from "./activities.js";
 import { router as altForms } from "./altForms.js";
@@ -33,6 +35,8 @@ import { router as test } from "./test.js";
 
 export const routers = [
   { label: "academies", routes: academies },
+  { label: "activities", routes: activities },
+  { label: "activity-templates", routes: activityTemplates },
   { label: "ai", routes: ai },
   { label: "activities", routes: activities },
   { label: "alt-forms", routes: altForms },

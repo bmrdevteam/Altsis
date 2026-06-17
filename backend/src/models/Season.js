@@ -262,6 +262,7 @@ const aiSettingsDefault = {
  * @prop {TPermission} permissionEnrollmentV2 - 수강신청 권한
  * @prop {TPermission} permissionActivityV2 - 교육활동 권한
  * @prop {TPermission} permissionEvaluationV2 - 평가 권한
+ * @prop {TPermission} permissionActivityV2 - 교육활동 권한
  * @prop {TFormTimetable} formTimetable - 시간표 양식
  * @prop {TFormSyllabus} formSyllabus - 강의계획서 양식
  * @prop {TFormEvaluationItem[]} formEvaluation - 평가 양식
@@ -314,6 +315,10 @@ const seasonSchema = mongoose.Schema(
       default: permissionDefault,
     },
     permissionEvaluationV2: {
+      type: permissionSchema,
+      default: permissionDefault,
+    },
+    permissionActivityV2: {
       type: permissionSchema,
       default: permissionDefault,
     },

@@ -78,6 +78,7 @@ export type TSeason = {
   permissionEnrollmentV2: TPermission;
   permissionActivityV2: TPermission;
   permissionEvaluationV2: TPermission;
+  permissionActivityV2: TPermission;
   formTimetable: TFormTimetable;
   formSyllabus: any;
   formEvaluation: TFormEvaluation;
