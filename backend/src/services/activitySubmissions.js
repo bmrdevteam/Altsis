@@ -15,11 +15,21 @@ const createHttpError = (status, message) => {
 const toObjectIdString = (value) =>
   value?.toString?.() || (typeof value === "string" ? value : "");
 
-const resolveNextSubmissionStatus = (existingStatus, hasRow) => {
-  if (!hasRow) return "not_started";
+const resolveNextSubmissionStatus = (existingStatus, row) => {
+  if (!row) return "not_started";
+
   if (existingStatus === "completed" || existingStatus === "returned") {
     return existingStatus;
   }
+
+  // AltSheetRow가 생성되었지만 _submittedAt이 없으면 작성 중으로 본다.
+  if (!row._submittedAt) {
+    if (existingStatus === "submitted") {
+      return "submitted";
+    }
+    return "in_progress";
+  }
+
   return "submitted";
 };
 
@@ -31,8 +41,10 @@ const upsertSubmission = async ({
   existing,
 }) => {
   const hasRow = !!row;
-  const nextStatus = resolveNextSubmissionStatus(existing?.status, hasRow);
-  const nextSubmittedAt = row?._submittedAt || existing?.submittedAt;
+  const nextStatus = resolveNextSubmissionStatus(existing?.status, row);
+  const nextSubmittedAt = hasRow
+    ? row?._submittedAt || existing?.submittedAt
+    : undefined;
 
   let resubmitCount = existing?.resubmitCount || 0;
   if (
@@ -317,7 +329,11 @@ export const updateActivitySubmissionStatus = async ({
   if (!status) {
     throw createHttpError(400, FIELD_REQUIRED("status"));
   }
-  if (!["not_started", "submitted", "returned", "completed"].includes(status)) {
+  if (
+    !["not_started", "in_progress", "submitted", "returned", "completed"].includes(
+      status
+    )
+  ) {
     throw createHttpError(400, FIELD_INVALID("status"));
   }
 

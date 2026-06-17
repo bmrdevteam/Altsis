@@ -487,6 +487,7 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
                             style={{ minWidth: "120px" }}
                           >
                             <option value="not_started">미제출</option>
+                            <option value="in_progress">작성 중</option>
                             <option value="submitted">제출됨</option>
                             <option value="returned">반려</option>
                             <option value="completed">완료</option>

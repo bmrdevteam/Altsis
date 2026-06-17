@@ -25,38 +25,38 @@
 
 ### Backend
 
-- [ ] `backend/src/models/Activity.js`
-- [ ] `backend/src/models/ActivityTemplate.js`
-- [ ] `backend/src/models/ActivitySubmission.js`
-- [ ] `backend/src/models/index.js` 등록
-- [ ] `backend/src/services/activities.js` — CRUD, AltForm 연동, 권한
-- [ ] `backend/src/services/activitySubmissions.js` — 제출·피드백
-- [ ] `backend/src/controllers/activities.js`
-- [ ] `backend/src/controllers/activityTemplates.js`
-- [ ] `backend/src/routes/activities.js`, `activityTemplates.js`
-- [ ] `backend/src/routes/index.js` 마운트
-- [ ] `Season.permissionActivityV2` + Registration 동기화 (`seasons.js` 패턴)
-- [ ] `CalendarEvent` `sourceType: "activity"` 마감일 동기화
-- [ ] 기본 템플릿 시드: 과제(`assignment`), 퀴즈(`quiz`), 토론(`discussion`)
+- [x] `backend/src/models/Activity.js`
+- [x] `backend/src/models/ActivityTemplate.js`
+- [x] `backend/src/models/ActivitySubmission.js`
+- [x] `backend/src/models/index.js` 등록
+- [x] `backend/src/services/activities.js` — CRUD, AltForm 연동, 권한
+- [x] `backend/src/services/activitySubmissions.js` — 제출·피드백
+- [x] `backend/src/controllers/activities.js`
+- [x] `backend/src/controllers/activityTemplates.js`
+- [x] `backend/src/routes/activities.js`, `activityTemplates.js`
+- [x] `backend/src/routes/index.js` 마운트
+- [x] `Season.permissionActivityV2` + Registration 동기화 (`seasons.js` 패턴)
+- [x] `CalendarEvent` `sourceType: "activity"` 마감일 동기화
+- [x] 기본 템플릿 시드: 과제(`assignment`), 퀴즈(`quiz`), 토론(`discussion`)
 
 ### Frontend
 
-- [ ] `frontend/src/types/activity.ts`
-- [ ] `frontend/src/hooks/useAPIv2.ts` — `ActivityAPI`, `ActivityTemplateAPI`
-- [ ] `frontend/src/pages/courses/activity/` — ActivityList, ActivityCreatePopup, ActivityDetail, ActivityTemplateList, ActivityTemplateEditor
-- [ ] `frontend/src/pages/courses/tab/Mentoring/ActivityTab.tsx` (AltBoardTab 대체/발전)
-- [ ] `frontend/src/pages/courses/tab/Enrolled/` — 학생 활동 탭
-- [ ] `frontend/src/pages/courses/tab/Mentoring/Index.tsx` — `보드` → `활동` 탭
-- [ ] `frontend/src/pages/admin/schools/tab/seasons/tab/permission/PermissionV2.tsx` — activity 권한
-- [ ] AltFormRenderer / AltSheetView 래핑 (제출·피드백)
+- [x] `frontend/src/types/activity.ts`
+- [x] `frontend/src/hooks/useAPIv2.ts` — `ActivityAPI`, `ActivityTemplateAPI`
+- [x] `frontend/src/pages/courses/activity/` — ActivityList, ActivityCreatePopup, ActivityDetail, ActivityTemplateList, ActivityTemplateEditor
+- [x] `frontend/src/pages/courses/tab/Mentoring/ActivityTab.tsx` (AltBoardTab 대체/발전)
+- [x] `frontend/src/pages/courses/tab/Enrolled/` — 학생 활동 탭
+- [x] `frontend/src/pages/courses/tab/Mentoring/Index.tsx` — `보드` → `활동` 탭
+- [x] `frontend/src/pages/admin/schools/tab/seasons/tab/permission/PermissionV2.tsx` — activity 권한
+- [x] AltFormRenderer / AltSheetView 래핑 (제출·피드백)
 
 ### 완료 조건
 
-- 템플릿 갤러리에서 과제/퀴즈/토론 선택 → 제목·마감 입력 → Activity 생성
-- 학생 제출 (`not_started` → `submitted`)
-- 교사 피드백 (owner 필드 + ActivitySubmission.feedback)
-- 템플릿 복제·수정·신규 생성
-- 기존 테스트 통과
+- [x] 템플릿 갤러리에서 과제/퀴즈/토론 선택 → 제목·마감 입력 → Activity 생성
+- [x] 학생 제출 (`not_started` → `submitted`)
+- [x] 교사 피드백 (owner 필드 + ActivitySubmission.feedback)
+- [x] 템플릿 복제·수정·신규 생성
+- [ ] 기존 테스트 통과
 
 ## 제외 (하지 말 것)
 
