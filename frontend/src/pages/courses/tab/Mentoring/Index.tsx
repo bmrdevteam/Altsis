@@ -46,7 +46,7 @@ import Svg from "assets/svg/Svg";
 import Tab from "components/tab/Tab";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
-import AltBoardTab from "./AltBoardTab";
+import ActivityTab from "./ActivityTab";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
@@ -56,7 +56,7 @@ type Props = {};
 
 const CoursePid = (props: Props) => {
   const { pid } = useParams<"pid">();
-  const { currentSeason, currentUser, currentRegistration, currentSchool } = useAuth();
+  const { currentSeason, currentUser, currentRegistration } = useAuth();
   const { SeasonAPI, SyllabusAPI, EnrollmentAPI } = useAPIv2();
   const navigate = useAppNavigate();
 
@@ -615,13 +615,11 @@ const CoursePid = (props: Props) => {
                       />
                     </div>
                   ),
-                  ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false ? {
-                  보드: (
+                  활동: (
                     <div style={{ marginTop: "16px" }}>
-                      <AltBoardTab syllabusId={syllabus._id} />
+                      <ActivityTab syllabusId={syllabus._id} isMentor={isMentor} />
                     </div>
                   ),
-                  } : {}),
                   } : {}),
                 }}
                 align="flex-start"

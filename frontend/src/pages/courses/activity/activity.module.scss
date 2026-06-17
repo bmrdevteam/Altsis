@@ -1,0 +1,252 @@
+.activityTab {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  min-height: 520px;
+}
+
+.panel {
+  border: var(--border-default);
+  border-radius: 8px;
+  background: var(--background-color);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: var(--border-default);
+}
+
+.panelTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-1);
+}
+
+.listBody {
+  max-height: 640px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.activityItem {
+  border: var(--border-default);
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activityItem + .activityItem {
+  margin-top: 8px;
+}
+
+.activityItem:hover {
+  border-color: var(--accent-3);
+}
+
+.activityItemActive {
+  border-color: var(--accent-1);
+  background: var(--background-color-2);
+}
+
+.activityTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-1);
+}
+
+.muted {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  border: var(--border-default);
+  color: var(--accent-3);
+  background: var(--background-color-2);
+}
+
+.badgeDraft {
+  color: var(--text-color-2);
+}
+
+.badgePublished {
+  color: var(--status-success);
+}
+
+.badgeClosed {
+  color: var(--status-error);
+}
+
+.detailBody {
+  padding: 16px;
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--accent-3);
+}
+
+.metaGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.metaChip {
+  font-size: 12px;
+  color: var(--accent-3);
+  border: var(--border-default);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.contentBox {
+  border: var(--border-default);
+  border-radius: 8px;
+  padding: 12px;
+  white-space: pre-wrap;
+  font-size: 14px;
+  color: var(--accent-1);
+  line-height: 1.55;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.submissionsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.submissionsTable th,
+.submissionsTable td {
+  border-bottom: var(--border-default);
+  padding: 8px 6px;
+  text-align: left;
+  color: var(--accent-1);
+}
+
+.submissionsTable th {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.feedbackBox {
+  border: var(--border-default);
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.feedbackItem + .feedbackItem {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: var(--border-default);
+}
+
+.feedbackAuthor {
+  font-size: 12px;
+  color: var(--accent-3);
+  margin-bottom: 4px;
+}
+
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.templateCard {
+  border: var(--border-default);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.templateCardActive {
+  border-color: var(--accent-1);
+  background: var(--background-color-2);
+}
+
+.templateActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.formRow {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  border: var(--border-default);
+  border-radius: 6px;
+  font-size: 14px;
+  padding: 8px 10px;
+  background: var(--background-color);
+  color: var(--accent-1);
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.inlineRow {
+  display: flex;
+  gap: 8px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 12px 0;
+}
+
+@media (max-width: 1024px) {
+  .activityTab {
+    grid-template-columns: 1fr;
+  }
+
+  .split {
+    grid-template-columns: 1fr;
+  }
+}

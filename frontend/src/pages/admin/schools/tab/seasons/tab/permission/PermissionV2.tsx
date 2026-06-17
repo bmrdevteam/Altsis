@@ -54,11 +54,13 @@ const Index = (props: Props) => {
     useState<TPermission>(defaultPermission);
   const [permissionEnrollmentParsed, setPermissionEnrollmentParsed] =
     useState<TPermission>(defaultPermission);
+  const [permissionActivityParsed, setPermissionActivityParsed] =
+    useState<TPermission>(defaultPermission);
   const [permissionEvaluationParsed, setPermissionEvaluationParsed] =
     useState<TPermission>(defaultPermission);
-  const [type, setType] = useState<"syllabus" | "enrollment" | "evaluation">(
-    "syllabus"
-  );
+  const [type, setType] = useState<
+    "syllabus" | "enrollment" | "activity" | "evaluation"
+  >("syllabus");
 
   useEffect(() => {
     if (isLoading) {
@@ -66,6 +68,7 @@ const Index = (props: Props) => {
         .then(({ season }) => {
           setPermissionSyllabus(season?.permissionSyllabusV2);
           setPermissionEnrollmentParsed(season?.permissionEnrollmentV2);
+          setPermissionActivityParsed(season?.permissionActivityV2);
           setPermissionEvaluationParsed(season?.permissionEvaluationV2);
         })
         .then(() => {
@@ -81,6 +84,7 @@ const Index = (props: Props) => {
         data={[
           { type: "syllabus", ...permissionSyllabus },
           { type: "enrollment", ...permissionEnrollmentParsed },
+          { type: "activity", ...permissionActivityParsed },
           { type: "evaluation", ...permissionEvaluationParsed },
         ]}
         header={[
@@ -93,6 +97,7 @@ const Index = (props: Props) => {
             status: {
               syllabus: { text: "수업 개설 권한" },
               enrollment: { text: "수강신청 권한" },
+              activity: { text: "교육활동 권한" },
               evaluation: { text: "평가 권한" },
             },
           },
