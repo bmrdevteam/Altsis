@@ -44,6 +44,7 @@ import Tab from "components/tab/Tab";
 
 import EditorParser from "editor/EditorParser";
 import AltBoardTab from "pages/courses/tab/Mentoring/AltBoardTab";
+import EnrolledActivityTab from "./ActivityTab";
 
 import _ from "lodash";
 
@@ -390,7 +391,14 @@ const CourseEnrollment = (props: Props) => {
                 )}
               </>
             ),
-            ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false && enrollmentData?.syllabus ? {
+            ...(currentRegistration?.permissionActivityV2 && enrollmentData?.syllabus ? {
+            활동: (
+              <div style={{ marginTop: "16px" }}>
+                <EnrolledActivityTab syllabusId={enrollmentData.syllabus} />
+              </div>
+            ),
+            } : {}),
+            ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false && enrollmentData?.syllabus && !currentRegistration?.permissionActivityV2 ? {
             보드: (
               <div style={{ marginTop: "16px" }}>
                 <AltBoardTab syllabusId={enrollmentData.syllabus} canCreate={false} />

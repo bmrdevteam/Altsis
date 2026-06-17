@@ -45,7 +45,7 @@ import useAPIv2 from "hooks/useAPIv2";
 type Props = {
   setPopupActive: any;
   _id: string;
-  type: "syllabus" | "enrollment" | "evaluation";
+  type: "syllabus" | "enrollment" | "evaluation" | "activity";
   setIsLoading: any;
 };
 
@@ -87,6 +87,8 @@ function Basic(props: Props) {
             updatePermission(season?.permissionEnrollmentV2);
           } else if (props.type === "evaluation") {
             updatePermission(season?.permissionEvaluationV2);
+          } else if (props.type === "activity") {
+            updatePermission(season?.permissionActivityV2);
           } else props.setPopupActive(false);
         })
         .then(() => {
@@ -111,7 +113,9 @@ function Basic(props: Props) {
           ? "수업 개설"
           : props.type === "enrollment"
           ? "수강신청"
-          : "평가"
+          : props.type === "evaluation"
+          ? "평가"
+          : "활동"
       } 권한 설정`}
       setState={(e: boolean) => {
         props.setIsLoading(true);

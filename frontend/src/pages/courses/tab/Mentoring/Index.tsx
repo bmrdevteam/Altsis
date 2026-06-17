@@ -47,6 +47,7 @@ import Tab from "components/tab/Tab";
 
 import EnrollBulkPopup from "./EnrollBulkPopup";
 import AltBoardTab from "./AltBoardTab";
+import ActivityTab from "./ActivityTab";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Progress from "components/progress/Progress";
 import CourseMetaInfo, { ConfirmedStatus } from "pages/courses/view/CourseMetaInfo";
@@ -615,7 +616,14 @@ const CoursePid = (props: Props) => {
                       />
                     </div>
                   ),
-                  ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false ? {
+                  ...(currentRegistration?.permissionActivityV2 ? {
+                  활동: (
+                    <div style={{ marginTop: "16px" }}>
+                      <ActivityTab syllabusId={syllabus._id} />
+                    </div>
+                  ),
+                  } : {}),
+                  ...(currentSchool?.boardEnabled !== false && currentSchool?.academyFeatures?.boardEnabled !== false && !currentRegistration?.permissionActivityV2 ? {
                   보드: (
                     <div style={{ marginTop: "16px" }}>
                       <AltBoardTab syllabusId={syllabus._id} />

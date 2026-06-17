@@ -32,6 +32,11 @@ import { TNotification, TNotificationSettings } from "types/notification";
 import { TChatRoom, TChatMessage, TChatUser, TChatRoomSettings, TChatFile } from "types/chat";
 import { TBoard, TBoardFavorite, TBoardMembers, TBoardNotificationEvents } from "types/board";
 import { TPost, TPostAttachment } from "types/post";
+import {
+  TActivity,
+  TActivitySubmission,
+  TActivityTemplate,
+} from "types/activity";
 
 import {
   TSurvey,
@@ -1603,7 +1608,7 @@ export default function useAPIv2() {
   async function USeasonPermission(props: {
     params: {
       _id: string;
-      type: "syllabus" | "enrollment" | "evaluation";
+      type: "syllabus" | "enrollment" | "evaluation" | "activity";
     };
     data: {
       teacher?: boolean;
@@ -1625,7 +1630,7 @@ export default function useAPIv2() {
   async function CSeasonPermissionException(props: {
     params: {
       _id: string;
-      type: "syllabus" | "enrollment" | "evaluation";
+      type: "syllabus" | "enrollment" | "evaluation" | "activity";
     };
     data: {
       registration: string;
@@ -1647,7 +1652,7 @@ export default function useAPIv2() {
   async function DSeasonPermissionException(props: {
     params: {
       _id: string;
-      type: "syllabus" | "enrollment" | "evaluation";
+      type: "syllabus" | "enrollment" | "evaluation" | "activity";
     };
     query: {
       registration: string;
@@ -4570,6 +4575,203 @@ export default function useAPIv2() {
     return { rows: rows as TAltSheetRow[], created: created as number };
   }
 
+  async function CActivity(props: {
+    data: Partial<TActivity> & {
+      syllabus: string;
+      title: string;
+      type: TActivity["type"];
+      altFormSchema?: object[];
+    };
+  }) {
+    const { activity } = await database.C({
+      location: "activities",
+      data: props.data,
+    });
+    return { activity: activity as TActivity };
+  }
+
+  async function RActivities(props?: {
+    query?: { syllabus?: string; season?: string; status?: string };
+  }) {
+    const { activities } = await database.R({
+      location: "activities" + QUERY_BUILDER(props?.query),
+    });
+    return { activities: (activities ?? []) as TActivity[] };
+  }
+
+  async function RActivity(props: { params: { _id: string } }) {
+    const { activity } = await database.R({
+      location: `activities/${props.params._id}`,
+    });
+    return { activity: activity as TActivity };
+  }
+
+  async function UActivity(props: {
+    params: { _id: string };
+    data: Partial<TActivity> & { altFormSchema?: object[] };
+  }) {
+    const { activity } = await database.U({
+      location: `activities/${props.params._id}`,
+      data: props.data,
+    });
+    return { activity: activity as TActivity };
+  }
+
+  async function DActivity(props: { params: { _id: string } }) {
+    await database.D({ location: `activities/${props.params._id}` });
+    return {};
+  }
+
+  async function UActivityPublish(props: { params: { _id: string } }) {
+    const { activity } = await database.U({
+      location: `activities/${props.params._id}/publish`,
+      data: {},
+    });
+    return { activity: activity as TActivity };
+  }
+
+  async function UActivityClose(props: { params: { _id: string } }) {
+    const { activity } = await database.U({
+      location: `activities/${props.params._id}/close`,
+      data: {},
+    });
+    return { activity: activity as TActivity };
+  }
+
+  async function RActivitySubmissions(props: { params: { _id: string } }) {
+    const { submissions } = await database.R({
+      location: `activities/${props.params._id}/submissions`,
+    });
+    return { submissions: (submissions ?? []) as TActivitySubmission[] };
+  }
+
+  async function RActivityMySubmission(props: { params: { _id: string } }) {
+    const result = await database.R({
+      location: `activities/${props.params._id}/my-submission`,
+    });
+    return {
+      submission: result.submission as TActivitySubmission,
+      altSheetRow: result.altSheetRow,
+      altForm: result.altForm,
+      activity: result.activity as TActivity,
+    };
+  }
+
+  async function CActivitySubmit(props: {
+    params: { _id: string };
+    data: { data: Record<string, unknown> };
+  }) {
+    return await database.C({
+      location: `activities/${props.params._id}/submit`,
+      data: props.data,
+    });
+  }
+
+  async function UActivityDraft(props: {
+    params: { _id: string };
+    data: { data: Record<string, unknown> };
+  }) {
+    return await database.U({
+      location: `activities/${props.params._id}/draft`,
+      data: props.data,
+    });
+  }
+
+  async function CActivityFeedback(props: {
+    params: { _id: string; submissionId: string };
+    data: { content: string };
+  }) {
+    const { submission } = await database.C({
+      location: `activities/${props.params._id}/submissions/${props.params.submissionId}/feedback`,
+      data: props.data,
+    });
+    return { submission: submission as TActivitySubmission };
+  }
+
+  async function UActivitySubmissionComplete(props: {
+    params: { _id: string; submissionId: string };
+  }) {
+    const { submission } = await database.U({
+      location: `activities/${props.params._id}/submissions/${props.params.submissionId}/complete`,
+      data: {},
+    });
+    return { submission: submission as TActivitySubmission };
+  }
+
+  async function CActivityTemplate(props: {
+    data: Partial<TActivityTemplate> & {
+      name: string;
+      type: TActivityTemplate["type"];
+      scope: TActivityTemplate["scope"];
+    };
+  }) {
+    const { template } = await database.C({
+      location: "activity-templates",
+      data: props.data,
+    });
+    return { template: template as TActivityTemplate };
+  }
+
+  async function RActivityTemplates(props?: {
+    query?: { scope?: string; school?: string };
+  }) {
+    const { templates } = await database.R({
+      location: "activity-templates" + QUERY_BUILDER(props?.query),
+    });
+    return { templates: (templates ?? []) as TActivityTemplate[] };
+  }
+
+  async function RActivityTemplate(props: { params: { _id: string } }) {
+    const { template } = await database.R({
+      location: `activity-templates/${props.params._id}`,
+    });
+    return { template: template as TActivityTemplate };
+  }
+
+  async function UActivityTemplate(props: {
+    params: { _id: string };
+    data: Partial<TActivityTemplate>;
+  }) {
+    const { template } = await database.U({
+      location: `activity-templates/${props.params._id}`,
+      data: props.data,
+    });
+    return { template: template as TActivityTemplate };
+  }
+
+  async function DActivityTemplate(props: { params: { _id: string } }) {
+    await database.D({ location: `activity-templates/${props.params._id}` });
+    return {};
+  }
+
+  async function CActivityTemplateDuplicate(props: {
+    params: { _id: string };
+    data?: { name?: string; scope?: string; school?: string };
+  }) {
+    const { template } = await database.C({
+      location: `activity-templates/${props.params._id}/duplicate`,
+      data: props.data ?? {},
+    });
+    return { template: template as TActivityTemplate };
+  }
+
+  async function CActivityTemplateInstantiate(props: {
+    params: { _id: string };
+    data: {
+      syllabus: string;
+      title: string;
+      dueAt?: string;
+      openAt?: string;
+      content?: string;
+    };
+  }) {
+    const { activity } = await database.C({
+      location: `activity-templates/${props.params._id}/instantiate`,
+      data: props.data,
+    });
+    return { activity: activity as TActivity };
+  }
+
   return {
     AcademyAPI: {
       CAcademy,
@@ -4862,6 +5064,30 @@ export default function useAPIv2() {
       RAltSheetRowCount,
       RAltSheetRowAvailableCombinations,
       CAltSheetRowImportCsv,
+    },
+    ActivityAPI: {
+      CActivity,
+      RActivities,
+      RActivity,
+      UActivity,
+      DActivity,
+      UActivityPublish,
+      UActivityClose,
+      RActivitySubmissions,
+      RActivityMySubmission,
+      CActivitySubmit,
+      UActivityDraft,
+      CActivityFeedback,
+      UActivitySubmissionComplete,
+    },
+    ActivityTemplateAPI: {
+      CActivityTemplate,
+      RActivityTemplates,
+      RActivityTemplate,
+      UActivityTemplate,
+      DActivityTemplate,
+      CActivityTemplateDuplicate,
+      CActivityTemplateInstantiate,
     },
   };
 }

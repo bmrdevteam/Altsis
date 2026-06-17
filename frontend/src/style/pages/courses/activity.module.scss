@@ -1,0 +1,166 @@
+.activityTab {
+  margin-top: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent-1);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  border: var(--border-default);
+  border-radius: 4px;
+  padding: 16px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f8f8f8;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.badgeAssignment {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.badgeQuiz {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.badgeDiscussion {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
+.badgeDraft {
+  background: #eee;
+  color: #616161;
+}
+
+.badgePublished {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badgeClosed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+.empty {
+  padding: 48px;
+  text-align: center;
+  color: #888;
+  border: var(--border-default);
+  border-radius: 4px;
+}
+
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.templateCard {
+  border: var(--border-default);
+  border-radius: 4px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: center;
+
+  &:hover {
+    border-color: var(--accent-1);
+  }
+}
+
+.templateCardSelected {
+  border-color: var(--accent-1);
+  background: #f0f7ff;
+}
+
+.formField {
+  margin-bottom: 16px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.formTextarea,
+.formInput {
+  width: 100%;
+  padding: 10px;
+  border: var(--border-default);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.formTextarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.feedbackItem {
+  border-left: 3px solid var(--accent-1);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: #fafafa;
+}
+
+.feedbackMeta {
+  font-size: 12px;
+  color: #888;
+}
+
+.detailContent {
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.6;
+}
