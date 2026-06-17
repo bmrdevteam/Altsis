@@ -2,6 +2,14 @@
 
 > Automation Agent용 실행 문서. 전체 로드맵은 상위 기획( Activity System Integration ) 참고.
 
+## 브랜치
+
+| 항목 | 브랜치 |
+|------|--------|
+| **베이스** | `399-feature-altsis-next-project-update-to-v20` |
+| **작업** | `feature/activity-system` |
+| **PR 대상** | `399-feature-altsis-next-project-update-to-v20` (NOT `dev`) |
+
 ## 목표
 
 **"교사가 템플릿(과제/퀴즈/토론)으로 활동 생성 → 학생 제출 → 교사 피드백"** 이 수업 상세 안에서 동작.
@@ -105,5 +113,5 @@
 1. 이 문서와 `CLAUDE.md`를 먼저 읽을 것
 2. 기존 패턴 준수 (ESM, useAPIv2, SCSS modules, `/:academyId/:schoolId` 라우팅)
 3. 사용자 확인 없이 체크리스트 전체 완료
-4. `feature/activity-system`에 커밋 후 `dev` 대상 PR 생성
+4. `feature/activity-system`에 커밋 후 **`399-feature-altsis-next-project-update-to-v20` 대상** PR 생성 (`dev` 아님)
 5. PR 본문: 구현 요약, 테스트 방법, 알려진 제한
