@@ -92,6 +92,50 @@ const ColorPicker = ({ label, value, onChange }: Props) => {
     setHexInput(val);
   };
 
+  const dropdownPortal: any = open
+    ? createPortal(
+        <div
+          className={style.dropdown}
+          ref={dropdownRef}
+          style={{ top: dropdownPos.top, left: dropdownPos.left }}
+        >
+          <div className={style.presets}>
+            {PRESET_COLORS.map((c) => (
+              <div
+                key={c}
+                className={`${style.preset} ${value === c ? style.selected : ""}`}
+                style={{ backgroundColor: c }}
+                onClick={() => handlePresetClick(c)}
+              />
+            ))}
+          </div>
+
+          <div className={style.divider} />
+
+          <div className={style.custom}>
+            <label className={style.nativeWrapper}>
+              <input
+                type="color"
+                value={value}
+                onChange={(e) => handleNativeChange(e.target.value)}
+                className={style.nativeInput}
+              />
+              <span className={style.nativeLabel}>색상 선택</span>
+            </label>
+            <input
+              type="text"
+              value={hexInput}
+              onChange={(e) => handleHexChange(e.target.value)}
+              className={style.hexInput}
+              placeholder="#000000"
+              maxLength={7}
+            />
+          </div>
+        </div>,
+        document.body
+      )
+    : null;
+
   return (
     <div className={style.container} ref={containerRef}>
       {label && <label className={style.label}>{label}</label>}
@@ -105,49 +149,7 @@ const ColorPicker = ({ label, value, onChange }: Props) => {
           style={{ backgroundColor: value }}
         />
       </div>
-
-      {open &&
-        createPortal(
-          <div
-            className={style.dropdown}
-            ref={dropdownRef}
-            style={{ top: dropdownPos.top, left: dropdownPos.left }}
-          >
-            <div className={style.presets}>
-              {PRESET_COLORS.map((c) => (
-                <div
-                  key={c}
-                  className={`${style.preset} ${value === c ? style.selected : ""}`}
-                  style={{ backgroundColor: c }}
-                  onClick={() => handlePresetClick(c)}
-                />
-              ))}
-            </div>
-
-            <div className={style.divider} />
-
-            <div className={style.custom}>
-              <label className={style.nativeWrapper}>
-                <input
-                  type="color"
-                  value={value}
-                  onChange={(e) => handleNativeChange(e.target.value)}
-                  className={style.nativeInput}
-                />
-                <span className={style.nativeLabel}>색상 선택</span>
-              </label>
-              <input
-                type="text"
-                value={hexInput}
-                onChange={(e) => handleHexChange(e.target.value)}
-                className={style.hexInput}
-                placeholder="#000000"
-                maxLength={7}
-              />
-            </div>
-          </div>,
-          document.body
-        )}
+      {dropdownPortal}
     </div>
   );
 };

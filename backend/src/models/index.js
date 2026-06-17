@@ -10,9 +10,6 @@ import { ActivityTemplate } from "../models/ActivityTemplate.js";
 import { AIChatMessage } from "../models/AIChatMessage.js";
 import { AIChatSession } from "../models/AIChatSession.js";
 import { AIUsageLog } from "../models/AIUsageLog.js";
-import { Activity } from "../models/Activity.js";
-import { ActivitySubmission } from "../models/ActivitySubmission.js";
-import { ActivityTemplate } from "../models/ActivityTemplate.js";
 import { AltForm } from "../models/AltForm.js";
 import { AltFormDupCounter } from "../models/AltFormDupCounter.js";
 import { AltSheet } from "../models/AltSheet.js";
@@ -51,9 +48,6 @@ export {
   AIChatMessage,
   AIChatSession,
   AIUsageLog,
-  Activity,
-  ActivitySubmission,
-  ActivityTemplate,
   AltForm,
   AltFormDupCounter,
   AltSheet,

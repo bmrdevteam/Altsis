@@ -122,10 +122,13 @@ const ActivityTemplateEditor = ({
 
   const buildPreset = (): TActivityTemplatePreset => {
     const preset = deepClone(basePreset || buildDefaultActivityTemplatePreset(type));
-    const fields = Array.isArray(preset.altFormSchema?.fields)
-      ? preset.altFormSchema.fields.map((field, index) => ({
+    const fields: TAltFormField[] = Array.isArray(preset.altFormSchema?.fields)
+      ? preset.altFormSchema.fields.map((field, index): TAltFormField => ({
           ...field,
           _id: field._id || `${type}_${index}`,
+          label: field.label || "항목",
+          type: field.type || "text",
+          permission: field.permission || "respondent",
           visibleToRespondent:
             field.permission === "respondent" ? true : !!field.visibleToRespondent,
           required:
@@ -147,6 +150,9 @@ const ActivityTemplateEditor = ({
         label: respondentLabel || defaultRespondentLabel(type),
         permission: "respondent",
         visibleToRespondent: true,
+        options: Array.isArray(fields[respondentIndex].options)
+          ? fields[respondentIndex].options
+          : [],
       };
     }
 
@@ -160,10 +166,13 @@ const ActivityTemplateEditor = ({
         ...fields[feedbackIndex],
         permission: "owner",
         visibleToRespondent: true,
+        options: Array.isArray(fields[feedbackIndex].options)
+          ? fields[feedbackIndex].options
+          : [],
       };
     }
 
-    const normalizedFields = fields.map((field, index) => ({
+    const normalizedFields: TAltFormField[] = fields.map((field, index) => ({
       ...field,
       order: index,
     }));

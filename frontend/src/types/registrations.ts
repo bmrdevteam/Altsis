@@ -31,6 +31,5 @@ export type TRegistration = {
   permissionEnrollmentV2: boolean;
   permissionActivityV2: boolean;
   permissionEvaluationV2: boolean;
-  permissionActivityV2: boolean;
   formEvaluation: TFormEvaluation;
 };
