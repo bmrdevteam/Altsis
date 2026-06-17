@@ -86,7 +86,14 @@ export const find = async (req, res) => {
       if (!syllabus) {
         return res.status(404).send({ message: __NOT_FOUND("syllabus") });
       }
-      await assertActivityAccessPermission(req.user.academyId, syllabus, req.user);
+      const access = await assertActivityAccessPermission(
+        req.user.academyId,
+        syllabus,
+        req.user
+      );
+      if (!access.isMentor && activity.status === "draft") {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
 
       return res.status(200).send({ activity });
     }
@@ -99,14 +106,23 @@ export const find = async (req, res) => {
     if (!syllabus) {
       return res.status(404).send({ message: __NOT_FOUND("syllabus") });
     }
-    await assertActivityAccessPermission(req.user.academyId, syllabus, req.user);
+    const access = await assertActivityAccessPermission(
+      req.user.academyId,
+      syllabus,
+      req.user
+    );
 
     const query = {
       syllabus: req.query.syllabus,
       isActive: true,
     };
     if (req.query.status) {
+      if (!access.isMentor && req.query.status === "draft") {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
       query.status = req.query.status;
+    } else if (!access.isMentor) {
+      query.status = { $ne: "draft" };
     }
 
     const activities = await Activity(req.user.academyId)
@@ -221,7 +237,14 @@ export const findSubmissions = async (req, res) => {
     }
 
     if (req.query.mine === "true") {
-      await assertActivityAccessPermission(req.user.academyId, syllabus, req.user);
+      const access = await assertActivityAccessPermission(
+        req.user.academyId,
+        syllabus,
+        req.user
+      );
+      if (!access.isMentor && activity.status === "draft") {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
       const submission = await syncMyActivitySubmission(
         req.user.academyId,
         activity,
