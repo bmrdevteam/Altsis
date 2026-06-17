@@ -478,6 +478,7 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
                           <select
                             className={style.select}
                             value={submission.status}
+                            onClick={(event) => event.stopPropagation()}
                             onChange={(event) =>
                               handleSubmissionStatusChange(
                                 submission,

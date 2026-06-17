@@ -534,6 +534,13 @@ export const createActivityFromTemplate = async ({
     dueAt,
     openAt,
   } = buildActivityFormPayload(preset, payload);
+  const activityStatus = payload.status || "draft";
+  const resolvedOpenAt =
+    openAt || (activityStatus === "published" ? new Date() : undefined);
+  const formSettings = {
+    ...settings,
+    ...(resolvedOpenAt ? { openAt: resolvedOpenAt } : {}),
+  };
 
   const form = await AltForm(academyId).create({
     board: board._id,
@@ -544,7 +551,7 @@ export const createActivityFromTemplate = async ({
     title: payload.title,
     description: content,
     fields,
-    settings,
+    settings: formSettings,
   });
 
   const sheet = await AltSheet(academyId).create({
@@ -571,13 +578,13 @@ export const createActivityFromTemplate = async ({
     term: syllabus.term,
     classTitle: syllabus.classTitle,
     type,
-    status: payload.status || "draft",
+    status: activityStatus,
     title: payload.title,
     content,
     attachments,
     altForm: form._id,
     altBoard: board._id,
-    openAt,
+    openAt: resolvedOpenAt,
     dueAt,
     allowLateSubmission: !!settings.allowLateSubmission,
     allowResubmit: !!settings.allowResubmit,

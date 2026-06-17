@@ -65,19 +65,34 @@ const upsertSubmission = async ({
     student: enrollment.student,
     studentId: enrollment.studentId,
     studentName: enrollment.studentName,
-    altSheetRow: row?._id,
     status: nextStatus,
-    submittedAt: nextSubmittedAt,
     resubmitCount,
     isActive: true,
+  };
+  if (row?._id) {
+    update.altSheetRow = row._id;
+  }
+  if (nextSubmittedAt) {
+    update.submittedAt = nextSubmittedAt;
+  }
+
+  const unset = {};
+  if (!row?._id) {
+    unset.altSheetRow = "";
+  }
+  if (!nextSubmittedAt) {
+    unset.submittedAt = "";
+  }
+
+  const updatePayload = {
+    $set: update,
+    ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+    ...(existing ? {} : { $setOnInsert: { feedback: [] } }),
   };
 
   const submission = await ActivitySubmission(academyId).findOneAndUpdate(
     { activity: activity._id, enrollment: enrollment._id },
-    {
-      $set: update,
-      ...(existing ? {} : { $setOnInsert: { feedback: [] } }),
-    },
+    updatePayload,
     { upsert: true, new: true }
   );
 

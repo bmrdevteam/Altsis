@@ -131,12 +131,13 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
 
     setIsCreating(true);
     try {
+      const resolvedType = selectedTemplate.type;
       const { activity } = await ActivityTemplateAPI.CActivityFromTemplate({
         params: { _id: selectedTemplate._id },
         data: {
           syllabus: syllabusId,
           title: title.trim(),
-          type,
+          type: resolvedType,
           content,
           status,
           openAt: toIsoString(openAt),
@@ -230,6 +231,7 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
                     className={style.select}
                     value={type}
                     onChange={(event) => setType(event.target.value as TActivityType)}
+                    disabled
                   >
                     <option value="assignment">과제</option>
                     <option value="quiz">퀴즈</option>
