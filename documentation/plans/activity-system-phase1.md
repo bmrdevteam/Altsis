@@ -56,7 +56,7 @@
 - [x] 학생 제출 (`not_started` → `submitted`)
 - [x] 교사 피드백 (owner 필드 + ActivitySubmission.feedback)
 - [x] 템플릿 복제·수정·신규 생성
-- [ ] 기존 테스트 통과
+- [x] 기존 테스트 통과
 
 ## 제외 (하지 말 것)
 
