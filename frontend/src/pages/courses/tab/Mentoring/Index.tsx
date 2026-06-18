@@ -190,20 +190,30 @@ const CoursePid = (props: Props) => {
 
           // is this syllabus fully confirmed?
           // Is this user is mentor of this syllabus?
-          let confirmedCnt = 0;
-          let isMentorLocal = false;
-          for (let teacher of syllabus?.teachers) {
-            if (teacher.confirmed) {
-              confirmedCnt += 1;
-            }
-            if (teacher.userId === currentUser?.userId || currentUser.auth === "manager") {
-              isMentorLocal = true;
-            }
-          }
+          const teachers = Array.isArray(syllabus?.teachers)
+            ? syllabus.teachers
+            : [];
+          const confirmedCnt = teachers.reduce(
+            (acc: number, teacher: any) => (teacher?.confirmed ? acc + 1 : acc),
+            0
+          );
+          const isStaff =
+            currentUser?.auth === "manager" || currentUser?.auth === "admin";
+          const isOwner =
+            (syllabus?.user?.toString?.() || syllabus?.user) ===
+            (currentUser?._id?.toString?.() || currentUser?._id);
+          const isAssignedTeacher = teachers.some((teacher: any) => {
+            const teacherId = teacher?._id?.toString?.() || teacher?._id;
+            return (
+              teacher?.userId === currentUser?.userId ||
+              teacherId === (currentUser?._id?.toString?.() || currentUser?._id)
+            );
+          });
+          const isMentorLocal = isStaff || isOwner || isAssignedTeacher;
           setConfirmedStatus(
             confirmedCnt === 0
               ? "notConfirmed"
-              : confirmedCnt === syllabus?.teachers.length
+              : confirmedCnt === teachers.length
               ? "fullyConfirmed"
               : "semiConfirmed"
           );
