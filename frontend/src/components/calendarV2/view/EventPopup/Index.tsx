@@ -28,6 +28,13 @@ const getSourceLink = (
   event: EventItem,
   readOnly?: boolean
 ): { label: string; url: string } | null => {
+  const getActivityEnrollmentId = (sourceId?: string) => {
+    if (!sourceId) return "";
+    const parts = sourceId.split("-");
+    if (parts.length < 3 || parts[0] !== "activity") return "";
+    return parts[2];
+  };
+
   if (event.sourceType === "enrollment" && event.sourceId) {
     if (readOnly && event.syllabusId) {
       return {
@@ -44,8 +51,14 @@ const getSourceLink = (
     const syllabusId = parts[1];
     return { label: "담당 수업 보기", url: `/courses/mentoring/${syllabusId}` };
   }
-  if (event.sourceType === "activity" && event.syllabusId && readOnly) {
-    return { label: "교육활동 보기", url: `/courses/mentoring/${event.syllabusId}` };
+  if (event.sourceType === "activity") {
+    const enrollmentId = getActivityEnrollmentId(event.sourceId);
+    if (!readOnly && enrollmentId) {
+      return { label: "수강 수업 보기", url: `/courses/enrolled/${enrollmentId}` };
+    }
+    if (event.syllabusId) {
+      return { label: "교육활동 보기", url: `/courses/mentoring/${event.syllabusId}` };
+    }
   }
   // Legacy support via `from` field
   if (event.from === "enrollments" && event.id) {
@@ -54,8 +67,14 @@ const getSourceLink = (
   if (event.from === "mentorings" && event.id) {
     return { label: "담당 수업 보기", url: `/courses/mentoring/${event.id}` };
   }
-  if (event.from === "activities" && event.syllabusId && readOnly) {
-    return { label: "교육활동 보기", url: `/courses/mentoring/${event.syllabusId}` };
+  if (event.from === "activities") {
+    const enrollmentId = getActivityEnrollmentId(event.sourceId);
+    if (!readOnly && enrollmentId) {
+      return { label: "수강 수업 보기", url: `/courses/enrolled/${enrollmentId}` };
+    }
+    if (event.syllabusId) {
+      return { label: "교육활동 보기", url: `/courses/mentoring/${event.syllabusId}` };
+    }
   }
   return null;
 };

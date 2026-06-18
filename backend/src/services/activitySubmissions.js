@@ -1,4 +1,5 @@
 import {
+  Activity,
   ActivitySubmission,
   AltForm,
   AltSheetRow,
@@ -256,8 +257,22 @@ export const syncActivitySubmissions = async (academyId, activity) => {
 };
 
 export const syncMyActivitySubmission = async (academyId, activity, user) => {
+  return syncSubmissionForRespondentInActivity({
+    academyId,
+    activity,
+    respondentId: user?._id,
+  });
+};
+
+const syncSubmissionForRespondentInActivity = async ({
+  academyId,
+  activity,
+  respondentId,
+}) => {
+  if (!respondentId) return null;
+
   const enrollment = await Enrollment(academyId)
-    .findOne({ syllabus: activity.syllabus, student: user._id })
+    .findOne({ syllabus: activity.syllabus, student: respondentId })
     .select("_id student studentId studentName");
 
   if (!enrollment) return null;
@@ -272,7 +287,7 @@ export const syncMyActivitySubmission = async (academyId, activity, user) => {
           .findOne({
             form: activity.altForm,
             isActive: true,
-            _respondent: user._id,
+            _respondent: respondentId,
           })
           .sort({ _updatedAt: -1, createdAt: -1 })
           .lean()
@@ -286,6 +301,37 @@ export const syncMyActivitySubmission = async (academyId, activity, user) => {
     row,
     existing,
   });
+};
+
+export const syncActivitySubmissionsByAltFormRespondent = async ({
+  academyId,
+  altFormId,
+  respondentId,
+}) => {
+  if (!academyId || !altFormId || !respondentId) return [];
+
+  const activities = await Activity(academyId)
+    .find({
+      altForm: altFormId,
+      isActive: true,
+    })
+    .select("_id syllabus season school altForm");
+
+  if (activities.length === 0) return [];
+
+  const submissions = [];
+  for (const activity of activities) {
+    const submission = await syncSubmissionForRespondentInActivity({
+      academyId,
+      activity,
+      respondentId,
+    });
+    if (submission) {
+      submissions.push(submission);
+    }
+  }
+
+  return submissions;
 };
 
 export const initializeActivitySubmissionsForActivity = async (

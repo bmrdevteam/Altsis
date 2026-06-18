@@ -16,6 +16,7 @@ import {
   buildDupCounterKeys,
 } from "../services/altForms.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
+import { syncActivitySubmissionsByAltFormRespondent } from "../services/activitySubmissions.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -63,6 +64,26 @@ async function rollbackDupCounters(academyId, formId, keys) {
     await AltFormDupCounter(academyId).findOneAndUpdate(
       { form: formId, key, count: { $gt: 0 } },
       { $inc: { count: -1 } }
+    );
+  }
+}
+
+async function syncActivitySubmissionsAfterRowChange({
+  academyId,
+  formId,
+  respondentId,
+}) {
+  if (!formId || !respondentId) return;
+
+  try {
+    await syncActivitySubmissionsByAltFormRespondent({
+      academyId,
+      altFormId: formId,
+      respondentId,
+    });
+  } catch (err) {
+    logger.error(
+      `Failed to sync activity submissions after row change: ${err.message}`
     );
   }
 }
@@ -123,6 +144,11 @@ export const create = async (req, res) => {
         existing._updatedAt = new Date();
         existing.markModified("data");
         await existing.save();
+        await syncActivitySubmissionsAfterRowChange({
+          academyId: req.user.academyId,
+          formId: form._id,
+          respondentId: req.user._id,
+        });
 
         return res.status(200).send({ row: existing });
       }
@@ -313,6 +339,11 @@ export const create = async (req, res) => {
             }
             claimedSlots.push(emptySlot);
           }
+          await syncActivitySubmissionsAfterRowChange({
+            academyId: req.user.academyId,
+            formId: form._id,
+            respondentId: req.user._id,
+          });
           return res.status(200).send({ row: claimedSlots[0] });
         } else {
           // 자유 모드: atomic 카운터로 각 날짜 중복 검사
@@ -381,6 +412,11 @@ export const create = async (req, res) => {
           await emptySlot.save();
         }
 
+        await syncActivitySubmissionsAfterRowChange({
+          academyId: req.user.academyId,
+          formId: form._id,
+          respondentId: req.user._id,
+        });
         return res.status(200).send({ row: emptySlot });
       } else {
         // === 자유 모드 (단일 값): atomic 카운터 ===
@@ -462,6 +498,11 @@ export const create = async (req, res) => {
       }
     }
 
+    await syncActivitySubmissionsAfterRowChange({
+      academyId: req.user.academyId,
+      formId: form._id,
+      respondentId: req.user._id,
+    });
     return res.status(200).send({ row });
   } catch (err) {
     if (err.code === 11000) {
@@ -698,6 +739,11 @@ export const update = async (req, res) => {
     }
 
     await row.save();
+    await syncActivitySubmissionsAfterRowChange({
+      academyId: req.user.academyId,
+      formId: row.form,
+      respondentId: row._respondent,
+    });
 
     return res.status(200).send({ row });
   } catch (err) {
@@ -736,6 +782,8 @@ export const remove = async (req, res) => {
     if (!isAdmin && !(isOwner && allowResubmit)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
+    const formIdForSync = row.form;
+    const respondentIdForSync = row._respondent;
     if (form) {
       const dupFields = getDuplicateCheckFields(form);
       const dupMode = dupFields[0]?.duplicateCheck?.mode;
@@ -758,6 +806,11 @@ export const remove = async (req, res) => {
     }
 
     await row.deleteOne();
+    await syncActivitySubmissionsAfterRowChange({
+      academyId: req.user.academyId,
+      formId: formIdForSync,
+      respondentId: respondentIdForSync,
+    });
 
     return res.status(200).send();
   } catch (err) {
@@ -808,6 +861,20 @@ export const createBulk = async (req, res) => {
     }));
 
     const rows = await AltSheetRow(req.user.academyId).insertMany(docs);
+    const respondentIds = Array.from(
+      new Set(
+        rows
+          .map((row) => row._respondent?.toString?.())
+          .filter((respondentId) => !!respondentId)
+      )
+    );
+    for (const respondentId of respondentIds) {
+      await syncActivitySubmissionsAfterRowChange({
+        academyId: req.user.academyId,
+        formId: form._id,
+        respondentId,
+      });
+    }
 
     return res.status(200).send({ rows, created: rows.length });
   } catch (err) {

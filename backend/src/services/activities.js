@@ -712,7 +712,7 @@ export const syncActivityCalendar = async (academyId, activity) => {
 
   const enrollments = await Enrollment(academyId)
     .find({ syllabus: activity.syllabus })
-    .select("student");
+    .select("_id student");
 
   if (enrollments.length === 0) {
     await CalendarEvent(academyId).deleteMany({
@@ -727,7 +727,7 @@ export const syncActivityCalendar = async (academyId, activity) => {
   const ops = [];
 
   for (const enrollment of enrollments) {
-    const sourceId = `${sourceIdPrefix}-${enrollment.student}`;
+    const sourceId = `${sourceIdPrefix}-${enrollment._id}`;
     currentSourceIds.add(sourceId);
 
     ops.push({
