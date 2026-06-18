@@ -15,12 +15,20 @@ const createHttpError = (status, message) => {
 const toObjectIdString = (value) =>
   value?.toString?.() || (typeof value === "string" ? value : "");
 
-const resolveNextSubmissionStatus = (existingStatus, row) => {
-  if (!row) return "not_started";
+const toTimestamp = (value) => {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
 
-  if (existingStatus === "completed" || existingStatus === "returned") {
-    return existingStatus;
+const resolveNextSubmissionStatus = (existing, row) => {
+  const existingStatus = existing?.status;
+
+  if (existingStatus === "completed") {
+    return "completed";
   }
+
+  if (!row) return "not_started";
 
   // AltSheetRow가 생성되었지만 _submittedAt이 없으면 작성 중으로 본다.
   if (!row._submittedAt) {
@@ -28,6 +36,18 @@ const resolveNextSubmissionStatus = (existingStatus, row) => {
       return "submitted";
     }
     return "in_progress";
+  }
+
+  if (existingStatus === "returned") {
+    const previousSubmittedAt = toTimestamp(existing?.submittedAt);
+    const currentSubmittedAt = toTimestamp(row._submittedAt);
+    if (
+      previousSubmittedAt !== 0 &&
+      currentSubmittedAt !== 0 &&
+      previousSubmittedAt === currentSubmittedAt
+    ) {
+      return "returned";
+    }
   }
 
   return "submitted";
@@ -41,7 +61,7 @@ const upsertSubmission = async ({
   existing,
 }) => {
   const hasRow = !!row;
-  const nextStatus = resolveNextSubmissionStatus(existing?.status, row);
+  const nextStatus = resolveNextSubmissionStatus(existing, row);
   const nextSubmittedAt = hasRow
     ? row?._submittedAt || existing?.submittedAt
     : undefined;

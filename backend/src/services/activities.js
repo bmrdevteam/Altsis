@@ -231,7 +231,7 @@ export const canReadActivityTemplate = (template, user, school) => {
     return toObjectIdString(template.creator) === toObjectIdString(user._id);
   }
   if (template.scope === "school") {
-    if (!school) return true;
+    if (!school) return false;
     return toObjectIdString(template.school) === toObjectIdString(school);
   }
   return false;

@@ -281,6 +281,7 @@ const Calender = (props: Props) => {
       let categoryKey: string;
       if (e.sourceType === "enrollment") categoryKey = "enrollments";
       else if (e.sourceType === "syllabus") categoryKey = "mentorings";
+      else if (e.sourceType === "activity") categoryKey = "activities";
       else if (e.sourceType === "memo") categoryKey = "memos";
       else if (e.scope === "school") categoryKey = "schoolCalendar";
       else categoryKey = "personalCalendar";

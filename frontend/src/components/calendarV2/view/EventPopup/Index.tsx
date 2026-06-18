@@ -44,12 +44,18 @@ const getSourceLink = (
     const syllabusId = parts[1];
     return { label: "담당 수업 보기", url: `/courses/mentoring/${syllabusId}` };
   }
+  if (event.sourceType === "activity" && event.syllabusId && readOnly) {
+    return { label: "교육활동 보기", url: `/courses/mentoring/${event.syllabusId}` };
+  }
   // Legacy support via `from` field
   if (event.from === "enrollments" && event.id) {
     return { label: "수강 수업 보기", url: `/courses/enrolled/${event.id}` };
   }
   if (event.from === "mentorings" && event.id) {
     return { label: "담당 수업 보기", url: `/courses/mentoring/${event.id}` };
+  }
+  if (event.from === "activities" && event.syllabusId && readOnly) {
+    return { label: "교육활동 보기", url: `/courses/mentoring/${event.syllabusId}` };
   }
   return null;
 };
@@ -100,6 +106,22 @@ const Description = ({
     return <div className={style.description}>{"메모 일정입니다."}</div>;
   }
 
+  if (event.sourceType === "activity" || event.from === "activities") {
+    return (
+      <div className={style.description}>
+        {"교육활동 마감 일정입니다."}
+        {sourceLink && (
+          <div
+            className={style.svg}
+            onClick={() => navigate(sourceLink.url)}
+          >
+            <Svg type={"bookOpen"} style={{ width: "12px", height: "12px" }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (event.from === "schoolCalendar") {
     return <div className={style.description}>{"학교 캘린더 일정입니다."}</div>;
   }
@@ -120,7 +142,8 @@ const Index = (props: Props) => {
 
   const isSyncedEvent =
     props.event.sourceType === "enrollment" ||
-    props.event.sourceType === "syllabus";
+    props.event.sourceType === "syllabus" ||
+    props.event.sourceType === "activity";
 
   const canModify =
     props.event.type === "custom" &&

@@ -3,7 +3,7 @@ export const DayList: TDay[] = ["일", "월", "화", "수", "목", "금", "토"]
 
 export type Type = "custom" | "course";
 export type FromCustom = "schoolCalendar" | "personalCalendar";
-export type FromCourse = "enrollments" | "mentorings";
+export type FromCourse = "enrollments" | "mentorings" | "activities";
 
 export type From = FromCustom | FromCourse;
 
@@ -133,6 +133,7 @@ export const DEFAULT_CATEGORY_COLORS: Record<string, string> = {
   personalCalendar: "#4285f4",
   enrollments: "#84b1ed",
   mentorings: "#34a853",
+  activities: "#f29900",
   memos: "#ff9800",
 };
 
@@ -171,7 +172,7 @@ export class EventItem {
   recurrenceParentId?: string;
 
   // source tracking for synced events
-  sourceType?: "manual" | "enrollment" | "syllabus" | "memo";
+  sourceType?: "manual" | "enrollment" | "syllabus" | "memo" | "activity";
   sourceId?: string;
   syllabusId?: string;
   calendarId?: string;
@@ -289,6 +290,9 @@ export class Calendar {
       } else if (event.sourceType === "syllabus") {
         from = "mentorings";
         calendarTitle = "담당 수업";
+      } else if (event.sourceType === "activity") {
+        from = "activities";
+        calendarTitle = "교육활동";
       } else if (event.sourceType === "memo") {
         from = "personalCalendar";
         calendarTitle = "메모";

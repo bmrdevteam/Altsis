@@ -179,16 +179,25 @@ export const duplicate = async (req, res) => {
     }
 
     const syllabus = await resolveSyllabus(req.user.academyId, req.body.syllabus);
-    const school = syllabus?.school || template.school;
+    const isStaff = req.user.auth === "admin" || req.user.auth === "manager";
+    if (!syllabus && template.scope === "school" && !isStaff) {
+      return res.status(400).send({ message: FIELD_REQUIRED("syllabus") });
+    }
+    const school = syllabus?.school || (isStaff ? template.school : undefined);
     if (!canReadActivityTemplate(template, req.user, school)) {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
     const duplicatedTemplate = await ActivityTemplate(req.user.academyId).create({
       scope: "personal",
-      school: school,
-      schoolId: syllabus?.schoolId || template.schoolId,
-      schoolName: syllabus?.schoolName || template.schoolName,
+      school:
+        syllabus?.school || (template.scope === "school" ? template.school : undefined),
+      schoolId:
+        syllabus?.schoolId ||
+        (template.scope === "school" ? template.schoolId : undefined),
+      schoolName:
+        syllabus?.schoolName ||
+        (template.scope === "school" ? template.schoolName : undefined),
       creator: req.user._id,
       creatorId: req.user.userId,
       creatorName: req.user.userName,

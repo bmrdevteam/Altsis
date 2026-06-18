@@ -25,6 +25,7 @@ type TVisibility = {
   personalCalendar: boolean;
   enrollments: boolean;
   mentorings: boolean;
+  activities: boolean;
   memos: boolean;
   [key: string]: boolean;
 };
@@ -43,6 +44,7 @@ const getVisibility = (): TVisibility => {
     personalCalendar: true,
     enrollments: true,
     mentorings: true,
+    activities: true,
     memos: true,
   };
 };
@@ -56,6 +58,7 @@ const systemCategories = [
   { key: "personalCalendar", label: "개인 캘린더" },
   { key: "enrollments", label: "수강 수업" },
   { key: "mentorings", label: "담당 수업" },
+  { key: "activities", label: "교육활동" },
   { key: "memos", label: "메모" },
 ];
 
