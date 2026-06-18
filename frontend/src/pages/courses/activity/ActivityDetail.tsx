@@ -186,7 +186,7 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
 
     loadActivityAssets(activity);
     loadSubmissionData(activity);
-  }, [activity?._id, canManage]);
+  }, [activity?._id, activity?.updatedAt, canManage]);
 
   if (!activity) {
     return (

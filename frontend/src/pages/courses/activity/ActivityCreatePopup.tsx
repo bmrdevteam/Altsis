@@ -89,7 +89,7 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
     setAllowResubmit(
       selectedTemplate.preset?.altFormSchema?.settings?.allowResubmit !== false
     );
-  }, [selectedTemplate?._id]);
+  }, [selectedTemplate]);
 
   const handleDuplicateTemplate = async (template: TActivityTemplate) => {
     try {
