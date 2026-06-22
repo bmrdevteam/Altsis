@@ -4,7 +4,7 @@
   "testEnvironment": "node",
   "resetMocks": true,
   "clearMocks": true,
-  "setupFiles": ["./env.js"],
+  "setupFiles": ["./src/env.js"],
   "moduleNameMapper": {
     "@models/(.*)$": "<rootDir>/models/$1",
     "@controllers/(.*)$": "<rootDir>/controllers/$1"

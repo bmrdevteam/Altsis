@@ -35,7 +35,7 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
   const [title, setTitle] = useState("");
   const [type, setType] = useState<TActivityType>("assignment");
   const [content, setContent] = useState("");
-  const [status, setStatus] = useState<TActivityStatus>("draft");
+  const [status, setStatus] = useState<TActivityStatus>("published");
   const [openAt, setOpenAt] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [allowLateSubmission, setAllowLateSubmission] = useState(false);
@@ -252,6 +252,12 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
                     <option value="published">게시</option>
                     <option value="closed">마감</option>
                   </select>
+                  {status === "draft" && (
+                    <p className={style.hint}>
+                      초안 상태는 학생에게 보이지 않습니다. 게시 후 학생이 제출할 수
+                      있습니다.
+                    </p>
+                  )}
                 </div>
               </div>
 

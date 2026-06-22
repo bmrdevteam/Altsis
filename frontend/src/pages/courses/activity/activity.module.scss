@@ -66,6 +66,13 @@
   color: var(--accent-3);
 }
 
+.hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--accent-3);
+  line-height: 1.4;
+}
+
 .badgeRow {
   display: flex;
   flex-wrap: wrap;

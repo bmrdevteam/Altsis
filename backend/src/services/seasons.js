@@ -28,6 +28,38 @@ export const getSeasonSubRecord = (seasonRecord) => {
   };
 };
 
+const permissionDefault = {
+  teacher: false,
+  student: false,
+  exceptions: [],
+};
+
+const getSeasonPermissionFieldName = (type) => {
+  switch (type) {
+    case "syllabus":
+      return "permissionSyllabusV2";
+    case "enrollment":
+      return "permissionEnrollmentV2";
+    case "activity":
+      return "permissionActivityV2";
+    case "evaluation":
+      return "permissionEvaluationV2";
+    default:
+      return null;
+  }
+};
+
+const ensureSeasonPermissionField = (seasonRecord, type) => {
+  const fieldName = getSeasonPermissionFieldName(type);
+  if (!fieldName) {
+    return null;
+  }
+  if (!seasonRecord[fieldName]) {
+    seasonRecord[fieldName] = { ...permissionDefault, exceptions: [] };
+  }
+  return seasonRecord[fieldName];
+};
+
 /**
  * @param {"syllabus"|"enrollment"|"activity"|"evaluation"} type
  * @param {{permissionSyllabusV2,permissionEnrollmentV2,permissionActivityV2,permissionEvaluationV2}} seasonRecord
@@ -40,22 +72,9 @@ export const addSeasonPermissionException = async (
   registrationRecord,
   isAllowed
 ) => {
-  let permission = undefined;
-  switch (type) {
-    case "syllabus":
-      permission = seasonRecord.permissionSyllabusV2;
-      break;
-    case "enrollment":
-      permission = seasonRecord.permissionEnrollmentV2;
-      break;
-    case "activity":
-      permission = seasonRecord.permissionActivityV2;
-      break;
-    case "evaluation":
-      permission = seasonRecord.permissionEvaluationV2;
-      break;
-    default:
-      return;
+  const permission = ensureSeasonPermissionField(seasonRecord, type);
+  if (!permission) {
+    return;
   }
 
   for (let i = 0; i < permission.exceptions.length; i++) {
@@ -104,17 +123,12 @@ const _hasPermission = (permission, userId, role) => {
  * @param {"teacher"|"student"} role
  */
 export const hasPermission = (type, seasonRecord, userId, role) => {
-  switch (type) {
-    case "syllabus":
-      return _hasPermission(seasonRecord.permissionSyllabusV2, userId, role);
-    case "enrollment":
-      return _hasPermission(seasonRecord.permissionEnrollmentV2, userId, role);
-    case "activity":
-      return _hasPermission(seasonRecord.permissionActivityV2, userId, role);
-    case "evaluation":
-      return _hasPermission(seasonRecord.permissionEvaluationV2, userId, role);
+  const fieldName = getSeasonPermissionFieldName(type);
+  if (!fieldName) {
+    return false;
   }
-  return false;
+  const permission = seasonRecord[fieldName] || permissionDefault;
+  return _hasPermission(permission, userId, role);
 };
 
 /**
@@ -123,50 +137,27 @@ export const hasPermission = (type, seasonRecord, userId, role) => {
  */
 export const removePermissionExcepted = async (seasonRecord, userId) => {
   let isUpdated = false;
-  for (
-    let i = 0;
-    i < seasonRecord.permissionSyllabusV2.exceptions.length;
-    i++
-  ) {
-    if (seasonRecord.permissionSyllabusV2.exceptions[i].userId === userId) {
-      seasonRecord.permissionSyllabusV2.exceptions.splice(i, 1);
-      isUpdated = true;
-      break;
+  const permissionFields = [
+    "permissionSyllabusV2",
+    "permissionEnrollmentV2",
+    "permissionActivityV2",
+    "permissionEvaluationV2",
+  ];
+
+  for (const fieldName of permissionFields) {
+    const permission = seasonRecord[fieldName];
+    if (!permission?.exceptions?.length) {
+      continue;
+    }
+    for (let i = 0; i < permission.exceptions.length; i++) {
+      if (permission.exceptions[i].userId === userId) {
+        permission.exceptions.splice(i, 1);
+        isUpdated = true;
+        break;
+      }
     }
   }
-  for (
-    let i = 0;
-    i < seasonRecord.permissionEnrollmentV2.exceptions.length;
-    i++
-  ) {
-    if (seasonRecord.permissionEnrollmentV2.exceptions[i].userId === userId) {
-      seasonRecord.permissionEnrollmentV2.exceptions.splice(i, 1);
-      isUpdated = true;
-      break;
-    }
-  }
-  for (
-    let i = 0;
-    i < seasonRecord.permissionActivityV2.exceptions.length;
-    i++
-  ) {
-    if (seasonRecord.permissionActivityV2.exceptions[i].userId === userId) {
-      seasonRecord.permissionActivityV2.exceptions.splice(i, 1);
-      isUpdated = true;
-      break;
-    }
-  }
-  for (
-    let i = 0;
-    i < seasonRecord.permissionEvaluationV2.exceptions.length;
-    i++
-  ) {
-    if (seasonRecord.permissionEvaluationV2.exceptions[i].userId === userId) {
-      seasonRecord.permissionEvaluationV2.exceptions.splice(i, 1);
-      isUpdated = true;
-      break;
-    }
-  }
+
   if (isUpdated) {
     await seasonRecord.save();
   }
