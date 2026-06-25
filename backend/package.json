@@ -8,7 +8,7 @@
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "prod": "cross-env NODE_ENV=production node src/index.js",
     "local": "cross-env NODE_ENV=local nodemon src/index.js --ignore **/tests/*",
-    "test": "jest -c ./jest.config.json --detectOpenHandles --forceExit",
+    "test": "cross-env NODE_ENV=test jest -c ./jest.config.json --detectOpenHandles --forceExit",
     "jsdoc": "jsdoc -c jsdoc.config.json"
   },
   "author": "",
