@@ -9,6 +9,7 @@ import {
   Enrollment,
   Registration,
 } from "../models/index.js";
+import { syncBoardChatParticipants } from "./boardChat.js";
 import { PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
 
 const SCOPE_ORDER = {
@@ -347,11 +348,141 @@ const buildBoardSlug = (classTitle = "") => {
   return `alt-${cleaned || `class-${Date.now()}`}`;
 };
 
+const normalizeBoardRoleMap = (board) => {
+  if (board?.altBoardRole instanceof Map) {
+    return board.altBoardRole;
+  }
+  const normalized = new Map(
+    board?.altBoardRole ? Object.entries(board.altBoardRole) : []
+  );
+  board.altBoardRole = normalized;
+  board.markModified("altBoardRole");
+  return normalized;
+};
+
+const syncSyllabusAltBoardMembers = async ({ academyId, syllabus, board }) => {
+  if (!board?.isActive) return board;
+
+  const altBoardRole = normalizeBoardRoleMap(board);
+  const members = Array.isArray(board.members?.users) ? board.members.users : [];
+  const writers = Array.isArray(board.writers?.users) ? board.writers.users : [];
+
+  const memberSet = new Set(
+    members
+      .map((member) => toObjectIdString(member?.user))
+      .filter((memberId) => !!memberId)
+  );
+  const writerSet = new Set(
+    writers
+      .map((writer) => toObjectIdString(writer?.user))
+      .filter((writerId) => !!writerId)
+  );
+
+  let isUpdated = false;
+  const addMemberIfNeeded = ({ user, userId, userName }) => {
+    const userKey = toObjectIdString(user);
+    if (!userKey || memberSet.has(userKey)) return;
+    members.push({ user, userId, userName });
+    memberSet.add(userKey);
+    isUpdated = true;
+  };
+
+  const addWriterIfNeeded = ({ user, userId, userName }) => {
+    const userKey = toObjectIdString(user);
+    if (!userKey || writerSet.has(userKey)) return;
+    writers.push({ user, userId, userName });
+    writerSet.add(userKey);
+    isUpdated = true;
+  };
+
+  if (Array.isArray(syllabus.teachers)) {
+    for (const teacher of syllabus.teachers) {
+      const teacherKey = toObjectIdString(teacher._id);
+      if (!teacherKey) continue;
+      if (altBoardRole.get(teacherKey) !== "admin") {
+        altBoardRole.set(teacherKey, "admin");
+        isUpdated = true;
+      }
+      addMemberIfNeeded({
+        user: teacher._id,
+        userId: teacher.userId,
+        userName: teacher.userName,
+      });
+      addWriterIfNeeded({
+        user: teacher._id,
+        userId: teacher.userId,
+        userName: teacher.userName,
+      });
+    }
+  }
+
+  const syllabusOwnerKey = toObjectIdString(syllabus.user);
+  if (syllabusOwnerKey && altBoardRole.get(syllabusOwnerKey) !== "admin") {
+    altBoardRole.set(syllabusOwnerKey, "admin");
+    isUpdated = true;
+  }
+  addMemberIfNeeded({
+    user: syllabus.user,
+    userId: syllabus.userId,
+    userName: syllabus.userName,
+  });
+  addWriterIfNeeded({
+    user: syllabus.user,
+    userId: syllabus.userId,
+    userName: syllabus.userName,
+  });
+
+  const enrollments = await Enrollment(academyId)
+    .find({ syllabus: syllabus._id })
+    .select("student studentId studentName");
+  for (const enrollment of enrollments) {
+    const studentKey = toObjectIdString(enrollment.student);
+    if (!studentKey) continue;
+    if (!altBoardRole.has(studentKey)) {
+      altBoardRole.set(studentKey, "respondent");
+      isUpdated = true;
+    }
+    addMemberIfNeeded({
+      user: enrollment.student,
+      userId: enrollment.studentId,
+      userName: enrollment.studentName,
+    });
+  }
+
+  if (!isUpdated) return board;
+
+  board.members = {
+    groups: board.members?.groups || {
+      manager: false,
+      teacher: false,
+      student: false,
+    },
+    users: members,
+  };
+  board.writers = {
+    groups: board.writers?.groups || {
+      manager: false,
+      teacher: false,
+      student: false,
+    },
+    users: writers,
+  };
+  board.markModified("members");
+  board.markModified("writers");
+  await board.save();
+  await syncBoardChatParticipants(academyId, board);
+  return board;
+};
+
 export const ensureSyllabusAltBoard = async ({ academyId, syllabus, user }) => {
   if (syllabus.altBoard) {
     const existingBoard = await Board(academyId).findById(syllabus.altBoard);
     if (existingBoard && existingBoard.isActive) {
-      return existingBoard;
+      return syncSyllabusAltBoardMembers({
+        academyId,
+        syllabus,
+        board: existingBoard,
+      });
     }
   }
 
