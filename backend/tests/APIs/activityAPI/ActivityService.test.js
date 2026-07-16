@@ -32,6 +32,19 @@ describe("Activity service template helpers", () => {
     ).toBe(true);
   });
 
+  it("builtin presets always include a visible owner feedback field", () => {
+    for (const type of ["assignment", "quiz", "discussion"]) {
+      const preset = buildDefaultTemplatePreset(type);
+      const feedbackField = preset.altFormSchema.fields.find(
+        (field) => field.permission === "owner" && field.visibleToRespondent
+      );
+
+      expect(feedbackField).toBeDefined();
+      expect(feedbackField.type).toBe("textarea");
+      expect(feedbackField.label).toBe("교사 피드백");
+    }
+  });
+
   it("cloneTemplatePreset deep-clones and can regenerate field ids", () => {
     const original = {
       content: "테스트 안내",
