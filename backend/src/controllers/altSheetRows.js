@@ -141,6 +141,8 @@ export const create = async (req, res) => {
             existing.data.set(fieldId, req.body.data[fieldId]);
           }
         }
+        // 재제출 시 제출 시각을 갱신해야 ActivitySubmission 상태/회차가 동기화된다.
+        existing._submittedAt = new Date();
         existing._updatedAt = new Date();
         existing.markModified("data");
         await existing.save();
