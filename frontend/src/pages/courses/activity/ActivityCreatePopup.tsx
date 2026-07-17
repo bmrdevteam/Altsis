@@ -83,7 +83,8 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
 
   useEffect(() => {
     if (!selectedTemplate) return;
-    setTitle((prev) => (prev ? prev : selectedTemplate.name));
+    // Keep the draft title aligned with the selected template by default.
+    setTitle(selectedTemplate.name);
     setType(selectedTemplate.type);
     setContent(selectedTemplate.preset?.content || "");
     setAllowResubmit(
