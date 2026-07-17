@@ -583,54 +583,59 @@ const CoursePid = (props: Props) => {
                       />
                     </div>
                   ),
-                  ...(isMentor ? {
-                  평가: (
-                    <div style={{ marginTop: "16px" }}>
-                      <div className={style.title} style={{ marginBottom: "12px" }}>평가</div>
-                      <MentoringTable
-                        type="object-array"
-                        data={!isEnrollmentsLoading ? enrollmentList : []}
-                        onBlur={(e: any) => {
-                          for (let item of e) {
-                            if(item.isModified === true){
-                              const evaluation: any = {};
-                              for (let obj of fieldEvaluationList) {
-                                evaluation[obj.text] = item[obj.key];
-                              }
-                              EnrollmentAPI.UEvaluation({
-                                params: {
-                                  _id: item._id,
-                                },
-                                data: { evaluation },
-                              })
-                                .then(() => {
-                                  if (enrollmentListRef.current.length !== 0) {
-                                    enrollmentListRef.current[item.tableRowIndex - 1].isModified =
-                                      false;
-                                    setEnrollmentList([...enrollmentListRef.current]);
+                  ...(isMentor
+                    ? {
+                        평가: (
+                          <div style={{ marginTop: "16px" }}>
+                            <div className={style.title} style={{ marginBottom: "12px" }}>
+                              평가
+                            </div>
+                            <MentoringTable
+                              type="object-array"
+                              data={!isEnrollmentsLoading ? enrollmentList : []}
+                              onBlur={(e: any) => {
+                                for (let item of e) {
+                                  if (item.isModified === true) {
+                                    const evaluation: any = {};
+                                    for (let obj of fieldEvaluationList) {
+                                      evaluation[obj.text] = item[obj.key];
+                                    }
+                                    EnrollmentAPI.UEvaluation({
+                                      params: {
+                                        _id: item._id,
+                                      },
+                                      data: { evaluation },
+                                    })
+                                      .then(() => {
+                                        if (enrollmentListRef.current.length !== 0) {
+                                          enrollmentListRef.current[
+                                            item.tableRowIndex - 1
+                                          ].isModified = false;
+                                          setEnrollmentList([...enrollmentListRef.current]);
+                                        }
+                                      })
+                                      .catch((err: any) => {
+                                        ALERT_ERROR(err);
+                                      });
                                   }
-                                })
-                                .catch((err: any) => {
-                                  ALERT_ERROR(err);
-                                });}
-                              }
-                            }
-                          }
-                        onChange={(e: any) => {
-                          setTimeout(() => {
-                            enrollmentListRef.current = e;
-                          }, 50);
-                        }}
-                        header={evaluationHeader()}
-                      />
-                    </div>
-                  ),
+                                }
+                              }}
+                              onChange={(e: any) => {
+                                setTimeout(() => {
+                                  enrollmentListRef.current = e;
+                                }, 50);
+                              }}
+                              header={evaluationHeader()}
+                            />
+                          </div>
+                        ),
+                      }
+                    : {}),
                   활동: (
                     <div style={{ marginTop: "16px" }}>
                       <ActivityTab syllabusId={syllabus._id} isMentor={isMentor} />
                     </div>
                   ),
-                  } : {}),
                 }}
                 align="flex-start"
               />
