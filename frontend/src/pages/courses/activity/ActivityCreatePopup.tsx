@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -52,7 +52,7 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
     [templates, selectedTemplateId]
   );
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     setIsLoadingTemplates(true);
     try {
       const { templates: loadedTemplates } = await ActivityTemplateAPI.RActivityTemplates(
@@ -75,11 +75,11 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
     } finally {
       setIsLoadingTemplates(false);
     }
-  };
+  }, [ActivityTemplateAPI, syllabusId]);
 
   useEffect(() => {
     loadTemplates();
-  }, [syllabusId]);
+  }, [loadTemplates]);
 
   useEffect(() => {
     if (!selectedTemplate) return;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Loading from "components/loading/Loading";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { TActivity } from "types/activity";
@@ -41,7 +41,7 @@ const ActivityTab = ({ syllabusId, hasPermission, canManage }: Props) => {
     [visibleActivities, selectedActivityId]
   );
 
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     if (!hasPermission) return;
     setIsLoading(true);
     try {
@@ -60,11 +60,11 @@ const ActivityTab = ({ syllabusId, hasPermission, canManage }: Props) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [ActivityAPI, hasPermission, syllabusId]);
 
   useEffect(() => {
     loadActivities();
-  }, [syllabusId, hasPermission]);
+  }, [loadActivities]);
 
   useEffect(() => {
     if (!selectedActivityId && visibleActivities[0]) {

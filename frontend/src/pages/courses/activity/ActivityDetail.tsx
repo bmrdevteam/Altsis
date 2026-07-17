@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -96,69 +96,76 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
     [submissions, selectedSubmissionId]
   );
 
-  const loadSubmissionData = async (targetActivity: TActivity) => {
-    setIsLoadingSubmissions(true);
-    try {
-      if (canManage) {
-        const { submissions: loadedSubmissions } = await ActivityAPI.RActivitySubmissions({
-          params: { _id: targetActivity._id },
-        });
-        setSubmissions(loadedSubmissions);
-        setSelectedSubmissionId((prev) =>
-          prev && loadedSubmissions.some((submission) => submission._id === prev)
-            ? prev
-            : loadedSubmissions[0]?._id || ""
-        );
-        setMySubmission(null);
-      } else {
-        const { submission } = await ActivityAPI.RActivitySubmissions({
-          params: { _id: targetActivity._id },
-          query: { mine: "true" },
-        });
-        setMySubmission(submission || null);
-        setSubmissions([]);
-        setSelectedSubmissionId("");
+  const loadSubmissionData = useCallback(
+    async (targetActivity: TActivity) => {
+      setIsLoadingSubmissions(true);
+      try {
+        if (canManage) {
+          const { submissions: loadedSubmissions } =
+            await ActivityAPI.RActivitySubmissions({
+              params: { _id: targetActivity._id },
+            });
+          setSubmissions(loadedSubmissions);
+          setSelectedSubmissionId((prev) =>
+            prev && loadedSubmissions.some((submission) => submission._id === prev)
+              ? prev
+              : loadedSubmissions[0]?._id || ""
+          );
+          setMySubmission(null);
+        } else {
+          const { submission } = await ActivityAPI.RActivitySubmissions({
+            params: { _id: targetActivity._id },
+            query: { mine: "true" },
+          });
+          setMySubmission(submission || null);
+          setSubmissions([]);
+          setSelectedSubmissionId("");
+        }
+      } catch (error) {
+        ALERT_ERROR(error);
+      } finally {
+        setIsLoadingSubmissions(false);
       }
-    } catch (error) {
-      ALERT_ERROR(error);
-    } finally {
-      setIsLoadingSubmissions(false);
-    }
-  };
+    },
+    [ActivityAPI, canManage]
+  );
 
-  const loadActivityAssets = async (targetActivity: TActivity) => {
-    setIsLoadingDetail(true);
-    try {
-      const tasks: Promise<any>[] = [];
-      if (targetActivity.altBoard) {
-        tasks.push(
-          BoardAPI.RBoard({ params: { _id: targetActivity.altBoard } }).then(
-            ({ board: loadedBoard }) => setBoard(loadedBoard)
-          )
-        );
-      } else {
+  const loadActivityAssets = useCallback(
+    async (targetActivity: TActivity) => {
+      setIsLoadingDetail(true);
+      try {
+        const tasks: Promise<any>[] = [];
+        if (targetActivity.altBoard) {
+          tasks.push(
+            BoardAPI.RBoard({ params: { _id: targetActivity.altBoard } }).then(
+              ({ board: loadedBoard }) => setBoard(loadedBoard)
+            )
+          );
+        } else {
+          setBoard(null);
+        }
+
+        if (targetActivity.altForm) {
+          tasks.push(
+            AltFormAPI.RAltForm({ params: { _id: targetActivity.altForm } }).then(
+              ({ form: loadedForm }) => setForm(loadedForm)
+            )
+          );
+        } else {
+          setForm(null);
+        }
+
+        await Promise.all(tasks);
+      } catch (error) {
+        ALERT_ERROR(error);
         setBoard(null);
-      }
-
-      if (targetActivity.altForm) {
-        tasks.push(
-          AltFormAPI.RAltForm({ params: { _id: targetActivity.altForm } }).then(
-            ({ form: loadedForm }) => setForm(loadedForm)
-          )
-        );
-      } else {
         setForm(null);
+      } finally {
+        setIsLoadingDetail(false);
       }
-
-      await Promise.all(tasks);
-    } catch (error) {
-      ALERT_ERROR(error);
-      setBoard(null);
-      setForm(null);
-    } finally {
-      setIsLoadingDetail(false);
-    }
-  };
+    },
+    [AltFormAPI, BoardAPI]
+  );
 
   useEffect(() => {
     if (!activity) {
@@ -186,7 +193,7 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
 
     loadActivityAssets(activity);
     loadSubmissionData(activity);
-  }, [activity?._id, activity?.updatedAt, canManage]);
+  }, [activity, canManage, loadActivityAssets, loadSubmissionData]);
 
   if (!activity) {
     return (
