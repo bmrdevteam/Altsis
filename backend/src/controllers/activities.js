@@ -151,12 +151,18 @@ export const update = async (req, res) => {
       manageOnly: true,
     });
 
-    const { activity: updatedActivity } = await updateActivityWithAltForm({
-      academyId: req.user.academyId,
-      activity,
-      payload: req.body,
-    });
-    if (req.body.syncSubmissions) {
+    const { activity: updatedActivity, becamePublished } =
+      await updateActivityWithAltForm({
+        academyId: req.user.academyId,
+        activity,
+        payload: req.body,
+      });
+    if (becamePublished) {
+      await initializeActivitySubmissionsForActivity(
+        req.user.academyId,
+        updatedActivity
+      );
+    } else if (req.body.syncSubmissions) {
       await syncActivitySubmissions(req.user.academyId, updatedActivity);
     }
 

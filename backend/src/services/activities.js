@@ -737,6 +737,7 @@ export const updateActivityWithAltForm = async ({
   activity,
   payload = {},
 }) => {
+  const previousStatus = activity.status;
   if ("title" in payload) activity.title = payload.title;
   if ("content" in payload) activity.content = payload.content;
   if ("type" in payload) activity.type = payload.type;
@@ -758,6 +759,11 @@ export const updateActivityWithAltForm = async ({
   if ("attachments" in payload && Array.isArray(payload.attachments)) {
     activity.attachments = payload.attachments;
   }
+  const becamePublished =
+    previousStatus !== "published" && activity.status === "published";
+  if (becamePublished && !activity.openAt) {
+    activity.openAt = new Date();
+  }
 
   let form = null;
   if (activity.altForm) {
@@ -777,7 +783,8 @@ export const updateActivityWithAltForm = async ({
         "openAt" in payload ||
         "dueAt" in payload ||
         "allowResubmit" in payload ||
-        "allowLateSubmission" in payload
+        "allowLateSubmission" in payload ||
+        becamePublished
       ) {
         form.settings = {
           ...(form.settings?.toObject?.() || form.settings || {}),
@@ -789,7 +796,9 @@ export const updateActivityWithAltForm = async ({
             : {}),
           ...(payload.openAt !== undefined
             ? { openAt: toDateValue(payload.openAt) }
-            : {}),
+            : becamePublished
+              ? { openAt: activity.openAt }
+              : {}),
           ...(payload.dueAt !== undefined
             ? { closeAt: toDateValue(payload.dueAt) }
             : {}),
@@ -802,7 +811,7 @@ export const updateActivityWithAltForm = async ({
 
   await activity.save();
   await syncActivityCalendar(academyId, activity);
-  return { activity, form };
+  return { activity, form, becamePublished };
 };
 
 export const softDeleteActivity = async ({ academyId, activity }) => {

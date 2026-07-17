@@ -35,7 +35,7 @@ const ActivityCreatePopup = ({ syllabusId, onClose, onCreated }: Props) => {
   const [title, setTitle] = useState("");
   const [type, setType] = useState<TActivityType>("assignment");
   const [content, setContent] = useState("");
-  const [status, setStatus] = useState<TActivityStatus>("published");
+  const [status, setStatus] = useState<TActivityStatus>("draft");
   const [openAt, setOpenAt] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [allowLateSubmission, setAllowLateSubmission] = useState(false);
