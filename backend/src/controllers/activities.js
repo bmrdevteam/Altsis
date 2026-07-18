@@ -15,7 +15,6 @@ import {
   canReadActivityTemplate,
   createActivityFromTemplate,
   softDeleteActivity,
-  syncActivityCalendar,
   updateActivityWithAltForm,
 } from "../services/activities.js";
 import {
@@ -204,13 +203,20 @@ export const publish = async (req, res) => {
       openAt: publishOpenAt,
       dueAt: activity.dueAt,
     });
-    activity.status = "published";
-    activity.openAt = publishOpenAt;
-    await activity.save();
-    await syncActivityCalendar(req.user.academyId, activity);
-    await initializeActivitySubmissionsForActivity(req.user.academyId, activity);
+    const { activity: updatedActivity } = await updateActivityWithAltForm({
+      academyId: req.user.academyId,
+      activity,
+      payload: {
+        status: "published",
+        openAt: publishOpenAt,
+      },
+    });
+    await initializeActivitySubmissionsForActivity(
+      req.user.academyId,
+      updatedActivity
+    );
 
-    return res.status(200).send({ activity });
+    return res.status(200).send({ activity: updatedActivity });
   } catch (err) {
     return sendError(res, err);
   }
