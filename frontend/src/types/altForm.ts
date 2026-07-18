@@ -69,6 +69,7 @@ export type TQuizSettings = {
 export type TAltFormSettings = {
   openAt?: string;
   closeAt?: string;
+  allowLateSubmission?: boolean;
   allowResubmit: boolean;
   allowMultipleResponses?: boolean;
   quizMode?: boolean;
