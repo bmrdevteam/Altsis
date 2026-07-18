@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Button from "components/button/Button";
 import Loading from "components/loading/Loading";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import AltFormRenderer from "pages/boards/altBoard/AltFormRenderer";
-import AltSheetView from "pages/boards/altBoard/AltSheetView";
 import { TAltForm } from "types/altForm";
 import { TBoard } from "types/board";
 import {
@@ -14,6 +12,8 @@ import {
   TActivitySubmission,
   TActivitySubmissionStatus,
 } from "types/activity";
+import ActivityFormRenderer from "./ActivityFormRenderer";
+import ActivitySheetView from "./ActivitySheetView";
 import style from "./activity.module.scss";
 
 type Props = {
@@ -615,13 +615,11 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
               {showSheetView ? "제출 목록 닫기" : "제출 목록 열기"}
             </Button>
             {showSheetView && (
-              <AltSheetView
-                key={`${activity._id}-${form._id}`}
+              <ActivitySheetView
                 board={board}
-                forms={[form]}
+                form={form}
                 canManage
                 canDeleteAnyRow={false}
-                initialFormId={form._id}
               />
             )}
           </>
@@ -632,7 +630,7 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
                 제출/응답 열기
               </Button>
             ) : (
-              <AltFormRenderer
+              <ActivityFormRenderer
                 board={board}
                 formId={activity.altForm}
                 onBack={() => {
