@@ -4,7 +4,16 @@
  * @see TAltSheetRow in {@link Models.AltSheetRow}
  */
 import { logger } from "../log/logger.js";
-import { AltForm, AltFormDupCounter, AltSheet, AltSheetRow, Board, User } from "../models/index.js";
+import {
+  Activity,
+  AltForm,
+  AltFormDupCounter,
+  AltSheet,
+  AltSheetRow,
+  Board,
+  Syllabus,
+  User,
+} from "../models/index.js";
 import {
   getAltBoardRole,
   canManageForm,
@@ -17,6 +26,7 @@ import {
 } from "../services/altForms.js";
 import { sendAutoNotification, isBoardNotificationEnabled } from "../services/notifications.js";
 import { syncActivitySubmissionsByAltFormRespondent } from "../services/activitySubmissions.js";
+import { assertActivityAccessPermission } from "../services/activities.js";
 import {
   FIELD_REQUIRED,
   PERMISSION_DENIED,
@@ -88,6 +98,47 @@ async function syncActivitySubmissionsAfterRowChange({
   }
 }
 
+async function ensureActivityFormSubmissionAccess({ academyId, form, user }) {
+  const activity = await Activity(academyId).findOne({
+    altForm: form._id,
+    isActive: true,
+  });
+  if (!activity) {
+    return { allowed: true };
+  }
+
+  if (activity.status !== "published") {
+    return {
+      allowed: false,
+      status: 403,
+      message:
+        activity.status === "draft"
+          ? "활동이 아직 게시되지 않았습니다."
+          : "양식이 마감되었습니다.",
+    };
+  }
+
+  const syllabus = await Syllabus(academyId).findById(activity.syllabus);
+  if (!syllabus) {
+    return {
+      allowed: false,
+      status: 404,
+      message: __NOT_FOUND("syllabus"),
+    };
+  }
+
+  try {
+    await assertActivityAccessPermission(academyId, syllabus, user);
+    return { allowed: true };
+  } catch (err) {
+    return {
+      allowed: false,
+      status: err.status || 403,
+      message: err.message || PERMISSION_DENIED,
+    };
+  }
+}
+
 /**
  * @memberof APIs.AltSheetRowAPI
  * @function CAltSheetRow API
@@ -116,6 +167,16 @@ export const create = async (req, res) => {
     const respondCheck = canRespondForm(form, board, req.user);
     if (!respondCheck.allowed) {
       return res.status(403).send({ message: respondCheck.message });
+    }
+    const activityAccessCheck = await ensureActivityFormSubmissionAccess({
+      academyId: req.user.academyId,
+      form,
+      user: req.user,
+    });
+    if (!activityAccessCheck.allowed) {
+      return res.status(activityAccessCheck.status || 403).send({
+        message: activityAccessCheck.message || PERMISSION_DENIED,
+      });
     }
 
     // 기존 응답 확인 (복수 응답 허용 시 건너뜀)
