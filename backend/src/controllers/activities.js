@@ -10,6 +10,7 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import {
+  assertActivityScheduleOrThrow,
   assertActivityAccessPermission,
   canReadActivityTemplate,
   createActivityFromTemplate,
@@ -198,10 +199,13 @@ export const publish = async (req, res) => {
       manageOnly: true,
     });
 
+    const publishOpenAt = activity.openAt || new Date();
+    assertActivityScheduleOrThrow({
+      openAt: publishOpenAt,
+      dueAt: activity.dueAt,
+    });
     activity.status = "published";
-    if (!activity.openAt) {
-      activity.openAt = new Date();
-    }
+    activity.openAt = publishOpenAt;
     await activity.save();
     await syncActivityCalendar(req.user.academyId, activity);
     await initializeActivitySubmissionsForActivity(req.user.academyId, activity);

@@ -640,10 +640,30 @@ const ensureFeedbackField = (fields) => {
 };
 
 const toDateValue = (value) => {
-  if (!value) return undefined;
-  const dateValue = new Date(value);
+  if (value === undefined || value === null || value === "") return undefined;
+  const dateValue = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(dateValue.getTime())) return undefined;
   return dateValue;
+};
+
+export const parseActivityDateOrThrow = (value, fieldName) => {
+  const dateValue = toDateValue(value);
+  if (
+    dateValue === undefined &&
+    value !== undefined &&
+    value !== null &&
+    value !== ""
+  ) {
+    throw createHttpError(400, FIELD_INVALID(fieldName));
+  }
+  return dateValue;
+};
+
+export const assertActivityScheduleOrThrow = ({ openAt, dueAt } = {}) => {
+  if (!openAt || !dueAt) return;
+  if (new Date(dueAt).getTime() < new Date(openAt).getTime()) {
+    throw createHttpError(400, FIELD_INVALID("dueAt"));
+  }
 };
 
 const buildActivityFormPayload = (templatePreset, payload = {}) => {
@@ -667,8 +687,15 @@ const buildActivityFormPayload = (templatePreset, payload = {}) => {
         ? !!payload.allowLateSubmission
         : !!clonedPreset.altFormSchema.settings?.allowLateSubmission,
   };
-  const openAt = toDateValue(payload.openAt || settings.openAt);
-  const dueAt = toDateValue(payload.dueAt || settings.closeAt);
+  const openAt = parseActivityDateOrThrow(
+    payload.openAt ?? settings.openAt,
+    "openAt"
+  );
+  const dueAt = parseActivityDateOrThrow(
+    payload.dueAt ?? settings.closeAt,
+    "dueAt"
+  );
+  assertActivityScheduleOrThrow({ openAt, dueAt });
   settings.openAt = openAt;
   settings.closeAt = dueAt;
 
@@ -712,6 +739,10 @@ export const createActivityFromTemplate = async ({
   const activityStatus = resolveActivityStatusOrThrow(payload.status, "draft");
   const resolvedOpenAt =
     openAt || (activityStatus === "published" ? new Date() : undefined);
+  assertActivityScheduleOrThrow({
+    openAt: resolvedOpenAt,
+    dueAt,
+  });
   const formSettings = {
     ...settings,
     ...(resolvedOpenAt ? { openAt: resolvedOpenAt } : {}),
@@ -793,8 +824,12 @@ export const updateActivityWithAltForm = async ({
   if ("status" in payload) {
     activity.status = resolveActivityStatusOrThrow(payload.status, activity.status);
   }
-  if ("openAt" in payload) activity.openAt = toDateValue(payload.openAt);
-  if ("dueAt" in payload) activity.dueAt = toDateValue(payload.dueAt);
+  if ("openAt" in payload) {
+    activity.openAt = parseActivityDateOrThrow(payload.openAt, "openAt");
+  }
+  if ("dueAt" in payload) {
+    activity.dueAt = parseActivityDateOrThrow(payload.dueAt, "dueAt");
+  }
   if ("allowLateSubmission" in payload) {
     activity.allowLateSubmission = !!payload.allowLateSubmission;
   }
@@ -818,6 +853,10 @@ export const updateActivityWithAltForm = async ({
   if (becamePublished && !activity.openAt) {
     activity.openAt = new Date();
   }
+  assertActivityScheduleOrThrow({
+    openAt: activity.openAt,
+    dueAt: activity.dueAt,
+  });
 
   let form = null;
   if (activity.altForm) {
@@ -849,12 +888,12 @@ export const updateActivityWithAltForm = async ({
             ? { allowLateSubmission: payload.allowLateSubmission }
             : {}),
           ...(payload.openAt !== undefined
-            ? { openAt: toDateValue(payload.openAt) }
+            ? { openAt: parseActivityDateOrThrow(payload.openAt, "openAt") }
             : becamePublished
               ? { openAt: activity.openAt }
               : {}),
           ...(payload.dueAt !== undefined
-            ? { closeAt: toDateValue(payload.dueAt) }
+            ? { closeAt: parseActivityDateOrThrow(payload.dueAt, "dueAt") }
             : {}),
         };
         form.markModified("settings");

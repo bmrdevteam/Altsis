@@ -3,10 +3,12 @@ import {
   ACTIVITY_STATUS_VALUES,
   ACTIVITY_TYPE_VALUES,
   ACTIVITY_BUILTIN_TEMPLATE_DEFINITIONS,
+  assertActivityScheduleOrThrow,
   buildDefaultTemplatePreset,
   canEditActivityTemplate,
   canReadActivityTemplate,
   cloneTemplatePreset,
+  parseActivityDateOrThrow,
   resolveActivityEvaluationModeOrThrow,
   resolveActivityStatusOrThrow,
   resolveActivityTypeOrThrow,
@@ -199,5 +201,39 @@ describe("Activity service enum validation", () => {
     expect(() =>
       resolveActivityEvaluationModeOrThrow("invalid", "feedback")
     ).toThrow("EVALUATIONMODE_INVALID");
+  });
+});
+
+describe("Activity service schedule validation", () => {
+  it("parses valid date values and allows empty clear values", () => {
+    const parsed = parseActivityDateOrThrow("2026-07-18T12:00:00.000Z", "openAt");
+    expect(parsed).toBeInstanceOf(Date);
+    expect(parseActivityDateOrThrow("", "openAt")).toBeUndefined();
+    expect(parseActivityDateOrThrow(undefined, "openAt")).toBeUndefined();
+  });
+
+  it("throws FIELD_INVALID when date values are malformed", () => {
+    expect(() => parseActivityDateOrThrow("not-a-date", "openAt")).toThrow(
+      "OPENAT_INVALID"
+    );
+    expect(() => parseActivityDateOrThrow("2026-13-40", "dueAt")).toThrow(
+      "DUEAT_INVALID"
+    );
+  });
+
+  it("throws FIELD_INVALID when dueAt is earlier than openAt", () => {
+    expect(() =>
+      assertActivityScheduleOrThrow({
+        openAt: new Date("2026-07-18T12:00:00.000Z"),
+        dueAt: new Date("2026-07-18T11:59:59.000Z"),
+      })
+    ).toThrow("DUEAT_INVALID");
+
+    expect(() =>
+      assertActivityScheduleOrThrow({
+        openAt: new Date("2026-07-18T12:00:00.000Z"),
+        dueAt: new Date("2026-07-18T12:00:00.000Z"),
+      })
+    ).not.toThrow();
   });
 });
