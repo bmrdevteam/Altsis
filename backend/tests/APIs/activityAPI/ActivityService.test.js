@@ -1,9 +1,15 @@
 import {
+  ACTIVITY_EVALUATION_MODE_VALUES,
+  ACTIVITY_STATUS_VALUES,
+  ACTIVITY_TYPE_VALUES,
   ACTIVITY_BUILTIN_TEMPLATE_DEFINITIONS,
   buildDefaultTemplatePreset,
   canEditActivityTemplate,
   canReadActivityTemplate,
   cloneTemplatePreset,
+  resolveActivityEvaluationModeOrThrow,
+  resolveActivityStatusOrThrow,
+  resolveActivityTypeOrThrow,
 } from "../../../src/services/activities.js";
 
 describe("Activity service template helpers", () => {
@@ -154,5 +160,44 @@ describe("Activity service template permissions", () => {
     expect(
       canEditActivityTemplate({ ...editablePersonalTemplate, isActive: false }, baseUser)
     ).toBe(false);
+  });
+});
+
+describe("Activity service enum validation", () => {
+  it("supports expected activity enum sets", () => {
+    expect(ACTIVITY_TYPE_VALUES).toEqual(["assignment", "quiz", "discussion"]);
+    expect(ACTIVITY_STATUS_VALUES).toEqual(["draft", "published", "closed"]);
+    expect(ACTIVITY_EVALUATION_MODE_VALUES).toEqual([
+      "none",
+      "feedback",
+      "formal",
+    ]);
+  });
+
+  it("resolves valid enum values and falls back when value is omitted", () => {
+    expect(resolveActivityTypeOrThrow("quiz", "assignment")).toBe("quiz");
+    expect(resolveActivityTypeOrThrow(undefined, "assignment")).toBe("assignment");
+
+    expect(resolveActivityStatusOrThrow("published", "draft")).toBe("published");
+    expect(resolveActivityStatusOrThrow("", "draft")).toBe("draft");
+
+    expect(resolveActivityEvaluationModeOrThrow("formal", "feedback")).toBe(
+      "formal"
+    );
+    expect(resolveActivityEvaluationModeOrThrow(undefined, "feedback")).toBe(
+      "feedback"
+    );
+  });
+
+  it("throws a 400-style error on invalid enum values", () => {
+    expect(() => resolveActivityTypeOrThrow("invalid", "assignment")).toThrow(
+      "TYPE_INVALID"
+    );
+    expect(() => resolveActivityStatusOrThrow("invalid", "draft")).toThrow(
+      "STATUS_INVALID"
+    );
+    expect(() =>
+      resolveActivityEvaluationModeOrThrow("invalid", "feedback")
+    ).toThrow("EVALUATIONMODE_INVALID");
   });
 });
