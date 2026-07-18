@@ -10,7 +10,11 @@ import {
   Registration,
 } from "../models/index.js";
 import { syncBoardChatParticipants } from "./boardChat.js";
-import { PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
+import { FIELD_INVALID, PERMISSION_DENIED, __NOT_FOUND } from "../messages/index.js";
+
+export const ACTIVITY_TYPE_VALUES = ["assignment", "quiz", "discussion"];
+export const ACTIVITY_STATUS_VALUES = ["draft", "published", "closed"];
+export const ACTIVITY_EVALUATION_MODE_VALUES = ["none", "feedback", "formal"];
 
 const SCOPE_ORDER = {
   builtin: 0,
@@ -22,6 +26,46 @@ const createHttpError = (status, message) => {
   const err = new Error(message);
   err.status = status;
   return err;
+};
+
+const resolveEnumValueOrThrow = ({ value, fallback, allowedValues, fieldName }) => {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+  if (allowedValues.includes(value)) {
+    return value;
+  }
+  throw createHttpError(400, FIELD_INVALID(fieldName));
+};
+
+export const resolveActivityTypeOrThrow = (value, fallback = "assignment") => {
+  return resolveEnumValueOrThrow({
+    value,
+    fallback,
+    allowedValues: ACTIVITY_TYPE_VALUES,
+    fieldName: "type",
+  });
+};
+
+export const resolveActivityStatusOrThrow = (value, fallback = "draft") => {
+  return resolveEnumValueOrThrow({
+    value,
+    fallback,
+    allowedValues: ACTIVITY_STATUS_VALUES,
+    fieldName: "status",
+  });
+};
+
+export const resolveActivityEvaluationModeOrThrow = (
+  value,
+  fallback = "feedback"
+) => {
+  return resolveEnumValueOrThrow({
+    value,
+    fallback,
+    allowedValues: ACTIVITY_EVALUATION_MODE_VALUES,
+    fieldName: "evaluationMode",
+  });
 };
 
 const toObjectIdString = (value) =>
@@ -655,7 +699,7 @@ export const createActivityFromTemplate = async ({
   payload = {},
 }) => {
   const board = await ensureSyllabusAltBoard({ academyId, syllabus, user });
-  const type = payload.type || template?.type || "assignment";
+  const type = resolveActivityTypeOrThrow(payload.type, template?.type || "assignment");
   const preset = template?.preset || buildDefaultTemplatePreset(type);
   const {
     content,
@@ -665,7 +709,7 @@ export const createActivityFromTemplate = async ({
     dueAt,
     openAt,
   } = buildActivityFormPayload(preset, payload);
-  const activityStatus = payload.status || "draft";
+  const activityStatus = resolveActivityStatusOrThrow(payload.status, "draft");
   const resolvedOpenAt =
     openAt || (activityStatus === "published" ? new Date() : undefined);
   const formSettings = {
@@ -719,7 +763,10 @@ export const createActivityFromTemplate = async ({
     dueAt,
     allowLateSubmission: !!settings.allowLateSubmission,
     allowResubmit: !!settings.allowResubmit,
-    evaluationMode: payload.evaluationMode || "feedback",
+    evaluationMode: resolveActivityEvaluationModeOrThrow(
+      payload.evaluationMode,
+      "feedback"
+    ),
     rubric: Array.isArray(payload.rubric) ? payload.rubric : preset.rubric || [],
     sourceTemplate: template?._id,
     order,
@@ -740,8 +787,12 @@ export const updateActivityWithAltForm = async ({
   const previousStatus = activity.status;
   if ("title" in payload) activity.title = payload.title;
   if ("content" in payload) activity.content = payload.content;
-  if ("type" in payload) activity.type = payload.type;
-  if ("status" in payload) activity.status = payload.status;
+  if ("type" in payload) {
+    activity.type = resolveActivityTypeOrThrow(payload.type, activity.type);
+  }
+  if ("status" in payload) {
+    activity.status = resolveActivityStatusOrThrow(payload.status, activity.status);
+  }
   if ("openAt" in payload) activity.openAt = toDateValue(payload.openAt);
   if ("dueAt" in payload) activity.dueAt = toDateValue(payload.dueAt);
   if ("allowLateSubmission" in payload) {
@@ -751,7 +802,10 @@ export const updateActivityWithAltForm = async ({
     activity.allowResubmit = !!payload.allowResubmit;
   }
   if ("evaluationMode" in payload) {
-    activity.evaluationMode = payload.evaluationMode;
+    activity.evaluationMode = resolveActivityEvaluationModeOrThrow(
+      payload.evaluationMode,
+      activity.evaluationMode
+    );
   }
   if ("rubric" in payload && Array.isArray(payload.rubric)) {
     activity.rubric = payload.rubric;
