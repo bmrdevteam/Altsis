@@ -39,6 +39,10 @@ export const create = async (req, res) => {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
     }
+    if (typeof req.body.title !== "string" || !req.body.title.trim()) {
+      return res.status(400).send({ message: FIELD_REQUIRED("title") });
+    }
+    req.body.title = req.body.title.trim();
 
     const syllabus = await Syllabus(req.user.academyId).findById(req.body.syllabus);
     if (!syllabus) {
@@ -150,6 +154,12 @@ export const update = async (req, res) => {
     await assertActivityAccessPermission(req.user.academyId, syllabus, req.user, {
       manageOnly: true,
     });
+    if ("title" in req.body) {
+      if (typeof req.body.title !== "string" || !req.body.title.trim()) {
+        return res.status(400).send({ message: FIELD_REQUIRED("title") });
+      }
+      req.body.title = req.body.title.trim();
+    }
 
     const { activity: updatedActivity, becamePublished } =
       await updateActivityWithAltForm({

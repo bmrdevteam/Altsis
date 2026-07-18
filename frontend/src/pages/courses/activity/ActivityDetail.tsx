@@ -207,6 +207,11 @@ const ActivityDetail = ({ activity, canManage, onUpdated, onDeleted }: Props) =>
   }
 
   const handleUpdateActivity = async () => {
+    if (!title.trim()) {
+      alert("활동 제목을 입력해주세요.");
+      return;
+    }
+
     setIsUpdating(true);
     try {
       const { activity: updatedActivity } = await ActivityAPI.UActivity({

@@ -44,6 +44,10 @@ export const create = async (req, res) => {
         return res.status(400).send({ message: FIELD_REQUIRED(field) });
       }
     }
+    if (typeof req.body.name !== "string" || !req.body.name.trim()) {
+      return res.status(400).send({ message: FIELD_REQUIRED("name") });
+    }
+    req.body.name = req.body.name.trim();
 
     if (!["assignment", "quiz", "discussion"].includes(req.body.type)) {
       return res.status(400).send({ message: FIELD_INVALID("type") });
@@ -139,7 +143,12 @@ export const update = async (req, res) => {
       }
       template.type = req.body.type;
     }
-    if ("name" in req.body) template.name = req.body.name;
+    if ("name" in req.body) {
+      if (typeof req.body.name !== "string" || !req.body.name.trim()) {
+        return res.status(400).send({ message: FIELD_REQUIRED("name") });
+      }
+      template.name = req.body.name.trim();
+    }
     if ("preset" in req.body) {
       template.preset = cloneTemplatePreset(req.body.preset, false);
       template.markModified("preset");
