@@ -243,7 +243,9 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   );
 
   const isClosed =
-    form?.settings.closeAt && new Date(form.settings.closeAt) < new Date();
+    form?.settings.closeAt &&
+    new Date(form.settings.closeAt) < new Date() &&
+    !form?.settings.allowLateSubmission;
   const isNotOpen =
     form?.settings.openAt && new Date(form.settings.openAt) > new Date();
 
