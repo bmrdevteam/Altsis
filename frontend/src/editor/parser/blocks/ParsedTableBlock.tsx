@@ -3,6 +3,7 @@ import _, { filter, forEach, isArray, isNumber, isObject } from "lodash";
 import React, { useState } from "react";
 import style from "../../editor.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
+import { matchesDataFilter } from "../../functions/dataConnFilters";
 
 type Props = {
   blockData: any;
@@ -73,28 +74,12 @@ const ParsedTableBlock = (props: Props) => {
     // props로 전달된 dataCellFilter가 비어있지 않은 경우에만 아래 코드 블록을 실행합니다.
     if (props.blockData.data.dataCellFilter?.length > 0) {
       // dataCellFilter 배열의 각 filter에 대해 반복합니다.
-      _.forEach(props.blockData.data.dataCellFilter, (filter: any, iasd: number) => {
-        // 조건에 따라 filter.cell 값을 cellName 배열에 추가합니다.
-        if (
-          filter.operator === "===" &&
-          item?.[filter.by] &&
-          String(item?.[filter.by]) !== String(filter.value)
-        ) {
-          cellName = [...cellName, filter.cell];
-        }
-        if (
-          filter.operator === "!==" &&
-          item?.[filter.by] &&
-          String(item?.[filter.by]) === String(filter.value)
-        ) {
-          cellName = [...cellName, filter.cell];
-        }
-        if (
-          filter.operator === "!==" &&
-          !filter.value &&
-          !String(item?.[filter.by]) === !String(filter.value)
-        ) {
-          cellName = [...cellName, filter.cell];
+      _.forEach(props.blockData.data.dataCellFilter, (filter: any) => {
+        // 조건에 맞지 않으면 해당 cell 값을 비움 (기존: 실패 시 cell 수집)
+        if (!matchesDataFilter(item, filter)) {
+          if (filter.cell) {
+            cellName = [...cellName, filter.cell];
+          }
         }
       })
       // cellName 배열에 저장된 값들에 대해 반복합니다.
@@ -108,71 +93,21 @@ const ParsedTableBlock = (props: Props) => {
   });
   
   let filteredRepeat: any[] = repeat?.filter((v: any, i: number) => {
-      // 0을 제외한 falsy 값이 있는지 확인하는 변수
-    const normalizeValue = (value : any) => {
-      if (value === 0) return "0";  // 0은 유지
-      if (!value) return "";        // 나머지 falsy 값은 빈 문자열로 변환
-      return String(value);         // 그 외는 문자열 변환
-    };
-     // AND 필터
+     // AND 필터: 모든 조건이 맞아야 통과
     if (props.blockData.data.dataFilter?.length > 0) {
-      let boolCount: number = 0;
-      props.blockData.data.dataFilter?.map((filter: any, iasd: number) => {
-        if (
-          filter.operator === "===" &&
-          v?.[filter.by] &&
-          normalizeValue(v?.[filter.by]) !== normalizeValue(filter.value)
-        ) {
-          boolCount += 1;
-        }
-        if (
-          filter.operator === "!==" &&
-          v?.[filter.by] &&
-          normalizeValue(v?.[filter.by]) === normalizeValue(filter.value)
-        ) {
-          boolCount += 1;
-        }
-        if (
-          filter.operator === "!==" &&
-          !filter.value &&
-          !normalizeValue(v?.[filter.by]) === !normalizeValue(filter.value)
-        ) {
-          boolCount += 1;
-        }
-      });
-      if (boolCount > 0) {
+      const failed = props.blockData.data.dataFilter.some(
+        (filter: any) => !matchesDataFilter(v, filter)
+      );
+      if (failed) {
         return false;
       }
     }
-    // OR 필터
+    // OR 필터: 하나라도 맞으면 통과 (전부 실패 시 제외)
     if (props.blockData.data.dataOrFilter?.length > 0) {
-      let boolCount: number = 0;
-      let orCount: number = 0;
-      props.blockData.data.dataOrFilter?.map((filter: any, iasd: number) => {
-        if (
-          filter.operator === "===" &&
-          v?.[filter.by] &&
-          normalizeValue(v?.[filter.by]) !== normalizeValue(filter.value)
-        ) {
-          boolCount += 1;
-        }
-        if (
-          filter.operator === "!==" &&
-          v?.[filter.by] &&
-          normalizeValue(v?.[filter.by]) === normalizeValue(filter.value)
-        ) {
-          boolCount += 1;
-        }
-        if (
-          filter.operator === "!==" &&
-          !filter.value &&
-          !normalizeValue(v?.[filter.by]) === !normalizeValue(filter.value)
-        ) {
-          boolCount += 1;
-        }
-        orCount += 1;
-      });
-      if (boolCount === orCount) {
+      const anyMatch = props.blockData.data.dataOrFilter.some((filter: any) =>
+        matchesDataFilter(v, filter)
+      );
+      if (!anyMatch) {
         return false;
       }
     }

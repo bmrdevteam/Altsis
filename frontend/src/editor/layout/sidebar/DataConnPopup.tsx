@@ -3,8 +3,14 @@ import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Tree, { TreeItem } from "components/tree/Tree";
 import { useEditorCompat } from "editor/functions/useEditorCompat";
+import {
+  FILTER_OPERATOR_OPTIONS,
+  getFilterFieldOptions,
+  operatorNeedsValue,
+  withCurrentFieldOption,
+} from "editor/functions/dataConnFilters";
 import useEditorStore from "editor/store/useEditorStore";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import style from "../../editor.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
@@ -38,6 +44,7 @@ const DataConnPopup = (props: Props) => {
   const textareaRef = useRef<HTMLDivElement>(null);
 
   const repeat = useRef<any>({ by: "", index: 0, max: "" });
+  const [repeatBy, setRepeatBy] = useState("");
   const [filters, setFilters] = useState<any[]>([]);
   const filtersRef = useRef<any[]>([]);
   const [orFilters, setOrFilters] = useState<any[]>([]);
@@ -49,6 +56,12 @@ const DataConnPopup = (props: Props) => {
   const [formEpoch, setFormEpoch] = useState(0);
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
+
+  const filterFieldOptions = useMemo(
+    () =>
+      getFilterFieldOptions(repeatBy, schools, archiveData, evaluationData),
+    [repeatBy, schools, archiveData, evaluationData]
+  );
 
   const syncFromCurrentBlock = useCallback(() => {
     const block = useEditorStore.getState().getSelectedBlock() as any;
@@ -78,25 +91,69 @@ const DataConnPopup = (props: Props) => {
     setCellFilters(nextCellFilters);
     setOrders(nextOrders);
 
+    const nextBy = block?.data?.dataRepeat?.by ?? "";
     repeat.current = {
-      by: block?.data?.dataRepeat?.by ?? "",
+      by: nextBy,
       index,
       max: block?.data?.dataRepeat?.max ?? "",
     };
+    setRepeatBy(nextBy);
     setFormEpoch((v) => v + 1);
   }, []);
 
-  const clearFilterOptions = () => {
-    filtersRef.current = [];
-    orFiltersRef.current = [];
-    cellFiltersRef.current = [];
-    ordersRef.current = [];
-    setFilters([]);
-    setOrFilters([]);
-    setCellFilters([]);
-    setOrders([]);
-    setFormEpoch((v) => v + 1);
+  const updateFilterInRef = (
+    listRef: React.MutableRefObject<any[]>,
+    key: string,
+    patch: Record<string, any>
+  ) => {
+    const target = listRef.current.find((v) => String(v.key) === String(key));
+    if (target) Object.assign(target, patch);
   };
+
+  const renderFieldSelect = (
+    current: string,
+    onChange: (next: string) => void,
+    emptyLabel = "필드 선택"
+  ) => {
+    const options = withCurrentFieldOption(filterFieldOptions, current);
+    return (
+      <select
+        value={current || ""}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={!repeatBy}
+        title={
+          repeatBy
+            ? "테이블 반복 설정의 필드"
+            : "먼저 테이블 반복 설정을 선택하세요"
+        }
+      >
+        <option value="">
+          {repeatBy ? emptyLabel : "반복 설정 필요"}
+        </option>
+        {options.map((label) => (
+          <option key={label} value={label}>
+            {label}
+          </option>
+        ))}
+      </select>
+    );
+  };
+
+  const renderOperatorSelect = (
+    current: string,
+    onChange: (next: string) => void
+  ) => (
+    <select
+      value={current || "==="}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {FILTER_OPERATOR_OPTIONS.map((op) => (
+        <option key={op.value} value={op.value}>
+          {op.label}
+        </option>
+      ))}
+    </select>
+  );
 
   const closePopup = useCallback(() => {
     setTableBlockMenuPopup(false);
@@ -653,8 +710,8 @@ const DataConnPopup = (props: Props) => {
                           const nextBy = e.target.value;
                           if (nextBy === repeat.current.by) return;
                           repeat.current.by = nextBy;
-                          // 데이터 소스가 바뀌면 이전 소스용 필터/정렬은 무효화
-                          clearFilterOptions();
+                          // 필드 드롭다운만 새 소스에 맞게 갱신. 기존 필터/정렬은 유지.
+                          setRepeatBy(nextBy);
                         }}
                       >
                         <option key={"none"} value="">
@@ -736,40 +793,37 @@ const DataConnPopup = (props: Props) => {
                       <label>
                         AND 필터
                       </label>
-                      {filters.map((value, index) => {
+                      {filters.map((value) => {
                         return (
                           <div className={style.filter} key={value.key}>
-                            <input
-                              type="text"
-                              placeholder="필드"
-                              defaultValue={value.by}
-                              onChange={(e) => {
-                                filtersRef.current.find(
-                                  (v) => v.key === value.key
-                                ).by = e.target.value;
-                              }}
-                            />
-                            <select
-                              defaultValue={value.operator}
-                              onChange={(e) => {
-                                filtersRef.current.find(
-                                  (v) => v.key === value.key
-                                ).operator = e.target.value;
-                              }}
-                            >
-                              <option value="===">==</option>
-                              <option value="!==">!=</option>
-                            </select>
-                            <input
-                              type="text"
-                              placeholder="값"
-                              onChange={(e) => {
-                                filtersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).value = e.target.value;
-                              }}
-                              defaultValue={value.value}
-                            />
+                            {renderFieldSelect(value.by, (next) => {
+                              updateFilterInRef(filtersRef, value.key, {
+                                by: next,
+                              });
+                              setFilters(filtersRef.current.slice());
+                            })}
+                            {renderOperatorSelect(value.operator, (next) => {
+                              const patch: Record<string, any> = {
+                                operator: next,
+                              };
+                              if (!operatorNeedsValue(next)) {
+                                patch.value = "";
+                              }
+                              updateFilterInRef(filtersRef, value.key, patch);
+                              setFilters(filtersRef.current.slice());
+                            })}
+                            {operatorNeedsValue(value.operator) && (
+                              <input
+                                type="text"
+                                placeholder="값"
+                                defaultValue={value.value}
+                                onChange={(e) => {
+                                  updateFilterInRef(filtersRef, value.key, {
+                                    value: e.target.value,
+                                  });
+                                }}
+                              />
+                            )}
                             <span
                               className={style.icon}
                               onClick={() => {
@@ -806,46 +860,44 @@ const DataConnPopup = (props: Props) => {
                       <label>
                         OR 필터
                       </label>
-                      {orFilters.map((value, index) => {
+                      {orFilters.map((value) => {
                         return (
                           <div className={style.orfilter} key={value.key}>
-                            <input
-                              type="text"
-                              placeholder="필드"
-                              defaultValue={value.by}
-                              onChange={(e) => {
-                                orFiltersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).by = e.target.value;
-                              }}
-                            />
-                            <select
-                              defaultValue={value.operator}
-                              onChange={(e) => {
-                                orFiltersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).operator = e.target.value;
-                              }}
-                            >
-                              <option value="===">==</option>
-                              <option value="!==">!=</option>
-                            </select>
-                            <input
-                              type="text"
-                              placeholder="값"
-                              onChange={(e) => {
-                                orFiltersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).value = e.target.value;
-                              }}
-                              defaultValue={value.value}
-                            />
+                            {renderFieldSelect(value.by, (next) => {
+                              updateFilterInRef(orFiltersRef, value.key, {
+                                by: next,
+                              });
+                              setOrFilters(orFiltersRef.current.slice());
+                            })}
+                            {renderOperatorSelect(value.operator, (next) => {
+                              const patch: Record<string, any> = {
+                                operator: next,
+                              };
+                              if (!operatorNeedsValue(next)) {
+                                patch.value = "";
+                              }
+                              updateFilterInRef(orFiltersRef, value.key, patch);
+                              setOrFilters(orFiltersRef.current.slice());
+                            })}
+                            {operatorNeedsValue(value.operator) && (
+                              <input
+                                type="text"
+                                placeholder="값"
+                                defaultValue={value.value}
+                                onChange={(e) => {
+                                  updateFilterInRef(orFiltersRef, value.key, {
+                                    value: e.target.value,
+                                  });
+                                }}
+                              />
+                            )}
                             <span
                               className={style.icon}
                               onClick={() => {
-                                orFiltersRef.current = orFiltersRef.current.filter(
-                                  (v) => String(v.key) !== String(value.key)
-                                );
+                                orFiltersRef.current =
+                                  orFiltersRef.current.filter(
+                                    (v) => String(v.key) !== String(value.key)
+                                  );
                                 setOrFilters(orFiltersRef.current.slice());
                               }}
                             >
@@ -876,56 +928,58 @@ const DataConnPopup = (props: Props) => {
                       <label>
                         CELL 필터
                       </label>
-                      {cellFilters.map((value, index) => {
+                      {cellFilters.map((value) => {
                         return (
                           <div className={style.cellfilter} key={value.key}>
-                            <input
-                              type="text"
-                              placeholder="필드"
-                              defaultValue={value.by}
-                              onChange={(e) => {
-                                cellFiltersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).by = e.target.value;
-                              }}
-                            />
-                            <select
-                              defaultValue={value.operator}
-                              onChange={(e) => {
-                                cellFiltersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).operator = e.target.value;
-                              }}
-                            >
-                              <option value="===">==</option>
-                              <option value="!==">!=</option>
-                            </select>
-                            <input
-                              type="text"
-                              placeholder="값"
-                              onChange={(e) => {
-                                cellFiltersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).value = e.target.value;
-                              }}
-                              defaultValue={value.value}
-                            />
-                            <input
-                              type="text"
-                              placeholder="값"
-                              onChange={(e) => {
-                                cellFiltersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).cell = e.target.value;
-                              }}
-                              defaultValue={value.cell}
-                            />
+                            {renderFieldSelect(value.by, (next) => {
+                              updateFilterInRef(cellFiltersRef, value.key, {
+                                by: next,
+                              });
+                              setCellFilters(cellFiltersRef.current.slice());
+                            })}
+                            {renderOperatorSelect(value.operator, (next) => {
+                              const patch: Record<string, any> = {
+                                operator: next,
+                              };
+                              if (!operatorNeedsValue(next)) {
+                                patch.value = "";
+                              }
+                              updateFilterInRef(
+                                cellFiltersRef,
+                                value.key,
+                                patch
+                              );
+                              setCellFilters(cellFiltersRef.current.slice());
+                            })}
+                            {operatorNeedsValue(value.operator) && (
+                              <input
+                                type="text"
+                                placeholder="값"
+                                defaultValue={value.value}
+                                onChange={(e) => {
+                                  updateFilterInRef(
+                                    cellFiltersRef,
+                                    value.key,
+                                    {
+                                      value: e.target.value,
+                                    }
+                                  );
+                                }}
+                              />
+                            )}
+                            {renderFieldSelect(value.cell || "", (next) => {
+                              updateFilterInRef(cellFiltersRef, value.key, {
+                                cell: next,
+                              });
+                              setCellFilters(cellFiltersRef.current.slice());
+                            }, "비울 필드")}
                             <span
                               className={style.icon}
                               onClick={() => {
-                                cellFiltersRef.current = cellFiltersRef.current.filter(
-                                  (v) => String(v.key) !== String(value.key)
-                                );
+                                cellFiltersRef.current =
+                                  cellFiltersRef.current.filter(
+                                    (v) => String(v.key) !== String(value.key)
+                                  );
                                 setCellFilters(cellFiltersRef.current.slice());
                               }}
                             >
@@ -957,35 +1011,31 @@ const DataConnPopup = (props: Props) => {
                         정렬
                       </label>
                     <div className={style.orders}>
-                      {orders.map((value, index) => {
+                      {orders.map((value) => {
                         return (
                           <div className={style.order} key={value.key}>
-                            <input
-                              type="text"
-                              placeholder="필드"
-                              defaultValue={value.by}
-                              onChange={(e) => {
-                                ordersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).by = e.target.value;
-                              }}
-                            />
+                            {renderFieldSelect(value.by, (next) => {
+                              updateFilterInRef(ordersRef, value.key, {
+                                by: next,
+                              });
+                              setOrders(ordersRef.current.slice());
+                            })}
                             <input
                               type="text"
                               placeholder="우선순위 '/'로 구분하여 입력"
                               defaultValue={value.priority}
                               onChange={(e) => {
-                                ordersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).priority = e.target.value;
+                                updateFilterInRef(ordersRef, value.key, {
+                                  priority: e.target.value,
+                                });
                               }}
                             />
                             <select
                               defaultValue={value.order}
                               onChange={(e) => {
-                                ordersRef.current.find(
-                                  (v) => String(v.key) === String(value.key)
-                                ).order = e.target.value;
+                                updateFilterInRef(ordersRef, value.key, {
+                                  order: e.target.value,
+                                });
                               }}
                             >
                               <option value="asc">오름차순</option>

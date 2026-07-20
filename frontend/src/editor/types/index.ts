@@ -109,7 +109,7 @@ export interface DataRepeatConfig {
 export interface FilterConfig {
   key: string;
   by: string;
-  operator: "===" | "!==";
+  operator: "===" | "!==" | "empty" | "notEmpty";
   value: string;
   cell?: string;
 }
