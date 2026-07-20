@@ -8,6 +8,7 @@ import Content from "./layout/Content";
 import Header from "./layout/Header";
 import Sidebar from "./layout/sidebar/Sidebar";
 import InlineToolbar from "./layout/InlineToolbar";
+import EditorToast from "./layout/EditorToast";
 
 type Props = { id: string };
 
@@ -62,6 +63,7 @@ function Editor(props: Props) {
         {mode === "edit" && sidebarOpen && <Sidebar />}
       </div>
       {mode === "edit" && <InlineToolbar />}
+      <EditorToast />
     </div>
   );
 }

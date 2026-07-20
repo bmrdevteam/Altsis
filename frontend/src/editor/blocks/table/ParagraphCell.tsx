@@ -48,6 +48,7 @@ const ParagraphCell = (props: Props) => {
           c.data.text = html;
         }
       });
+      useEditorStore.getState().markDirty();
     },
     [props.blockIndex, props.row, props.column]
   );

@@ -12,6 +12,7 @@ const Header = () => {
   const title = useEditorStore((s) => s.title);
   const mode = useEditorStore((s) => s.mode);
   const isSaving = useEditorStore((s) => s.isSaving);
+  const isDirty = useEditorStore((s) => s.isDirty);
   const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
   const toggleMode = useEditorStore((s) => s.toggleMode);
   const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
@@ -22,15 +23,14 @@ const Header = () => {
   const futureLen = useEditorStore((s) => s.future.length);
   const [settingsPopupActive, setSettingsPopupActive] = useState(false);
 
+  const handleBack = () => {
+    navigate(`/admin/forms`);
+  };
+
   return (
     <div className={style.header_container}>
       <div className={style.header}>
-        <div
-          className={style.back}
-          onClick={() => {
-            navigate(`/admin/forms`);
-          }}
-        >
+        <div className={style.back} onClick={handleBack}>
           <Svg type={"arrowLeft"} width="20px" height="20px" />
         </div>
         <div className={style.title}>
@@ -70,16 +70,27 @@ const Header = () => {
             <Svg type={mode === "preview" ? "edit" : "search"} width="18px" height="18px" />
           </div>
           <div
-            className={style.save}
+            className={`${style.save} ${isDirty ? style.save_dirty : ""}`}
             onClick={() => !isSaving && saveForm(FormAPI)}
-            title={isSaving ? "저장 중..." : "저장"}
+            title={
+              isSaving
+                ? "저장 중..."
+                : isDirty
+                  ? "저장되지 않은 변경사항이 있습니다 (Ctrl+S)"
+                  : "저장 (Ctrl+S)"
+            }
             style={{
               cursor: isSaving ? "default" : "pointer",
               padding: "4px 8px",
               opacity: isSaving ? 0.5 : 1,
             }}
           >
-            <Svg type="save" width="18px" height="18px" />
+            <Svg
+              type="save"
+              width="18px"
+              height="18px"
+              style={isDirty ? { fill: "#e74c3c" } : undefined}
+            />
           </div>
           <div
             onClick={() => setSettingsPopupActive(true)}

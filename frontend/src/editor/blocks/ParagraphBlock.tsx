@@ -39,6 +39,7 @@ const ParagraphBlock = (props: Props) => {
           (b.data as ParagraphBlockData).text = html;
         }
       });
+      useEditorStore.getState().markDirty();
     },
     [props.index]
   );

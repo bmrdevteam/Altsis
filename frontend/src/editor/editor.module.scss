@@ -6,6 +6,52 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
+}
+
+.editor_toast {
+    position: absolute;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3000;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+    pointer-events: none;
+    animation: editorToastIn 0.18s ease-out;
+}
+
+.editor_toast_success {
+    background-color: var(--background-color);
+    color: var(--accent-1);
+    border: var(--border-default);
+}
+
+.editor_toast_error {
+    background-color: #fff5f5;
+    color: #c0392b;
+    border: 1px solid #f5c6cb;
+}
+
+@keyframes editorToastIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -6px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.header_dirty {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-3);
+    white-space: nowrap;
 }
 
 .header_container {
@@ -61,11 +107,29 @@
         }
 
         .save {
-
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
+            color: var(--accent-1);
+            fill: var(--accent-1);
+            transition: color 0.15s ease, fill 0.15s ease;
 
+            svg {
+                fill: currentColor;
+                color: currentColor;
+            }
+
+            &.save_dirty {
+                color: #e74c3c;
+
+                svg {
+                    fill: #e74c3c;
+                }
+
+                svg path {
+                    fill: #e74c3c;
+                }
+            }
         }
     }
 

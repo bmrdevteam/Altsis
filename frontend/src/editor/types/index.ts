@@ -245,6 +245,13 @@ export interface EditorState {
   // Loading
   isLoading: boolean;
   isSaving: boolean;
+
+  /** Fingerprint of last loaded/saved title+blocks for dirty checking */
+  savedFingerprint: string;
+  /** True when title/blocks differ from last save */
+  isDirty: boolean;
+  /** Non-blocking editor feedback */
+  toast: { message: string; type: "success" | "error" } | null;
 }
 
 export interface EditorActions {
@@ -262,6 +269,13 @@ export interface EditorActions {
   // Sidebar
   toggleSidebar: () => void;
   setModalOpen: (open: boolean) => void;
+
+  // Feedback / dirty
+  showToast: (message: string, type?: "success" | "error") => void;
+  clearToast: () => void;
+  markSaved: () => void;
+  markDirty: () => void;
+  getIsDirty: () => boolean;
 
   // Selection
   selectBlock: (blockId: string | null) => void;

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import useGenerateId from "../../hooks/useGenerateId";
+import { ALERT_ERROR } from "../../hooks/useAPIv2";
 import {
   BlockType,
   CellData,
@@ -14,6 +15,10 @@ import {
 } from "../types";
 
 const generateId = useGenerateId;
+
+function contentFingerprint(title: string, blocks: EditorBlock[]) {
+  return JSON.stringify({ title, blocks });
+}
 
 function createDefaultCell(blockId: string): CellData {
   return {
@@ -61,6 +66,9 @@ const useEditorStore = create<EditorStore>()(
     isModalOpen: false,
     isLoading: true,
     isSaving: false,
+    savedFingerprint: "",
+    isDirty: false,
+    toast: null,
 
     // ========== Initialization ==========
     loadForm: async (formId: string, FormAPI: any) => {
@@ -77,42 +85,57 @@ const useEditorStore = create<EditorStore>()(
                 },
               ];
 
+        const title = form.title || "";
         set((state) => {
           state.formId = formId;
-          state.title = form.title || "";
+          state.title = title;
           state.formType = form.type || "other";
           state.blocks = blocks;
           state.isLoading = false;
           state.history = [JSON.stringify(blocks)];
           state.future = [];
+          state.savedFingerprint = contentFingerprint(title, blocks);
+          state.isDirty = false;
+          state.toast = null;
         });
       } catch (err) {
         console.error("Failed to load form:", err);
         set((state) => {
           state.isLoading = false;
         });
+        ALERT_ERROR(err);
       }
     },
 
     saveForm: async (FormAPI: any) => {
-      const { formId, title, blocks, formType, isSaving } = get();
+      const { formId, title, blocks, isSaving } = get();
       if (isSaving) return;
+
+      const trimmedTitle = title.trim();
+      if (!trimmedTitle) {
+        get().showToast("제목을 입력한 뒤 저장해 주세요.", "error");
+        return;
+      }
 
       set((state) => {
         state.isSaving = true;
+        if (state.title !== trimmedTitle) {
+          state.title = trimmedTitle;
+        }
       });
 
       try {
         await FormAPI.UForm({
           params: { _id: formId },
           data: {
-            title: title || "undefined",
+            title: trimmedTitle,
             data: blocks,
           },
         });
-        alert(globalThis.SUCCESS_MESSAGE);
+        get().markSaved();
       } catch (err) {
         console.error("Failed to save form:", err);
+        ALERT_ERROR(err);
       } finally {
         set((state) => {
           state.isSaving = false;
@@ -120,10 +143,45 @@ const useEditorStore = create<EditorStore>()(
       }
     },
 
+    showToast: (message, type = "success") => {
+      set((state) => {
+        state.toast = { message, type };
+      });
+    },
+
+    clearToast: () => {
+      set((state) => {
+        state.toast = null;
+      });
+    },
+
+    markSaved: () => {
+      set((state) => {
+        state.savedFingerprint = contentFingerprint(state.title, state.blocks);
+        state.isDirty = false;
+      });
+    },
+
+    markDirty: () => {
+      set((state) => {
+        if (!state.isDirty) {
+          state.isDirty = true;
+        }
+      });
+    },
+
+    getIsDirty: () => {
+      const { isDirty, title, blocks, savedFingerprint } = get();
+      if (isDirty) return true;
+      if (!savedFingerprint) return false;
+      return contentFingerprint(title, blocks) !== savedFingerprint;
+    },
     // ========== Title ==========
     setTitle: (title: string) => {
       set((state) => {
+        if (state.title === title) return;
         state.title = title;
+        state.isDirty = true;
       });
     },
 
@@ -489,6 +547,7 @@ const useEditorStore = create<EditorStore>()(
         if (state.history.length > state.maxHistory) {
           state.history.shift();
         }
+        state.isDirty = true;
       });
     },
 
@@ -501,6 +560,10 @@ const useEditorStore = create<EditorStore>()(
         if (previous) {
           state.blocks = JSON.parse(previous);
         }
+        state.isDirty =
+          !!state.savedFingerprint &&
+          contentFingerprint(state.title, state.blocks) !==
+            state.savedFingerprint;
       });
     },
 
@@ -510,6 +573,10 @@ const useEditorStore = create<EditorStore>()(
         const next = state.future.pop()!;
         state.history.push(next);
         state.blocks = JSON.parse(next);
+        state.isDirty =
+          !!state.savedFingerprint &&
+          contentFingerprint(state.title, state.blocks) !==
+            state.savedFingerprint;
       });
     },
 
