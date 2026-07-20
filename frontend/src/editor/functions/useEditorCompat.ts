@@ -2,7 +2,7 @@
  * Compatibility bridge: provides the old useEditor() interface
  * backed by the new Zustand store.
  *
- * Use this ONLY for legacy components (DataConnPopup, DatatableMenu)
+ * Use this ONLY for legacy components (DataConnPopup)
  * that haven't been migrated yet. New code should use useEditorStore directly.
  */
 import useEditorStore from "../store/useEditorStore";
