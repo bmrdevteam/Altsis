@@ -74,7 +74,7 @@
 
 
 .sidebar_container {
-    z-index: 1;
+    /* z-index removed: avoid trapping Popup (z-index 2024) below sibling InlineToolbar */
     overflow-y: scroll;
     background-color: var(--background-color);
     flex-shrink: 0;

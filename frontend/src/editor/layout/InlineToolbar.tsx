@@ -10,6 +10,7 @@ const InlineToolbar = () => {
   });
   const blocks = useEditorStore((s) => s.blocks);
   const mode = useEditorStore((s) => s.mode);
+  const isModalOpen = useEditorStore((s) => s.isModalOpen);
   const moveBlock = useEditorStore((s) => s.moveBlock);
   const removeBlock = useEditorStore((s) => s.removeBlock);
   const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
@@ -83,7 +84,7 @@ const InlineToolbar = () => {
     };
   }, [selectedBlockId, mode, blocks.length]);
 
-  if (!visible || !selectedBlock || !selectedBlockId) return null;
+  if (!visible || !selectedBlock || !selectedBlockId || isModalOpen) return null;
 
   const blockIndex = getBlockIndex(selectedBlockId);
 

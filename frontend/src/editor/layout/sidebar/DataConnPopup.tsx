@@ -1,10 +1,10 @@
 import Svg from "assets/svg/Svg";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
-import Select from "components/select/Select";
 import Tree, { TreeItem } from "components/tree/Tree";
 import { useEditorCompat } from "editor/functions/useEditorCompat";
-import React, { useEffect, useRef, useState } from "react";
+import useEditorStore from "editor/store/useEditorStore";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import style from "../../editor.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
 import { TSchool } from "types/schools";
@@ -12,6 +12,9 @@ import { zipSeasonsFormEvaluation } from "functions/docs";
 import _ from "lodash";
 
 type Props = {};
+
+const cloneList = <T,>(list: T[] | undefined | null): T[] =>
+  Array.isArray(list) ? list.map((item) => ({ ...(item as any) })) : [];
 
 const DataConnPopup = (props: Props) => {
   const { SchoolAPI, SeasonAPI } = useAPIv2();
@@ -24,47 +27,104 @@ const DataConnPopup = (props: Props) => {
     getCurrentCellIndex,
   } = useEditorCompat();
 
+  const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
+  const selectedCellPosition = useEditorStore((s) => s.selectedCellPosition);
+  const setModalOpen = useEditorStore((s) => s.setModalOpen);
+
   const [schools, setSchools] = useState<TSchool[]>([]);
   const [archiveData, setArchiveData] = useState<any>();
   const [evaluationData, setEvaluationData] = useState<any>();
 
   const textareaRef = useRef<HTMLDivElement>(null);
 
-  const existingIndex = getCurrentBlock()?.data?.dataRepeat?.index;
-  const currentRow = getCurrentCellIndex()?.row;
-  const tableRowCount = getCurrentBlock()?.data?.table?.length ?? 1;
-  const getValidIndex = () => {
-    if (typeof existingIndex === "number" && existingIndex < tableRowCount) {
-      return existingIndex;
-    }
-    if (typeof currentRow === "number" && currentRow < tableRowCount) {
-      return currentRow;
-    }
-    return 0;
-  };
-  const repeat = useRef<any>({
-    by: getCurrentBlock()?.data?.dataRepeat?.by ?? "",
-    index: getValidIndex(),
-    max: getCurrentBlock()?.data?.dataRepeat?.max ?? "",
-  });
-  const [filters, setFilters] = useState<any[]>(
-    getCurrentBlock()?.data?.dataFilter ?? []
-  );
-  const filtersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataFilter ?? [])]);
-  const [orFilters, setOrFilters] = useState<any[]>(
-    getCurrentBlock()?.data?.dataOrFilter ?? []
-  );
-  const orFiltersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataOrFilter ?? [])]);
-  const [cellFilters, setCellFilters] = useState<any[]>(
-    getCurrentBlock()?.data?.dataCellFilter ?? []
-  );
-  const cellFiltersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataCellFilter ?? [])]);
-  const [orders, setOrders] = useState<any[]>(
-    getCurrentBlock()?.data?.dataOrder ?? []
-  );
-  const ordersRef = useRef<any[]>([...(getCurrentBlock()?.data?.dataOrder ?? [])]);
+  const repeat = useRef<any>({ by: "", index: 0, max: "" });
+  const [filters, setFilters] = useState<any[]>([]);
+  const filtersRef = useRef<any[]>([]);
+  const [orFilters, setOrFilters] = useState<any[]>([]);
+  const orFiltersRef = useRef<any[]>([]);
+  const [cellFilters, setCellFilters] = useState<any[]>([]);
+  const cellFiltersRef = useRef<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const ordersRef = useRef<any[]>([]);
+  const [formEpoch, setFormEpoch] = useState(0);
   const [tableBlockMenuPopup, setTableBlockMenuPopup] =
     useState<boolean>(false);
+
+  const syncFromCurrentBlock = useCallback(() => {
+    const block = useEditorStore.getState().getSelectedBlock() as any;
+    const { selectedCellPosition } = useEditorStore.getState();
+    const existingIndex = block?.data?.dataRepeat?.index;
+    const currentRow = selectedCellPosition?.row;
+    const tableRowCount = block?.data?.table?.length ?? 1;
+    let index = 0;
+    if (typeof existingIndex === "number" && existingIndex < tableRowCount) {
+      index = existingIndex;
+    } else if (typeof currentRow === "number" && currentRow < tableRowCount) {
+      index = currentRow;
+    }
+
+    const nextFilters = cloneList(block?.data?.dataFilter);
+    const nextOrFilters = cloneList(block?.data?.dataOrFilter);
+    const nextCellFilters = cloneList(block?.data?.dataCellFilter);
+    const nextOrders = cloneList(block?.data?.dataOrder);
+
+    filtersRef.current = nextFilters;
+    orFiltersRef.current = nextOrFilters;
+    cellFiltersRef.current = nextCellFilters;
+    ordersRef.current = nextOrders;
+
+    setFilters(nextFilters);
+    setOrFilters(nextOrFilters);
+    setCellFilters(nextCellFilters);
+    setOrders(nextOrders);
+
+    repeat.current = {
+      by: block?.data?.dataRepeat?.by ?? "",
+      index,
+      max: block?.data?.dataRepeat?.max ?? "",
+    };
+    setFormEpoch((v) => v + 1);
+  }, []);
+
+  const clearFilterOptions = () => {
+    filtersRef.current = [];
+    orFiltersRef.current = [];
+    cellFiltersRef.current = [];
+    ordersRef.current = [];
+    setFilters([]);
+    setOrFilters([]);
+    setCellFilters([]);
+    setOrders([]);
+    setFormEpoch((v) => v + 1);
+  };
+
+  const closePopup = useCallback(() => {
+    setTableBlockMenuPopup(false);
+    setModalOpen(false);
+  }, [setModalOpen]);
+
+  const openPopup = () => {
+    syncFromCurrentBlock();
+    setTableBlockMenuPopup(true);
+    setModalOpen(true);
+  };
+
+  useEffect(() => {
+    setModalOpen(tableBlockMenuPopup);
+  }, [tableBlockMenuPopup, setModalOpen]);
+
+  // Keep local state in sync with the selected block/cell while the popup is closed.
+  // While the popup is open, we don't want selection-driven updates to wipe the user's edits.
+  useEffect(() => {
+    if (tableBlockMenuPopup) return;
+    syncFromCurrentBlock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to selection changes
+  }, [selectedBlockId, selectedCellPosition?.row, selectedCellPosition?.col]);
+
+  useEffect(() => {
+    return () => setModalOpen(false);
+  }, [setModalOpen]);
+
   useEffect(() => {
     SchoolAPI.RSchools().then(({ schools }) => {
       schools.map((school) => {
@@ -176,15 +236,19 @@ const DataConnPopup = (props: Props) => {
       <Button
         type="ghost"
         style={{ height: "32px", marginTop: "8px" }}
-        onClick={() => {
-          setTableBlockMenuPopup(true);
-        }}
+        onClick={openPopup}
       >
         데이터 연결
       </Button>
       {tableBlockMenuPopup && (
         <Popup
-          setState={setTableBlockMenuPopup}
+          setState={(open: boolean) => {
+            if (open) {
+              openPopup();
+            } else {
+              closePopup();
+            }
+          }}
           title="데이터 연결"
           contentScroll
           closeBtn
@@ -242,7 +306,7 @@ const DataConnPopup = (props: Props) => {
                 });
 
                 // Zustand auto-updates - no manual reload needed
-                setTableBlockMenuPopup(false);
+                closePopup();
               }}
               type="ghost"
             >
@@ -463,6 +527,7 @@ const DataConnPopup = (props: Props) => {
                   <div className={style.title}></div>
                   <div
                     contentEditable
+                    key={`data-text-${selectedBlockId}-${selectedCellPosition?.row ?? 0}-${selectedCellPosition?.col ?? 0}-${tableBlockMenuPopup}`}
                     ref={textareaRef}
                     suppressContentEditableWarning
                     placeholder="데이터 입력"
@@ -577,7 +642,7 @@ const DataConnPopup = (props: Props) => {
                       }
                     )}
                   </div>
-                  <div>
+                  <div key={`data-conn-options-${formEpoch}`}>
                     <div className={style.item}>
                       <label>테이블 반복 설정</label>
                       <select
@@ -585,7 +650,11 @@ const DataConnPopup = (props: Props) => {
                         id=""
                         defaultValue={repeat.current.by}
                         onChange={(e) => {
-                          repeat.current.by = e.target.value;
+                          const nextBy = e.target.value;
+                          if (nextBy === repeat.current.by) return;
+                          repeat.current.by = nextBy;
+                          // 데이터 소스가 바뀌면 이전 소스용 필터/정렬은 무효화
+                          clearFilterOptions();
                         }}
                       >
                         <option key={"none"} value="">

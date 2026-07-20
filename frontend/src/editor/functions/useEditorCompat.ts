@@ -9,26 +9,25 @@ import useEditorStore from "../store/useEditorStore";
 import { TableBlockData } from "../types";
 
 export function useEditorCompat() {
-  const store = useEditorStore.getState();
-
   const getCurrentBlock = (): { id: string; type: string; data: any } | undefined => {
-    return store.getSelectedBlock() as any;
+    return useEditorStore.getState().getSelectedBlock() as any;
   };
 
   const getCurrentCell = () => {
-    return store.getSelectedCell();
+    return useEditorStore.getState().getSelectedCell();
   };
 
   const getCurrentCellIndex = () => {
-    const pos = store.selectedCellPosition;
+    const { selectedBlockId, selectedCellPosition } = useEditorStore.getState();
     return {
-      id: store.selectedBlockId,
-      row: pos?.row ?? 0,
-      column: pos?.col ?? 0,
+      id: selectedBlockId,
+      row: selectedCellPosition?.row ?? 0,
+      column: selectedCellPosition?.col ?? 0,
     };
   };
 
   const changeCurrentCell = (data: any) => {
+    const store = useEditorStore.getState();
     const { selectedBlockId, selectedCellPosition } = store;
     if (!selectedBlockId || !selectedCellPosition) return;
     useEditorStore.setState((state) => {
@@ -43,6 +42,7 @@ export function useEditorCompat() {
   };
 
   const changeCurrentBlockData = (data: any) => {
+    const store = useEditorStore.getState();
     const { selectedBlockId } = store;
     if (!selectedBlockId) return;
     store.updateBlockData(selectedBlockId, data);

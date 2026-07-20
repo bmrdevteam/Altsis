@@ -239,6 +239,8 @@ export interface EditorState {
 
   // UI state
   sidebarOpen: boolean;
+  /** True while an editor modal/popup is open (hides InlineToolbar, etc.) */
+  isModalOpen: boolean;
 
   // Loading
   isLoading: boolean;
@@ -259,6 +261,7 @@ export interface EditorActions {
 
   // Sidebar
   toggleSidebar: () => void;
+  setModalOpen: (open: boolean) => void;
 
   // Selection
   selectBlock: (blockId: string | null) => void;

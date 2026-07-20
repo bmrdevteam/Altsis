@@ -21,6 +21,12 @@ const FormSettingsPopup = ({ setState }: Props) => {
   const title = useEditorStore((s) => s.title);
   const setTitle = useEditorStore((s) => s.setTitle);
   const formType = useEditorStore((s) => s.formType);
+  const setModalOpen = useEditorStore((s) => s.setModalOpen);
+
+  useEffect(() => {
+    setModalOpen(true);
+    return () => setModalOpen(false);
+  }, [setModalOpen]);
 
   const [localTitle, setLocalTitle] = useState(title);
   const [activeTab, setActiveTab] = useState<"general" | "permission">("general");

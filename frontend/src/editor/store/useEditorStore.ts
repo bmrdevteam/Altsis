@@ -58,6 +58,7 @@ const useEditorStore = create<EditorStore>()(
     future: [],
     maxHistory: 100,
     sidebarOpen: true,
+    isModalOpen: false,
     isLoading: true,
     isSaving: false,
 
@@ -142,6 +143,12 @@ const useEditorStore = create<EditorStore>()(
     toggleSidebar: () => {
       set((state) => {
         state.sidebarOpen = !state.sidebarOpen;
+      });
+    },
+
+    setModalOpen: (open: boolean) => {
+      set((state) => {
+        state.isModalOpen = open;
       });
     },
 
