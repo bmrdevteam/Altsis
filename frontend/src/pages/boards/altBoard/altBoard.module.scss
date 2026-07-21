@@ -109,6 +109,59 @@
   margin-left: 16px;
 }
 
+.formCardIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-color-2);
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+
+  svg {
+    fill: currentColor;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--background-color-2);
+    color: var(--text-color-1);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.formCardIconBtnDirty {
+  color: var(--status-error);
+
+  &:hover:not(:disabled) {
+    color: var(--status-error);
+    background: var(--background-color-2);
+  }
+
+  &:disabled {
+    opacity: 1;
+  }
+}
+
+.formCardIconBtnDanger {
+  &:hover:not(:disabled) {
+    color: var(--status-error);
+    background: var(--status-error-bg);
+  }
+}
+
+.builderHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .formActionMenu {
   position: absolute;
   top: 100%;
@@ -135,6 +188,14 @@
 
   & + & {
     border-top: 1px solid var(--border-color);
+  }
+}
+
+.formActionItemDanger {
+  color: var(--status-error);
+
+  &:hover {
+    background: var(--status-error-bg);
   }
 }
 
@@ -286,34 +347,21 @@
   overflow: hidden;
 }
 
-.settingsCardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 24px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-color-1);
-  user-select: none;
-  transition: background 0.15s;
-
-  &:hover {
-    background: var(--background-color-2);
-  }
-}
-
-.settingsCardToggle {
-  font-size: 12px;
-  color: var(--text-color-2);
-  transition: transform 0.2s;
-}
-
 .settingsPanel {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 20px;
-  padding: 0 24px 20px;
+  padding: 20px 24px;
+}
+
+.builderTabBar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+
+  .tabContainer {
+    margin-bottom: 0;
+  }
 }
 
 .settingsItem {
@@ -785,9 +833,20 @@
 /* ─── Form Renderer ─── */
 
 .rendererContainer {
+  padding: 4px 0;
+
+  // 보드 상세 헤더와 같은 왼쪽 기준선 (섹션 패딩만 사용)
+  .builderHeader {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+  }
+}
+
+.rendererBody {
   max-width: 820px;
   margin: 0 auto;
-  padding: 4px 16px;
 }
 
 .rendererHeader {
@@ -857,6 +916,21 @@
   font-size: 13px;
   color: var(--status-error);
   margin-top: 8px;
+}
+
+.contentFieldBody {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-color-1);
+
+  :global {
+    p:first-child {
+      margin-top: 0;
+    }
+    p:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .textInput {

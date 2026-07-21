@@ -234,6 +234,14 @@ const AltBoardView = ({ board, embedded }: Props) => {
         board={board}
         formId={builderFormId === "new" ? undefined : builderFormId}
         onBack={handleBackToList}
+        onRespondForm={handleOpenRenderer}
+        onCopyFormLink={handleCopyFormLink}
+        onFormCreated={(id) => {
+          setBuilderFormId(id);
+          if (!embedded) {
+            setSearchParams({ form: id, mode: "edit" }, { replace: true });
+          }
+        }}
       />
     );
   }

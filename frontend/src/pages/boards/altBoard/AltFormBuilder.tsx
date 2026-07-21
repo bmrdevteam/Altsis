@@ -11,9 +11,10 @@ import {
   TQuizSettings,
 } from "types/altForm";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import Button from "components/button/Button";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 import Svg from "assets/svg/Svg";
+import { MarkdownEditor } from "components/markdown";
+import AltSubmissionTracker from "./AltSubmissionTracker";
 
 const toLocalDatetimeString = (date: Date) => {
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -24,6 +25,10 @@ type Props = {
   board: TBoard;
   formId?: string;
   onBack: () => void;
+  onRespondForm?: (formId: string) => void;
+  onCopyFormLink?: (formId: string) => void;
+  /** 새 양식 첫 저장 후 ID 반영 (URL·상태 유지) */
+  onFormCreated?: (formId: string) => void;
 };
 
 const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
@@ -44,6 +49,7 @@ const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   counter: "카운터",
   approval: "승인",
   link: "링크",
+  content: "문서",
 };
 
 const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
@@ -52,7 +58,16 @@ const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
   { label: "날짜/시간", types: ["date", "multiDate", "time"] },
   {
     label: "특수",
-    types: ["rating", "scale", "counter", "file", "userSelect", "approval", "link"],
+    types: [
+      "content",
+      "rating",
+      "scale",
+      "counter",
+      "file",
+      "userSelect",
+      "approval",
+      "link",
+    ],
   },
 ];
 
@@ -76,7 +91,7 @@ const createEmptyField = (
   type: TAltFormFieldType = "text"
 ): TAltFormField => ({
   _id: crypto.randomUUID(),
-  label: "",
+  label: type === "content" ? "" : "",
   type,
   permission: "respondent",
   visibleToRespondent: false,
@@ -84,6 +99,7 @@ const createEmptyField = (
   options: ["select", "multiSelect", "radio"].includes(type)
     ? ["옵션 1", "옵션 2"]
     : [],
+  content: type === "content" ? "" : undefined,
   order: 0,
 });
 
@@ -100,7 +116,14 @@ type Settings = {
   showOwnResponse: boolean;
 };
 
-const AltFormBuilder = ({ board, formId, onBack }: Props) => {
+const AltFormBuilder = ({
+  board,
+  formId,
+  onBack,
+  onRespondForm,
+  onCopyFormLink,
+  onFormCreated,
+}: Props) => {
   const { AltFormAPI } = useAPIv2();
 
   const [title, setTitle] = useState("");
@@ -124,18 +147,45 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
   });
   const [isLoading, setIsLoading] = useState(!!formId);
   const [isSaving, setIsSaving] = useState(false);
+  const [showTracker, setShowTracker] = useState(false);
+  const [currentFormId, setCurrentFormId] = useState(formId);
+  const [isDirty, setIsDirty] = useState(false);
+  const savedSnapshotRef = useRef<string | null>(null);
 
-  // Google Forms style: active field (expanded) + advanced settings toggle
+  // Google Forms style: active field (expanded) + builder tab
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
   const [expandedField, setExpandedField] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [builderTab, setBuilderTab] = useState<"form" | "settings">("form");
   const builderBodyRef = useRef<HTMLDivElement>(null);
 
-  // Click outside field card → deactivate
+  const getSnapshot = useCallback(
+    (
+      next?: Partial<{
+        title: string;
+        description: string;
+        fields: TAltFormField[];
+        settings: Settings;
+      }>
+    ) =>
+      JSON.stringify({
+        title: (next?.title ?? title).trim(),
+        description: (next?.description ?? description).trim(),
+        fields: next?.fields ?? fields,
+        settings: next?.settings ?? settings,
+      }),
+    [title, description, fields, settings]
+  );
+
+  // Click outside field card / add toolbar → deactivate
+  // Popup(이미지·YouTube·HTML 등)은 fixed 오버레이라 필드 카드 밖처럼 보이므로 제외
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest("[data-field-card]")) {
+      if (
+        !target.closest("[data-field-card]") &&
+        !target.closest("[data-field-toolbar]") &&
+        !target.closest("[data-editor-popup]")
+      ) {
         setActiveFieldId(null);
       }
     };
@@ -144,13 +194,21 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
   }, []);
 
   useEffect(() => {
-    if (!formId) return;
+    setCurrentFormId(formId);
+  }, [formId]);
+
+  useEffect(() => {
+    if (!formId) {
+      // 새 양식: 초기 빈 상태를 기준 스냅샷으로
+      if (savedSnapshotRef.current === null) {
+        savedSnapshotRef.current = getSnapshot();
+        setIsDirty(false);
+      }
+      return;
+    }
     AltFormAPI.RAltForm({ params: { _id: formId } })
       .then(({ form }) => {
-        setTitle(form.title);
-        setDescription(form.description);
-        setFields(form.fields);
-        setSettings({
+        const nextSettings: Settings = {
           allowResubmit: form.settings.allowResubmit,
           allowMultipleResponses: form.settings.allowMultipleResponses || false,
           openAt: form.settings.openAt
@@ -169,7 +227,18 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
           shareResponses: form.settings.shareResponses || false,
           showOwnerFields: form.settings.showOwnerFields || false,
           showOwnResponse: form.settings.showOwnResponse || false,
+        };
+        setTitle(form.title);
+        setDescription(form.description);
+        setFields(form.fields);
+        setSettings(nextSettings);
+        savedSnapshotRef.current = JSON.stringify({
+          title: form.title.trim(),
+          description: (form.description || "").trim(),
+          fields: form.fields,
+          settings: nextSettings,
         });
+        setIsDirty(false);
         setIsLoading(false);
       })
       .catch((err) => {
@@ -177,6 +246,12 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
         onBack();
       });
   }, [formId]);
+
+  // 변경 감지
+  useEffect(() => {
+    if (isLoading || savedSnapshotRef.current === null) return;
+    setIsDirty(getSnapshot() !== savedSnapshotRef.current);
+  }, [getSnapshot, isLoading]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -204,35 +279,26 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
         },
       };
 
-      if (formId) {
-        await AltFormAPI.UAltForm({ params: { _id: formId }, data });
+      if (currentFormId) {
+        await AltFormAPI.UAltForm({ params: { _id: currentFormId }, data });
       } else {
-        await AltFormAPI.CAltForm({
+        const { form } = await AltFormAPI.CAltForm({
           data: { ...data, board: board._id },
         });
+        setCurrentFormId(form._id);
+        onFormCreated?.(form._id);
       }
-      onBack();
-    } catch (err) {
+
+      savedSnapshotRef.current = getSnapshot({
+        title: data.title,
+        description: data.description,
+        fields: data.fields,
+        settings,
+      });
+      setIsDirty(false);    } catch (err) {
       ALERT_ERROR(err);
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!formId) return;
-    if (
-      !window.confirm(
-        "이 양식을 삭제하시겠습니까? 모든 응답 데이터도 함께 삭제됩니다."
-      )
-    )
-      return;
-
-    try {
-      await AltFormAPI.DAltForm({ params: { _id: formId } });
-      onBack();
-    } catch (err) {
-      ALERT_ERROR(err);
     }
   };
 
@@ -470,7 +536,9 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
     const dc = field.displayCondition;
     if (!dc?.enabled) return null;
 
-    const prevFields = fields.slice(0, fieldIndex);
+    const prevFields = fields
+      .slice(0, fieldIndex)
+      .filter((f) => f.type !== "content");
 
     return (
       <div
@@ -614,6 +682,7 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
   const renderQuizSettings = (fieldIndex: number) => {
     if (!settings.quizMode) return null;
     const field = fields[fieldIndex];
+    if (field.type === "content") return null;
     if (field.permission !== "respondent") return null;
 
     const gradable = isGradable(field.type);
@@ -725,6 +794,26 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
   const renderFieldTypeSettings = (fieldIndex: number) => {
     const field = fields[fieldIndex];
     switch (field.type) {
+      case "content":
+        return (
+          <div style={{ marginTop: "8px" }}>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginBottom: "8px",
+              }}
+            >
+              응답 화면에 표시되는 안내·설명 문서입니다. (메일머지 없음)
+            </div>
+            <MarkdownEditor
+              value={field.content ?? ""}
+              onChange={(md) => updateField(fieldIndex, { content: md })}
+              placeholder="마크다운으로 안내문을 작성하세요."
+              minHeight="220px"
+            />
+          </div>
+        );
       case "rating":
         return (
           <div
@@ -1152,6 +1241,7 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
         </div>
 
         {/* 중복 검사 */}
+        {field.type !== "content" && (
         <div style={{ marginBottom: "8px" }}>
           <label className={style.fieldCheckbox}>
             <input
@@ -1218,6 +1308,7 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
             </div>
           )}
         </div>
+        )}
 
         {/* 퀴즈 설정 */}
         {renderQuizSettings(fieldIndex)}
@@ -1256,23 +1347,27 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
       <div className={style.fieldEditHeader}>
         <input
           className={style.gfLabelInput}
-          placeholder="질문"
+          placeholder={field.type === "content" ? "문서 제목 (선택)" : "질문"}
           value={field.label}
           onChange={(e) => updateField(index, { label: e.target.value })}
         />
         <select
           className={style.fieldTypeSelectGf}
           value={field.type}
-          onChange={(e) =>
+          onChange={(e) => {
+            const nextType = e.target.value as TAltFormFieldType;
             updateField(index, {
-              type: e.target.value as TAltFormFieldType,
+              type: nextType,
+              required: nextType === "content" ? false : field.required,
+              content:
+                nextType === "content" ? field.content ?? "" : field.content,
               options:
-                needsOptions(e.target.value as TAltFormFieldType) &&
+                needsOptions(nextType) &&
                 (!field.options || field.options.length === 0)
                   ? ["옵션 1", "옵션 2"]
                   : field.options,
-            })
-          }
+            });
+          }}
         >
           {FIELD_TYPE_GROUPS.map((group) => (
             <optgroup key={group.label} label={group.label}>
@@ -1343,44 +1438,53 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
       {/* Action bar */}
       <div className={style.fieldActionBar}>
         <div className={style.fieldActionLeft}>
-          <label className={style.requiredToggle}>
-            필수
-            <ToggleSwitch
-              checked={field.required}
-              onChange={(v) => updateField(index, { required: v })}
-            />
-          </label>
-          <div className={style.actionDivider} />
-          <select
-            className={style.selectInput}
-            style={{
-              minWidth: "100px",
-              padding: "4px 8px",
-              fontSize: "12px",
-            }}
-            value={field.permission}
-            onChange={(e) =>
-              updateField(index, {
-                permission: e.target.value as "respondent" | "owner",
-              })
-            }
-          >
-            <option value="respondent">응답자 입력</option>
-            <option value="owner">관리자 입력</option>
-          </select>
-          {field.permission === "owner" && (
-            <label className={style.fieldCheckbox}>
-              <input
-                type="checkbox"
-                checked={field.visibleToRespondent}
+          {field.type !== "content" && (
+            <>
+              <label className={style.requiredToggle}>
+                필수
+                <ToggleSwitch
+                  checked={field.required}
+                  onChange={(v) => updateField(index, { required: v })}
+                />
+              </label>
+              <div className={style.actionDivider} />
+              <select
+                className={style.selectInput}
+                style={{
+                  minWidth: "100px",
+                  padding: "4px 8px",
+                  fontSize: "12px",
+                }}
+                value={field.permission}
                 onChange={(e) =>
                   updateField(index, {
-                    visibleToRespondent: e.target.checked,
+                    permission: e.target.value as "respondent" | "owner",
                   })
                 }
-              />
-              응답자에게 공개
-            </label>
+              >
+                <option value="respondent">응답자 입력</option>
+                <option value="owner">관리자 입력</option>
+              </select>
+              {field.permission === "owner" && (
+                <label className={style.fieldCheckbox}>
+                  <input
+                    type="checkbox"
+                    checked={field.visibleToRespondent}
+                    onChange={(e) =>
+                      updateField(index, {
+                        visibleToRespondent: e.target.checked,
+                      })
+                    }
+                  />
+                  응답자에게 공개
+                </label>
+              )}
+            </>
+          )}
+          {field.type === "content" && (
+            <span style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
+              문서 항목 · 응답값으로 저장되지 않음
+            </span>
           )}
         </div>
         <div className={style.fieldActionRight}>
@@ -1406,16 +1510,20 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
   // ─── Floating toolbar ───
 
   const renderFloatingToolbar = (index: number) => (
-    <div className={style.fieldAddToolbar}>
+    <div className={style.fieldAddToolbar} data-field-toolbar>
       <button
+        type="button"
         className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldAtIndex(index + 1, "text")}
         title="단답형"
       >
         <MI icon="short_text" size={22} />
       </button>
       <button
+        type="button"
         className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldAtIndex(index + 1, "textarea")}
         title="장문형"
       >
@@ -1423,21 +1531,27 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
       </button>
       <div className={style.toolbarDivider} />
       <button
+        type="button"
         className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldAtIndex(index + 1, "radio")}
         title="객관식 질문"
       >
         <MI icon="radio_button_checked" size={22} />
       </button>
       <button
+        type="button"
         className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldAtIndex(index + 1, "checkbox")}
         title="체크박스"
       >
         <MI icon="check_box" size={22} />
       </button>
       <button
+        type="button"
         className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldAtIndex(index + 1, "select")}
         title="드롭다운"
       >
@@ -1445,14 +1559,27 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
       </button>
       <div className={style.toolbarDivider} />
       <button
+        type="button"
         className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => addFieldAtIndex(index + 1, "content")}
+        title="문서"
+      >
+        <MI icon="article" size={22} />
+      </button>
+      <button
+        type="button"
+        className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldAtIndex(index + 1, "date")}
         title="날짜"
       >
         <MI icon="calendar_today" size={22} />
       </button>
       <button
+        type="button"
         className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
         onClick={() => addFieldAtIndex(index + 1)}
         title="항목 추가"
       >
@@ -1472,25 +1599,51 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
             <Svg type="chevronLeft" width="20px" height="20px" />
           </button>
           <span style={{ fontSize: "16px", fontWeight: 600 }}>
-            {formId ? "양식 수정" : "새 양식"}
+            {currentFormId ? "양식 관리" : "새 양식"}
           </span>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
-          {formId && (
-            <Button
-              type="ghost"
-              onClick={handleDelete}
-              style={{ color: "var(--status-error)" }}
+        <div className={style.builderHeaderActions}>
+          {currentFormId && onCopyFormLink && (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="링크 복사"
+              onClick={() => onCopyFormLink(currentFormId)}
             >
-              삭제
-            </Button>
+              <Svg type="link" width="18px" height="18px" />
+            </button>
           )}
-          <Button type="ghost" onClick={onBack}>
-            취소
-          </Button>
-          <Button type="ghost" onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "저장 중..." : "저장"}
-          </Button>
+          {currentFormId && onRespondForm && (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="응답하기"
+              onClick={() => onRespondForm(currentFormId)}
+            >
+              <Svg type="write" width="18px" height="18px" />
+            </button>
+          )}
+          {currentFormId && (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="제출현황"
+              onClick={() => setShowTracker(true)}
+            >
+              <Svg type="list_check" width="18px" height="18px" />
+            </button>
+          )}
+          <button
+            type="button"
+            className={`${style.formCardIconBtn} ${
+              isDirty ? style.formCardIconBtnDirty : ""
+            }`}
+            title={isSaving ? "저장 중..." : isDirty ? "저장 (변경됨)" : "저장"}
+            onClick={handleSave}
+            disabled={isSaving || !isDirty}
+          >
+            <Svg type="save" width="18px" height="18px" />
+          </button>
         </div>
       </div>
 
@@ -1514,18 +1667,32 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
           </div>
         </div>
 
-        {/* Settings Card */}
-        <div className={`${style.gfCard} ${style.settingsCard}`}>
-          <div
-            className={style.settingsCardHeader}
-            onClick={() => setSettingsOpen(!settingsOpen)}
-          >
-            <span>양식 설정</span>
-            <span className={style.settingsCardToggle}>
-              {settingsOpen ? "▲" : "▼"}
-            </span>
+        {/* 양식 / 설정 탭 */}
+        <div className={style.builderTabBar}>
+          <div className={style.tabContainer}>
+            <button
+              type="button"
+              className={`${style.tab} ${
+                builderTab === "form" ? style.tabActive : ""
+              }`}
+              onClick={() => setBuilderTab("form")}
+            >
+              양식
+            </button>
+            <button
+              type="button"
+              className={`${style.tab} ${
+                builderTab === "settings" ? style.tabActive : ""
+              }`}
+              onClick={() => setBuilderTab("settings")}
+            >
+              설정
+            </button>
           </div>
-          {settingsOpen && (
+        </div>
+
+        {builderTab === "settings" && (
+          <div className={`${style.gfCard} ${style.settingsCard}`}>
             <div className={style.settingsPanel}>
               <div className={style.settingsItem}>
                 <span className={style.settingsLabel}>시작일</span>
@@ -1609,7 +1776,8 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
                           ...s,
                           quizSettings: {
                             ...s.quizSettings,
-                            scoreReveal: e.target.value as TQuizSettings["scoreReveal"],
+                            scoreReveal: e.target
+                              .value as TQuizSettings["scoreReveal"],
                           },
                         }))
                       }
@@ -1630,7 +1798,8 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
                           ...s,
                           quizSettings: {
                             ...s.quizSettings,
-                            answerReveal: e.target.value as TQuizSettings["answerReveal"],
+                            answerReveal: e.target
+                              .value as TQuizSettings["answerReveal"],
                           },
                         }))
                       }
@@ -1664,8 +1833,8 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
                     padding: "4px 0",
                   }}
                 >
-                  모든 필드가 관리자 입력으로 설정됩니다. Sheet에서 직접 데이터를
-                  입력하세요.
+                  모든 필드가 관리자 입력으로 설정됩니다. Sheet에서 직접
+                  데이터를 입력하세요.
                 </div>
               )}
               <div className={style.settingsItem}>
@@ -1711,50 +1880,66 @@ const AltFormBuilder = ({ board, formId, onBack }: Props) => {
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Field Cards */}
-        {fields.map((field, index) => {
-          const isActive = activeFieldId === field._id;
-          return (
-            <div key={field._id} className={style.fieldCardRow}>
-              <div
-                data-field-card
-                className={`${style.fieldCardGf} ${
-                  isActive ? style.fieldCardActive : style.fieldCardInactive
-                }`}
-                onClick={() => {
-                  if (!isActive) setActiveFieldId(field._id);
-                }}
-              >
-                {isActive ? (
-                  renderActiveField(field, index)
-                ) : (
-                  <div className={style.fieldCollapsedContent}>
-                    <span className={style.fieldCollapsedLabel}>
-                      {field.label || "(이름 없음)"}
-                      {field.required && (
-                        <span className={style.requiredMark}> *</span>
-                      )}
-                    </span>
-                    <span className={style.fieldCollapsedType}>
-                      {FIELD_TYPE_LABELS[field.type]}
-                    </span>
+        {builderTab === "form" && (
+          <>
+            {/* Field Cards */}
+            {fields.map((field, index) => {
+              const isActive = activeFieldId === field._id;
+              return (
+                <div key={field._id} className={style.fieldCardRow}>
+                  <div
+                    data-field-card
+                    className={`${style.fieldCardGf} ${
+                      isActive
+                        ? style.fieldCardActive
+                        : style.fieldCardInactive
+                    }`}
+                    onClick={() => {
+                      if (!isActive) setActiveFieldId(field._id);
+                    }}
+                  >
+                    {isActive ? (
+                      renderActiveField(field, index)
+                    ) : (
+                      <div className={style.fieldCollapsedContent}>
+                        <span className={style.fieldCollapsedLabel}>
+                          {field.label ||
+                            (field.type === "content"
+                              ? "(문서)"
+                              : "(이름 없음)")}
+                          {field.required && (
+                            <span className={style.requiredMark}> *</span>
+                          )}
+                        </span>
+                        <span className={style.fieldCollapsedType}>
+                          {FIELD_TYPE_LABELS[field.type]}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {isActive && renderFloatingToolbar(index)}
-            </div>
-          );
-        })}
+                  {isActive && renderFloatingToolbar(index)}
+                </div>
+              );
+            })}
 
-        {/* Add field button */}
-        <button className={style.addFieldBtn} onClick={addField}>
-          + 항목 추가
-        </button>
+            {/* Add field button */}
+            <button className={style.addFieldBtn} onClick={addField}>
+              + 항목 추가
+            </button>
+          </>
+        )}
       </div>
+
+      {showTracker && currentFormId && (
+        <AltSubmissionTracker
+          form={{ _id: currentFormId, title } as TAltForm}
+          onClose={() => setShowTracker(false)}
+        />
+      )}
     </div>
   );
 };
