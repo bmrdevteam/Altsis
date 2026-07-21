@@ -5,7 +5,8 @@ import { TBoard } from "types/board";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { objectDownloadAsJson } from "functions/functions";
 import Button from "components/button/Button";
-import AltSubmissionTracker from "./AltSubmissionTracker";
+import Popup from "components/popup/Popup";
+import Svg from "assets/svg/Svg";
 import CombinationGenerator from "./CombinationGenerator";
 
 type Props = {
@@ -33,8 +34,9 @@ const AltFormList = ({
 }: Props) => {
   const { AltFormAPI } = useAPIv2();
 
-  const [trackerForm, setTrackerForm] = useState<TAltForm | null>(null);
   const [comboForm, setComboForm] = useState<TAltForm | null>(null);
+  const [deleteForm, setDeleteForm] = useState<TAltForm | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [actionMenu, setActionMenu] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -100,6 +102,21 @@ const AltFormList = ({
     setActionMenu(null);
   };
 
+  // 삭제
+  const handleDeleteConfirm = async () => {
+    if (!deleteForm) return;
+    setIsDeleting(true);
+    try {
+      await AltFormAPI.DAltForm({ params: { _id: deleteForm._id } });
+      setDeleteForm(null);
+      onRefresh();
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // 사전 등록 필드가 2개 이상인지 확인
   const hasPreRegFields = (form: TAltForm) =>
     form.fields.filter(
@@ -111,21 +128,23 @@ const AltFormList = ({
   return (
     <div className={style.formList}>
       {canManage && (
-        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-          <Button
-            type="ghost"
+        <div style={{ display: "flex", gap: "4px", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className={style.formCardIconBtn}
+            title="새 양식 만들기"
             onClick={onCreateForm}
-            style={{ padding: "4px 10px", fontSize: "12px" }}
           >
-            + 새 양식 만들기
-          </Button>
-          <Button
-            type="ghost"
+            <Svg type="plus" width="18px" height="18px" />
+          </button>
+          <button
+            type="button"
+            className={style.formCardIconBtn}
+            title="JSON 가져오기"
             onClick={() => importRef.current?.click()}
-            style={{ padding: "4px 10px", fontSize: "12px" }}
           >
-            JSON 가져오기
-          </Button>
+            <Svg type="upload" width="18px" height="18px" />
+          </button>
           <input
             ref={importRef}
             type="file"
@@ -189,73 +208,83 @@ const AltFormList = ({
               style={{ position: "relative" }}
             >
               {onCopyFormLink && (
-                <Button
-                  type="ghost"
-                  onClick={(e: React.MouseEvent) => {
+                <button
+                  type="button"
+                  className={style.formCardIconBtn}
+                  title="링크 복사"
+                  onClick={(e) => {
                     e.stopPropagation();
                     onCopyFormLink(form._id);
                   }}
-                  style={{ padding: "4px 10px", fontSize: "12px" }}
                 >
-                  링크 복사
-                </Button>
+                  <Svg type="link" width="18px" height="18px" />
+                </button>
+              )}
+              {canManage && onRespondForm && (
+                <button
+                  type="button"
+                  className={style.formCardIconBtn}
+                  title="응답하기"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRespondForm(form._id);
+                  }}
+                >
+                  <Svg type="write" width="18px" height="18px" />
+                </button>
               )}
               {canManage && (
                 <>
-                  {onRespondForm && (
-                    <Button
-                      type="ghost"
-                      onClick={() => onRespondForm(form._id)}
-                      style={{ padding: "4px 10px", fontSize: "12px" }}
-                    >
-                      응답하기
-                    </Button>
-                  )}
-                  <Button
-                    type="ghost"
-                    onClick={() => setTrackerForm(form)}
-                    style={{ padding: "4px 10px", fontSize: "12px" }}
+                  <button
+                    type="button"
+                    className={style.formCardIconBtn}
+                    title="JSON 내보내기"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleExport(form._id);
+                    }}
                   >
-                    제출현황
-                  </Button>
-                  <div style={{ position: "relative" }}>
-                    <Button
-                      type="ghost"
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        setActionMenu(
-                          actionMenu === form._id ? null : form._id
-                        );
-                      }}
-                      style={{
-                        padding: "4px 8px",
-                        fontSize: "16px",
-                        lineHeight: 1,
-                      }}
-                    >
-                      ⋮
-                    </Button>
-                    {actionMenu === form._id && (
-                      <div className={style.formActionMenu}>
-                        <div
-                          className={style.formActionItem}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleExport(form._id);
-                          }}
-                        >
-                          JSON 내보내기
-                        </div>
-                        <div
-                          className={style.formActionItem}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDuplicate(form._id);
-                          }}
-                        >
-                          복제
-                        </div>
-                        {hasPreRegFields(form) && (
+                    <Svg type="download" width="18px" height="18px" />
+                  </button>
+                  <button
+                    type="button"
+                    className={style.formCardIconBtn}
+                    title="복제"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicate(form._id);
+                    }}
+                  >
+                    <Svg type="paste" width="18px" height="18px" />
+                  </button>
+                  <button
+                    type="button"
+                    className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
+                    title="삭제"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteForm(form);
+                    }}
+                  >
+                    <Svg type="trash" width="18px" height="18px" />
+                  </button>
+                  {hasPreRegFields(form) && (
+                    <div style={{ position: "relative" }}>
+                      <button
+                        type="button"
+                        className={style.formCardIconBtn}
+                        title="더보기"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActionMenu(
+                            actionMenu === form._id ? null : form._id
+                          );
+                        }}
+                      >
+                        <Svg type="verticalDots" width="18px" height="18px" />
+                      </button>
+                      {actionMenu === form._id && (
+                        <div className={style.formActionMenu}>
                           <div
                             className={style.formActionItem}
                             onClick={(e) => {
@@ -266,24 +295,16 @@ const AltFormList = ({
                           >
                             조합 생성
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </div>
           </div>
         );
       })}
-
-      {/* 제출 현황 팝업 */}
-      {trackerForm && (
-        <AltSubmissionTracker
-          form={trackerForm}
-          onClose={() => setTrackerForm(null)}
-        />
-      )}
 
       {/* 조합 생성기 팝업 */}
       {comboForm && (
@@ -292,6 +313,49 @@ const AltFormList = ({
           onClose={() => setComboForm(null)}
           onGenerated={onRefresh}
         />
+      )}
+
+      {/* 삭제 확인 팝업 */}
+      {deleteForm && (
+        <Popup
+          title="양식 삭제"
+          setState={(v: boolean) => {
+            if (!v && !isDeleting) setDeleteForm(null);
+          }}
+          closeBtn={!isDeleting}
+          style={{ maxWidth: "420px", width: "100%" }}
+          footer={
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
+              <Button
+                type="ghost"
+                onClick={() => setDeleteForm(null)}
+                disabled={isDeleting}
+              >
+                취소
+              </Button>
+              <Button
+                type="ghost"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                style={{ color: "var(--status-error)" }}
+              >
+                {isDeleting ? "삭제 중..." : "삭제"}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
+            <strong>{deleteForm.title}</strong> 양식을 삭제하시겠습니까?
+            <br />
+            모든 응답 데이터도 함께 삭제되며, 이 작업은 되돌릴 수 없습니다.
+          </div>
+        </Popup>
       )}
     </div>
   );
