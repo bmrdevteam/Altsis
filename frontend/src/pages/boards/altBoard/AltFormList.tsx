@@ -135,7 +135,7 @@ const AltFormList = ({
             title="새 양식 만들기"
             onClick={onCreateForm}
           >
-            <Svg type="plus" width="18px" height="18px" />
+            <Svg type="plus" width="20px" height="20px" />
           </button>
           <button
             type="button"
@@ -143,7 +143,7 @@ const AltFormList = ({
             title="JSON 가져오기"
             onClick={() => importRef.current?.click()}
           >
-            <Svg type="upload" width="18px" height="18px" />
+            <Svg type="upload" width="20px" height="20px" />
           </button>
           <input
             ref={importRef}
@@ -217,7 +217,7 @@ const AltFormList = ({
                     onCopyFormLink(form._id);
                   }}
                 >
-                  <Svg type="link" width="18px" height="18px" />
+                  <Svg type="link" width="20px" height="20px" />
                 </button>
               )}
               {canManage && onRespondForm && (
@@ -230,7 +230,7 @@ const AltFormList = ({
                     onRespondForm(form._id);
                   }}
                 >
-                  <Svg type="write" width="18px" height="18px" />
+                  <Svg type="edit" width="20px" height="20px" />
                 </button>
               )}
               {canManage && (
@@ -244,7 +244,7 @@ const AltFormList = ({
                       handleExport(form._id);
                     }}
                   >
-                    <Svg type="download" width="18px" height="18px" />
+                    <Svg type="download" width="20px" height="20px" />
                   </button>
                   <button
                     type="button"
@@ -255,7 +255,7 @@ const AltFormList = ({
                       handleDuplicate(form._id);
                     }}
                   >
-                    <Svg type="paste" width="18px" height="18px" />
+                    <Svg type="copy" width="20px" height="20px" />
                   </button>
                   <button
                     type="button"
@@ -266,7 +266,7 @@ const AltFormList = ({
                       setDeleteForm(form);
                     }}
                   >
-                    <Svg type="trash" width="18px" height="18px" />
+                    <Svg type="trash" width="20px" height="20px" />
                   </button>
                   {hasPreRegFields(form) && (
                     <div style={{ position: "relative" }}>
@@ -281,7 +281,7 @@ const AltFormList = ({
                           );
                         }}
                       >
-                        <Svg type="verticalDots" width="18px" height="18px" />
+                        <Svg type="verticalDots" width="20px" height="20px" />
                       </button>
                       {actionMenu === form._id && (
                         <div className={style.formActionMenu}>

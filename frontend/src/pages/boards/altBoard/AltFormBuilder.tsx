@@ -1610,7 +1610,7 @@ const AltFormBuilder = ({
               title="링크 복사"
               onClick={() => onCopyFormLink(currentFormId)}
             >
-              <Svg type="link" width="18px" height="18px" />
+              <Svg type="link" width="20px" height="20px" />
             </button>
           )}
           {currentFormId && onRespondForm && (
@@ -1620,7 +1620,7 @@ const AltFormBuilder = ({
               title="응답하기"
               onClick={() => onRespondForm(currentFormId)}
             >
-              <Svg type="write" width="18px" height="18px" />
+              <Svg type="edit" width="20px" height="20px" />
             </button>
           )}
           {currentFormId && (
@@ -1630,7 +1630,7 @@ const AltFormBuilder = ({
               title="제출현황"
               onClick={() => setShowTracker(true)}
             >
-              <Svg type="list_check" width="18px" height="18px" />
+              <Svg type="list_check" width="20px" height="20px" />
             </button>
           )}
           <button
@@ -1642,7 +1642,7 @@ const AltFormBuilder = ({
             onClick={handleSave}
             disabled={isSaving || !isDirty}
           >
-            <Svg type="save" width="18px" height="18px" />
+            <Svg type="save" width="20px" height="20px" />
           </button>
         </div>
       </div>

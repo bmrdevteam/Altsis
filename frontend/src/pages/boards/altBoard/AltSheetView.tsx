@@ -6,6 +6,7 @@ import { TAltSheetRow } from "types/altSheet";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
+import Svg from "assets/svg/Svg";
 import DateRangeFilterDropdown, {
   DateRange,
 } from "components/dateRangeFilter/DateRangeFilterDropdown";
@@ -967,17 +968,44 @@ const AltSheetView = ({
           <div
             key={form._id}
             className={style.formCard}
-            onClick={() => {
-              setSelectedFormId(form._id);
-              onFormSelect?.(form._id);
-            }}
-            style={{ cursor: "pointer" }}
           >
-            <div className={style.formCardLeft}>
+            <div
+              className={style.formCardLeft}
+              onClick={() => {
+                setSelectedFormId(form._id);
+                onFormSelect?.(form._id);
+              }}
+            >
               <div className={style.formCardTitle}>{form.title}</div>
               <div className={style.formCardMeta}>
-                <span>{form.fields.length}개 항목</span>
+                <span>{form.fields.filter((f) => f.type !== "content").length}개 항목</span>
+                {form.settings.shareResponses && (
+                  <span
+                    className={style.formCardBadge}
+                    style={{
+                      background: "var(--status-info-bg)",
+                      color: "var(--status-info)",
+                    }}
+                  >
+                    공유
+                  </span>
+                )}
               </div>
+            </div>
+            <div className={style.formCardRight}>
+              {onCopySheetLink && (
+                <button
+                  type="button"
+                  className={style.formCardIconBtn}
+                  title="링크 복사"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopySheetLink(form._id);
+                  }}
+                >
+                  <Svg type="link" width="20px" height="20px" />
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -985,95 +1013,108 @@ const AltSheetView = ({
     );
   }
 
+  const submissionSummary = isLoading
+    ? "로딩 중..."
+    : (() => {
+        const uniqueUsers = new Set(
+          filteredRows.map((r) => r._respondent).filter(Boolean)
+        ).size;
+        const totalUniqueUsers = new Set(
+          rows.map((r) => r._respondent).filter(Boolean)
+        ).size;
+        const userLabel = `${uniqueUsers}명 제출`;
+        const filtered =
+          filteredRows.length !== rows.length
+            ? ` (전체 ${totalUniqueUsers}명)`
+            : "";
+        const rowExtra =
+          filteredRows.length !== uniqueUsers
+            ? ` · ${filteredRows.length}개 응답`
+            : "";
+        return userLabel + filtered + rowExtra;
+      })();
+
   return (
     <div className={style.sheetContainer}>
-      {/* 목록으로 돌아가기 */}
-      <div style={{ marginBottom: "12px" }}>
-        <Button
-          type="ghost"
-          onClick={() => {
-            setSelectedFormId("");
-            setRows([]);
-            setFilters({});
-            setDateFilters({});
-            setSortConfig(null);
-            onFormDeselect?.();
-          }}
-          style={{ padding: "4px 10px", fontSize: "12px" }}
-        >
-          ← 목록
-        </Button>
-      </div>
-
-      {/* 툴바 */}
-      <div className={style.sheetToolbar}>
-        <span className={style.sheetCount}>
-          {isLoading
-            ? "로딩 중..."
-            : (() => {
-                const uniqueUsers = new Set(
-                  filteredRows
-                    .map((r) => r._respondent)
-                    .filter(Boolean)
-                ).size;
-                const totalUniqueUsers = new Set(
-                  rows.map((r) => r._respondent).filter(Boolean)
-                ).size;
-                const userLabel = `${uniqueUsers}명 제출`;
-                const filtered =
-                  filteredRows.length !== rows.length
-                    ? ` (전체 ${totalUniqueUsers}명)`
-                    : "";
-                const rowExtra =
-                  filteredRows.length !== uniqueUsers
-                    ? ` · ${filteredRows.length}개 응답`
-                    : "";
-                return userLabel + filtered + rowExtra;
-              })()}
-        </span>
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+      {/* 헤더: 양식 관리와 동일한 서식 */}
+      <div className={style.builderHeader}>
+        <div className={style.builderHeaderLeft}>
+          <button
+            type="button"
+            className={style.backBtn}
+            title="목록"
+            onClick={() => {
+              setSelectedFormId("");
+              setRows([]);
+              setFilters({});
+              setDateFilters({});
+              setSortConfig(null);
+              onFormDeselect?.();
+            }}
+          >
+            <Svg type="chevronLeft" width="20px" height="20px" />
+          </button>
+          <div className={style.sheetHeaderTitleWrap}>
+            <span className={style.sheetHeaderTitle}>
+              {selectedForm?.title || "기록"}
+            </span>
+            <span className={style.sheetCount}>{submissionSummary}</span>
+          </div>
+        </div>
+        <div className={style.builderHeaderActions}>
           <div className={style.viewModeToggle}>
             <button
-              className={viewMode === "table" ? style.viewModeActive : ""}
+              type="button"
+              className={`${style.formCardIconBtn} ${
+                viewMode === "table" ? style.formCardIconBtnActive : ""
+              }`}
               onClick={() => setViewMode("table")}
               title="테이블 보기"
             >
-              ☰
+              <Svg type="list" width="20px" height="20px" />
             </button>
             <button
-              className={viewMode === "doc" ? style.viewModeActive : ""}
+              type="button"
+              className={`${style.formCardIconBtn} ${
+                viewMode === "doc" ? style.formCardIconBtnActive : ""
+              }`}
               onClick={() => setViewMode("doc")}
               title="문서 보기"
             >
-              ▤
+              <Svg type="file" width="20px" height="20px" />
             </button>
           </div>
           {onCopySheetLink && (
-            <Button
-              type="ghost"
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="링크 복사"
               onClick={() => onCopySheetLink(selectedFormId)}
-              style={{ padding: "4px 10px", fontSize: "12px" }}
             >
-              링크 복사
-            </Button>
+              <Svg type="link" width="20px" height="20px" />
+            </button>
           )}
           {canManage && (
-            <Button
-              type="ghost"
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="행 추가"
               onClick={handleAddRow}
-              style={{ padding: "4px 10px", fontSize: "12px" }}
             >
-              + 행 추가
-            </Button>
+              <Svg type="plus" width="20px" height="20px" />
+            </button>
           )}
           <div style={{ position: "relative" }}>
-            <Button
-              type="ghost"
+            <button
+              type="button"
+              className={`${style.formCardIconBtn} ${
+                showColumnSettings ? style.formCardIconBtnActive : ""
+              }`}
+              title="컬럼 설정"
               onClick={() => setShowColumnSettings(!showColumnSettings)}
-              style={{ padding: "4px 10px", fontSize: "12px" }}
             >
-              컬럼 설정
-            </Button>
+              <Svg type="settings" width="20px" height="20px" />
+            </button>
             {showColumnSettings && (
               <div className={style.columnSettingsDropdown}>
                 {allVisibleFields.map((f) => (
@@ -1101,20 +1142,22 @@ const AltSheetView = ({
           </div>
           {canManage && (
             <>
-              <Button
-                type="ghost"
+              <button
+                type="button"
+                className={style.formCardIconBtn}
+                title="CSV 다운로드"
                 onClick={handleCsvDownload}
-                style={{ padding: "4px 10px", fontSize: "12px" }}
               >
-                CSV 다운로드
-              </Button>
-              <Button
-                type="ghost"
+                <Svg type="download" width="20px" height="20px" />
+              </button>
+              <button
+                type="button"
+                className={style.formCardIconBtn}
+                title="CSV 업로드"
                 onClick={() => csvFileRef.current?.click()}
-                style={{ padding: "4px 10px", fontSize: "12px" }}
               >
-                CSV 업로드
-              </Button>
+                <Svg type="upload" width="20px" height="20px" />
+              </button>
               <input
                 ref={csvFileRef}
                 type="file"

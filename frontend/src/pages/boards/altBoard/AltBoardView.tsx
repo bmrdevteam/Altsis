@@ -6,8 +6,11 @@ import { TAltForm } from "types/altForm";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAppPrefix } from "hooks/useAppPrefix";
+import { useAppNavigate } from "hooks/useAppNavigate";
 import { copyClipBoard } from "functions/functions";
 import Tab from "components/tab/Tab";
+import Button from "components/button/Button";
+import Popup from "components/popup/Popup";
 import AltFormList from "./AltFormList";
 import AltFormBuilder from "./AltFormBuilder";
 import AltFormRenderer from "./AltFormRenderer";
@@ -26,9 +29,13 @@ const AltBoardView = ({ board, embedded }: Props) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const prefix = useAppPrefix();
+  const navigate = useAppNavigate();
 
   const [forms, setForms] = useState<TAltForm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [linkCopiedMessage, setLinkCopiedMessage] = useState<string | null>(
+    null
+  );
 
   // 채팅 뱃지
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
@@ -185,22 +192,44 @@ const AltBoardView = ({ board, embedded }: Props) => {
     const id = formId || "new";
     setBuilderFormId(id);
     setRendererFormId(null);
-    if (!embedded) setSearchParams({ form: id, mode: "edit" }, { replace: true });
+    if (!embedded) {
+      navigate(`/boards/${board._id}?form=${id}&mode=edit`, { replace: true });
+    }
   };
 
   // Form renderer 열기
   const handleOpenRenderer = (formId: string) => {
     setRendererFormId(formId);
     setBuilderFormId(null);
-    if (!embedded) setSearchParams({ form: formId, mode: "respond" }, { replace: true });
+    if (!embedded) {
+      navigate(`/boards/${board._id}?form=${formId}&mode=respond`, {
+        replace: true,
+      });
+    }
   };
 
-  // 빌더/렌더러에서 목록으로 복귀
+  // 빌더/렌더러에서 양식 탭으로 복귀
   const handleBackToList = () => {
     setBuilderFormId(null);
     setRendererFormId(null);
-    if (!embedded) setSearchParams({}, { replace: true });
+    if (!embedded) {
+      navigate(`/boards/${board._id}#양식`, { replace: true });
+    }
     loadForms();
+  };
+
+  // 기록 상세에서 기록 탭으로 복귀
+  const handleBackToSheetList = () => {
+    if (!embedded) {
+      navigate(`/boards/${board._id}#기록`, { replace: true });
+    }
+  };
+
+  // 기록 상세 열기
+  const handleOpenSheet = (formId: string) => {
+    if (!embedded) {
+      navigate(`/boards/${board._id}?sheet=${formId}#기록`, { replace: true });
+    }
   };
 
   // Form 클릭 핸들러
@@ -215,34 +244,67 @@ const AltBoardView = ({ board, embedded }: Props) => {
   // 링크 복사 핸들러
   const handleCopyFormLink = (formId: string) => {
     const url = `${window.location.origin}${prefix}/boards/${board._id}?form=${formId}`;
-    copyClipBoard(url).then(() => {
-      alert("양식 링크가 복사되었습니다.");
+    copyClipBoard(url).then((result) => {
+      setLinkCopiedMessage(
+        typeof result === "string"
+          ? "양식 링크가 복사되었습니다."
+          : "링크 복사에 실패했습니다."
+      );
     });
   };
 
   const handleCopySheetLink = (formId: string) => {
     const url = `${window.location.origin}${prefix}/boards/${board._id}?sheet=${formId}#기록`;
-    copyClipBoard(url).then(() => {
-      alert("기록 링크가 복사되었습니다.");
+    copyClipBoard(url).then((result) => {
+      setLinkCopiedMessage(
+        typeof result === "string"
+          ? "기록 링크가 복사되었습니다."
+          : "링크 복사에 실패했습니다."
+      );
     });
   };
+
+  const linkCopiedPopup = linkCopiedMessage ? (
+    <Popup
+      title="알림"
+      setState={(v: boolean) => {
+        if (!v) setLinkCopiedMessage(null);
+      }}
+      closeBtn
+      style={{ maxWidth: "360px", width: "100%" }}
+      footer={
+        <Button type="ghost" onClick={() => setLinkCopiedMessage(null)}>
+          확인
+        </Button>
+      }
+    >
+      <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
+        {linkCopiedMessage}
+      </div>
+    </Popup>
+  ) : null;
 
   // 빌더 모드
   if (builderFormId) {
     return (
-      <AltFormBuilder
-        board={board}
-        formId={builderFormId === "new" ? undefined : builderFormId}
-        onBack={handleBackToList}
-        onRespondForm={handleOpenRenderer}
-        onCopyFormLink={handleCopyFormLink}
-        onFormCreated={(id) => {
-          setBuilderFormId(id);
-          if (!embedded) {
-            setSearchParams({ form: id, mode: "edit" }, { replace: true });
-          }
-        }}
-      />
+      <>
+        <AltFormBuilder
+          board={board}
+          formId={builderFormId === "new" ? undefined : builderFormId}
+          onBack={handleBackToList}
+          onRespondForm={handleOpenRenderer}
+          onCopyFormLink={handleCopyFormLink}
+          onFormCreated={(id) => {
+            setBuilderFormId(id);
+            if (!embedded) {
+              navigate(`/boards/${board._id}?form=${id}&mode=edit`, {
+                replace: true,
+              });
+            }
+          }}
+        />
+        {linkCopiedPopup}
+      </>
     );
   }
 
@@ -254,6 +316,25 @@ const AltBoardView = ({ board, embedded }: Props) => {
         formId={rendererFormId}
         onBack={handleBackToList}
       />
+    );
+  }
+
+  // 기록 상세 모드 (양식 관리와 같이 탭 밖 전체 화면)
+  if (urlSheetId) {
+    return (
+      <>
+        <AltSheetView
+          board={board}
+          forms={forms}
+          canManage={canManage}
+          canDeleteAnyRow={canDeleteAnyRow}
+          initialFormId={urlSheetId}
+          onFormSelect={handleOpenSheet}
+          onFormDeselect={handleBackToSheetList}
+          onCopySheetLink={handleCopySheetLink}
+        />
+        {linkCopiedPopup}
+      </>
     );
   }
 
@@ -281,21 +362,9 @@ const AltBoardView = ({ board, embedded }: Props) => {
           forms={forms}
           canManage={canManage}
           canDeleteAnyRow={canDeleteAnyRow}
-          initialFormId={urlSheetId || undefined}
-          onFormSelect={(formId) => {
-            if (!embedded) setSearchParams({ sheet: formId }, { replace: true });
-          }}
-          onFormDeselect={() => {
-            if (!embedded) {
-              setSearchParams(
-                (prev) => {
-                  prev.delete("sheet");
-                  return prev;
-                },
-                { replace: true }
-              );
-            }
-          }}
+          initialFormId={undefined}
+          onFormSelect={handleOpenSheet}
+          onFormDeselect={handleBackToSheetList}
           onCopySheetLink={handleCopySheetLink}
         />
       </div>
@@ -315,14 +384,17 @@ const AltBoardView = ({ board, embedded }: Props) => {
   }
 
   return (
-    <Tab
-      items={tabItems}
-      align="center"
-      dontUsePaths={embedded}
-      defaultTab={urlSheetId ? "기록" : undefined}
-      badges={isChatEnabled ? { "채팅": chatUnreadCount } : undefined}
-      onTabChange={handleTabChange}
-    />
+    <>
+      <Tab
+        items={tabItems}
+        align="center"
+        dontUsePaths={embedded}
+        defaultTab={undefined}
+        badges={isChatEnabled ? { "채팅": chatUnreadCount } : undefined}
+        onTabChange={handleTabChange}
+      />
+      {linkCopiedPopup}
+    </>
   );
 };
 

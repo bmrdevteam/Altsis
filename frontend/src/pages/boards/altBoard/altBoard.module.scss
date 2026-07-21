@@ -23,9 +23,17 @@
   background: none;
   border-radius: 4px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 
   &:hover {
     color: var(--text-color-1);
+  }
+
+  svg {
+    fill: currentColor;
   }
 }
 
@@ -113,21 +121,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 4px;
   border: none;
   background: none;
   cursor: pointer;
-  color: var(--text-color-2);
+  color: var(--accent-3);
   border-radius: 6px;
   transition: background 0.15s, color 0.15s;
 
   svg {
-    fill: currentColor;
+    fill: var(--accent-3);
+    pointer-events: none;
   }
 
   &:hover:not(:disabled) {
     background: var(--background-color-2);
-    color: var(--text-color-1);
+    color: var(--accent-1);
+
+    svg {
+      fill: var(--accent-1);
+    }
   }
 
   &:disabled {
@@ -139,9 +152,17 @@
 .formCardIconBtnDirty {
   color: var(--status-error);
 
+  svg {
+    fill: var(--status-error);
+  }
+
   &:hover:not(:disabled) {
     color: var(--status-error);
     background: var(--background-color-2);
+
+    svg {
+      fill: var(--status-error);
+    }
   }
 
   &:disabled {
@@ -153,13 +174,26 @@
   &:hover:not(:disabled) {
     color: var(--status-error);
     background: var(--status-error-bg);
+
+    svg {
+      fill: var(--status-error);
+    }
+  }
+}
+
+.formCardIconBtnActive {
+  color: var(--accent-1);
+  background: var(--background-color-2);
+
+  svg {
+    fill: var(--accent-1);
   }
 }
 
 .builderHeaderActions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 12px;
 }
 
 .formActionMenu {
@@ -249,16 +283,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 4px;
   border: none;
   background: none;
   cursor: pointer;
-  color: var(--text-color-2);
+  color: var(--accent-3);
   border-radius: 6px;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
+
+  svg {
+    fill: var(--accent-3);
+  }
 
   &:hover {
     background: var(--background-color-2);
+    color: var(--accent-1);
+
+    svg {
+      fill: var(--accent-1);
+    }
   }
 }
 
@@ -1183,7 +1226,31 @@
 .sheetContainer {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+
+  > .builderHeader {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+    margin-bottom: 4px;
+  }
+}
+
+.sheetHeaderTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sheetHeaderTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sheetFormSelector {
@@ -2082,33 +2149,8 @@
 
 .viewModeToggle {
   display: flex;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  overflow: hidden;
-
-  button {
-    border: none;
-    background: none;
-    padding: 4px 8px;
-    font-size: 14px;
-    cursor: pointer;
-    color: var(--text-color-2);
-    transition: all 0.15s;
-    line-height: 1;
-
-    &:hover {
-      background: var(--background-hover-color, var(--background-color-2));
-    }
-
-    &:not(:last-child) {
-      border-right: 1px solid var(--border-color);
-    }
-  }
-}
-
-.viewModeActive {
-  background: var(--accent-1) !important;
-  color: #fff !important;
+  align-items: center;
+  gap: 12px;
 }
 
 /* ─── Document View (기록 문서 보기) ─── */

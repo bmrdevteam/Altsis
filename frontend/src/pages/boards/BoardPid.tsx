@@ -39,8 +39,9 @@ const BoardPid = () => {
   const [showManagePopup, setShowManagePopup] = useState(false);
   const [showMemberListPopup, setShowMemberListPopup] = useState(false);
 
-  // 양식 응답/편집 화면에서는 보드 상단바 숨김 (자체 뒤로가기 헤더 사용)
-  const hideBoardHeader = searchParams.has("form");
+  // 양식 응답/편집·기록 상세 화면에서는 보드 상단바 숨김
+  const hideBoardHeader =
+    searchParams.has("form") || searchParams.has("sheet");
 
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
