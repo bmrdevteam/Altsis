@@ -81,6 +81,7 @@ const Popup = (props: Props) => {
    */
   return (
     <div
+      data-editor-popup
       style={{
         position: "fixed",
         top: 0,

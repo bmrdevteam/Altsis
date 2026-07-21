@@ -26,6 +26,7 @@ import TipTapToolbar from "./TipTapToolbar";
 import TableBubbleMenu from "./TableBubbleMenu";
 import EmbedDialog from "./EmbedDialog";
 import ImageInsertDialog from "./ImageInsertDialog";
+import YouTubeInsertDialog from "./YouTubeInsertDialog";
 import MarkdownViewer from "./MarkdownViewer";
 import {
   postprocessMarkdown,
@@ -74,6 +75,7 @@ const MarkdownEditor = ({
   const [viewMode, setViewMode] = useState<ViewMode>("wysiwyg");
   const [showEmbedDialog, setShowEmbedDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showYouTubeDialog, setShowYouTubeDialog] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const isInternalUpdate = useRef(false);
   const viewModeRef = useRef(viewMode);
@@ -365,6 +367,7 @@ const MarkdownEditor = ({
             editor={editor}
             onEmbedClick={() => setShowEmbedDialog(true)}
             onImageClick={() => setShowImageDialog(true)}
+            onYouTubeClick={() => setShowYouTubeDialog(true)}
           />
           {toolbarExtra}
         </div>
@@ -418,6 +421,16 @@ const MarkdownEditor = ({
           }}
           onClose={() => setShowImageDialog(false)}
           onImageUpload={onImageUpload}
+        />
+      )}
+      {showYouTubeDialog && (
+        <YouTubeInsertDialog
+          onSubmit={(src) => {
+            if (editor) {
+              editor.chain().focus().setYoutubeVideo({ src }).run();
+            }
+          }}
+          onClose={() => setShowYouTubeDialog(false)}
         />
       )}
     </div>

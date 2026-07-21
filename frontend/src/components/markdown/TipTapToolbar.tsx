@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Editor } from "@tiptap/react";
 import Svg from "assets/svg/Svg";
-import { extractYouTubeId } from "./extensions/youtube";
 import ColorDropdown from "./ColorDropdown";
 import style from "./markdown.module.scss";
 
@@ -9,9 +8,15 @@ type Props = {
   editor: Editor | null;
   onEmbedClick: () => void;
   onImageClick: () => void;
+  onYouTubeClick: () => void;
 };
 
-const TipTapToolbar = ({ editor, onEmbedClick, onImageClick }: Props) => {
+const TipTapToolbar = ({
+  editor,
+  onEmbedClick,
+  onImageClick,
+  onYouTubeClick,
+}: Props) => {
   const [activeDropdown, setActiveDropdown] = useState<"textColor" | "highlight" | null>(null);
 
   if (!editor) return null;
@@ -29,25 +34,6 @@ const TipTapToolbar = ({ editor, onEmbedClick, onImageClick }: Props) => {
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
-  const handleYouTubeInsert = () => {
-    const url = prompt(
-      "YouTube URL을 입력하세요:\n(예: https://www.youtube.com/watch?v=VIDEO_ID)"
-    );
-    if (!url) return;
-
-    const videoId = extractYouTubeId(url);
-    if (videoId) {
-      editor
-        .chain()
-        .focus()
-        .setYoutubeVideo({
-          src: `https://www.youtube.com/watch?v=${videoId}`,
-        })
-        .run();
-    } else {
-      alert("유효한 YouTube URL이 아닙니다.");
-    }
-  };
 
   const handleTableInsert = () => {
     editor
@@ -172,7 +158,7 @@ const TipTapToolbar = ({ editor, onEmbedClick, onImageClick }: Props) => {
     {
       icon: "youtube",
       title: "YouTube",
-      action: handleYouTubeInsert,
+      action: onYouTubeClick,
     },
     {
       icon: "htmlEmbed",
