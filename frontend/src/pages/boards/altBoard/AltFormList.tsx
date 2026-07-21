@@ -174,7 +174,10 @@ const AltFormList = ({
                 >
                   {status.label}
                 </span>
-                <span>{form.fields.length}개 항목</span>
+                <span>
+                  {form.fields.filter((f) => f.type !== "content").length}개
+                  항목
+                </span>
                 <span>{formatDate(form.createdAt)}</span>
                 {form.settings.closeAt && (
                   <span>마감: {formatDate(form.settings.closeAt)}</span>

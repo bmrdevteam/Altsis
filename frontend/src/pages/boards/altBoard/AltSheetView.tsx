@@ -10,6 +10,7 @@ import Svg from "assets/svg/Svg";
 import DateRangeFilterDropdown, {
   DateRange,
 } from "components/dateRangeFilter/DateRangeFilterDropdown";
+import { MarkdownEditor, MarkdownViewer } from "components/markdown";
 
 type Props = {
   board: TBoard;
@@ -137,6 +138,12 @@ const AltSheetView = ({
         setIsLoading(false);
       });
   }, [selectedFormId]);
+
+  const truncatePreview = (text: string, max = 80): string => {
+    const plain = text.replace(/\s+/g, " ").trim();
+    if (plain.length <= max) return plain;
+    return `${plain.slice(0, max)}…`;
+  };
 
   const formatCellValue = (value: any, field?: TAltFormField): string => {
     if (value === null || value === undefined) return "";
@@ -769,6 +776,19 @@ const AltSheetView = ({
               rows={4}
             />
           );
+        case "docResponse":
+          return (
+            <div className={style.docResponseField}>
+              <MarkdownEditor
+                value={value ?? ""}
+                onChange={(md) =>
+                  setDocEditData((p) => ({ ...p, [field._id]: md }))
+                }
+                placeholder="문서 응답을 편집하세요."
+                minHeight="200px"
+              />
+            </div>
+          );
         case "number":
           return (
             <input
@@ -840,6 +860,14 @@ const AltSheetView = ({
       return (
         <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.6 }}>
           {String(value)}
+        </div>
+      );
+    }
+
+    if (field.type === "docResponse") {
+      return (
+        <div className={style.contentFieldBody}>
+          <MarkdownViewer content={String(value)} />
         </div>
       );
     }
@@ -1545,26 +1573,46 @@ const AltSheetView = ({
                     );
                   }
 
-                  const cellValue = formatCellValue(
-                    row.data[field._id],
-                    field
-                  );
+                  const rawValue = row.data[field._id];
+                  const cellValue = formatCellValue(rawValue, field);
+                  const displayValue =
+                    field.type === "docResponse" && cellValue
+                      ? truncatePreview(cellValue)
+                      : cellValue;
                   const isEditing =
                     editingCell?.rowId === row._id &&
                     editingCell?.fieldId === field._id;
                   const canEdit = canDeleteAnyRow;
+                  const editSource =
+                    field.type === "docResponse"
+                      ? String(rawValue ?? "")
+                      : cellValue;
 
                   return (
                     <td
                       key={field._id}
-                      onClick={canEdit && !isEditing ? () => handleCellClick(row._id, field, cellValue) : undefined}
+                      onClick={
+                        canEdit && !isEditing
+                          ? () => handleCellClick(row._id, field, editSource)
+                          : undefined
+                      }
                       className={[
                         canEdit ? style.cellEditable : "",
-                        field.type === "textarea" ? style.cellTextarea : "",
-                      ].filter(Boolean).join(" ") || undefined}
+                        field.type === "textarea" || field.type === "docResponse"
+                          ? style.cellTextarea
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || undefined}
+                      title={
+                        field.type === "docResponse" && cellValue
+                          ? cellValue
+                          : undefined
+                      }
                     >
                       {isEditing ? (
-                        field.type === "textarea" ? (
+                        field.type === "textarea" ||
+                        field.type === "docResponse" ? (
                           <textarea
                             className={style.cellInput}
                             value={editValue}
@@ -1588,7 +1636,7 @@ const AltSheetView = ({
                           />
                         )
                       ) : (
-                        cellValue || ""
+                        displayValue || ""
                       )}
                     </td>
                   );

@@ -68,6 +68,22 @@ async function rollbackDupCounters(academyId, formId, keys) {
 }
 
 /**
+ * docResponse: 필수면 비어 있으면 거부, 필수+템플릿과 동일하면 거부
+ * @returns {string|null} 오류 메시지 또는 null
+ */
+function validateDocResponseField(field, value) {
+  const template = (field.content ?? "").trim();
+  const answer = typeof value === "string" ? value.trim() : "";
+  if (field.required && !answer) {
+    return `필수 항목을 입력해주세요: ${field.label}`;
+  }
+  if (field.required && template && answer === template) {
+    return `템플릿을 수정한 뒤 제출해 주세요: ${field.label}`;
+  }
+  return null;
+}
+
+/**
  * @memberof APIs.AltSheetRowAPI
  * @function CAltSheetRow API
  * @description Form 응답 제출 (= Sheet에 행 추가)
@@ -115,6 +131,19 @@ export const create = async (req, res) => {
           (f) => f.permission === "respondent" && f.type !== "content"
         );
         for (const field of respondentFields) {
+          if (field.type !== "docResponse") continue;
+          if (!isFieldVisible(field, req.body.data)) continue;
+          const fieldId = field._id.toString();
+          const value =
+            fieldId in req.body.data
+              ? req.body.data[fieldId]
+              : existing.data.get(fieldId);
+          const docError = validateDocResponseField(field, value);
+          if (docError) {
+            return res.status(400).send({ message: docError });
+          }
+        }
+        for (const field of respondentFields) {
           const fieldId = field._id.toString();
           if (fieldId in req.body.data) {
             existing.data.set(fieldId, req.body.data[fieldId]);
@@ -145,11 +174,18 @@ export const create = async (req, res) => {
       }
     }
 
-    // 유효성 검사: 보이는 필수 필드만 확인
+    // 유효성 검사: 보이는 필수 필드 + docResponse 템플릿 수정 여부
     for (const field of respondentFields) {
-      if (!field.required) continue;
       if (!isFieldVisible(field, req.body.data)) continue;
       const value = data[field._id.toString()];
+      if (field.type === "docResponse") {
+        const docError = validateDocResponseField(field, value);
+        if (docError) {
+          return res.status(400).send({ message: docError });
+        }
+        continue;
+      }
+      if (!field.required) continue;
       if (value === undefined || value === null || value === "") {
         return res
           .status(400)

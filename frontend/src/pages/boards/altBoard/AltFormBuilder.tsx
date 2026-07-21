@@ -50,6 +50,7 @@ const FIELD_TYPE_LABELS: Record<TAltFormFieldType, string> = {
   approval: "승인",
   link: "링크",
   content: "문서",
+  docResponse: "문서 응답",
 };
 
 const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
@@ -60,6 +61,7 @@ const FIELD_TYPE_GROUPS: { label: string; types: TAltFormFieldType[] }[] = [
     label: "특수",
     types: [
       "content",
+      "docResponse",
       "rating",
       "scale",
       "counter",
@@ -91,7 +93,7 @@ const createEmptyField = (
   type: TAltFormFieldType = "text"
 ): TAltFormField => ({
   _id: crypto.randomUUID(),
-  label: type === "content" ? "" : "",
+  label: "",
   type,
   permission: "respondent",
   visibleToRespondent: false,
@@ -99,7 +101,8 @@ const createEmptyField = (
   options: ["select", "multiSelect", "radio"].includes(type)
     ? ["옵션 1", "옵션 2"]
     : [],
-  content: type === "content" ? "" : undefined,
+  content:
+    type === "content" || type === "docResponse" ? "" : undefined,
   order: 0,
 });
 
@@ -814,6 +817,28 @@ const AltFormBuilder = ({
             />
           </div>
         );
+      case "docResponse":
+        return (
+          <div style={{ marginTop: "8px" }}>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginBottom: "8px",
+              }}
+            >
+              응답자에게 미리 채워지는 템플릿입니다. 필수 항목일 때만 템플릿을
+              수정한 뒤에 제출할 수 있으며, 편집한 마크다운이 응답값으로
+              저장됩니다.
+            </div>
+            <MarkdownEditor
+              value={field.content ?? ""}
+              onChange={(md) => updateField(fieldIndex, { content: md })}
+              placeholder="응답 템플릿을 마크다운으로 작성하세요."
+              minHeight="220px"
+            />
+          </div>
+        );
       case "rating":
         return (
           <div
@@ -1347,7 +1372,13 @@ const AltFormBuilder = ({
       <div className={style.fieldEditHeader}>
         <input
           className={style.gfLabelInput}
-          placeholder={field.type === "content" ? "문서 제목 (선택)" : "질문"}
+          placeholder={
+            field.type === "content"
+              ? "문서 제목 (선택)"
+              : field.type === "docResponse"
+                ? "문서 응답 제목"
+                : "질문"
+          }
           value={field.label}
           onChange={(e) => updateField(index, { label: e.target.value })}
         />
@@ -1356,11 +1387,14 @@ const AltFormBuilder = ({
           value={field.type}
           onChange={(e) => {
             const nextType = e.target.value as TAltFormFieldType;
+            const usesContentTemplate =
+              nextType === "content" || nextType === "docResponse";
             updateField(index, {
               type: nextType,
               required: nextType === "content" ? false : field.required,
-              content:
-                nextType === "content" ? field.content ?? "" : field.content,
+              content: usesContentTemplate
+                ? field.content ?? ""
+                : field.content,
               options:
                 needsOptions(nextType) &&
                 (!field.options || field.options.length === 0)
@@ -1566,6 +1600,15 @@ const AltFormBuilder = ({
         title="문서"
       >
         <MI icon="article" size={22} />
+      </button>
+      <button
+        type="button"
+        className={style.toolbarBtn}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => addFieldAtIndex(index + 1, "docResponse")}
+        title="문서 응답"
+      >
+        <MI icon="edit_note" size={22} />
       </button>
       <button
         type="button"
@@ -1909,7 +1952,9 @@ const AltFormBuilder = ({
                           {field.label ||
                             (field.type === "content"
                               ? "(문서)"
-                              : "(이름 없음)")}
+                              : field.type === "docResponse"
+                                ? "(문서 응답)"
+                                : "(이름 없음)")}
                           {field.required && (
                             <span className={style.requiredMark}> *</span>
                           )}

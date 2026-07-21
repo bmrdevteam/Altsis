@@ -12,7 +12,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
-import { MarkdownViewer } from "components/markdown";
+import { MarkdownEditor, MarkdownViewer } from "components/markdown";
 
 type Props = {
   board: TBoard;
@@ -91,6 +91,21 @@ const isFieldVisible = (
   return dc.conditions.every((c) => evaluateCondition(c, data));
 };
 
+/** 새/빈 응답의 docResponse 필드만 현재 템플릿으로 초기화 (기존 제출값 유지) */
+const withDocResponseDefaults = (
+  fields: TAltFormField[],
+  existing: Record<string, any> = {}
+): Record<string, any> => {
+  const next = { ...existing };
+  for (const field of fields) {
+    if (field.type !== "docResponse") continue;
+    if (next[field._id] === undefined || next[field._id] === null) {
+      next[field._id] = field.content ?? "";
+    }
+  }
+  return next;
+};
+
 const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentSchool, currentRegistration } = useAuth();
@@ -143,11 +158,14 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
         if (row) {
           if (loadedForm.settings.allowMultipleResponses) {
             // 다중 응답: 항상 빈 폼 유지 (이전 응답 불러오지 않음)
+            setData(withDocResponseDefaults(loadedForm.fields));
           } else {
             setMyRow(row);
-            setData(row.data || {});
+            setData(withDocResponseDefaults(loadedForm.fields, row.data || {}));
             setIsSubmitted(true);
           }
+        } else {
+          setData(withDocResponseDefaults(loadedForm.fields));
         }
 
         // counter 필드 카운트 로드
@@ -294,7 +312,18 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
       const value = data[field._id];
 
-      if (field.required) {
+      if (field.type === "docResponse") {
+        const template = (field.content ?? "").trim();
+        const answer = String(value ?? field.content ?? "").trim();
+        if (field.required && !answer) {
+          newErrors[field._id] = "필수 항목입니다.";
+          continue;
+        }
+        if (field.required && template && answer === template) {
+          newErrors[field._id] = "템플릿을 수정한 뒤 제출해 주세요.";
+          continue;
+        }
+      } else if (field.required) {
         if (field.type === "file") {
           if (!Array.isArray(value) || value.length === 0) {
             newErrors[field._id] = "파일을 업로드해주세요.";
@@ -369,19 +398,20 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
     setIsSubmitting(true);
     try {
+      const submitData = withDocResponseDefaults(form.fields, data);
       const { row } = await AltSheetRowAPI.CAltSheetRow({
-        data: { form: form._id, data },
+        data: { form: form._id, data: submitData },
       });
 
       if (form.settings.allowMultipleResponses) {
         // 다중 응답: 제출 후 완전 초기화
         alert("응답이 제출되었습니다.");
         setMyRow(null);
-        setData({});
+        setData(withDocResponseDefaults(form.fields));
         setIsSubmitted(false);
       } else {
         setMyRow(row);
-        setData(row.data || data);
+        setData(withDocResponseDefaults(form.fields, row.data || submitData));
         setIsSubmitted(true);
       }
     } catch (err) {
@@ -392,13 +422,13 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   };
 
   const handleWithdraw = async () => {
-    if (!myRow) return;
+    if (!myRow || !form) return;
     if (!window.confirm("응답을 철회하시겠습니까?")) return;
 
     try {
       await AltSheetRowAPI.DAltSheetRow({ params: { _id: myRow._id } });
       setMyRow(null);
-      setData({});
+      setData(withDocResponseDefaults(form.fields));
       setIsSubmitted(false);
     } catch (err) {
       ALERT_ERROR(err);
@@ -458,6 +488,27 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
             disabled={disabled}
           />
         );
+
+      case "docResponse": {
+        const docValue = data[field._id] ?? field.content ?? "";
+        if (disabled) {
+          return (
+            <div className={style.contentFieldBody}>
+              <MarkdownViewer content={docValue} />
+            </div>
+          );
+        }
+        return (
+          <div className={style.docResponseField}>
+            <MarkdownEditor
+              value={docValue}
+              onChange={(md) => setValue(field._id, md)}
+              placeholder="템플릿을 편집하여 응답을 작성하세요."
+              minHeight="220px"
+            />
+          </div>
+        );
+      }
 
       case "number":
         return (

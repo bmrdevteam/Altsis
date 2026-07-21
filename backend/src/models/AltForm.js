@@ -51,6 +51,7 @@ const altFormFieldSchema = mongoose.Schema({
       "approval",
       "link",
       "content",
+      "docResponse",
     ],
     required: true,
   },
@@ -63,7 +64,7 @@ const altFormFieldSchema = mongoose.Schema({
   required: { type: Boolean, default: false },
   options: { type: [String], default: undefined },
   validation: { type: mongoose.Schema.Types.Mixed },
-  /** content 타입 전용 마크다운 본문 */
+  /** content: 읽기 전용 안내 / docResponse: 응답 템플릿 마크다운 */
   content: { type: String, default: "" },
   order: { type: Number, default: 0 },
 
