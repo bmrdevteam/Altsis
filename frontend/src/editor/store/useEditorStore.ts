@@ -6,8 +6,6 @@ import {
   BlockType,
   CellData,
   CellPosition,
-  CellRange,
-  CellType,
   EditorBlock,
   EditorStore,
   FormType,
@@ -433,20 +431,6 @@ const useEditorStore = create<EditorStore>()(
           }
         }
       });
-    },
-
-    changeCellType: (blockId, row, col, newType) => {
-      set((state) => {
-        const block = state.blocks.find((b) => b.id === blockId);
-        if (block && block.type === "table") {
-          const tableData = block.data as TableBlockData;
-          const cell = tableData.table?.[row]?.[col];
-          if (cell) {
-            cell.type = newType;
-          }
-        }
-      });
-      get().saveSnapshot();
     },
 
     setCellColumn: (blockId, colIndex, ratio) => {

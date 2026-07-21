@@ -7,7 +7,7 @@ import ToggleSwitch from "../../../../components/toggleSwitch/ToggleSwitch";
 import style from "../../../editor.module.scss";
 import useEditorStore from "../../../store/useEditorStore";
 import useGenerateId from "../../../../hooks/useGenerateId";
-import { TableBlockData, TextAlign } from "../../../types";
+import { CellType, TableBlockData, TextAlign } from "../../../types";
 import Menu from "../Menu";
 import SubSection from "../SubSection";
 import DataConnPopup from "../DataConnPopup";
@@ -246,15 +246,39 @@ const TableCellPanel = () => {
     }
   };
 
+  const applyCellTypeChange = (newType: CellType) => {
+    if (cellRange) {
+      const positions = useEditorStore.getState().getSelectedCells();
+      useEditorStore.setState((state) => {
+        const block = state.blocks.find((b) => b.id === blockId);
+        if (!block || block.type !== "table") return;
+        const td = block.data as TableBlockData;
+        for (const pos of positions) {
+          const c = td.table?.[pos.row]?.[pos.col];
+          if (!c) continue;
+          c.type = newType;
+          if (newType === "select" && !isArray(c.options)) {
+            c.options = [];
+          }
+        }
+      });
+      useEditorStore.getState().saveSnapshot();
+      return;
+    }
+
+    const patch: Record<string, any> = { type: newType };
+    if (newType === "select" && !isArray(cell?.options)) {
+      patch.options = [];
+    }
+    updateCellProp(patch);
+  };
+
   // --- Derived values based on active tab ---
   const isTable = activeTab === "table";
 
   const currentFontFamily = isTable
     ? (data.fontFamily ?? "Pretendard")
     : (cell?.fontFamily ?? data.fontFamily ?? "Pretendard");
-  const currentAlign = isTable
-    ? data.align
-    : (cell?.align ?? data.align);
   const currentFontWeight = isTable
     ? (data.fontWeight ?? 400)
     : (cell?.fontWeight ?? data.fontWeight ?? 400);
@@ -796,7 +820,9 @@ const TableCellPanel = () => {
               <label>타입</label>
               <select
                 value={cell.type}
-                onChange={(e) => updateCellProp({ type: e.target.value })}
+                onChange={(e) =>
+                  applyCellTypeChange(e.target.value as CellType)
+                }
                 style={{
                   height: "28px",
                   fontSize: "12px",
@@ -821,10 +847,11 @@ const TableCellPanel = () => {
             {cell.type === "checkbox" && (
               <>
                 <div className={style.grid_item}>
-                  <label>이름</label>
+                  <label>표시 이름</label>
                   <input
                     type="text"
                     value={cell.name ?? ""}
+                    placeholder="선택 사항"
                     onChange={(e) => updateCellProp({ name: e.target.value })}
                   />
                 </div>
@@ -906,10 +933,11 @@ const TableCellPanel = () => {
             {cell.type === "input" && (
               <>
                 <div className={style.grid_item}>
-                  <label>이름</label>
+                  <label>표시 이름</label>
                   <input
                     type="text"
                     value={cell.name ?? ""}
+                    placeholder="선택 사항"
                     onChange={(e) => updateCellProp({ name: e.target.value })}
                   />
                 </div>
@@ -937,10 +965,11 @@ const TableCellPanel = () => {
             {cell.type === "select" && (
               <div>
                 <div className={style.grid_item}>
-                  <label>이름</label>
+                  <label>표시 이름</label>
                   <input
                     type="text"
                     value={cell.name ?? ""}
+                    placeholder="선택 사항"
                     onChange={(e) => updateCellProp({ name: e.target.value })}
                   />
                 </div>
@@ -953,8 +982,10 @@ const TableCellPanel = () => {
                       <input
                         type="text"
                         value={value.text}
+                        placeholder="필드"
                         style={{ flex: 1 }}
                         onChange={(e) => {
+                          const nextText = e.target.value;
                           useEditorStore.setState((state) => {
                             const block = state.blocks.find(
                               (b) => b.id === blockId
@@ -966,15 +997,26 @@ const TableCellPanel = () => {
                               const opt = c?.options?.find(
                                 (o) => o.id === value.id
                               );
-                              if (opt) opt.text = e.target.value;
+                              if (opt) {
+                                // 값이 비어 있거나 이전 필드와 같으면 값도 함께 맞춤
+                                if (
+                                  !opt.value ||
+                                  opt.value === opt.text
+                                ) {
+                                  opt.value = nextText;
+                                }
+                                opt.text = nextText;
+                              }
                             }
                           });
+                          useEditorStore.getState().markDirty();
                         }}
                       />
                       <span>|</span>
                       <input
                         type="text"
                         value={value.value}
+                        placeholder="값"
                         style={{ flex: 1 }}
                         onChange={(e) => {
                           useEditorStore.setState((state) => {
@@ -991,6 +1033,7 @@ const TableCellPanel = () => {
                               if (opt) opt.value = e.target.value;
                             }
                           });
+                          useEditorStore.getState().markDirty();
                         }}
                       />
                       <span
@@ -1041,8 +1084,8 @@ const TableCellPanel = () => {
                           }
                           c.options.push({
                             id: generateId(12),
-                            text: "필드",
-                            value: "값",
+                            text: "",
+                            value: "",
                           });
                         }
                       }

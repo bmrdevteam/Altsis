@@ -81,7 +81,7 @@ export interface CellData extends StyleProps {
   isHeader?: boolean;
   colSpan?: number;
   rowSpan?: number;
-  // checkbox
+  // Display label for input/checkbox/select (optional). Storage key is always `id`.
   name?: string;
   checked?: boolean;
   timeRangeStart?: string;
@@ -310,12 +310,6 @@ export interface EditorActions {
     row: number,
     col: number,
     data: Partial<CellData>
-  ) => void;
-  changeCellType: (
-    blockId: string,
-    row: number,
-    col: number,
-    newType: CellType
   ) => void;
   setCellColumn: (blockId: string, colIndex: number, ratio: number) => void;
   addRow: (blockId: string, afterRow: number) => void;

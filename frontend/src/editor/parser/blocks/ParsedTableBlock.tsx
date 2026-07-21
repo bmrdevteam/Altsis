@@ -1,5 +1,5 @@
 import { useAuth } from "contexts/authContext";
-import _, { filter, forEach, isArray, isNumber, isObject } from "lodash";
+import _, { isArray, isNumber, isObject } from "lodash";
 import React, { useState } from "react";
 import style from "../../editor.module.scss";
 import useAPIv2 from "hooks/useAPIv2";
@@ -17,6 +17,33 @@ type Props = {
   dbData?: any;
   strictMode?: boolean;
 };
+
+/** 저장 키는 셀 id. 예전 name 키 값은 하위 호환으로만 읽음 */
+function readByCellKey(store: any, data: { id?: string; name?: string }) {
+  if (!store || !data) return undefined;
+  if (data.id != null && store[data.id] !== undefined) return store[data.id];
+  if (data.name != null && store[data.name] !== undefined) return store[data.name];
+  return undefined;
+}
+
+function writeByCellId(
+  store: any,
+  data: { id?: string; name?: string },
+  value: any
+) {
+  if (!store || !data?.id) return;
+  store[data.id] = value;
+  // 예전 name 키에 남아 있던 값과 혼선되지 않도록 정리
+  if (data.name && data.name !== data.id && data.name in store) {
+    delete store[data.name];
+  }
+}
+
+function deleteByCellId(store: any, data: { id?: string; name?: string }) {
+  if (!store || !data) return;
+  if (data.id != null) delete store[data.id];
+  if (data.name && data.name !== data.id) delete store[data.name];
+}
 
 const ParsedTableBlock = (props: Props) => {
   const { currentSchool } = useAuth();
@@ -307,7 +334,8 @@ const ParsedTableBlock = (props: Props) => {
             })}
           </div>
         );
-      case "input":
+      case "input": {
+        const inputValue = readByCellKey(props.returnData, data) ?? "";
         return props.auth === "edit" ? (
           <div
             className={`${style.cell} ${style.input}`}
@@ -315,26 +343,27 @@ const ParsedTableBlock = (props: Props) => {
             placeholder={data.placeholder ?? "입력"}
             contentEditable
             onClick={() => {}}
-            defaultValue={props.returnData[data?.name]}
+            defaultValue={inputValue}
             data-inputrequired={data.required}
             suppressContentEditableWarning
             onInput={(e) => {
-              if (data?.name === undefined) {
-                props.returnData[data?.id] = e.currentTarget.textContent;
-              } else {
-                props.returnData[data?.name] = e.currentTarget.textContent;
-              }
+              writeByCellId(
+                props.returnData,
+                data,
+                e.currentTarget.textContent
+              );
             }}
           >
-            {props.returnData[data?.name] ?? props.returnData[data?.id] ?? ""}
+            {inputValue}
           </div>
         ) : (
           <div>
             <div className={style.cell} style={{ textAlign: data.align }}>
-              {props.defaultValues?.[data?.name]}
+              {readByCellKey(props.defaultValues, data)}
             </div>
           </div>
         );
+      }
       case "select":
         return props.auth === "edit" ? (
           <div
@@ -344,15 +373,11 @@ const ParsedTableBlock = (props: Props) => {
             <select
               style={{ textAlign: data.align, fontSize: data.fontSize }}
               onChange={(e) => {
-                if (data?.name === undefined) {
-                  props.returnData[data?.id] = e.target.value;
-                } else {
-                  props.returnData[data?.name] = e.target.value;
-                }
+                writeByCellId(props.returnData, data, e.target.value);
               }}
-              defaultValue={props.defaultValues?.[data?.name]}
+              defaultValue={readByCellKey(props.defaultValues, data)}
             >
-              {data.options.map((val: any) => {
+              {(data.options ?? []).map((val: any) => {
                 return (
                   <option key={val.id} value={val.value}>
                     {val.text}
@@ -369,16 +394,12 @@ const ParsedTableBlock = (props: Props) => {
             <select
               style={{ textAlign: data.align, fontSize: data.fontSize }}
               onChange={(e) => {
-                if (data?.name === undefined) {
-                  props.returnData[data?.id] = e.target.value;
-                } else {
-                  props.returnData[data?.name] = e.target.value;
-                }
+                writeByCellId(props.returnData, data, e.target.value);
               }}
-              defaultValue={props.defaultValues?.[data?.name]}
+              defaultValue={readByCellKey(props.defaultValues, data)}
               disabled={true}
             >
-              {data.options.map((val: any) => {
+              {(data.options ?? []).map((val: any) => {
                 return (
                   <option key={val.id} value={val.value}>
                     {val.text}
@@ -388,11 +409,9 @@ const ParsedTableBlock = (props: Props) => {
             </select>
           </div>
         );
-      case "checkbox":
-        if (
-          props.defaultTimetable?.[data?.name] ||
-          props.defaultTimetable?.[data?.id]
-        ) {
+      case "checkbox": {
+        const timetableLabel = readByCellKey(props.defaultTimetable, data);
+        if (timetableLabel) {
           return (
             <div
               className={style.cell}
@@ -402,19 +421,17 @@ const ParsedTableBlock = (props: Props) => {
                 cursor: "pointer",
               }}
               onClick={() => {
-                if (props.onClickCourse && props.idTimetable?.[data?.id]) {
-                  props.onClickCourse(props.idTimetable?.[data?.id]);
-                }
-                if (props.onClickCourse && props.idTimetable?.[data?.name]) {
-                  props.onClickCourse(props.idTimetable?.[data?.name]);
+                const courseId = readByCellKey(props.idTimetable, data);
+                if (props.onClickCourse && courseId) {
+                  props.onClickCourse(courseId);
                 }
               }}
             >
-              {props.defaultTimetable?.[data?.name] ??
-                props.defaultTimetable?.[data?.id]}
+              {timetableLabel}
             </div>
           );
         }
+        const checkedValue = readByCellKey(props.defaultValues, data);
         return (
           <div
             className={style.cell}
@@ -423,48 +440,30 @@ const ParsedTableBlock = (props: Props) => {
             {props.auth === "edit" && (
               <input
                 type="checkbox"
-                defaultChecked={
-                  props.defaultValues?.[data?.id] === true ||
-                  props.defaultValues?.[data?.name]
-                }
+                defaultChecked={checkedValue === true || !!checkedValue}
                 disabled={props.strictMode}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    if (data?.name === undefined) {
-                      props.returnData[data?.id] = {
-                        label: data?.id,
-                      };
-                      if (props.type === "timetable") {
-                        Object.assign(props.returnData[data?.id], {
-                          day: table[0][colIndex]?.data?.text,
-                          start: data?.timeRangeStart ?? row[0]?.timeRangeStart,
-                          end: data?.timeRangeEnd ?? row[0]?.timeRangeEnd,
-                        });
-                      }
-                    } else {
-                      props.returnData[data?.name] = {
-                        label: data?.name,
-                      };
-                      if (props.type === "timetable") {
-                        Object.assign(props.returnData[data?.name], {
-                          day: table[0][colIndex]?.data?.text,
-                          start: data?.timeRangeStart ?? row[0]?.timeRangeStart,
-                          end: data?.timeRangeEnd ?? row[0]?.timeRangeEnd,
-                        });
-                      }
+                    const payload: Record<string, any> = {
+                      label: data?.name?.trim() || data?.id,
+                    };
+                    if (props.type === "timetable") {
+                      Object.assign(payload, {
+                        day: table[0][colIndex]?.data?.text,
+                        start: data?.timeRangeStart ?? row[0]?.timeRangeStart,
+                        end: data?.timeRangeEnd ?? row[0]?.timeRangeEnd,
+                      });
                     }
+                    writeByCellId(props.returnData, data, payload);
                   } else {
-                    if (data?.name === undefined) {
-                      delete props.returnData[data?.id];
-                    } else {
-                      delete props.returnData[data?.name];
-                    }
+                    deleteByCellId(props.returnData, data);
                   }
                 }}
               />
             )}
           </div>
         );
+      }
       case "timeRange":
         return (
           <div className={style.cell} style={{ textAlign: data.align }}>
