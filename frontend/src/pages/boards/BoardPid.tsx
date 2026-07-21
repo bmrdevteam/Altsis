@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -19,7 +19,6 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import style from "style/pages/enrollment.module.scss";
 import bStyle from "./boards.module.scss";
 
-import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 
 import { TBoard } from "types/board";
@@ -31,6 +30,7 @@ import AltBoardView from "./altBoard/AltBoardView";
 const BoardPid = () => {
   const navigate = useAppNavigate();
   const { boardId } = useParams<{ boardId: string }>();
+  const [searchParams] = useSearchParams();
   const { currentUser, currentRegistration } = useAuth();
   const { BoardAPI } = useAPIv2();
 
@@ -38,6 +38,9 @@ const BoardPid = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showManagePopup, setShowManagePopup] = useState(false);
   const [showMemberListPopup, setShowMemberListPopup] = useState(false);
+
+  // 양식 응답/편집 화면에서는 보드 상단바 숨김 (자체 뒤로가기 헤더 사용)
+  const hideBoardHeader = searchParams.has("form");
 
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
@@ -84,76 +87,78 @@ const BoardPid = () => {
   return (
     <>
       <div className={`${style.section} ${bStyle.page}`}>
-        {/* 보드 헤더 */}
-        <div className={bStyle.detailHeader}>
-          <div className={bStyle.detailHeaderLeft}>
-            <button
-              className={bStyle.iconBtn}
-              onClick={() => navigate("/boards")}
-              title="보드 목록"
-            >
-              <Svg type="chevronLeft" width="20px" height="20px" />
-            </button>
-            <div className={bStyle.detailTitleWrap}>
-              <div
-                className={style.title}
-                style={{
-                  margin: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
+        {/* 보드 헤더 (양식 응답/편집 중에는 숨김) */}
+        {!hideBoardHeader && (
+          <div className={bStyle.detailHeader}>
+            <div className={bStyle.detailHeaderLeft}>
+              <button
+                className={bStyle.iconBtn}
+                onClick={() => navigate("/boards")}
+                title="보드 목록"
               >
-                {board.coverColor && (
-                  <div
-                    className={bStyle.boardColorDot}
-                    style={{
-                      backgroundColor: board.coverColor,
-                      width: "12px",
-                      height: "12px",
-                    }}
-                  />
+                <Svg type="chevronLeft" width="20px" height="20px" />
+              </button>
+              <div className={bStyle.detailTitleWrap}>
+                <div
+                  className={style.title}
+                  style={{
+                    margin: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  {board.coverColor && (
+                    <div
+                      className={bStyle.boardColorDot}
+                      style={{
+                        backgroundColor: board.coverColor,
+                        width: "12px",
+                        height: "12px",
+                      }}
+                    />
+                  )}
+                  {board.name}
+                </div>
+                {board.description && (
+                  <p className={bStyle.detailDescription}>
+                    {board.description}
+                  </p>
                 )}
-                {board.name}
               </div>
-              {board.description && (
-                <p className={bStyle.detailDescription}>
-                  {board.description}
-                </p>
+            </div>
+
+            <div className={bStyle.detailHeaderRight}>
+              <button
+                className={bStyle.textBtn}
+                onClick={() => setShowMemberListPopup(true)}
+                title="멤버 보기"
+              >
+                <Svg type="user" width="16px" height="16px" />
+                멤버
+              </button>
+              {canManageBoard(board) && (
+                <button
+                  className={bStyle.iconBtn}
+                  onClick={() => setShowManagePopup(true)}
+                  title="보드 관리"
+                >
+                  <Svg type="settings" width="18px" height="18px" />
+                </button>
+              )}
+              {!canManageBoard(board) && !board.isDefault && (
+                <button
+                  className={bStyle.textBtn}
+                  onClick={handleLeaveBoard}
+                  title="보드 나가기"
+                >
+                  <Svg type="logout" width="16px" height="16px" />
+                  나가기
+                </button>
               )}
             </div>
           </div>
-
-          <div className={bStyle.detailHeaderRight}>
-            <button
-              className={bStyle.textBtn}
-              onClick={() => setShowMemberListPopup(true)}
-              title="멤버 보기"
-            >
-              <Svg type="user" width="16px" height="16px" />
-              멤버
-            </button>
-            {canManageBoard(board) && (
-              <button
-                className={bStyle.iconBtn}
-                onClick={() => setShowManagePopup(true)}
-                title="보드 관리"
-              >
-                <Svg type="settings" width="18px" height="18px" />
-              </button>
-            )}
-            {!canManageBoard(board) && !board.isDefault && (
-              <button
-                className={bStyle.textBtn}
-                onClick={handleLeaveBoard}
-                title="보드 나가기"
-              >
-                <Svg type="logout" width="16px" height="16px" />
-                나가기
-              </button>
-            )}
-          </div>
-        </div>
+        )}
 
         <AltBoardView board={board} />
       </div>
