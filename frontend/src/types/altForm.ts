@@ -15,7 +15,8 @@ export type TAltFormFieldType =
   | "scale"
   | "counter"
   | "approval"
-  | "link";
+  | "link"
+  | "content";
 
 export type TAltFormFieldPermission = "respondent" | "owner";
 
@@ -53,6 +54,8 @@ export type TAltFormField = {
   required: boolean;
   options?: string[];
   validation?: Record<string, any>;
+  /** 문서(content) 타입: 마크다운 본문 (응답값 아님) */
+  content?: string;
   order: number;
   displayCondition?: TDisplayCondition;
   correctAnswer?: any;

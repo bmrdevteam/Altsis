@@ -73,16 +73,17 @@ const AltSheetView = ({
 
   const selectedForm = forms.find((f) => f._id === selectedFormId);
 
-  // 표시할 필드: 관리자는 전체, 응답자는 respondent + visibleToRespondent (또는 showOwnerFields)
+  // 표시할 필드: 문서(content) 제외. 관리자는 전체, 응답자는 respondent + visibleToRespondent
   const allVisibleFields: TAltFormField[] = selectedForm
-    ? canManage
-      ? selectedForm.fields
-      : selectedForm.fields.filter(
-          (f) =>
-            f.permission === "respondent" ||
-            (f.permission === "owner" &&
-              (f.visibleToRespondent || selectedForm.settings.showOwnerFields))
-        )
+    ? (canManage
+        ? selectedForm.fields
+        : selectedForm.fields.filter(
+            (f) =>
+              f.permission === "respondent" ||
+              (f.permission === "owner" &&
+                (f.visibleToRespondent || selectedForm.settings.showOwnerFields))
+          )
+      ).filter((f) => f.type !== "content")
     : [];
 
   // 숨김 컬럼 적용
@@ -330,7 +331,7 @@ const AltSheetView = ({
     // 복합 타입은 텍스트 입력으로 편집 불가 (데이터 손상 방지)
     const nonEditableTypes = [
       "multiDate", "multiSelect", "userSelect", "file", "link",
-      "checkbox", "rating", "scale", "counter", "approval",
+      "checkbox", "rating", "scale", "counter", "approval", "content",
     ];
     if (nonEditableTypes.includes(field.type)) return;
     setEditingCell({ rowId, fieldId: field._id });
@@ -688,7 +689,7 @@ const AltSheetView = ({
   // 문서 뷰: 편집 불가 필드 타입 (기존 handleCellClick과 동일)
   const nonEditableTypes = [
     "multiDate", "multiSelect", "userSelect", "file", "link",
-    "checkbox", "rating", "scale", "counter", "approval",
+    "checkbox", "rating", "scale", "counter", "approval", "content",
   ];
 
   // 문서 뷰: 행 수정 가능 여부

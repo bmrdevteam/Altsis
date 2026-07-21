@@ -50,6 +50,7 @@ const altFormFieldSchema = mongoose.Schema({
       "counter",
       "approval",
       "link",
+      "content",
     ],
     required: true,
   },
@@ -62,6 +63,8 @@ const altFormFieldSchema = mongoose.Schema({
   required: { type: Boolean, default: false },
   options: { type: [String], default: undefined },
   validation: { type: mongoose.Schema.Types.Mixed },
+  /** content 타입 전용 마크다운 본문 */
+  content: { type: String, default: "" },
   order: { type: Number, default: 0 },
 
   // Phase 2: 조건부 표시

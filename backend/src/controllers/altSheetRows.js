@@ -112,7 +112,7 @@ export const create = async (req, res) => {
 
         // 재제출: 기존 행 업데이트
         const respondentFields = form.fields.filter(
-          (f) => f.permission === "respondent"
+          (f) => f.permission === "respondent" && f.type !== "content"
         );
         for (const field of respondentFields) {
           const fieldId = field._id.toString();
@@ -130,7 +130,7 @@ export const create = async (req, res) => {
 
     // respondent 필드만 추출하여 data 구성
     const respondentFields = form.fields.filter(
-      (f) => f.permission === "respondent"
+      (f) => f.permission === "respondent" && f.type !== "content"
     );
     const data = {};
     for (const field of respondentFields) {

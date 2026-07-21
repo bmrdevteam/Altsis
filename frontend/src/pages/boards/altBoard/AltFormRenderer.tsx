@@ -12,6 +12,7 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
+import { MarkdownViewer } from "components/markdown";
 
 type Props = {
   board: TBoard;
@@ -222,11 +223,13 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
     return () => timers.forEach(clearTimeout);
   }, [userSearchQuery, searchUsers]);
 
-  // 조건부 표시를 반영한 필드 목록
+  // 응답 화면: 문서(content) + 응답자 필드를 순서대로
   const respondentFields = useMemo(
     () =>
       form?.fields.filter(
-        (f) => f.permission === "respondent" && isFieldVisible(f, data)
+        (f) =>
+          isFieldVisible(f, data) &&
+          (f.type === "content" || f.permission === "respondent")
       ) || [],
     [form, data]
   );
@@ -235,6 +238,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
     () =>
       form?.fields.filter(
         (f) =>
+          f.type !== "content" &&
           f.permission === "owner" &&
           (f.visibleToRespondent || form.settings.showOwnerFields) &&
           isFieldVisible(f, data)
@@ -284,6 +288,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     for (const field of form?.fields || []) {
+      if (field.type === "content") continue;
       if (field.permission !== "respondent") continue;
       if (!isFieldVisible(field, data)) continue;
 
@@ -1515,7 +1520,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
   return (
     <div className={style.rendererContainer}>
-      {/* 헤더 */}
+      {/* 헤더: 보드 페이지 왼쪽 기준에 맞춤 (중앙 컬럼 밖) */}
       <div className={style.builderHeader}>
         <div className={style.builderHeaderLeft}>
           <button className={style.backBtn} onClick={onBack}>
@@ -1527,6 +1532,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
         </div>
       </div>
 
+      <div className={style.rendererBody}>
       {/* 메타 정보 */}
       {form.description && (
         <div className={style.rendererHeader}>
@@ -1595,6 +1601,21 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       {/* 응답자 필드 */}
       {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible) &&
         respondentFields.map((field) => {
+          if (field.type === "content") {
+            return (
+              <div key={field._id} className={style.questionItem}>
+                {field.label?.trim() && (
+                  <div className={style.questionLabel}>
+                    <span className={style.questionLabelText}>{field.label}</span>
+                  </div>
+                )}
+                <div className={style.contentFieldBody}>
+                  <MarkdownViewer content={field.content || ""} />
+                </div>
+              </div>
+            );
+          }
+
           const disabled = (isSubmitted && !canResubmit) || !canSubmit;
           const quizMark = getQuizMark(field);
 
@@ -1693,6 +1714,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
                 : "제출"}
           </Button>
         )}
+      </div>
       </div>
     </div>
   );
