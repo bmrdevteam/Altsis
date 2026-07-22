@@ -521,7 +521,7 @@ const AltFormList = ({
               width="18px"
               height="18px"
             />
-            <h3 className={style.formSectionTitle}>제출할 양식</h3>
+            <h3 className={style.formSectionTitle}>할 일</h3>
             <span className={style.formSectionCount}>
               {submitStats.total}
             </span>
@@ -548,7 +548,7 @@ const AltFormList = ({
         {submitOpen && (
           <div className={style.formSectionBody}>
             {submitForms.length === 0 ? (
-              <div className={style.emptyState}>제출할 양식이 없습니다.</div>
+              <div className={style.emptyState}>할 일이 없습니다.</div>
             ) : (
               <div className={style.formCardList}>
                 {submitForms.map(renderSubmitCard)}
@@ -572,7 +572,7 @@ const AltFormList = ({
                 width="18px"
                 height="18px"
               />
-              <h3 className={style.formSectionTitle}>관리 양식</h3>
+              <h3 className={style.formSectionTitle}>양식</h3>
               <span className={style.formSectionCount}>
                 {manageStats.total}
               </span>

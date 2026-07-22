@@ -172,6 +172,17 @@ const AltBoardView = ({ board, embedded }: Props) => {
     }
   }, [isLoading, urlFormId, urlMode]);
 
+  // 구 해시 #양식 → #활동 호환
+  useEffect(() => {
+    if (embedded) return;
+    const hash = decodeURIComponent(location.hash.replace("#", ""));
+    if (hash === "양식") {
+      navigate(`/boards/${board._id}${location.search}#활동`, {
+        replace: true,
+      });
+    }
+  }, [location.hash, location.search, embedded, board._id, navigate]);
+
   // 탭 전환 시 관련 없는 파라미터 정리 (standalone only)
   useEffect(() => {
     if (embedded) return;
@@ -208,12 +219,12 @@ const AltBoardView = ({ board, embedded }: Props) => {
     }
   };
 
-  // 빌더/렌더러에서 양식 탭으로 복귀
+  // 빌더/렌더러에서 활동 탭으로 복귀
   const handleBackToList = () => {
     setBuilderFormId(null);
     setRendererFormId(null);
     if (!embedded) {
-      navigate(`/boards/${board._id}#양식`, { replace: true });
+      navigate(`/boards/${board._id}#활동`, { replace: true });
     }
     loadForms();
   };
@@ -340,7 +351,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
   const tabItems: Record<string, React.ReactNode> = {
     "문서": <div style={{ paddingTop: 20 }}><AltDocsView board={board} /></div>,
-    "양식": (
+    "활동": (
       <div style={{ paddingTop: 20 }}>
         <AltFormList
           board={board}
