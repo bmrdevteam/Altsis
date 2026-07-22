@@ -2,7 +2,7 @@ import { useState } from "react";
 import Popup from "components/popup/Popup";
 import style from "./markdown.module.scss";
 
-const MAX_INLINE_SIZE = 50 * 1024; // 50KB
+const MAX_INLINE_SIZE = 100 * 1024; // 100KB
 
 type Props = {
   onSubmit: (embedType: "code" | "url", content: string) => void;
@@ -13,6 +13,7 @@ const EmbedDialog = ({ onSubmit, onClose }: Props) => {
   const [tab, setTab] = useState<"code" | "url">("code");
   const [htmlCode, setHtmlCode] = useState("");
   const [embedUrl, setEmbedUrl] = useState("");
+  const [error, setError] = useState("");
 
   const codeSize = new Blob([htmlCode]).size;
   const isTooLarge = codeSize > MAX_INLINE_SIZE;
@@ -21,14 +22,16 @@ const EmbedDialog = ({ onSubmit, onClose }: Props) => {
     if (tab === "code") {
       if (!htmlCode.trim()) return;
       if (isTooLarge) {
-        alert(
-          `HTML 코드가 너무 큽니다 (${(codeSize / 1024).toFixed(1)}KB).\n50KB 이하로 줄이거나 파일로 업로드해주세요.`
+        setError(
+          `HTML 코드가 너무 큽니다 (${(codeSize / 1024).toFixed(1)}KB). 100KB 이하로 줄이거나 파일로 업로드해 주세요.`
         );
         return;
       }
+      setError("");
       onSubmit("code", htmlCode);
     } else {
       if (!embedUrl.trim()) return;
+      setError("");
       onSubmit("url", embedUrl.trim());
     }
   };
@@ -56,14 +59,20 @@ const EmbedDialog = ({ onSubmit, onClose }: Props) => {
           <button
             type="button"
             className={tab === "code" ? style.active : ""}
-            onClick={() => setTab("code")}
+            onClick={() => {
+              setTab("code");
+              setError("");
+            }}
           >
             HTML 코드
           </button>
           <button
             type="button"
             className={tab === "url" ? style.active : ""}
-            onClick={() => setTab("url")}
+            onClick={() => {
+              setTab("url");
+              setError("");
+            }}
           >
             URL
           </button>
@@ -74,17 +83,21 @@ const EmbedDialog = ({ onSubmit, onClose }: Props) => {
             <textarea
               className={style.embedTextarea}
               value={htmlCode}
-              onChange={(e) => setHtmlCode(e.target.value)}
+              onChange={(e) => {
+                setHtmlCode(e.target.value);
+                if (error) setError("");
+              }}
               placeholder="HTML 코드를 붙여넣으세요..."
               rows={12}
             />
             <div className={style.embedInfo}>
               <span className={isTooLarge ? style.embedError : ""}>
-                {(codeSize / 1024).toFixed(1)}KB / 50KB
+                {(codeSize / 1024).toFixed(1)}KB / 100KB
               </span>
-              {isTooLarge && (
+              {(error || isTooLarge) && (
                 <span className={style.embedError}>
-                  코드가 너무 큽니다. 파일로 업로드하거나 코드를 줄여주세요.
+                  {error ||
+                    "코드가 너무 큽니다. 파일로 업로드하거나 코드를 줄여주세요."}
                 </span>
               )}
             </div>
@@ -95,14 +108,21 @@ const EmbedDialog = ({ onSubmit, onClose }: Props) => {
               type="url"
               className={style.embedUrlInput}
               value={embedUrl}
-              onChange={(e) => setEmbedUrl(e.target.value)}
+              onChange={(e) => {
+                setEmbedUrl(e.target.value);
+                if (error) setError("");
+              }}
               placeholder="https://example.com/app.html"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
-            <p className={style.embedHint}>
-              HTML 파일의 URL을 입력하세요. 업로드된 첨부파일 URL도 사용
-              가능합니다.
-            </p>
+            {error ? (
+              <p className={style.embedErrorMsg}>{error}</p>
+            ) : (
+              <p className={style.embedHint}>
+                HTML 파일의 URL을 입력하세요. 업로드된 첨부파일 URL도 사용
+                가능합니다.
+              </p>
+            )}
           </div>
         )}
       </div>

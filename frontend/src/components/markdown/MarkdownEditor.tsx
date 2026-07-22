@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { getMarkRange } from "@tiptap/core";
+import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
 import { ResizableImage } from "./extensions/resizableImage";
+import { InlineCheckbox } from "./extensions/inlineCheckbox";
+import { SlashCommand, type SlashDialogActions } from "./extensions/slashCommand";
 import Placeholder from "@tiptap/extension-placeholder";
 import Youtube from "@tiptap/extension-youtube";
 import TextAlign from "@tiptap/extension-text-align";
@@ -19,14 +23,22 @@ import {
   TableHeader,
 } from "@tiptap/extension-table";
 import { HtmlEmbed } from "./extensions/htmlEmbed";
-import { MathInline, MathBlock } from "./extensions/mathExtension";
+import {
+  MathInline,
+  MathBlock,
+  MathEditRequest,
+} from "./extensions/mathExtension";
 import Mention from "@tiptap/extension-mention";
 import { createMentionSuggestion } from "./extensions/mentionSuggestion";
 import TipTapToolbar from "./TipTapToolbar";
 import TableBubbleMenu from "./TableBubbleMenu";
+import LinkBubbleMenu from "./LinkBubbleMenu";
+import ImageBubbleMenu from "./ImageBubbleMenu";
 import EmbedDialog from "./EmbedDialog";
 import ImageInsertDialog from "./ImageInsertDialog";
 import YouTubeInsertDialog from "./YouTubeInsertDialog";
+import LinkInsertDialog from "./LinkInsertDialog";
+import MathInsertDialog from "./MathInsertDialog";
 import MarkdownViewer from "./MarkdownViewer";
 import {
   postprocessMarkdown,
@@ -34,6 +46,17 @@ import {
 } from "./extensions/youtube";
 import { useEditorDraft } from "./hooks/useEditorDraft";
 import style from "./markdown.module.scss";
+import "katex/dist/katex.min.css";
+
+type MathDialogState =
+  | null
+  | { kind: "insert" }
+  | {
+      kind: "edit";
+      latex: string;
+      mathMode: "inline" | "block";
+      pos: number;
+    };
 
 type Props = {
   value: string;
@@ -76,6 +99,8 @@ const MarkdownEditor = ({
   const [showEmbedDialog, setShowEmbedDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [mathDialog, setMathDialog] = useState<MathDialogState>(null);
   const [isDragging, setIsDragging] = useState(false);
   const isInternalUpdate = useRef(false);
   const viewModeRef = useRef(viewMode);
@@ -85,6 +110,16 @@ const MarkdownEditor = ({
   titleRef.current = title;
   const valueRef = useRef(value);
   valueRef.current = value;
+  const openLinkDialogRef = useRef(() => {});
+  openLinkDialogRef.current = () => setShowLinkDialog(true);
+
+  const slashActionsRef = useRef<SlashDialogActions>({});
+  slashActionsRef.current = {
+    openImage: () => setShowImageDialog(true),
+    openYouTube: () => setShowYouTubeDialog(true),
+    openEmbed: () => setShowEmbedDialog(true),
+    openMath: () => setMathDialog({ kind: "insert" }),
+  };
 
   const {
     hasDraft,
@@ -109,6 +144,7 @@ const MarkdownEditor = ({
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      InlineCheckbox,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
@@ -159,6 +195,9 @@ const MarkdownEditor = ({
       HtmlEmbed,
       MathInline,
       MathBlock,
+      SlashCommand.configure({
+        getActions: () => slashActionsRef.current,
+      }),
       ...(searchMentionUsers
         ? [
             Mention.extend({
@@ -180,12 +219,168 @@ const MarkdownEditor = ({
         : []),
     ],
     content: value,
+    editorProps: {
+      handleKeyDown: (_view, event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          openLinkDialogRef.current();
+          return true;
+        }
+        return false;
+      },
+      handleClick: (view, pos, event) => {
+        if (event.button !== 0) return false;
+        const linkType = view.state.schema.marks.link;
+        if (!linkType) return false;
+        const $pos = view.state.doc.resolve(pos);
+        const range = getMarkRange($pos, linkType);
+        if (!range) return false;
+        // 클릭 시 링크만 선택 → 버블 메뉴 표시 (편집 다이얼로그는 버블의 '편집' / Mod-K)
+        const tr = view.state.tr.setSelection(
+          TextSelection.create(view.state.doc, range.from, range.to)
+        );
+        view.dispatch(tr);
+        return true;
+      },
+    },
     onUpdate: ({ editor }) => {
       isInternalUpdate.current = true;
       const md = getMarkdownFromEditor(editor);
       onChange(postprocessMarkdown(md));
     },
   });
+
+  // 수식 더블클릭 → 편집 다이얼로그
+  useEffect(() => {
+    if (!editor) return;
+    const storage = editor.storage as {
+      mathInline?: { openEdit: ((req: MathEditRequest) => void) | null };
+    };
+    if (!storage.mathInline) return;
+    storage.mathInline.openEdit = (req) => {
+      setMathDialog({
+        kind: "edit",
+        latex: req.latex,
+        mathMode: req.mode,
+        pos: req.pos,
+      });
+    };
+    return () => {
+      if (storage.mathInline) storage.mathInline.openEdit = null;
+    };
+  }, [editor]);
+
+  // 버블 메뉴: 링크/표/이미지가 동시에 뜨지 않도록 활성 상태에 따라 하나만 마운트
+  const [bubbleKind, setBubbleKind] = useState<
+    "none" | "link" | "table" | "image"
+  >("none");
+  const [linkHover, setLinkHover] = useState<{
+    href: string;
+    top: number;
+    left: number;
+    from: number;
+    to: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!editor) return;
+    const syncBubble = () => {
+      const { selection } = editor.state;
+      if (
+        selection instanceof NodeSelection &&
+        selection.node?.type?.name === "image"
+      ) {
+        setBubbleKind("image");
+      } else if (editor.isActive("link")) {
+        setBubbleKind("link");
+        setLinkHover(null);
+      } else if (editor.isActive("table")) {
+        setBubbleKind("table");
+      } else {
+        setBubbleKind("none");
+      }
+    };
+    syncBubble();
+    editor.on("selectionUpdate", syncBubble);
+    editor.on("transaction", syncBubble);
+    return () => {
+      editor.off("selectionUpdate", syncBubble);
+      editor.off("transaction", syncBubble);
+    };
+  }, [editor]);
+
+  // 링크 호버 시 URL 프리뷰 (선택 전이어도 표시)
+  useEffect(() => {
+    if (!editor) return;
+    const dom = editor.view.dom;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearHide = () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    };
+
+    const onMove = (e: MouseEvent) => {
+      if (!editor.isEditable) return;
+      if (editor.isActive("link")) {
+        setLinkHover(null);
+        return;
+      }
+      const coords = editor.view.posAtCoords({
+        left: e.clientX,
+        top: e.clientY,
+      });
+      if (!coords) {
+        clearHide();
+        hideTimer = setTimeout(() => setLinkHover(null), 200);
+        return;
+      }
+      const linkType = editor.state.schema.marks.link;
+      if (!linkType) return;
+      const $pos = editor.state.doc.resolve(coords.pos);
+      const range = getMarkRange($pos, linkType);
+      if (!range) {
+        clearHide();
+        hideTimer = setTimeout(() => setLinkHover(null), 200);
+        return;
+      }
+      clearHide();
+      let linkHref = "";
+      editor.state.doc.nodesBetween(range.from, range.to, (node) => {
+        const mark = node.marks.find((m) => m.type === linkType);
+        if (mark) {
+          linkHref = mark.attrs.href || "";
+          return false;
+        }
+      });
+      const startCoords = editor.view.coordsAtPos(range.from);
+      const endCoords = editor.view.coordsAtPos(range.to);
+      setLinkHover({
+        href: linkHref,
+        top: startCoords.top,
+        left: (startCoords.left + endCoords.right) / 2,
+        from: range.from,
+        to: range.to,
+      });
+    };
+
+    const onLeave = (e: MouseEvent) => {
+      const related = e.relatedTarget as HTMLElement | null;
+      if (related?.closest?.("[data-link-hover-preview]")) return;
+      clearHide();
+      hideTimer = setTimeout(() => setLinkHover(null), 250);
+    };
+
+    dom.addEventListener("mousemove", onMove);
+    dom.addEventListener("mouseleave", onLeave);
+    return () => {
+      clearHide();
+      dom.removeEventListener("mousemove", onMove);
+      dom.removeEventListener("mouseleave", onLeave);
+    };
+  }, [editor]);
 
   // 자동 저장 시작
   useEffect(() => {
@@ -368,6 +563,9 @@ const MarkdownEditor = ({
             onEmbedClick={() => setShowEmbedDialog(true)}
             onImageClick={() => setShowImageDialog(true)}
             onYouTubeClick={() => setShowYouTubeDialog(true)}
+            onLinkClick={() => setShowLinkDialog(true)}
+            onMathClick={() => setMathDialog({ kind: "insert" })}
+            enableMention={!!searchMentionUsers}
           />
           {toolbarExtra}
         </div>
@@ -383,7 +581,69 @@ const MarkdownEditor = ({
           onDrop={handleDrop}
         >
           <EditorContent editor={editor} />
-          {editor && <TableBubbleMenu editor={editor} />}
+          {editor && bubbleKind === "table" && (
+            <TableBubbleMenu editor={editor} />
+          )}
+          {editor && bubbleKind === "link" && (
+            <LinkBubbleMenu
+              editor={editor}
+              onEdit={() => setShowLinkDialog(true)}
+            />
+          )}
+          {editor && bubbleKind === "image" && (
+            <ImageBubbleMenu editor={editor} />
+          )}
+          {linkHover && bubbleKind !== "link" && (
+            <div
+              className={style.linkHoverPreview}
+              data-link-hover-preview
+              style={{
+                top: Math.max(8, linkHover.top - 44),
+                left: linkHover.left,
+              }}
+              onMouseLeave={() => setLinkHover(null)}
+            >
+              <span className={style.linkBubbleUrl} title={linkHover.href}>
+                {linkHover.href || "(URL 없음)"}
+              </span>
+              <button
+                type="button"
+                className={style.linkBubbleBtn}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  editor
+                    ?.chain()
+                    .focus()
+                    .setTextSelection({
+                      from: linkHover.from,
+                      to: linkHover.to,
+                    })
+                    .run();
+                  setLinkHover(null);
+                  setShowLinkDialog(true);
+                }}
+              >
+                편집
+              </button>
+              <button
+                type="button"
+                className={style.linkBubbleBtn}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  if (linkHover.href) {
+                    window.open(
+                      linkHover.href,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }
+                }}
+                disabled={!linkHover.href}
+              >
+                열기
+              </button>
+            </div>
+          )}
           {isDragging && (
             <div className={style.dropOverlay}>
               <span>파일을 여기에 놓으세요</span>
@@ -431,6 +691,71 @@ const MarkdownEditor = ({
             }
           }}
           onClose={() => setShowYouTubeDialog(false)}
+        />
+      )}
+      {showLinkDialog && (
+        <LinkInsertDialog
+          initialUrl={editor?.getAttributes("link").href || ""}
+          hasExistingLink={!!editor?.isActive("link")}
+          onSubmit={(url) => {
+            if (editor) {
+              editor
+                .chain()
+                .focus()
+                .extendMarkRange("link")
+                .setLink({ href: url })
+                .run();
+            }
+          }}
+          onRemove={() => {
+            if (editor) {
+              editor
+                .chain()
+                .focus()
+                .extendMarkRange("link")
+                .unsetLink()
+                .run();
+            }
+          }}
+          onClose={() => setShowLinkDialog(false)}
+        />
+      )}
+      {mathDialog && (
+        <MathInsertDialog
+          title={mathDialog.kind === "edit" ? "수식 편집" : "수식 삽입"}
+          submitLabel={mathDialog.kind === "edit" ? "적용" : "삽입"}
+          initialLatex={
+            mathDialog.kind === "edit" ? mathDialog.latex : "E = mc^2"
+          }
+          initialMode={
+            mathDialog.kind === "edit" ? mathDialog.mathMode : "inline"
+          }
+          lockMode={mathDialog.kind === "edit"}
+          onSubmit={(latex, mode) => {
+            if (!editor) return;
+            if (mathDialog.kind === "edit") {
+              const { pos } = mathDialog;
+              editor.view.dispatch(
+                editor.view.state.tr.setNodeMarkup(pos, undefined, { latex })
+              );
+              editor.commands.focus();
+              return;
+            }
+            if (mode === "block") {
+              editor
+                .chain()
+                .focus()
+                .insertContent({ type: "mathBlock", attrs: { latex } })
+                .run();
+            } else {
+              editor
+                .chain()
+                .focus()
+                .insertContent({ type: "mathInline", attrs: { latex } })
+                .run();
+            }
+          }}
+          onClose={() => setMathDialog(null)}
         />
       )}
     </div>

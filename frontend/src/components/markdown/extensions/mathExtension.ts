@@ -1,6 +1,34 @@
 import { Node } from "@tiptap/core";
 import katex from "katex";
 
+export type MathEditRequest = {
+  latex: string;
+  mode: "inline" | "block";
+  pos: number;
+};
+
+type MathInlineStorage = {
+  markdown: {
+    serialize: (state: any, node: any) => void;
+    parse: Record<string, unknown>;
+  };
+  openEdit: ((req: MathEditRequest) => void) | null;
+};
+
+const openMathEdit = (
+  editor: any,
+  latex: string,
+  mode: "inline" | "block",
+  getPos: () => number | undefined
+) => {
+  const openEdit = (editor.storage as { mathInline?: MathInlineStorage })
+    ?.mathInline?.openEdit;
+  if (!openEdit || typeof getPos !== "function") return;
+  const pos = getPos();
+  if (pos == null) return;
+  openEdit({ latex, mode, pos });
+};
+
 // 인라인 수식: $...$
 export const MathInline = Node.create({
   name: "mathInline",
@@ -17,7 +45,7 @@ export const MathInline = Node.create({
   parseHTML() {
     return [
       {
-        tag: 'span[data-math-inline]',
+        tag: "span[data-math-inline]",
         getAttrs: (dom) => ({
           latex: (dom as HTMLElement).getAttribute("data-latex") || "",
         }),
@@ -41,6 +69,7 @@ export const MathInline = Node.create({
         },
         parse: {},
       },
+      openEdit: null as ((req: MathEditRequest) => void) | null,
     };
   },
 
@@ -49,6 +78,7 @@ export const MathInline = Node.create({
       const span = document.createElement("span");
       span.className = "math-inline-node";
       span.style.cursor = "pointer";
+      span.title = "더블클릭하여 편집";
 
       const renderMath = (latex: string) => {
         try {
@@ -63,19 +93,10 @@ export const MathInline = Node.create({
 
       renderMath(node.attrs.latex);
 
-      // 더블클릭으로 편집
-      span.addEventListener("dblclick", () => {
-        const newLatex = prompt("수식 편집:", node.attrs.latex);
-        if (newLatex !== null && typeof getPos === "function") {
-          const pos = getPos();
-          if (pos != null) {
-            editor.view.dispatch(
-              editor.view.state.tr.setNodeMarkup(pos, undefined, {
-                latex: newLatex,
-              })
-            );
-          }
-        }
+      span.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openMathEdit(editor, node.attrs.latex, "inline", getPos as any);
       });
 
       return {
@@ -106,7 +127,7 @@ export const MathBlock = Node.create({
   parseHTML() {
     return [
       {
-        tag: 'div[data-math-block]',
+        tag: "div[data-math-block]",
         getAttrs: (dom) => ({
           latex: (dom as HTMLElement).getAttribute("data-latex") || "",
         }),
@@ -141,6 +162,7 @@ export const MathBlock = Node.create({
       div.style.cursor = "pointer";
       div.style.textAlign = "center";
       div.style.padding = "12px 0";
+      div.title = "더블클릭하여 편집";
 
       const renderMath = (latex: string) => {
         try {
@@ -155,18 +177,10 @@ export const MathBlock = Node.create({
 
       renderMath(node.attrs.latex);
 
-      div.addEventListener("dblclick", () => {
-        const newLatex = prompt("수식 편집:", node.attrs.latex);
-        if (newLatex !== null && typeof getPos === "function") {
-          const pos = getPos();
-          if (pos != null) {
-            editor.view.dispatch(
-              editor.view.state.tr.setNodeMarkup(pos, undefined, {
-                latex: newLatex,
-              })
-            );
-          }
-        }
+      div.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openMathEdit(editor, node.attrs.latex, "block", getPos as any);
       });
 
       return {

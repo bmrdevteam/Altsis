@@ -10,15 +10,20 @@ const PRESET_COLORS = [
   "#6366F1", // 남색
   "#A855F7", // 보라
   "#6B7280", // 회색
+  "#000000", // 검정
+  "#FFFFFF", // 흰색
+  "#EC4899", // 분홍
+  "#14B8A6", // 청록
 ];
 
 type Props = {
   onSelect: (color: string | null) => void;
   onClose: () => void;
   currentColor?: string;
+  hint?: string;
 };
 
-const ColorDropdown = ({ onSelect, onClose, currentColor }: Props) => {
+const ColorDropdown = ({ onSelect, onClose, currentColor, hint }: Props) => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,8 +36,18 @@ const ColorDropdown = ({ onSelect, onClose, currentColor }: Props) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
+  const pickerValue =
+    currentColor && /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(currentColor)
+      ? currentColor
+      : "#3B82F6";
+
   return (
-    <div className={style.colorDropdown} ref={ref}>
+    <div
+      className={style.colorDropdown}
+      ref={ref}
+      data-editor-popup
+      onMouseDown={(e) => e.preventDefault()}
+    >
       <div className={style.colorGrid}>
         {PRESET_COLORS.map((color) => (
           <button
@@ -47,6 +62,16 @@ const ColorDropdown = ({ onSelect, onClose, currentColor }: Props) => {
           />
         ))}
       </div>
+      <label className={style.colorPickerRow}>
+        <span>직접 선택</span>
+        <input
+          type="color"
+          className={style.colorPickerInput}
+          value={pickerValue}
+          onMouseDown={(e) => e.stopPropagation()}
+          onChange={(e) => onSelect(e.target.value)}
+        />
+      </label>
       <button
         type="button"
         className={style.colorRemoveBtn}
@@ -54,6 +79,7 @@ const ColorDropdown = ({ onSelect, onClose, currentColor }: Props) => {
       >
         없음
       </button>
+      {hint && <p className={style.colorDropdownHint}>{hint}</p>}
     </div>
   );
 };

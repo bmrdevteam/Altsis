@@ -18,17 +18,19 @@ const ImageInsertDialog = ({ onSubmit, onClose, onImageUpload }: Props) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("이미지 파일만 선택할 수 있습니다.");
+      setError("이미지 파일만 선택할 수 있습니다.");
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      alert("파일 크기는 20MB 이하여야 합니다.");
+      setError("파일 크기는 20MB 이하여야 합니다.");
       return;
     }
+    setError("");
     setSelectedFile(file);
     const reader = new FileReader();
     reader.onload = (e) => setPreviewUrl(e.target?.result as string);
@@ -104,12 +106,19 @@ const ImageInsertDialog = ({ onSubmit, onClose, onImageUpload }: Props) => {
               type="url"
               className={style.embedUrlInput}
               value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
+              onChange={(e) => {
+                setImageUrl(e.target.value);
+                if (error) setError("");
+              }}
               placeholder="https://example.com/image.png"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               autoFocus
             />
-            <p className={style.embedHint}>이미지 URL을 입력하세요.</p>
+            {error ? (
+              <p className={style.embedErrorMsg}>{error}</p>
+            ) : (
+              <p className={style.embedHint}>이미지 URL을 입력하세요.</p>
+            )}
           </div>
         ) : (
           <div className={style.embedContent}>
@@ -133,6 +142,7 @@ const ImageInsertDialog = ({ onSubmit, onClose, onImageUpload }: Props) => {
                     onClick={() => {
                       setSelectedFile(null);
                       setPreviewUrl(null);
+                      setError("");
                       if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                   >
@@ -165,6 +175,7 @@ const ImageInsertDialog = ({ onSubmit, onClose, onImageUpload }: Props) => {
                 </span>
               </div>
             )}
+            {error && <p className={style.embedErrorMsg}>{error}</p>}
           </div>
         )}
       </div>

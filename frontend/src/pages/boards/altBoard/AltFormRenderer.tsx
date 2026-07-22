@@ -110,6 +110,20 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentSchool, currentRegistration } = useAuth();
 
+  const handleEditorImageUpload = async (
+    file: File
+  ): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await PostAPI.CUploadPostFile({ data: formData });
+      return `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(result.key)}`;
+    } catch (err) {
+      ALERT_ERROR(err);
+      return null;
+    }
+  };
+
   const [form, setForm] = useState<TAltForm | null>(null);
   const [myRow, setMyRow] = useState<TAltSheetRow | null>(null);
   const [data, setData] = useState<Record<string, any>>({});
@@ -263,6 +277,38 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       ) || [],
     [form, data]
   );
+
+  /** 양식에서 삭제된 필드의 제출값 (스키마에 없는 data 키) */
+  const orphanResponses = useMemo(() => {
+    if (!isSubmitted || !myRow?.data || !form) return [];
+    const fieldIds = new Set(form.fields.map((f) => f._id));
+    return Object.entries(myRow.data).filter(([key, val]) => {
+      if (!key || key.startsWith("_")) return false;
+      if (fieldIds.has(key)) return false;
+      if (val === undefined || val === null || val === "") return false;
+      return true;
+    });
+  }, [isSubmitted, myRow, form]);
+
+  const formatOrphanValue = (val: any): string => {
+    if (typeof val === "string") return val;
+    if (typeof val === "number" || typeof val === "boolean") return String(val);
+    if (Array.isArray(val)) {
+      return val
+        .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
+        .join(", ");
+    }
+    if (typeof val === "object") {
+      if (val.url) return String(val.url);
+      if (val.userName) return String(val.userName);
+      try {
+        return JSON.stringify(val, null, 2);
+      } catch {
+        return String(val);
+      }
+    }
+    return String(val);
+  };
 
   const isClosed =
     form?.settings.closeAt && new Date(form.settings.closeAt) < new Date();
@@ -505,6 +551,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
               onChange={(md) => setValue(field._id, md)}
               placeholder="템플릿을 편집하여 응답을 작성하세요."
               minHeight="220px"
+              onImageUpload={handleEditorImageUpload}
             />
           </div>
         );
@@ -1741,6 +1788,28 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
             </div>
           ))}
         </>
+      )}
+
+      {/* 양식에서 삭제된 필드의 기존 응답 */}
+      {orphanResponses.length > 0 && (
+        <div className={style.orphanResponses}>
+          <div className={style.orphanResponsesTitle}>이전 응답</div>
+          <p className={style.orphanResponsesHint}>
+            양식에서 삭제·변경된 항목의 제출 내용입니다. 시트에는 그대로
+            남아 있습니다.
+          </p>
+          {orphanResponses.map(([key, val]) => (
+            <div key={key} className={style.questionItem}>
+              <div className={style.questionLabel}>
+                <span className={style.questionLabelText}>삭제된 항목</span>
+                <span className={style.orphanKey}>{key.slice(0, 8)}…</span>
+              </div>
+              <div className={style.orphanValue}>
+                {formatOrphanValue(val)}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* 제출/수정 버튼 */}

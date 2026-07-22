@@ -978,6 +978,9 @@
 
 .docResponseField {
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
 }
 
 .textInput {
@@ -1181,6 +1184,44 @@
   gap: 8px;
   padding-top: 24px;
   margin-top: 12px;
+}
+
+.orphanResponses {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-default-color);
+}
+
+.orphanResponsesTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-1);
+  margin-bottom: 6px;
+}
+
+.orphanResponsesHint {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--accent-3);
+  line-height: 1.4;
+}
+
+.orphanKey {
+  margin-left: 8px;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--accent-3);
+}
+
+.orphanValue {
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--accent-1);
+  background: var(--background-hover-color);
+  border-radius: 6px;
 }
 
 .successBanner {

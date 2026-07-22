@@ -120,7 +120,8 @@ export const transformSpecialNodes = (editor: Editor): void => {
       mathBlockType &&
       node.type.name === "paragraph" &&
       node.textContent.trim().startsWith("$$") &&
-      node.textContent.trim().endsWith("$$")
+      node.textContent.trim().endsWith("$$") &&
+      !node.textContent.trim().slice(2, -2).includes("$$")
     ) {
       const latex = node.textContent.trim().slice(2, -2).trim();
       if (latex) {
@@ -128,6 +129,27 @@ export const transformSpecialNodes = (editor: Editor): void => {
           from: pos,
           to: pos + node.nodeSize,
           node: mathBlockType.create({ latex }),
+        });
+        return false; // 하위 텍스트는 인라인 변환 스킵
+      }
+    }
+
+    // $...$ 인라인 수식 → MathInline 노드 (텍스트 노드 단위)
+    if (mathInlineType && node.isText && node.text) {
+      const text = node.text;
+      const inlineMathRe = /\$([^$\n]+?)\$/g;
+      let match: RegExpExecArray | null;
+      while ((match = inlineMathRe.exec(text)) !== null) {
+        const start = match.index;
+        const end = start + match[0].length;
+        // $$...$$ 블록 구분자와 겹치면 스킵
+        if (text[start - 1] === "$" || text[end] === "$") continue;
+        const latex = match[1].trim();
+        if (!latex) continue;
+        transforms.push({
+          from: pos + start,
+          to: pos + end,
+          node: mathInlineType.create({ latex }),
         });
       }
     }

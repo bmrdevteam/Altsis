@@ -127,7 +127,21 @@ const AltFormBuilder = ({
   onCopyFormLink,
   onFormCreated,
 }: Props) => {
-  const { AltFormAPI } = useAPIv2();
+  const { AltFormAPI, PostAPI } = useAPIv2();
+
+  const handleEditorImageUpload = async (
+    file: File
+  ): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await PostAPI.CUploadPostFile({ data: formData });
+      return `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(result.key)}`;
+    } catch (err) {
+      ALERT_ERROR(err);
+      return null;
+    }
+  };
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -349,6 +363,14 @@ const AltFormBuilder = ({
   };
 
   const removeField = (index: number) => {
+    const label = fields[index]?.label?.trim() || "이 필드";
+    if (
+      !window.confirm(
+        `「${label}」을(를) 삭제하면 기존 응답에서 해당 답이 양식에 표시되지 않을 수 있습니다. 삭제할까요?`
+      )
+    ) {
+      return;
+    }
     const removedId = fields[index]._id;
     setFields((prev) => prev.filter((_, i) => i !== index));
     if (activeFieldId === removedId) setActiveFieldId(null);
@@ -814,6 +836,7 @@ const AltFormBuilder = ({
               onChange={(md) => updateField(fieldIndex, { content: md })}
               placeholder="마크다운으로 안내문을 작성하세요."
               minHeight="220px"
+              onImageUpload={handleEditorImageUpload}
             />
           </div>
         );
@@ -836,6 +859,7 @@ const AltFormBuilder = ({
               onChange={(md) => updateField(fieldIndex, { content: md })}
               placeholder="응답 템플릿을 마크다운으로 작성하세요."
               minHeight="220px"
+              onImageUpload={handleEditorImageUpload}
             />
           </div>
         );

@@ -136,29 +136,56 @@
     border-radius: 4px;
   }
 
-  // TipTap task list styles
-  ul[data-type="taskList"] {
-    list-style: none;
-    padding-left: 0;
+  // TipTap / GFM task list styles (뷰어)
+  :global(ul[data-type="taskList"]),
+  :global(ul.contains-task-list) {
+    list-style: none !important;
+    padding-left: 0 !important;
+    margin: 0 0 8px !important;
 
-    li[data-type="taskItem"] {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-bottom: 4px;
+    > li {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: flex-start !important;
+      gap: 0.5rem;
+      margin: 0 0 2px !important;
 
       > label {
-        flex-shrink: 0;
-        margin-top: 2px;
+        flex: 0 0 auto !important;
+        display: inline-flex !important;
+        align-items: center;
+        margin: 0.25em 0.5rem 0 0 !important;
+        user-select: none;
+        width: auto !important;
 
         input[type="checkbox"] {
           cursor: pointer;
           accent-color: var(--primary-color);
+          margin: 0;
         }
       }
 
+      > input[type="checkbox"] {
+        flex: 0 0 auto;
+        margin: 0.25em 0.5rem 0 0;
+        cursor: pointer;
+        accent-color: var(--primary-color);
+      }
+
       > div {
-        flex: 1;
+        flex: 1 1 auto !important;
+        min-width: 0;
+
+        > p,
+        p {
+          margin: 0 !important;
+        }
+      }
+
+      > p {
+        margin: 0 !important;
+        flex: 1 1 auto;
+        min-width: 0;
       }
     }
   }
@@ -321,7 +348,48 @@
 .editor {
   border: var(--border-default);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
+
+  // ProseMirror NodeView task items (모듈 스코프 밖에서도 확실히 적용)
+  :global {
+    ul[data-type="taskList"] {
+      list-style: none !important;
+      padding-left: 0 !important;
+      margin: 0 0 8px !important;
+
+      > li {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+        margin: 0 0 2px !important;
+
+        > label {
+          flex: 0 0 auto !important;
+          display: inline-flex !important;
+          align-items: center;
+          margin: 0.25em 0.5rem 0 0 !important;
+          user-select: none;
+          width: auto !important;
+
+          input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: var(--primary-color);
+            margin: 0;
+          }
+        }
+
+        > div {
+          flex: 1 1 auto !important;
+          min-width: 0;
+
+          p {
+            margin: 0 !important;
+          }
+        }
+      }
+    }
+  }
 }
 
 .draftBanner {
@@ -426,6 +494,7 @@
 }
 
 .toolbarBtn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -492,7 +561,7 @@
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
+  z-index: 9999;
   padding: 8px;
   background-color: var(--component-color);
   border: 1px solid var(--border-default-color);
@@ -506,6 +575,26 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   margin-bottom: 6px;
+}
+
+.colorPickerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.colorPickerInput {
+  width: 36px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-default-color);
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
 }
 
 .colorSwatch {
@@ -540,6 +629,230 @@
   &:hover {
     color: var(--accent-1);
   }
+}
+
+.colorDropdownHint {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-default-color);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--accent-3);
+}
+
+.toolbarMoreMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toolbarMoreItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--accent-1);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+
+  svg {
+    flex-shrink: 0;
+    fill: currentColor;
+  }
+
+  &:hover {
+    background-color: var(--background-hover-color);
+  }
+}
+
+.toolbarMoreItemActive {
+  color: var(--primary-color);
+  font-weight: 600;
+  background-color: var(--background-hover-color);
+}
+
+.toolbarMoreColorRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border-default-color);
+}
+
+.toolbarMoreColorLabel {
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.toolbarMoreHint {
+  margin: 0;
+  padding: 4px 10px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--accent-3);
+}
+
+.slashList {
+  min-width: 180px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.slashItem {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--accent-1);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--background-hover-color);
+  }
+}
+
+.slashItemActive {
+  background-color: var(--background-hover-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.slashEmpty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--accent-3);
+}
+
+.imageBubbleMenu {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 6px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 420px;
+}
+
+.imageBubbleInput {
+  width: 120px;
+  padding: 4px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border-default-color);
+  border-radius: 4px;
+  background: var(--background-color);
+  color: var(--accent-1);
+}
+
+.linkBubbleBtnActive {
+  background-color: var(--background-hover-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+:global(.image-caption) {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--accent-3);
+  text-align: inherit;
+  outline: none;
+  min-height: 1.2em;
+
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: var(--accent-4, var(--accent-3));
+    opacity: 0.7;
+  }
+}
+
+:global(.resizable-image-wrapper) {
+  display: block;
+  max-width: 100%;
+  width: fit-content;
+  position: relative;
+  box-sizing: border-box;
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  &.align-left {
+    margin: 12px auto 12px 0;
+  }
+
+  &.align-right {
+    margin: 12px 0 12px auto;
+  }
+
+  &.align-center {
+    margin: 12px auto;
+  }
+}
+
+:global(.inline-checkbox-node) {
+  margin: 0 0.25em;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+:global(figure[data-align="center"]) {
+  display: block;
+  max-width: 100%;
+  width: fit-content;
+  text-align: center;
+  margin: 12px auto;
+}
+
+:global(figure[data-align="right"]) {
+  display: block;
+  max-width: 100%;
+  width: fit-content;
+  text-align: right;
+  margin: 12px 0 12px auto;
+}
+
+:global(figure[data-align="left"]) {
+  display: block;
+  max-width: 100%;
+  width: fit-content;
+  text-align: left;
+  margin: 12px auto 12px 0;
+}
+
+:global(figure figcaption) {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--accent-3);
 }
 
 .splitView {
@@ -660,9 +973,14 @@
   color: var(--accent-3);
   padding: 0;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--background-hover-color);
     color: var(--accent-1);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
 }
 
@@ -795,11 +1113,15 @@
 
 .tiptapContent {
   background-color: var(--background-color);
+  overflow-x: auto;
+  max-width: 100%;
 
   :global(.ProseMirror) {
     padding: 16px;
     min-height: inherit;
     outline: none;
+    max-width: 100%;
+    overflow-wrap: break-word;
     font-size: 14px;
     line-height: 1.6;
     color: var(--accent-1);
@@ -942,29 +1264,49 @@
       border-radius: 4px;
     }
 
-    // Task list styles
-    ul[data-type="taskList"] {
-      list-style: none;
-      padding-left: 0;
+    // Task list — TipTap NodeView: li > label(+input) + div(content)
+    // data-type 유무와 관계없이 taskList 하위 li에 flex 적용
+    :global(ul[data-type="taskList"]) {
+      list-style: none !important;
+      padding-left: 0 !important;
+      margin: 0 0 8px !important;
 
-      li[data-type="taskItem"] {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        margin-bottom: 4px;
+      > li {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+        margin: 0 0 2px !important;
 
         > label {
-          flex-shrink: 0;
-          margin-top: 2px;
+          flex: 0 0 auto !important;
+          display: inline-flex !important;
+          align-items: center;
+          margin: 0.25em 0.5rem 0 0 !important;
+          user-select: none;
+          width: auto !important;
+          max-width: none;
 
           input[type="checkbox"] {
             cursor: pointer;
             accent-color: var(--primary-color);
+            margin: 0;
           }
         }
 
         > div {
-          flex: 1;
+          flex: 1 1 auto !important;
+          min-width: 0;
+          margin: 0 !important;
+
+          > p {
+            margin: 0 !important;
+          }
+
+          p {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+          }
         }
       }
     }
@@ -1207,15 +1549,129 @@
   color: var(--status-error) !important;
 }
 
+.embedErrorMsg {
+  font-size: 13px;
+  color: var(--status-error);
+  margin: 8px 0 0;
+}
+
 .embedHint {
   font-size: 13px;
   color: var(--accent-3);
   margin: 0;
 }
 
+.headingDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 9999;
+  min-width: 120px;
+  padding: 4px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.headingDropdownItem {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--accent-1);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--background-hover-color);
+  }
+}
+
+.headingDropdownItemActive {
+  color: var(--primary-color);
+  font-weight: 600;
+  background-color: var(--background-hover-color);
+}
+
+.headingBadge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: inherit;
+}
+
+.linkBubbleMenu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 360px;
+}
+
+.linkHoverPreview {
+  position: fixed;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  transform: translateX(-50%);
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 360px;
+  pointer-events: auto;
+}
+
+.linkBubbleUrl {
+  flex: 1;
+  min-width: 0;
+  max-width: 180px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--accent-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkBubbleBtn {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--accent-1);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: var(--background-hover-color);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
 .embedDialogFooter {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   padding: 0 16px 16px;
 }
 
@@ -1226,6 +1682,22 @@
   color: var(--btn-text-color-1);
   background-color: var(--btn-color-1);
   border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}
+
+.embedDialogBtnSecondary {
+  padding: 8px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent-1);
+  background-color: transparent;
+  border: 1px solid var(--border-default-color);
   border-radius: 6px;
   cursor: pointer;
   transition: opacity 0.15s ease;

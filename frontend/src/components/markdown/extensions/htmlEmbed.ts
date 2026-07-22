@@ -16,7 +16,7 @@ declare module "@tiptap/core" {
   }
 }
 
-const MAX_INLINE_SIZE = 50 * 1024; // 50KB
+const MAX_INLINE_SIZE = 100 * 1024; // 100KB
 const MIN_HEIGHT = 200;
 
 /** 전체보기 오버레이 (에디터/뷰어 공용) */

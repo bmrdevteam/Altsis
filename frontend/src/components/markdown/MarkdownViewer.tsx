@@ -516,6 +516,22 @@ const baseComponents = {
     }
     return <pre {...props}>{children}</pre>;
   },
+  // 제출/열람용: raw HTML·GFM 체크박스는 토글 불가
+  input: ({ type, checked, ...props }: any) => {
+    if (type === "checkbox") {
+      return (
+        <input
+          {...props}
+          type="checkbox"
+          checked={!!checked}
+          disabled
+          readOnly
+          onChange={() => {}}
+        />
+      );
+    }
+    return <input type={type} {...props} />;
+  },
 };
 
 export type Props = {
@@ -568,6 +584,9 @@ const MarkdownViewer = ({ content, className, mergeInputProps }: Props) => {
         "data-required",
         "data-options",
         "data-validation",
+        "data-align",
+        "data-inline-checkbox",
+        "data-checked",
       ],
     });
 

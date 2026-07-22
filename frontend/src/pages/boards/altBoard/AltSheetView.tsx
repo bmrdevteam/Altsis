@@ -38,8 +38,22 @@ const AltSheetView = ({
   onFormDeselect,
   onCopySheetLink,
 }: Props) => {
-  const { AltSheetRowAPI, FileAPI } = useAPIv2();
+  const { AltSheetRowAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentUser } = useAuth();
+
+  const handleEditorImageUpload = async (
+    file: File
+  ): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const result = await PostAPI.CUploadPostFile({ data: formData });
+      return `${process.env.REACT_APP_SERVER_URL}/api/posts/file/view?key=${encodeURIComponent(result.key)}`;
+    } catch (err) {
+      ALERT_ERROR(err);
+      return null;
+    }
+  };
 
   const [selectedFormId, setSelectedFormId] = useState<string>(
     initialFormId || ""
@@ -786,6 +800,7 @@ const AltSheetView = ({
                 }
                 placeholder="문서 응답을 편집하세요."
                 minHeight="200px"
+                onImageUpload={handleEditorImageUpload}
               />
             </div>
           );

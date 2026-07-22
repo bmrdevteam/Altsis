@@ -1,44 +1,58 @@
 import { useState } from "react";
 import Popup from "components/popup/Popup";
-import { extractYouTubeId } from "./extensions/youtube";
 import style from "./markdown.module.scss";
 
 type Props = {
-  onSubmit: (src: string) => void;
+  initialUrl?: string;
+  hasExistingLink?: boolean;
+  onSubmit: (url: string) => void;
+  onRemove: () => void;
   onClose: () => void;
 };
 
-const YouTubeInsertDialog = ({ onSubmit, onClose }: Props) => {
-  const [url, setUrl] = useState("");
-  const [error, setError] = useState("");
+const LinkInsertDialog = ({
+  initialUrl = "",
+  hasExistingLink = false,
+  onSubmit,
+  onRemove,
+  onClose,
+}: Props) => {
+  const [url, setUrl] = useState(initialUrl || "https://");
 
   const handleSubmit = () => {
     const trimmed = url.trim();
     if (!trimmed) return;
-    const videoId = extractYouTubeId(trimmed);
-    if (!videoId) {
-      setError("유효한 YouTube URL이 아닙니다.");
-      return;
-    }
-    onSubmit(`https://www.youtube.com/watch?v=${videoId}`);
+    onSubmit(trimmed);
     onClose();
   };
 
   return (
     <Popup
-      title="YouTube 삽입"
+      title="링크"
       setState={onClose}
       closeBtn
       style={{ maxWidth: "480px", width: "100%" }}
       footer={
         <div className={style.embedDialogFooter}>
+          {hasExistingLink && (
+            <button
+              type="button"
+              className={style.embedDialogBtnSecondary}
+              onClick={() => {
+                onRemove();
+                onClose();
+              }}
+            >
+              링크 제거
+            </button>
+          )}
           <button
             type="button"
             className={style.embedDialogBtn}
             onClick={handleSubmit}
             disabled={!url.trim()}
           >
-            삽입
+            적용
           </button>
         </div>
       }
@@ -47,12 +61,9 @@ const YouTubeInsertDialog = ({ onSubmit, onClose }: Props) => {
         <input
           className={style.embedUrlInput}
           type="url"
-          placeholder="https://www.youtube.com/watch?v=..."
+          placeholder="https://"
           value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-            if (error) setError("");
-          }}
+          onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -61,16 +72,12 @@ const YouTubeInsertDialog = ({ onSubmit, onClose }: Props) => {
           }}
           autoFocus
         />
-        {error ? (
-          <p className={style.embedErrorMsg}>{error}</p>
-        ) : (
-          <p className={style.embedHint}>
-            YouTube 영상 URL을 입력하세요. (일반 영상, Shorts 지원)
-          </p>
-        )}
+        <p className={style.embedHint}>
+          선택한 텍스트에 연결할 URL을 입력하세요.
+        </p>
       </div>
     </Popup>
   );
 };
 
-export default YouTubeInsertDialog;
+export default LinkInsertDialog;
