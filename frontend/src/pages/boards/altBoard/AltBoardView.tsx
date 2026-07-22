@@ -348,7 +348,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
           isLoading={isLoading}
           canManage={canManage}
           onFormClick={handleFormClick}
-          onRespondForm={canManage ? handleOpenRenderer : undefined}
+          onRespondForm={handleOpenRenderer}
           onCreateForm={() => handleOpenBuilder()}
           onRefresh={loadForms}
           onCopyFormLink={handleCopyFormLink}

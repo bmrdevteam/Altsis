@@ -23,6 +23,67 @@ const ensureFieldIds = (fields) =>
   }));
 
 /**
+ * 목록용 메타: responseCount / mySubmitted / mySubmittedAt
+ * (카드 N+1 방지를 위해 RAltForms에서 일괄 부착)
+ */
+const enrichFormsWithListMeta = async (academyId, forms, userId) => {
+  if (!forms?.length) return [];
+
+  const formIds = forms.map((f) => f._id);
+
+  const [countAgg, myRows] = await Promise.all([
+    AltSheetRow(academyId).aggregate([
+      {
+        $match: {
+          form: { $in: formIds },
+          isActive: true,
+          _respondent: { $ne: null },
+        },
+      },
+      { $group: { _id: "$form", count: { $sum: 1 } } },
+    ]),
+    AltSheetRow(academyId)
+      .find({
+        form: { $in: formIds },
+        _respondent: userId,
+        isActive: true,
+      })
+      .select("form _submittedAt")
+      .lean(),
+  ]);
+
+  const countByForm = new Map(
+    countAgg.map((r) => [r._id.toString(), r.count])
+  );
+  const myByForm = new Map();
+  for (const row of myRows) {
+    const key = row.form.toString();
+    // 복수 응답이면 여러 행 — 가장 최근 submittedAt 유지
+    const prev = myByForm.get(key);
+    const at = row._submittedAt ? new Date(row._submittedAt).getTime() : 0;
+    if (!prev || at > prev.at) {
+      myByForm.set(key, {
+        mySubmitted: true,
+        mySubmittedAt: row._submittedAt || null,
+        at,
+      });
+    }
+  }
+
+  return forms.map((form) => {
+    const plain = typeof form.toObject === "function" ? form.toObject() : form;
+    const id = plain._id.toString();
+    const mine = myByForm.get(id);
+    return {
+      ...plain,
+      responseCount: countByForm.get(id) || 0,
+      mySubmitted: !!mine,
+      mySubmittedAt: mine?.mySubmittedAt || null,
+    };
+  });
+};
+
+/**
  * @memberof APIs.AltFormAPI
  * @function CAltForm API
  * @description Alt Form 생성 API (+ AltSheet 자동 생성)
@@ -232,10 +293,20 @@ export const find = async (req, res) => {
         if (count > 0) approverForms.push(form);
       }
       // 승인자 양식도 없으면 빈 배열 반환 (403 대신)
-      return res.status(200).send({ forms: approverForms });
+      const enrichedApprover = await enrichFormsWithListMeta(
+        req.user.academyId,
+        approverForms,
+        req.user._id
+      );
+      return res.status(200).send({ forms: enrichedApprover });
     }
 
-    return res.status(200).send({ forms });
+    const enriched = await enrichFormsWithListMeta(
+      req.user.academyId,
+      forms,
+      req.user._id
+    );
+    return res.status(200).send({ forms: enriched });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });
