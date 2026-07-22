@@ -8,6 +8,7 @@ import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
+import SheetColHeader from "./SheetColHeader";
 import DateRangeFilterDropdown, {
   DateRange,
 } from "components/dateRangeFilter/DateRangeFilterDropdown";
@@ -374,9 +375,43 @@ const AltSheetView = ({
     });
   };
 
-  const getSortIndicator = (fieldId: string) => {
-    if (sortConfig?.fieldId !== fieldId) return " ↕";
-    return sortConfig.direction === "asc" ? " ↑" : " ↓";
+  const isFilterActive = (fieldId: string) => {
+    if (filters[fieldId]) return true;
+    const range = dateFilters[fieldId];
+    return !!(range?.from || range?.to);
+  };
+
+  /** 잘린 셀 전체 내용 미리보기 */
+  const [cellPreview, setCellPreview] = useState<{
+    text: string;
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  const openCellPreview = (
+    el: HTMLElement,
+    text: string,
+    force = false
+  ) => {
+    const trimmed = (text || "").trim();
+    if (!trimmed) return;
+    const overflowed =
+      el.scrollWidth > el.clientWidth + 1 ||
+      el.scrollHeight > el.clientHeight + 1;
+    if (!force && !overflowed && trimmed.length < 40) return;
+    const rect = el.getBoundingClientRect();
+    const width = Math.min(Math.max(rect.width, 260), 420);
+    const left = Math.min(
+      rect.left,
+      Math.max(8, window.innerWidth - width - 8)
+    );
+    setCellPreview({
+      text: trimmed,
+      top: rect.bottom + 4,
+      left,
+      width,
+    });
   };
 
   const handleCellClick = (
@@ -1439,160 +1474,193 @@ const AltSheetView = ({
       ) : !isLoading ? (
         /* ── 테이블 뷰 ── */
         <div className={style.sheetTableWrap}>
-        <table className={style.sheetTable}>
-          <thead>
-            <tr>
-              <th className={style.rowNumCell}>#</th>
-              <th
-                onClick={() => handleColumnSort("_respondent")}
-              >
-                응답자{getSortIndicator("_respondent")}
-              </th>
+          <table className={style.sheetTable}>
+            <colgroup>
+              <col className={style.colRowNum} />
+              <col className={style.colRespondent} />
               {visibleFields.map((f) => (
-                <th
+                <col
                   key={f._id}
-                  onClick={() => handleColumnSort(f._id)}
-                >
-                  {f.label}
-                  {f.permission === "owner" && (
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        color: "var(--accent-1)",
-                        marginLeft: "4px",
-                      }}
-                    >
-                      (관리자)
-                    </span>
-                  )}
-                  {getSortIndicator(f._id)}
-                </th>
-              ))}
-              {isQuiz && (
-                <th
-                  onClick={() => handleColumnSort("_quiz_score")}
-                >
-                  점수{getSortIndicator("_quiz_score")}
-                </th>
-              )}
-              <th
-                onClick={() => handleColumnSort("_submittedAt")}
-              >
-                제출일{getSortIndicator("_submittedAt")}
-              </th>
-              <th className={style.actionCell} />
-            </tr>
-            {/* 필터 행 */}
-            <tr>
-              <th className={style.rowNumCell} />
-              <th>
-                <input
-                  className={style.filterInput}
-                  placeholder="필터..."
-                  value={filters["_respondent"] || ""}
-                  onChange={(e) =>
-                    setFilters((p) => ({
-                      ...p,
-                      _respondent: e.target.value,
-                    }))
+                  className={
+                    f.type === "multiDate" ||
+                    f.type === "textarea" ||
+                    f.type === "docResponse"
+                      ? style.colWide
+                      : style.colField
                   }
                 />
-              </th>
-              {visibleFields.map((f) => (
-                <th key={f._id}>
-                  {f.type === "select" ||
-                  f.type === "radio" ? (
-                    <select
-                      className={style.filterInput}
-                      value={filters[f._id] || ""}
-                      onChange={(e) =>
-                        setFilters((p) => ({
-                          ...p,
-                          [f._id]: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">전체</option>
-                      {f.options?.map((opt, i) => (
-                        <option key={i} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  ) : f.type === "checkbox" ? (
-                    <select
-                      className={style.filterInput}
-                      value={filters[f._id] || ""}
-                      onChange={(e) =>
-                        setFilters((p) => ({
-                          ...p,
-                          [f._id]: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">전체</option>
-                      <option value="Y">Y</option>
-                      <option value="N">N</option>
-                    </select>
-                  ) : f.type === "approval" ? (
-                    <select
-                      className={style.filterInput}
-                      value={filters[f._id] || ""}
-                      onChange={(e) =>
-                        setFilters((p) => ({
-                          ...p,
-                          [f._id]: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">전체</option>
-                      <option value="대기">대기</option>
-                      <option value="승인">승인</option>
-                      <option value="반려">반려</option>
-                    </select>
-                  ) : f.type === "date" || f.type === "multiDate" ? (
-                    <DateRangeFilterDropdown
-                      compact
-                      value={dateFilters[f._id] || { from: "", to: "" }}
-                      onChange={(range) =>
-                        setDateFilters((p) => ({ ...p, [f._id]: range }))
-                      }
-                      placeholder="날짜 필터"
-                    />
-                  ) : (
-                    <input
-                      className={style.filterInput}
-                      placeholder="필터..."
-                      value={filters[f._id] || ""}
-                      onChange={(e) =>
-                        setFilters((p) => ({
-                          ...p,
-                          [f._id]: e.target.value,
-                        }))
-                      }
-                    />
-                  )}
-                </th>
               ))}
-              {isQuiz && <th />}
-              <th>
-                <DateRangeFilterDropdown
-                  compact
-                  value={dateFilters["_submittedAt"] || { from: "", to: "" }}
-                  onChange={(range) =>
-                    setDateFilters((p) => ({ ...p, _submittedAt: range }))
-                  }
-                  placeholder="날짜 필터"
-                />
-              </th>
-              <th className={style.actionCell} />
-            </tr>
-          </thead>
-          <tbody>
+              {isQuiz && <col className={style.colQuiz} />}
+              <col className={style.colSubmitted} />
+              <col className={style.colAction} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th className={style.rowNumCell}>#</th>
+                    <SheetColHeader
+                      fieldId="_respondent"
+                      label="응답자"
+                      sortConfig={sortConfig}
+                      onSortCycle={handleColumnSort}
+                      hasActiveFilter={isFilterActive("_respondent")}
+                    >
+                      <input
+                        className={style.filterInput}
+                        placeholder="검색..."
+                        value={filters["_respondent"] || ""}
+                        onChange={(e) =>
+                          setFilters((p) => ({
+                            ...p,
+                            _respondent: e.target.value,
+                          }))
+                        }
+                      />
+                    </SheetColHeader>
+                    {visibleFields.map((f) => (
+                      <SheetColHeader
+                        key={f._id}
+                        fieldId={f._id}
+                        label={
+                          <>
+                            {f.label}
+                            {f.permission === "owner" && (
+                              <span className={style.sheetColOwnerBadge}>
+                                (관리자)
+                              </span>
+                            )}
+                          </>
+                        }
+                        sortConfig={sortConfig}
+                        onSortCycle={handleColumnSort}
+                        hasActiveFilter={isFilterActive(f._id)}
+                      >
+                        {f.type === "select" || f.type === "radio" ? (
+                          <select
+                            className={style.filterInput}
+                            value={filters[f._id] || ""}
+                            onChange={(e) =>
+                              setFilters((p) => ({
+                                ...p,
+                                [f._id]: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">전체</option>
+                            {f.options?.map((opt, i) => (
+                              <option key={i} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : f.type === "checkbox" ? (
+                          <select
+                            className={style.filterInput}
+                            value={filters[f._id] || ""}
+                            onChange={(e) =>
+                              setFilters((p) => ({
+                                ...p,
+                                [f._id]: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">전체</option>
+                            <option value="Y">Y</option>
+                            <option value="N">N</option>
+                          </select>
+                        ) : f.type === "approval" ? (
+                          <select
+                            className={style.filterInput}
+                            value={filters[f._id] || ""}
+                            onChange={(e) =>
+                              setFilters((p) => ({
+                                ...p,
+                                [f._id]: e.target.value,
+                              }))
+                            }
+                          >
+                            <option value="">전체</option>
+                            <option value="대기">대기</option>
+                            <option value="승인">승인</option>
+                            <option value="반려">반려</option>
+                          </select>
+                        ) : f.type === "date" || f.type === "multiDate" ? (
+                          <DateRangeFilterDropdown
+                            compact
+                            value={dateFilters[f._id] || { from: "", to: "" }}
+                            onChange={(range) =>
+                              setDateFilters((p) => ({ ...p, [f._id]: range }))
+                            }
+                            placeholder="날짜 필터"
+                          />
+                        ) : (
+                          <input
+                            className={style.filterInput}
+                            placeholder="검색..."
+                            value={filters[f._id] || ""}
+                            onChange={(e) =>
+                              setFilters((p) => ({
+                                ...p,
+                                [f._id]: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
+                      </SheetColHeader>
+                    ))}
+                    {isQuiz && (
+                      <SheetColHeader
+                        fieldId="_quiz_score"
+                        label="점수"
+                        sortConfig={sortConfig}
+                        onSortCycle={handleColumnSort}
+                        hasActiveFilter={false}
+                      >
+                        <span className={style.sheetColMenuHint}>
+                          점수 열은 필터를 지원하지 않습니다.
+                        </span>
+                      </SheetColHeader>
+                    )}
+                    <SheetColHeader
+                      fieldId="_submittedAt"
+                      label="제출일"
+                      sortConfig={sortConfig}
+                      onSortCycle={handleColumnSort}
+                      hasActiveFilter={isFilterActive("_submittedAt")}
+                    >
+                      <DateRangeFilterDropdown
+                        compact
+                        value={
+                          dateFilters["_submittedAt"] || { from: "", to: "" }
+                        }
+                        onChange={(range) =>
+                          setDateFilters((p) => ({
+                            ...p,
+                            _submittedAt: range,
+                          }))
+                        }
+                        placeholder="날짜 필터"
+                      />
+                    </SheetColHeader>
+                <th className={style.actionCell} />
+              </tr>
+            </thead>
+            <tbody>
             {filteredRows.map((row, index) => (
               <tr key={row._id}>
                 <td className={style.rowNumCell}>{index + 1}</td>
-                <td>
+                <td
+                  className={style.cellPreviewable}
+                  onClick={(e) => {
+                    const name = row._respondentName || "";
+                    const id = row._respondentId
+                      ? ` (${row._respondentId})`
+                      : "";
+                    openCellPreview(
+                      e.currentTarget,
+                      `${name}${id}`.trim()
+                    );
+                  }}
+                >
                   {row._respondentName || ""}
                   {row._respondentId && (
                     <span
@@ -1677,27 +1745,49 @@ const AltSheetView = ({
                       ? String(rawValue ?? "")
                       : cellValue;
 
+                  const nonEditableTypes = [
+                    "multiDate",
+                    "multiSelect",
+                    "userSelect",
+                    "file",
+                    "link",
+                    "checkbox",
+                    "rating",
+                    "scale",
+                    "counter",
+                    "approval",
+                    "content",
+                  ];
+                  const canInlineEdit =
+                    canEdit && !nonEditableTypes.includes(field.type);
+
                   return (
                     <td
                       key={field._id}
-                      onClick={
-                        canEdit && !isEditing
-                          ? () => handleCellClick(row._id, field, editSource)
-                          : undefined
-                      }
+                      onClick={(e) => {
+                        if (isEditing) return;
+                        if (canInlineEdit) {
+                          handleCellClick(row._id, field, editSource);
+                          return;
+                        }
+                        openCellPreview(
+                          e.currentTarget,
+                          cellValue,
+                          field.type === "textarea" ||
+                            field.type === "docResponse" ||
+                            field.type === "multiDate"
+                        );
+                      }}
                       className={[
-                        canEdit ? style.cellEditable : "",
+                        canInlineEdit ? style.cellEditable : "",
+                        style.cellPreviewable,
                         field.type === "textarea" || field.type === "docResponse"
                           ? style.cellTextarea
                           : "",
                       ]
                         .filter(Boolean)
                         .join(" ") || undefined}
-                      title={
-                        field.type === "docResponse" && cellValue
-                          ? cellValue
-                          : undefined
-                      }
+                      title={cellValue || undefined}
                     >
                       {isEditing ? (
                         field.type === "textarea" ||
@@ -1761,10 +1851,36 @@ const AltSheetView = ({
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
         </div>
       ) : null}
+
+      {cellPreview && (
+        <div
+          className={style.cellPreviewOverlay}
+          onClick={() => setCellPreview(null)}
+        >
+          <div
+            className={style.cellPreviewPop}
+            style={{
+              top: cellPreview.top,
+              left: cellPreview.left,
+              width: cellPreview.width,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={style.cellPreviewText}>{cellPreview.text}</div>
+            <button
+              type="button"
+              className={style.cellPreviewClose}
+              onClick={() => setCellPreview(null)}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
       {deleteTargetRow && (
         <Popup

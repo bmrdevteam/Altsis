@@ -1562,99 +1562,336 @@
 }
 
 .sheetTableWrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: calc(100vh - 180px);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 4px;
+  background: var(--background-color);
+  min-height: 200px;
+}
+
+.colRowNum {
+  width: 48px;
+}
+.colRespondent {
+  width: 160px;
+}
+.colField {
+  width: 130px;
+}
+.colWide {
+  width: 200px;
+}
+.colQuiz {
+  width: 90px;
+}
+.colSubmitted {
+  width: 150px;
+}
+.colAction {
+  width: 40px;
 }
 
 .sheetTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
   color: var(--text-color-1);
+  table-layout: fixed;
 
   th,
   td {
-    padding: 12px;
+    padding: 6px 10px;
     text-align: left;
+    border-right: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
   }
 
-  // === 헤더 ===
-  thead tr:first-child th {
+  // === 헤더: sticky + 완전 불투명 배경 (열 sticky 없음) ===
+  thead th {
     font-weight: 600;
-    font-size: 13px;
-    color: var(--text-color-2);
-    background: var(--background-color);
+    font-size: 12px;
+    color: var(--text-color-1);
+    background-color: var(--background-color);
+    background-image: linear-gradient(
+      var(--background-color-2),
+      var(--background-color-2)
+    );
     position: sticky;
     top: 0;
-    z-index: 2;
-    cursor: pointer;
+    z-index: 3;
     user-select: none;
-    height: 48px;
-    padding: 0 12px;
-    white-space: nowrap;
-    border-bottom: 1px solid var(--border-color);
-
-    // 헤더 셀 사이 세로 구분선
-    &:not(:last-child)::after {
-      content: "";
-      position: absolute;
-      top: 35%;
-      right: 0;
-      height: 30%;
-      width: 1px;
-      background-color: var(--border-color);
-    }
-  }
-
-  // position: relative for pseudo-element
-  thead th {
-    position: relative;
-  }
-
-  // === 필터 행 ===
-  thead tr:nth-child(2) th {
     height: 36px;
-    padding: 4px 8px;
-    background: var(--background-color);
-    position: sticky;
-    top: 48px;
-    z-index: 2;
-    border-bottom: 2px solid var(--border-color);
-
-    &::after {
-      display: none;
-    }
+    padding: 0;
+    white-space: nowrap;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
   }
 
-  // === 본문 셀 ===
   td {
     color: var(--text-color-1);
-    height: 48px;
-    transition: background-color 0.15s;
+    min-height: 32px;
+    height: auto;
+    line-height: 1.35;
+    background-color: var(--background-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    &.cellTextarea,
+    &:has(.cellTextarea) {
+      white-space: normal;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  tbody tr:nth-child(even) td {
+    background-color: color-mix(
+      in srgb,
+      var(--background-color-2) 55%,
+      var(--background-color)
+    );
   }
 
   tbody tr:hover td {
-    background: var(--background-hover-color, var(--background-color-2));
+    background-color: var(--background-hover-color, var(--background-color-2));
   }
 
-  // 마지막 행은 하단 보더 제거
-  tbody tr:last-child td {
-    border-bottom: none;
+  td:focus-within {
+    outline: 2px solid var(--accent-1);
+    outline-offset: -2px;
+  }
+}
+
+.sheetColHeader {
+  min-width: 96px;
+}
+
+.sheetColHeaderInner {
+  display: flex;
+  align-items: stretch;
+  height: 36px;
+  width: 100%;
+}
+
+.sheetColLabel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px 0 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent-1) 8%, transparent);
+  }
+}
+
+.sheetColLabelText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheetColSortMark {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--accent-1);
+  font-weight: 700;
+}
+
+.sheetColOwnerBadge {
+  font-size: 10px;
+  color: var(--accent-1);
+  margin-left: 2px;
+  font-weight: 500;
+}
+
+.sheetColMenuBtn {
+  flex-shrink: 0;
+  width: 22px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-color-2);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: none;
+
+  &:hover,
+  &.sheetColMenuBtnActive {
+    background: color-mix(in srgb, var(--accent-1) 12%, transparent);
+    color: var(--accent-1);
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+}
+
+.sheetColMenu {
+  position: fixed;
+  z-index: 1200;
+  width: 240px;
+  padding: 6px 0;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.sheetColMenuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-color-1);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--background-hover-color, var(--background-color-2));
+  }
+}
+
+.sheetColMenuItemActive {
+  color: var(--accent-1);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent-1) 8%, transparent);
+}
+
+.sheetColMenuDivider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border-color);
+}
+
+.sheetColMenuFilterLabel {
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-color-2);
+}
+
+.sheetColMenuFilter {
+  padding: 4px 12px 8px;
+}
+
+.sheetColMenuHint {
+  font-size: 12px;
+  color: var(--text-color-2);
+  line-height: 1.4;
+}
+
+.cellPreviewable {
+  cursor: default;
+
+  &.cellEditable {
+    cursor: pointer;
+  }
+}
+
+.cellPreviewOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: transparent;
+}
+
+.cellPreviewPop {
+  position: fixed;
+  max-height: min(360px, 50vh);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+  box-sizing: border-box;
+}
+
+.cellPreviewText {
+  flex: 1;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-color-1);
+}
+
+.cellPreviewClose {
+  align-self: flex-end;
+  border: none;
+  background: transparent;
+  color: var(--text-color-2);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+
+  &:hover {
+    color: var(--accent-1);
   }
 }
 
 .rowNumCell {
-  width: 40px;
+  width: 48px;
+  min-width: 48px;
   text-align: center !important;
   color: var(--text-color-2) !important;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+tbody .rowNumCell {
+  background-color: var(--background-color);
+  font-weight: 400;
   font-size: 11px;
 }
 
+tbody tr:nth-child(even) .rowNumCell {
+  background-color: color-mix(
+    in srgb,
+    var(--background-color-2) 55%,
+    var(--background-color)
+  );
+}
+
+tbody tr:hover .rowNumCell {
+  background-color: var(--background-hover-color, var(--background-color-2));
+}
+
+thead .rowNumCell {
+  background-color: var(--background-color) !important;
+  background-image: linear-gradient(
+    var(--background-color-2),
+    var(--background-color-2)
+  ) !important;
+}
+
 .actionCell {
-  width: 36px;
+  width: 40px;
+  min-width: 40px;
   text-align: center !important;
   padding: 0 !important;
 
@@ -1670,6 +1907,30 @@
       opacity: 1;
     }
   }
+}
+
+tbody .actionCell {
+  background-color: var(--background-color);
+}
+
+thead .actionCell {
+  background-color: var(--background-color) !important;
+  background-image: linear-gradient(
+    var(--background-color-2),
+    var(--background-color-2)
+  ) !important;
+}
+
+tbody tr:nth-child(even) .actionCell {
+  background-color: color-mix(
+    in srgb,
+    var(--background-color-2) 55%,
+    var(--background-color)
+  );
+}
+
+tbody tr:hover .actionCell {
+  background-color: var(--background-hover-color, var(--background-color-2));
 }
 
 .cellTextarea {
@@ -1707,14 +1968,15 @@
 
 .filterInput {
   width: 100%;
-  padding: 4px 8px;
+  padding: 3px 6px;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: 2px;
   font-size: 11px;
   background: var(--background-color);
   color: var(--text-color-1);
   font-family: inherit;
   box-sizing: border-box;
+  height: 26px;
 
   &:focus {
     outline: none;
