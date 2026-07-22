@@ -68,7 +68,7 @@ const AltDocsView = ({ board }: Props) => {
       board.writers?.users?.some((u) => u.userId === currentUser?.userId)
     )
       return true;
-    const role = board.altBoardRole?.[currentUser?.userId || ""];
+    const role = board.altBoardRole?.[currentUser?._id || ""];
     if (role === "admin" || role === "writer") return true;
     return false;
   };

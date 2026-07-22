@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import style from "./altBoard.module.scss";
 import { TAltForm } from "types/altForm";
-import { TBoard } from "types/board";
+import { TAltBoardRole, TBoard } from "types/board";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { objectDownloadAsJson } from "functions/functions";
 import Button from "components/button/Button";
@@ -13,6 +13,8 @@ type Props = {
   board: TBoard;
   forms: TAltForm[];
   isLoading: boolean;
+  /** null이면 Alt Board 멤버가 아님 — 목록·통계 비표시 */
+  myRole: TAltBoardRole | null;
   canManage: boolean;
   onFormClick: (form: TAltForm) => void;
   onRespondForm: (formId: string) => void;
@@ -88,6 +90,7 @@ const AltFormList = ({
   board,
   forms,
   isLoading,
+  myRole,
   canManage,
   onFormClick,
   onRespondForm,
@@ -103,12 +106,14 @@ const AltFormList = ({
   const [actionMenu, setActionMenu] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
+  // 보드 멤버(altBoardRole)만 할 일 목록 표시. 비멤버·승인자 전용 접근은 카드 링크 등으로만.
   const submitForms = useMemo(() => {
+    if (!myRole) return [];
     return forms
       .filter((f) => !f.settings.directInputMode)
       .slice()
       .sort((a, b) => submitSortRank(a) - submitSortRank(b));
-  }, [forms]);
+  }, [forms, myRole]);
 
   const manageForms = useMemo(() => (canManage ? forms : []), [canManage, forms]);
 
@@ -158,6 +163,16 @@ const AltFormList = ({
   const [manageOpen, setManageOpen] = useState(true);
 
   if (isLoading) return null;
+
+  // Alt Board 역할이 없으면 목록·통계를 노출하지 않음
+  // (학교 manager 등 보드 열람만 가능한 경우 포함)
+  if (!myRole) {
+    return (
+      <div className={style.emptyState}>
+        이 보드의 활동에 접근할 권한이 없습니다.
+      </div>
+    );
+  }
 
   const handleExport = async (formId: string) => {
     try {

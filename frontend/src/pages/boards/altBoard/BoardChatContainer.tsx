@@ -43,7 +43,13 @@ const BoardChatContainer = ({ board, onNewMessage }: Props) => {
     if (!currentUser) return null;
     if (currentUser.auth === "admin") return "admin";
     if (board.creator === currentUser._id) return "admin";
-    return (board.altBoardRole?.[currentUser._id] as TAltBoardRole) || null;
+    const roles = board.altBoardRole;
+    if (!roles) return null;
+    return (
+      (roles[currentUser._id] as TAltBoardRole | undefined) ||
+      (roles[String(currentUser._id)] as TAltBoardRole | undefined) ||
+      null
+    );
   })();
 
   const isTeacher = myRole === "admin" || myRole === "writer";

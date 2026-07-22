@@ -111,7 +111,11 @@ export const isBoardMemberAsUser = (board, user, role) => {
 
   // Alt Board: altBoardRole 확인
   if (board.altBoardRole) {
-    const altRole = board.altBoardRole.get(user._id.toString());
+    const userOid = user._id.toString();
+    const altRole =
+      typeof board.altBoardRole.get === "function"
+        ? board.altBoardRole.get(userOid)
+        : board.altBoardRole[userOid];
     if (altRole) return true;
   }
 
@@ -137,7 +141,11 @@ export const isBoardMember = (board, user, role) => {
 
   // Alt Board: altBoardRole 확인
   if (board.altBoardRole) {
-    const altRole = board.altBoardRole.get(user._id.toString());
+    const userOid = user._id.toString();
+    const altRole =
+      typeof board.altBoardRole.get === "function"
+        ? board.altBoardRole.get(userOid)
+        : board.altBoardRole[userOid];
     if (altRole) return true;
   }
 
@@ -166,7 +174,11 @@ export const isBoardWriter = (board, user, role) => {
 
   // Alt Board: altBoardRole의 admin/writer는 작성 권한
   if (board.altBoardRole) {
-    const altRole = board.altBoardRole.get(user._id.toString());
+    const userOid = user._id.toString();
+    const altRole =
+      typeof board.altBoardRole.get === "function"
+        ? board.altBoardRole.get(userOid)
+        : board.altBoardRole[userOid];
     if (altRole === "admin" || altRole === "writer") return true;
   }
 

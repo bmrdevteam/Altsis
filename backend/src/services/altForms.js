@@ -4,6 +4,23 @@
  */
 
 /**
+ * altBoardRole Map/plain object에서 역할 조회
+ * @param {Map|Object|undefined|null} altBoardRole
+ * @param {string} userOid
+ * @returns {string|null}
+ */
+const lookupAltBoardRole = (altBoardRole, userOid) => {
+  if (!altBoardRole || !userOid) return null;
+  if (altBoardRole instanceof Map) {
+    return altBoardRole.get(userOid) || null;
+  }
+  if (typeof altBoardRole.get === "function") {
+    return altBoardRole.get(userOid) || null;
+  }
+  return altBoardRole[userOid] || null;
+};
+
+/**
  * Alt Board에서 사용자의 역할 조회
  * @param {Object} board - Board 문서 (altBoardRole Map 포함)
  * @param {Object} user - 사용자 객체
@@ -13,12 +30,7 @@ export const getAltBoardRole = (board, user) => {
   if (user.auth === "admin") return "admin";
   if (board.creator && board.creator.equals(user._id)) return "admin";
 
-  if (board.altBoardRole) {
-    const role = board.altBoardRole.get(user._id.toString());
-    if (role) return role;
-  }
-
-  return null;
+  return lookupAltBoardRole(board.altBoardRole, user._id.toString());
 };
 
 /**

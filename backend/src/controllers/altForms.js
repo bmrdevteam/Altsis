@@ -25,23 +25,31 @@ const ensureFieldIds = (fields) =>
 /**
  * 목록용 메타: responseCount / mySubmitted
  * (카드 N+1 방지를 위해 RAltForms에서 일괄 부착)
+ * responseCount는 admin/writer에게만 부착 (응답자·비멤버에게 집계 노출 방지)
  */
-const enrichFormsWithListMeta = async (academyId, forms, userId) => {
+const enrichFormsWithListMeta = async (
+  academyId,
+  forms,
+  userId,
+  { includeResponseCount = false } = {}
+) => {
   if (!forms?.length) return [];
 
   const formIds = forms.map((f) => f._id);
 
   const [countAgg, myRows] = await Promise.all([
-    AltSheetRow(academyId).aggregate([
-      {
-        $match: {
-          form: { $in: formIds },
-          isActive: true,
-          _respondent: { $ne: null },
-        },
-      },
-      { $group: { _id: "$form", count: { $sum: 1 } } },
-    ]),
+    includeResponseCount
+      ? AltSheetRow(academyId).aggregate([
+          {
+            $match: {
+              form: { $in: formIds },
+              isActive: true,
+              _respondent: { $ne: null },
+            },
+          },
+          { $group: { _id: "$form", count: { $sum: 1 } } },
+        ])
+      : Promise.resolve([]),
     AltSheetRow(academyId)
       .find({
         form: { $in: formIds },
@@ -60,11 +68,14 @@ const enrichFormsWithListMeta = async (academyId, forms, userId) => {
   return forms.map((form) => {
     const plain = typeof form.toObject === "function" ? form.toObject() : form;
     const id = plain._id.toString();
-    return {
+    const meta = {
       ...plain,
-      responseCount: countByForm.get(id) || 0,
       mySubmitted: myFormIds.has(id),
     };
+    if (includeResponseCount) {
+      meta.responseCount = countByForm.get(id) || 0;
+    }
+    return meta;
   });
 };
 
@@ -281,15 +292,18 @@ export const find = async (req, res) => {
       const enrichedApprover = await enrichFormsWithListMeta(
         req.user.academyId,
         approverForms,
-        req.user._id
+        req.user._id,
+        { includeResponseCount: false }
       );
       return res.status(200).send({ forms: enrichedApprover });
     }
 
+    const canSeeResponseCount = role === "admin" || role === "writer";
     const enriched = await enrichFormsWithListMeta(
       req.user.academyId,
       forms,
-      req.user._id
+      req.user._id,
+      { includeResponseCount: canSeeResponseCount }
     );
     return res.status(200).send({ forms: enriched });
   } catch (err) {

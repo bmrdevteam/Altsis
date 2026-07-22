@@ -17,6 +17,7 @@ import AltFormRenderer from "./AltFormRenderer";
 import AltSheetView from "./AltSheetView";
 import AltDocsView from "./AltDocsView";
 import BoardChatContainer from "./BoardChatContainer";
+import style from "./altBoard.module.scss";
 
 type Props = {
   board: TBoard;
@@ -46,7 +47,13 @@ const AltBoardView = ({ board, embedded }: Props) => {
     if (!currentUser) return null;
     if (currentUser.auth === "admin") return "admin";
     if (board.creator === currentUser._id) return "admin";
-    return (board.altBoardRole?.[currentUser._id] as TAltBoardRole) || null;
+    const roles = board.altBoardRole;
+    if (!roles) return null;
+    return (
+      (roles[currentUser._id] as TAltBoardRole | undefined) ||
+      (roles[String(currentUser._id)] as TAltBoardRole | undefined) ||
+      null
+    );
   })();
 
   const canManage = myRole === "admin" || myRole === "writer";
@@ -332,6 +339,13 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
   // 기록 상세 모드 (양식 관리와 같이 탭 밖 전체 화면)
   if (urlSheetId) {
+    if (!myRole) {
+      return (
+        <div className={style.emptyState}>
+          이 보드의 기록에 접근할 권한이 없습니다.
+        </div>
+      );
+    }
     return (
       <>
         <AltSheetView
@@ -357,6 +371,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
           board={board}
           forms={forms}
           isLoading={isLoading}
+          myRole={myRole}
           canManage={canManage}
           onFormClick={handleFormClick}
           onRespondForm={handleOpenRenderer}
@@ -368,16 +383,22 @@ const AltBoardView = ({ board, embedded }: Props) => {
     ),
     "기록": (
       <div style={{ paddingTop: 20 }}>
-        <AltSheetView
-          board={board}
-          forms={forms}
-          canManage={canManage}
-          canDeleteAnyRow={canDeleteAnyRow}
-          initialFormId={undefined}
-          onFormSelect={handleOpenSheet}
-          onFormDeselect={handleBackToSheetList}
-          onCopySheetLink={handleCopySheetLink}
-        />
+        {!myRole ? (
+          <div className={style.emptyState}>
+            이 보드의 기록에 접근할 권한이 없습니다.
+          </div>
+        ) : (
+          <AltSheetView
+            board={board}
+            forms={forms}
+            canManage={canManage}
+            canDeleteAnyRow={canDeleteAnyRow}
+            initialFormId={undefined}
+            onFormSelect={handleOpenSheet}
+            onFormDeselect={handleBackToSheetList}
+            onCopySheetLink={handleCopySheetLink}
+          />
+        )}
       </div>
     ),
   };
