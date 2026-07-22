@@ -23,7 +23,7 @@ const ensureFieldIds = (fields) =>
   }));
 
 /**
- * 목록용 메타: responseCount / mySubmitted / mySubmittedAt
+ * 목록용 메타: responseCount / mySubmitted
  * (카드 N+1 방지를 위해 RAltForms에서 일괄 부착)
  */
 const enrichFormsWithListMeta = async (academyId, forms, userId) => {
@@ -48,37 +48,22 @@ const enrichFormsWithListMeta = async (academyId, forms, userId) => {
         _respondent: userId,
         isActive: true,
       })
-      .select("form _submittedAt")
+      .select("form")
       .lean(),
   ]);
 
   const countByForm = new Map(
     countAgg.map((r) => [r._id.toString(), r.count])
   );
-  const myByForm = new Map();
-  for (const row of myRows) {
-    const key = row.form.toString();
-    // 복수 응답이면 여러 행 — 가장 최근 submittedAt 유지
-    const prev = myByForm.get(key);
-    const at = row._submittedAt ? new Date(row._submittedAt).getTime() : 0;
-    if (!prev || at > prev.at) {
-      myByForm.set(key, {
-        mySubmitted: true,
-        mySubmittedAt: row._submittedAt || null,
-        at,
-      });
-    }
-  }
+  const myFormIds = new Set(myRows.map((row) => row.form.toString()));
 
   return forms.map((form) => {
     const plain = typeof form.toObject === "function" ? form.toObject() : form;
     const id = plain._id.toString();
-    const mine = myByForm.get(id);
     return {
       ...plain,
       responseCount: countByForm.get(id) || 0,
-      mySubmitted: !!mine,
-      mySubmittedAt: mine?.mySubmittedAt || null,
+      mySubmitted: myFormIds.has(id),
     };
   });
 };

@@ -610,10 +610,6 @@ const AltFormList = ({
         </section>
       )}
 
-      {!canManage && forms.length === 0 && (
-        <div className={style.emptyState}>등록된 양식이 없습니다.</div>
-      )}
-
       {comboForm && (
         <CombinationGenerator
           form={comboForm}

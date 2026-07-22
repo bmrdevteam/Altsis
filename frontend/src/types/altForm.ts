@@ -102,6 +102,4 @@ export type TAltForm = {
   responseCount?: number;
   /** 목록 API 메타: 내가 제출했는지 */
   mySubmitted?: boolean;
-  /** 목록 API 메타: 내 최근 제출 시각 */
-  mySubmittedAt?: string | null;
 };

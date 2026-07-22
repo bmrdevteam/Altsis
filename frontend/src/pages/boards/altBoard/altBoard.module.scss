@@ -159,19 +159,6 @@
   padding-top: 12px;
 }
 
-.formSection {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 8px;
-
-  & + & {
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-  }
-}
-
 .formCard {
   position: relative;
   display: flex;
@@ -399,36 +386,6 @@
 
   & + & {
     border-top: 1px solid var(--border-color);
-  }
-}
-
-.formActionItemDanger {
-  color: var(--status-error);
-
-  &:hover {
-    background: var(--status-error-bg);
-  }
-}
-
-.addFormBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px;
-  border: 1px dashed var(--border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text-color-2);
-  font-size: 14px;
-  background: none;
-  width: 100%;
-  transition: all 0.15s;
-
-  &:hover {
-    border-color: var(--accent-1);
-    color: var(--accent-1);
-    background: rgba(var(--accent-1-rgb, 55, 53, 47), 0.03);
   }
 }
 
@@ -1964,11 +1921,6 @@
   border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
-}
-
-.badgePending {
-  background: var(--status-warning-bg);
-  color: var(--status-warning);
 }
 
 .badgeApproved {
