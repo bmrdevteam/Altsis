@@ -25,10 +25,13 @@ import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
 import {
   TBoard,
+  TBoardContentViewMode,
   TBoardMembers,
   TBoardNotificationEvents,
   TMemberUser,
 } from "types/board";
+
+import bStyle from "../boards.module.scss";
 
 type Props = {
   board: TBoard;
@@ -110,6 +113,9 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
   );
 
   const [chatEnabled, setChatEnabled] = useState(board.chatEnabled !== false);
+  const [contentViewMode, setContentViewMode] = useState<TBoardContentViewMode>(
+    board.contentViewMode === "blog" ? "blog" : "table"
+  );
 
   const [coverColor, setCoverColor] = useState(board.coverColor || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -298,6 +304,7 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
           coverColor: coverColor || undefined,
           notificationEvents: notifEvents,
           chatEnabled,
+          contentViewMode,
         },
       });
 
@@ -614,6 +621,49 @@ const BoardManagePopup = ({ board, setState, onSuccess }: Props) => {
               defaultValue={description}
               onChange={(e: any) => setDescription(e.target.value)}
             />
+          </div>
+          <div style={{ marginBottom: "16px" }}>
+            <div
+              style={{
+                display: "block",
+                fontSize: "14px",
+                fontWeight: 500,
+                marginBottom: "6px",
+              }}
+            >
+              문서 목록 보기
+            </div>
+            <div className={bStyle.segmentGroup}>
+              <button
+                type="button"
+                className={`${bStyle.segmentBtn} ${
+                  contentViewMode === "table" ? bStyle.segmentBtnActive : ""
+                }`}
+                onClick={() => setContentViewMode("table")}
+              >
+                테이블
+              </button>
+              <button
+                type="button"
+                className={`${bStyle.segmentBtn} ${
+                  contentViewMode === "blog" ? bStyle.segmentBtnActive : ""
+                }`}
+                onClick={() => setContentViewMode("blog")}
+              >
+                블로그
+              </button>
+            </div>
+            <p
+              style={{
+                fontSize: "12px",
+                color: "var(--text-color-2)",
+                marginTop: "6px",
+                marginBottom: 0,
+              }}
+            >
+              문서 탭 목록 형태입니다. 보드 멤버 전체에 적용됩니다. 테이블은
+              카드형 목록, 블로그는 피드형입니다.
+            </p>
           </div>
           <div style={{ marginTop: "16px" }}>
             <label

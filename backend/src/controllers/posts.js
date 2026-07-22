@@ -8,9 +8,13 @@ import _ from "lodash";
 import https from "https";
 import http from "http";
 import zlib from "zlib";
-import { AltForm, AltSheet, AltSheetRow, Board, Post, User, SurveyResponse } from "../models/index.js";
-import { parseSheetDeclaration, parseFormDeclaration, renderMerge, renderMergeWithInputs, hasInputTags, stripMergeTags } from "../utils/mergeEngine.js";
-import { getAltBoardRole, canRespondForm } from "../services/altForms.js";
+import { AltForm, AltSheet, AltSheetRow, Board, Post, SurveyResponse } from "../models/index.js";
+import {
+  parseSheetDeclaration,
+  renderMerge,
+  stripMergeTags,
+} from "../utils/mergeEngine.js";
+import { getAltBoardRole } from "../services/altForms.js";
 import {
   isBoardMember,
   isBoardWriter,
@@ -32,6 +36,28 @@ import {
 } from "../messages/index.js";
 import { postMulter, isImageFile } from "../_s3/postMulter.js";
 import { signUrl, signUrlForView, fileS3, fileBucket } from "../_s3/fileBucket.js";
+
+/** 시트명 또는 동일 제목 양식으로 AltSheet 해석 (조회 시 name 무단 변경 없음) */
+const resolveAltSheetByName = async (academyId, boardId, sheetName) => {
+  let sheet = await AltSheet(academyId).findOne({
+    board: boardId,
+    name: sheetName,
+    isActive: true,
+  });
+  if (sheet) return sheet;
+
+  const formByTitle = await AltForm(academyId).findOne({
+    board: boardId,
+    title: sheetName,
+    isActive: true,
+  });
+  if (!formByTitle) return null;
+
+  return AltSheet(academyId).findOne({
+    form: formByTitle._id,
+    isActive: true,
+  });
+};
 
 /**
  * @memberof APIs.PostAPI
@@ -298,74 +324,18 @@ export const find = async (req, res) => {
       post.viewCount = (post.viewCount || 0) + 1;
       await post.save();
 
-      // 머지/입력 렌더링
+      // 머지 렌더링
       if (req.query.merge === "true" && post.content) {
         const altRole = getAltBoardRole(board, req.user);
 
-        // ── {{#form 양식이름}} — 입력 문서 ──
-        const { formName, body: formBody } = parseFormDeclaration(post.content);
-        if (formName) {
-          const form = await AltForm(req.user.academyId).findOne({
-            board: board._id,
-            title: formName,
-            isActive: true,
-          });
-
-          if (form) {
-            const postObj = post.toObject();
-            postObj._rawContent = postObj.content;
-
-            // 항상 입력 모드 (본인 행)
-            const myRows = await AltSheetRow(req.user.academyId)
-              .find({ sheet: form.sheet, isActive: true, _respondent: req.user._id })
-              .sort({ createdAt: -1 })
-              .limit(1)
-              .lean();
-            const myRow = myRows[0] || null;
-            postObj.content = renderMergeWithInputs(formBody, myRow, form.fields);
-            postObj._mergeApplied = true;
-            postObj._mergeInputMode = true;
-            postObj._mergeFormId = form._id.toString();
-            postObj._mergeExistingRowId = myRow?._id?.toString() || null;
-            postObj._mergeCanSubmit = canRespondForm(form, board, req.user).allowed;
-            postObj._mergeAllowResubmit = form.settings.allowResubmit || form.settings.allowMultipleResponses || false;
-
-            return res.status(200).send({ post: postObj, board });
-          } else {
-            logger.warn(`Merge: AltForm "${formName}" not found for board ${board._id}`);
-            const postObj = post.toObject();
-            postObj.content = stripMergeTags(formBody);
-            postObj._mergeApplied = false;
-            return res.status(200).send({ post: postObj, board });
-          }
-        }
-
-        // ── {{#sheet 시트명}} — 읽기 전용 머지 (기존) ──
+        // ── {{#sheet 시트명}} — 읽기 전용 머지 ──
         const { sheetName, body } = parseSheetDeclaration(post.content);
         if (sheetName) {
-          let sheet = await AltSheet(req.user.academyId).findOne({
-            board: board._id,
-            name: sheetName,
-            isActive: true,
-          });
-
-          if (!sheet) {
-            const formByTitle = await AltForm(req.user.academyId).findOne({
-              board: board._id,
-              title: sheetName,
-              isActive: true,
-            });
-            if (formByTitle) {
-              sheet = await AltSheet(req.user.academyId).findOne({
-                form: formByTitle._id,
-                isActive: true,
-              });
-              if (sheet && sheet.name !== sheetName) {
-                sheet.name = sheetName;
-                await sheet.save();
-              }
-            }
-          }
+          const sheet = await resolveAltSheetByName(
+            req.user.academyId,
+            board._id,
+            sheetName
+          );
 
           if (sheet) {
             const form = await AltForm(req.user.academyId).findById(sheet.form);
@@ -414,8 +384,11 @@ export const find = async (req, res) => {
 
               const postObj = post.toObject();
               postObj._rawContent = postObj.content;
-              postObj.content = renderMerge(body, rows, form.fields);
+              const rendered = renderMerge(body, rows, form.fields);
+              postObj.content = rendered.content;
               postObj._mergeApplied = true;
+              if (rendered.stripped) postObj._mergeStripped = true;
+              if (rendered.truncated) postObj._mergeTruncated = true;
 
               if (altRole === "admin" || altRole === "writer") {
                 postObj._mergeFields = form.fields.map((f) => ({ label: f.label, type: f.type }));
@@ -800,94 +773,6 @@ export const signPostFile = async (req, res) => {
     );
 
     return res.status(200).send({ preSignedUrl, expiryDate });
-  } catch (err) {
-    logger.error(err.message);
-    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
-  }
-};
-
-/**
- * @memberof APIs.PostAPI
- * @function mergeBatch API
- * @description 머지 문서 일괄 렌더링 (사용자별)
- */
-export const mergeBatch = async (req, res) => {
-  try {
-    const post = await Post(req.user.academyId).findById(req.params._id);
-    if (!post || !post.isActive) {
-      return res.status(404).send({ message: __NOT_FOUND("post") });
-    }
-
-    const board = await Board(req.user.academyId).findById(post.board);
-    if (!board) {
-      return res.status(404).send({ message: __NOT_FOUND("board") });
-    }
-
-    const altRole = getAltBoardRole(board, req.user);
-    if (altRole !== "admin" && altRole !== "writer") {
-      return res.status(403).send({ message: PERMISSION_DENIED });
-    }
-
-    if (!post.content) {
-      return res.status(400).send({ message: "게시글에 내용이 없습니다." });
-    }
-
-    const { sheetName, body } = parseSheetDeclaration(post.content);
-    if (!sheetName) {
-      return res.status(400).send({ message: "머지 시트가 지정되지 않았습니다." });
-    }
-
-    const sheet = await AltSheet(req.user.academyId).findOne({
-      board: board._id,
-      name: sheetName,
-      isActive: true,
-    });
-    if (!sheet) {
-      return res.status(404).send({ message: __NOT_FOUND("sheet") });
-    }
-
-    const form = await AltForm(req.user.academyId).findById(sheet.form);
-    if (!form) {
-      return res.status(404).send({ message: __NOT_FOUND("form") });
-    }
-
-    // userIds 파라미터로 필터링 (없으면 전체)
-    let rowQuery = { sheet: sheet._id, isActive: true };
-    if (req.query.userIds) {
-      const userIdList = req.query.userIds.split(",");
-      const users = await User(req.user.academyId)
-        .find({ userId: { $in: userIdList } })
-        .lean();
-      const userOids = users.map((u) => u._id);
-      rowQuery._respondent = { $in: userOids };
-    }
-
-    const rows = await AltSheetRow(req.user.academyId)
-      .find(rowQuery)
-      .sort({ createdAt: 1 })
-      .lean();
-
-    // 사용자별로 그룹핑하여 렌더링
-    const grouped = {};
-    for (const row of rows) {
-      const key = row._respondent?.toString() || "unknown";
-      if (!grouped[key]) {
-        grouped[key] = {
-          userId: row._respondentId || "",
-          userName: row._respondentName || "",
-          rows: [],
-        };
-      }
-      grouped[key].rows.push(row);
-    }
-
-    const results = Object.values(grouped).map((group) => ({
-      userId: group.userId,
-      userName: group.userName,
-      content: renderMerge(body, group.rows, form.fields),
-    }));
-
-    return res.status(200).send({ results, title: post.title });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

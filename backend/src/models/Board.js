@@ -172,7 +172,7 @@ const boardSchema = mongoose.Schema(
     contentViewMode: {
       type: String,
       enum: ["table", "blog"],
-      default: "blog",
+      default: "table",
     },
 
     // 보드 유형 (official: 관리자 생성, user: 일반 사용자 생성)

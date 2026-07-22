@@ -39,12 +39,13 @@ const PostCreate = () => {
     boardId: string;
     postId?: string;
   }>();
-  const { currentUser, currentSchool } = useAuth();
+  const { currentSchool } = useAuth();
   const { BoardAPI, PostAPI, UserAPI, ChatAPI, AltFormAPI } = useAPIv2();
 
   const [board, setBoard] = useState<TBoard | null>(null);
   const [altForms, setAltForms] = useState<TAltForm[]>([]);
-  const [showTemplateGuide, setShowTemplateGuide] = useState(false);
+  const [showFieldCopy, setShowFieldCopy] = useState(false);
+  const [copiedHint, setCopiedHint] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
@@ -178,7 +179,7 @@ const PostCreate = () => {
     }
   }, [isLoading, boardId, postId]);
 
-  // Alt Board: 양식 목록 로드 (템플릿 변수 안내용)
+  // Alt Board: 양식·필드 복사 목록
   useEffect(() => {
     if (board?.boardMode === "alt" && boardId) {
       AltFormAPI.RAltForms({ query: { board: boardId } })
@@ -186,6 +187,16 @@ const PostCreate = () => {
         .catch(() => {});
     }
   }, [board]);
+
+  const copyMergeToken = async (token: string) => {
+    try {
+      await navigator.clipboard.writeText(token);
+      setCopiedHint(token);
+      window.setTimeout(() => setCopiedHint(null), 1500);
+    } catch {
+      alert("클립보드 복사에 실패했습니다.");
+    }
+  };
 
   // 첨부파일 업로드
   const handleFileSelect = async (files: FileList | null) => {
@@ -782,8 +793,8 @@ const PostCreate = () => {
                 {board?.boardMode === "alt" && altForms.length > 0 && (
                   <button
                     type="button"
-                    title="시트 데이터 연결 (템플릿 변수)"
-                    onClick={() => setShowTemplateGuide(true)}
+                    title="양식·필드 복사"
+                    onClick={() => setShowFieldCopy(true)}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -811,200 +822,44 @@ const PostCreate = () => {
           />
         </div>
 
-        {/* 템플릿 변수 안내 모달 */}
-        {showTemplateGuide && (
+        {/* 양식·필드 토큰 복사 */}
+        {showFieldCopy && (
           <Popup
-            title="시트 데이터 연결 (템플릿 변수)"
-            setState={setShowTemplateGuide}
+            title="양식·필드 복사"
+            setState={setShowFieldCopy}
             closeBtn
             contentScroll
-            style={{ maxWidth: "640px", width: "100%" }}
+            style={{ maxWidth: "480px", width: "100%" }}
           >
-            <div style={{ padding: "20px", fontSize: "13px", lineHeight: 1.8 }}>
-              <p style={{ marginBottom: "16px", color: "var(--text-color-2)" }}>
-                문서 내용에 아래 문법을 사용하면 시트 데이터가 자동으로 삽입됩니다.
+            <div style={{ padding: "16px 20px", fontSize: "13px", lineHeight: 1.6 }}>
+              <p style={{ marginBottom: "12px", color: "var(--text-color-2)", fontSize: "12px" }}>
+                클릭하면 클립보드에 복사됩니다. 문법 설명은 매뉴얼을 참고하세요.
               </p>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>1. 시트 선언</strong>
-                <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: 8 }}>문서 상단에 작성</span>
-                <pre
+              {copiedHint && (
+                <div
                   style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
+                    marginBottom: "12px",
+                    padding: "6px 10px",
+                    background: "var(--status-info-bg, #e0f2fe)",
                     borderRadius: "6px",
                     fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
+                    color: "var(--text-color-1)",
+                    wordBreak: "break-all",
                   }}
                 >
-                  {`{{#sheet 양식이름}}`}
-                </pre>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>2. 변수 삽입</strong>
-                <pre
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
-                  }}
-                >
-{`{{필드이름}}              — 필드 값
-{{필드|date:YYYY.MM.DD}} — 날짜 포맷
-{{필드|number:,}}        — 숫자 천 단위 쉼표
-{{_respondentName}}      — 응답자 이름
-{{_respondentId}}        — 응답자 ID
-{{_submittedAt}}         — 제출일
-{{_count}}               — 전체 응답 수`}
-                </pre>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>3. 반복/테이블</strong>
-                <pre
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
-                  }}
-                >
-{`{{#each}}
-  {{_index}}. {{이름}}: {{점수}}점
-{{/each}}
-
-{{#table _index, 이름, 점수, 상태}}`}
-                </pre>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>4. 필터/정렬</strong>
-                <pre
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
-                  }}
-                >
-{`{{#filter 학년 == "10학년"}}
-{{#filter 점수 > 80}}
-{{#sort 이름 asc}}
-{{#sort 점수 desc}}`}
-                </pre>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>5. 집계</strong>
-                <pre
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
-                  }}
-                >
-{`{{#sum 필드}}   — 합계
-{{#avg 필드}}   — 평균
-{{#min 필드}}   — 최솟값
-{{#max 필드}}   — 최댓값
-{{#unique 필드}} — 고유값 목록`}
-                </pre>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>6. 조건부 표시</strong>
-                <pre
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
-                  }}
-                >
-{`{{#if 상태 == "승인"}}승인됨{{#else}}미승인{{/if}}
-
-연산자: == != > < >= <= contains isEmpty isNotEmpty`}
-                </pre>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>7. 그룹핑</strong>
-                <pre
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
-                  }}
-                >
-{`{{#group 학년}}
-### {{_groupValue}} ({{_groupCount}}명)
-{{#table 이름, 점수}}
-{{/group}}`}
-                </pre>
-              </div>
-
-              <div style={{ marginBottom: "16px" }}>
-                <strong>{`8. 입력 문서 ({{#form}})`}</strong>
-                <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: 8 }}>
-                  문서에서 직접 입력받기
-                </span>
-                <pre
-                  style={{
-                    padding: "8px 12px",
-                    background: "var(--background-color-2)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    margin: "6px 0",
-                    overflow: "auto",
-                  }}
-                >
-{`{{#form 양식이름}}          — 입력 문서 선언 ({{#sheet}} 대신 사용)
-{{#input 필드이름}}          — 밑줄 스타일 입력 필드
-
-예:
-{{#form 결석계}}
-본인 {{#input 이름}} 은(는) {{#input 날짜}} 에
-{{#input 사유}} 의 사유로 결석합니다.`}
-                </pre>
-                <div style={{ fontSize: "11px", color: "var(--text-color-2)", marginTop: "4px" }}>
-                  모든 사용자에게 입력 필드 표시 / 관리자는 "전체 응답 보기"로 전환 가능
+                  복사됨: <code>{copiedHint}</code>
                 </div>
-              </div>
-
-              {/* 양식별 사용 가능한 변수 목록 */}
-              <div
-                style={{
-                  marginTop: "20px",
-                  paddingTop: "16px",
-                  borderTop: "1px solid var(--border-color)",
-                }}
-              >
-                <strong>사용 가능한 양식/필드</strong>
-                <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: 8 }}>
-                  클릭하여 복사
-                </span>
-                {altForms.map((form) => (
+              )}
+              {altForms.map((form) => {
+                const sheetToken = `{{#sheet ${form.title}}}`;
+                const mergeFields = form.fields.filter(
+                  (f) => f.type !== "content" && f.type !== "docResponse"
+                );
+                return (
                   <div
                     key={form._id}
                     style={{
-                      marginTop: "10px",
+                      marginBottom: "12px",
                       padding: "10px 12px",
                       background: "var(--background-color-2)",
                       borderRadius: "6px",
@@ -1012,29 +867,16 @@ const PostCreate = () => {
                   >
                     <div
                       style={{
-                        display: "flex",
-                        gap: "8px",
                         fontWeight: 600,
-                        marginBottom: "6px",
+                        marginBottom: "8px",
                         fontSize: "12px",
                         color: "var(--text-color-2)",
+                        cursor: "pointer",
                       }}
+                      onClick={() => copyMergeToken(sheetToken)}
+                      title="시트 선언 복사"
                     >
-                      <span
-                        style={{ cursor: "pointer" }}
-                        onClick={() => navigator.clipboard.writeText(`{{#sheet ${form.title}}}`)}
-                        title="읽기 전용 머지 문서"
-                      >
-                        {`{{#sheet ${form.title}}}`}
-                      </span>
-                      <span style={{ color: "var(--border-color)" }}>|</span>
-                      <span
-                        style={{ cursor: "pointer", color: "var(--primary-color, #3b82f6)" }}
-                        onClick={() => navigator.clipboard.writeText(`{{#form ${form.title}}}`)}
-                        title="입력 문서"
-                      >
-                        {`{{#form ${form.title}}}`}
-                      </span>
+                      {sheetToken}
                     </div>
                     <div
                       style={{
@@ -1043,51 +885,36 @@ const PostCreate = () => {
                         gap: "4px",
                       }}
                     >
-                      {form.fields.map((f) => (
-                        <span key={f._id} style={{ display: "inline-flex", gap: "2px" }}>
+                      {mergeFields.map((f) => {
+                        const fieldToken = `{{${f.label}}}`;
+                        return (
                           <span
-                            onClick={() => {
-                              navigator.clipboard.writeText(`{{${f.label}}}`);
-                            }}
+                            key={f._id}
+                            onClick={() => copyMergeToken(fieldToken)}
                             style={{
                               padding: "3px 10px",
                               background: "var(--background-color-1)",
                               border: "1px solid var(--border-color)",
-                              borderRadius: "4px 0 0 4px",
+                              borderRadius: "4px",
                               fontSize: "12px",
                               cursor: "pointer",
                               color: "var(--text-color-1)",
-                              transition: "background 0.15s",
                             }}
-                            title={`{{${f.label}}} 복사 (읽기 전용)`}
+                            title={`${fieldToken} 복사`}
                           >
-                            {`{{${f.label}}}`}
+                            {fieldToken}
                           </span>
-                          <span
-                            onClick={() => {
-                              navigator.clipboard.writeText(`{{#input ${f.label}}}`);
-                            }}
-                            style={{
-                              padding: "3px 6px",
-                              background: "var(--status-info-bg, #e0f2fe)",
-                              border: "1px solid var(--border-color)",
-                              borderLeft: "none",
-                              borderRadius: "0 4px 4px 0",
-                              fontSize: "11px",
-                              cursor: "pointer",
-                              color: "var(--primary-color, #3b82f6)",
-                              transition: "background 0.15s",
-                            }}
-                            title={`{{#input ${f.label}}} 복사 (입력 필드)`}
-                          >
-                            입력
-                          </span>
+                        );
+                      })}
+                      {mergeFields.length === 0 && (
+                        <span style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
+                          복사할 데이터 필드가 없습니다.
                         </span>
-                      ))}
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </Popup>
         )}

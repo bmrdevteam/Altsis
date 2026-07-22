@@ -22,7 +22,6 @@ import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 import Textarea from "components/textarea/Textarea";
 import { MarkdownViewer } from "components/markdown";
-import type { MergeInputProps } from "components/markdown";
 
 import { TPost, TPostAttachment } from "types/post";
 import { TBoard } from "types/board";
@@ -37,8 +36,8 @@ import surveyStyle from "./survey/survey.module.scss";
 const PostPid = () => {
   const navigate = useAppNavigate();
   const { boardId, postId } = useParams<{ boardId: string; postId: string }>();
-  const { currentUser, currentRegistration } = useAuth();
-  const { PostAPI, CommentAPI, SurveyResponseAPI, AltSheetRowAPI } = useAPIv2();
+  const { currentUser } = useAuth();
+  const { PostAPI, CommentAPI, SurveyResponseAPI } = useAPIv2();
 
   const [post, setPost] = useState<TPost | null>(null);
   const [board, setBoard] = useState<TBoard | null>(null);
@@ -68,9 +67,6 @@ const PostPid = () => {
   const [htmlEmbedPreview, setHtmlEmbedPreview] = useState<TPostAttachment | null>(null);
 
   // 머지 인라인 입력
-  const [mergeInputValues, setMergeInputValues] = useState<Record<string, any>>({});
-  const [mergeInputErrors, setMergeInputErrors] = useState<Record<string, string>>({});
-  const [isInputSubmitting, setIsInputSubmitting] = useState(false);
 
   const getSignedUrl = async (
     file: TPostAttachment,
@@ -158,9 +154,9 @@ const PostPid = () => {
         params: { _id: postId },
         query: buildMergeQuery(mergeFilters, mergeDateFilters),
       })
-        .then(({ post, board }) => {
+        .then(({ post, board: loadedBoard }) => {
           setPost(post);
-          setBoard(board);
+          setBoard(loadedBoard);
           setIsLoading(false);
           setIsCommentsLoading(true);
         })
@@ -204,93 +200,6 @@ const PostPid = () => {
     const next = { ...mergeDateFilters, [label]: range };
     setMergeDateFilters(next);
     refetchMerge(mergeFilters, next);
-  };
-
-  // 머지 인라인 입력: 항상 빈 폼으로 시작
-  useEffect(() => {
-    if (post?._mergeInputMode) {
-      setMergeInputValues({});
-    }
-  }, [post?._mergeInputMode]);
-
-  // 머지 인라인 입력: mergeInputProps
-  const mergeInputPropsValue: MergeInputProps | undefined = useMemo(() => {
-    if (!post?._mergeInputMode) return undefined;
-    return {
-      values: mergeInputValues,
-      onChange: (fieldId: string, value: any) => {
-        setMergeInputValues((prev) => ({ ...prev, [fieldId]: value }));
-        if (mergeInputErrors[fieldId]) {
-          setMergeInputErrors((prev) => {
-            const next = { ...prev };
-            delete next[fieldId];
-            return next;
-          });
-        }
-      },
-      errors: mergeInputErrors,
-      disabled: !post._mergeCanSubmit,
-    };
-  }, [
-    post?._mergeInputMode,
-    post?._mergeCanSubmit,
-    mergeInputValues,
-    mergeInputErrors,
-  ]);
-
-  // 머지 인라인 입력: 필수 필드 검증
-  const validateMergeInputs = (): boolean => {
-    if (!post?.content) return true;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(post.content, "text/html");
-    const inputs = doc.querySelectorAll("merge-input");
-    const errors: Record<string, string> = {};
-    inputs.forEach((el) => {
-      const fieldId = el.getAttribute("data-field-id");
-      const required = el.getAttribute("data-required") === "true";
-      const label = el.getAttribute("data-label") || "";
-      if (fieldId && required) {
-        const val = mergeInputValues[fieldId];
-        if (val === undefined || val === null || val === "") {
-          errors[fieldId] = `${label} 항목은 필수입니다.`;
-        }
-      }
-    });
-    setMergeInputErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // 머지 인라인 입력: 제출
-  const handleMergeInputSubmit = async () => {
-    if (!post?._mergeFormId || !validateMergeInputs()) return;
-    setIsInputSubmitting(true);
-    try {
-      await AltSheetRowAPI.CAltSheetRow({
-        data: { form: post._mergeFormId, data: mergeInputValues },
-      });
-      alert("제출되었습니다.");
-      setIsLoading(true); // 페이지 새로고침
-    } catch (err) {
-      ALERT_ERROR(err);
-    } finally {
-      setIsInputSubmitting(false);
-    }
-  };
-
-  // 머지 인라인 입력: 철회
-  const handleMergeInputWithdraw = async () => {
-    if (!post?._mergeExistingRowId) return;
-    if (!window.confirm("응답을 철회하시겠습니까?")) return;
-    try {
-      await AltSheetRowAPI.DAltSheetRow({
-        params: { _id: post._mergeExistingRowId },
-      });
-      alert("응답이 철회되었습니다.");
-      setMergeInputValues({});
-      setIsLoading(true);
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
   };
 
   // 댓글 로드
@@ -417,7 +326,6 @@ const PostPid = () => {
     <>
       <div className={style.section}>
         <div
-          className={style.print_actions}
           style={{
             display: "flex",
             alignItems: "center",
@@ -440,7 +348,6 @@ const PostPid = () => {
         </div>
 
         <div
-          className={style.print_actions}
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -507,9 +414,6 @@ const PostPid = () => {
             >
               다운로드
             </Button>
-            <Button type="hover" onClick={() => window.print()}>
-              인쇄
-            </Button>
             {canEdit && (
               <>
                 {isManager && (
@@ -531,10 +435,28 @@ const PostPid = () => {
           </div>
         </div>
 
+        {(canEdit && (post._mergeStripped || post._mergeTruncated)) && (
+          <div
+            style={{
+              marginBottom: "12px",
+              padding: "10px 12px",
+              background: "var(--background-color-2)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "6px",
+              fontSize: "13px",
+              color: "var(--text-color-2)",
+            }}
+          >
+            {post._mergeStripped &&
+              "미지원 머지 문법(입력 form/input·조건·그룹·집계)이 문서에서 제거된 뒤 표시되었습니다. "}
+            {post._mergeTruncated &&
+              "데이터가 많아 일부 행·출력만 표시되었습니다."}
+          </div>
+        )}
+
         {/* 머지 필터 */}
         {post._mergeApplied && post._mergeFields && post._mergeFields.length > 0 && (
           <div
-            className={style.print_actions}
             style={{
               display: "flex",
               gap: "8px",
@@ -632,58 +554,14 @@ const PostPid = () => {
           </div>
         )}
 
-        {/* 인쇄 전용 제목 (화면에서는 숨김) */}
-        <div className={style.print_title}>
-          {post.title}
+        <div style={{ minHeight: "300px" }}>
+          <MarkdownViewer content={processedContent} />
         </div>
-
-        {/* {{#form}} 입력 문서: 단일 제출 양식에서 이미 제출한 경우 */}
-        {post._mergeInputMode && post._mergeExistingRowId && !post._mergeAllowResubmit ? (
-          <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-color-2)" }}>
-            이미 제출되었습니다.
-          </div>
-        ) : (
-          <div style={{ minHeight: "300px" }}>
-            <MarkdownViewer
-              content={processedContent}
-              mergeInputProps={mergeInputPropsValue}
-            />
-          </div>
-        )}
-
-        {/* 머지 인라인 입력 제출 영역 */}
-        {post._mergeInputMode && !(post._mergeExistingRowId && !post._mergeAllowResubmit) && (
-          <div
-            className={style.print_actions}
-            style={{
-              marginTop: "24px",
-              paddingTop: "16px",
-              borderTop: "var(--border-default)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            {post._mergeCanSubmit ? (
-              <Button
-                type="ghost"
-                onClick={handleMergeInputSubmit}
-                disabled={isInputSubmitting}
-              >
-                {isInputSubmitting ? "제출 중..." : "제출"}
-              </Button>
-            ) : (
-              <span style={{ fontSize: "14px", color: "var(--text-color-2)" }}>
-                현재 제출 기간이 아닙니다.
-              </span>
-            )}
-          </div>
-        )}
 
         {/* 첨부 (파일 + 설문) */}
         {((post.attachments && post.attachments.length > 0) ||
           (post.surveys && post.surveys.length > 0)) && (
-          <div className={style.print_actions} style={{ marginTop: "24px" }}>
+          <div style={{ marginTop: "24px" }}>
             <div
               style={{ fontWeight: 500, marginBottom: "10px", fontSize: "14px" }}
             >
@@ -920,7 +798,6 @@ const PostPid = () => {
 
         {/* 댓글 섹션 */}
         <div
-          className={style.print_actions}
           style={{
             marginTop: "32px",
             paddingTop: "24px",
@@ -1098,7 +975,7 @@ const PostPid = () => {
           )}
         </div>
 
-        <div className={style.print_actions} style={{ marginTop: "24px" }}>
+        <div style={{ marginTop: "24px" }}>
           <Button type="ghost" onClick={() => navigate(`/boards/${boardId}`)}>
             목록으로
           </Button>

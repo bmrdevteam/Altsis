@@ -131,7 +131,7 @@ export const create = async (req, res) => {
       boardMode: "alt",
       boardType,
       altBoardRole,
-      contentViewMode: req.body.contentViewMode || "blog",
+      contentViewMode: req.body.contentViewMode || "table",
       coverColor: req.body.coverColor || boardPresetColors[hashStringToIndex(req.body.name, boardPresetColors.length)],
     });
 

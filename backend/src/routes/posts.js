@@ -18,7 +18,6 @@ router.get("/file/signed", isLoggedIn, posts.signPostFile);
 // OG 메타데이터 조회 (링크 첨부용)
 router.get("/og-meta", isLoggedIn, posts.fetchOgMeta);
 
-router.get("/:_id/merge-batch", isLoggedIn, posts.mergeBatch);
 router.post("/:_id/duplicate", isLoggedIn, posts.duplicate);
 router.get("/:_id?", isLoggedIn, posts.find);
 router.put("/:_id", isLoggedIn, posts.update);

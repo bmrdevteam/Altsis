@@ -1,57 +1,23 @@
 /**
- * MergeEngine v2
- * @description Alt Docs 머지 템플릿 파싱 및 렌더링
+ * MergeEngine v2 (stable core)
+ * @description Alt Docs 머지 — 안정 코어만 지원
  *
  * 문법:
- *   ── 기본 ──
- *   {{#sheet 시트명}}                         — 사용할 시트 선언 (문서 상단)
- *   {{변수}}                                  — 단일 값 치환 (필드 label 기준)
- *   {{변수|date:YYYY.MM.DD}}                 — 날짜 포맷
- *   {{변수|number:,}}                        — 숫자 포맷 (천 단위 쉼표)
- *   {{_respondentName}}                      — 응답자 이름
- *   {{_respondentId}}                        — 응답자 ID
- *   {{_submittedAt}}                         — 제출일
- *   {{_updatedAt}}                           — 수정일
- *   {{_count}}                               — 행 개수
+ *   {{#sheet 시트명}}
+ *   {{변수}} {{변수|date:YYYY.MM.DD}} {{변수|number:,}}
+ *   {{_respondentName}} {{_respondentId}} {{_submittedAt}} {{_updatedAt}} {{_count}} {{_index}}
+ *   {{#filter …}} {{#sort …}}
+ *   {{#table col1, col2, ...}}
+ *   {{#each}}...{{/each}}
  *
- *   ── 반복/테이블 ──
- *   {{#each}}...{{/each}}                    — 모든 행 반복
- *   {{_index}}                               — 반복 내 행 번호 (1부터)
- *   {{#table col1, col2, ...}}               — 마크다운 테이블
- *
- *   ── 필터/정렬 ──
- *   {{#filter 필드 == "값"}}                  — 행 필터 (AND 결합)
- *   {{#sort 필드 asc|desc}}                  — 행 정렬
- *
- *   ── 집계 ──
- *   {{#sum 필드}}                             — 합계
- *   {{#avg 필드}}                             — 평균
- *   {{#min 필드}}                             — 최솟값
- *   {{#max 필드}}                             — 최댓값
- *   {{#unique 필드}}                          — 고유값 목록
- *
- *   ── 조건 ──
- *   {{#if 필드 == "값"}}...{{/if}}            — 조건부 표시
- *   {{#if 필드 == "값"}}...{{#else}}...{{/if}} — 조건/대체
- *   연산자: == != > < >= <= contains isEmpty isNotEmpty
- *
- *   ── 그룹 ──
- *   {{#group 필드}}...{{/group}}              — 필드값 기준 그룹핑
- *   {{_groupValue}}                          — 현재 그룹 값
- *   {{_groupCount}}                          — 현재 그룹 행 수
- *
- *   ── 입력 문서 ({{#sheet}}와 별도) ──
- *   {{#form 양식이름}}                        — 입력 문서 선언 (문서 상단, {{#sheet}}와 택 1)
- *   {{#input 필드라벨}}                       — 인라인 입력 필드
- *     기본 뷰: <merge-input> HTML 태그 (프론트엔드가 입력 필드로 렌더링)
- *     전체 응답 보기 (관리자): {{필드라벨}}과 동일 (값 치환)
+ * 제거됨 (런타임 strip): {{#form}}, {{#input}}, {{#if}}, {{#group}}, {{#sum|avg|min|max|unique}}
  */
 
-// ─── Exports ─────────────────────────────────────────────
+export const MERGE_MAX_ROWS = 2000;
+export const MERGE_MAX_OUTPUT = 1_000_000; // 1MB chars
 
 /**
- * 템플릿에서 시트명 추출
- * @param {string} content - 게시글 content
+ * @param {string} content
  * @returns {{ sheetName: string|null, body: string }}
  */
 export function parseSheetDeclaration(content) {
@@ -63,176 +29,86 @@ export function parseSheetDeclaration(content) {
 }
 
 /**
- * 템플릿에서 양식명 추출 (입력 문서용)
- * @param {string} content - 게시글 content
- * @returns {{ formName: string|null, body: string }}
+ * 미지원 문법 제거 (form/input/if/group/집계). if 블록은 내용 포함 전체 제거.
+ * @returns {{ body: string, stripped: boolean }}
  */
-export function parseFormDeclaration(content) {
-  const match = content.match(/\{\{#form\s+(.+?)\}\}/);
-  if (!match) return { formName: null, body: content };
-  const formName = match[1].trim();
-  const body = content.replace(/\{\{#form\s+.+?\}\}\s*/, "").trim();
-  return { formName, body };
+export function stripUnsupportedMergeTags(body) {
+  let result = body;
+  const before = result;
+  result = result.replace(/\{\{#form\s+.+?\}\}\s*/g, "");
+  result = result.replace(/\{\{#input\s+.+?\}\}/g, "");
+  // if / else /if (비탐욕, 반복)
+  let safety = 0;
+  while (safety++ < 50 && /\{\{#if\s/.test(result)) {
+    const next = result.replace(
+      /\{\{#if\s+.+?\}\}[\s\S]*?\{\{\/if\}\}/g,
+      ""
+    );
+    if (next === result) break;
+    result = next;
+  }
+  result = result.replace(/\{\{#group\s+.+?\}\}[\s\S]*?\{\{\/group\}\}/g, "");
+  result = result.replace(/\{\{#(sum|avg|min|max|unique)\s+.+?\}\}/g, "");
+  result = result.replace(/\{\{_groupValue\}\}/g, "");
+  result = result.replace(/\{\{_groupCount\}\}/g, "");
+  return { body: result, stripped: result !== before };
 }
 
 /**
- * 머지 렌더링
- * @param {string} body - 시트 선언 제거 후 본문
- * @param {Array} rows - AltSheetRow 배열
- * @param {Array} fields - AltForm.fields
- * @returns {string} 렌더링된 문자열
+ * @returns {{ content: string, truncated: boolean, stripped: boolean }}
  */
 export function renderMerge(body, rows, fields) {
-  const labelMap = buildLabelMap(fields);
-  let activeRows = [...rows];
-  let result = body;
+  const { body: cleaned, stripped } = stripUnsupportedMergeTags(body);
+  const labelMap = buildLabelMap(fields || []);
+  let activeRows = Array.isArray(rows) ? [...rows] : [];
+  let result = cleaned;
+  let truncated = false;
 
-  // 1. {{#filter}} — 행 필터링
   const { filters, body: afterFilter } = parseFilters(result);
   result = afterFilter;
   activeRows = applyFilters(activeRows, filters, labelMap);
 
-  // 2. {{#sort}} — 행 정렬
   const { sorts, body: afterSort } = parseSorts(result);
   result = afterSort;
   activeRows = applySorts(activeRows, sorts, labelMap);
 
-  // 3. {{_count}}
-  result = result.replace(/\{\{_count\}\}/g, String(activeRows.length));
-
-  // 4. 집계 함수
-  result = processAggregates(result, activeRows, labelMap);
-
-  // 5. {{#unique}}
-  result = processUnique(result, activeRows, labelMap);
-
-  // 6. {{#group}} (내부 블록 자체 처리)
-  result = processGroups(result, activeRows, labelMap);
-
-  // 7. {{#table}}
-  result = processTables(result, activeRows, labelMap);
-
-  // 8. {{#each}} (행별 {{#if}} + 변수 처리)
-  result = processEach(result, activeRows, labelMap);
-
-  // 9. 글로벌 {{#if}} (첫 행 기준)
-  if (activeRows.length > 0) {
-    result = processConditionals(result, activeRows[0], labelMap);
+  if (activeRows.length > MERGE_MAX_ROWS) {
+    activeRows = activeRows.slice(0, MERGE_MAX_ROWS);
+    truncated = true;
   }
 
-  // 10. 나머지 단일 변수 (첫 행 기준)
+  result = result.replace(/\{\{_count\}\}/g, () => String(activeRows.length));
+
+  result = processTables(result, activeRows, labelMap);
+  result = processEach(result, activeRows, labelMap);
+
   if (activeRows.length > 0) {
     result = replaceVariables(result, activeRows[0], labelMap);
   }
 
-  return result;
+  if (result.length > MERGE_MAX_OUTPUT) {
+    result =
+      result.slice(0, MERGE_MAX_OUTPUT) +
+      "\n\n_(출력이 너무 길어 일부만 표시됩니다.)_";
+    truncated = true;
+  }
+
+  return { content: result, truncated, stripped };
 }
 
 /**
  * 머지 실패 시 템플릿 태그 정리
- * @param {string} body - 시트 선언 제거 후 본문
- * @returns {string} 태그가 제거된 문자열
  */
 export function stripMergeTags(body) {
-  let result = body;
+  let result = stripUnsupportedMergeTags(body).body;
   result = result.replace(/\{\{#filter\s+.+?\}\}\s*/g, "");
   result = result.replace(/\{\{#sort\s+.+?\}\}\s*/g, "");
-  result = result.replace(/\{\{#(sum|avg|min|max)\s+.+?\}\}/g, "");
-  result = result.replace(/\{\{#unique\s+.+?\}\}/g, "");
-  result = result.replace(/\{\{#group\s+.+?\}\}[\s\S]*?\{\{\/group\}\}/g, "");
-  result = result.replace(/\{\{#if\s+.+?\}\}[\s\S]*?\{\{\/if\}\}/g, "");
   result = result.replace(/\{\{#table\s+.+?\}\}/g, "");
   result = result.replace(/\{\{#each\}\}[\s\S]*?\{\{\/each\}\}/g, "");
-  result = result.replace(/\{\{#input\s+.+?\}\}/g, "");
   result = result.replace(/\{\{.+?\}\}/g, "");
   return result.trim();
 }
 
-/**
- * 본문에 {{#input}} 태그가 있는지 검사
- * @param {string} body
- * @returns {boolean}
- */
-export function hasInputTags(body) {
-  return /\{\{#input\s+.+?\}\}/.test(body);
-}
-
-/**
- * 응답자용 인라인 입력 머지 렌더링
- * {{#input 필드라벨}} → <merge-input> HTML 태그로 변환
- * 나머지 머지 태그(filter, sort, table, group, each 등)는 strip 처리
- * 단일 변수 {{필드}}와 {{#if}} 조건문은 row 기준으로 처리
- *
- * @param {string} body - 시트 선언 제거 후 본문
- * @param {Object|null} row - 응답자의 기존 AltSheetRow (없으면 null)
- * @param {Array} fields - AltForm.fields
- * @returns {string} 렌더링된 문자열
- */
-export function renderMergeWithInputs(body, row, fields) {
-  const labelMap = buildLabelMap(fields);
-  const fieldByLabel = buildFieldByLabelMap(fields);
-  let result = body;
-
-  // 다중행 전용 태그는 strip (input 모드는 단일 응답자)
-  result = result.replace(/\{\{#filter\s+.+?\}\}\s*/g, "");
-  result = result.replace(/\{\{#sort\s+.+?\}\}\s*/g, "");
-  result = result.replace(/\{\{#(sum|avg|min|max)\s+.+?\}\}/g, "");
-  result = result.replace(/\{\{#unique\s+.+?\}\}/g, "");
-  result = result.replace(/\{\{#group\s+.+?\}\}[\s\S]*?\{\{\/group\}\}/g, "");
-  result = result.replace(/\{\{#table\s+.+?\}\}/g, "");
-  result = result.replace(/\{\{#each\}\}[\s\S]*?\{\{\/each\}\}/g, "");
-  result = result.replace(/\{\{_count\}\}/g, row ? "1" : "0");
-
-  // {{#input 필드라벨}} → <merge-input> 태그
-  result = result.replace(
-    /\{\{#input\s+(.+?)\}\}/g,
-    (match, label) => {
-      const trimmed = label.trim();
-      const field = fieldByLabel.get(trimmed);
-      if (!field) return match;
-
-      const fieldId = field._id.toString();
-      const value = row ? getFieldValue(row, trimmed, labelMap) : "";
-      const strValue = stringifyValue(value);
-
-      const attrs = [
-        `data-field-id="${escapeAttr(fieldId)}"`,
-        `data-type="${escapeAttr(field.type)}"`,
-        `data-label="${escapeAttr(trimmed)}"`,
-        `data-value="${escapeAttr(strValue)}"`,
-        field.required ? `data-required="true"` : "",
-        field.options?.length
-          ? `data-options="${escapeAttr(JSON.stringify(field.options))}"`
-          : "",
-        field.validation
-          ? `data-validation="${escapeAttr(JSON.stringify(field.validation))}"`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-
-      return `<merge-input ${attrs}></merge-input>`;
-    }
-  );
-
-  // {{#if}} 조건문 처리 (row 기준, row 없으면 빈값)
-  const emptyRow = { data: {}, _respondentName: "", _respondentId: "", _submittedAt: "", _updatedAt: "" };
-  const activeRow = row || emptyRow;
-  result = processConditionals(result, activeRow, labelMap);
-
-  // 나머지 단일 변수 치환
-  result = replaceVariables(result, activeRow, labelMap);
-
-  return result;
-}
-
-// ─── Helpers ─────────────────────────────────────────────
-
-/**
- * 필드 label → fieldId 매핑 생성
- * @param {Array} fields - AltForm.fields
- * @returns {Map<string, string>} label → fieldId
- */
 function buildLabelMap(fields) {
   const map = new Map();
   for (const field of fields) {
@@ -241,33 +117,6 @@ function buildLabelMap(fields) {
   return map;
 }
 
-/**
- * 필드 label → field 객체 매핑 생성
- * @param {Array} fields - AltForm.fields
- * @returns {Map<string, Object>} label → field
- */
-function buildFieldByLabelMap(fields) {
-  const map = new Map();
-  for (const field of fields) {
-    map.set(field.label, field);
-  }
-  return map;
-}
-
-/**
- * HTML 속성용 문자열 이스케이프
- */
-function escapeAttr(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-/**
- * 행에서 필드 값 조회 (라벨 또는 시스템 변수)
- */
 function getFieldValue(row, label, labelMap) {
   if (label === "_respondentName") return row._respondentName || "";
   if (label === "_respondentId") return row._respondentId || "";
@@ -283,28 +132,17 @@ function getFieldValue(row, label, labelMap) {
   return "";
 }
 
-/**
- * 복합 값을 표시용 문자열로 변환
- * userSelect: {user, userId, userName} → userName
- * approval: {approver, approverName, status, ...} → approverName
- * array: ["a", "b"] → "a, b"
- * boolean: true/false → "Y" / "N"
- * primitive: String(value)
- */
 function stringifyValue(value) {
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "Y" : "N";
   if (typeof value !== "object") return String(value);
 
-  // 배열 (multiSelect, multiDate 등)
   if (Array.isArray(value)) {
     return value.map((v) => stringifyValue(v)).join(", ");
   }
 
-  // userSelect 객체 {user, userId, userName}
   if (value.userName !== undefined) return value.userName;
 
-  // approval 객체 {approver: {user, userId, userName}, status, reason, approvedAt}
   if (value.approver !== undefined) {
     const name = value.approver?.userName || "";
     const statusMap = { approved: "승인", rejected: "반려", pending: "대기" };
@@ -312,15 +150,12 @@ function stringifyValue(value) {
     return status ? `${name} (${status})` : name;
   }
 
-  // 기타 객체 — JSON fallback
   try {
     return JSON.stringify(value);
   } catch {
     return String(value);
   }
 }
-
-// ─── Format Pipes ────────────────────────────────────────
 
 function formatDate(value, fmt) {
   if (!value) return "";
@@ -354,9 +189,7 @@ function formatNumber(value, fmt) {
 
   const decimals = parseInt(fmt, 10);
   if (!isNaN(decimals)) {
-    return num
-      .toFixed(decimals)
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return num.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
   return num.toLocaleString("ko-KR");
 }
@@ -386,16 +219,9 @@ function applyPipes(value, pipes) {
   return stringifyValue(result);
 }
 
-// ─── Condition ───────────────────────────────────────────
-
-/**
- * 조건식 파싱
- * @param {string} expr - "필드 == 값" 형태
- */
 function parseCondition(expr) {
   const t = expr.trim();
 
-  // 단항: "필드 isEmpty", "필드 isNotEmpty"
   if (t.endsWith(" isEmpty")) {
     return { field: t.slice(0, -8).trim(), operator: "isEmpty", value: "" };
   }
@@ -403,7 +229,6 @@ function parseCondition(expr) {
     return { field: t.slice(0, -11).trim(), operator: "isNotEmpty", value: "" };
   }
 
-  // 이항 (긴 연산자 먼저 매칭)
   const ops = ["contains", "==", "!=", ">=", "<=", ">", "<"];
   for (const op of ops) {
     const idx = t.indexOf(` ${op} `);
@@ -446,8 +271,6 @@ function evaluateCondition(leftValue, operator, rightValue) {
       return false;
   }
 }
-
-// ─── Filter & Sort ───────────────────────────────────────
 
 function parseFilters(body) {
   const filters = [];
@@ -500,212 +323,55 @@ function applySorts(rows, sorts, labelMap) {
   return sorted;
 }
 
-// ─── Block Processors ────────────────────────────────────
+function processTables(template, rows, labelMap) {
+  return template.replace(/\{\{#table\s+(.+?)\}\}/g, (match, colList) => {
+    const cols = colList.split(",").map((c) => c.trim());
+    if (rows.length === 0) return "(데이터 없음)";
 
-/**
- * {{#if condition}}...{{#else}}...{{/if}}
- * 중첩 지원 (안쪽부터 처리)
- */
-function processConditionals(template, row, labelMap) {
-  let result = template;
-  let safety = 0;
+    const headers = cols.map((c) => {
+      if (c === "_index") return "#";
+      if (c === "_respondentName") return "응답자";
+      if (c === "_respondentId") return "ID";
+      if (c === "_submittedAt") return "제출일";
+      if (c === "_updatedAt") return "수정일";
+      return c;
+    });
+    let table = "| " + headers.join(" | ") + " |\n";
+    table += "| " + cols.map(() => "---").join(" | ") + " |\n";
 
-  while (safety++ < 50) {
-    // 가장 안쪽 {{#if}} 블록 매칭 (내부에 다른 {{#if}}가 없는 블록)
-    const m = result.match(
-      /\{\{#if\s+(.+?)\}\}((?:(?!\{\{#if\s)[\s\S])*?)\{\{\/if\}\}/
-    );
-    if (!m) break;
+    rows.forEach((row, idx) => {
+      const cells = cols.map((col) => {
+        if (col === "_index") return String(idx + 1);
+        return stringifyValue(getFieldValue(row, col, labelMap));
+      });
+      table += "| " + cells.join(" | ") + " |\n";
+    });
 
-    const [full, condExpr, content] = m;
-    const cond = parseCondition(condExpr);
-    if (!cond) {
-      result = result.replace(full, content);
-      continue;
-    }
-
-    const fieldValue = getFieldValue(row, cond.field, labelMap);
-    const isTrue = evaluateCondition(fieldValue, cond.operator, cond.value);
-    const elseIdx = content.indexOf("{{#else}}");
-    const replacement =
-      elseIdx >= 0
-        ? isTrue
-          ? content.substring(0, elseIdx)
-          : content.substring(elseIdx + 9)
-        : isTrue
-          ? content
-          : "";
-
-    result = result.replace(full, replacement);
-  }
-
-  return result;
-}
-
-/**
- * {{#sum 필드}}, {{#avg 필드}}, {{#min 필드}}, {{#max 필드}}
- */
-function processAggregates(template, rows, labelMap) {
-  return template.replace(
-    /\{\{#(sum|avg|min|max)\s+(.+?)\}\}/g,
-    (match, func, label) => {
-      const nums = rows
-        .map((r) => Number(getFieldValue(r, label.trim(), labelMap)))
-        .filter((n) => !isNaN(n));
-      if (nums.length === 0) return "0";
-
-      switch (func) {
-        case "sum":
-          return String(nums.reduce((a, b) => a + b, 0));
-        case "avg":
-          return String(
-            Math.round(
-              (nums.reduce((a, b) => a + b, 0) / nums.length) * 100
-            ) / 100
-          );
-        case "min":
-          return String(Math.min(...nums));
-        case "max":
-          return String(Math.max(...nums));
-        default:
-          return match;
-      }
-    }
-  );
-}
-
-/**
- * {{#unique 필드}} — 쉼표 구분 고유값
- */
-function processUnique(template, rows, labelMap) {
-  return template.replace(/\{\{#unique\s+(.+?)\}\}/g, (_, label) => {
-    const seen = new Set();
-    for (const row of rows) {
-      const v = stringifyValue(getFieldValue(row, label.trim(), labelMap));
-      if (v) seen.add(v);
-    }
-    return [...seen].join(", ");
+    return table;
   });
 }
 
-/**
- * {{#group 필드}}...{{/group}}
- * 그룹 내 {{#each}}, {{#table}}, 집계, 조건 지원
- */
-function processGroups(template, rows, labelMap) {
-  return template.replace(
-    /\{\{#group\s+(.+?)\}\}([\s\S]*?)\{\{\/group\}\}/g,
-    (_, label, inner) => {
-      const trimmed = label.trim();
-
-      // 그룹핑 (등장 순서 유지)
-      const groupMap = new Map();
-      for (const row of rows) {
-        const key = stringifyValue(getFieldValue(row, trimmed, labelMap));
-        if (!groupMap.has(key)) groupMap.set(key, []);
-        groupMap.get(key).push(row);
-      }
-
-      let output = "";
-      for (const [groupValue, groupRows] of groupMap) {
-        let block = inner;
-        block = block.replace(/\{\{_groupValue\}\}/g, groupValue);
-        block = block.replace(/\{\{_groupCount\}\}/g, String(groupRows.length));
-        block = block.replace(/\{\{_count\}\}/g, String(groupRows.length));
-
-        block = processAggregates(block, groupRows, labelMap);
-        block = processUnique(block, groupRows, labelMap);
-        block = processTables(block, groupRows, labelMap);
-        block = processEach(block, groupRows, labelMap);
-
-        if (groupRows.length > 0) {
-          block = processConditionals(block, groupRows[0], labelMap);
-          block = replaceVariables(block, groupRows[0], labelMap);
-        }
-        output += block;
-      }
-
-      return output;
-    }
-  );
-}
-
-/**
- * {{#table col1, col2, ...}}
- */
-function processTables(template, rows, labelMap) {
-  return template.replace(
-    /\{\{#table\s+(.+?)\}\}/g,
-    (match, colList) => {
-      const cols = colList.split(",").map((c) => c.trim());
-      if (rows.length === 0) return "(데이터 없음)";
-
-      // 헤더 라벨
-      const headers = cols.map((c) => {
-        if (c === "_index") return "#";
-        if (c === "_respondentName") return "응답자";
-        if (c === "_respondentId") return "ID";
-        if (c === "_submittedAt") return "제출일";
-        if (c === "_updatedAt") return "수정일";
-        return c;
-      });
-      let table = "| " + headers.join(" | ") + " |\n";
-      table += "| " + cols.map(() => "---").join(" | ") + " |\n";
-
-      rows.forEach((row, idx) => {
-        const cells = cols.map((col) => {
-          if (col === "_index") return String(idx + 1);
-          return stringifyValue(getFieldValue(row, col, labelMap));
-        });
-        table += "| " + cells.join(" | ") + " |\n";
-      });
-
-      return table;
-    }
-  );
-}
-
-/**
- * {{#each}}...{{/each}} — _index 및 행별 {{#if}} 지원
- */
 function processEach(template, rows, labelMap) {
-  return template.replace(
-    /\{\{#each\}\}([\s\S]*?)\{\{\/each\}\}/g,
-    (_, inner) => {
-      if (rows.length === 0) return "";
-      return rows
-        .map((row, idx) => {
-          let r = processConditionals(inner, row, labelMap);
-          r = replaceVariables(r, row, labelMap, idx + 1);
-          return r;
-        })
-        .join("");
-    }
-  );
+  return template.replace(/\{\{#each\}\}([\s\S]*?)\{\{\/each\}\}/g, (_, inner) => {
+    if (rows.length === 0) return "";
+    return rows
+      .map((row, idx) => replaceVariables(inner, row, labelMap, idx + 1))
+      .join("");
+  });
 }
 
-/**
- * 단일 변수 치환 (파이프 포맷 지원)
- * @param {string} template
- * @param {Object} row
- * @param {Map} labelMap
- * @param {number} [index] - {{_index}} 값 (1부터)
- */
 function replaceVariables(template, row, labelMap, index) {
   return template.replace(/\{\{(.+?)\}\}/g, (match, varExpr) => {
     const parts = varExpr.split("|");
     const varName = parts[0].trim();
 
-    // 블록 태그 스킵
     if (varName.startsWith("#") || varName.startsWith("/")) return match;
 
-    // _index
     if (varName === "_index") {
       const val = index != null ? String(index) : "";
       return parts.length > 1 ? applyPipes(val, parts.slice(1)) : val;
     }
 
-    // 시스템 변수 또는 필드 라벨
     const sysVars = [
       "_respondentName",
       "_respondentId",
@@ -719,6 +385,6 @@ function replaceVariables(template, row, labelMap, index) {
         : stringifyValue(value);
     }
 
-    return match; // 알 수 없는 변수 → 원본 유지
+    return match;
   });
 }

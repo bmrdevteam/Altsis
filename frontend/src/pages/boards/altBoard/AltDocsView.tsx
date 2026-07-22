@@ -1,19 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
-import bStyle from "../boards.module.scss";
-
-import Table from "components/tableV2/Table";
-import Button from "components/button/Button";
+import style from "./altBoard.module.scss";
 import Svg from "assets/svg/Svg";
+import Button from "components/button/Button";
+import Popup from "components/popup/Popup";
 import PostBlogView from "../views/PostBlogView";
-import BatchPrintView from "./BatchPrintView";
 import { TBoard, TBoardContentViewMode } from "types/board";
 import { TPost } from "types/post";
-
-type TPostWithSelection = TPost & { tableRowChecked?: boolean };
 
 type Props = {
   board: TBoard;
@@ -40,6 +36,13 @@ const formatPermissionRead = (post: TPost): string => {
   return "전체";
 };
 
+const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
 const AltDocsView = ({ board }: Props) => {
   const navigate = useAppNavigate();
   const { currentUser } = useAuth();
@@ -47,12 +50,12 @@ const AltDocsView = ({ board }: Props) => {
 
   const [posts, setPosts] = useState<TPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPosts, setSelectedPosts] = useState<TPostWithSelection[]>([]);
-  const [contentViewMode, setContentViewMode] =
-    useState<TBoardContentViewMode>(board.contentViewMode || "table");
-  const [batchPrintPostId, setBatchPrintPostId] = useState<string | null>(
-    null
-  );
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePost, setDeletePost] = useState<TPost | null>(null);
+
+  const contentViewMode: TBoardContentViewMode =
+    board.contentViewMode || "table";
+
   const isManager =
     currentUser?.auth === "admin" || currentUser?.auth === "manager";
 
@@ -68,6 +71,11 @@ const AltDocsView = ({ board }: Props) => {
     const role = board.altBoardRole?.[currentUser?.userId || ""];
     if (role === "admin" || role === "writer") return true;
     return false;
+  };
+
+  const canEditPost = (post: TPost) => {
+    if (isManager) return true;
+    return post.author === currentUser?._id;
   };
 
   const loadPosts = async () => {
@@ -113,42 +121,6 @@ const AltDocsView = ({ board }: Props) => {
     loadPosts();
   }, [board._id, contentViewMode]);
 
-  const handleTableChange = (data: TPostWithSelection[]) => {
-    setSelectedPosts(data.filter((post) => post.tableRowChecked));
-  };
-
-  const canDeleteSelected = () => {
-    if (selectedPosts.length === 0) return false;
-    if (isManager) return true;
-    return selectedPosts.every((post) => post.author === currentUser?._id);
-  };
-
-  const canEditSelected = () => {
-    if (selectedPosts.length === 0) return false;
-    if (isManager) return true;
-    return selectedPosts.every((post) => post.author === currentUser?._id);
-  };
-
-  const handleDeleteSelected = async () => {
-    if (
-      !window.confirm(
-        `선택한 ${selectedPosts.length}개의 게시글을 삭제하시겠습니까?`
-      )
-    )
-      return;
-    try {
-      await Promise.all(
-        selectedPosts.map((post) =>
-          PostAPI.DPost({ params: { _id: post._id } })
-        )
-      );
-      setSelectedPosts([]);
-      loadPosts();
-    } catch (err) {
-      ALERT_ERROR(err);
-    }
-  };
-
   const handleDuplicate = async (postId: string) => {
     try {
       await PostAPI.DuplicatePost({ params: { _id: postId } });
@@ -177,182 +149,195 @@ const AltDocsView = ({ board }: Props) => {
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!deletePost) return;
+    setIsDeleting(true);
+    try {
+      await PostAPI.DPost({ params: { _id: deletePost._id } });
+      setDeletePost(null);
+      loadPosts();
+    } catch (err) {
+      ALERT_ERROR(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleClickPost = (post: TPost) => {
     navigate(`/boards/${board._id}/post/${post._id}`);
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
-
-  const tableData = useMemo(
-    () =>
-      posts.map((post, index) => ({
-        ...post,
-        no: posts.length - index,
-        createdAtDisplay: formatDate(post.createdAt),
-        titleDisplay: [post.isPinned ? "[공지]" : "", post.title]
-          .filter(Boolean)
-          .join(" "),
-        permissionDisplay: formatPermissionRead(post),
-      })),
-    [posts]
-  );
-
   if (isLoading) return null;
 
-  // 일괄 인쇄 모드
-  if (batchPrintPostId) {
+  const writeToolbar = canWrite() ? (
+    <div className={style.formListToolbar}>
+      <button
+        type="button"
+        className={style.formCardIconBtn}
+        title="글쓰기"
+        onClick={() => navigate(`/boards/${board._id}/create`)}
+      >
+        <Svg type="plus" width="20px" height="20px" />
+      </button>
+    </div>
+  ) : null;
+
+  if (contentViewMode === "blog") {
     return (
-      <BatchPrintView
-        postId={batchPrintPostId}
-        onClose={() => setBatchPrintPostId(null)}
-      />
+      <div className={style.formList}>
+        {writeToolbar}
+        {posts.length === 0 ? (
+          <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
+        ) : (
+          <PostBlogView
+            posts={posts}
+            board={board}
+            onClickPost={handleClickPost}
+          />
+        )}
+      </div>
     );
   }
 
   return (
-    <div>
-      {/* 툴바 */}
-      <div className={bStyle.detailToolbar}>
-        <div />
-        <div className={bStyle.actionBtns}>
-          {selectedPosts.length === 0 ? (
-            <>
-              {canWrite() && (
-                <Button
-                  type="ghost"
-                  onClick={() => navigate(`/boards/${board._id}/create`)}
-                >
-                  <>
-                    <Svg type="edit" width="16px" height="16px" />
-                    글쓰기
-                  </>
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              {canEditSelected() && selectedPosts.length === 1 && (
-                <>
-                  <Button
-                    type="ghost"
-                    onClick={() =>
-                      navigate(
-                        `/boards/${board._id}/edit/${selectedPosts[0]._id}`
-                      )
-                    }
-                  >
-                    <>
-                      <Svg type="edit" width="16px" height="16px" />
-                      수정
-                    </>
-                  </Button>
-                  <Button
-                    type="ghost"
-                    onClick={() => handleDuplicate(selectedPosts[0]._id)}
-                  >
-                    복제
-                  </Button>
-                  <Button
-                    type="ghost"
-                    onClick={() => handleDownloadMd(selectedPosts[0])}
-                  >
-                    .md 다운로드
-                  </Button>
-                  <Button
-                    type="ghost"
-                    onClick={() =>
-                      setBatchPrintPostId(selectedPosts[0]._id)
-                    }
-                  >
-                    일괄 인쇄
-                  </Button>
-                </>
-              )}
-              {canDeleteSelected() && (
-                <Button
-                  type="ghost"
-                  onClick={handleDeleteSelected}
-                  style={{ color: "var(--red-1)" }}
-                >
-                  <>
-                    <Svg type="trash" width="16px" height="16px" />
-                    삭제
-                  </>
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+    <div className={style.formList}>
+      {writeToolbar}
 
-      {/* 게시글 목록 */}
       {posts.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px 20px",
-            color: "var(--text-color-2)",
-            fontSize: "14px",
-          }}
-        >
-          아직 작성된 문서가 없습니다.
-        </div>
-      ) : contentViewMode === "blog" ? (
-        <PostBlogView
-          posts={posts}
-          board={board}
-          onClickPost={handleClickPost}
-        />
+        <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
       ) : (
-        <Table
-          type="object-array"
-          control
-          data={tableData}
-          defaultPageBy={10}
-          onChange={handleTableChange}
-          header={[
-            {
-              text: "",
-              type: "checkbox",
-              width: "0",
-              textAlign: "center",
-            },
-            {
-              text: "No",
-              key: "no",
-              type: "text",
-              width: "48px",
-              textAlign: "center",
-            },
-            {
-              text: "제목",
-              key: "titleDisplay",
-              type: "text",
-              cursor: "pointer",
-              onClick: (e: TPost) => handleClickPost(e),
-            },
-            {
-              text: "작성자",
-              key: "authorName",
-              type: "text",
-              width: "120px",
-              textAlign: "center",
-            },
-            {
-              text: "작성일",
-              key: "createdAtDisplay",
-              type: "text",
-              width: "120px",
-              textAlign: "center",
-            },
-          ]}
-        />
+        <div className={style.formCardList} style={{ paddingTop: 0 }}>
+          {posts.map((post) => {
+            const editable = canEditPost(post);
+            return (
+              <div
+                key={post._id}
+                className={style.formCard}
+                onClick={() => handleClickPost(post)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleClickPost(post);
+                  }
+                }}
+              >
+                <div className={style.formCardLeft}>
+                  <div className={style.formCardTitle}>{post.title}</div>
+                  <div className={style.formCardMeta}>
+                    {post.isPinned && (
+                      <span
+                        className={style.formCardBadge}
+                        style={{
+                          background: "var(--status-info-bg)",
+                          color: "var(--status-info)",
+                        }}
+                      >
+                        공지
+                      </span>
+                    )}
+                    {post.authorName && <span>{post.authorName}</span>}
+                    <span>{formatDate(post.createdAt)}</span>
+                    <span>읽기: {formatPermissionRead(post)}</span>
+                  </div>
+                </div>
+                {editable && (
+                  <div className={style.formCardRight}>
+                    <button
+                      type="button"
+                      className={style.formCardIconBtn}
+                      title="수정"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/boards/${board._id}/edit/${post._id}`);
+                      }}
+                    >
+                      <Svg type="edit" width="20px" height="20px" />
+                    </button>
+                    <button
+                      type="button"
+                      className={style.formCardIconBtn}
+                      title=".md 다운로드"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadMd(post);
+                      }}
+                    >
+                      <Svg type="download" width="20px" height="20px" />
+                    </button>
+                    <button
+                      type="button"
+                      className={style.formCardIconBtn}
+                      title="복제"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicate(post._id);
+                      }}
+                    >
+                      <Svg type="copy" width="20px" height="20px" />
+                    </button>
+                    <button
+                      type="button"
+                      className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
+                      title="삭제"
+                      disabled={isDeleting}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletePost(post);
+                      }}
+                    >
+                      <Svg type="trash" width="20px" height="20px" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {deletePost && (
+        <Popup
+          title="문서 삭제"
+          setState={(v: boolean) => {
+            if (!v && !isDeleting) setDeletePost(null);
+          }}
+          closeBtn={!isDeleting}
+          style={{ maxWidth: "420px", width: "100%" }}
+          footer={
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
+              <Button
+                type="ghost"
+                onClick={() => setDeletePost(null)}
+                disabled={isDeleting}
+              >
+                취소
+              </Button>
+              <Button
+                type="ghost"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                style={{ color: "var(--status-error)" }}
+              >
+                {isDeleting ? "삭제 중..." : "삭제"}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
+            <strong>{deletePost.title || "문서"}</strong> 게시글을
+            삭제하시겠습니까?
+            <br />
+            이 작업은 되돌릴 수 없습니다.
+          </div>
+        </Popup>
       )}
     </div>
   );

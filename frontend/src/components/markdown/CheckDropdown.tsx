@@ -37,7 +37,7 @@ const CheckDropdown = ({ editor, onClose }: Props) => {
           onClose();
         }}
       >
-        체크리스트 (블록)
+        블록 체크박스
       </button>
       <button
         type="button"
@@ -58,7 +58,7 @@ const CheckDropdown = ({ editor, onClose }: Props) => {
           onClose();
         }}
       >
-        인라인 체크
+        인라인 체크박스
       </button>
     </div>
   );

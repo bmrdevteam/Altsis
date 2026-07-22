@@ -19,6 +19,8 @@ import Input from "components/input/Input";
 import Button from "components/button/Button";
 import Textarea from "components/textarea/Textarea";
 import CourseCoverImageEditor from "pages/courses/view/CourseCoverImageEditor";
+import { TBoardContentViewMode } from "types/board";
+import bStyle from "../boards.module.scss";
 
 type Props = {
   setState: (state: boolean) => void;
@@ -32,6 +34,8 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [coverColor, setCoverColor] = useState("");
+  const [contentViewMode, setContentViewMode] =
+    useState<TBoardContentViewMode>("table");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 이미지 파일/URL은 보드 생성 후 업로드
@@ -58,6 +62,7 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
           name: name.trim(),
           description: description.trim(),
           coverColor: coverColor || undefined,
+          contentViewMode,
         },
       });
 
@@ -121,6 +126,48 @@ const BoardCreatePopup = ({ setState, onSuccess }: Props) => {
             placeholder="보드에 대한 설명을 입력하세요"
             onChange={(e: any) => setDescription(e.target.value)}
           />
+        </div>
+        <div style={{ marginBottom: "16px" }}>
+          <div
+            style={{
+              display: "block",
+              fontSize: "14px",
+              fontWeight: 500,
+              marginBottom: "6px",
+            }}
+          >
+            문서 목록 보기
+          </div>
+          <div className={bStyle.segmentGroup}>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                contentViewMode === "table" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setContentViewMode("table")}
+            >
+              테이블
+            </button>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                contentViewMode === "blog" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setContentViewMode("blog")}
+            >
+              블로그
+            </button>
+          </div>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              marginTop: "6px",
+              marginBottom: 0,
+            }}
+          >
+            기본값은 테이블(카드형 목록)입니다.
+          </p>
         </div>
         <div>
           <label

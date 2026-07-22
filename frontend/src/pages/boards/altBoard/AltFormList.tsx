@@ -331,7 +331,9 @@ const AltFormList = ({
     return (
       <div
         key={`manage-${form._id}`}
-        className={style.formCard}
+        className={`${style.formCard} ${
+          actionMenu === form._id ? style.formCardMenuOpen : ""
+        }`}
         onClick={() => onFormClick(form)}
         role="button"
         tabIndex={0}

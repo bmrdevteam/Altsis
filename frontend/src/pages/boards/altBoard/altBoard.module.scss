@@ -173,7 +173,7 @@
   cursor: pointer;
   transition: border-color 0.15s ease;
   isolation: isolate;
-  overflow: hidden;
+  /* overflow: hidden 제거 — ⋯ 액션 메뉴가 카드 밖으로 나와야 함 */
 
   &::before {
     content: "";
@@ -193,6 +193,10 @@
   &:hover {
     border-color: var(--border-default-color, var(--border-color));
   }
+}
+
+.formCardMenuOpen {
+  z-index: 10;
 }
 
 .formCardLeft {
@@ -364,7 +368,7 @@
   position: absolute;
   top: 100%;
   right: 0;
-  z-index: 20;
+  z-index: 30;
   background: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -2136,64 +2140,6 @@
   strong {
     color: var(--accent-1);
   }
-}
-
-/* ─── Batch Print ─── */
-
-.batchPrintOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 100;
-  background: var(--background-color);
-  display: flex;
-  flex-direction: column;
-}
-
-.batchPrintToolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--background-color);
-
-  @media print {
-    display: none;
-  }
-}
-
-.batchPrintContent {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-.batchPrintPage {
-  background: var(--background-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 32px;
-  margin-bottom: 24px;
-  page-break-after: always;
-
-  @media print {
-    border: none;
-    border-radius: 0;
-    margin: 0;
-    padding: 20px;
-  }
-}
-
-.batchPrintPageHeader {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-color-2);
-  padding-bottom: 12px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--border-color);
 }
 
 /* ─── Day-of-Week Bulk Select ─── */

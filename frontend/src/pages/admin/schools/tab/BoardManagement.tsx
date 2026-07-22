@@ -9,9 +9,10 @@ import Textarea from "components/textarea/Textarea";
 import Svg from "assets/svg/Svg";
 import ToggleSwitch from "components/toggleSwitch/ToggleSwitch";
 
-import { TBoard, TBoardNotificationEvents } from "types/board";
+import { TBoard, TBoardContentViewMode, TBoardNotificationEvents } from "types/board";
 import { TSchool } from "types/schools";
 import SchoolFeatureToggle from "./FeatureSettings";
+import bStyle from "pages/boards/boards.module.scss";
 
 const NOTIFICATION_EVENT_LABELS: Record<
   keyof TBoardNotificationEvents,
@@ -299,9 +300,7 @@ const BoardManagement = ({ schoolData, setSchoolData }: Props) => {
           postCountDisplay: board.postCount || 0,
           boardTypeDisplay: board.boardType === "user" ? "사용자" : "공식",
           contentViewModeDisplay:
-            board.contentViewMode === "blog"
-              ? "블로그"
-              : "테이블",
+            board.contentViewMode === "blog" ? "블로그" : "테이블",
           creatorDisplay: board.creatorName || "-",
           membersDisplay: board.isDefault
             ? "전체"
@@ -409,6 +408,8 @@ const CreateBoardPopup = ({
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [contentViewMode, setContentViewMode] =
+    useState<TBoardContentViewMode>("table");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -425,6 +426,7 @@ const CreateBoardPopup = ({
           school: schoolId,
           name: name.trim(),
           description: description.trim(),
+          contentViewMode,
         },
       });
       alert("보드가 생성되었습니다.");
@@ -463,12 +465,54 @@ const CreateBoardPopup = ({
             required
           />
         </div>
-        <div>
+        <div style={{ marginBottom: "16px" }}>
           <Textarea
             label="설명 (선택)"
             placeholder="보드에 대한 설명을 입력하세요"
             onChange={(e: any) => setDescription(e.target.value)}
           />
+        </div>
+        <div>
+          <div
+            style={{
+              display: "block",
+              fontSize: "14px",
+              fontWeight: 500,
+              marginBottom: "6px",
+            }}
+          >
+            문서 목록 보기
+          </div>
+          <div className={bStyle.segmentGroup}>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                contentViewMode === "table" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setContentViewMode("table")}
+            >
+              테이블
+            </button>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                contentViewMode === "blog" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setContentViewMode("blog")}
+            >
+              블로그
+            </button>
+          </div>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              marginTop: "6px",
+              marginBottom: 0,
+            }}
+          >
+            기본값은 테이블(카드형 목록)입니다.
+          </p>
         </div>
       </div>
     </Popup>
@@ -490,6 +534,9 @@ const ManageBoardPopup = ({
 
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || "");
+  const [contentViewMode, setContentViewMode] = useState<TBoardContentViewMode>(
+    board.contentViewMode === "blog" ? "blog" : "table"
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -507,6 +554,7 @@ const ManageBoardPopup = ({
         data: {
           name: name.trim(),
           description: description.trim(),
+          contentViewMode,
         },
       });
 
@@ -603,13 +651,56 @@ const ManageBoardPopup = ({
             </p>
           )}
         </div>
-        <div>
+        <div style={{ marginBottom: "16px" }}>
           <Textarea
             label="설명 (선택)"
             placeholder="보드에 대한 설명을 입력하세요"
             defaultValue={description}
             onChange={(e: any) => setDescription(e.target.value)}
           />
+        </div>
+        <div>
+          <div
+            style={{
+              display: "block",
+              fontSize: "14px",
+              fontWeight: 500,
+              marginBottom: "6px",
+            }}
+          >
+            문서 목록 보기
+          </div>
+          <div className={bStyle.segmentGroup}>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                contentViewMode === "table" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setContentViewMode("table")}
+            >
+              테이블
+            </button>
+            <button
+              type="button"
+              className={`${bStyle.segmentBtn} ${
+                contentViewMode === "blog" ? bStyle.segmentBtnActive : ""
+              }`}
+              onClick={() => setContentViewMode("blog")}
+            >
+              블로그
+            </button>
+          </div>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "var(--text-color-2)",
+              marginTop: "6px",
+              marginBottom: 0,
+            }}
+          >
+            문서 탭 목록 형태입니다. 테이블은 카드형 목록, 블로그는
+            피드형입니다.
+          </p>
         </div>
       </div>
     </Popup>

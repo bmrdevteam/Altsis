@@ -3425,25 +3425,6 @@ export default function useAPIv2() {
     });
   }
 
-  async function RPostMergeBatch(props: {
-    params: { _id: string };
-    query?: { userIds?: string };
-  }) {
-    const { results, title } = await database.R({
-      location:
-        `posts/${props.params._id}/merge-batch` +
-        QUERY_BUILDER(props.query),
-    });
-    return {
-      results: results as {
-        userId: string;
-        userName: string;
-        content: string;
-      }[],
-      title: title as string,
-    };
-  }
-
   async function DuplicatePost(props: { params: { _id: string } }) {
     const { post } = await database.C({
       location: `posts/${props.params._id}/duplicate`,
@@ -4779,7 +4760,6 @@ export default function useAPIv2() {
       CUploadPostFile,
       RSignedUrlPostFile,
       RPostOgMeta,
-      RPostMergeBatch,
       DuplicatePost,
       SearchPosts,
     },
