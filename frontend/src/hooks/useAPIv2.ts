@@ -4464,10 +4464,10 @@ export default function useAPIv2() {
   }
 
   async function RAltSheetRowMy(props: { query: { form: string } }) {
-    const { row } = await database.R({
+    const { rows } = await database.R({
       location: "alt-sheet-rows/my" + QUERY_BUILDER(props.query),
     });
-    return { row: row as TAltSheetRow | null };
+    return { rows: (rows || []) as TAltSheetRow[] };
   }
 
   async function UAltSheetRow(props: {

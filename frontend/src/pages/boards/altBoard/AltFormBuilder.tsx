@@ -243,7 +243,7 @@ const AltFormBuilder = ({
           directInputMode: form.settings.directInputMode || false,
           shareResponses: form.settings.shareResponses || false,
           showOwnerFields: form.settings.showOwnerFields || false,
-          showOwnResponse: form.settings.showOwnResponse || false,
+          showOwnResponse: form.settings.showOwnResponse !== false,
         };
         setTitle(form.title);
         setDescription(form.description);

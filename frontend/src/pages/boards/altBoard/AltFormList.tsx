@@ -18,6 +18,7 @@ type Props = {
   canManage: boolean;
   onFormClick: (form: TAltForm) => void;
   onRespondForm: (formId: string) => void;
+  onViewMyResponses?: (formId: string) => void;
   onCreateForm: () => void;
   onRefresh: () => void;
   onCopyFormLink?: (formId: string) => void;
@@ -94,6 +95,7 @@ const AltFormList = ({
   canManage,
   onFormClick,
   onRespondForm,
+  onViewMyResponses,
   onCreateForm,
   onRefresh,
   onCopyFormLink,
@@ -318,6 +320,21 @@ const AltFormList = ({
           </div>
         </div>
         <div className={style.formCardRight}>
+          {form.mySubmitted &&
+            form.settings.showOwnResponse !== false &&
+            onViewMyResponses && (
+              <button
+                type="button"
+                className={style.formCardIconBtn}
+                title="내 응답 보기"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewMyResponses(form._id);
+                }}
+              >
+                <Svg type="article" width="20px" height="20px" />
+              </button>
+            )}
           <button
             type="button"
             className={style.formCardIconBtn}

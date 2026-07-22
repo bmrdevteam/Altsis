@@ -18,7 +18,13 @@ type Props = {
   board: TBoard;
   formId: string;
   onBack: () => void;
+  /** URL mode=responses 등으로 개별 보기에서 시작 */
+  initialViewMode?: "compose" | "review";
+  /** standalone에서 URL mode 동기화 */
+  onViewModeChange?: (mode: "compose" | "review") => void;
 };
+
+type TViewMode = "compose" | "review";
 
 /* ── 시스템 변수 ── */
 
@@ -106,7 +112,13 @@ const withDocResponseDefaults = (
   return next;
 };
 
-const AltFormRenderer = ({ board, formId, onBack }: Props) => {
+const AltFormRenderer = ({
+  board,
+  formId,
+  onBack,
+  initialViewMode = "compose",
+  onViewModeChange,
+}: Props) => {
   const { AltFormAPI, AltSheetRowAPI, ChatAPI, FileAPI, PostAPI } = useAPIv2();
   const { currentSchool, currentRegistration } = useAuth();
 
@@ -125,7 +137,10 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   };
 
   const [form, setForm] = useState<TAltForm | null>(null);
+  const [myRows, setMyRows] = useState<TAltSheetRow[]>([]);
   const [myRow, setMyRow] = useState<TAltSheetRow | null>(null);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<TViewMode>("compose");
   const [data, setData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -167,18 +182,41 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       AltFormAPI.RAltForm({ params: { _id: formId } }),
       AltSheetRowAPI.RAltSheetRowMy({ query: { form: formId } }),
     ])
-      .then(([{ form: loadedForm }, { row }]) => {
+      .then(([{ form: loadedForm }, { rows }]) => {
         setForm(loadedForm);
-        if (row) {
-          if (loadedForm.settings.allowMultipleResponses) {
-            // 다중 응답: 항상 빈 폼 유지 (이전 응답 불러오지 않음)
-            setData(withDocResponseDefaults(loadedForm.fields));
+        const loadedRows = rows || [];
+        setMyRows(loadedRows);
+        setReviewIndex(0);
+
+        const canReview =
+          loadedForm.settings.showOwnResponse !== false &&
+          loadedRows.length > 0;
+        const startInReview =
+          initialViewMode === "review" && canReview;
+        setViewMode(startInReview ? "review" : "compose");
+
+        if (loadedForm.settings.allowMultipleResponses) {
+          // 다중 응답: 작성 모드는 빈 폼 (이전 응답은 개별 보기에서만)
+          setMyRow(null);
+          setIsSubmitted(false);
+          if (startInReview) {
+            const row = loadedRows[0];
+            setData(
+              withDocResponseDefaults(loadedForm.fields, row?.data || {})
+            );
           } else {
-            setMyRow(row);
-            setData(withDocResponseDefaults(loadedForm.fields, row.data || {}));
-            setIsSubmitted(true);
+            setData(withDocResponseDefaults(loadedForm.fields));
           }
+        } else if (loadedRows[0]) {
+          const row = loadedRows[0];
+          setMyRow(row);
+          setData(
+            withDocResponseDefaults(loadedForm.fields, row.data || {})
+          );
+          setIsSubmitted(true);
         } else {
+          setMyRow(null);
+          setIsSubmitted(false);
           setData(withDocResponseDefaults(loadedForm.fields));
         }
 
@@ -279,16 +317,69 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   );
 
   /** 양식에서 삭제된 필드의 제출값 (스키마에 없는 data 키) */
+  const activeRow =
+    viewMode === "review" ? myRows[reviewIndex] ?? null : myRow;
+
+  const canShowOwnResponses =
+    form?.settings.showOwnResponse !== false && myRows.length > 0;
+
+  const isReviewMode = viewMode === "review";
+
+  const switchViewMode = (mode: TViewMode) => {
+    if (!form) return;
+    if (mode === "review") {
+      if (!canShowOwnResponses) return;
+      const idx = Math.min(reviewIndex, Math.max(0, myRows.length - 1));
+      setReviewIndex(idx);
+      const row = myRows[idx];
+      if (row) {
+        setData(withDocResponseDefaults(form.fields, row.data || {}));
+      }
+      setViewMode("review");
+      onViewModeChange?.("review");
+      return;
+    }
+    // compose
+    if (form.settings.allowMultipleResponses) {
+      setData(withDocResponseDefaults(form.fields));
+      setMyRow(null);
+      setIsSubmitted(false);
+    } else if (myRow) {
+      setData(withDocResponseDefaults(form.fields, myRow.data || {}));
+      setIsSubmitted(true);
+    } else if (myRows[0]) {
+      setMyRow(myRows[0]);
+      setData(withDocResponseDefaults(form.fields, myRows[0].data || {}));
+      setIsSubmitted(true);
+    } else {
+      setData(withDocResponseDefaults(form.fields));
+      setIsSubmitted(false);
+    }
+    setErrors({});
+    setViewMode("compose");
+    onViewModeChange?.("compose");
+  };
+
+  const goReview = (nextIndex: number) => {
+    if (!form || nextIndex < 0 || nextIndex >= myRows.length) return;
+    setReviewIndex(nextIndex);
+    const row = myRows[nextIndex];
+    setData(withDocResponseDefaults(form.fields, row.data || {}));
+  };
+
+  /** 양식에서 삭제된 필드의 제출값 (스키마에 없는 data 키) */
   const orphanResponses = useMemo(() => {
-    if (!isSubmitted || !myRow?.data || !form) return [];
+    const rowForOrphans = isReviewMode ? activeRow : myRow;
+    if ((!isSubmitted && !isReviewMode) || !rowForOrphans?.data || !form)
+      return [];
     const fieldIds = new Set(form.fields.map((f) => f._id));
-    return Object.entries(myRow.data).filter(([key, val]) => {
+    return Object.entries(rowForOrphans.data).filter(([key, val]) => {
       if (!key || key.startsWith("_")) return false;
       if (fieldIds.has(key)) return false;
       if (val === undefined || val === null || val === "") return false;
       return true;
     });
-  }, [isSubmitted, myRow, form]);
+  }, [isSubmitted, isReviewMode, activeRow, myRow, form]);
 
   const formatOrphanValue = (val: any): string => {
     if (typeof val === "string") return val;
@@ -317,6 +408,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
   const canSubmit = !isClosed && !isNotOpen;
   const canResubmit =
+    !isReviewMode &&
     (form?.settings.allowResubmit || form?.settings.allowMultipleResponses) &&
     isSubmitted &&
     canSubmit;
@@ -324,19 +416,23 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   // 퀴즈 결과 가시성
   const quizScoreVisible = useMemo(() => {
     if (!form?.settings.quizMode) return false;
+    const hasRow = isReviewMode ? !!activeRow : isSubmitted;
+    if (!hasRow) return false;
     const reveal = form.settings.quizSettings?.scoreReveal;
-    if (reveal === "immediately") return isSubmitted;
+    if (reveal === "immediately") return true;
     if (reveal === "afterDeadline") return !!isClosed;
     return false;
-  }, [form, isSubmitted, isClosed]);
+  }, [form, isSubmitted, isClosed, isReviewMode, activeRow]);
 
   const quizAnswerVisible = useMemo(() => {
     if (!form?.settings.quizMode) return false;
+    const hasRow = isReviewMode ? !!activeRow : isSubmitted;
+    if (!hasRow) return false;
     const reveal = form.settings.quizSettings?.answerReveal;
-    if (reveal === "immediately") return isSubmitted;
+    if (reveal === "immediately") return true;
     if (reveal === "afterDeadline") return !!isClosed;
     return false;
-  }, [form, isSubmitted, isClosed]);
+  }, [form, isSubmitted, isClosed, isReviewMode, activeRow]);
 
   const setValue = (fieldId: string, value: any) => {
     setData((prev) => ({ ...prev, [fieldId]: value }));
@@ -450,13 +546,15 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       });
 
       if (form.settings.allowMultipleResponses) {
-        // 다중 응답: 제출 후 완전 초기화
+        // 다중 응답: 제출 후 목록에 추가하고 작성 폼 초기화
         alert("응답이 제출되었습니다.");
+        setMyRows((prev) => [row, ...prev]);
         setMyRow(null);
         setData(withDocResponseDefaults(form.fields));
         setIsSubmitted(false);
       } else {
         setMyRow(row);
+        setMyRows([row]);
         setData(withDocResponseDefaults(form.fields, row.data || submitData));
         setIsSubmitted(true);
       }
@@ -468,12 +566,13 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
   };
 
   const handleWithdraw = async () => {
-    if (!myRow || !form) return;
+    if (!myRow || !form || isReviewMode) return;
     if (!window.confirm("응답을 철회하시겠습니까?")) return;
 
     try {
       await AltSheetRowAPI.DAltSheetRow({ params: { _id: myRow._id } });
       setMyRow(null);
+      setMyRows([]);
       setData(withDocResponseDefaults(form.fields));
       setIsSubmitted(false);
     } catch (err) {
@@ -483,8 +582,8 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
   /* ── 필드별 퀴즈 결과 마크 ── */
   const getQuizMark = (field: TAltFormField) => {
-    if (!quizAnswerVisible || !myRow) return null;
-    const fieldResults = myRow.data?._quiz_fieldResults;
+    if (!quizAnswerVisible || !activeRow) return null;
+    const fieldResults = activeRow.data?._quiz_fieldResults;
     if (!fieldResults) return null;
     const isCorrect = fieldResults[field._id];
     if (isCorrect === undefined) return null;
@@ -1214,8 +1313,8 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
             }
           | undefined;
 
-        // 제출 후: 승인 상태 표시
-        if (isSubmitted && approvalData?.approver) {
+        // 제출 후·개별 보기: 승인 상태 표시
+        if ((isSubmitted || isReviewMode) && approvalData?.approver) {
           const status = approvalData.status || "pending";
           const statusLabels: Record<string, string> = {
             pending: "승인 대기",
@@ -1616,6 +1715,17 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
 
   if (isLoading || !form) return null;
 
+  const reviewSubmittedAt = activeRow?._submittedAt
+    ? new Date(activeRow._submittedAt).toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
   return (
     <div className={style.rendererContainer}>
       {/* 헤더: 보드 페이지 왼쪽 기준에 맞춤 (중앙 컬럼 밖) */}
@@ -1628,6 +1738,28 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
             {form.title}
           </span>
         </div>
+        {canShowOwnResponses && (
+          <div className={style.viewModeToggle}>
+            <button
+              type="button"
+              className={`${style.viewModeBtn} ${
+                viewMode === "compose" ? style.viewModeBtnActive : ""
+              }`}
+              onClick={() => switchViewMode("compose")}
+            >
+              작성
+            </button>
+            <button
+              type="button"
+              className={`${style.viewModeBtn} ${
+                viewMode === "review" ? style.viewModeBtnActive : ""
+              }`}
+              onClick={() => switchViewMode("review")}
+            >
+              내 응답
+            </button>
+          </div>
+        )}
       </div>
 
       <div className={style.rendererBody}>
@@ -1649,28 +1781,59 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
             아직 시작 전
           </span>
         )}
-        {isSubmitted && (
+        {!isReviewMode && isSubmitted && (
           <span className={`${style.formCardBadge} ${style.badgeOpen}`}>
             응답 완료
           </span>
         )}
+        {isReviewMode && (
+          <span className={`${style.formCardBadge} ${style.badgeSubmitted}`}>
+            개별 보기
+          </span>
+        )}
       </div>
 
+      {isReviewMode && myRows.length > 0 && (
+        <div className={style.reviewNav}>
+          <button
+            type="button"
+            className={style.reviewNavBtn}
+            disabled={reviewIndex <= 0}
+            onClick={() => goReview(reviewIndex - 1)}
+            title="이전 응답"
+          >
+            <Svg type="chevronLeft" width="18px" height="18px" />
+          </button>
+          <span className={style.reviewNavCount}>
+            {reviewIndex + 1} / {myRows.length}
+          </span>
+          <button
+            type="button"
+            className={style.reviewNavBtn}
+            disabled={reviewIndex >= myRows.length - 1}
+            onClick={() => goReview(reviewIndex + 1)}
+            title="다음 응답"
+          >
+            <Svg type="chevronRight" width="18px" height="18px" />
+          </button>
+        </div>
+      )}
+
       {/* 퀴즈 점수 배너 */}
-      {quizScoreVisible && myRow && (
+      {quizScoreVisible && activeRow && (
         <div className={style.quizScoreBanner}>
           <div className={style.quizScoreIcon}>📝</div>
           <div className={style.quizScoreText}>
             <strong>
-              점수: {myRow.data?._quiz_score ?? 0} /{" "}
-              {myRow.data?._quiz_total ?? 0}점
+              점수: {activeRow.data?._quiz_score ?? 0} /{" "}
+              {activeRow.data?._quiz_total ?? 0}점
             </strong>
-            {myRow.data?._quiz_total > 0 && (
+            {activeRow.data?._quiz_total > 0 && (
               <span>
                 (
                 {Math.round(
-                  ((myRow.data?._quiz_score ?? 0) /
-                    myRow.data._quiz_total) *
+                  ((activeRow.data?._quiz_score ?? 0) /
+                    activeRow.data._quiz_total) *
                     100
                 )}
                 %)
@@ -1680,8 +1843,18 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
         </div>
       )}
 
-      {/* 제출 완료 배너 */}
-      {isSubmitted && !canResubmit && !quizScoreVisible && (
+      {/* 개별 보기: 읽기 전용 배너 */}
+      {isReviewMode && (
+        <div className={style.readonlyBanner}>
+          <div className={style.readonlyBannerText}>
+            <strong>응답은 수정할 수 없습니다.</strong>
+            {reviewSubmittedAt && <span>제출일: {reviewSubmittedAt}</span>}
+          </div>
+        </div>
+      )}
+
+      {/* 제출 완료 배너 (작성 모드) */}
+      {!isReviewMode && isSubmitted && !canResubmit && !quizScoreVisible && (
         <div className={style.successBanner}>
           <div className={style.successIcon}>✓</div>
           <div className={style.successText}>
@@ -1697,7 +1870,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
         </div>
       )}
       {/* 응답자 필드 */}
-      {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible) &&
+      {(!isSubmitted || canResubmit || form?.settings.showOwnResponse !== false || quizScoreVisible || isReviewMode) &&
         respondentFields.map((field) => {
           if (field.type === "content") {
             return (
@@ -1714,7 +1887,8 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
             );
           }
 
-          const disabled = (isSubmitted && !canResubmit) || !canSubmit;
+          const disabled =
+            isReviewMode || (isSubmitted && !canResubmit) || !canSubmit;
           const quizMark = getQuizMark(field);
 
           return (
@@ -1768,7 +1942,7 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
         })}
 
       {/* owner 필드 중 응답자에게 공개된 것 (읽기전용) */}
-      {visibleOwnerFields.length > 0 && isSubmitted && (
+      {visibleOwnerFields.length > 0 && (isSubmitted || isReviewMode) && (
         <>
           {visibleOwnerFields.map((field) => (
             <div key={field._id} className={style.questionItem}>
@@ -1813,28 +1987,33 @@ const AltFormRenderer = ({ board, formId, onBack }: Props) => {
       )}
 
       {/* 제출/수정 버튼 */}
-      <div className={style.submitArea}>
-        {isSubmitted && myRow && canSubmit && !form?.settings.allowMultipleResponses && (
-          <Button type="ghost" onClick={handleWithdraw}>
-            응답 철회
-          </Button>
-        )}
-        {(!isSubmitted || canResubmit) && canSubmit && (
-          <Button
-            type="ghost"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting
-              ? "제출 중..."
-              : isSubmitted
-                ? form?.settings.allowMultipleResponses
-                  ? "추가 제출"
-                  : "수정 제출"
-                : "제출"}
-          </Button>
-        )}
-      </div>
+      {!isReviewMode && (
+        <div className={style.submitArea}>
+          {isSubmitted &&
+            myRow &&
+            canSubmit &&
+            !form?.settings.allowMultipleResponses && (
+              <Button type="ghost" onClick={handleWithdraw}>
+                응답 철회
+              </Button>
+            )}
+          {(!isSubmitted || canResubmit) && canSubmit && (
+            <Button
+              type="ghost"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? "제출 중..."
+                : isSubmitted
+                  ? form?.settings.allowMultipleResponses
+                    ? "추가 제출"
+                    : "수정 제출"
+                  : "제출"}
+            </Button>
+          )}
+        </div>
+      )}
       </div>
     </div>
   );

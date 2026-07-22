@@ -630,8 +630,8 @@ export const find = async (req, res) => {
 /**
  * @memberof APIs.AltSheetRowAPI
  * @function RAltSheetRowMy API
- * @description 내 응답 조회
- * @version 1.0.0
+ * @description 내 응답 목록 조회 (최신순) — 개별 보기용
+ * @version 1.1.0
  */
 export const findMy = async (req, res) => {
   try {
@@ -639,13 +639,16 @@ export const findMy = async (req, res) => {
       return res.status(400).send({ message: FIELD_REQUIRED("form") });
     }
 
-    const row = await AltSheetRow(req.user.academyId).findOne({
-      form: req.query.form,
-      _respondent: req.user._id,
-      isActive: true,
-    });
+    const rows = await AltSheetRow(req.user.academyId)
+      .find({
+        form: req.query.form,
+        _respondent: req.user._id,
+        isActive: true,
+      })
+      .sort({ _submittedAt: -1, createdAt: -1 })
+      .lean();
 
-    return res.status(200).send({ row: row || null });
+    return res.status(200).send({ rows });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

@@ -1404,6 +1404,107 @@
   }
 }
 
+.viewModeToggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.viewModeBtn {
+  border: none;
+  background: var(--background-color);
+  color: var(--text-color-2);
+  font-size: 13px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--background-hover-color);
+    color: var(--text-color-1);
+  }
+
+  & + & {
+    border-left: 1px solid var(--border-color);
+  }
+}
+
+.viewModeBtnActive {
+  background: var(--background-hover-color);
+  color: var(--text-color-1);
+  font-weight: 600;
+}
+
+.reviewNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.reviewNavBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color);
+  color: var(--text-color-1);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--background-hover-color);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+.reviewNavCount {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color-1);
+  min-width: 64px;
+  text-align: center;
+}
+
+.readonlyBanner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  background: var(--background-hover-color);
+  border: 1px solid var(--border-color);
+}
+
+.readonlyBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color-1);
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--text-color-2);
+  }
+}
+
 /* ─── Sheet View ─── */
 
 .sheetContainer {

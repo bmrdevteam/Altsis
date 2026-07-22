@@ -77,6 +77,10 @@ const AltBoardView = ({ board, embedded }: Props) => {
   // Form builder/renderer 상태
   const [builderFormId, setBuilderFormId] = useState<string | null>(null);
   const [rendererFormId, setRendererFormId] = useState<string | null>(null);
+  /** embedded일 때 URL 없이 작성/개별 보기 구분 */
+  const [embeddedRendererMode, setEmbeddedRendererMode] = useState<
+    "compose" | "review"
+  >("compose");
 
   // URL search params (only used in standalone mode)
   const urlFormId = embedded ? null : searchParams.get("form");
@@ -143,7 +147,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
     }
   }, [board._id]);
 
-  // URL → State 동기화: ?form=<id>&mode=<respond|edit> 처리
+  // URL → State 동기화: ?form=<id>&mode=<respond|responses|edit> 처리
   useEffect(() => {
     if (isLoading || !urlFormId) return;
 
@@ -155,8 +159,8 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
     const targetForm = forms.find((f) => f._id === urlFormId);
     if (targetForm) {
-      if (urlMode === "respond") {
-        // 명시적 응답 모드
+      if (urlMode === "respond" || urlMode === "responses") {
+        // 응답 작성 / 내 응답 개별 보기
         setRendererFormId(urlFormId);
         setBuilderFormId(null);
       } else if (canModifyForm(targetForm)) {
@@ -215,15 +219,39 @@ const AltBoardView = ({ board, embedded }: Props) => {
     }
   };
 
-  // Form renderer 열기
+  // Form renderer 열기 (작성)
   const handleOpenRenderer = (formId: string) => {
     setRendererFormId(formId);
     setBuilderFormId(null);
+    setEmbeddedRendererMode("compose");
     if (!embedded) {
       navigate(`/boards/${board._id}?form=${formId}&mode=respond`, {
         replace: true,
       });
     }
+  };
+
+  // 내 응답 개별 보기
+  const handleOpenMyResponses = (formId: string) => {
+    setRendererFormId(formId);
+    setBuilderFormId(null);
+    setEmbeddedRendererMode("review");
+    if (!embedded) {
+      navigate(`/boards/${board._id}?form=${formId}&mode=responses`, {
+        replace: true,
+      });
+    }
+  };
+
+  const handleRendererViewModeChange = (mode: "compose" | "review") => {
+    setEmbeddedRendererMode(mode);
+    if (embedded || !rendererFormId) return;
+    navigate(
+      `/boards/${board._id}?form=${rendererFormId}&mode=${
+        mode === "review" ? "responses" : "respond"
+      }`,
+      { replace: true }
+    );
   };
 
   // 빌더/렌더러에서 활동 탭으로 복귀
@@ -328,11 +356,19 @@ const AltBoardView = ({ board, embedded }: Props) => {
 
   // 렌더러 모드
   if (rendererFormId) {
+    const rendererMode = embedded
+      ? embeddedRendererMode
+      : urlMode === "responses"
+        ? "review"
+        : "compose";
     return (
       <AltFormRenderer
+        key={`${rendererFormId}-${rendererMode}`}
         board={board}
         formId={rendererFormId}
         onBack={handleBackToList}
+        initialViewMode={rendererMode}
+        onViewModeChange={handleRendererViewModeChange}
       />
     );
   }
@@ -375,6 +411,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
           canManage={canManage}
           onFormClick={handleFormClick}
           onRespondForm={handleOpenRenderer}
+          onViewMyResponses={handleOpenMyResponses}
           onCreateForm={() => handleOpenBuilder()}
           onRefresh={loadForms}
           onCopyFormLink={handleCopyFormLink}
