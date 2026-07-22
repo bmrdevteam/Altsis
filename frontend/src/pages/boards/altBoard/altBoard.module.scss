@@ -2376,77 +2376,33 @@
   gap: 12px;
 }
 
-/* ─── Document View (기록 문서 보기) ─── */
+/* ─── Document View (기록 문서 보기 · 양식형 개별) ─── */
 
-.docViewSortBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
+.docViewSingle {
+  max-width: 820px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.docViewSortItem {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: var(--text-color-2);
-  cursor: pointer;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  user-select: none;
-  transition: all 0.15s;
-  white-space: nowrap;
-
-  &:hover {
-    background: var(--background-hover-color, var(--background-color-2));
-    color: var(--text-color-1);
-  }
-}
-
-.docViewFilterBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.docViewSearch {
   margin-bottom: 16px;
-}
 
-.docViewList {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.docViewCard {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 20px;
-  background: var(--background-color);
+  .filterInput {
+    width: 100%;
+    max-width: 280px;
+  }
 }
 
 .docViewCardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+  padding: 4px 4px 16px;
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--border-color);
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.docViewField {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-color);
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.docViewLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-color-2);
-  margin-bottom: 6px;
 }
 
 .docViewOwnerBadge {

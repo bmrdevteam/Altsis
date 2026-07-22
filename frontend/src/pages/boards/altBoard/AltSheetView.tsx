@@ -6,6 +6,7 @@ import { TAltSheetRow } from "types/altSheet";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
+import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
 import DateRangeFilterDropdown, {
   DateRange,
@@ -86,6 +87,14 @@ const AltSheetView = ({
   // 문서 뷰 편집 상태
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [docEditData, setDocEditData] = useState<Record<string, any>>({});
+  /** 문서 보기: 필터된 행 기준 현재 index */
+  const [docIndex, setDocIndex] = useState(0);
+
+  // 응답 삭제 확인
+  const [deleteTargetRow, setDeleteTargetRow] = useState<TAltSheetRow | null>(
+    null
+  );
+  const [isDeletingRow, setIsDeletingRow] = useState(false);
 
   const selectedForm = forms.find((f) => f._id === selectedFormId);
 
@@ -329,6 +338,32 @@ const AltSheetView = ({
     return result;
   }, [rows, filters, dateFilters, sortConfig, allVisibleFields]);
 
+  // 문서 보기 index를 필터 결과에 맞게 유지
+  useEffect(() => {
+    if (filteredRows.length === 0) {
+      setDocIndex(0);
+      return;
+    }
+    setDocIndex((prev) => Math.min(Math.max(0, prev), filteredRows.length - 1));
+  }, [filteredRows.length, rows.length, filters, dateFilters, sortConfig]);
+
+  // 폼 변경 시 문서 index 초기화
+  useEffect(() => {
+    setDocIndex(0);
+    setEditingRowId(null);
+    setDocEditData({});
+  }, [selectedFormId]);
+
+  const currentDocRowId = filteredRows[docIndex]?._id ?? null;
+
+  // 문서 보기에서 행·모드 전환 시 편집 모드 종료
+  useEffect(() => {
+    setEditingRowId(null);
+    setDocEditData({});
+  }, [currentDocRowId, viewMode]);
+
+  const currentDocRow = filteredRows[docIndex] ?? null;
+
   const handleColumnSort = (fieldId: string) => {
     setSortConfig((prev) => {
       if (prev?.fieldId === fieldId) {
@@ -464,14 +499,28 @@ const AltSheetView = ({
     }
   };
 
-  // 행 삭제
-  const handleDeleteRow = async (rowId: string) => {
-    if (!window.confirm("이 응답을 삭제하시겠습니까?")) return;
+  // 행 삭제 확인 요청
+  const requestDeleteRow = (row: TAltSheetRow) => {
+    setDeleteTargetRow(row);
+  };
+
+  // 행 삭제 실행
+  const handleDeleteConfirm = async () => {
+    if (!deleteTargetRow || isDeletingRow) return;
+    const rowId = deleteTargetRow._id;
+    setIsDeletingRow(true);
     try {
       await AltSheetRowAPI.DAltSheetRow({ params: { _id: rowId } });
       setRows((prev) => prev.filter((r) => r._id !== rowId));
+      if (editingRowId === rowId) {
+        setEditingRowId(null);
+        setDocEditData({});
+      }
+      setDeleteTargetRow(null);
     } catch (err) {
       ALERT_ERROR(err);
+    } finally {
+      setIsDeletingRow(false);
     }
   };
 
@@ -1124,7 +1173,7 @@ const AltSheetView = ({
               onClick={() => setViewMode("doc")}
               title="문서 보기"
             >
-              <Svg type="file" width="20px" height="20px" />
+              <Svg type="article" width="20px" height="20px" />
             </button>
           </div>
           {onCopySheetLink && (
@@ -1217,150 +1266,175 @@ const AltSheetView = ({
       {!isLoading && rows.length === 0 ? (
         <div className={style.sheetEmpty}>아직 응답이 없습니다.</div>
       ) : !isLoading && viewMode === "doc" ? (
-        /* ── 문서 뷰 ── */
-        <div>
-          {/* 정렬 헤더 (테이블 헤더 스타일) */}
-          <div className={style.docViewSortBar}>
-            <span
-              className={style.docViewSortItem}
-              onClick={() => handleColumnSort("_respondent")}
-            >
-              응답자{getSortIndicator("_respondent")}
-            </span>
-            {visibleFields.map((f) => (
-              <span
-                key={f._id}
-                className={style.docViewSortItem}
-                onClick={() => handleColumnSort(f._id)}
-              >
-                {f.label}{getSortIndicator(f._id)}
-              </span>
-            ))}
-            <span
-              className={style.docViewSortItem}
-              onClick={() => handleColumnSort("_submittedAt")}
-            >
-              제출일{getSortIndicator("_submittedAt")}
-            </span>
-          </div>
-          {/* 필터 바 */}
-          <div className={style.docViewFilterBar}>
+        /* ── 문서 뷰 (양식형 개별 보기) ── */
+        <div className={style.docViewSingle}>
+          <div className={style.docViewSearch}>
             <input
               className={style.filterInput}
-              placeholder="응답자 필터..."
+              placeholder="응답자 검색..."
               value={filters["_respondent"] || ""}
               onChange={(e) =>
                 setFilters((p) => ({ ...p, _respondent: e.target.value }))
               }
-              style={{ maxWidth: "200px" }}
             />
-            {visibleFields
-              .filter((f) => !["file", "approval"].includes(f.type))
-              .map((f) => (
-                <input
-                  key={f._id}
-                  className={style.filterInput}
-                  placeholder={`${f.label} 필터...`}
-                  value={filters[f._id] || ""}
-                  onChange={(e) =>
-                    setFilters((p) => ({ ...p, [f._id]: e.target.value }))
-                  }
-                  style={{ maxWidth: "200px" }}
-                />
-              ))}
           </div>
-          <div className={style.docViewList}>
-          {filteredRows.map((row, index) => {
-            const isEditingThis = editingRowId === row._id;
-            return (
-              <div key={row._id} className={style.docViewCard}>
-                <div className={style.docViewCardHeader}>
-                  <div>
-                    <span style={{ fontWeight: 600 }}>
-                      {index + 1}. {row._respondentName || ""}
+
+          {filteredRows.length === 0 || !currentDocRow ? (
+            <div className={style.sheetEmpty}>표시할 응답이 없습니다.</div>
+          ) : (
+            <>
+              <div className={style.reviewNav}>
+                <button
+                  type="button"
+                  className={style.reviewNavBtn}
+                  disabled={docIndex <= 0}
+                  onClick={() => setDocIndex((i) => Math.max(0, i - 1))}
+                  title="이전 응답"
+                >
+                  <Svg type="chevronLeft" width="18px" height="18px" />
+                </button>
+                <span className={style.reviewNavCount}>
+                  {docIndex + 1} / {filteredRows.length}
+                </span>
+                <button
+                  type="button"
+                  className={style.reviewNavBtn}
+                  disabled={docIndex >= filteredRows.length - 1}
+                  onClick={() =>
+                    setDocIndex((i) =>
+                      Math.min(filteredRows.length - 1, i + 1)
+                    )
+                  }
+                  title="다음 응답"
+                >
+                  <Svg type="chevronRight" width="18px" height="18px" />
+                </button>
+              </div>
+
+              <div className={style.docViewCardHeader}>
+                <div>
+                  <span style={{ fontWeight: 600 }}>
+                    {currentDocRow._respondentName || "응답자"}
+                  </span>
+                  {currentDocRow._respondentId && (
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-color-2)",
+                        marginLeft: "4px",
+                      }}
+                    >
+                      ({currentDocRow._respondentId})
                     </span>
-                    {row._respondentId && (
-                      <span style={{ fontSize: "12px", color: "var(--text-color-2)", marginLeft: "4px" }}>
-                        ({row._respondentId})
-                      </span>
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--text-color-2)",
+                    }}
+                  >
+                    {currentDocRow._submittedAt
+                      ? new Date(currentDocRow._submittedAt).toLocaleString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            weekday: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )
+                      : "-"}
+                  </span>
+                  {canEditRowDoc(currentDocRow) &&
+                    editingRowId !== currentDocRow._id && (
+                      <button
+                        type="button"
+                        className={style.formCardIconBtn}
+                        title="수정"
+                        onClick={() => handleDocEditStart(currentDocRow)}
+                      >
+                        <Svg type="edit" width="18px" height="18px" />
+                      </button>
                     )}
-                  </div>
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <span style={{ fontSize: "12px", color: "var(--text-color-2)" }}>
-                      {row._submittedAt
-                        ? new Date(row._submittedAt).toLocaleString("ko-KR", {
-                            year: "numeric", month: "2-digit", day: "2-digit",
-                            weekday: "short", hour: "2-digit", minute: "2-digit",
-                          })
-                        : "-"}
-                    </span>
-                    {canEditRowDoc(row) && !isEditingThis && (
+                  {editingRowId === currentDocRow._id && (
+                    <>
                       <Button
                         type="ghost"
-                        onClick={() => handleDocEditStart(row)}
+                        onClick={handleDocEditSave}
                         style={{ padding: "2px 8px", fontSize: "12px" }}
                       >
-                        수정
+                        저장
                       </Button>
-                    )}
-                    {isEditingThis && (
-                      <>
-                        <Button
-                          type="ghost"
-                          onClick={handleDocEditSave}
-                          style={{ padding: "2px 8px", fontSize: "12px" }}
-                        >
-                          저장
-                        </Button>
-                        <Button
-                          type="ghost"
-                          onClick={() => setEditingRowId(null)}
-                          style={{ padding: "2px 8px", fontSize: "12px" }}
-                        >
-                          취소
-                        </Button>
-                      </>
-                    )}
-                    {(canDeleteAnyRow ||
-                      (row._respondent === currentUser?._id &&
-                        (selectedForm?.settings?.allowResubmit ||
-                          selectedForm?.settings?.allowMultipleResponses))) && (
-                      <button
-                        className={style.removeBtn}
-                        onClick={() => handleDeleteRow(row._id)}
-                        title="삭제"
-                        style={{ opacity: 0.5 }}
+                      <Button
+                        type="ghost"
+                        onClick={() => setEditingRowId(null)}
+                        style={{ padding: "2px 8px", fontSize: "12px" }}
                       >
-                        ×
-                      </button>
+                        취소
+                      </Button>
+                    </>
+                  )}
+                  {(canDeleteAnyRow ||
+                    (currentDocRow._respondent === currentUser?._id &&
+                      (selectedForm?.settings?.allowResubmit ||
+                        selectedForm?.settings?.allowMultipleResponses))) && (
+                    <button
+                      className={style.removeBtn}
+                      onClick={() => requestDeleteRow(currentDocRow)}
+                      title="삭제"
+                      style={{ opacity: 0.5 }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {isQuiz && currentDocRow.data?._quiz_score != null && (
+                <div className={style.quizScoreBanner}>
+                  <div className={style.quizScoreText}>
+                    <strong>
+                      점수: {currentDocRow.data._quiz_score} /{" "}
+                      {currentDocRow.data._quiz_total || 0}점
+                    </strong>
+                  </div>
+                </div>
+              )}
+
+              {visibleFields.map((field) => (
+                <div key={field._id} className={style.questionItem}>
+                  <div className={style.questionLabel}>
+                    <span className={style.questionLabelText}>
+                      {field.label}
+                    </span>
+                    {field.required && (
+                      <span className={style.requiredMark}>*</span>
+                    )}
+                    {field.permission === "owner" && (
+                      <span className={style.docViewOwnerBadge}>(관리자)</span>
+                    )}
+                  </div>
+                  <div className={style.docViewValue}>
+                    {renderDocFieldValue(
+                      currentDocRow,
+                      field,
+                      editingRowId === currentDocRow._id
                     )}
                   </div>
                 </div>
-                {visibleFields.map((field) => (
-                  <div key={field._id} className={style.docViewField}>
-                    <div className={style.docViewLabel}>
-                      {field.label}
-                      {field.permission === "owner" && (
-                        <span className={style.docViewOwnerBadge}>(관리자)</span>
-                      )}
-                    </div>
-                    <div className={style.docViewValue}>
-                      {renderDocFieldValue(row, field, isEditingThis)}
-                    </div>
-                  </div>
-                ))}
-                {isQuiz && row.data?._quiz_score != null && (
-                  <div className={style.docViewField}>
-                    <div className={style.docViewLabel}>점수</div>
-                    <div className={style.docViewValue}>
-                      {row.data._quiz_score} / {row.data._quiz_total || 0}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          </div>
+              ))}
+            </>
+          )}
         </div>
       ) : !isLoading ? (
         /* ── 테이블 뷰 ── */
@@ -1678,7 +1752,7 @@ const AltSheetView = ({
                         selectedForm?.settings?.allowMultipleResponses))) && (
                     <button
                       className={style.removeBtn}
-                      onClick={() => handleDeleteRow(row._id)}
+                      onClick={() => requestDeleteRow(row)}
                       title="삭제"
                     >
                       ×
@@ -1691,6 +1765,49 @@ const AltSheetView = ({
         </table>
         </div>
       ) : null}
+
+      {deleteTargetRow && (
+        <Popup
+          title="응답 삭제"
+          setState={(v: boolean) => {
+            if (!v && !isDeletingRow) setDeleteTargetRow(null);
+          }}
+          closeBtn={!isDeletingRow}
+          style={{ maxWidth: "420px", width: "100%" }}
+          footer={
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "8px",
+              }}
+            >
+              <Button
+                type="ghost"
+                onClick={() => setDeleteTargetRow(null)}
+                disabled={isDeletingRow}
+              >
+                취소
+              </Button>
+              <Button
+                type="ghost"
+                onClick={handleDeleteConfirm}
+                disabled={isDeletingRow}
+                style={{ color: "var(--status-error)" }}
+              >
+                {isDeletingRow ? "삭제 중..." : "삭제"}
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
+            <strong>{deleteTargetRow._respondentName || "응답자"}</strong>
+            님의 응답을 삭제하시겠습니까?
+            <br />
+            이 작업은 되돌릴 수 없습니다.
+          </div>
+        </Popup>
+      )}
     </div>
   );
 };
