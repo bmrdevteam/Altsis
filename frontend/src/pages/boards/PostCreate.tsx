@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -35,6 +35,7 @@ import surveyStyle from "./survey/survey.module.scss";
 
 const PostCreate = () => {
   const navigate = useAppNavigate();
+  const location = useLocation();
   const { boardId, postId } = useParams<{
     boardId: string;
     postId?: string;
@@ -46,8 +47,21 @@ const PostCreate = () => {
   const [altForms, setAltForms] = useState<TAltForm[]>([]);
   const [showFieldCopy, setShowFieldCopy] = useState(false);
   const [copiedHint, setCopiedHint] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+
+  const importRef = useRef(
+    !postId &&
+      (location.state as { importedMarkdown?: string; importedTitle?: string } | null)
+        ?.importedMarkdown
+      ? (location.state as {
+          importedMarkdown: string;
+          importedTitle?: string;
+        })
+      : null
+  );
+  const [title, setTitle] = useState(importRef.current?.importedTitle || "");
+  const [content, setContent] = useState(
+    importRef.current?.importedMarkdown || ""
+  );
 
   // 읽기 권한: 특정 대상만 설정 여부
   const [useSpecificPermission, setUseSpecificPermission] = useState(false);
@@ -67,7 +81,6 @@ const PostCreate = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const mdFileInputRef = useRef<HTMLInputElement>(null);
   // 첨부파일 미리보기 URL 캐시 (서명 URL)
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   // OG 이미지 로드 실패 추적
@@ -81,6 +94,16 @@ const PostCreate = () => {
   const [isFetchingOg, setIsFetchingOg] = useState(false);
 
   const isEditMode = !!postId;
+
+  // 문서 탭 마크다운 가져오기: 초안 덮어쓰기 방지 + location state 정리
+  useEffect(() => {
+    if (!importRef.current || !boardId) return;
+    localStorage.removeItem(`editor-draft-${boardId}-new`);
+    navigate(location.pathname + location.search, {
+      replace: true,
+      state: null,
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isLoading && boardId) {
@@ -724,6 +747,7 @@ const PostCreate = () => {
             draftKey={boardId ? `${boardId}-${postId || "new"}` : undefined}
             title={title}
             onDraftRestore={(data) => {
+              if (importRef.current) return;
               setContent(data.content);
               if (data.title) setTitle(data.title);
             }}
@@ -741,39 +765,11 @@ const PostCreate = () => {
               }
             }}
             toolbarExtra={
-              <>
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: 1,
-                    height: 20,
-                    margin: "0 4px",
-                    backgroundColor: "var(--border-default-color)",
-                  }}
-                />
-                <input
-                  ref={mdFileInputRef}
-                  type="file"
-                  accept=".md,.markdown,.txt"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      const text = ev.target?.result;
-                      if (typeof text === "string") {
-                        setContent(text);
-                      }
-                    };
-                    reader.readAsText(file);
-                    e.target.value = "";
-                  }}
-                />
+              board?.boardMode === "alt" && altForms.length > 0 ? (
                 <button
                   type="button"
-                  title="마크다운 파일 가져오기 (.md)"
-                  onClick={() => mdFileInputRef.current?.click()}
+                  title="양식·필드 복사"
+                  onClick={() => setShowFieldCopy(true)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -788,36 +784,14 @@ const PostCreate = () => {
                     color: "var(--accent-3)",
                   }}
                 >
-                  <Svg type="upload" width="18px" height="18px" />
-                </button>
-                {board?.boardMode === "alt" && altForms.length > 0 && (
-                  <button
-                    type="button"
-                    title="양식·필드 복사"
-                    onClick={() => setShowFieldCopy(true)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 32,
-                      height: 32,
-                      padding: 0,
-                      background: "none",
-                      border: "none",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      color: "var(--accent-3)",
-                    }}
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 20 }}
                   >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 20 }}
-                    >
-                      data_object
-                    </span>
-                  </button>
-                )}
-              </>
+                    data_object
+                  </span>
+                </button>
+              ) : undefined
             }
           />
         </div>

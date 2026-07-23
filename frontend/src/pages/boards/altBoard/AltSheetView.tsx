@@ -1099,10 +1099,32 @@ const AltSheetView = ({
         (f) => f.settings.shareResponses || f.settings.showOwnResponse
       );
 
+  const sharedCount = availableForms.filter(
+    (f) => f.settings.shareResponses
+  ).length;
+  const responseSum = availableForms.reduce(
+    (sum, f) => sum + (f.responseCount ?? 0),
+    0
+  );
+
   if (availableForms.length === 0) {
     return (
-      <div className={style.emptyState}>
-        {canManage ? "양식을 먼저 생성해주세요." : "공개된 기록이 없습니다."}
+      <div className={style.formList}>
+        <section className={style.formSectionPanel}>
+          <div className={style.formSectionHeaderStatic}>
+            <div className={style.formSectionHeaderMain}>
+              <h3 className={style.formSectionTitle}>기록</h3>
+              <span className={style.formSectionCount}>0</span>
+            </div>
+          </div>
+          <div className={style.formSectionBody}>
+            <div className={style.emptyState}>
+              {canManage
+                ? "양식을 먼저 생성해주세요."
+                : "공개된 기록이 없습니다."}
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
@@ -1111,51 +1133,94 @@ const AltSheetView = ({
   if (!selectedFormId) {
     return (
       <div className={style.formList}>
-        {availableForms.map((form) => (
-          <div
-            key={form._id}
-            className={style.formCard}
-          >
-            <div
-              className={style.formCardLeft}
-              onClick={() => {
-                setSelectedFormId(form._id);
-                onFormSelect?.(form._id);
-              }}
-            >
-              <div className={style.formCardTitle}>{form.title}</div>
-              <div className={style.formCardMeta}>
-                <span>{form.fields.filter((f) => f.type !== "content").length}개 항목</span>
-                {form.settings.shareResponses && (
-                  <span
-                    className={style.formCardBadge}
-                    style={{
-                      background: "var(--status-info-bg)",
-                      color: "var(--status-info)",
-                    }}
-                  >
-                    공유
-                  </span>
-                )}
-              </div>
+        <section className={style.formSectionPanel}>
+          <div className={style.formSectionHeaderStatic}>
+            <div className={style.formSectionHeaderMain}>
+              <h3 className={style.formSectionTitle}>기록</h3>
+              <span className={style.formSectionCount}>
+                {availableForms.length}
+              </span>
             </div>
-            <div className={style.formCardRight}>
-              {onCopySheetLink && (
-                <button
-                  type="button"
-                  className={style.formCardIconBtn}
-                  title="링크 복사"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCopySheetLink(form._id);
-                  }}
-                >
-                  <Svg type="link" width="20px" height="20px" />
-                </button>
+            <div className={style.formSectionStats}>
+              {sharedCount > 0 && (
+                <span>
+                  공유 <strong>{sharedCount}</strong>
+                </span>
               )}
+              <span>
+                총 응답 <strong>{responseSum}</strong>
+              </span>
             </div>
           </div>
-        ))}
+          <div className={style.formSectionBody}>
+            <div className={style.formCardList}>
+              {availableForms.map((form) => (
+                <div key={form._id} className={style.formCard}>
+                  <div
+                    className={style.formCardLeft}
+                    onClick={() => {
+                      setSelectedFormId(form._id);
+                      onFormSelect?.(form._id);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedFormId(form._id);
+                        onFormSelect?.(form._id);
+                      }
+                    }}
+                  >
+                    <div className={style.formCardTitle}>{form.title}</div>
+                    <div className={style.formCardMeta}>
+                      <span>
+                        {
+                          form.fields.filter((f) => f.type !== "content")
+                            .length
+                        }
+                        개 항목
+                      </span>
+                      {(form.responseCount ?? 0) > 0 && (
+                        <span className={style.responseCount}>
+                          {form.settings.allowMultipleResponses
+                            ? `응답 ${form.responseCount}건`
+                            : `제출 ${form.responseCount}명`}
+                        </span>
+                      )}
+                      {form.settings.shareResponses && (
+                        <span
+                          className={style.formCardBadge}
+                          style={{
+                            background: "var(--status-info-bg)",
+                            color: "var(--status-info)",
+                          }}
+                        >
+                          공유
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className={style.formCardRight}>
+                    {onCopySheetLink && (
+                      <button
+                        type="button"
+                        className={style.formCardIconBtn}
+                        title="링크 복사"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCopySheetLink(form._id);
+                        }}
+                      >
+                        <Svg type="link" width="20px" height="20px" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
     );
   }

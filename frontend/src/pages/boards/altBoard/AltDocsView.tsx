@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
@@ -52,6 +52,7 @@ const AltDocsView = ({ board }: Props) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePost, setDeletePost] = useState<TPost | null>(null);
+  const mdFileInputRef = useRef<HTMLInputElement>(null);
 
   const contentViewMode: TBoardContentViewMode =
     board.contentViewMode || "table";
@@ -167,178 +168,240 @@ const AltDocsView = ({ board }: Props) => {
     navigate(`/boards/${board._id}/post/${post._id}`);
   };
 
+  const handleImportMarkdown = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text !== "string") return;
+      const baseName = file.name.replace(/\.(md|markdown|txt)$/i, "");
+      navigate(`/boards/${board._id}/create`, {
+        state: {
+          importedMarkdown: text,
+          importedTitle: baseName || "",
+        },
+      });
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   if (isLoading) return null;
 
-  const writeToolbar = canWrite() ? (
-    <div className={style.formListToolbar}>
-      <button
-        type="button"
-        className={style.formCardIconBtn}
-        title="글쓰기"
-        onClick={() => navigate(`/boards/${board._id}/create`)}
-      >
-        <Svg type="plus" width="20px" height="20px" />
-      </button>
+  const pinnedCount = posts.filter((p) => p.isPinned).length;
+
+  const docsHeader = (
+    <div className={style.formSectionHeaderStatic}>
+      <div className={style.formSectionHeaderMain}>
+        <h3 className={style.formSectionTitle}>문서</h3>
+        <span className={style.formSectionCount}>{posts.length}</span>
+      </div>
+      <div className={style.formSectionStats}>
+        {pinnedCount > 0 && (
+          <span>
+            공지 <strong>{pinnedCount}</strong>
+          </span>
+        )}
+      </div>
+      {canWrite() && (
+        <div className={style.formListToolbar}>
+          <button
+            type="button"
+            className={style.formCardIconBtn}
+            title="글쓰기"
+            onClick={() => navigate(`/boards/${board._id}/create`)}
+          >
+            <Svg type="plus" width="20px" height="20px" />
+          </button>
+          <button
+            type="button"
+            className={style.formCardIconBtn}
+            title="마크다운 파일로 문서 만들기 (.md)"
+            onClick={() => mdFileInputRef.current?.click()}
+          >
+            <Svg type="upload" width="20px" height="20px" />
+          </button>
+          <input
+            ref={mdFileInputRef}
+            type="file"
+            accept=".md,.markdown,.txt"
+            style={{ display: "none" }}
+            onChange={handleImportMarkdown}
+          />
+        </div>
+      )}
     </div>
+  );
+
+  const deletePopup = deletePost ? (
+    <Popup
+      title="문서 삭제"
+      setState={(v: boolean) => {
+        if (!v && !isDeleting) setDeletePost(null);
+      }}
+      closeBtn={!isDeleting}
+      style={{ maxWidth: "420px", width: "100%" }}
+      footer={
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "8px",
+          }}
+        >
+          <Button
+            type="ghost"
+            onClick={() => setDeletePost(null)}
+            disabled={isDeleting}
+          >
+            취소
+          </Button>
+          <Button
+            type="ghost"
+            onClick={handleDeleteConfirm}
+            disabled={isDeleting}
+            style={{ color: "var(--status-error)" }}
+          >
+            {isDeleting ? "삭제 중..." : "삭제"}
+          </Button>
+        </div>
+      }
+    >
+      <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
+        <strong>{deletePost.title || "문서"}</strong> 게시글을
+        삭제하시겠습니까?
+        <br />
+        이 작업은 되돌릴 수 없습니다.
+      </div>
+    </Popup>
   ) : null;
 
   if (contentViewMode === "blog") {
     return (
       <div className={style.formList}>
-        {writeToolbar}
-        {posts.length === 0 ? (
-          <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
-        ) : (
-          <PostBlogView
-            posts={posts}
-            board={board}
-            onClickPost={handleClickPost}
-          />
-        )}
+        <section className={style.formSectionPanel}>
+          {docsHeader}
+          <div className={style.formSectionBody}>
+            {posts.length === 0 ? (
+              <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
+            ) : (
+              <div style={{ paddingTop: 12 }}>
+                <PostBlogView
+                  posts={posts}
+                  board={board}
+                  onClickPost={handleClickPost}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+        {deletePopup}
       </div>
     );
   }
 
   return (
     <div className={style.formList}>
-      {writeToolbar}
-
-      {posts.length === 0 ? (
-        <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
-      ) : (
-        <div className={style.formCardList} style={{ paddingTop: 0 }}>
-          {posts.map((post) => {
-            const editable = canEditPost(post);
-            return (
-              <div
-                key={post._id}
-                className={style.formCard}
-                onClick={() => handleClickPost(post)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleClickPost(post);
-                  }
-                }}
-              >
-                <div className={style.formCardLeft}>
-                  <div className={style.formCardTitle}>{post.title}</div>
-                  <div className={style.formCardMeta}>
-                    {post.isPinned && (
-                      <span
-                        className={style.formCardBadge}
-                        style={{
-                          background: "var(--status-info-bg)",
-                          color: "var(--status-info)",
-                        }}
-                      >
-                        공지
-                      </span>
+      <section className={style.formSectionPanel}>
+        {docsHeader}
+        <div className={style.formSectionBody}>
+          {posts.length === 0 ? (
+            <div className={style.emptyState}>아직 작성된 문서가 없습니다.</div>
+          ) : (
+            <div className={style.formCardList}>
+              {posts.map((post) => {
+                const editable = canEditPost(post);
+                return (
+                  <div
+                    key={post._id}
+                    className={style.formCard}
+                    onClick={() => handleClickPost(post)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleClickPost(post);
+                      }
+                    }}
+                  >
+                    <div className={style.formCardLeft}>
+                      <div className={style.formCardTitle}>{post.title}</div>
+                      <div className={style.formCardMeta}>
+                        {post.isPinned && (
+                          <span
+                            className={style.formCardBadge}
+                            style={{
+                              background: "var(--status-info-bg)",
+                              color: "var(--status-info)",
+                            }}
+                          >
+                            공지
+                          </span>
+                        )}
+                        {post.authorName && <span>{post.authorName}</span>}
+                        <span>{formatDate(post.createdAt)}</span>
+                        <span>읽기: {formatPermissionRead(post)}</span>
+                      </div>
+                    </div>
+                    {editable && (
+                      <div className={style.formCardRight}>
+                        <button
+                          type="button"
+                          className={style.formCardIconBtn}
+                          title="수정"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/boards/${board._id}/edit/${post._id}`);
+                          }}
+                        >
+                          <Svg type="edit" width="20px" height="20px" />
+                        </button>
+                        <button
+                          type="button"
+                          className={style.formCardIconBtn}
+                          title=".md 다운로드"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownloadMd(post);
+                          }}
+                        >
+                          <Svg type="download" width="20px" height="20px" />
+                        </button>
+                        <button
+                          type="button"
+                          className={style.formCardIconBtn}
+                          title="복제"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicate(post._id);
+                          }}
+                        >
+                          <Svg type="copy" width="20px" height="20px" />
+                        </button>
+                        <button
+                          type="button"
+                          className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
+                          title="삭제"
+                          disabled={isDeleting}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletePost(post);
+                          }}
+                        >
+                          <Svg type="trash" width="20px" height="20px" />
+                        </button>
+                      </div>
                     )}
-                    {post.authorName && <span>{post.authorName}</span>}
-                    <span>{formatDate(post.createdAt)}</span>
-                    <span>읽기: {formatPermissionRead(post)}</span>
                   </div>
-                </div>
-                {editable && (
-                  <div className={style.formCardRight}>
-                    <button
-                      type="button"
-                      className={style.formCardIconBtn}
-                      title="수정"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/boards/${board._id}/edit/${post._id}`);
-                      }}
-                    >
-                      <Svg type="edit" width="20px" height="20px" />
-                    </button>
-                    <button
-                      type="button"
-                      className={style.formCardIconBtn}
-                      title=".md 다운로드"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadMd(post);
-                      }}
-                    >
-                      <Svg type="download" width="20px" height="20px" />
-                    </button>
-                    <button
-                      type="button"
-                      className={style.formCardIconBtn}
-                      title="복제"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDuplicate(post._id);
-                      }}
-                    >
-                      <Svg type="copy" width="20px" height="20px" />
-                    </button>
-                    <button
-                      type="button"
-                      className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
-                      title="삭제"
-                      disabled={isDeleting}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeletePost(post);
-                      }}
-                    >
-                      <Svg type="trash" width="20px" height="20px" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {deletePost && (
-        <Popup
-          title="문서 삭제"
-          setState={(v: boolean) => {
-            if (!v && !isDeleting) setDeletePost(null);
-          }}
-          closeBtn={!isDeleting}
-          style={{ maxWidth: "420px", width: "100%" }}
-          footer={
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "8px",
-              }}
-            >
-              <Button
-                type="ghost"
-                onClick={() => setDeletePost(null)}
-                disabled={isDeleting}
-              >
-                취소
-              </Button>
-              <Button
-                type="ghost"
-                onClick={handleDeleteConfirm}
-                disabled={isDeleting}
-                style={{ color: "var(--status-error)" }}
-              >
-                {isDeleting ? "삭제 중..." : "삭제"}
-              </Button>
+                );
+              })}
             </div>
-          }
-        >
-          <div style={{ padding: "8px 4px", lineHeight: 1.6 }}>
-            <strong>{deletePost.title || "문서"}</strong> 게시글을
-            삭제하시겠습니까?
-            <br />
-            이 작업은 되돌릴 수 없습니다.
-          </div>
-        </Popup>
-      )}
+          )}
+        </div>
+      </section>
+      {deletePopup}
     </div>
   );
 };
