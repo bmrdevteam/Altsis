@@ -106,6 +106,32 @@ const altFormFieldSchema = mongoose.Schema({
     },
     default: undefined,
   },
+
+  // 결재선 (approval 필드) — 양식에 저장되어 복제·가져오기 시 함께 이동
+  approvalLine: {
+    type: {
+      steps: [
+        {
+          order: { type: Number, default: 0 },
+          label: { type: String, default: "" },
+          mode: {
+            type: String,
+            enum: ["fixed", "pick"],
+            default: "pick",
+          },
+          approver: {
+            type: {
+              user: String,
+              userId: String,
+              userName: String,
+            },
+            default: undefined,
+          },
+        },
+      ],
+    },
+    default: undefined,
+  },
 });
 
 /**

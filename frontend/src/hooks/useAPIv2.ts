@@ -4456,6 +4456,18 @@ export default function useAPIv2() {
     return { row: row as TAltSheetRow };
   }
 
+  async function RAltSheetRow(props: { params: { _id: string } }) {
+    const { row, boardId, formId, formTitle } = await database.R({
+      location: `alt-sheet-rows/${props.params._id}`,
+    });
+    return {
+      row: row as TAltSheetRow,
+      boardId: boardId as string,
+      formId: formId as string | undefined,
+      formTitle: formTitle as string | undefined,
+    };
+  }
+
   async function RAltSheetRows(props: { query: { form: string } }) {
     const { rows } = await database.R({
       location: "alt-sheet-rows" + QUERY_BUILDER(props.query),
@@ -4549,6 +4561,32 @@ export default function useAPIv2() {
       data: props.data,
     });
     return { rows: rows as TAltSheetRow[], created: created as number };
+  }
+
+  async function RAltSheetRowPendingApprovals(props: {
+    query: { board: string };
+  }) {
+    const { items, count } = await database.R({
+      location:
+        "alt-sheet-rows/pending-approvals" + QUERY_BUILDER(props.query),
+    });
+    return {
+      items: (items || []) as {
+        rowId: string;
+        formId: string;
+        formTitle: string;
+        fieldId: string;
+        fieldLabel: string;
+        stepLabel?: string;
+        respondentName?: string;
+        respondentId?: string;
+        submittedAt?: string;
+        approval?: any;
+        rowData?: Record<string, any>;
+        fields?: TAltFormField[];
+      }[],
+      count: (count as number) || 0,
+    };
   }
 
   return {
@@ -4832,6 +4870,7 @@ export default function useAPIv2() {
     },
     AltSheetRowAPI: {
       CAltSheetRow,
+      RAltSheetRow,
       RAltSheetRows,
       RAltSheetRowMy,
       UAltSheetRow,
@@ -4842,6 +4881,7 @@ export default function useAPIv2() {
       RAltSheetRowCount,
       RAltSheetRowAvailableCombinations,
       CAltSheetRowImportCsv,
+      RAltSheetRowPendingApprovals,
     },
   };
 }

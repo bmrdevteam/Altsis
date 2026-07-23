@@ -22,6 +22,13 @@ import {
   __NOT_FOUND,
 } from "../messages/index.js";
 import { coerceFieldValueFromCsv } from "../utils/timetableSlots.js";
+import {
+  validateApprovalSubmit,
+  buildApprovalOnSubmit,
+  applyApprovalAction,
+  isCurrentApprover,
+  normalizeApprovalValue,
+} from "../utils/approvalLine.js";
 
 /**
  * 자유 모드 중복 검사 카운터 atomic claim
@@ -440,9 +447,21 @@ export const create = async (req, res) => {
     const now = new Date();
     const rowData = { ...data };
 
+    // 승인(결재선) 필드: 제출값 검증·v2 초기화
+    for (const field of form.fields) {
+      if (field.type !== "approval") continue;
+      const fid = field._id.toString();
+      const errMsg = validateApprovalSubmit(field, rowData[fid]);
+      if (errMsg) {
+        return res.status(400).send({ message: errMsg });
+      }
+      const built = buildApprovalOnSubmit(field, rowData[fid]);
+      if (built) rowData[fid] = built;
+    }
+
     // 퀴즈 자동 채점
     if (form.settings?.quizMode) {
-      const quizResult = gradeQuizRow(form, data);
+      const quizResult = gradeQuizRow(form, rowData);
       rowData._quiz_score = quizResult.score;
       rowData._quiz_total = quizResult.total;
       rowData._quiz_fieldResults = quizResult.fieldResults;
@@ -469,7 +488,7 @@ export const create = async (req, res) => {
       throw createErr;
     }
 
-    // approval 필드가 있으면 승인자에게 알림
+    // 현재 단계 승인자에게 알림
     const approvalNotifEnabled = await isBoardNotificationEnabled(
       req.user.academyId,
       board.school,
@@ -479,16 +498,20 @@ export const create = async (req, res) => {
     if (approvalNotifEnabled) {
       for (const field of form.fields) {
         if (field.type !== "approval") continue;
-        const approvalData = data[field._id.toString()];
-        if (approvalData?.approver?.user) {
+        const approvalData = normalizeApprovalValue(
+          rowData[field._id.toString()],
+          field
+        );
+        const approver = approvalData?.steps?.[0]?.approver;
+        if (approver?.user) {
           try {
             await sendAutoNotification({
               academyId: req.user.academyId,
-              toUserList: [approvalData.approver],
+              toUserList: [approver],
               notificationType: "altFormApprovalRequest",
               category: "Alt Board",
               title: `${form.title} - 승인 요청`,
-              description: `${req.user.userName}님이 승인을 요청했습니다.`,
+              description: `${req.user.userName}님이 「${approvalData.steps[0].label}」승인을 요청했습니다.`,
               relatedEntity: { type: "altSheetRow", id: row._id },
               fromUser: req.user,
             });
@@ -544,6 +567,12 @@ export const find = async (req, res) => {
 
     let query = { form: form._id, isActive: true };
 
+    const approverOrForFields = (fieldIds) =>
+      fieldIds.flatMap((fid) => [
+        { [`data.${fid}.currentApproverUserId`]: req.user.userId },
+        { [`data.${fid}.approver.userId`]: req.user.userId },
+      ]);
+
     if (role === "admin" || role === "writer") {
       // admin/writer: 전체 행
     } else if (role === "respondent") {
@@ -551,18 +580,16 @@ export const find = async (req, res) => {
         // shareResponses 켜짐: 전체 행 열람 가능
       } else if (approvalFieldIds.length > 0) {
         // respondent: 본인 행 + 승인자로 지정된 행
-        const approverConditions = approvalFieldIds.map((fid) => ({
-          [`data.${fid}.approver.userId`]: req.user.userId,
-        }));
-        query.$or = [{ _respondent: req.user._id }, ...approverConditions];
+        query.$or = [
+          { _respondent: req.user._id },
+          ...approverOrForFields(approvalFieldIds),
+        ];
       } else {
         query._respondent = req.user._id;
       }
     } else if (approvalFieldIds.length > 0) {
       // 역할 없지만 승인자로 지정된 행만
-      const approverConditions = approvalFieldIds.map((fid) => ({
-        [`data.${fid}.approver.userId`]: req.user.userId,
-      }));
+      const approverConditions = approverOrForFields(approvalFieldIds);
       if (approverConditions.length === 1) {
         Object.assign(query, approverConditions[0]);
       } else {
@@ -674,12 +701,13 @@ export const update = async (req, res) => {
       return res.status(404).send({ message: __NOT_FOUND("board") });
     }
 
-    // 승인 필드: 승인자 본인도 업데이트 가능
+    // 승인 필드: 현재 단계 승인자 본인도 업데이트 가능
     const form = await AltForm(req.user.academyId).findById(row.form);
     const isApprover = form?.fields.some((f) => {
       if (f.type !== "approval") return false;
-      const approvalData = row.data?.get?.(f._id.toString()) || row.data?.[f._id.toString()];
-      return approvalData?.approver?.userId === req.user.userId;
+      const approvalData =
+        row.data?.get?.(f._id.toString()) || row.data?.[f._id.toString()];
+      return isCurrentApprover(approvalData, req.user.userId, f);
     });
 
     const role = getAltBoardRole(board, req.user);
@@ -691,46 +719,90 @@ export const update = async (req, res) => {
 
     if (req.body.data) {
       for (const [key, value] of Object.entries(req.body.data)) {
-        row.data.set(key, value);
+        const field = form?.fields.find((f) => f._id.toString() === key);
 
-        // 승인 상태 변경 시 응답자에게 알림
-        if (form) {
-          const field = form.fields.find((f) => f._id.toString() === key);
-          if (
-            field?.type === "approval" &&
-            value?.status &&
-            value.status !== "pending" &&
-            row._respondent
-          ) {
+        // 승인 필드: 서버에서 순차 결재 적용 (클라이언트가 status만 보내도 됨)
+        if (field?.type === "approval" && value?.status && value.status !== "pending") {
+          const prev =
+            row.data?.get?.(key) || row.data?.[key];
+          const result = applyApprovalAction(
+            prev,
+            field,
+            req.user.userId,
+            value.status,
+            value.reason
+          );
+          if (!result.ok) {
+            // 관리자는 레거시처럼 직접 덮어쓰기 허용(비상)
+            if (isAdmin && value.version === 2) {
+              row.data.set(key, value);
+            } else if (isAdmin && !prev?.version) {
+              row.data.set(key, value);
+            } else {
+              return res.status(403).send({ message: result.message });
+            }
+          } else {
+            row.data.set(key, result.value);
+
             try {
-              const resultNotifEnabled = await isBoardNotificationEnabled(
-                req.user.academyId,
-                board.school,
-                board,
-                "altFormApprovalResult"
-              );
-              if (resultNotifEnabled) {
-                await sendAutoNotification({
-                  academyId: req.user.academyId,
-                  toUserList: [
-                    {
-                      user: row._respondent,
-                      userId: row._respondentId,
-                      userName: row._respondentName,
-                    },
-                  ],
-                  notificationType: "altFormApprovalResult",
-                  category: "Alt Board",
-                  title: `${form.title} - ${value.status === "approved" ? "승인됨" : "반려됨"}`,
-                  description: value.reason || "",
-                  relatedEntity: { type: "altSheetRow", id: row._id },
-                  fromUser: req.user,
-                });
+              if (result.finished && row._respondent) {
+                const resultNotifEnabled = await isBoardNotificationEnabled(
+                  req.user.academyId,
+                  board.school,
+                  board,
+                  "altFormApprovalResult"
+                );
+                if (resultNotifEnabled) {
+                  await sendAutoNotification({
+                    academyId: req.user.academyId,
+                    toUserList: [
+                      {
+                        user: row._respondent,
+                        userId: row._respondentId,
+                        userName: row._respondentName,
+                      },
+                    ],
+                    notificationType: "altFormApprovalResult",
+                    category: "Alt Board",
+                    title: `${form.title} - ${
+                      result.value.overallStatus === "approved"
+                        ? "승인됨"
+                        : "반려됨"
+                    }`,
+                    description: value.reason || "",
+                    relatedEntity: { type: "altSheetRow", id: row._id },
+                    fromUser: req.user,
+                  });
+                }
+              } else if (!result.finished && result.nextApprover?.user) {
+                const reqNotifEnabled = await isBoardNotificationEnabled(
+                  req.user.academyId,
+                  board.school,
+                  board,
+                  "altFormApprovalRequest"
+                );
+                if (reqNotifEnabled) {
+                  const stepLabel =
+                    result.value.steps[result.value.currentStep]?.label ||
+                    "다음";
+                  await sendAutoNotification({
+                    academyId: req.user.academyId,
+                    toUserList: [result.nextApprover],
+                    notificationType: "altFormApprovalRequest",
+                    category: "Alt Board",
+                    title: `${form.title} - 승인 요청`,
+                    description: `「${stepLabel}」승인이 필요합니다.`,
+                    relatedEntity: { type: "altSheetRow", id: row._id },
+                    fromUser: req.user,
+                  });
+                }
               }
             } catch (e) {
               // 알림 실패는 응답에 영향 없음
             }
           }
+        } else {
+          row.data.set(key, value);
         }
       }
       row._updatedAt = new Date();
@@ -1181,6 +1253,148 @@ export const importCsv = async (req, res) => {
     const rows = await AltSheetRow(req.user.academyId).insertMany(docs);
 
     return res.status(200).send({ rows, created: rows.length });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltSheetRowAPI
+ * @function RAltSheetRowPendingApprovals API
+ * @description 보드에서 내가 현재 승인해야 할 행 목록
+ */
+export const findPendingApprovals = async (req, res) => {
+  try {
+    if (!("board" in req.query)) {
+      return res.status(400).send({ message: FIELD_REQUIRED("board") });
+    }
+
+    const board = await Board(req.user.academyId).findById(req.query.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const forms = await AltForm(req.user.academyId)
+      .find({ board: board._id, isActive: true })
+      .lean();
+
+    const items = [];
+
+    for (const form of forms) {
+      const approvalFields = (form.fields || []).filter(
+        (f) => f.type === "approval"
+      );
+      if (approvalFields.length === 0) continue;
+
+      const fieldIds = approvalFields.map((f) => f._id.toString());
+      const orConds = fieldIds.flatMap((fid) => [
+        { [`data.${fid}.currentApproverUserId`]: req.user.userId },
+        { [`data.${fid}.approver.userId`]: req.user.userId },
+      ]);
+
+      const rows = await AltSheetRow(req.user.academyId)
+        .find({
+          form: form._id,
+          isActive: true,
+          $or: orConds,
+        })
+        .sort({ _submittedAt: -1 })
+        .limit(100)
+        .lean();
+
+      for (const row of rows) {
+        for (const field of approvalFields) {
+          const fid = field._id.toString();
+          const raw = row.data?.[fid];
+          if (!isCurrentApprover(raw, req.user.userId, field)) continue;
+          const normalized = normalizeApprovalValue(raw, field);
+          items.push({
+            rowId: row._id,
+            formId: form._id,
+            formTitle: form.title,
+            fieldId: fid,
+            fieldLabel: field.label,
+            stepLabel: normalized?.steps?.[normalized.currentStep]?.label,
+            respondentName: row._respondentName,
+            respondentId: row._respondentId,
+            submittedAt: row._submittedAt || row.createdAt,
+            approval: normalized,
+            rowData: row.data,
+            fields: form.fields,
+          });
+        }
+      }
+    }
+
+    items.sort(
+      (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
+    );
+
+    return res.status(200).send({ items, count: items.length });
+  } catch (err) {
+    logger.error(err.message);
+    return res.status(500).send({ message: "서버 오류가 발생했습니다." });
+  }
+};
+
+/**
+ * @memberof APIs.AltSheetRowAPI
+ * @function RAltSheetRow API
+ * @description 행 단건 조회 (알림 딥링크용)
+ */
+export const findById = async (req, res) => {
+  try {
+    const row = await AltSheetRow(req.user.academyId)
+      .findById(req.params._id)
+      .lean();
+    if (!row || !row.isActive) {
+      return res.status(404).send({ message: __NOT_FOUND("row") });
+    }
+
+    const board = await Board(req.user.academyId).findById(row.board);
+    if (!board) {
+      return res.status(404).send({ message: __NOT_FOUND("board") });
+    }
+
+    const form = await AltForm(req.user.academyId).findById(row.form).lean();
+    if (!form) {
+      return res.status(404).send({ message: __NOT_FOUND("form") });
+    }
+
+    const role = getAltBoardRole(board, req.user);
+    const isAdmin = role === "admin" || role === "writer" || req.user.auth === "manager";
+    const isOwner =
+      row._respondent && String(row._respondent) === String(req.user._id);
+
+    const approvalFields = (form.fields || []).filter((f) => f.type === "approval");
+    const isApprover = approvalFields.some((f) =>
+      isCurrentApprover(row.data?.[f._id.toString()], req.user.userId, f)
+    );
+    // 과거 승인자(이미 처리한 단계)도 딥링크 허용
+    const wasApprover = approvalFields.some((f) => {
+      const raw = row.data?.[f._id.toString()];
+      const v = normalizeApprovalValue(raw, f);
+      if (!v?.steps) {
+        return raw?.approver?.userId === req.user.userId;
+      }
+      return v.steps.some((s) => s.approver?.userId === req.user.userId);
+    });
+
+    if (!isAdmin && !isOwner && !isApprover && !wasApprover) {
+      if (form.settings?.shareResponses && role === "respondent") {
+        // ok
+      } else {
+        return res.status(403).send({ message: PERMISSION_DENIED });
+      }
+    }
+
+    return res.status(200).send({
+      row,
+      boardId: board._id,
+      formId: form._id,
+      formTitle: form.title,
+    });
   } catch (err) {
     logger.error(err.message);
     return res.status(500).send({ message: "서버 오류가 발생했습니다." });

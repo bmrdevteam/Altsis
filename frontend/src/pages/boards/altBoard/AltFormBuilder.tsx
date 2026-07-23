@@ -103,6 +103,10 @@ const createEmptyField = (
     : [],
   content:
     type === "content" || type === "docResponse" ? "" : undefined,
+  approvalLine:
+    type === "approval"
+      ? { steps: [{ order: 0, label: "1차 승인", mode: "pick" }] }
+      : undefined,
   order: 0,
 });
 
@@ -1257,6 +1261,202 @@ const AltFormBuilder = ({
             </span>
           </div>
         );
+      case "approval": {
+        const steps = field.approvalLine?.steps?.length
+          ? field.approvalLine.steps
+          : [{ order: 0, label: "1차 승인", mode: "pick" as const }];
+        const writerUsers = [
+          ...(board.writers?.users || []),
+          ...((board as any).admins?.users || []),
+        ];
+        const seen = new Set<string>();
+        const candidates = writerUsers.filter((u) => {
+          if (seen.has(u.userId)) return false;
+          seen.add(u.userId);
+          return true;
+        });
+
+        const setSteps = (
+          next: {
+            order: number;
+            label: string;
+            mode: "fixed" | "pick";
+            approver?: {
+              user: string;
+              userId: string;
+              userName: string;
+            };
+          }[]
+        ) => {
+          updateField(fieldIndex, {
+            approvalLine: {
+              steps: next.map((s, i) => ({ ...s, order: i })),
+            },
+          });
+        };
+
+        return (
+          <div
+            style={{
+              marginTop: "8px",
+              padding: "10px",
+              background: "var(--background-color-2)",
+              borderRadius: "8px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "var(--text-color-1)",
+              }}
+            >
+              결재선
+            </div>
+            <div
+              style={{
+                fontSize: "11px",
+                color: "var(--text-color-2)",
+                lineHeight: 1.5,
+              }}
+            >
+              단계는 이 양식에 저장되며, 복제·JSON 가져오기 시 함께 이동합니다.
+              「지정」은 제출 시 응답자가 고르고, 「고정」은 미리 정한
+              승인자입니다.
+            </div>
+            {steps.map((step, si) => (
+              <div
+                key={si}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  padding: "8px",
+                  background: "var(--background-color)",
+                  borderRadius: "6px",
+                  border: "1px solid var(--border-color)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "6px",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--text-color-2)",
+                      minWidth: "28px",
+                    }}
+                  >
+                    {si + 1}차
+                  </span>
+                  <input
+                    className={style.fieldInput}
+                    style={{ flex: 1, minWidth: "120px", fontSize: "12px" }}
+                    value={step.label}
+                    placeholder="단계 이름"
+                    onChange={(e) => {
+                      const next = steps.map((s, i) =>
+                        i === si ? { ...s, label: e.target.value } : s
+                      );
+                      setSteps(next);
+                    }}
+                  />
+                  <select
+                    className={style.selectInput}
+                    style={{ fontSize: "12px", padding: "4px 8px" }}
+                    value={step.mode}
+                    onChange={(e) => {
+                      const mode = e.target.value as "fixed" | "pick";
+                      const next = steps.map((s, i) =>
+                        i === si
+                          ? {
+                              ...s,
+                              mode,
+                              approver: mode === "pick" ? undefined : s.approver,
+                            }
+                          : s
+                      );
+                      setSteps(next);
+                    }}
+                  >
+                    <option value="pick">지정(제출 시)</option>
+                    <option value="fixed">고정</option>
+                  </select>
+                  <button
+                    type="button"
+                    className={style.removeBtn}
+                    title="단계 삭제"
+                    disabled={steps.length <= 1}
+                    onClick={() =>
+                      setSteps(steps.filter((_, i) => i !== si))
+                    }
+                  >
+                    <MI icon="close" size={16} />
+                  </button>
+                </div>
+                {step.mode === "fixed" && (
+                  <select
+                    className={style.selectInput}
+                    style={{ fontSize: "12px", padding: "4px 8px" }}
+                    value={step.approver?.userId || ""}
+                    onChange={(e) => {
+                      const u = candidates.find(
+                        (c) => c.userId === e.target.value
+                      );
+                      const next = steps.map((s, i) =>
+                        i === si
+                          ? {
+                              ...s,
+                              approver: u
+                                ? {
+                                    user: u.user,
+                                    userId: u.userId,
+                                    userName: u.userName,
+                                  }
+                                : undefined,
+                            }
+                          : s
+                      );
+                      setSteps(next);
+                    }}
+                  >
+                    <option value="">승인자 선택</option>
+                    {candidates.map((u) => (
+                      <option key={u.userId} value={u.userId}>
+                        {u.userName} ({u.userId})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              className={style.addOptionLink}
+              onClick={() =>
+                setSteps([
+                  ...steps,
+                  {
+                    order: steps.length,
+                    label: `${steps.length + 1}차 승인`,
+                    mode: "pick",
+                  },
+                ])
+              }
+            >
+              + 결재 단계 추가
+            </button>
+          </div>
+        );
+      }
       default:
         return null;
     }
@@ -1424,6 +1624,16 @@ const AltFormBuilder = ({
                 (!field.options || field.options.length === 0)
                   ? ["옵션 1", "옵션 2"]
                   : field.options,
+              approvalLine:
+                nextType === "approval"
+                  ? field.approvalLine?.steps?.length
+                    ? field.approvalLine
+                    : {
+                        steps: [
+                          { order: 0, label: "1차 승인", mode: "pick" },
+                        ],
+                      }
+                  : field.approvalLine,
             });
           }}
         >

@@ -13,6 +13,7 @@ import DateRangeFilterDropdown, {
   DateRange,
 } from "components/dateRangeFilter/DateRangeFilterDropdown";
 import { MarkdownEditor, MarkdownViewer } from "components/markdown";
+import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
 
 type Props = {
   board: TBoard;
@@ -179,13 +180,23 @@ const AltSheetView = ({
     }
 
     if (field?.type === "approval" && typeof value === "object") {
+      const overall = value.overallStatus || value.status || "";
       const statusLabels: Record<string, string> = {
         pending: "대기",
         approved: "승인",
         rejected: "반려",
       };
+      if (value.version === 2 && Array.isArray(value.steps)) {
+        const parts = value.steps.map(
+          (s: any) =>
+            `${s.label}:${statusLabels[s.status] || s.status || ""}${
+              s.approver?.userName ? `(${s.approver.userName})` : ""
+            }`
+        );
+        return `${statusLabels[overall] || overall} | ${parts.join(" → ")}`;
+      }
       const approverName = value.approver?.userName || "";
-      return `${statusLabels[value.status] || value.status || ""} (${approverName})`;
+      return `${statusLabels[overall] || overall} (${approverName})`;
     }
 
     if (field?.type === "rating") {
@@ -517,36 +528,19 @@ const AltSheetView = ({
   ) => {
     const reason = approvalReason[`${rowId}_${fieldId}`] || "";
     try {
-      await AltSheetRowAPI.UAltSheetRow({
+      const { row } = await AltSheetRowAPI.UAltSheetRow({
         params: { _id: rowId },
         data: {
           data: {
             [fieldId]: {
-              ...rows.find((r) => r._id === rowId)?.data[fieldId],
               status,
               reason,
-              approvedAt: new Date().toISOString(),
             },
           },
         },
       });
       setRows((prev) =>
-        prev.map((r) =>
-          r._id === rowId
-            ? {
-                ...r,
-                data: {
-                  ...r.data,
-                  [fieldId]: {
-                    ...r.data[fieldId],
-                    status,
-                    reason,
-                    approvedAt: new Date().toISOString(),
-                  },
-                },
-              }
-            : r
-        )
+        prev.map((r) => (r._id === rowId ? { ...r, data: row.data } : r))
       );
     } catch (err) {
       ALERT_ERROR(err);
@@ -725,17 +719,19 @@ const AltSheetView = ({
   // 승인 필드인지 + 현재 사용자가 승인자인지 판별
   const isApproverForField = (row: TAltSheetRow, field: TAltFormField) => {
     if (field.type !== "approval") return false;
-    const approvalData = row.data[field._id];
-    if (!approvalData?.approver) return false;
-    return currentUser?.userId === approvalData.approver.userId;
+    return isCurrentApprover(
+      row.data[field._id],
+      currentUser?.userId,
+      field
+    );
   };
 
   // 승인 필드 셀 렌더링
   const renderApprovalCell = (row: TAltSheetRow, field: TAltFormField) => {
-    const approvalData = row.data[field._id];
+    const approvalData = normalizeApprovalValue(row.data[field._id], field);
     if (!approvalData) return "-";
 
-    const status = approvalData.status || "pending";
+    const status = approvalData.overallStatus || "pending";
     const isApprover = isApproverForField(row, field);
     const statusClass =
       status === "approved"
@@ -743,24 +739,42 @@ const AltSheetView = ({
         : status === "rejected"
           ? style.badgeRejected
           : style.badgePending;
+    const current = approvalData.steps[approvalData.currentStep];
 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+          {approvalData.steps.map((s, i) => (
+            <span
+              key={i}
+              className={`${style.approvalBadge} ${
+                s.status === "approved"
+                  ? style.badgeApproved
+                  : s.status === "rejected"
+                    ? style.badgeRejected
+                    : s.status === "pending"
+                      ? style.badgePending
+                      : style.badgeClosed
+              }`}
+              style={{ fontSize: "10px", padding: "1px 5px" }}
+            >
+              {s.label}
+              {s.approver ? `·${s.approver.userName}` : ""}
+            </span>
+          ))}
+        </div>
         <span
           className={`${style.approvalBadge} ${statusClass}`}
           style={{ fontSize: "11px", padding: "1px 6px" }}
         >
           {status === "approved"
-            ? "승인"
+            ? "최종 승인"
             : status === "rejected"
               ? "반려"
-              : "대기"}
+              : current
+                ? `${current.label} 대기`
+                : "대기"}
         </span>
-        {approvalData.approver && (
-          <span style={{ fontSize: "11px", color: "var(--text-color-2)" }}>
-            {approvalData.approver.userName}
-          </span>
-        )}
         {isApprover && status === "pending" && (
           <div
             style={{ display: "flex", gap: "4px", flexDirection: "column" }}

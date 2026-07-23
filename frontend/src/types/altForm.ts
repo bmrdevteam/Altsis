@@ -46,6 +46,26 @@ export type TDuplicateCheck = {
   allowedCount: number;
 };
 
+export type TApprovalStepMode = "fixed" | "pick";
+
+export type TApprovalApprover = {
+  user: string;
+  userId: string;
+  userName: string;
+};
+
+export type TApprovalLineStepDef = {
+  order: number;
+  label: string;
+  mode: TApprovalStepMode;
+  /** mode === fixed 일 때 승인자 */
+  approver?: TApprovalApprover;
+};
+
+export type TApprovalLine = {
+  steps: TApprovalLineStepDef[];
+};
+
 export type TAltFormField = {
   _id: string;
   label: string;
@@ -62,6 +82,8 @@ export type TAltFormField = {
   correctAnswer?: any;
   points?: number;
   duplicateCheck?: TDuplicateCheck;
+  /** type === approval: 결재선 (양식에 저장, 복제·JSON과 함께 이동) */
+  approvalLine?: TApprovalLine;
 };
 
 export type TQuizSettings = {

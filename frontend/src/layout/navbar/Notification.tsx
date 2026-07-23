@@ -71,7 +71,8 @@ function formatEventTime(date: Date | string): string {
 
 const Notification = () => {
   const { currentUser } = useAuth();
-  const { NotificationAPI, ReminderAPI, PostAPI, EnrollmentAPI } = useAPIv2();
+  const { NotificationAPI, ReminderAPI, PostAPI, EnrollmentAPI, AltSheetRowAPI } =
+    useAPIv2();
 
   const navigate = useAppNavigate();
 
@@ -239,6 +240,7 @@ const Notification = () => {
       "syllabus",
       "calendarEvent",
       "reminder",
+      "altSheetRow",
     ];
     return navigableTypes.includes(notification.relatedEntity.type);
   };
@@ -299,6 +301,20 @@ const Notification = () => {
       ) {
         setNotificationContentActive(false);
         navigate("/");
+      } else if (notification.relatedEntity?.type === "altSheetRow") {
+        try {
+          const { boardId, row } = await AltSheetRowAPI.RAltSheetRow({
+            params: { _id: notification.relatedEntity.id },
+          });
+          setNotificationContentActive(false);
+          const rowId = row?._id || notification.relatedEntity.id;
+          navigate(
+            `/boards/${boardId}?approval=${encodeURIComponent(String(rowId))}#활동`
+          );
+        } catch (err) {
+          setNotificationContentActive(false);
+          navigate("/boards");
+        }
       }
       return;
     }

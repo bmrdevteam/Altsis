@@ -8,6 +8,7 @@ import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import Svg from "assets/svg/Svg";
 import CombinationGenerator from "./CombinationGenerator";
+import PendingApprovalsPanel from "./PendingApprovalsPanel";
 
 type Props = {
   board: TBoard;
@@ -25,6 +26,8 @@ type Props = {
   onCreateForm: () => void;
   onRefresh: () => void;
   onCopyFormLink?: (formId: string) => void;
+  /** 알림 딥링크: 승인 대기 행 자동 열기 */
+  openApprovalRowId?: string | null;
 };
 
 type PeriodKind = "open" | "scheduled" | "closed";
@@ -97,6 +100,7 @@ const AltFormList = ({
   onCreateForm,
   onRefresh,
   onCopyFormLink,
+  openApprovalRowId,
 }: Props) => {
   const { AltFormAPI } = useAPIv2();
 
@@ -489,6 +493,22 @@ const AltFormList = ({
 
   return (
     <div className={style.formList}>
+      <PendingApprovalsPanel
+        boardId={board._id}
+        openRowId={openApprovalRowId}
+        onOpenHandled={() => {
+          // URL에서 approval 파라미터만 제거 (탭·해시 유지)
+          if (typeof window === "undefined") return;
+          const url = new URL(window.location.href);
+          if (!url.searchParams.has("approval")) return;
+          url.searchParams.delete("approval");
+          window.history.replaceState(
+            null,
+            "",
+            url.pathname + url.search + url.hash
+          );
+        }}
+      />
       <section className={style.formSectionPanel}>
         <div className={style.formSectionHeaderStatic}>
           <div className={style.formSectionHeaderMain}>

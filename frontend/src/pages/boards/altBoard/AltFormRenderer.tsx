@@ -13,6 +13,10 @@ import { useAuth } from "contexts/authContext";
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
 import { MarkdownEditor, MarkdownViewer } from "components/markdown";
+import {
+  getApprovalLineSteps,
+  normalizeApprovalValue,
+} from "utils/approvalLine";
 
 type Props = {
   board: TBoard;
@@ -488,12 +492,22 @@ const AltFormRenderer = ({
       ) {
         newErrors[field._id] = "사용자를 선택해주세요.";
       }
-      if (
-        field.type === "approval" &&
-        field.required &&
-        !data[field._id]?.approver?.userId
-      ) {
-        newErrors[field._id] = "승인자를 선택해주세요.";
+      if (field.type === "approval" && field.required) {
+        const line = getApprovalLineSteps(field);
+        const pickCount = line.filter((s) => s.mode === "pick").length;
+        const v = data[field._id];
+        if (pickCount === 0) {
+          // 전부 고정 — 설정 오류만 서버에서 걸러짐
+        } else if (v?.version === 2 && Array.isArray(v.steps)) {
+          const missing = v.steps.some(
+            (s: any) => s.mode === "pick" && !s.approver?.userId
+          );
+          if (missing || v.steps.filter((s: any) => s.mode === "pick").length < pickCount) {
+            newErrors[field._id] = "승인자를 모두 선택해주세요.";
+          }
+        } else if (!v?.approver?.userId) {
+          newErrors[field._id] = "승인자를 선택해주세요.";
+        }
       }
       // 날짜 필드 제한 검증
       if (field.type === "date" && value) {
@@ -1305,38 +1319,50 @@ const AltFormRenderer = ({
       }
 
       case "approval": {
-        const approvalData = value as
-          | {
-              approver?: { user: string; userId: string; userName: string };
-              status?: string;
-              reason?: string;
-            }
-          | undefined;
+        const lineSteps = getApprovalLineSteps(field);
+        const approvalData = normalizeApprovalValue(value, field);
 
-        // 제출 후·개별 보기: 승인 상태 표시
-        if ((isSubmitted || isReviewMode) && approvalData?.approver) {
-          const status = approvalData.status || "pending";
-          const statusLabels: Record<string, string> = {
-            pending: "승인 대기",
-            approved: "승인됨",
-            rejected: "반려됨",
-          };
+        // 제출 후·개별 보기: 결재 진행 상태
+        if ((isSubmitted || isReviewMode) && approvalData) {
           const statusStyles: Record<string, string> = {
             pending: style.badgePending,
             approved: style.badgeApproved,
             rejected: style.badgeRejected,
+            waiting: style.badgeClosed,
+          };
+          const statusLabels: Record<string, string> = {
+            pending: "대기",
+            approved: "승인",
+            rejected: "반려",
+            waiting: "대기전",
           };
           return (
             <div className={style.approvalStatus}>
-              <div className={style.approvalApprover}>
-                승인자: {approvalData.approver.userName} (
-                {approvalData.approver.userId})
-              </div>
-              <span
-                className={`${style.approvalBadge} ${statusStyles[status] || ""}`}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "6px",
+                  marginBottom: "6px",
+                }}
               >
-                {statusLabels[status] || status}
-              </span>
+                {approvalData.steps.map((s, i) => (
+                  <span
+                    key={i}
+                    className={`${style.approvalBadge} ${
+                      statusStyles[s.status] || ""
+                    }`}
+                    title={
+                      s.approver
+                        ? `${s.approver.userName} (${s.approver.userId})`
+                        : undefined
+                    }
+                  >
+                    {s.label}: {statusLabels[s.status] || s.status}
+                    {s.approver ? ` · ${s.approver.userName}` : ""}
+                  </span>
+                ))}
+              </div>
               {approvalData.reason && (
                 <div className={style.approvalReason}>
                   사유: {approvalData.reason}
@@ -1346,86 +1372,182 @@ const AltFormRenderer = ({
           );
         }
 
-        // 제출 전: 승인자 선택 (보드 작성자 목록에서 검색)
-        const approverQuery = userSearchQuery[field._id] || "";
-        const selectedApprover = approvalData?.approver;
+        // 제출 전: pick 단계만 승인자 선택
+        const pickSteps = lineSteps.filter((s) => s.mode === "pick");
         const writerUsers = board.writers?.users || [];
-        const approverCandidates = approverQuery.trim()
-          ? writerUsers.filter(
-              (u) =>
-                u.userName.includes(approverQuery) ||
-                u.userId.toLowerCase().includes(approverQuery.toLowerCase())
-            )
-          : [];
+
+        if (pickSteps.length === 0) {
+          return (
+            <div className={style.userSelectContainer}>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-color-2)",
+                }}
+              >
+                결재선:{" "}
+                {lineSteps
+                  .map(
+                    (s) =>
+                      `${s.label}(${s.approver?.userName || "고정"})`
+                  )
+                  .join(" → ")}
+              </span>
+            </div>
+          );
+        }
+
+        // 저장 형식: v2 steps with pick approvers filled; fixed filled from field
+        const currentPicks: Record<number, any> = {};
+        if (value?.version === 2 && Array.isArray(value.steps)) {
+          value.steps.forEach((s: any, i: number) => {
+            if (s?.mode === "pick" && s.approver) currentPicks[i] = s.approver;
+          });
+        } else if (value?.approver && pickSteps.length === 1) {
+          currentPicks[0] = value.approver;
+        }
+
+        const buildValueFromPicks = (picks: Record<number, any>) => {
+          let pickIdx = 0;
+          const steps = lineSteps.map((def) => {
+            const approver =
+              def.mode === "fixed"
+                ? def.approver
+                : picks[pickIdx++];
+            return {
+              order: def.order,
+              label: def.label,
+              mode: def.mode,
+              approver,
+              status: "waiting" as const,
+            };
+          });
+          return {
+            version: 2 as const,
+            currentStep: 0,
+            overallStatus: "pending" as const,
+            status: "pending",
+            approver: steps[0]?.approver,
+            steps,
+          };
+        };
 
         return (
-          <div className={style.userSelectContainer}>
-            <span
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div
               style={{
                 fontSize: "12px",
                 color: "var(--text-color-2)",
-                marginBottom: "4px",
+                marginBottom: "8px",
               }}
             >
-              승인자를 선택하세요
-            </span>
-            {selectedApprover?.userName ? (
-              <div className={style.userSelectSelected}>
-                <span>
-                  {selectedApprover.userName} ({selectedApprover.userId})
-                </span>
-                {!disabled && (
-                  <button
-                    type="button"
-                    className={style.removeBtn}
-                    onClick={() => setValue(field._id, undefined)}
+              결재:{" "}
+              {lineSteps
+                .map((s) =>
+                  s.mode === "fixed"
+                    ? `${s.label}(${s.approver?.userName || "고정"})`
+                    : `${s.label}(지정)`
+                )
+                .join(" → ")}
+            </div>
+            {pickSteps.map((ps, pickIndex) => {
+              const selected = currentPicks[pickIndex];
+              const queryKey = `${field._id}_pick_${pickIndex}`;
+              const approverQuery = userSearchQuery[queryKey] || "";
+              const approverCandidates = approverQuery.trim()
+                ? writerUsers.filter(
+                    (u) =>
+                      u.userName.includes(approverQuery) ||
+                      u.userId
+                        .toLowerCase()
+                        .includes(approverQuery.toLowerCase())
+                  )
+                : [];
+
+              return (
+                <div
+                  key={pickIndex}
+                  className={style.userSelectContainer}
+                  style={{ marginBottom: "10px" }}
+                >
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--text-color-2)",
+                      marginBottom: "4px",
+                      display: "block",
+                    }}
                   >
-                    ×
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                <input
-                  className={style.textInput}
-                  placeholder="이름 또는 아이디로 검색"
-                  value={approverQuery}
-                  onChange={(e) =>
-                    setUserSearchQuery((p) => ({
-                      ...p,
-                      [field._id]: e.target.value,
-                    }))
-                  }
-                  disabled={disabled}
-                />
-                {approverCandidates.length > 0 && (
-                  <div className={style.userSearchDropdown}>
-                    {approverCandidates.map((u) => (
-                      <div
-                        key={u.user}
-                        className={style.userSearchItem}
-                        onClick={() => {
-                          setValue(field._id, {
-                            approver: {
-                              user: u.user,
-                              userId: u.userId,
-                              userName: u.userName,
-                            },
-                            status: "pending",
-                          });
+                    {ps.label} 승인자 선택
+                  </span>
+                  {selected?.userName ? (
+                    <div className={style.userSelectSelected}>
+                      <span>
+                        {selected.userName} ({selected.userId})
+                      </span>
+                      {!disabled && (
+                        <button
+                          type="button"
+                          className={style.removeBtn}
+                          onClick={() => {
+                            const next = { ...currentPicks };
+                            delete next[pickIndex];
+                            setValue(field._id, buildValueFromPicks(next));
+                          }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        className={style.textInput}
+                        placeholder="이름 또는 아이디로 검색"
+                        value={approverQuery}
+                        onChange={(e) =>
                           setUserSearchQuery((p) => ({
                             ...p,
-                            [field._id]: "",
-                          }));
-                        }}
-                      >
-                        {u.userName} ({u.userId})
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+                            [queryKey]: e.target.value,
+                          }))
+                        }
+                        disabled={disabled}
+                      />
+                      {approverCandidates.length > 0 && (
+                        <div className={style.userSearchDropdown}>
+                          {approverCandidates.map((u) => (
+                            <div
+                              key={u.user}
+                              className={style.userSearchItem}
+                              onClick={() => {
+                                const next = {
+                                  ...currentPicks,
+                                  [pickIndex]: {
+                                    user: u.user,
+                                    userId: u.userId,
+                                    userName: u.userName,
+                                  },
+                                };
+                                setValue(
+                                  field._id,
+                                  buildValueFromPicks(next)
+                                );
+                                setUserSearchQuery((p) => ({
+                                  ...p,
+                                  [queryKey]: "",
+                                }));
+                              }}
+                            >
+                              {u.userName} ({u.userId})
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         );
       }

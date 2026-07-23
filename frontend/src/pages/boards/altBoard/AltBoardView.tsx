@@ -86,6 +86,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
   const urlFormId = embedded ? null : searchParams.get("form");
   const urlSheetId = embedded ? null : searchParams.get("sheet");
   const urlMode = embedded ? null : searchParams.get("mode");
+  const urlApprovalRowId = embedded ? null : searchParams.get("approval");
 
   const loadForms = () => {
     setIsLoading(true);
@@ -417,6 +418,7 @@ const AltBoardView = ({ board, embedded }: Props) => {
           onCreateForm={() => handleOpenBuilder()}
           onRefresh={loadForms}
           onCopyFormLink={handleCopyFormLink}
+          openApprovalRowId={urlApprovalRowId}
         />
       </div>
     ),

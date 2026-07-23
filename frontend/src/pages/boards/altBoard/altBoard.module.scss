@@ -2277,7 +2277,7 @@ tbody tr:hover .actionCell {
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 10;
+  z-index: 30;
   background: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -2341,6 +2341,109 @@ tbody tr:hover .actionCell {
   padding: 6px 10px;
   background: var(--background-color-2);
   border-radius: 4px;
+}
+
+/* 승인 팝업 — 제출 문서·표 미리보기 (가로 스크롤) */
+.approvalDocPreview {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-color-2);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-color-1);
+
+  .approvalDocMarkdown {
+    min-width: 0;
+    color: inherit;
+
+    table {
+      width: max-content;
+      min-width: 100%;
+      max-width: none;
+      margin-bottom: 12px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: normal;
+      vertical-align: top;
+    }
+
+    pre,
+    img,
+    iframe {
+      max-width: 100%;
+    }
+  }
+
+  /* MarkdownViewer 없이 들어온 raw HTML 표 */
+  table {
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    vertical-align: top;
+  }
+}
+
+/* 승인 팝업 — 개별 보기와 동일한 필드·배너 레이아웃 */
+.approvalPopupBody {
+  padding: 4px 2px 12px;
+}
+
+.approvalReasonSection {
+  margin-top: 4px;
+  padding: 20px 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color);
+}
+
+.approvalReasonLabel {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  margin-bottom: 8px;
+}
+
+.approvalReasonInput {
+  width: 100%;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--background-color);
+  color: var(--text-color-1);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-1);
+    box-shadow: 0 0 0 1px var(--accent-1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 /* ─── Quiz ─── */
