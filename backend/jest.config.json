@@ -2,7 +2,7 @@
   "rootDir": ".",
   "testMatch": [
     "**/tests/APIs/userAPI/**",
-    "**/tests/utils/mergeEngine.test.js"
+    "**/tests/utils/**/*.test.js"
   ],
   "testEnvironment": "node",
   "resetMocks": true,

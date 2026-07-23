@@ -855,6 +855,41 @@ const PostCreate = () => {
                 const mergeFields = form.fields.filter(
                   (f) => f.type !== "content" && f.type !== "docResponse"
                 );
+                const dateField =
+                  mergeFields.find((f) => f.type === "multiDate") ||
+                  mergeFields.find((f) => f.type === "date");
+                const periodField =
+                  mergeFields.find(
+                    (f) =>
+                      ["select", "radio", "multiSelect", "time"].includes(
+                        f.type
+                      ) && /시간|교시|타임|period/i.test(f.label)
+                  ) ||
+                  mergeFields.find((f) =>
+                    ["multiSelect", "time"].includes(f.type)
+                  ) ||
+                  mergeFields.find((f) =>
+                    ["select", "radio"].includes(f.type)
+                  );
+                const sampleCellField =
+                  mergeFields.find(
+                    (f) =>
+                      f !== dateField &&
+                      f !== periodField &&
+                      !["approval", "file"].includes(f.type)
+                  ) || mergeFields[0];
+                const timetableSnippet =
+                  dateField && periodField
+                    ? [
+                        sheetToken,
+                        "",
+                        `{{#timetable date=${dateField.label} period=${periodField.label}}}`,
+                        sampleCellField
+                          ? `{{${sampleCellField.label}}}`
+                          : "{{_respondentName}}",
+                        "{{/timetable}}",
+                      ].join("\n")
+                    : null;
                 return (
                   <div
                     key={form._id}
@@ -878,6 +913,25 @@ const PostCreate = () => {
                     >
                       {sheetToken}
                     </div>
+                    {timetableSnippet && (
+                      <button
+                        type="button"
+                        onClick={() => copyMergeToken(timetableSnippet)}
+                        style={{
+                          marginBottom: "8px",
+                          padding: "4px 10px",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                          border: "1px solid var(--border-color)",
+                          borderRadius: "4px",
+                          background: "var(--background-color-1)",
+                          color: "var(--text-color-1)",
+                        }}
+                        title="주간 시간표 템플릿 복사"
+                      >
+                        시간표 템플릿 복사
+                      </button>
+                    )}
                     <div
                       style={{
                         display: "flex",

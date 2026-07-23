@@ -9,9 +9,17 @@
  *   {{#filter …}} {{#sort …}}
  *   {{#table col1, col2, ...}}
  *   {{#each}}...{{/each}}
+ *   {{#timetable date=날짜필드 period=교시필드}}칸템플릿{{/timetable}}
  *
  * 제거됨 (런타임 strip): {{#form}}, {{#input}}, {{#if}}, {{#group}}, {{#sum|avg|min|max|unique}}
  */
+
+import {
+  buildTimetableSlots,
+  buildWeekGrid,
+  parseTimetableAttrs,
+  weekDates,
+} from "./timetableSlots.js";
 
 export const MERGE_MAX_ROWS = 2000;
 export const MERGE_MAX_OUTPUT = 1_000_000; // 1MB chars
@@ -81,6 +89,7 @@ export function renderMerge(body, rows, fields) {
 
   result = processTables(result, activeRows, labelMap);
   result = processEach(result, activeRows, labelMap);
+  result = processTimetables(result, activeRows, fields || [], labelMap);
 
   if (activeRows.length > 0) {
     result = replaceVariables(result, activeRows[0], labelMap);
@@ -105,6 +114,10 @@ export function stripMergeTags(body) {
   result = result.replace(/\{\{#sort\s+.+?\}\}\s*/g, "");
   result = result.replace(/\{\{#table\s+.+?\}\}/g, "");
   result = result.replace(/\{\{#each\}\}[\s\S]*?\{\{\/each\}\}/g, "");
+  result = result.replace(
+    /\{\{#timetable\s+.+?\}\}[\s\S]*?\{\{\/timetable\}\}/g,
+    ""
+  );
   result = result.replace(/\{\{.+?\}\}/g, "");
   return result.trim();
 }
@@ -358,6 +371,91 @@ function processEach(template, rows, labelMap) {
       .map((row, idx) => replaceVariables(inner, row, labelMap, idx + 1))
       .join("");
   });
+}
+
+/**
+ * {{#timetable date=날짜 period=시간표 week=YYYY-MM-DD days=월,화,수}}
+ * 칸템플릿
+ * {{/timetable}}
+ */
+function processTimetables(template, rows, fields, labelMap) {
+  return template.replace(
+    /\{\{#timetable\s+(.+?)\}\}([\s\S]*?)\{\{\/timetable\}\}/g,
+    (_, attrStr, cellTemplate) => {
+      const attrs = parseTimetableAttrs(attrStr);
+      const { slots, error, periodOrder } = buildTimetableSlots(rows, fields, {
+        dateLabel: attrs.dateLabel,
+        periodLabel: attrs.periodLabel,
+      });
+      if (error) {
+        return `_(시간표: ${error})_`;
+      }
+      if (slots.length === 0) {
+        return "_(시간표: 표시할 데이터가 없습니다.)_";
+      }
+
+      const weeks = attrs.weekStart
+        ? [attrs.weekStart]
+        : [...new Set(slots.map((s) => s.weekStart).filter(Boolean))].sort();
+
+      if (weeks.length === 0) {
+        return "_(시간표: 유효한 날짜가 없습니다.)_";
+      }
+
+      return weeks
+        .map((week) => {
+          const { dayCols, grid } = buildWeekGrid(
+            slots,
+            periodOrder,
+            week,
+            attrs.dayIndexes
+          );
+          return renderTimetableMarkdown(
+            week,
+            dayCols,
+            grid,
+            cellTemplate.trim(),
+            labelMap
+          );
+        })
+        .join("\n\n");
+    }
+  );
+}
+
+function renderTimetableMarkdown(weekStart, dayCols, grid, cellTemplate, labelMap) {
+  const dates = weekDates(weekStart);
+  const end = dates[6] || weekStart;
+  let md = `**주간 시간표** (${weekStart} ~ ${end})\n\n`;
+
+  const headers = ["교시", ...dayCols.map((c) => `${c.label}${c.date ? ` ${c.date.slice(5)}` : ""}`)];
+  md += "| " + headers.join(" | ") + " |\n";
+  md += "| " + headers.map(() => "---").join(" | ") + " |\n";
+
+  for (const row of grid) {
+    const cells = row.cells.map((slotList) => {
+      if (!slotList.length) return "";
+      return slotList
+        .map((slot) => {
+          const rendered = replaceVariables(
+            cellTemplate,
+            slot.row,
+            labelMap
+          );
+          // markdown table: escape pipes / collapse newlines
+          return rendered
+            .replace(/\|/g, "\\|")
+            .replace(/\r?\n+/g, "<br>");
+        })
+        .join("<br>---<br>");
+    });
+    md +=
+      "| " +
+      [String(row.period).replace(/\|/g, "\\|"), ...cells].join(" | ") +
+      " |\n";
+  }
+
+  return md;
 }
 
 function replaceVariables(template, row, labelMap, index) {

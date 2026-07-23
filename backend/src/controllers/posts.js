@@ -340,8 +340,14 @@ export const find = async (req, res) => {
           if (sheet) {
             const form = await AltForm(req.user.academyId).findById(sheet.form);
             if (form) {
-              let rowQuery = { sheet: sheet._id, isActive: true };
+              // 기록 시트 목록과 동일하게 form 기준으로 조회
+              // (sheet id 불일치 시 CSV/직접입력 행이 빠지는 문제 방지)
+              let rowQuery = { form: form._id, isActive: true };
 
+              // 기록(시트) 목록과 동일한 가시성:
+              // admin/writer → 전체
+              // respondent + shareResponses → 전체 (응답자 없는 CSV/직접입력 행 포함)
+              // 그 외 → 본인 행 (+ 승인자인 행)
               if (altRole === "admin" || altRole === "writer") {
                 if (req.query.userId) {
                   rowQuery._respondent = req.query.userId;
@@ -376,8 +382,26 @@ export const find = async (req, res) => {
                     }
                   } catch (e) { /* ignore */ }
                 }
+              } else if (
+                altRole === "respondent" &&
+                (form.settings?.shareResponses || form.settings?.directInputMode)
+              ) {
+                // 전체 공유 / 직접입력 모드: 응답자 없는 행 포함 전체
               } else {
-                rowQuery._respondent = req.user._id;
+                const approvalFieldIds = (form.fields || [])
+                  .filter((f) => f.type === "approval")
+                  .map((f) => f._id.toString());
+                if (approvalFieldIds.length > 0) {
+                  const approverConditions = approvalFieldIds.map((fid) => ({
+                    [`data.${fid}.approver.userId`]: req.user.userId,
+                  }));
+                  rowQuery.$or = [
+                    { _respondent: req.user._id },
+                    ...approverConditions,
+                  ];
+                } else {
+                  rowQuery._respondent = req.user._id;
+                }
               }
 
               const rows = await AltSheetRow(req.user.academyId).find(rowQuery).sort({ createdAt: 1 }).lean();

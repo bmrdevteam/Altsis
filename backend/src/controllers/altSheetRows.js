@@ -21,6 +21,7 @@ import {
   PERMISSION_DENIED,
   __NOT_FOUND,
 } from "../messages/index.js";
+import { coerceFieldValueFromCsv } from "../utils/timetableSlots.js";
 
 /**
  * 자유 모드 중복 검사 카운터 atomic claim
@@ -1152,19 +1153,19 @@ export const importCsv = async (req, res) => {
       return res.status(403).send({ message: PERMISSION_DENIED });
     }
 
-    // 라벨 → 필드 ID 매핑
-    const labelToFieldId = {};
+    // 라벨 → 필드 매핑 (타입별 CSV 값 정규화)
+    const labelToField = {};
     for (const field of form.fields) {
-      labelToFieldId[field.label] = field._id.toString();
+      labelToField[field.label] = field;
     }
 
     const now = new Date();
     const docs = req.body.rows.map((row) => {
       const data = {};
       for (const [label, value] of Object.entries(row)) {
-        const fieldId = labelToFieldId[label];
-        if (fieldId) {
-          data[fieldId] = value;
+        const field = labelToField[label];
+        if (field) {
+          data[field._id.toString()] = coerceFieldValueFromCsv(value, field);
         }
       }
       return {

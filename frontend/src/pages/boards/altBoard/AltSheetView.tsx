@@ -237,6 +237,24 @@ const AltSheetView = ({
     return String(value);
   };
 
+  // CSV 내보내기용: 날짜/복수만 원본 유지, 나머지는 기존 화면 포맷
+  const exportCellValue = (value: any, field?: TAltFormField): string => {
+    if (value === null || value === undefined) return "";
+    if (field?.type === "multiDate" && Array.isArray(value)) {
+      return value.join(",");
+    }
+    if (field?.type === "date") {
+      return value ? String(value) : "";
+    }
+    if (
+      (field?.type === "multiSelect" || field?.type === "checkbox") &&
+      Array.isArray(value)
+    ) {
+      return value.join(",");
+    }
+    return formatCellValue(value, field);
+  };
+
   // 필터링된 행
   const filteredRows = useMemo(() => {
     let result = rows;
@@ -427,6 +445,7 @@ const AltSheetView = ({
     ];
     if (nonEditableTypes.includes(field.type)) return;
     setEditingCell({ rowId, fieldId: field._id });
+    // date는 표시용 포맷이 아니라 YYYY-MM-DD 원본을 편집
     setEditValue(currentValue || "");
   };
 
@@ -587,7 +606,8 @@ const AltSheetView = ({
           : "",
       ];
       for (const field of visibleFields) {
-        cells.push(formatCellValue(row.data[field._id], field));
+        // 메일머지/재가져오기용: 날짜·복수는 원본 값으로보냄 (화면용 포맷 금지)
+        cells.push(exportCellValue(row.data[field._id], field));
       }
       if (isQuiz) {
         cells.push(row.data?._quiz_score != null ? String(row.data._quiz_score) : "");
@@ -1741,7 +1761,7 @@ const AltSheetView = ({
                     editingCell?.fieldId === field._id;
                   const canEdit = canDeleteAnyRow;
                   const editSource =
-                    field.type === "docResponse"
+                    field.type === "docResponse" || field.type === "date"
                       ? String(rawValue ?? "")
                       : cellValue;
 
