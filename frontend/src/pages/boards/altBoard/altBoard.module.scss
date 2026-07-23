@@ -54,14 +54,28 @@
 .formListToolbar {
   display: flex;
   gap: 4px;
-  justify-content: flex-end;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .formSectionPanel {
   background: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  overflow: hidden;
+  /* visible: 카드 ⋯ 메뉴가 패널 밖으로 나와야 함 */
+  overflow: visible;
+}
+
+.formSectionHeaderStatic {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px 10px 16px;
+  gap: 10px 16px;
 }
 
 .formSectionHeader {
@@ -136,8 +150,9 @@
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 12px 16px;
-  padding-left: 26px;
+  min-width: 0;
   font-size: 12px;
   color: var(--text-color-2);
 
@@ -196,7 +211,7 @@
 }
 
 .formCardMenuOpen {
-  z-index: 10;
+  z-index: 20;
 }
 
 .formCardLeft {
@@ -373,16 +388,24 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 130px;
+  min-width: 148px;
   overflow: hidden;
 }
 
 .formActionItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 8px 14px;
   font-size: 13px;
   color: var(--text-color-1);
   cursor: pointer;
   transition: background 0.1s;
+
+  svg {
+    flex-shrink: 0;
+    fill: var(--text-color-2);
+  }
 
   &:hover {
     background: var(--background-color-2);
@@ -390,6 +413,18 @@
 
   & + & {
     border-top: 1px solid var(--border-color);
+  }
+}
+
+.formActionItemDanger {
+  color: var(--status-error);
+
+  svg {
+    fill: var(--status-error);
+  }
+
+  &:hover {
+    background: var(--status-error-bg, var(--background-color-2));
   }
 }
 

@@ -16,9 +16,12 @@ type Props = {
   /** null이면 Alt Board 멤버가 아님 — 목록·통계 비표시 */
   myRole: TAltBoardRole | null;
   canManage: boolean;
+  /** 양식 빌더 열기 가능 여부 */
+  canModifyForm: (form: TAltForm) => boolean;
   onFormClick: (form: TAltForm) => void;
   onRespondForm: (formId: string) => void;
   onViewMyResponses?: (formId: string) => void;
+  onOpenSheet?: (formId: string) => void;
   onCreateForm: () => void;
   onRefresh: () => void;
   onCopyFormLink?: (formId: string) => void;
@@ -36,13 +39,6 @@ const getPeriodKind = (form: TAltForm): PeriodKind => {
   }
   return "open";
 };
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 
 const formatDateTime = (dateStr: string) =>
   new Date(dateStr).toLocaleString("ko-KR", {
@@ -93,9 +89,11 @@ const AltFormList = ({
   isLoading,
   myRole,
   canManage,
+  canModifyForm,
   onFormClick,
   onRespondForm,
   onViewMyResponses,
+  onOpenSheet,
   onCreateForm,
   onRefresh,
   onCopyFormLink,
@@ -108,16 +106,23 @@ const AltFormList = ({
   const [actionMenu, setActionMenu] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
-  // 보드 멤버(altBoardRole)만 할 일 목록 표시. 비멤버·승인자 전용 접근은 카드 링크 등으로만.
+  /** 제출형 활동 (통계·정렬용) */
   const submitForms = useMemo(() => {
     if (!myRole) return [];
-    return forms
-      .filter((f) => !f.settings.directInputMode)
-      .slice()
-      .sort((a, b) => submitSortRank(a) - submitSortRank(b));
+    return forms.filter((f) => !f.settings.directInputMode);
   }, [forms, myRole]);
 
-  const manageForms = useMemo(() => (canManage ? forms : []), [canManage, forms]);
+  /** 단일 활동 목록: 멤버는 제출형만, 관리자는 전체(직접입력 포함) */
+  const activityForms = useMemo(() => {
+    if (!myRole) return [];
+    const list = (canManage ? forms : submitForms).slice();
+    return list.sort((a, b) => {
+      const aDirect = a.settings.directInputMode ? 1 : 0;
+      const bDirect = b.settings.directInputMode ? 1 : 0;
+      if (aDirect !== bDirect) return aDirect - bDirect;
+      return submitSortRank(a) - submitSortRank(b);
+    });
+  }, [forms, myRole, canManage, submitForms]);
 
   const submitStats = useMemo(() => {
     let pending = 0;
@@ -141,33 +146,19 @@ const AltFormList = ({
   }, [submitForms]);
 
   const manageStats = useMemo(() => {
-    let open = 0;
-    let scheduled = 0;
-    let closed = 0;
+    if (!canManage) return null;
     let responseSum = 0;
-    for (const f of manageForms) {
-      const period = getPeriodKind(f);
-      if (period === "closed") closed += 1;
-      else if (period === "scheduled") scheduled += 1;
-      else open += 1;
+    for (const f of forms) {
       responseSum += f.responseCount ?? 0;
     }
     return {
-      total: manageForms.length,
-      open,
-      scheduled,
-      closed,
+      total: forms.length,
       responseSum,
     };
-  }, [manageForms]);
-
-  const [submitOpen, setSubmitOpen] = useState(true);
-  const [manageOpen, setManageOpen] = useState(true);
+  }, [canManage, forms]);
 
   if (isLoading) return null;
 
-  // Alt Board 역할이 없으면 목록·통계를 노출하지 않음
-  // (학교 manager 등 보드 열람만 가능한 경우 포함)
   if (!myRole) {
     return (
       <div className={style.emptyState}>
@@ -237,6 +228,19 @@ const AltFormList = ({
     ).length >= 1;
 
   const renderSubmitBadge = (form: TAltForm) => {
+    if (form.settings.directInputMode) {
+      return (
+        <span
+          className={style.formCardBadge}
+          style={{
+            background: "var(--status-warning-bg)",
+            color: "var(--status-warning)",
+          }}
+        >
+          직접입력
+        </span>
+      );
+    }
     const period = getPeriodKind(form);
     if (period === "closed") {
       return (
@@ -266,21 +270,47 @@ const AltFormList = ({
     );
   };
 
-  const renderSubmitCard = (form: TAltForm) => {
+  const handleCardActivate = (form: TAltForm) => {
+    if (form.settings.directInputMode) {
+      if (onOpenSheet) onOpenSheet(form._id);
+      else if (canModifyForm(form)) onFormClick(form);
+      return;
+    }
+    onRespondForm(form._id);
+  };
+
+  const renderActivityCard = (form: TAltForm) => {
     const deadlineHint = getDeadlineHint(form);
     const period = getPeriodKind(form);
+    const isDirect = !!form.settings.directInputMode;
+    const canEditForm = canModifyForm(form);
+    const showRespond = !isDirect;
+    const showMyResponses =
+      !isDirect &&
+      !!form.mySubmitted &&
+      form.settings.showOwnResponse !== false &&
+      !!onViewMyResponses;
+    const showSheet = !!onOpenSheet;
+    const showManageMenu = canManage;
+
+    const count = form.responseCount ?? 0;
+    const countLabel = form.settings.allowMultipleResponses
+      ? `응답 ${count}건`
+      : `제출 ${count}명`;
 
     return (
       <div
-        key={`submit-${form._id}`}
-        className={style.formCard}
-        onClick={() => onRespondForm(form._id)}
+        key={form._id}
+        className={`${style.formCard} ${
+          actionMenu === form._id ? style.formCardMenuOpen : ""
+        }`}
+        onClick={() => handleCardActivate(form)}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onRespondForm(form._id);
+            handleCardActivate(form);
           }
         }}
       >
@@ -288,6 +318,9 @@ const AltFormList = ({
           <div className={style.formCardTitle}>{form.title}</div>
           <div className={style.formCardMeta}>
             {renderSubmitBadge(form)}
+            {canManage && !isDirect && (
+              <span className={style.responseCount}>{countLabel}</span>
+            )}
             {form.settings.openAt && period === "scheduled" && (
               <span>시작: {formatDateTime(form.settings.openAt)}</span>
             )}
@@ -303,7 +336,8 @@ const AltFormList = ({
             )}
             {form.mySubmitted &&
               form.settings.allowMultipleResponses &&
-              period === "open" && (
+              period === "open" &&
+              !isDirect && (
                 <span className={style.formCardHint}>추가 제출 가능</span>
               )}
             {form.settings.quizMode && (
@@ -319,124 +353,25 @@ const AltFormList = ({
             )}
           </div>
         </div>
-        <div className={style.formCardRight}>
-          {form.mySubmitted &&
-            form.settings.showOwnResponse !== false &&
-            onViewMyResponses && (
-              <button
-                type="button"
-                className={style.formCardIconBtn}
-                title="내 응답 보기"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewMyResponses(form._id);
-                }}
-              >
-                <Svg type="article" width="20px" height="20px" />
-              </button>
-            )}
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="응답하기"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRespondForm(form._id);
-            }}
-          >
-            <Svg type="edit" width="20px" height="20px" />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderManageCard = (form: TAltForm) => {
-    const period = getPeriodKind(form);
-    const periodLabel =
-      period === "closed" ? "마감" : period === "scheduled" ? "예정" : "진행중";
-    const count = form.responseCount ?? 0;
-    const countLabel = form.settings.allowMultipleResponses
-      ? `응답 ${count}건`
-      : `제출 ${count}명`;
-
-    return (
-      <div
-        key={`manage-${form._id}`}
-        className={`${style.formCard} ${
-          actionMenu === form._id ? style.formCardMenuOpen : ""
-        }`}
-        onClick={() => onFormClick(form)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onFormClick(form);
-          }
-        }}
-      >
-        <div className={style.formCardLeft}>
-          <div className={style.formCardTitle}>{form.title}</div>
-          <div className={style.formCardMeta}>
-            <span
-              className={`${style.formCardBadge} ${
-                period === "open" ? style.badgeOpen : style.badgeClosed
-              }`}
-            >
-              {periodLabel}
-            </span>
-            <span className={style.responseCount}>{countLabel}</span>
-            <span>
-              {form.fields.filter((f) => f.type !== "content").length}개 항목
-            </span>
-            <span>{formatDate(form.createdAt)}</span>
-            {form.settings.closeAt && (
-              <span>마감: {formatDate(form.settings.closeAt)}</span>
-            )}
-            {form.settings.quizMode && (
-              <span
-                className={style.formCardBadge}
-                style={{
-                  background: "var(--status-info-bg)",
-                  color: "var(--status-info)",
-                }}
-              >
-                퀴즈
-              </span>
-            )}
-            {form.settings.directInputMode && (
-              <span
-                className={style.formCardBadge}
-                style={{
-                  background: "var(--status-warning-bg)",
-                  color: "var(--status-warning)",
-                }}
-              >
-                직접입력
-              </span>
-            )}
-          </div>
-        </div>
         <div className={style.formCardRight} style={{ position: "relative" }}>
-          {onCopyFormLink && (
+          {showMyResponses && (
             <button
               type="button"
               className={style.formCardIconBtn}
-              title="링크 복사"
+              title="내 응답 보기"
               onClick={(e) => {
                 e.stopPropagation();
-                onCopyFormLink(form._id);
+                onViewMyResponses!(form._id);
               }}
             >
-              <Svg type="link" width="20px" height="20px" />
+              <Svg type="article" width="20px" height="20px" />
             </button>
           )}
-          {!form.settings.directInputMode && (
+          {showRespond && (
             <button
               type="button"
               className={style.formCardIconBtn}
-              title="응답하기"
+              title="작성"
               onClick={(e) => {
                 e.stopPropagation();
                 onRespondForm(form._id);
@@ -445,40 +380,33 @@ const AltFormList = ({
               <Svg type="edit" width="20px" height="20px" />
             </button>
           )}
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="JSON 내보내기"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleExport(form._id);
-            }}
-          >
-            <Svg type="download" width="20px" height="20px" />
-          </button>
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="복제"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDuplicate(form._id);
-            }}
-          >
-            <Svg type="copy" width="20px" height="20px" />
-          </button>
-          <button
-            type="button"
-            className={`${style.formCardIconBtn} ${style.formCardIconBtnDanger}`}
-            title="삭제"
-            onClick={(e) => {
-              e.stopPropagation();
-              setDeleteForm(form);
-            }}
-          >
-            <Svg type="trash" width="20px" height="20px" />
-          </button>
-          {hasPreRegFields(form) && (
+          {canEditForm && (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="양식"
+              onClick={(e) => {
+                e.stopPropagation();
+                onFormClick(form);
+              }}
+            >
+              <Svg type="editNote" width="20px" height="20px" />
+            </button>
+          )}
+          {showSheet && (
+            <button
+              type="button"
+              className={style.formCardIconBtn}
+              title="기록"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenSheet!(form._id);
+              }}
+            >
+              <Svg type="table" width="20px" height="20px" />
+            </button>
+          )}
+          {showManageMenu && (
             <div style={{ position: "relative" }}>
               <button
                 type="button"
@@ -493,15 +421,62 @@ const AltFormList = ({
               </button>
               {actionMenu === form._id && (
                 <div className={style.formActionMenu}>
+                  {onCopyFormLink && (
+                    <div
+                      className={style.formActionItem}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCopyFormLink(form._id);
+                        setActionMenu(null);
+                      }}
+                    >
+                      <Svg type="link" width="16px" height="16px" />
+                      링크 복사
+                    </div>
+                  )}
                   <div
                     className={style.formActionItem}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setComboForm(form);
+                      handleExport(form._id);
+                    }}
+                  >
+                    <Svg type="download" width="16px" height="16px" />
+                    JSON 내보내기
+                  </div>
+                  <div
+                    className={style.formActionItem}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicate(form._id);
+                    }}
+                  >
+                    <Svg type="copy" width="16px" height="16px" />
+                    복제
+                  </div>
+                  {hasPreRegFields(form) && (
+                    <div
+                      className={style.formActionItem}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setComboForm(form);
+                        setActionMenu(null);
+                      }}
+                    >
+                      <Svg type="grid" width="16px" height="16px" />
+                      조합 생성
+                    </div>
+                  )}
+                  <div
+                    className={`${style.formActionItem} ${style.formActionItemDanger}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteForm(form);
                       setActionMenu(null);
                     }}
                   >
-                    조합 생성
+                    <Svg type="trash" width="16px" height="16px" />
+                    삭제
                   </div>
                 </div>
               )}
@@ -514,50 +489,12 @@ const AltFormList = ({
 
   return (
     <div className={style.formList}>
-      {canManage && (
-        <div className={style.formListToolbar}>
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="새 양식 만들기"
-            onClick={onCreateForm}
-          >
-            <Svg type="plus" width="20px" height="20px" />
-          </button>
-          <button
-            type="button"
-            className={style.formCardIconBtn}
-            title="JSON 가져오기"
-            onClick={() => importRef.current?.click()}
-          >
-            <Svg type="upload" width="20px" height="20px" />
-          </button>
-          <input
-            ref={importRef}
-            type="file"
-            accept=".json"
-            style={{ display: "none" }}
-            onChange={handleImport}
-          />
-        </div>
-      )}
-
       <section className={style.formSectionPanel}>
-        <button
-          type="button"
-          className={style.formSectionHeader}
-          onClick={() => setSubmitOpen((v) => !v)}
-          aria-expanded={submitOpen}
-        >
+        <div className={style.formSectionHeaderStatic}>
           <div className={style.formSectionHeaderMain}>
-            <Svg
-              type={submitOpen ? "chevronDown" : "chevronRight"}
-              width="18px"
-              height="18px"
-            />
-            <h3 className={style.formSectionTitle}>할 일</h3>
+            <h3 className={style.formSectionTitle}>활동</h3>
             <span className={style.formSectionCount}>
-              {submitStats.total}
+              {activityForms.length}
             </span>
           </div>
           <div className={style.formSectionStats}>
@@ -577,72 +514,50 @@ const AltFormList = ({
                 마감 <strong>{submitStats.closed}</strong>
               </span>
             )}
-          </div>
-        </button>
-        {submitOpen && (
-          <div className={style.formSectionBody}>
-            {submitForms.length === 0 ? (
-              <div className={style.emptyState}>할 일이 없습니다.</div>
-            ) : (
-              <div className={style.formCardList}>
-                {submitForms.map(renderSubmitCard)}
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
-      {canManage && (
-        <section className={style.formSectionPanel}>
-          <button
-            type="button"
-            className={style.formSectionHeader}
-            onClick={() => setManageOpen((v) => !v)}
-            aria-expanded={manageOpen}
-          >
-            <div className={style.formSectionHeaderMain}>
-              <Svg
-                type={manageOpen ? "chevronDown" : "chevronRight"}
-                width="18px"
-                height="18px"
-              />
-              <h3 className={style.formSectionTitle}>양식</h3>
-              <span className={style.formSectionCount}>
-                {manageStats.total}
-              </span>
-            </div>
-            <div className={style.formSectionStats}>
-              <span>
-                진행중 <strong>{manageStats.open}</strong>
-              </span>
-              {manageStats.scheduled > 0 && (
-                <span>
-                  예정 <strong>{manageStats.scheduled}</strong>
-                </span>
-              )}
-              {manageStats.closed > 0 && (
-                <span>
-                  마감 <strong>{manageStats.closed}</strong>
-                </span>
-              )}
+            {manageStats && (
               <span>
                 총 응답 <strong>{manageStats.responseSum}</strong>
               </span>
-            </div>
-          </button>
-          {manageOpen && (
-            <div className={style.formSectionBody}>
-              {manageForms.length === 0 ? (
-                <div className={style.emptyState}>등록된 양식이 없습니다.</div>
-              ) : (
-                <div className={style.formCardList}>
-                  {manageForms.map(renderManageCard)}
-                </div>
-              )}
+            )}
+          </div>
+          {canManage && (
+            <div className={style.formListToolbar}>
+              <button
+                type="button"
+                className={style.formCardIconBtn}
+                title="새 양식 만들기"
+                onClick={onCreateForm}
+              >
+                <Svg type="plus" width="20px" height="20px" />
+              </button>
+              <button
+                type="button"
+                className={style.formCardIconBtn}
+                title="JSON 가져오기"
+                onClick={() => importRef.current?.click()}
+              >
+                <Svg type="upload" width="20px" height="20px" />
+              </button>
+              <input
+                ref={importRef}
+                type="file"
+                accept=".json"
+                style={{ display: "none" }}
+                onChange={handleImport}
+              />
             </div>
           )}
-        </section>
-      )}
+        </div>
+        <div className={style.formSectionBody}>
+          {activityForms.length === 0 ? (
+            <div className={style.emptyState}>활동이 없습니다.</div>
+          ) : (
+            <div className={style.formCardList}>
+              {activityForms.map(renderActivityCard)}
+            </div>
+          )}
+        </div>
+      </section>
 
       {comboForm && (
         <CombinationGenerator
