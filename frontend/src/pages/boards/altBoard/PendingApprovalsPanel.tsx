@@ -4,12 +4,19 @@ import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 import Button from "components/button/Button";
 import Popup from "components/popup/Popup";
 import { MarkdownViewer } from "components/markdown";
+import {
+  normalizeApprovalValue,
+  TApprovalStepRuntime,
+  TApprovalValueV2,
+} from "utils/approvalLine";
+import { TApprovalLine } from "types/altForm";
 
 type FieldMeta = {
   _id: string;
   label: string;
   type: string;
   content?: string;
+  approvalLine?: TApprovalLine;
 };
 
 type PendingItem = {
@@ -117,6 +124,88 @@ const formatFieldDisplay = (value: any, field?: FieldMeta): string => {
 const parseFiles = (value: any): UploadedFile[] => {
   if (!Array.isArray(value)) return [];
   return value.filter((f) => f && (f.key || f.originalName));
+};
+
+const APPROVAL_STEP_STATUS_LABELS: Record<
+  TApprovalStepRuntime["status"],
+  string
+> = {
+  waiting: "대기 전",
+  pending: "대기",
+  approved: "승인",
+  rejected: "반려",
+};
+
+const APPROVAL_STEP_STATUS_CLASSES: Record<
+  TApprovalStepRuntime["status"],
+  string
+> = {
+  waiting: style.badgeClosed,
+  pending: style.badgePending,
+  approved: style.badgeApproved,
+  rejected: style.badgeRejected,
+};
+
+const renderApprovalProgress = (
+  approvalData: TApprovalValueV2 | null,
+  currentStepIndex: number
+) => {
+  if (!approvalData?.steps?.length) return null;
+
+  return (
+    <div className={style.approvalProgressSection}>
+      <div className={style.approvalProgressTitle}>결재 진행 상황</div>
+      <ol className={style.approvalStepList}>
+        {approvalData.steps.map((step, index) => {
+          const isCurrent =
+            index === currentStepIndex && step.status === "pending";
+          const statusLabel = APPROVAL_STEP_STATUS_LABELS[step.status];
+          const statusClass =
+            APPROVAL_STEP_STATUS_CLASSES[step.status] || style.badgeClosed;
+
+          return (
+            <li
+              key={`${step.order}_${step.label}_${index}`}
+              className={`${style.approvalStepItem} ${
+                isCurrent ? style.approvalStepItemCurrent : ""
+              }`}
+            >
+              <span className={style.approvalStepIndex}>{index + 1}</span>
+              <div className={style.approvalStepBody}>
+                <div className={style.approvalStepMain}>
+                  <span className={style.approvalStepLabel}>{step.label}</span>
+                  {step.approver && (
+                    <span className={style.approvalStepApprover}>
+                      {step.approver.userName}
+                      {step.approver.userId
+                        ? ` (${step.approver.userId})`
+                        : ""}
+                    </span>
+                  )}
+                </div>
+                <span
+                  className={`${style.approvalBadge} ${statusClass} ${style.approvalStepStatus}`}
+                >
+                  {step.status === "approved"
+                    ? "✓ 승인"
+                    : step.status === "rejected"
+                      ? "반려"
+                      : isCurrent
+                        ? "진행 중"
+                        : statusLabel}
+                </span>
+                {step.reason && (
+                  <div className={style.approvalStepReason}>
+                    의견: {step.reason}
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
 };
 
 const PendingApprovalsPanel = ({
@@ -305,6 +394,16 @@ const PendingApprovalsPanel = ({
 
   const activeSubmittedAt = formatSubmittedAt(active?.submittedAt);
 
+  const activeApprovalField = active
+    ? active.fields?.find((f) => f._id === active.fieldId)
+    : undefined;
+  const activeApprovalData = active
+    ? normalizeApprovalValue(
+        active.approval ?? active.rowData?.[active.fieldId],
+        activeApprovalField
+      )
+    : null;
+
   return (
     <>
       <section className={style.formSectionPanel} style={{ marginBottom: 16 }}>
@@ -466,9 +565,14 @@ const PendingApprovalsPanel = ({
                 );
               })}
 
+              {renderApprovalProgress(
+                activeApprovalData,
+                activeApprovalData?.currentStep ?? 0
+              )}
+
               <div className={style.approvalReasonSection}>
                 <label className={style.approvalReasonLabel} htmlFor="approval-reason">
-                  사유 (선택)
+                  의견
                 </label>
                 <input
                   id="approval-reason"
@@ -476,7 +580,7 @@ const PendingApprovalsPanel = ({
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   disabled={busy}
-                  placeholder="승인·반려 사유를 입력하세요"
+                  placeholder="의견을 입력하세요"
                 />
               </div>
             </div>

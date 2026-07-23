@@ -2310,6 +2310,19 @@ tbody tr:hover .actionCell {
   gap: 6px;
 }
 
+.approvalStepBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.approvalStepBadgeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 100%;
+}
+
 .approvalApprover {
   font-size: 13px;
   color: var(--text-color-2);
@@ -2404,6 +2417,115 @@ tbody tr:hover .actionCell {
 /* 승인 팝업 — 개별 보기와 동일한 필드·배너 레이아웃 */
 .approvalPopupBody {
   padding: 4px 2px 12px;
+}
+
+.approvalProgressSection {
+  margin-top: 8px;
+  padding: 20px 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background-color);
+}
+
+.approvalProgressTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-1);
+  margin-bottom: 14px;
+}
+
+.approvalStepList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.approvalStepItem {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color);
+
+  &:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.approvalStepItemCurrent {
+  .approvalStepIndex {
+    background: var(--status-warning-bg);
+    color: var(--status-warning);
+    border-color: var(--status-warning);
+  }
+
+  .approvalStepLabel {
+    color: var(--text-color-1);
+    font-weight: 700;
+  }
+}
+
+.approvalStepIndex {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--background-color-2);
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.approvalStepBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.approvalStepMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+}
+
+.approvalStepLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color-1);
+}
+
+.approvalStepApprover {
+  font-size: 13px;
+  color: var(--text-color-2);
+}
+
+.approvalStepStatus {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.approvalStepReason {
+  font-size: 13px;
+  color: var(--text-color-2);
+  padding: 6px 10px;
+  background: var(--background-color-2);
+  border-radius: 4px;
+  word-break: break-word;
 }
 
 .approvalReasonSection {

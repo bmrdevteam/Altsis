@@ -1336,36 +1336,37 @@ const AltFormRenderer = ({
             rejected: "반려",
             waiting: "대기전",
           };
+          const hasStepReason = approvalData.steps.some((s) => s.reason);
+
           return (
             <div className={style.approvalStatus}>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "6px",
-                  marginBottom: "6px",
-                }}
-              >
+              <div className={style.approvalStepBadges}>
                 {approvalData.steps.map((s, i) => (
-                  <span
-                    key={i}
-                    className={`${style.approvalBadge} ${
-                      statusStyles[s.status] || ""
-                    }`}
-                    title={
-                      s.approver
-                        ? `${s.approver.userName} (${s.approver.userId})`
-                        : undefined
-                    }
-                  >
-                    {s.label}: {statusLabels[s.status] || s.status}
-                    {s.approver ? ` · ${s.approver.userName}` : ""}
-                  </span>
+                  <div key={i} className={style.approvalStepBadgeGroup}>
+                    <span
+                      className={`${style.approvalBadge} ${
+                        statusStyles[s.status] || ""
+                      }`}
+                      title={
+                        s.approver
+                          ? `${s.approver.userName} (${s.approver.userId})`
+                          : undefined
+                      }
+                    >
+                      {s.label}: {statusLabels[s.status] || s.status}
+                      {s.approver ? ` · ${s.approver.userName}` : ""}
+                    </span>
+                    {s.reason && (
+                      <div className={style.approvalStepReason}>
+                        의견: {s.reason}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
-              {approvalData.reason && (
-                <div className={style.approvalReason}>
-                  사유: {approvalData.reason}
+              {!hasStepReason && approvalData.reason && (
+                <div className={style.approvalStepReason}>
+                  의견: {approvalData.reason}
                 </div>
               )}
             </div>
