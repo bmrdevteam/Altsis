@@ -12,6 +12,7 @@ import SheetColHeader from "./SheetColHeader";
 import DateRangeFilterDropdown, {
   DateRange,
 } from "components/dateRangeFilter/DateRangeFilterDropdown";
+import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
 import { MarkdownEditor, MarkdownViewer } from "components/markdown";
 import { isCurrentApprover, normalizeApprovalValue } from "utils/approvalLine";
 
@@ -84,13 +85,15 @@ const AltSheetView = ({
   >({});
 
   // 뷰 모드: 테이블 or 문서
-  const [viewMode, setViewMode] = useState<"table" | "doc">("table");
+  const [viewMode, setViewMode] = useState<"table" | "doc">("doc");
 
   // 문서 뷰 편집 상태
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [docEditData, setDocEditData] = useState<Record<string, any>>({});
   /** 문서 보기: 필터된 행 기준 현재 index */
   const [docIndex, setDocIndex] = useState(0);
+  /** 문서 보기: 키워드 검색 (머지 UI와 동일) */
+  const [docKeyword, setDocKeyword] = useState("");
 
   // 응답 삭제 확인
   const [deleteTargetRow, setDeleteTargetRow] = useState<TAltSheetRow | null>(
@@ -139,6 +142,7 @@ const AltSheetView = ({
     setFilters({});
     setDateFilters({});
     setSortConfig(null);
+    setDocKeyword("");
   }, [selectedFormId]);
 
   // 숨김 컬럼 저장
@@ -322,9 +326,52 @@ const AltSheetView = ({
     return formatted;
   };
 
+  const docFilterFields = useMemo(
+    () =>
+      allVisibleFields.map((f) => ({
+        key: f._id,
+        label: f.label,
+        type: f.type,
+      })),
+    [allVisibleFields]
+  );
+
+  const docKeywordPlaceholder = useMemo(() => {
+    const labels = allVisibleFields.slice(0, 3).map((f) => f.label);
+    if (labels.length === 0) return "키워드 검색";
+    return `키워드 검색 (${labels.join(", ")} 등)`;
+  }, [allVisibleFields]);
+
+  const clearDocFilters = () => {
+    setDocKeyword("");
+    setFilters({});
+    setDateFilters({});
+  };
+
   // 필터링된 행
   const filteredRows = useMemo(() => {
     let result = rows;
+
+    // 키워드 검색 (응답자 + 모든 필드)
+    const kw = docKeyword.trim().toLowerCase();
+    if (kw) {
+      result = result.filter((row) => {
+        if ((row._respondentName || "").toLowerCase().includes(kw)) return true;
+        if ((row._respondentId || "").toLowerCase().includes(kw)) return true;
+        for (const field of allVisibleFields) {
+          const cellValue = row.data[field._id];
+          if (cellValue === null || cellValue === undefined) continue;
+          if (
+            String(formatCellValue(cellValue, field))
+              .toLowerCase()
+              .includes(kw)
+          ) {
+            return true;
+          }
+        }
+        return false;
+      });
+    }
 
     // 텍스트 필터 적용
     for (const [fieldId, filterValue] of Object.entries(filters)) {
@@ -422,7 +469,7 @@ const AltSheetView = ({
     }
 
     return result;
-  }, [rows, filters, dateFilters, sortConfig, allVisibleFields]);
+  }, [rows, docKeyword, filters, dateFilters, sortConfig, allVisibleFields]);
 
   // 문서 보기 index를 필터 결과에 맞게 유지
   useEffect(() => {
@@ -1331,6 +1378,7 @@ const AltSheetView = ({
               setFilters({});
               setDateFilters({});
               setSortConfig(null);
+              setDocKeyword("");
               onFormDeselect?.();
             }}
           >
@@ -1459,13 +1507,21 @@ const AltSheetView = ({
         /* ── 문서 뷰 (양식형 개별 보기) ── */
         <div className={style.docViewSingle}>
           <div className={style.docViewSearch}>
-            <input
-              className={style.filterInput}
-              placeholder="응답자 검색..."
-              value={filters["_respondent"] || ""}
-              onChange={(e) =>
-                setFilters((p) => ({ ...p, _respondent: e.target.value }))
+            <MergeStyleFilterBar
+              keyword={docKeyword}
+              onKeywordChange={setDocKeyword}
+              keywordPlaceholder={docKeywordPlaceholder}
+              textFilters={filters}
+              onTextFilterChange={(key, value) =>
+                setFilters((p) => ({ ...p, [key]: value }))
               }
+              dateFilters={dateFilters}
+              onDateFilterChange={(key, range) =>
+                setDateFilters((p) => ({ ...p, [key]: range }))
+              }
+              fields={docFilterFields}
+              respondentFilterKey="_respondent"
+              onClear={clearDocFilters}
             />
           </div>
 

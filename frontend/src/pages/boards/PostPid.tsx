@@ -15,10 +15,8 @@ import { useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
-import useOutsideClick from "hooks/useOutsideClick";
 
 import style from "style/pages/enrollment.module.scss";
-import boardsStyle from "./boards.module.scss";
 
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
@@ -28,9 +26,8 @@ import { MarkdownViewer } from "components/markdown";
 import { TPost, TPostAttachment } from "types/post";
 import { TBoard } from "types/board";
 import { TComment } from "types/comment";
-import DateRangeFilterDropdown, {
-  DateRange,
-} from "components/dateRangeFilter/DateRangeFilterDropdown";
+import { DateRange } from "components/dateRangeFilter/DateRangeFilterDropdown";
+import MergeStyleFilterBar from "components/mergeFilter/MergeStyleFilterBar";
 
 import UserListPopup from "./popup/UserListPopup";
 import SurveyViewPopup from "./survey/SurveyViewPopup";
@@ -60,7 +57,6 @@ const PostPid = () => {
   const [mergeDateFilters, setMergeDateFilters] = useState<
     Record<string, DateRange>
   >({});
-  const mergeFilterMenu = useOutsideClick();
 
   // OG 이미지 로드 실패 추적
   const [brokenOgImages, setBrokenOgImages] = useState<Set<number>>(new Set());
@@ -220,12 +216,6 @@ const PostPid = () => {
     setMergeDateFilters(next);
     refetchMerge(mergeKeyword, mergeFilters, next);
   };
-
-  const hasDetailFilters =
-    Object.values(mergeFilters).some((v) => v) ||
-    Object.values(mergeDateFilters).some((r) => r.from || r.to);
-
-  const hasAnyMergeFilter = !!mergeKeyword.trim() || hasDetailFilters;
 
   const clearMergeFilters = () => {
     setMergeKeyword("");
@@ -504,93 +494,21 @@ const PostPid = () => {
 
         {/* 머지 검색 + 세부 필터 */}
         {post._mergeApplied && post._mergeFields && post._mergeFields.length > 0 && (
-          <div
-            className={boardsStyle.mergeSearchBar}
-            ref={mergeFilterMenu.RefObject}
-          >
-            <div className={boardsStyle.mergeSearchInputWrap}>
-              <span className={boardsStyle.mergeSearchIcon}>
-                <Svg type="search" width="18px" height="18px" />
-              </span>
-              <input
-                className={boardsStyle.mergeSearchInput}
-                type="search"
-                placeholder="키워드 검색 (이름, 강의실, 목적 등)"
-                value={mergeKeyword}
-                onChange={(e) => handleMergeKeywordChange(e.target.value)}
-              />
-            </div>
-            <button
-              type="button"
-              className={`${boardsStyle.mergeFilterBtn} ${
-                mergeFilterMenu.active || hasDetailFilters
-                  ? boardsStyle.mergeFilterBtnActive
-                  : ""
-              }`}
-              title="세부 필터"
-              aria-expanded={mergeFilterMenu.active}
-              onClick={() =>
-                mergeFilterMenu.setActive(!mergeFilterMenu.active)
-              }
-            >
-              <Svg type="filter" width="18px" height="18px" />
-            </button>
-            {mergeFilterMenu.active && (
-              <div className={boardsStyle.mergeFilterPanel}>
-                <div className={boardsStyle.mergeFilterPanelHeader}>
-                  <span>세부 필터</span>
-                  {hasAnyMergeFilter && (
-                    <button
-                      type="button"
-                      className={boardsStyle.mergeFilterReset}
-                      onClick={clearMergeFilters}
-                    >
-                      초기화
-                    </button>
-                  )}
-                </div>
-                <div className={boardsStyle.mergeFilterRow}>
-                  <label className={boardsStyle.mergeFilterLabel}>응답자</label>
-                  <input
-                    className={boardsStyle.mergeFilterFieldInput}
-                    placeholder="검색..."
-                    value={mergeFilters["_respondentName"] || ""}
-                    onChange={(e) =>
-                      handleMergeFilterChange("_respondentName", e.target.value)
-                    }
-                  />
-                </div>
-                {post._mergeFields.map((field) => (
-                  <div key={field.label} className={boardsStyle.mergeFilterRow}>
-                    <label className={boardsStyle.mergeFilterLabel}>
-                      {field.label}
-                    </label>
-                    {field.type === "date" || field.type === "multiDate" ? (
-                      <DateRangeFilterDropdown
-                        compact
-                        value={
-                          mergeDateFilters[field.label] || { from: "", to: "" }
-                        }
-                        onChange={(range) =>
-                          handleMergeDateFilterChange(field.label, range)
-                        }
-                        placeholder="날짜 필터"
-                      />
-                    ) : (
-                      <input
-                        className={boardsStyle.mergeFilterFieldInput}
-                        placeholder="검색..."
-                        value={mergeFilters[field.label] || ""}
-                        onChange={(e) =>
-                          handleMergeFilterChange(field.label, e.target.value)
-                        }
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <MergeStyleFilterBar
+            keyword={mergeKeyword}
+            onKeywordChange={handleMergeKeywordChange}
+            keywordPlaceholder="키워드 검색 (이름, 강의실, 목적 등)"
+            textFilters={mergeFilters}
+            onTextFilterChange={handleMergeFilterChange}
+            dateFilters={mergeDateFilters}
+            onDateFilterChange={handleMergeDateFilterChange}
+            fields={post._mergeFields.map((field) => ({
+              key: field.label,
+              label: field.label,
+              type: field.type,
+            }))}
+            onClear={clearMergeFilters}
+          />
         )}
 
         <div style={{ minHeight: "300px" }}>
