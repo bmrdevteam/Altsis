@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Editor } from "@tiptap/react";
 import Svg from "assets/svg/Svg";
 import ColorDropdown from "./ColorDropdown";
-import HeadingDropdown from "./HeadingDropdown";
+import HeadingDropdown, { getHeadingBadge } from "./HeadingDropdown";
 import CodeDropdown from "./CodeDropdown";
 import CheckDropdown from "./CheckDropdown";
 import ToolbarMoreMenu from "./ToolbarMoreMenu";
+import MarkdownShortcutsHelp from "./MarkdownShortcutsHelp";
 import style from "./markdown.module.scss";
 
 type Props = {
@@ -28,7 +29,14 @@ const TipTapToolbar = ({
   enableMention = false,
 }: Props) => {
   const [activeDropdown, setActiveDropdown] = useState<
-    "textColor" | "highlight" | "heading" | "code" | "check" | "more" | null
+    | "textColor"
+    | "highlight"
+    | "heading"
+    | "code"
+    | "check"
+    | "more"
+    | "shortcuts"
+    | null
   >(null);
 
   if (!editor) return null;
@@ -41,13 +49,7 @@ const TipTapToolbar = ({
       .run();
   };
 
-  const headingBadge = editor.isActive("heading", { level: 1 })
-    ? "1"
-    : editor.isActive("heading", { level: 2 })
-      ? "2"
-      : editor.isActive("heading", { level: 3 })
-        ? "3"
-        : null;
+  const headingBadge = getHeadingBadge(editor);
 
   const close = () => setActiveDropdown(null);
 
@@ -83,6 +85,12 @@ const TipTapToolbar = ({
       icon: "math",
       label: "수식",
       onClick: onMathClick,
+    },
+    {
+      icon: "keyboard",
+      label: "마크다운 단축 문법",
+      onClick: () => setActiveDropdown("shortcuts"),
+      skipClose: true,
     },
     ...(enableMention
       ? [
@@ -333,16 +341,25 @@ const TipTapToolbar = ({
           type="button"
           title="더보기"
           onClick={() =>
-            setActiveDropdown(activeDropdown === "more" ? null : "more")
+            setActiveDropdown(
+              activeDropdown === "more" || activeDropdown === "shortcuts"
+                ? null
+                : "more"
+            )
           }
           className={`${style.toolbarBtn} ${
-            activeDropdown === "more" ? style.toolbarBtnActive : ""
+            activeDropdown === "more" || activeDropdown === "shortcuts"
+              ? style.toolbarBtnActive
+              : ""
           }`}
         >
           <Svg type="horizontalDots" width="18px" height="18px" />
         </button>
         {activeDropdown === "more" && (
           <ToolbarMoreMenu items={moreItems} onClose={close} />
+        )}
+        {activeDropdown === "shortcuts" && (
+          <MarkdownShortcutsHelp onClose={close} />
         )}
       </div>
     </div>

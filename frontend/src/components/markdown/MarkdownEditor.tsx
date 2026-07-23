@@ -46,6 +46,7 @@ import {
 } from "./extensions/youtube";
 import { useEditorDraft } from "./hooks/useEditorDraft";
 import style from "./markdown.module.scss";
+import Svg from "assets/svg/Svg";
 import "katex/dist/katex.min.css";
 
 type MathDialogState =
@@ -73,6 +74,16 @@ type Props = {
 };
 
 type ViewMode = "wysiwyg" | "split";
+
+/** 표 셀 스타일 속성 — TipTap mergeAttributes가 style을 이어 붙임 */
+const cellBgHTML = (attributes: { backgroundColor?: string | null }) => {
+  if (!attributes.backgroundColor) return {};
+  return { style: `background-color: ${attributes.backgroundColor}` };
+};
+const cellVAlignHTML = (attributes: { verticalAlign?: string | null }) => {
+  if (!attributes.verticalAlign) return {};
+  return { style: `vertical-align: ${attributes.verticalAlign}` };
+};
 
 // tiptap-markdown 스토리지에서 마크다운 추출
 const getMarkdownFromEditor = (
@@ -181,17 +192,36 @@ const MarkdownEditor = ({
               default: null,
               parseHTML: (element) =>
                 element.style.backgroundColor || null,
-              renderHTML: (attributes) => {
-                if (!attributes.backgroundColor) return {};
-                return {
-                  style: `background-color: ${attributes.backgroundColor}`,
-                };
-              },
+              renderHTML: (attributes) => cellBgHTML(attributes),
+            },
+            verticalAlign: {
+              default: null,
+              parseHTML: (element) =>
+                element.style.verticalAlign || null,
+              renderHTML: (attributes) => cellVAlignHTML(attributes),
             },
           };
         },
       }),
-      TableHeader,
+      TableHeader.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            backgroundColor: {
+              default: null,
+              parseHTML: (element) =>
+                element.style.backgroundColor || null,
+              renderHTML: (attributes) => cellBgHTML(attributes),
+            },
+            verticalAlign: {
+              default: null,
+              parseHTML: (element) =>
+                element.style.verticalAlign || null,
+              renderHTML: (attributes) => cellVAlignHTML(attributes),
+            },
+          };
+        },
+      }),
       HtmlEmbed,
       MathInline,
       MathBlock,
@@ -544,17 +574,21 @@ const MarkdownEditor = ({
         <div className={style.tabs}>
           <button
             type="button"
+            title="일반 에디터"
+            aria-label="일반 에디터"
             className={viewMode === "wysiwyg" ? style.active : ""}
             onClick={() => switchMode("wysiwyg")}
           >
-            편집
+            <Svg type="formatText" width="18px" height="18px" />
           </button>
           <button
             type="button"
+            title="마크다운 편집"
+            aria-label="마크다운 편집"
             className={viewMode === "split" ? style.active : ""}
             onClick={() => switchMode("split")}
           >
-            분할
+            <Svg type="markdown" width="18px" height="18px" />
           </button>
         </div>
         <div className={style.toolbarRight}>

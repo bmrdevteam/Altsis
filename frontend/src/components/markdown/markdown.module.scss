@@ -31,6 +31,18 @@
     font-size: 1.25em;
   }
 
+  h4 {
+    font-size: 1.125em;
+  }
+
+  h5 {
+    font-size: 1em;
+  }
+
+  h6 {
+    font-size: 0.875em;
+  }
+
   p {
     margin-top: 0;
     margin-bottom: 16px;
@@ -293,6 +305,10 @@
   gap: 4px;
 
   button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     padding: 6px 12px;
     font-size: 14px;
     background: none;
@@ -830,6 +846,11 @@
   }
 }
 
+.tableBubbleBtnActive {
+  background-color: var(--background-hover-color);
+  color: var(--primary-color);
+}
+
 .tableBubbleDivider {
   display: inline-block;
   width: 1px;
@@ -1002,6 +1023,18 @@
 
     h3 {
       font-size: 1.25em;
+    }
+
+    h4 {
+      font-size: 1.125em;
+    }
+
+    h5 {
+      font-size: 1em;
+    }
+
+    h6 {
+      font-size: 0.875em;
     }
 
     p {
@@ -1789,4 +1822,135 @@
       fill: currentColor;
     }
   }
+}
+
+/* 콜아웃 (뷰어: GitHub Alerts 문법 > [!NOTE] ) — 아이콘 + 본문 */
+:global(.md-callout) {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 4px solid var(--status-info-border);
+  background-color: var(--status-info-bg);
+  color: var(--accent-1);
+
+  .md-callout-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--status-info);
+    line-height: 0;
+
+    svg {
+      display: block;
+    }
+  }
+
+  .md-callout-body {
+    flex: 1;
+    min-width: 0;
+
+    > p:first-child {
+      margin-top: 0;
+    }
+
+    > p:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+:global(.md-callout-note) {
+  border-left-color: var(--status-info);
+  background-color: var(--status-info-bg);
+  .md-callout-icon {
+    color: var(--status-info);
+  }
+}
+
+:global(.md-callout-tip) {
+  border-left-color: var(--status-success);
+  background-color: var(--status-success-bg);
+  .md-callout-icon {
+    color: var(--status-success);
+  }
+}
+
+:global(.md-callout-important) {
+  border-left-color: var(--primary-color);
+  background-color: var(--primary-background-color);
+  .md-callout-icon {
+    color: var(--primary-text-color);
+  }
+}
+
+:global(.md-callout-warning) {
+  border-left-color: var(--status-warning);
+  background-color: var(--status-warning-bg);
+  .md-callout-icon {
+    color: var(--status-warning);
+  }
+}
+
+:global(.md-callout-caution) {
+  border-left-color: var(--status-error);
+  background-color: var(--status-error-bg);
+  .md-callout-icon {
+    color: var(--status-error);
+  }
+}
+
+.shortcutsHelp {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 9999;
+  min-width: 260px;
+  max-width: 320px;
+  padding: 10px 12px;
+  background-color: var(--component-color);
+  border: 1px solid var(--border-default-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.shortcutsHelpTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin-bottom: 8px;
+}
+
+.shortcutsHelpList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shortcutsHelpRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.shortcutsHelpKeys {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  background-color: var(--background-hover-color);
+  border-radius: 4px;
+  color: var(--accent-1);
+  white-space: nowrap;
+}
+
+.shortcutsHelpDesc {
+  color: var(--accent-3);
+  flex-shrink: 0;
 }

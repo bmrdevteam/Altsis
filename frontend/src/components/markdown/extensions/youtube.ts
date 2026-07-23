@@ -155,15 +155,15 @@ export const transformSpecialNodes = (editor: Editor): void => {
     }
   });
 
-  if (transforms.length === 0) return;
-
-  // 위치 보정을 위해 역순으로 적용
-  const { tr } = editor.state;
-  for (const t of transforms.reverse()) {
-    tr.replaceWith(t.from, t.to, t.node);
+  if (transforms.length > 0) {
+    // 위치 보정을 위해 역순으로 적용
+    const { tr } = editor.state;
+    for (const t of transforms.reverse()) {
+      tr.replaceWith(t.from, t.to, t.node);
+    }
+    tr.setMeta("addToHistory", false); // 변환 이력에 추가하지 않음
+    editor.view.dispatch(tr);
   }
-  tr.setMeta("addToHistory", false); // 변환 이력에 추가하지 않음
-  editor.view.dispatch(tr);
 };
 
 /**

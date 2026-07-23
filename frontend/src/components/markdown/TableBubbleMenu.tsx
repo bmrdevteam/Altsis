@@ -13,10 +13,28 @@ type Props = {
   editor: Editor;
 };
 
+const getCellAttrs = (editor: Editor) => {
+  if (editor.isActive("tableHeader")) {
+    return editor.getAttributes("tableHeader");
+  }
+  return editor.getAttributes("tableCell");
+};
+
 const TableBubbleMenu = ({ editor }: Props) => {
   const [showCellColor, setShowCellColor] = useState(false);
+  const cellAttrs = getCellAttrs(editor);
+  const vAlign = cellAttrs.verticalAlign || null;
 
-  const buttons = [
+  const buttons: Array<
+    | { divider: true }
+    | {
+        icon: string;
+        title: string;
+        action: () => void;
+        disabled?: () => boolean;
+        isActive?: () => boolean;
+      }
+  > = [
     {
       icon: "tableInsertUp",
       title: "위에 행 추가",
@@ -40,6 +58,80 @@ const TableBubbleMenu = ({ editor }: Props) => {
       title: "오른쪽에 열 추가",
       action: () => editor.chain().focus().addColumnAfter().run(),
       disabled: () => !editor.can().addColumnAfter(),
+    },
+    { divider: true },
+    {
+      icon: "tableHeaderRow",
+      title: "헤더 행 토글",
+      action: () => editor.chain().focus().toggleHeaderRow().run(),
+      disabled: () => !editor.can().toggleHeaderRow(),
+      isActive: () => {
+        const { $from } = editor.state.selection;
+        for (let d = $from.depth; d > 0; d -= 1) {
+          const node = $from.node(d);
+          if (node.type.name === "tableRow") {
+            let hasHeader = false;
+            node.forEach((cell) => {
+              if (cell.type.name === "tableHeader") hasHeader = true;
+            });
+            return hasHeader;
+          }
+        }
+        return false;
+      },
+    },
+    { divider: true },
+    {
+      icon: "alignLeft",
+      title: "왼쪽 정렬",
+      action: () => editor.chain().focus().setTextAlign("left").run(),
+      isActive: () => editor.isActive({ textAlign: "left" }),
+    },
+    {
+      icon: "alignCenter",
+      title: "가운데 정렬",
+      action: () => editor.chain().focus().setTextAlign("center").run(),
+      isActive: () => editor.isActive({ textAlign: "center" }),
+    },
+    {
+      icon: "alignRight",
+      title: "오른쪽 정렬",
+      action: () => editor.chain().focus().setTextAlign("right").run(),
+      isActive: () => editor.isActive({ textAlign: "right" }),
+    },
+    { divider: true },
+    {
+      icon: "alignTop",
+      title: "위쪽 정렬",
+      action: () =>
+        editor
+          .chain()
+          .focus()
+          .setCellAttribute("verticalAlign", "top")
+          .run(),
+      isActive: () => vAlign === "top",
+    },
+    {
+      icon: "alignMiddle",
+      title: "세로 가운데",
+      action: () =>
+        editor
+          .chain()
+          .focus()
+          .setCellAttribute("verticalAlign", "middle")
+          .run(),
+      isActive: () => vAlign === "middle",
+    },
+    {
+      icon: "alignBottom",
+      title: "아래쪽 정렬",
+      action: () =>
+        editor
+          .chain()
+          .focus()
+          .setCellAttribute("verticalAlign", "bottom")
+          .run(),
+      isActive: () => vAlign === "bottom",
     },
     { divider: true },
     {
@@ -97,7 +189,9 @@ const TableBubbleMenu = ({ editor }: Props) => {
               title={btn.title}
               onClick={btn.action}
               disabled={btn.disabled?.()}
-              className={style.tableBubbleBtn}
+              className={`${style.tableBubbleBtn} ${
+                btn.isActive?.() ? style.tableBubbleBtnActive : ""
+              }`}
             >
               <Svg type={btn.icon} width="16px" height="16px" />
             </button>
@@ -114,9 +208,7 @@ const TableBubbleMenu = ({ editor }: Props) => {
           </button>
           {showCellColor && (
             <ColorDropdown
-              currentColor={
-                editor.getAttributes("tableCell").backgroundColor
-              }
+              currentColor={cellAttrs.backgroundColor}
               onSelect={(color) => {
                 if (color) {
                   editor

@@ -52,6 +52,24 @@ export const createSlashSuggestion = (
           editor.chain().focus().toggleHeading({ level: 3 }).run(),
       },
       {
+        title: "제목 4",
+        keywords: ["h4", "제목4"],
+        command: () =>
+          editor.chain().focus().toggleHeading({ level: 4 }).run(),
+      },
+      {
+        title: "제목 5",
+        keywords: ["h5", "제목5"],
+        command: () =>
+          editor.chain().focus().toggleHeading({ level: 5 }).run(),
+      },
+      {
+        title: "제목 6",
+        keywords: ["h6", "제목6"],
+        command: () =>
+          editor.chain().focus().toggleHeading({ level: 6 }).run(),
+      },
+      {
         title: "목록",
         keywords: ["bullet", "목록", "ul"],
         command: () => editor.chain().focus().toggleBulletList().run(),

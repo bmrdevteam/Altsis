@@ -675,7 +675,7 @@ const PostCreate = () => {
             }}
             title="대상 설정"
           >
-            <Svg type="profileList" width="18px" height="18px" />
+            <Svg type="users" width="18px" height="18px" />
             <span>대상</span>
             {useSpecificPermission && (
               <span

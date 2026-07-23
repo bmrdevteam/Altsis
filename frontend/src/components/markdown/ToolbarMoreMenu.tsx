@@ -7,6 +7,8 @@ export type MoreMenuItem = {
   label: string;
   onClick: () => void;
   active?: boolean;
+  /** true면 클릭 후 메뉴를 닫지 않음 (하위 패널 전환 등) */
+  skipClose?: boolean;
 };
 
 type Props = {
@@ -45,7 +47,7 @@ const ToolbarMoreMenu = ({ items, onClose, children }: Props) => {
           }`}
           onClick={() => {
             item.onClick();
-            onClose();
+            if (!item.skipClose) onClose();
           }}
         >
           <Svg type={item.icon} width="16px" height="16px" />
