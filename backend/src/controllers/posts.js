@@ -60,6 +60,84 @@ const resolveAltSheetByName = async (academyId, boardId, sheetName) => {
 };
 
 /**
+ * 문서 머지 행 필터 (필드별 + 키워드).
+ * filters JSON: { _keyword?, _respondentName?, [라벨]: string | {from,to} }
+ */
+const applyMergeRowFilters = (rowQuery, filters, form) => {
+  if (!filters || typeof filters !== "object") return;
+
+  const labelMap = new Map(
+    (form.fields || []).map((f) => [f.label, f._id.toString()])
+  );
+  const fieldTypeMap = new Map(
+    (form.fields || []).map((f) => [f.label, f.type])
+  );
+  const andParts = [];
+
+  for (const [label, value] of Object.entries(filters)) {
+    if (value === null || value === undefined || value === "") continue;
+
+    if (label === "_keyword") {
+      const kw = String(value).trim();
+      if (!kw) continue;
+      const or = [
+        { _respondentName: { $regex: kw, $options: "i" } },
+        { _respondentId: { $regex: kw, $options: "i" } },
+      ];
+      for (const f of form.fields || []) {
+        or.push({
+          [`data.${f._id.toString()}`]: { $regex: kw, $options: "i" },
+        });
+      }
+      andParts.push({ $or: or });
+      continue;
+    }
+
+    if (label === "_respondentName") {
+      andParts.push({
+        _respondentName: { $regex: String(value), $options: "i" },
+      });
+      continue;
+    }
+
+    const fieldId = labelMap.get(label);
+    if (!fieldId) continue;
+
+    if (typeof value === "object" && (value.from || value.to)) {
+      const dateQuery = {};
+      if (value.from) dateQuery.$gte = value.from;
+      if (value.to) dateQuery.$lte = value.to;
+      const fieldType = fieldTypeMap.get(label);
+      if (fieldType === "multiDate") {
+        andParts.push({ [`data.${fieldId}`]: { $elemMatch: dateQuery } });
+      } else {
+        andParts.push({ [`data.${fieldId}`]: dateQuery });
+      }
+    } else {
+      andParts.push({
+        [`data.${fieldId}`]: { $regex: String(value), $options: "i" },
+      });
+    }
+  }
+
+  if (andParts.length === 0) return;
+
+  if (rowQuery.$and) {
+    rowQuery.$and.push(...andParts);
+  } else if (rowQuery.$or) {
+    // 가시성 $or 와 필터를 AND로 결합
+    rowQuery.$and = [{ $or: rowQuery.$or }, ...andParts];
+    delete rowQuery.$or;
+  } else {
+    if (andParts.length === 1) {
+      Object.assign(rowQuery, andParts[0]);
+    } else {
+      rowQuery.$and = andParts;
+    }
+  }
+};
+
+/**
  * @memberof APIs.PostAPI
  * @function SearchPosts API
  * @description 게시물 검색 API (CommandPalette용)
@@ -352,36 +430,6 @@ export const find = async (req, res) => {
                 if (req.query.userId) {
                   rowQuery._respondent = req.query.userId;
                 }
-                if (req.query.filters) {
-                  try {
-                    const filters = JSON.parse(req.query.filters);
-                    const labelMap = new Map(form.fields.map((f) => [f.label, f._id.toString()]));
-                    const fieldTypeMap = new Map(form.fields.map((f) => [f.label, f.type]));
-                    for (const [label, value] of Object.entries(filters)) {
-                      if (!value) continue;
-                      if (label === "_respondentName") {
-                        rowQuery._respondentName = { $regex: value, $options: "i" };
-                      } else {
-                        const fieldId = labelMap.get(label);
-                        if (fieldId) {
-                          if (typeof value === "object" && (value.from || value.to)) {
-                            const dateQuery = {};
-                            if (value.from) dateQuery.$gte = value.from;
-                            if (value.to) dateQuery.$lte = value.to;
-                            const fieldType = fieldTypeMap.get(label);
-                            if (fieldType === "multiDate") {
-                              rowQuery[`data.${fieldId}`] = { $elemMatch: dateQuery };
-                            } else {
-                              rowQuery[`data.${fieldId}`] = dateQuery;
-                            }
-                          } else {
-                            rowQuery[`data.${fieldId}`] = { $regex: value, $options: "i" };
-                          }
-                        }
-                      }
-                    }
-                  } catch (e) { /* ignore */ }
-                }
               } else if (
                 altRole === "respondent" &&
                 (form.settings?.shareResponses || form.settings?.directInputMode)
@@ -404,6 +452,18 @@ export const find = async (req, res) => {
                 }
               }
 
+              if (req.query.filters) {
+                try {
+                  applyMergeRowFilters(
+                    rowQuery,
+                    JSON.parse(req.query.filters),
+                    form
+                  );
+                } catch (e) {
+                  /* ignore */
+                }
+              }
+
               const rows = await AltSheetRow(req.user.academyId).find(rowQuery).sort({ createdAt: 1 }).lean();
 
               const postObj = post.toObject();
@@ -414,9 +474,10 @@ export const find = async (req, res) => {
               if (rendered.stripped) postObj._mergeStripped = true;
               if (rendered.truncated) postObj._mergeTruncated = true;
 
-              if (altRole === "admin" || altRole === "writer") {
-                postObj._mergeFields = form.fields.map((f) => ({ label: f.label, type: f.type }));
-              }
+              // 필터 UI용 필드 목록 (머지 열람자 공통)
+              postObj._mergeFields = (form.fields || [])
+                .filter((f) => f.type !== "content" && f.type !== "docResponse")
+                .map((f) => ({ label: f.label, type: f.type }));
 
               return res.status(200).send({ post: postObj, board });
             } else {

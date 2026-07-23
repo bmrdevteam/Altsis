@@ -15,8 +15,10 @@ import { useParams } from "react-router-dom";
 import { useAppNavigate } from "hooks/useAppNavigate";
 import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
+import useOutsideClick from "hooks/useOutsideClick";
 
 import style from "style/pages/enrollment.module.scss";
+import boardsStyle from "./boards.module.scss";
 
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
@@ -52,11 +54,13 @@ const PostPid = () => {
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [activeSurveyIndex, setActiveSurveyIndex] = useState<number | null>(null);
 
-  // 머지 필터
+  // 머지 필터: 키워드 검색 + 세부 필드 필터
+  const [mergeKeyword, setMergeKeyword] = useState("");
   const [mergeFilters, setMergeFilters] = useState<Record<string, string>>({});
   const [mergeDateFilters, setMergeDateFilters] = useState<
     Record<string, DateRange>
   >({});
+  const mergeFilterMenu = useOutsideClick();
 
   // OG 이미지 로드 실패 추적
   const [brokenOgImages, setBrokenOgImages] = useState<Set<number>>(new Set());
@@ -131,11 +135,13 @@ const PostPid = () => {
   };
 
   const buildMergeQuery = (
+    keyword: string,
     filters: Record<string, string>,
     dateFilters: Record<string, DateRange>
   ) => {
     const query: Record<string, string> = { merge: "true" };
     const activeFilters: Record<string, any> = {};
+    if (keyword.trim()) activeFilters._keyword = keyword.trim();
     for (const [key, value] of Object.entries(filters)) {
       if (value) activeFilters[key] = value;
     }
@@ -152,7 +158,7 @@ const PostPid = () => {
     if (isLoading && postId) {
       PostAPI.RPost({
         params: { _id: postId },
-        query: buildMergeQuery(mergeFilters, mergeDateFilters),
+        query: buildMergeQuery(mergeKeyword, mergeFilters, mergeDateFilters),
       })
         .then(({ post, board: loadedBoard }) => {
           setPost(post);
@@ -171,6 +177,7 @@ const PostPid = () => {
   const mergeFilterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refetchMerge = (
+    keyword: string,
     textFilters: Record<string, string>,
     dateFilters: Record<string, DateRange>
   ) => {
@@ -179,27 +186,68 @@ const PostPid = () => {
       if (!postId) return;
       PostAPI.RPost({
         params: { _id: postId },
-        query: buildMergeQuery(textFilters, dateFilters),
+        query: buildMergeQuery(keyword, textFilters, dateFilters),
       })
         .then(({ post: updatedPost }) => {
           setPost((prev) =>
-            prev ? { ...prev, content: updatedPost.content } : prev
+            prev
+              ? {
+                  ...prev,
+                  content: updatedPost.content,
+                  _mergeFields: updatedPost._mergeFields ?? prev._mergeFields,
+                  _mergeApplied: updatedPost._mergeApplied ?? prev._mergeApplied,
+                }
+              : prev
           );
         })
         .catch((err) => ALERT_ERROR(err));
     }, 400);
   };
 
+  const handleMergeKeywordChange = (value: string) => {
+    setMergeKeyword(value);
+    refetchMerge(value, mergeFilters, mergeDateFilters);
+  };
+
   const handleMergeFilterChange = (label: string, value: string) => {
     const next = { ...mergeFilters, [label]: value };
     setMergeFilters(next);
-    refetchMerge(next, mergeDateFilters);
+    refetchMerge(mergeKeyword, next, mergeDateFilters);
   };
 
   const handleMergeDateFilterChange = (label: string, range: DateRange) => {
     const next = { ...mergeDateFilters, [label]: range };
     setMergeDateFilters(next);
-    refetchMerge(mergeFilters, next);
+    refetchMerge(mergeKeyword, mergeFilters, next);
+  };
+
+  const hasDetailFilters =
+    Object.values(mergeFilters).some((v) => v) ||
+    Object.values(mergeDateFilters).some((r) => r.from || r.to);
+
+  const hasAnyMergeFilter = !!mergeKeyword.trim() || hasDetailFilters;
+
+  const clearMergeFilters = () => {
+    setMergeKeyword("");
+    setMergeFilters({});
+    setMergeDateFilters({});
+    if (!postId) return;
+    PostAPI.RPost({
+      params: { _id: postId },
+      query: { merge: "true" },
+    })
+      .then(({ post: updatedPost }) => {
+        setPost((prev) =>
+          prev
+            ? {
+                ...prev,
+                content: updatedPost.content,
+                _mergeFields: updatedPost._mergeFields ?? prev._mergeFields,
+              }
+            : prev
+        );
+      })
+      .catch((err) => ALERT_ERROR(err));
   };
 
   // 댓글 로드
@@ -454,102 +502,93 @@ const PostPid = () => {
           </div>
         )}
 
-        {/* 머지 필터 */}
+        {/* 머지 검색 + 세부 필터 */}
         {post._mergeApplied && post._mergeFields && post._mergeFields.length > 0 && (
           <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              marginBottom: "16px",
-              padding: "10px 12px",
-              background: "var(--background-color-2)",
-              borderRadius: "6px",
-              fontSize: "13px",
-              alignItems: "center",
-              overflowX: "auto",
-            }}
+            className={boardsStyle.mergeSearchBar}
+            ref={mergeFilterMenu.RefObject}
           >
-            <span style={{ color: "var(--text-color-2)", fontSize: "12px", marginRight: "4px" }}>
-              필터:
-            </span>
-            <input
-              type="text"
-              placeholder="응답자"
-              value={mergeFilters["_respondentName"] || ""}
-              onChange={(e) => handleMergeFilterChange("_respondentName", e.target.value)}
-              style={{
-                padding: "4px 8px",
-                border: "1px solid var(--border-color)",
-                borderRadius: "4px",
-                background: "var(--background-color-1)",
-                color: "var(--text-color-1)",
-                fontSize: "12px",
-                width: "100px",
-              }}
-            />
-            {post._mergeFields.map((field) =>
-              field.type === "date" || field.type === "multiDate" ? (
-                <DateRangeFilterDropdown
-                  key={field.label}
-                  value={
-                    mergeDateFilters[field.label] || { from: "", to: "" }
-                  }
-                  onChange={(range) =>
-                    handleMergeDateFilterChange(field.label, range)
-                  }
-                  placeholder={field.label}
-                />
-              ) : (
-                <input
-                  key={field.label}
-                  type="text"
-                  placeholder={field.label}
-                  value={mergeFilters[field.label] || ""}
-                  onChange={(e) =>
-                    handleMergeFilterChange(field.label, e.target.value)
-                  }
-                  style={{
-                    padding: "4px 8px",
-                    border: "1px solid var(--border-color)",
-                    borderRadius: "4px",
-                    background: "var(--background-color-1)",
-                    color: "var(--text-color-1)",
-                    fontSize: "12px",
-                    width: "100px",
-                  }}
-                />
-              )
-            )}
-            {(Object.values(mergeFilters).some((v) => v) ||
-              Object.values(mergeDateFilters).some(
-                (r) => r.from || r.to
-              )) && (
-              <span
-                style={{
-                  color: "var(--accent-1)",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                }}
-                onClick={() => {
-                  setMergeFilters({});
-                  setMergeDateFilters({});
-                  if (!postId) return;
-                  PostAPI.RPost({
-                    params: { _id: postId },
-                    query: { merge: "true" },
-                  })
-                    .then(({ post: updatedPost }) => {
-                      setPost((prev) =>
-                        prev
-                          ? { ...prev, content: updatedPost.content }
-                          : prev
-                      );
-                    })
-                    .catch((err) => ALERT_ERROR(err));
-                }}
-              >
-                초기화
+            <div className={boardsStyle.mergeSearchInputWrap}>
+              <span className={boardsStyle.mergeSearchIcon}>
+                <Svg type="search" width="18px" height="18px" />
               </span>
+              <input
+                className={boardsStyle.mergeSearchInput}
+                type="search"
+                placeholder="키워드 검색 (이름, 강의실, 목적 등)"
+                value={mergeKeyword}
+                onChange={(e) => handleMergeKeywordChange(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              className={`${boardsStyle.mergeFilterBtn} ${
+                mergeFilterMenu.active || hasDetailFilters
+                  ? boardsStyle.mergeFilterBtnActive
+                  : ""
+              }`}
+              title="세부 필터"
+              aria-expanded={mergeFilterMenu.active}
+              onClick={() =>
+                mergeFilterMenu.setActive(!mergeFilterMenu.active)
+              }
+            >
+              <Svg type="filter" width="18px" height="18px" />
+            </button>
+            {mergeFilterMenu.active && (
+              <div className={boardsStyle.mergeFilterPanel}>
+                <div className={boardsStyle.mergeFilterPanelHeader}>
+                  <span>세부 필터</span>
+                  {hasAnyMergeFilter && (
+                    <button
+                      type="button"
+                      className={boardsStyle.mergeFilterReset}
+                      onClick={clearMergeFilters}
+                    >
+                      초기화
+                    </button>
+                  )}
+                </div>
+                <div className={boardsStyle.mergeFilterRow}>
+                  <label className={boardsStyle.mergeFilterLabel}>응답자</label>
+                  <input
+                    className={boardsStyle.mergeFilterFieldInput}
+                    placeholder="검색..."
+                    value={mergeFilters["_respondentName"] || ""}
+                    onChange={(e) =>
+                      handleMergeFilterChange("_respondentName", e.target.value)
+                    }
+                  />
+                </div>
+                {post._mergeFields.map((field) => (
+                  <div key={field.label} className={boardsStyle.mergeFilterRow}>
+                    <label className={boardsStyle.mergeFilterLabel}>
+                      {field.label}
+                    </label>
+                    {field.type === "date" || field.type === "multiDate" ? (
+                      <DateRangeFilterDropdown
+                        compact
+                        value={
+                          mergeDateFilters[field.label] || { from: "", to: "" }
+                        }
+                        onChange={(range) =>
+                          handleMergeDateFilterChange(field.label, range)
+                        }
+                        placeholder="날짜 필터"
+                      />
+                    ) : (
+                      <input
+                        className={boardsStyle.mergeFilterFieldInput}
+                        placeholder="검색..."
+                        value={mergeFilters[field.label] || ""}
+                        onChange={(e) =>
+                          handleMergeFilterChange(field.label, e.target.value)
+                        }
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
