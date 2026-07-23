@@ -10,7 +10,18 @@
  */
 
 import type { Editor } from "@tiptap/react";
+import type { Node as PMNode } from "@tiptap/pm/model";
 import { safeBtoa, safeAtob } from "./htmlEmbed";
+
+/** replaceWith 전 from/to가 현재 doc 범위 안인지 확인 */
+const isValidReplaceRange = (
+  doc: PMNode,
+  from: number,
+  to: number
+): boolean => {
+  const size = doc.content.size;
+  return Number.isInteger(from) && Number.isInteger(to) && from >= 0 && to >= from && to <= size;
+};
 
 // YouTube URL에서 비디오 ID 추출
 export const extractYouTubeId = (url: string): string | null => {
@@ -36,21 +47,24 @@ export const extractYouTubeId = (url: string): string | null => {
  * 이 함수는 해당 노드들을 실제 YouTube/HtmlEmbed 노드로 변환합니다.
  */
 export const transformSpecialNodes = (editor: Editor): void => {
-  const { doc, schema } = editor.state;
-  const youtubeType = schema.nodes.youtube;
-  const htmlEmbedType = schema.nodes.htmlEmbed;
-  const mathInlineType = schema.nodes.mathInline;
-  const mathBlockType = schema.nodes.mathBlock;
+  if (editor.isDestroyed || !editor.view) return;
 
-  type Transform = {
-    from: number;
-    to: number;
-    node: any;
-  };
+  try {
+    const { doc, schema } = editor.state;
+    const youtubeType = schema.nodes.youtube;
+    const htmlEmbedType = schema.nodes.htmlEmbed;
+    const mathInlineType = schema.nodes.mathInline;
+    const mathBlockType = schema.nodes.mathBlock;
 
-  const transforms: Transform[] = [];
+    type Transform = {
+      from: number;
+      to: number;
+      node: PMNode;
+    };
 
-  doc.descendants((node, pos) => {
+    const transforms: Transform[] = [];
+
+    doc.descendants((node, pos) => {
     // ![youtube](URL) → YouTube 노드
     if (
       youtubeType &&
@@ -153,16 +167,38 @@ export const transformSpecialNodes = (editor: Editor): void => {
         });
       }
     }
-  });
+    });
 
-  if (transforms.length > 0) {
-    // 위치 보정을 위해 역순으로 적용
-    const { tr } = editor.state;
-    for (const t of transforms.reverse()) {
-      tr.replaceWith(t.from, t.to, t.node);
+    if (transforms.length === 0) return;
+
+    // 높은 from부터 적용해 앞쪽 위치가 밀리지 않게 함
+    transforms.sort((a, b) => b.from - a.from || b.to - a.to);
+
+    const tr = editor.state.tr;
+    let applied = 0;
+
+    for (const t of transforms) {
+      // 이전 replace로 doc가 바뀌었을 수 있으므로 mapping으로 위치 보정
+      const from = tr.mapping.map(t.from, -1);
+      const to = tr.mapping.map(t.to, 1);
+
+      if (!isValidReplaceRange(tr.doc, from, to)) continue;
+
+      try {
+        tr.replaceWith(from, to, t.node);
+        applied += 1;
+      } catch {
+        // 개별 변환 실패 시 나머지는 계속 시도
+        continue;
+      }
     }
-    tr.setMeta("addToHistory", false); // 변환 이력에 추가하지 않음
-    editor.view.dispatch(tr);
+
+    if (applied > 0 && !editor.isDestroyed && editor.view) {
+      tr.setMeta("addToHistory", false); // 변환 이력에 추가하지 않음
+      editor.view.dispatch(tr);
+    }
+  } catch (err) {
+    console.warn("[transformSpecialNodes] skipped due to error:", err);
   }
 };
 

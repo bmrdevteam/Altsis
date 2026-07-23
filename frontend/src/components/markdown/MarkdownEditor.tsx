@@ -121,6 +121,8 @@ const MarkdownEditor = ({
   titleRef.current = title;
   const valueRef = useRef(value);
   valueRef.current = value;
+  const transformTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const contentVersionRef = useRef(0);
   const openLinkDialogRef = useRef(() => {});
   openLinkDialogRef.current = () => setShowLinkDialog(true);
 
@@ -432,14 +434,47 @@ const MarkdownEditor = ({
     }
   };
 
+  const scheduleTransformSpecialNodes = useCallback(
+    (expectedVersion?: number) => {
+      if (transformTimeoutRef.current) {
+        clearTimeout(transformTimeoutRef.current);
+        transformTimeoutRef.current = null;
+      }
+      // setContent 직후 DOM/파서 반영을 기다린 뒤 한 번만 실행
+      transformTimeoutRef.current = setTimeout(() => {
+        transformTimeoutRef.current = null;
+        if (
+          expectedVersion !== undefined &&
+          expectedVersion !== contentVersionRef.current
+        ) {
+          return;
+        }
+        if (!editor || editor.isDestroyed || viewModeRef.current !== "wysiwyg") {
+          return;
+        }
+        transformSpecialNodes(editor);
+      }, 0);
+    },
+    [editor]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (transformTimeoutRef.current) {
+        clearTimeout(transformTimeoutRef.current);
+        transformTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // 에디터 초기화 후 및 WYSIWYG 전환 시 특수 노드 변환
   // ![youtube](URL) → YouTube 노드, ![embed](URL) → HtmlEmbed 노드,
   // ```html-app → HtmlEmbed 노드
   // useEffect를 사용하여 EditorContent가 DOM에 마운트된 후 실행되도록 보장
   useEffect(() => {
     if (!editor || viewMode !== "wysiwyg") return;
-    transformSpecialNodes(editor);
-  }, [editor, viewMode]);
+    scheduleTransformSpecialNodes();
+  }, [editor, viewMode, scheduleTransformSpecialNodes]);
 
   // 외부 value 변경 시 에디터 동기화 (소스 모드에서 편집 후 전환 등)
   useEffect(() => {
@@ -453,6 +488,7 @@ const MarkdownEditor = ({
     }
     const currentMd = postprocessMarkdown(getMarkdownFromEditor(editor));
     if (value !== currentMd) {
+      const version = ++contentVersionRef.current;
       // addToHistory: false로 설정하여 Ctrl+Z 시 이전 상태로 되돌리지 않음
       editor
         .chain()
@@ -462,10 +498,10 @@ const MarkdownEditor = ({
         })
         .setContent(value)
         .run();
-      // 다시 특수 노드 변환
-      setTimeout(() => transformSpecialNodes(editor), 0);
+      // 다시 특수 노드 변환 (스케줄 중복·stale 실행 방지)
+      scheduleTransformSpecialNodes(version);
     }
-  }, [value, editor]);
+  }, [value, editor, scheduleTransformSpecialNodes]);
 
   const handleSourceChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {

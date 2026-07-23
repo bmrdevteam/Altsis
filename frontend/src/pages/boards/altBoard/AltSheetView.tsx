@@ -170,6 +170,54 @@ const AltSheetView = ({
     return `${plain.slice(0, max)}…`;
   };
 
+  /** CSV 내보내기용: base64 등 무거운 데이터 제거, 가독 가능한 텍스트 유지 */
+  const sanitizeForCsvExport = (value: string): string => {
+    let text = value;
+
+    // 마크다운 이미지(data URI)
+    text = text.replace(/!\[[^\]]*\]\(data:[^)]+\)/g, "[이미지]");
+    // 마크다운 링크(data URI)
+    text = text.replace(/\[[^\]]*\]\(data:[^)]+\)/g, "[첨부데이터]");
+    // HTML img(data URI)
+    text = text.replace(
+      /<img\b[^>]*\bsrc=["']data:[^"']+["'][^>]*>/gi,
+      "[이미지]"
+    );
+    // HTML table → 탭 구분 텍스트
+    text = text.replace(/<table\b[^>]*>([\s\S]*?)<\/table>/gi, (_, tableHtml) => {
+      const rows: string[] = [];
+      for (const rowMatch of tableHtml.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+        const cells: string[] = [];
+        for (const cellMatch of rowMatch[1].matchAll(
+          /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi
+        )) {
+          cells.push(
+            cellMatch[1]
+              .replace(/<[^>]+>/g, " ")
+              .replace(/[^\S\n]+/g, " ")
+              .trim()
+          );
+        }
+        if (cells.length > 0) rows.push(cells.join("\t"));
+      }
+      return rows.join("\n");
+    });
+    // 남은 HTML 태그 제거(내용은 유지)
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+    text = text.replace(/<\/?(p|div|h[1-6]|li|blockquote)[^>]*>/gi, "\n");
+    text = text.replace(/<[^>]+>/g, "");
+
+    // 노출된 data URI blob
+    text = text.replace(/data:image\/[^;,\s]+;[^,\s"')]+,[^)\s"'>]+/gi, "[이미지]");
+    text = text.replace(/data:[^;,\s]+;[^,\s"')]+,[^)\s"'>]+/gi, "[첨부데이터]");
+
+    // 같은 줄 공백 정리, 과도한 빈 줄만 축소(의도적 줄바꿈은 유지)
+    text = text.replace(/[^\S\n]+/g, " ");
+    text = text.replace(/\n{3,}/g, "\n\n");
+
+    return text.trim();
+  };
+
   const formatCellValue = (value: any, field?: TAltFormField): string => {
     if (value === null || value === undefined) return "";
 
@@ -263,7 +311,15 @@ const AltSheetView = ({
     ) {
       return value.join(",");
     }
-    return formatCellValue(value, field);
+    const formatted = formatCellValue(value, field);
+    if (
+      field?.type === "docResponse" ||
+      field?.type === "textarea" ||
+      field?.type === "content"
+    ) {
+      return sanitizeForCsvExport(formatted);
+    }
+    return formatted;
   };
 
   // 필터링된 행
