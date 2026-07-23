@@ -1862,12 +1862,9 @@
   }
 }
 
+/* NOTE는 베이스(.md-callout) 색을 쓰고, 왼쪽 테두리만 강조 */
 :global(.md-callout-note) {
   border-left-color: var(--status-info);
-  background-color: var(--status-info-bg);
-  .md-callout-icon {
-    color: var(--status-info);
-  }
 }
 
 :global(.md-callout-tip) {

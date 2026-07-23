@@ -13,7 +13,7 @@ type Props = {
 const OPTIONS: {
   label: string;
   value: HeadingValue;
-  previewSize?: string;
+  previewSize: string;
 }[] = [
   { label: "본문", value: "paragraph", previewSize: "14px" },
   { label: "제목 1", value: 1, previewSize: "2em" },
@@ -63,11 +63,7 @@ const HeadingDropdown = ({ editor, onClose }: Props) => {
             isActive(opt.value) ? style.headingDropdownItemActive : ""
           }`}
           onClick={() => apply(opt.value)}
-          style={
-            opt.previewSize
-              ? { fontSize: `min(${opt.previewSize}, 18px)` }
-              : undefined
-          }
+          style={{ fontSize: `min(${opt.previewSize}, 18px)` }}
         >
           {opt.label}
         </button>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, Children, isValidElement } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -8,59 +8,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import DOMPurify from "dompurify";
 import style from "./markdown.module.scss";
-import {
-  CALLOUT_LABELS,
-  CALLOUT_ICON_PATHS,
-  isCalloutType,
-  normalizeCalloutType,
-  preprocessCallouts,
-  type CalloutType,
-} from "./extensions/callout";
-
-const flatText = (node: any): string => {
-  if (node == null || typeof node === "boolean") return "";
-  if (typeof node === "string" || typeof node === "number") return String(node);
-  if (Array.isArray(node)) return node.map(flatText).join("");
-  if (isValidElement(node)) return flatText((node.props as any).children);
-  return "";
-};
-
-const CalloutIcon = ({ type }: { type: CalloutType }) => (
-  <span
-    className="md-callout-icon"
-    aria-label={CALLOUT_LABELS[type]}
-    title={CALLOUT_LABELS[type]}
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d={CALLOUT_ICON_PATHS[type]} />
-    </svg>
-  </span>
-);
-
-const CalloutBox = ({
-  type,
-  children,
-}: {
-  type: CalloutType;
-  children?: React.ReactNode;
-}) => (
-  <div
-    className={`md-callout md-callout-${type.toLowerCase()}`}
-    data-callout={type}
-  >
-    <CalloutIcon type={type} />
-    {children != null ? (
-      <div className="md-callout-body">{children}</div>
-    ) : null}
-  </div>
-);
+import { preprocessCallouts } from "./extensions/callout";
 
 // @[이름](id) 멘션 패턴을 React 요소로 변환
 const renderMentions = (text: string): (string | JSX.Element)[] => {
@@ -261,21 +209,6 @@ const baseComponents = {
     );
   },
   p: ({ children, ...props }: any) => {
-    // 깨진 한 줄 콜아웃: "> [!TIP] > 본문" (blockquote로 파싱되지 않은 경우)
-    const raw = flatText(children).trim();
-    const brokenCallout =
-      /^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(?:>\s*)?([\s\S]*)$/i.exec(
-        raw
-      );
-    if (brokenCallout) {
-      const type = normalizeCalloutType(brokenCallout[1]);
-      return (
-        <CalloutBox type={type}>
-          {brokenCallout[2]?.trim() ? <p>{brokenCallout[2].trim()}</p> : null}
-        </CalloutBox>
-      );
-    }
-
     if (typeof children === "string") {
       const youtubeId = extractYouTubeId(children.trim());
       if (youtubeId) {
@@ -340,52 +273,6 @@ const baseComponents = {
       );
     }
     return <input type={type} {...props} />;
-  },
-  // > [!NOTE] GitHub Alerts → 콜아웃 박스
-  blockquote: ({ children, ...props }: any) => {
-    const kids = Children.toArray(children);
-    const first = kids[0];
-    let markerText = "";
-    if (typeof first === "string") {
-      markerText = first.trim();
-    } else if (isValidElement(first)) {
-      const nested = (first.props as any)?.children;
-      if (typeof nested === "string") markerText = nested.trim();
-      else if (Array.isArray(nested)) {
-        markerText = nested
-          .map((c) => (typeof c === "string" ? c : ""))
-          .join("")
-          .trim();
-      }
-    }
-    const markerMatch = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/i.exec(
-      markerText
-    );
-    if (markerMatch) {
-      const type = normalizeCalloutType(markerMatch[1]);
-      return <CalloutBox type={type}>{kids.slice(1)}</CalloutBox>;
-    }
-    return <blockquote {...props}>{children}</blockquote>;
-  },
-  // preprocess 된 div[data-callout] — 아이콘 HTML이 이미 포함됨
-  div: ({ className, children, ...props }: any) => {
-    const calloutAttr = props["data-callout"];
-    if (calloutAttr && isCalloutType(String(calloutAttr))) {
-      const type = normalizeCalloutType(String(calloutAttr)) as CalloutType;
-      return (
-        <div
-          className={`md-callout md-callout-${type.toLowerCase()}`}
-          data-callout={type}
-        >
-          {children}
-        </div>
-      );
-    }
-    return (
-      <div className={className} {...props}>
-        {children}
-      </div>
-    );
   },
 };
 

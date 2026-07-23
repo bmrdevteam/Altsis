@@ -1,6 +1,6 @@
 /** GitHub Alerts 스타일 콜아웃 — 뷰어에서 마크다운 문법만 렌더 */
 
-export const CALLOUT_TYPES = [
+const CALLOUT_TYPES = [
   "NOTE",
   "TIP",
   "IMPORTANT",
@@ -8,10 +8,10 @@ export const CALLOUT_TYPES = [
   "CAUTION",
 ] as const;
 
-export type CalloutType = (typeof CALLOUT_TYPES)[number];
+type CalloutType = (typeof CALLOUT_TYPES)[number];
 
 /** 접근성용 라벨 (화면에는 아이콘만 표시) */
-export const CALLOUT_LABELS: Record<CalloutType, string> = {
+const CALLOUT_LABELS: Record<CalloutType, string> = {
   NOTE: "참고",
   TIP: "팁",
   IMPORTANT: "중요",
@@ -20,7 +20,7 @@ export const CALLOUT_LABELS: Record<CalloutType, string> = {
 };
 
 /** 16x16 Material-style path (viewBox 0 0 24 24) */
-export const CALLOUT_ICON_PATHS: Record<CalloutType, string> = {
+const CALLOUT_ICON_PATHS: Record<CalloutType, string> = {
   // info
   NOTE: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z",
   // lightbulb
@@ -36,10 +36,10 @@ export const CALLOUT_ICON_PATHS: Record<CalloutType, string> = {
     "M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z",
 };
 
-export const isCalloutType = (value: string): value is CalloutType =>
+const isCalloutType = (value: string): value is CalloutType =>
   (CALLOUT_TYPES as readonly string[]).includes(value.toUpperCase());
 
-export const normalizeCalloutType = (value?: string | null): CalloutType => {
+const normalizeCalloutType = (value?: string | null): CalloutType => {
   const upper = (value || "NOTE").toUpperCase();
   return isCalloutType(upper) ? upper : "NOTE";
 };
@@ -51,7 +51,7 @@ const escapeHtml = (text: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-export const calloutIconHtml = (type: CalloutType): string => {
+const calloutIconHtml = (type: CalloutType): string => {
   const label = CALLOUT_LABELS[type];
   const path = CALLOUT_ICON_PATHS[type];
   return `<span class="md-callout-icon" aria-label="${label}" title="${label}"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${path}"/></svg></span>`;
