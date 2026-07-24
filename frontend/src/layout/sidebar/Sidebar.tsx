@@ -12,6 +12,7 @@ import Nav, {
   SubLinks,
 } from "./sidebar.components";
 import { INavLink, SidebarData } from "./SidebarData";
+import useAPIv2 from "hooks/useAPIv2";
 
 import { useLocation } from "react-router-dom";
 
@@ -20,7 +21,9 @@ type Props = {};
 const Sidebar = (props: Props) => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const { currentUser, currentRegistration } = useAuth();
+  const { currentUser, currentRegistration, currentSchool } = useAuth();
+  const { AltSheetRowAPI } = useAPIv2();
+  const [boardsTodoCount, setBoardsTodoCount] = useState(0);
 
   useEffect(() => {
     setSidebarOpen(window.localStorage.getItem("AppSidebarStatus") === "open");
@@ -33,6 +36,31 @@ const Sidebar = (props: Props) => {
       window.localStorage.setItem("AppSidebarStatus", "close");
     }
   }, [sidebarOpen]);
+
+  // 보드 할 일 뱃지 (사이드바)
+  useEffect(() => {
+    if (
+      !currentSchool?._id ||
+      currentSchool.boardEnabled === false ||
+      currentSchool.academyFeatures?.boardEnabled === false
+    ) {
+      setBoardsTodoCount(0);
+      return;
+    }
+    let cancelled = false;
+    AltSheetRowAPI.RAltSheetRowSchoolTodos({
+      query: { school: currentSchool._id },
+    })
+      .then(({ count }) => {
+        if (!cancelled) setBoardsTodoCount(count || 0);
+      })
+      .catch(() => {
+        if (!cancelled) setBoardsTodoCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSchool?._id, location.pathname]);
 
   return (
     <Nav open={sidebarOpen}>
@@ -61,6 +89,9 @@ const Sidebar = (props: Props) => {
                     key={index}
                     path={data.path}
                     icon={data.icon}
+                    badge={
+                      data.title === "boards" ? boardsTodoCount : data.badge
+                    }
                     active={
                       location.pathname.split("/")[3]
                         ? data.title.includes(location.pathname.split("/")[3]) ||

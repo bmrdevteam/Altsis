@@ -170,6 +170,7 @@
                     display: flex;
                     justify-content: center;
                     align-items: center;
+                    position: relative;
 
                     svg {
 
@@ -177,6 +178,35 @@
                         fill: var(--accent-4)
                     }
 
+                }
+
+                .nav_badge {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 18px;
+                    height: 18px;
+                    padding: 0 5px;
+                    margin-right: 8px;
+                    border-radius: 9px;
+                    background-color: var(--status-error, #e53935);
+                    color: #fff;
+                    font-size: 11px;
+                    font-weight: 600;
+                    line-height: 1;
+                    flex-shrink: 0;
+                }
+
+                .nav_badge_dot {
+                    display: none;
+                    position: absolute;
+                    top: -2px;
+                    right: -2px;
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background-color: var(--status-error, #e53935);
+                    border: 1.5px solid var(--component-color);
                 }
 
                 .name {
@@ -442,7 +472,15 @@
                 display: none;
             }
 
-            .icon {}
+            .nav_badge {
+                display: none;
+            }
+
+            .icon {
+                .nav_badge_dot {
+                    display: block;
+                }
+            }
         }
 
         .sub_links {

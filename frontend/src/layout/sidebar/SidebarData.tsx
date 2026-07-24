@@ -9,6 +9,8 @@ export interface INavLink {
   subLink?: INavSubLink[];
   type?: "default" | "link";
   matchPaths?: string[];
+  /** 사이드바 뱃지 숫자 (0 이하면 숨김) */
+  badge?: number;
 }
 
 export interface INavSubLink {

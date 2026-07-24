@@ -172,15 +172,25 @@ const Boards = () => {
     navigate(`${location.pathname}${location.search}#보드`, { replace: true });
   };
 
+  // 구 해시 #활동 → #할 일 (목록 페이지 전용)
+  useEffect(() => {
+    const hash = decodeURI(location.hash || "").replace("#", "");
+    if (hash === "활동") {
+      navigate(`${location.pathname}${location.search}#할 일`, {
+        replace: true,
+      });
+    }
+  }, [location.hash, location.pathname, location.search, navigate]);
+
   const displayBoards = useMemo(
     () =>
       showFavoritesOnly ? boards.filter((b) => b.isFavorited) : boards,
     [boards, showFavoritesOnly]
   );
 
-  const defaultTab = todos.length > 0 ? "활동" : "보드";
+  const defaultTab = todos.length > 0 ? "할 일" : "보드";
   const tabBadges: Record<string, number> = {};
-  if (todos.length > 0) tabBadges["활동"] = todos.length;
+  if (todos.length > 0) tabBadges["할 일"] = todos.length;
 
   if (boardEnabled === false) {
     return (
@@ -347,7 +357,7 @@ const Boards = () => {
         {todosReady ? (
           <Tab
             items={{
-              활동: (
+              "할 일": (
                 <BoardsActivityTodos
                   items={todos}
                   loading={todosLoading}

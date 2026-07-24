@@ -109,17 +109,17 @@ const NavLink = ({
   icon,
   active,
   subLink,
-
   path,
   type,
+  badge,
 }: {
   children?: string;
   icon?: JSX.Element;
   active?: boolean;
   subLink?: JSX.Element[] | JSX.Element;
-
   path?: string;
   type?: "default" | "link";
+  badge?: number;
 }) => {
   const navigate = useAppNavigate();
   const { currentUser } = useAuth();
@@ -132,6 +132,13 @@ const NavLink = ({
     // active 상태 변경 시 수동 토글 초기화
     setExpanded(null);
   }, [active]);
+
+  const badgeEl =
+    badge != null && badge > 0 ? (
+      <span className={style.nav_badge} title={`할 일 ${badge}건`}>
+        {badge > 99 ? "99+" : badge}
+      </span>
+    ) : null;
 
   return type === "default" ? (
     <div
@@ -148,8 +155,12 @@ const NavLink = ({
           currentUser && path && navigate(path, { replace: true });
         }}
       >
-        <span className={style.icon}>{icon}</span>
+        <span className={style.icon}>
+          {icon}
+          {badgeEl && <span className={style.nav_badge_dot} aria-hidden />}
+        </span>
         <span className={style.name}>{children}</span>
+        {badgeEl}
         {subLink && (
           <span
             className={`${style.chevron} ${isExpanded ? style.chevron_open : ""}`}
@@ -171,6 +182,7 @@ const NavLink = ({
       >
         <span className={style.icon}>{icon}</span>
         <span className={style.name}>{children}</span>
+        {badgeEl}
       </div>
     </div>
   );
