@@ -131,12 +131,11 @@ const BoardPid = () => {
 
             <div className={bStyle.detailHeaderRight}>
               <button
-                className={bStyle.textBtn}
+                className={bStyle.iconBtn}
                 onClick={() => setShowMemberListPopup(true)}
                 title="멤버 보기"
               >
-                <Svg type="user" width="16px" height="16px" />
-                멤버
+                <Svg type="users" width="18px" height="18px" />
               </button>
               {canManageBoard(board) && (
                 <button

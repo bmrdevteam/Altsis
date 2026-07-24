@@ -17,6 +17,7 @@ import { useAuth } from "contexts/authContext";
 import useAPIv2, { ALERT_ERROR } from "hooks/useAPIv2";
 
 import style from "style/pages/enrollment.module.scss";
+import abStyle from "./altBoard/altBoard.module.scss";
 
 import Button from "components/button/Button";
 import Svg from "assets/svg/Svg";
@@ -434,9 +435,11 @@ const PostPid = () => {
             </span>
           </div>
 
-          <div style={{ display: "flex", gap: "8px" }}>
-            <Button
-              type="hover"
+          <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+            <button
+              type="button"
+              className={abStyle.formCardIconBtn}
+              title="다운로드"
               onClick={() => {
                 const raw = (post as any)._rawContent || post.content || "";
                 const blob = new Blob([raw], {
@@ -450,24 +453,44 @@ const PostPid = () => {
                 URL.revokeObjectURL(url);
               }}
             >
-              다운로드
-            </Button>
+              <Svg type="download" width="20px" height="20px" />
+            </button>
             {canEdit && (
               <>
                 {isManager && (
-                  <Button type="hover" onClick={handlePin}>
-                    {post.isPinned ? "고정 해제" : "고정"}
-                  </Button>
+                  <button
+                    type="button"
+                    className={`${abStyle.formCardIconBtn} ${
+                      post.isPinned ? abStyle.formCardIconBtnActive : ""
+                    }`}
+                    title={post.isPinned ? "고정 해제" : "고정"}
+                    onClick={handlePin}
+                  >
+                    <Svg
+                      type={post.isPinned ? "pinOff" : "pin"}
+                      width="20px"
+                      height="20px"
+                    />
+                  </button>
                 )}
-                <Button
-                  type="hover"
-                  onClick={() => navigate(`/boards/${boardId}/edit/${postId}`)}
+                <button
+                  type="button"
+                  className={abStyle.formCardIconBtn}
+                  title="문서 수정"
+                  onClick={() =>
+                    navigate(`/boards/${boardId}/edit/${postId}`)
+                  }
                 >
-                  수정
-                </Button>
-                <Button type="hover" onClick={handleDelete}>
-                  삭제
-                </Button>
+                  <Svg type="write" width="20px" height="20px" />
+                </button>
+                <button
+                  type="button"
+                  className={`${abStyle.formCardIconBtn} ${abStyle.formCardIconBtnDanger}`}
+                  title="삭제"
+                  onClick={handleDelete}
+                >
+                  <Svg type="trash" width="20px" height="20px" />
+                </button>
               </>
             )}
           </div>

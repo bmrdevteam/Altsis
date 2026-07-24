@@ -1923,7 +1923,7 @@ const AltFormBuilder = ({
           <button className={style.backBtn} onClick={onBack}>
             <Svg type="chevronLeft" width="20px" height="20px" />
           </button>
-          <span style={{ fontSize: "16px", fontWeight: 600 }}>양식 관리</span>
+          <span style={{ fontSize: "16px", fontWeight: 600 }}>활동</span>
           <span
             className={`${style.formCardBadge} ${
               isDraft ? style.badgePending : style.badgeOpen

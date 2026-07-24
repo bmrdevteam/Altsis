@@ -1401,7 +1401,7 @@ const AltSheetView = ({
               onClick={() => setViewMode("table")}
               title="테이블 보기"
             >
-              <Svg type="list" width="20px" height="20px" />
+              <Svg type="table" width="20px" height="20px" />
             </button>
             <button
               type="button"

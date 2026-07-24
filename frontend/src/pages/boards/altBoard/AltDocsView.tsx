@@ -383,13 +383,13 @@ const AltDocsView = ({ board, onPostsChanged }: Props) => {
                         <button
                           type="button"
                           className={style.formCardIconBtn}
-                          title="수정"
+                          title="문서 수정"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/boards/${board._id}/edit/${post._id}`);
                           }}
                         >
-                          <Svg type="edit" width="20px" height="20px" />
+                          <Svg type="write" width="20px" height="20px" />
                         </button>
                         <button
                           type="button"

@@ -379,40 +379,40 @@ const AltFormList = ({
                 onViewMyResponses!(form._id);
               }}
             >
-              <Svg type="article" width="20px" height="20px" />
+              <Svg type="menuBook" width="20px" height="20px" />
             </button>
           )}
           {showRespond && (
             <button
               type="button"
               className={style.formCardIconBtn}
-              title="작성"
+              title="응답 작성"
               onClick={(e) => {
                 e.stopPropagation();
                 onRespondForm(form._id);
               }}
             >
-              <Svg type="edit" width="20px" height="20px" />
+              <Svg type="write" width="20px" height="20px" />
             </button>
           )}
           {canEditForm && (
             <button
               type="button"
               className={style.formCardIconBtn}
-              title="양식"
+              title="양식 수정"
               onClick={(e) => {
                 e.stopPropagation();
                 onFormClick(form);
               }}
             >
-              <Svg type="editNote" width="20px" height="20px" />
+              <Svg type="settings" width="20px" height="20px" />
             </button>
           )}
           {showSheet && (
             <button
               type="button"
               className={style.formCardIconBtn}
-              title="기록"
+              title="기록 보기"
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenSheet!(form._id);
@@ -457,7 +457,7 @@ const AltFormList = ({
                     }}
                   >
                     <Svg type="download" width="16px" height="16px" />
-                    JSON 내보내기
+                    다운로드
                   </div>
                   <div
                     className={style.formActionItem}
